@@ -9,6 +9,7 @@
 
   // Lectura (tarjeta pequeña con rótulo y valor)
   U.lec = function (rotulo, valor, clase) {
+    valor = String(valor).replace(/→/g, "⟶").replace(/←/g, "⟵");   // la flecha corta se ve diminuta con la tipografía matemática
     return '<div class="lec ' + (clase || "") + '"><small>' + rotulo + "</small><b>" + valor + "</b></div>";
   };
 
