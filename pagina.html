@@ -585,6 +585,7 @@
     *, *::before, *::after { transition: none !important; animation: none !important; }
   }
 </style>
+<link rel="stylesheet" href="ampliaciones/estilos.css">
 
 <header class="topbar">
   <div class="topbar-inner">
@@ -712,6 +713,15 @@
 
 </main>
 
+<!-- Ampliaciones: capa aparte que se fusiona con el contenido de abajo sin modificarlo -->
+<script src="ampliaciones/grafica.js"></script>
+<script src="ampliaciones/nucleo.js"></script>
+<script src="ampliaciones/actividades.js"></script>
+<script src="ampliaciones/lab_analisis.js"></script>
+<script src="ampliaciones/lab_equilibrio.js"></script>
+<script src="ampliaciones/mates1.js"></script>
+<script src="ampliaciones/quimica2.js"></script>
+<script src="ampliaciones/historia_esp.js"></script>
 <script>
 (function () {
   "use strict";
@@ -15820,6 +15830,9 @@
     historia_fil: { temas: TEMAS_FILOSOFIA, content: TEMA_CONTENT_FILOSOFIA, lamina: TEMA_LAMINA_FILOSOFIA, ejercicios: TEMA_EJERCICIOS_FILOSOFIA, videos: TEMA_VIDEOS_FILOSOFIA, simulacros: SIMULACROS_HISTORIA_FIL }
   };
 
+  // Fusiona las ampliaciones (carpeta ampliaciones/) con los datos de arriba, que no se tocan
+  if (window.BACHI) BACHI.fusionar(ASIGNATURAS_DATA);
+
   var REDACCION_EJERCICIOS = [
     {
       id: "red1",
@@ -16461,6 +16474,7 @@
 
       detail.innerHTML = toc + html + nav;
       resaltarMatematicas(detail);
+      if (window.BACHI) BACHI.montar(detail);
     }
   }
 
@@ -16487,10 +16501,11 @@
   function renderLaminas() {
     if (!asignaturaActual) return;
     var lamina = ASIGNATURAS_DATA[asignaturaActual].lamina;
-    var html = "";
+    var html = window.BACHI ? BACHI.barraLamina() : "";
     temasListos().forEach(function (t, i) {
       html += '<section class="tema-block">' + temaHead(t, i) + '<div class="lamina">';
       (lamina[t.id] || []).forEach(function (block) {
+        if (block.ampl && window.BACHI) { html += BACHI.tarjetaLamina(block); return; }
         html += '<div class="lamina-card"><h4>' + block.titulo + '</h4>';
         block.items.forEach(function (item) {
           html += '<div class="formula-row">' +
@@ -16515,6 +16530,7 @@
       html += '<section class="tema-block">' + temaHead(t, ti) + '<div class="ex-list">';
       (ejercicios[t.id] || []).forEach(function (ex, i) {
         var solId = "sol-" + t.id + "-" + i;
+        if (ex.ampl && window.BACHI) { html += BACHI.articulo(asignaturaActual, t.id, ex, i, solId); return; }
         html += '<article class="exercise">' +
           '<div class="ex-head"><span class="ex-num">' + (i + 1) + '</span>Ejercicio</div>' +
           '<div class="exercise-statement">' + ex.enunciado + '</div>' +
@@ -16532,6 +16548,7 @@
     var panelEjercicios = document.getElementById("panel-ejercicios");
     panelEjercicios.innerHTML = html;
     panelEjercicios.querySelectorAll(".exercise-statement").forEach(resaltarMatematicas);
+    if (window.BACHI) BACHI.montar(panelEjercicios);
   }
 
   document.getElementById("panel-ejercicios").addEventListener("click", function (e) {
