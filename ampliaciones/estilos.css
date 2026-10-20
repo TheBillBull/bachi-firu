@@ -499,3 +499,28 @@
 .ac-t td.pen { color: var(--pen); } .ac-t td.red { color: var(--red); }
 .ac-t tbody tr + tr td, .ac-t tbody tr + tr th { border-top: 1px solid var(--line); }
 .bz-acc { margin-top: 8px; }
+
+/* ---- FyQ I · tema 1: átomo ---- */
+.q1-tp-wrap { overflow-x: auto; padding: 2px; }
+.q1-tp { display: grid; grid-template-columns: repeat(18, minmax(26px, 1fr)); grid-template-rows: repeat(5, auto); gap: 2px; min-width: 520px; margin: 6px 0; }
+.q1-el { position: relative; border: 1.5px solid transparent; border-radius: 6px; padding: 8px 0 6px; font: 700 14px/1 var(--body); cursor: pointer; text-align: center; transition: transform .08s; }
+.q1-el i { position: absolute; top: 2px; left: 3px; font: 500 8.5px/1 var(--body); font-style: normal; opacity: .8; }
+.q1-el b { font-weight: 800; }
+.q1-el:hover { transform: scale(1.12); z-index: 2; }
+.q1-el.sel { border-color: var(--ink); box-shadow: 0 0 0 2px var(--sheet), 0 0 0 4px var(--ink); z-index: 3; }
+.q1-el:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; z-index: 3; }
+.q1-leyenda { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 13px; color: var(--ink-soft); margin: 4px 0 8px; }
+.q1-leyenda i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 4px; }
+.q1-grad i { width: 160px; height: 12px; border-radius: 6px; }
+.q1-fila { display: grid; grid-template-columns: minmax(0, 300px) 1fr; gap: 14px; align-items: start; }
+.q1-lienzo { max-width: 320px; margin: 0 auto; width: 100%; }
+.q1-atomo, .q1-forma { width: 100%; height: auto; display: block; }
+.q1-niveles { max-width: 380px; }
+.q1-orbitales { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 10px 0; }
+.q1-sub { display: inline-flex; align-items: center; gap: 3px; background: var(--sheet-2); border-radius: 8px; padding: 4px 8px; }
+.q1-sub b { font: 700 13px var(--body); color: var(--pen); margin-right: 4px; }
+.q1-orb { display: inline-block; min-width: 24px; height: 24px; line-height: 22px; text-align: center; border: 1.5px solid var(--ink-faint); border-radius: 4px; font: 700 15px var(--body); color: var(--ink); letter-spacing: -2px; }
+.q1-juego { margin-top: 12px; padding: 10px 14px; border: 1.5px dashed var(--ink-faint); border-radius: 12px; }
+.q1-juego p { margin: 4px 0; }
+.q1-tq { margin-top: 10px; }
+@media (max-width: 700px) { .q1-fila { grid-template-columns: 1fr; } .q1-tp { min-width: 470px; } }
