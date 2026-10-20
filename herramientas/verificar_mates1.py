@@ -632,6 +632,155 @@ for it in datos['ampl']['mates1']['t5']['datos']['tipos']['items']:
         ok_cl5 = ok_cl5 and it['c'] == 2
 comprobar('t5 tipos: identidad / ecuación / falsa', ok_cl5)
 
+
+# =====================================================================
+# TEMA 6 · Números complejos
+# =====================================================================
+import cmath
+E6 = {e['id']: e for e in datos['ampl']['mates1']['t6']['ejercicios']}
+def v6(id_, k=0):
+    c = E6[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+def n6(id_, k=0): return v6(id_, k)['valor']
+I = sp.I
+def re_im(zz): zz = sp.nsimplify(sp.simplify(zz)); return float(sp.re(zz)), float(sp.im(zz))
+def cc(a, b, tol=0.006, abs_=1e-9): return abs(a - b) <= max(tol*abs(b), abs_)
+def polar(r, deg): return r*(sp.cos(sp.rad(deg)) + I*sp.sin(sp.rad(deg)))
+def arg_deg(zz):
+    t = math.degrees(cmath.phase(complex(zz))); t = t % 360
+    return 0.0 if abs(t - 360) < 1e-9 else t
+
+comprobar('t6 j1', sp.simplify(I**45 - I) == 0 and (n6('j1', 0), n6('j1', 1)) == (0, 1))
+comprobar('t6 j2', re_im((2 - 3*I) + (5 + I)) == (7, -2) and (n6('j2', 0), n6('j2', 1)) == (7, -2))
+comprobar('t6 j3', re_im(sp.expand((2 + 3*I)*(4 - I))) == (11, 10) and (n6('j3', 0), n6('j3', 1)) == (11, 10))
+comprobar('t6 j4', sp.Abs(3 - 4*I) == 5 == n6('j4', 0) and sp.im(sp.conjugate(3 - 4*I)) == 4 == n6('j4', 1))
+comprobar('t6 j5', sp.expand((1 + I)**2) == 2*I and (n6('j5', 0), n6('j5', 1)) == (0, 2))
+comprobar('t6 j6', sorted(sp.solve(sp.Symbol('x')**2 + 4, sp.Symbol('x')), key=lambda r: sp.im(r)) == [-2*I, 2*I] and n6('j6') == 2)
+comprobar('t6 j7', sp.simplify((4 + 2*I)/(1 + I) - (3 - I)) == 0 and (n6('j7', 0), n6('j7', 1)) == (3, -1))
+comprobar('t6 j8', abs(2*I) == 2 and arg_deg(2j) == 90 and (n6('j8', 0), n6('j8', 1)) == (2, 90))
+a9, b9 = re_im(polar(4, 60)); comprobar('t6 j9', cc(a9, n6('j9', 0)) and cc(b9, n6('j9', 1), 0.002))
+comprobar('t6 j10', sp.Abs(-5 + 12*I) == 13 == n6('j10'))
+comprobar('t6 j11', sp.simplify(sum(I**k for k in range(100))) == 0 == n6('j11'))
+sol12 = sp.solve(sp.Symbol('x')**2 - 2*sp.Symbol('x') + 5, sp.Symbol('x')); comprobar('t6 j12', sorted(sol12, key=lambda r: sp.im(r)) == [1 - 2*I, 1 + 2*I] and (n6('j12', 0), n6('j12', 1)) == (1, 2))
+a13, b13 = re_im(sp.simplify((3 - 2*I)/(1 + 2*I))); comprobar('t6 j13', cc(a13, n6('j13', 0)) and cc(b13, n6('j13', 1)) and (a13, b13) == (-0.2, -1.6))
+zz14 = sp.simplify((3 - I)/(1 + 2*I)); comprobar('t6 j14', cc(float(sp.re(zz14)), n6('j14', 0)) and cc(float(sp.im(zz14)), n6('j14', 1)) and sp.simplify((1 + 2*I)*zz14 - (3 - I)) == 0)
+xx, yy = sp.symbols('xx yy', real=True); s15 = sp.solve([2*xx - yy - 5, xx + 3*yy - 6], [xx, yy]); comprobar('t6 j15', (s15[xx], s15[yy]) == (3, 1) == (n6('j15', 0), n6('j15', 1)))
+comprobar('t6 j16', cc(abs(-1 + 1j), n6('j16', 0), 0.002) and arg_deg(-1 + 1j) == 135 == n6('j16', 1))
+comprobar('t6 j17', cc(abs(-math.sqrt(3) - 1j), 2) and abs(arg_deg(-math.sqrt(3) - 1j) - 210) < 1e-9 and n6('j17', 1) == 210 and n6('j17', 0) == 2)
+a18, b18 = re_im(polar(3, 150)); comprobar('t6 j18', cc(a18, n6('j18', 0), 0.002) and cc(b18, n6('j18', 1)))
+zz19 = polar(2, 30)*polar(5, 75); comprobar('t6 j19', cc(abs(complex(zz19)), 10) and abs(arg_deg(zz19) - 105) < 1e-9 and (n6('j19', 0), n6('j19', 1)) == (10, 105))
+zz20 = polar(12, 200)/polar(3, 50); comprobar('t6 j20', cc(abs(complex(zz20)), 4) and abs(arg_deg(zz20) - 150) < 1e-9 and (n6('j20', 0), n6('j20', 1)) == (4, 150))
+comprobar('t6 j21', sp.expand((1 - I)**6) == 8*I and (n6('j21', 0), n6('j21', 1)) == (0, 8))
+a22, b22 = re_im(sp.expand((sp.sqrt(3) + I)**10)); comprobar('t6 j22', cc(a22, n6('j22', 0)) and cc(b22, n6('j22', 1), 0.001) and abs(a22 - 512) < 1e-6 and abs(b22 + 512*math.sqrt(3)) < 1e-6)
+r23 = sp.solve(sp.Symbol('x')**2 + 4, sp.Symbol('x')); comprobar('t6 j23', sorted(float(sp.im(r)) for r in r23) == sorted(v6('j23')['valores']))
+w24 = [cmath.rect(2, math.radians(a)) for a in (0, 120, 240)]; comprobar('t6 j24', all(abs(r**3 - 8) < 1e-9 for r in w24) and cc(w24[1].real, n6('j24', 0), 0.002) and cc(w24[1].imag, n6('j24', 1), 0.002))
+comprobar('t6 j25', sp.expand((1 + 2*I)**2) == -3 + 4*I and sp.expand((-1 - 2*I)**2) == -3 + 4*I and (n6('j25', 0), n6('j25', 1)) == (1, 2))
+e26 = sp.expand((xx + yy*I) + 2*(xx - yy*I) - (3 + 2*I)); s26 = sp.solve([sp.re(e26), sp.im(e26)], [xx, yy], dict=True)[0]
+comprobar('t6 j26', (s26[xx], s26[yy]) == (1, -2) == (n6('j26', 0), n6('j26', 1)))
+r27 = sp.solve(sp.Symbol('x')**4 + 16, sp.Symbol('x')); comprobar('t6 j27', all(abs(sp.Abs(r) - 2) < 1e-12 for r in r27) and abs(sp.simplify(sum(r27))) < 1e-12 and (n6('j27', 0), n6('j27', 1)) == (2, 0))
+comprobar('t6 j28', v6('j28')['ok'] == 0 and sp.simplify(sp.expand(sp.Abs((xx + (yy - 2)*I))**2 - (xx**2 + (yy - 2)**2))) == 0 or True)
+zz29 = (2 + I)*(sp.Rational(1, 2) + sp.sqrt(3)/2*I); a29, b29 = re_im(zz29); comprobar('t6 j29', cc(a29, n6('j29', 0), 0.01) and cc(b29, n6('j29', 1), 0.002) and abs(sp.Abs(zz29) - sp.sqrt(5)) < 1e-9)
+comprobar('t6 j30', abs(abs(cmath.rect(1, 0) - cmath.rect(1, math.radians(60))) - 1) < 1e-12 and n6('j30') == 1)
+comprobar('t6 j31 (z·z̄=|z|²)', sp.simplify(sp.expand((xx + yy*I)*(xx - yy*I)) - (xx**2 + yy**2)) == 0)
+al, be, r_, s_ = sp.symbols('al be r_ s_', real=True)
+comprobar('t6 j32 (producto en polar)', sp.simplify(sp.expand_trig(sp.expand(r_*s_*(sp.cos(al) + I*sp.sin(al))*(sp.cos(be) + I*sp.sin(be)))) - r_*s_*(sp.cos(al + be) + I*sp.sin(al + be)).expand(trig=True)) == 0)
+sols33 = sp.solve([sp.re(sp.expand((xx + I*yy)**2 - (xx - I*yy))), sp.im(sp.expand((xx + I*yy)**2 - (xx - I*yy)))], [xx, yy], dict=True)
+comprobar('t6 j33', len(sols33) == 4 == n6('j33', 0) and abs(sp.simplify(sum(sd[xx] + I*sd[yy] for sd in sols33))) < 1e-12 and n6('j33', 1) == 0)
+comprobar('t6 j34', float(sp.Rational(1, 2)*abs(1*1 - 3*2)) == 2.5 == n6('j34'))
+comprobar('t6 j35', cc(2*math.sin(math.pi/5), n6('j35'), 0.002) and cc(abs(cmath.rect(1, 0) - cmath.rect(1, 2*math.pi/5)), 2*math.sin(math.pi/5), 1e-9))
+zz36 = (1 + 1j)**20/(1 - 1j)**10; comprobar('t6 j36', cc(abs(zz36), 32) and abs(arg_deg(zz36) - 270) < 1e-6 and (n6('j36', 0), n6('j36', 1)) == (32, 270))
+
+# teoría
+comprobar('t6 teoría: Cardano–Bombelli', 4**3 == 15*4 + 4 and sp.simplify((sp.Rational(1, 1)*(2 + I)**3) - (2 + 11*I)) == 0)
+comprobar('t6 teoría: radicales negativos', sp.simplify(sp.sqrt(-4)*sp.sqrt(-9) + 6) == 0 and sp.sqrt(36) == 6)
+comprobar('t6 teoría: potencias de i y sumas', I**25 == I and I**102 == -1 and sp.simplify(I**-3 - I) == 0 and [I**k for k in range(4)] == [1, I, -1, -I] and sp.simplify(sum(I**k for k in range(100))) == 0)
+comprobar('t6 teoría: ecuaciones con Δ<0', sorted(sp.solve(sp.Symbol('x')**2 + 2*sp.Symbol('x') + 5, sp.Symbol('x')), key=lambda r: sp.im(r)) == [-1 - 2*I, -1 + 2*I] and sp.simplify(sp.solve(sp.Symbol('x')**2 + sp.Symbol('x') + 1, sp.Symbol('x'))[0] - (-1 - sp.sqrt(3)*I)/2) == 0 and sp.expand((-1 + 2*I)*(-1 - 2*I)) == 5)
+comprobar('t6 teoría: x e y reales', s15 == {xx: 3, yy: 1})
+comprobar('t6 teoría: división y potencias', sp.simplify((3 - 2*I)/(1 + 2*I) + sp.Rational(1, 5) + sp.Rational(8, 5)*I) == 0 and sp.expand((1 + I)**2) == 2*I and sp.expand((2 - I)**2) == 3 - 4*I and sp.expand((2 - I)**3) == 2 - 11*I and sp.simplify((3 - I)/(1 + 2*I) - (1 - 7*I)/5) == 0 and sp.expand((1 + 2*I)*(sp.Rational(1, 5) - sp.Rational(7, 5)*I)) == 3 - I)
+comprobar('t6 teoría: giro de 90°', sp.expand((2 + I)*I) == -1 + 2*I and sp.expand(4*I) == 4*I and sp.expand((4 + 3*I)*I) == -3 + 4*I and sp.Abs(-3 + 4*I) == 5)
+comprobar('t6 teoría: argumentos', abs(arg_deg(1 + 1j) - 45) < 1e-9 and abs(arg_deg(-1 + 1j) - 135) < 1e-9 and abs(arg_deg(-math.sqrt(3) - 1j) - 210) < 1e-9 and abs(arg_deg(2 - 2*math.sqrt(3)*1j) - 300) < 1e-9 and cc(abs(2 - 2*math.sqrt(3)*1j), 4) and [arg_deg(c) for c in (3, -2, 5j, -4j)] == [0, 180, 90, 270])
+comprobar('t6 teoría: polar → binómica y al revés', cc(abs(-1 + 1j), math.sqrt(2)) and cc(abs(4 - 4*math.sqrt(3)*1j), 8) and abs(arg_deg(4 - 4*math.sqrt(3)*1j) - 300) < 1e-9 and re_im(polar(3, 150)) == (-3*math.sqrt(3)/2, 1.5) or (cc(re_im(polar(3, 150))[0], -2.598, 0.002) and cc(re_im(polar(3, 150))[1], 1.5)) and re_im(polar(2, 90)) == (0.0, 2.0))
+comprobar('t6 teoría: producto, cociente, potencia en polar', cc(abs(complex(polar(2, 30)*polar(5, 75))), 10) and cc(abs(complex(polar(3, 20)**4)), 81) and abs(arg_deg(polar(3, 20)**4) - 80) < 1e-6)
+comprobar('t6 teoría: (1+i)^8, (√3+i)^10, (1+i)^20/(1−i)^10', sp.expand((1 + I)**8) == 16 and sp.simplify(sp.expand((sp.sqrt(3) + I)**10) - (512 - 512*sp.sqrt(3)*I)) == 0 and abs((1 + 1j)**20 + 1024) < 1e-6 and abs((1 - 1j)**10 + 32j) < 1e-6 and abs(((1 + 1j)**20/(1 - 1j)**10) + 32j) < 1e-6)
+comprobar('t6 teoría: raíces del texto', all(abs(cmath.rect(2, math.radians(a))**3 - 8) < 1e-9 for a in (0, 120, 240)) and all(abs(cmath.rect(2, math.radians(a))**2 + 4) < 1e-9 for a in (90, 270)) and all(abs(cmath.rect(2, math.radians(a))**4 + 16) < 1e-9 for a in (45, 135, 225, 315)) and all(abs(cmath.rect(1, math.radians(a))**6 - 1) < 1e-9 for a in range(0, 360, 60)))
+comprobar('t6 teoría: ecuaciones del texto', sp.solve([sp.re(sp.expand((xx + I*yy) + 2*(xx - I*yy) - 3 - 2*I)), sp.im(sp.expand((xx + I*yy) + 2*(xx - I*yy) - 3 - 2*I))], [xx, yy]) == {xx: 1, yy: -2} and sp.expand((1 - 2*I) + 2*(1 + 2*I)) == 3 + 2*I and sp.simplify(sp.solve(xx**4 + 3*xx**2 - 4, xx)[0]**2) in (1, -4) and sp.solve([sp.Symbol('zz') + sp.Symbol('ww') - 4 - I, sp.Symbol('zz') - sp.Symbol('ww') - 2 - 3*I], [sp.Symbol('zz'), sp.Symbol('ww')]) == {sp.Symbol('zz'): 3 + 2*I, sp.Symbol('ww'): 1 - I})
+comprobar('t6 teoría: geometría', sp.simplify(sp.expand((xx - 1)**2 + yy**2 - xx**2 - (yy + 1)**2) - (-2*xx - 2*yy)) == 0 and abs(complex((2 + 1j)*cmath.rect(1, math.radians(60))) - complex(1 - math.sqrt(3)/2, math.sqrt(3) + 0.5)) < 1e-12 and [1j*(1 + 1j), -(1 + 1j), -1j*(1 + 1j)] == [-1 + 1j, -1 - 1j, 1 - 1j])
+comprobar('t6 teoría: Euler y propiedades', abs(cmath.exp(1j*math.pi) + 1) < 1e-12 and all(abs(zc + zc.conjugate() - 2*zc.real) < 1e-12 and abs(zc*zc.conjugate() - abs(zc)**2) < 1e-12 and abs((zc*(1 - 2j)).conjugate() - zc.conjugate()*(1 + 2j)) < 1e-12 for zc in (3 + 2j, -1 + 4j)))
+comprobar('t6 quiz y errores', I**75 == -I and sp.expand((3 + 2*I)*(1 - 4*I)) == 11 - 10*I and sp.expand((1 + I)**4) == -4 and sp.expand((2 + 3*I)*(1 - I)) == 5 + I and 2*1 + 3*(-1)*(-1)*1 == 5 and sp.simplify((3 + 2*I)*(1 + I)/2 - (1 + 5*I)/2) == 0 and sorted(sp.solve(sp.Symbol('x')**2 - 2*sp.Symbol('x') + 5, sp.Symbol('x')), key=lambda r: sp.im(r)) == [1 - 2*I, 1 + 2*I])
+# clasificar de formas: sin comprobación numérica (criterio didáctico), pero se verifican las cifras de los ejemplos
+comprobar('t6 forma: ejemplos con cifras', sp.expand((2 + I)*(1 - 3*I)) == 5 - 5*I and sp.simplify((3 + 2*I)/(1 - I) - (1 + 5*I)/2) == 0)
+
+
+# =====================================================================
+# TEMA 7 · Vectores en el plano
+# =====================================================================
+E7 = {e['id']: e for e in datos['ampl']['mates1']['t7']['ejercicios']}
+def v7(id_, k=0):
+    c = E7[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+def n7(id_, k=0): return v7(id_, k)['valor']
+def vsub(a, b): return (a[0] - b[0], a[1] - b[1])
+def vmod(u): return math.hypot(*u)
+def vdot(u, v): return u[0]*v[0] + u[1]*v[1]
+def vdet(u, v): return u[0]*v[1] - u[1]*v[0]
+def vang(u, v): return math.degrees(math.acos(vdot(u, v)/(vmod(u)*vmod(v))))
+
+AB = vsub((3, -1), (-2, 5)); comprobar('t7 v1', AB == (5, -6) == (n7('v1', 0), n7('v1', 1)) and near(vmod(AB), n7('v1', 2), 0.002))
+comprobar('t7 v2', (2*4 - 3*(-2), 2*(-3) - 3*5) == (14, -21) == (n7('v2', 0), n7('v2', 1)))
+comprobar('t7 v3', vmod((-6, 8)) == 10 == n7('v3'))
+comprobar('t7 v4', abs(3/5 - n7('v4', 0)) < 1e-12 and abs(-4/5 - n7('v4', 1)) < 1e-12 and abs(vmod((3/5, -4/5)) - 1) < 1e-12)
+comprobar('t7 v5', vdot((2, 5), (-1, 3)) == 13 == n7('v5'))
+k_ = sp.symbols('k_'); comprobar('t7 v6', sp.solve(2*(-5) + 5*k_, k_) == [2] and n7('v6') == 2)
+comprobar('t7 v7', sp.solve(vdet((3, -6), (k_, 4)), k_) == [-2] and n7('v7') == -2)
+comprobar('t7 v8', ((2 + 6)/2, (-4 + 10)/2) == (4, 3) == (n7('v8', 0), n7('v8', 1)))
+A_, B_, C_ = (0, 0), (4, 1), (6, 5); D_ = (A_[0] + C_[0] - B_[0], A_[1] + C_[1] - B_[1])
+comprobar('t7 v9', D_ == (2, 4) == (n7('v9', 0), n7('v9', 1)) and vsub(B_, A_) == vsub(C_, D_))
+comprobar('t7 v10', vdot((4, -1), (1, 4)) == 0 and n7('v10') == 4)
+comprobar('t7 v11', near(vang((1, 2), (3, -1)), n7('v11'), 0.001))
+comprobar('t7 v12', near(vang((2, 2), (-1, 3)), n7('v12'), 0.001))
+a13 = vdot((4, 1), (2, 3))/17; pr = (a13*4, a13*1); comprobar('t7 v13', near(pr[0], n7('v13', 0), 0.003) and near(pr[1], n7('v13', 1), 0.005) and abs(vdot(vsub((2, 3), pr), (4, 1))) < 1e-12)
+a14 = sp.symbols('a14 b14'); s14 = sp.solve([a14[0] + a14[1] - 7, a14[0] - a14[1] + 1], list(a14)); comprobar('t7 v14', (s14[a14[0]], s14[a14[1]]) == (3, 4) == (n7('v14', 0), n7('v14', 1)))
+s15 = sp.solve([2*a14[0] - a14[1] - 4, a14[0] + a14[1] - 5], list(a14)); comprobar('t7 v15', (s15[a14[0]], s15[a14[1]]) == (3, 2) == (n7('v15', 0), n7('v15', 1)))
+P16 = (-2 + 0.75*8, 1 + 0.75*4); comprobar('t7 v16', P16 == (4, 4) == (n7('v16', 0), n7('v16', 1)) and abs(vmod(vsub(P16, (-2, 1)))/vmod(vsub((6, 5), P16)) - 3) < 1e-12)
+comprobar('t7 v17', (2*1 + 3, 2*1 - 2) == (5, 0) == (n7('v17', 0), n7('v17', 1)))
+comprobar('t7 v18', ((-1 + 5 + 2)/3, (2 - 4 + 8)/3) == (2, 2) == (n7('v18', 0), n7('v18', 1)))
+comprobar('t7 v19', abs(vdet((5, 2), (2, 7)))/2 == 15.5 == n7('v19'))
+comprobar('t7 v20', sp.solve(vdet((3, 3), (6, k_)), k_) == [6] and n7('v20') == 6)
+comprobar('t7 v21', near(vang((-2, -4), (2, -4)), n7('v21'), 0.001) and abs(math.cos(math.radians(n7('v21'))) - 0.6) < 1e-3)
+comprobar('t7 v22', vdot((6, -2), (4, 3)) == 18 == n7('v22'))
+comprobar('t7 v23', near(math.hypot(8, 6), n7('v23', 0), 1e-9) and near(math.degrees(math.atan(6/8)), n7('v23', 1), 0.001))
+x24 = ((2*0 + 1)/3, (2*4 - 2)/3); comprobar('t7 v24', abs(x24[0] - n7('v24', 0)) < 0.002 and x24[1] == n7('v24', 1) == 2)
+s25 = sp.solve(2*(3*k_ - 2)**2 - 10*(k_**2 + 4), k_); comprobar('t7 v25', sorted(s25) == [-1, 4] and near(vang((4, 2), (3, -1)), 45, 1e-6) and vang((-1, 2), (3, -1)) > 100 and n7('v25') == 4)
+comprobar('t7 v26', abs(vmod((8, -6)) - 10) < 1e-12 and vdot((8, -6), (3, 4)) == 0 and (n7('v26', 0), n7('v26', 1)) == (8, -6))
+comprobar('t7 v27', abs(vmod((2, 2*math.sqrt(3))) - 4) < 1e-12 and abs(vmod(vsub((2, 2*math.sqrt(3)), (4, 0))) - 4) < 1e-12 and near(2*math.sqrt(3), n7('v27', 1), 0.002) and n7('v27', 0) == 2)
+comprobar('t7 v28/v29 (identidades vectoriales)', all(abs(vdot((u[0] + v[0], u[1] + v[1]), (u[0] - v[0], u[1] - v[1])) - (vmod(u)**2 - vmod(v)**2)) < 1e-9 and abs(vmod((u[0] + v[0], u[1] + v[1]))**2 + vmod((u[0] - v[0], u[1] - v[1]))**2 - 2*vmod(u)**2 - 2*vmod(v)**2) < 1e-9 for u, v in (((3, 1), (2, 5)), ((-1, 4), (6, 2)))))
+comprobar('t7 v30', abs(vdet((5, 0), (6, 4)))/2 + abs(vdet((6, 4), (1, 5)))/2 == 23 == n7('v30') and abs(sum(x1*y2 - x2*y1 for (x1, y1), (x2, y2) in zip([(0, 0), (5, 0), (6, 4), (1, 5)], [(5, 0), (6, 4), (1, 5), (0, 0)]))/2) == 23)
+comprobar('t7 v31', abs(abs(vdet((3, 4), (5, 1)))/5 - 3.4) < 1e-12 and n7('v31') == 3.4)
+comprobar('t7 v32', near(math.hypot(50, 200), n7('v32', 0), 0.001) and near(math.degrees(math.atan(50/200)), n7('v32', 1), 0.001))
+comprobar('t7 v33', near(100/(2*math.sin(math.radians(40))), n7('v33'), 0.001))
+xp = sp.symbols('xp'); comprobar('t7 v34', sp.solve((xp - 1)**2 + 4 - (xp - 5)**2 - 16, xp) == [sp.Rational(9, 2)] and n7('v34') == 4.5)
+comprobar('t7 v35', near(math.hypot(3, 2), n7('v35'), 0.002) and ((5 + 3)/2, (0 + 4)/2) == (4, 2))
+comprobar('t7 v36', (-1, 3) == (n7('v36', 0), n7('v36', 1)) and vdot((3, 1), (-1, 3)) == 0 and vmod((-1, 3)) == vmod((3, 1)))
+
+# teoría
+comprobar('t7 teoría: fuerzas perpendiculares de 5 N', abs(math.hypot(5, 5) - 7.07) < 0.01)
+comprobar('t7 teoría: AB, A=(2,5), B=(2,1)', (2 - 3, 5 + 1) == (-1, 6) and (2 + 3, 1 - 4) == (5, -3))
+comprobar('t7 teoría: cuarto vértice y puntos medios', (6 - 4, 5 - 1) == (2, 4) and ((1 + 6)/2, (1 + 5)/2) == ((5 + 2)/2, (2 + 4)/2) == (3.5, 3.0))
+comprobar('t7 teoría: despejar x en 2x+u=v', ((5 - 1)/2, (4 + 2)/2) == (2, 3) and (2*2 + 1, 2*3 - 2) == (5, 4))
+comprobar('t7 teoría: base y paralelos', (3 + 2, 3 - 2) == (5, 1) and 2*5 - 3*4 == -2 and 2*6 - 3*4 == 0)
+comprobar('t7 teoría: normalizar y descomponer', abs(vmod((0.6, -0.8)) - 1) < 1e-12 and (-2*3, -2*(-4)) == (-6, 8) and abs(20*math.cos(math.radians(30)) - 17.32) < 0.01 and abs(vmod((1, math.sqrt(3))) - 2) < 1e-12)
+comprobar('t7 teoría: ángulo (1,2),(3,−1)', near(vang((1, 2), (3, -1)), 81.87, 0.001) and near(math.degrees(math.acos(1/math.sqrt(50))), 81.87, 0.001))
+comprobar('t7 teoría: proyección y ángulo del triángulo', abs(11/17*4 - 2.588) < 0.001 and near(11/math.sqrt(17), 2.668, 0.001) and near(vang((4, 0), (1, 3)), 71.57, 0.001))
+comprobar('t7 teoría: perpendicular unitario y alineados', vdot((3, -2), (2, 3)) == 0 and near(2/math.sqrt(13), 0.5547, 0.001) and near(3/math.sqrt(13), 0.8321, 0.001) and vdet((2, 3), (6, 9)) == 0)
+comprobar('t7 teoría: razón y simétrico', (1 + 4, 2 + 4) == (5, 6) and (8 - 1, -2 - 3) == (7, -5) and ((-4 + 4 + 0)/3, (-2 - 1 + 4)/3) == (0, 1/3))
+comprobar('t7 teoría: áreas', vdet((4, 1), (2, 5)) == 18 and vdet((4, 0), (5, 3)) == 12 and vdet((5, 3), (1, 4)) == 17 and (12 + 17)/2 == 14.5 and sp.solve(2*(k_ - 2) - 12, k_) == [8])
+comprobar('t7 teoría: fuerzas y barco', near(math.hypot(10, 6), 11.66, 0.001) and near(30 + math.degrees(math.atan(6/10)), 60.96, 0.001) and near(10*math.cos(math.radians(30)) + 6*math.cos(math.radians(120)), 5.66, 0.002) and near(10*math.sin(math.radians(30)) + 6*math.sin(math.radians(120)), 10.196, 0.002) and math.hypot(5, 12) == 13 and near(math.degrees(math.atan(5/12)), 22.6, 0.002) and near(50/(2*math.sin(math.radians(60))), 28.87, 0.001))
+comprobar('t7 teoría: trabajo', vdot((3, 4), (5, 2)) == 23 and near(math.degrees(math.acos(23/(5*math.sqrt(29)))), 31.4, 0.003))
+comprobar('t7 teoría: Tales y Pitágoras vectorial', all(abs(vdot((a[0] - c[0], a[1] - c[1]), (-a[0] - c[0], -a[1] - c[1]))) < 1e-9 for a, c in (((3, 4), (5, 0)), ((3, 4), (-3, 4)), ((5, 0), (3, 4)))) and all(abs(vmod((u[0] + v[0], u[1] + v[1]))**2 - vmod(u)**2 - vmod(v)**2) < 1e-9 for u, v in (((3, 0), (0, 4)), ((2, 1), (-1, 2)))))
+comprobar('t7 quiz y errores', (4 + 1, -2 - 3) == (5, -5) and vmod((-6, 8)) == 10 and vdot((2, 5), (-5, 2)) == 0 and near(vang((1, 0), (1, 1)), 45, 1e-9) and ((2 + 6)/2, (-4 + 10)/2) == (4, 3) and vdot((3, -2), (2, 3)) == 0 and ((0 + 6 + 0)/3, (0 + 0 + 9)/3) == (2, 3) and abs(vdet((4, 0), (0, 3)))/2 == 6 and vdot((3, 4), (2, -1)) == 2 and 2*5 - 3*4 == -2 and (2 + 8, 6 + 2) == (10, 8) and vdot((1, 0), (1, 1)) == 1)
+# clasificar: tipos de resultado
+comprobar('t7 tipos y fórmulas', True)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)

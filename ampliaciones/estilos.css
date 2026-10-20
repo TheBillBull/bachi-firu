@@ -469,3 +469,7 @@
 .fo-t tr.ok th { color: var(--ok); } .fo-t tr.mal th { color: var(--red); }
 .fo-t tr + tr.izq th { padding-top: 12px; }
 @media (max-width: 700px) { .fo-fila { grid-template-columns: 1fr; } .fo-t { font-size: 14px; } .fo-t th, .fo-t td { padding: 5px 6px; } }
+.mb-fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.mb-cv { width: 100%; height: auto; border-radius: 10px; border: 1.5px solid var(--line); cursor: crosshair; touch-action: none; }
+.mb-orb { margin: 0; }
+@media (max-width: 700px) { .mb-fila { grid-template-columns: 1fr; } }

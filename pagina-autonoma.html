@@ -1057,6 +1057,10 @@
 .fo-t tr.ok th { color: var(--ok); } .fo-t tr.mal th { color: var(--red); }
 .fo-t tr + tr.izq th { padding-top: 12px; }
 @media (max-width: 700px) { .fo-fila { grid-template-columns: 1fr; } .fo-t { font-size: 14px; } .fo-t th, .fo-t td { padding: 5px 6px; } }
+.mb-fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.mb-cv { width: 100%; height: auto; border-radius: 10px; border: 1.5px solid var(--line); cursor: crosshair; touch-action: none; }
+.mb-orb { margin: 0; }
+@media (max-width: 700px) { .mb-fila { grid-template-columns: 1fr; } }
 </style>
 
 <header class="topbar">
@@ -3846,6 +3850,365 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de números complejos (Matemáticas I, tema 6)
+   motor B.lab.cx + potenciasi · operaciones · plano · conversor
+   raices · lugar · mandelbrot
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  B.lab = B.lab || {};
+  var C = B.lab.cx = {};
+  var R = Math.PI / 180;
+  function cero(x) { return Math.abs(x) < 1e-12 ? 0 : x; }
+
+  // ------------------------------------------------------------
+  // Aritmética: z = { a, b } (a + bi)
+  // ------------------------------------------------------------
+  function z(a, b) { return { a: a, b: b }; }
+  C.z = z;
+  C.suma = function (p, q) { return z(p.a + q.a, p.b + q.b); };
+  C.resta = function (p, q) { return z(p.a - q.a, p.b - q.b); };
+  C.mul = function (p, q) { return z(p.a * q.a - p.b * q.b, p.a * q.b + p.b * q.a); };
+  C.conj = function (p) { return z(p.a, -p.b); };
+  C.div = function (p, q) { var d = q.a * q.a + q.b * q.b; return z((p.a * q.a + p.b * q.b) / d, (p.b * q.a - p.a * q.b) / d); };
+  C.mod = function (p) { return Math.hypot(p.a, p.b); };
+  C.arg = function (p) { var t = Math.atan2(cero(p.b), cero(p.a)) / R; t = ((t % 360) + 360) % 360; return Math.abs(t - 360) < 1e-9 ? 0 : t; };
+  C.polar = function (r, tDeg) { return z(cero(r * Math.cos(tDeg * R)), cero(r * Math.sin(tDeg * R))); };
+  C.pot = function (p, n) { var r = Math.pow(C.mod(p), n), t = C.arg(p) * n; return C.polar(r, t); };
+  C.raices = function (r, tDeg, n) {
+    var out = [], m = Math.pow(r, 1 / n);
+    for (var k = 0; k < n; k++) out.push({ r: m, t: ((tDeg + 360 * k) / n) % 360 });
+    return out;
+  };
+
+  // Escritura bonita de un complejo en forma binómica
+  C.txt = function (p, d) {
+    d = d == null ? 3 : d;
+    var a = cero(Math.round(p.a * Math.pow(10, d)) / Math.pow(10, d)), b = cero(Math.round(p.b * Math.pow(10, d)) / Math.pow(10, d));
+    if (b === 0) return fmt(a, d);
+    var bs = Math.abs(b) === 1 ? "" : fmt(Math.abs(b), d);
+    if (a === 0) return (b < 0 ? "−" : "") + bs + "i";
+    return fmt(a, d) + (b < 0 ? " − " : " + ") + bs + "i";
+  };
+  C.txtPolar = function (p, d) { d = d == null ? 3 : d; return fmt(C.mod(p), d) + "<sub>" + fmt(C.arg(p), 2) + "°</sub>"; };
+
+  // Lectura de un complejo escrito por el usuario: "3-2i", "-i", "2i", "1/2+sqrt(3)/2 i", "(1+i)"
+  C.leer = function (src) {
+    var s = String(src).replace(/\s+/g, "").replace(/[−–—]/g, "-").replace(/,/g, ".").replace(/√/g, "sqrt").replace(/[()]/g, function (c) { return c; });
+    if (!s) return null;
+    s = s.replace(/^\((.*)\)$/, "$1");
+    var im = /i$/.test(s), cuerpo = im ? s.slice(0, -1) : s, corte = -1, nivel = 0;
+    for (var k = cuerpo.length - 1; k > 0; k--) {
+      var ch = cuerpo.charAt(k);
+      if (ch === ")") nivel++; else if (ch === "(") nivel--;
+      if (nivel === 0 && (ch === "+" || ch === "-") && !/[eE*\/^(]/.test(cuerpo.charAt(k - 1))) { corte = k; break; }
+    }
+    function num(t, defecto) {
+      if (t === "" || t === "+") return defecto;
+      if (t === "-") return -defecto;
+      var v = B.Mate.numero(t.replace(/\*$/, ""));
+      return v;
+    }
+    var a, b;
+    if (!im) { a = num(cuerpo, NaN); b = 0; }
+    else if (corte < 0) { a = 0; b = num(cuerpo, 1); }
+    else { a = num(cuerpo.slice(0, corte), NaN); b = num(cuerpo.slice(corte), 1); }
+    if (isNaN(a) || isNaN(b)) return null;
+    return z(a, b);
+  };
+
+  function campo(host, et, val, ancho, aria) {
+    var l = document.createElement("label"); l.className = "bx-campo";
+    l.innerHTML = '<span class="bx-et">' + et + '</span><input type="text" autocomplete="off" spellcheck="false" style="width:' + (ancho || 120) + 'px" value="' + val + '" aria-label="' + (aria || et.replace(/<[^>]+>/g, "")) + '">';
+    host.appendChild(l); return l.querySelector("input");
+  }
+
+  // ============================================================
+  // POTENCIASI: las potencias de i dan vueltas de 90° en el plano
+  // ============================================================
+  B.w.potenciasi = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Las potencias de i: un ciclo de cuatro");
+    cuerpo.innerHTML = '<div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { n: 5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sl = U.slider(ctl, { et: "Exponente <i>n</i>", min: 0, max: 40, step: 1, val: st.n, on: function (v) { st.n = v; pinta(); }, fmt: String });
+    var VAL = ["1", "i", "−1", "−i"], PTS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    var an = U.animar(ctl, function (t, dt) { if (dt) { st.t = (st.t || 0) + dt; if (st.t > 0.7) { st.t = 0; st.n = (st.n + 1) % 41; sl.set(st.n); pinta(); } } }, { auto: false });
+    function pinta() {
+      var n = st.n, r = n % 4;
+      g.limpiar();
+      for (var k = 0; k <= Math.min(n, 40); k++) {
+        var p = PTS[k % 4], rad = 0.78 + 0.04 * Math.floor(k / 4);
+        if (k === n) g.punto(p[0], p[1], { r: 9, clase: "c-red" }); else g.punto(p[0] * 1, p[1] * 1, { r: 3, clase: "c-faint" });
+      }
+      g.segmento(0, 0, PTS[r][0], PTS[r][1], { clase: "c-red" }).setAttribute("stroke-width", 3);
+      g.arco(0, 0, 0.35, 0, 90 * n, { clase: "c-hl" });
+      g.texto(PTS[r][0] * 1.2, PTS[r][1] * 1.2, "i" + U.sup(n) + " = " + VAL[r], { ancla: "middle", dy: 5, clase: "red" });
+      lectura.innerHTML = U.lec("n", n) + U.lec("Resto de n entre 4", r, "pen") + U.lec("i" + U.sup(n), VAL[r], "red") + U.lec("Ángulo girado", (90 * n) + "° = " + (n % 4 === 0 ? "" : "") + Math.floor(n / 4) + " vueltas y " + (90 * r) + "°");
+      pie.innerHTML = "Multiplicar por i es <b>girar 90°</b>: i⁰ = 1, i¹ = i, i² = −1, i³ = −i, i⁴ = 1 y vuelta a empezar. Por eso, para calcular iⁿ, se divide n entre 4 y se mira el <b>resto</b>: resto 0 → 1; 1 → i; 2 → −1; 3 → −i.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -1.6, xmax: 1.6, ymin: -1.6, ymax: 1.6, w: 360, h: 340, limpio: true, etiqueta: "Las potencias de i en el plano complejo" });
+    g.rangoIso(0, 0, 1.55);
+    g.arco(0, 0, 1, 0, 360, { clase: "c-faint", capa: "fijo", dash: "3 5" });
+    g.segmento(-1.45, 0, 1.45, 0, { clase: "c-ink", capa: "fijo" }); g.segmento(0, -1.45, 0, 1.45, { clase: "c-ink", capa: "fijo" });
+    g.texto(1.4, 0, "Re", { dy: -6, ancla: "end", clase: "faint", capa: "fijo" }); g.texto(0, 1.4, "Im", { dx: 8, dy: 4, clase: "faint", capa: "fijo" });
+    pinta();
+  };
+
+  // ============================================================
+  // OPERACIONES: calculadora con pasos
+  // ============================================================
+  B.w.operaciones = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Calculadora de complejos con los pasos");
+    cuerpo.innerHTML = '<div data-op class="chips"></div><div data-pre class="chips"></div><div data-ctl></div><div class="lectura"></div><div class="w-pasos"></div><div class="w-plot rd-circ"></div>';
+    var st = { op: "mul", p: "3+2i", q: "1-4i", n: 3 }, g;
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pasos = cuerpo.querySelector(".w-pasos");
+    var iP = campo(ctl, "z₁ =", st.p, 130), iQ = campo(ctl, "z₂ =", st.q, 130), iN = campo(ctl, "n =", "3", 50);
+    var PRES = [["3+2i", "1-4i"], ["3+2i", "1-i"], ["1+i", "1-i"], ["2-3i", "-1+i"], ["i", "i"]];
+    var lblQ = iQ.closest("label"), lblN = iN.closest("label");
+    function T(p) { return "(" + C.txt(p) + ")"; }
+    function pinta() {
+      var p = C.leer(st.p), q = C.leer(st.q), n = Math.round(parseFloat(String(iN.value).replace(",", ".")));
+      lblQ.style.display = st.op === "pot" || st.op === "conj" ? "none" : ""; lblN.style.display = st.op === "pot" ? "" : "none";
+      if (!p || (!q && st.op !== "pot" && st.op !== "conj")) { lectura.innerHTML = U.lec("Revisa lo que has escrito", "usa la forma a + bi, por ejemplo 3-2i, 5i, −1 o 1/2+i", "red"); pasos.innerHTML = ""; g.limpiar(); return; }
+      var res, h = "<ol class='w-ol'>", sig = st.op === "res" ? -1 : 1;
+      if (st.op === "suma" || st.op === "res") {
+        res = sig > 0 ? C.suma(p, q) : C.resta(p, q);
+        h += "<li>Se operan por separado las partes reales y las imaginarias: " + T(p) + (sig > 0 ? " + " : " − ") + T(q) + " = (" + fmt(p.a, 3) + (sig > 0 ? " + " : " − ") + (q.a < 0 ? "(" + fmt(q.a, 3) + ")" : fmt(q.a, 3)) + ") + (" + fmt(p.b, 3) + (sig > 0 ? " + " : " − ") + (q.b < 0 ? "(" + fmt(q.b, 3) + ")" : fmt(q.b, 3)) + ")i.</li><li>Resultado: <b>" + C.txt(res) + "</b>.</li>";
+      } else if (st.op === "mul") {
+        res = C.mul(p, q);
+        h += "<li>Distributiva: (a + bi)(c + di) = ac + adi + bci + bdi².</li><li>Con a = " + fmt(p.a, 3) + ", b = " + fmt(p.b, 3) + ", c = " + fmt(q.a, 3) + ", d = " + fmt(q.b, 3) + ": parte real = ac − bd = " + fmt(p.a * q.a, 3) + " − (" + fmt(p.b * q.b, 3) + ") = " + fmt(p.a * q.a - p.b * q.b, 3) + " (se usó i² = −1) y parte imaginaria = ad + bc = " + fmt(p.a * q.b, 3) + " + " + fmt(p.b * q.a, 3) + " = " + fmt(p.a * q.b + p.b * q.a, 3) + ".</li><li>Resultado: <b>" + C.txt(res) + "</b>.</li>";
+      } else if (st.op === "div") {
+        if (q.a === 0 && q.b === 0) { lectura.innerHTML = U.lec("Error", "no se puede dividir entre 0", "red"); pasos.innerHTML = ""; return; }
+        res = C.div(p, q); var d = q.a * q.a + q.b * q.b, num = C.mul(p, C.conj(q));
+        h += "<li>Se multiplica numerador y denominador por el <b>conjugado</b> del denominador, " + T(C.conj(q)) + ".</li><li>Denominador: " + T(q) + T(C.conj(q)) + " = c² + d² = " + fmt(q.a * q.a, 3) + " + " + fmt(q.b * q.b, 3) + " = <b>" + fmt(d, 3) + "</b> (¡un número real!).</li><li>Numerador: " + T(p) + T(C.conj(q)) + " = " + C.txt(num) + ".</li><li>Resultado: (" + C.txt(num) + ")/" + fmt(d, 3) + " = <b>" + C.txt(res) + "</b>.</li>";
+      } else if (st.op === "conj") {
+        res = C.conj(p);
+        h += "<li>El conjugado cambia el signo de la parte imaginaria: <b>" + C.txt(res) + "</b>.</li><li>Además z·z̄ = a² + b² = " + fmt(p.a * p.a + p.b * p.b, 3) + " = |z|² y z + z̄ = 2a = " + fmt(2 * p.a, 3) + ".</li>";
+      } else {
+        if (!(n >= 0 && n <= 8)) { lectura.innerHTML = U.lec("Revisa", "usa un exponente entero entre 0 y 8", "red"); pasos.innerHTML = ""; return; }
+        res = z(1, 0); var cur = z(1, 0), tr = [C.txt(cur)];
+        for (var k = 0; k < n; k++) { cur = C.mul(cur, p); tr.push(C.txt(cur)); }
+        res = cur;
+        h += "<li>Se multiplica z por sí mismo " + n + " veces (o se usa la forma polar con De Moivre, que es más rápido): " + tr.map(function (t, i) { return "z" + U.sup(i) + " = " + t; }).join("; ") + ".</li><li>Resultado: <b>z" + U.sup(n) + " = " + C.txt(res) + "</b>.</li>";
+      }
+      h += "</ol>";
+      pasos.innerHTML = h;
+      lectura.innerHTML = U.lec("Resultado (binómica)", C.txt(res), "ok") + U.lec("Resultado (polar)", C.txtPolar(res), "pen") + U.lec("Módulo", fmt(C.mod(res), 4)) + U.lec("Argumento", fmt(C.arg(res), 2) + "°");
+      g.limpiar();
+      var m = Math.max(3, Math.abs(p.a), Math.abs(p.b), Math.abs(res.a), Math.abs(res.b), q ? Math.abs(q.a) : 0, q ? Math.abs(q.b) : 0) * 1.25;
+      g.rangoIso(0, 0, m);
+      function vec(w, cl, et) { U.flecha(g, 0, 0, w.a, w.b, { clase: cl }); g.texto(w.a, w.b, et, { dx: 6, dy: -6, clase: cl === "c-pen" ? "pen" : cl === "c-red" ? "red" : "ok" }); }
+      vec(p, "c-pen", "z₁"); if (q && st.op !== "pot" && st.op !== "conj") vec(q, "c-red", "z₂"); vec(res, "c-ok", "resultado");
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -5, xmax: 5, ymin: -5, ymax: 5, w: 420, h: 360, etx: "Re", ety: "Im", etiqueta: "Los números y el resultado en el plano complejo" });
+    U.fichas(cuerpo.querySelector("[data-op]"), [{ k: "suma", t: "z₁ + z₂" }, { k: "res", t: "z₁ − z₂" }, { k: "mul", t: "z₁ · z₂" }, { k: "div", t: "z₁ / z₂" }, { k: "conj", t: "conjugado" }, { k: "pot", t: "potencia zⁿ" }], st.op, function (k) { st.op = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRES.map(function (p, i) { return { k: String(i), t: p[0].replace("-", "−") + " y " + p[1].replace("-", "−") }; }), "", function (k) { st.p = PRES[+k][0]; st.q = PRES[+k][1]; iP.value = st.p; iQ.value = st.q; pinta(); });
+    iP.addEventListener("input", function () { st.p = iP.value; pinta(); }); iQ.addEventListener("input", function () { st.q = iQ.value; pinta(); }); iN.addEventListener("input", pinta);
+    pinta();
+  };
+
+  // ============================================================
+  // PLANO: arrastra dos números y mira suma, producto y cociente
+  // ============================================================
+  B.w.plano = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Plano complejo: arrastra z₁ y z₂");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot"></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { modo: "mul", p: z(2, 1), q: z(1, 2) }, g, h1, h2, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function ajusta(v) { return Math.round(v * 10) / 10; }
+    function pinta() {
+      var p = st.p, q = st.q, m = st.modo, res;
+      if (m === "suma") res = C.suma(p, q); else if (m === "mul") res = C.mul(p, q); else if (m === "div") res = C.mod(q) < 1e-9 ? z(0, 0) : C.div(p, q); else res = C.conj(p);
+      var grande = Math.max(Math.abs(res.a), Math.abs(res.b), Math.abs(p.a), Math.abs(p.b), Math.abs(q.a), Math.abs(q.b));
+      g.rangoIso(0, 0, Math.max(4.4, Math.ceil(grande * 1.25 / 2) * 2));
+      g.limpiar();
+      g.mover(h1, p.a, p.b); g.mover(h2, q.a, q.b);
+      // vectores desde el origen
+      U.flecha(g, 0, 0, p.a, p.b, { clase: "c-pen" });
+      if (m !== "conj") U.flecha(g, 0, 0, q.a, q.b, { clase: "c-red" });
+      if (m === "suma") { g.segmento(p.a, p.b, res.a, res.b, { clase: "c-red", dash: "4 4" }); g.segmento(q.a, q.b, res.a, res.b, { clase: "c-pen", dash: "4 4" }); }
+      U.flecha(g, 0, 0, res.a, res.b, { clase: "c-ok" });
+      g.texto(res.a, res.b, m === "suma" ? "z₁+z₂" : m === "mul" ? "z₁·z₂" : m === "div" ? "z₁/z₂" : "z̄₁", { dx: 8, dy: -8, clase: "ok" });
+      if (m === "mul" || m === "div") { g.arco(0, 0, 0.7, 0, C.arg(p), { clase: "c-pen" }); g.arco(0, 0, 0.9, 0, C.arg(q), { clase: "c-red" }); g.arco(0, 0, 1.1, 0, C.arg(res), { clase: "c-ok" }); }
+      lectura.innerHTML = U.lec("z₁", C.txt(p, 2) + "  =  " + C.txtPolar(p, 2), "pen") + (m !== "conj" ? U.lec("z₂", C.txt(q, 2) + "  =  " + C.txtPolar(q, 2), "red") : "") +
+        U.lec(m === "suma" ? "z₁ + z₂" : m === "mul" ? "z₁ · z₂" : m === "div" ? "z₁ / z₂" : "conjugado de z₁", C.txt(res, 2) + "  =  " + C.txtPolar(res, 2), "ok") +
+        (m === "mul" ? U.lec("Comprobación", "|z₁|·|z₂| = " + fmt(C.mod(p) * C.mod(q), 2) + " · θ₁ + θ₂ = " + fmt((C.arg(p) + C.arg(q)) % 360, 1) + "°") : m === "div" ? U.lec("Comprobación", "|z₁|/|z₂| = " + fmt(C.mod(p) / C.mod(q), 2) + " · θ₁ − θ₂ = " + fmt(((C.arg(p) - C.arg(q)) % 360 + 360) % 360, 1) + "°") : "");
+      pie.innerHTML = m === "suma" ? "La suma es la <b>diagonal del paralelogramo</b> que forman z₁ y z₂ (como la suma de vectores)." : m === "mul" ? "Al multiplicar, <b>los módulos se multiplican y los argumentos se suman</b>: z₁·z₂ es z₁ girado el ángulo de z₂ y estirado |z₂| veces. Mira cómo el arco verde (resultado) es la suma de los arcos azul y rojo." : m === "div" ? "Al dividir, <b>los módulos se dividen y los argumentos se restan</b>: z₁/z₂ es z₁ girado hacia atrás el ángulo de z₂ y encogido |z₂| veces." : "El conjugado es el <b>reflejo respecto del eje real</b>: mismo módulo, argumento opuesto.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 640, h: 380, etx: "Re", ety: "Im", etiqueta: "Plano complejo con z₁ y z₂ arrastrables" });
+    g.rangoIso(0, 0, 4.4);
+    h1 = g.punto(0, 0, { capa: "top", r: 9, clase: "c-pen" }); h2 = g.punto(0, 0, { capa: "top", r: 9, clase: "c-red" });
+    g.arrastrar(h1, function (x, y, tecla) { if (tecla) return; st.p = z(ajusta(Math.max(-8, Math.min(8, x))), ajusta(Math.max(-8, Math.min(8, y)))); pinta(); }, { get: function () { return st.p.a; }, paso: 0.5, etiqueta: "Número z₁" });
+    g.arrastrar(h2, function (x, y, tecla) { if (tecla) return; st.q = z(ajusta(Math.max(-8, Math.min(8, x))), ajusta(Math.max(-8, Math.min(8, y)))); pinta(); }, { get: function () { return st.q.a; }, paso: 0.5, etiqueta: "Número z₂" });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "suma", t: "Suma" }, { k: "mul", t: "Producto" }, { k: "div", t: "Cociente" }, { k: "conj", t: "Conjugado" }], st.modo, function (k) { st.modo = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // CONVERSOR: binómica ⇄ polar con el razonamiento del cuadrante
+  // ============================================================
+  B.w.conversor = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Conversor binómica ⇄ polar");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div data-pre class="chips"></div><div data-ctl></div><div class="lectura"></div><div class="w-pasos"></div><div class="w-plot rd-circ"></div>';
+    var st = { modo: "bp" }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pasos = cuerpo.querySelector(".w-pasos");
+    var iZ = campo(ctl, "z =", "-1+i", 150), iR = campo(ctl, "módulo r =", "2", 70), iT = campo(ctl, "ángulo θ (°) =", "150", 70);
+    var lz = iZ.closest("label"), lr = iR.closest("label"), lt = iT.closest("label");
+    var PRE = { bp: ["-1+i", "-sqrt(3)-i", "-2i", "3", "1+i", "3-4i", "4-4sqrt(3)i"], pb: [["2", "30"], ["4", "60"], ["3", "150"], ["1", "225"], ["5", "300"], ["2", "90"]] };
+    function pinta() {
+      lz.style.display = st.modo === "bp" ? "" : "none"; lr.style.display = lt.style.display = st.modo === "pb" ? "" : "none";
+      var p, h = "<ol class='w-ol'>";
+      if (st.modo === "bp") {
+        p = C.leer(iZ.value);
+        if (!p || (p.a === 0 && p.b === 0)) { lectura.innerHTML = U.lec("Revisa", "escribe un complejo distinto de 0, por ejemplo -1+i", "red"); pasos.innerHTML = ""; g.limpiar(); return; }
+        var r = C.mod(p), t = C.arg(p), ref = Math.atan(Math.abs(p.b) / Math.abs(p.a || 1e-12)) / R;
+        var cu = p.a > 0 && p.b > 0 ? 1 : p.a < 0 && p.b > 0 ? 2 : p.a < 0 && p.b < 0 ? 3 : p.a > 0 && p.b < 0 ? 4 : 0;
+        h += "<li>Módulo: |z| = √(a² + b²) = √(" + fmt(p.a * p.a, 3) + " + " + fmt(p.b * p.b, 3) + ") = √" + fmt(p.a * p.a + p.b * p.b, 3) + " = <b>" + fmt(r, 4) + "</b>.</li>";
+        if (cu) h += "<li>El afijo (" + fmt(p.a, 3) + ", " + fmt(p.b, 3) + ") está en el <b>" + cu + ".º cuadrante</b>. El ángulo de referencia es arctan(|b|/|a|) = arctan(" + fmt(Math.abs(p.b / p.a), 4) + ") = " + fmt(ref, 2) + "°.</li><li>Argumento: " + ({ 1: "θ = " + fmt(ref, 2) + "°", 2: "θ = 180° − " + fmt(ref, 2) + "° = " + fmt(180 - ref, 2) + "°", 3: "θ = 180° + " + fmt(ref, 2) + "° = " + fmt(180 + ref, 2) + "°", 4: "θ = 360° − " + fmt(ref, 2) + "° = " + fmt(360 - ref, 2) + "°" }[cu]) + ".</li>";
+        else h += "<li>El afijo está sobre un eje: el argumento se lee directamente (0° en el eje real positivo, 90° en el imaginario positivo, 180° en el real negativo, 270° en el imaginario negativo): <b>" + fmt(t, 2) + "°</b>.</li>";
+        h += "<li>Forma polar: <b>z = " + fmt(r, 3) + "<sub>" + fmt(t, 2) + "°</sub></b> = " + fmt(r, 3) + "·(cos " + fmt(t, 2) + "° + i·sen " + fmt(t, 2) + "°).</li>";
+        lectura.innerHTML = U.lec("Módulo", fmt(r, 4), "pen") + U.lec("Argumento", fmt(t, 3) + "°", "red") + U.lec("Forma polar", C.txtPolar(p, 3), "ok");
+      } else {
+        var rr = B.Mate.numero(iR.value), tt = B.Mate.numero(iT.value);
+        if (isNaN(rr) || isNaN(tt) || rr < 0) { lectura.innerHTML = U.lec("Revisa", "el módulo debe ser ≥ 0 y el ángulo un número", "red"); pasos.innerHTML = ""; g.limpiar(); return; }
+        p = C.polar(rr, tt);
+        h += "<li>Parte real: a = r·cos θ = " + fmt(rr, 3) + "·cos " + fmt(tt, 3) + "° = " + fmt(rr, 3) + "·" + fmt(Math.cos(tt * R), 4) + " = <b>" + fmt(p.a, 4) + "</b>.</li><li>Parte imaginaria: b = r·sen θ = " + fmt(rr, 3) + "·sen " + fmt(tt, 3) + "° = " + fmt(rr, 3) + "·" + fmt(Math.sin(tt * R), 4) + " = <b>" + fmt(p.b, 4) + "</b>.</li><li>Forma binómica: <b>z = " + C.txt(p, 4) + "</b>.</li>";
+        lectura.innerHTML = U.lec("Parte real", fmt(p.a, 4), "pen") + U.lec("Parte imaginaria", fmt(p.b, 4), "red") + U.lec("Forma binómica", C.txt(p, 4), "ok");
+      }
+      pasos.innerHTML = h + "</ol>";
+      g.limpiar();
+      var m = Math.max(1.5, Math.abs(p.a), Math.abs(p.b)) * 1.3; g.rangoIso(0, 0, m);
+      g.arco(0, 0, C.mod(p), 0, 360, { clase: "c-faint", dash: "3 5" });
+      g.segmento(p.a, 0, p.a, p.b, { clase: "c-red", dash: "4 3" }); g.segmento(0, p.b, p.a, p.b, { clase: "c-pen", dash: "4 3" });
+      U.flecha(g, 0, 0, p.a, p.b, { clase: "c-ok" }); g.punto(p.a, p.b, { r: 6, clase: "c-ok" });
+      g.arco(0, 0, Math.min(0.4 * C.mod(p), 0.8), 0, C.arg(p), { clase: "c-hl" });
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -3, xmax: 3, ymin: -3, ymax: 3, w: 420, h: 360, etx: "Re", ety: "Im", etiqueta: "El afijo en el plano complejo" });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "bp", t: "binómica → polar" }, { k: "pb", t: "polar → binómica" }], st.modo, function (k) { st.modo = k; armaPre(); pinta(); });
+    function armaPre() {
+      var arr = PRE[st.modo];
+      U.fichas(cuerpo.querySelector("[data-pre]"), arr.map(function (v, i) { return { k: String(i), t: st.modo === "bp" ? v.replace("sqrt(3)", "√3").replace("-", "−") : v[0] + "_" + v[1] + "°" }; }), "", function (k) {
+        if (st.modo === "bp") iZ.value = arr[+k]; else { iR.value = arr[+k][0]; iT.value = arr[+k][1]; } pinta();
+      });
+    }
+    iZ.addEventListener("input", pinta); iR.addEventListener("input", pinta); iT.addEventListener("input", pinta);
+    armaPre(); pinta();
+  };
+
+  // ============================================================
+  // RAICES: raíces n-ésimas, un polígono regular
+  // ============================================================
+  B.w.raices = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Raíces n-ésimas de un complejo");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><div class="w-pasos"></div>';
+    var st = { n: 3, r: 8, t: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pasos = cuerpo.querySelector(".w-pasos");
+    var sN = U.slider(ctl, { et: "Índice <i>n</i>", min: 2, max: 12, step: 1, val: st.n, on: function (v) { st.n = v; pinta(); }, fmt: String });
+    var sR = U.slider(ctl, { et: "Módulo de <i>w</i>", min: 1, max: 32, step: 1, val: st.r, on: function (v) { st.r = v; pinta(); }, fmt: String });
+    var sT = U.slider(ctl, { et: "Argumento de <i>w</i>", min: 0, max: 359, step: 1, val: st.t, on: function (v) { st.t = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    function pinta() {
+      var n = st.n, rs = C.raices(st.r, st.t, n), rad = rs[0].r, w = C.polar(st.r, st.t);
+      g.limpiar();
+      var m = Math.max(rad, 1) * 1.45; g.rangoIso(0, 0, m);
+      g.arco(0, 0, rad, 0, 360, { clase: "c-faint", dash: "3 5" });
+      var pts = rs.map(function (q) { var c = C.polar(q.r, q.t); return [c.a, c.b]; });
+      g.poligono(pts, { clase: "z-pen", borde: "var(--pen)" });
+      pts.forEach(function (c, k) { g.segmento(0, 0, c[0], c[1], { clase: "c-faint", dash: "2 4" }); g.punto(c[0], c[1], { r: 6, clase: "c-red" }); if (n <= 8) g.texto(c[0], c[1], "z" + U.sub(k), { dx: 8, dy: -6, clase: "red" }); });
+      var wm = Math.min(C.mod(w), m * 0.97), wk = wm / (C.mod(w) || 1); g.punto(w.a * wk, w.b * wk, { r: 6, clase: "c-ok" }); g.texto(w.a * wk, w.b * wk, "w", { dx: 8, dy: -6, clase: "ok" });
+      var lado = 2 * rad * Math.sin(Math.PI / n);
+      lectura.innerHTML = U.lec("Número w", fmt(st.r, 0) + "<sub>" + st.t + "°</sub>", "ok") + U.lec("Módulo de las raíces ⁿ√r", fmt(rad, 4), "pen") + U.lec("Separación entre raíces", fmt(360 / n, 2) + "°", "red") + U.lec("Lado del polígono", fmt(lado, 4));
+      pasos.innerHTML = "<ol class='w-ol'><li>Las <b>" + n + " raíces " + n + "-ésimas</b> de w = " + st.r + "<sub>" + st.t + "°</sub> tienen módulo ⁿ√r = " + fmt(rad, 4) + " y argumentos (θ + 360°·k)/n, para k = 0, 1, …, " + (n - 1) + ".</li><li>" + rs.slice(0, 8).map(function (q, k) { var c = C.polar(q.r, q.t); return "k = " + k + ": " + fmt(q.r, 3) + "<sub>" + fmt(q.t, 2) + "°</sub> = " + C.txt(c, 3); }).join("<br>") + (n > 8 ? "<br>…" : "") + "</li><li>Están sobre una circunferencia y forman un <b>polígono regular de " + n + " lados</b>: cada raíz es la anterior girada " + fmt(360 / n, 2) + "°.</li></ol>";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -3, xmax: 3, ymin: -3, ymax: 3, w: 420, h: 380, etx: "Re", ety: "Im", etiqueta: "Las raíces n-ésimas forman un polígono regular" });
+    var PRE = [[3, 8, 0, "∛8"], [2, 4, 180, "√(−4)"], [4, 16, 180, "⁴√(−16)"], [6, 1, 0, "⁶√1"], [5, 1, 0, "⁵√1"], [3, 27, 90, "∛(27i)"]];
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE.map(function (p, i) { return { k: String(i), t: p[3] }; }), "", function (k) { var p = PRE[+k]; st.n = p[0]; st.r = p[1]; st.t = p[2]; sN.set(p[0]); sR.set(p[1]); sT.set(p[2]); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // LUGAR: curvas y regiones del plano descritas con complejos
+  // ============================================================
+  B.w.lugar = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Lugares geométricos con números complejos");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { modo: "circ", cx: 1, cy: 2, r: 2, k: 2, al: 45, ax: -2, ay: 0, bx: 2, by: 2 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var S = {};
+    function sl(k, et, mn, mx, stp) { S[k] = U.slider(ctl, { et: et, min: mn, max: mx, step: stp, val: st[k], on: function (v) { st[k] = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } }); }
+    sl("cx", "Centro (Re)", -4, 4, 0.5); sl("cy", "Centro (Im)", -4, 4, 0.5); sl("r", "Radio", 0.5, 5, 0.5); sl("k", "Valor k", -4, 4, 0.5); sl("al", "Ángulo α", 0, 360, 15);
+    sl("ax", "a (Re)", -4, 4, 0.5); sl("ay", "a (Im)", -4, 4, 0.5); sl("bx", "b (Re)", -4, 4, 0.5); sl("by", "b (Im)", -4, 4, 0.5);
+    var MOSTRAR = { circ: ["cx", "cy", "r"], re: ["k"], im: ["k"], arg: ["al"], med: ["ax", "ay", "bx", "by"] };
+    function pinta() {
+      Object.keys(S).forEach(function (k) { S[k].el.style.display = MOSTRAR[st.modo].indexOf(k) >= 0 ? "" : "none"; });
+      g.limpiar();
+      var txt, cart, desc;
+      if (st.modo === "circ") {
+        g.arco(st.cx, st.cy, st.r, 0, 360, { clase: "c-red" }).setAttribute("stroke-width", 3); g.punto(st.cx, st.cy, { r: 5, clase: "c-pen" }); g.texto(st.cx, st.cy, "c", { dx: 7, dy: -7, clase: "pen" });
+        txt = "|z − (" + C.txt(z(st.cx, st.cy), 1) + ")| = " + fmt(st.r, 1); cart = "(x " + (st.cx > 0 ? "− " + fmt(st.cx, 1) : st.cx < 0 ? "+ " + fmt(-st.cx, 1) : "") + ")² + (y " + (st.cy > 0 ? "− " + fmt(st.cy, 1) : st.cy < 0 ? "+ " + fmt(-st.cy, 1) : "") + ")² = " + fmt(st.r * st.r, 2); desc = "Circunferencia de centro c y radio r: los puntos a distancia r de c.";
+      } else if (st.modo === "re") { g.segmento(st.k, -8, st.k, 8, { clase: "c-red" }).setAttribute("stroke-width", 3); txt = "Re(z) = " + fmt(st.k, 1); cart = "x = " + fmt(st.k, 1); desc = "Recta vertical: todos los complejos con la misma parte real."; }
+      else if (st.modo === "im") { g.segmento(-8, st.k, 8, st.k, { clase: "c-red" }).setAttribute("stroke-width", 3); txt = "Im(z) = " + fmt(st.k, 1); cart = "y = " + fmt(st.k, 1); desc = "Recta horizontal: todos los complejos con la misma parte imaginaria."; }
+      else if (st.modo === "arg") { var a = st.al * R; g.segmento(0, 0, 9 * Math.cos(a), 9 * Math.sin(a), { clase: "c-red" }).setAttribute("stroke-width", 3); g.arco(0, 0, 0.9, 0, st.al, { clase: "c-hl" }); txt = "arg(z) = " + st.al + "°"; cart = Math.abs(Math.cos(a)) < 1e-9 ? "x = 0, y > 0 o y < 0 según α" : "y = " + fmt(Math.tan(a), 3) + "·x  (con x " + (Math.cos(a) > 0 ? "> 0" : "< 0") + ")"; desc = "Semirrecta que sale del origen con el ángulo α (el origen no cuenta: su argumento no está definido)."; }
+      else {
+        var A = z(st.ax, st.ay), Bq = z(st.bx, st.by), mx = (A.a + Bq.a) / 2, my = (A.b + Bq.b) / 2, dx = Bq.a - A.a, dy = Bq.b - A.b;
+        if (dx === 0 && dy === 0) { lectura.innerHTML = U.lec("Los dos puntos coinciden", "elige a ≠ b", "red"); return; }
+        g.punto(A.a, A.b, { r: 6, clase: "c-pen" }); g.texto(A.a, A.b, "a", { dx: 7, dy: -7, clase: "pen" }); g.punto(Bq.a, Bq.b, { r: 6, clase: "c-pen" }); g.texto(Bq.a, Bq.b, "b", { dx: 7, dy: -7, clase: "pen" });
+        g.segmento(A.a, A.b, Bq.a, Bq.b, { clase: "c-faint", dash: "3 4" }); g.punto(mx, my, { r: 4, clase: "c-ok" });
+        g.segmento(mx - 9 * dy, my + 9 * dx, mx + 9 * dy, my - 9 * dx, { clase: "c-red" }).setAttribute("stroke-width", 3);
+        txt = "|z − a| = |z − b|"; cart = fmt(2 * dx, 1) + "·x + " + fmt(2 * dy, 1) + "·y = " + fmt(Bq.a * Bq.a + Bq.b * Bq.b - A.a * A.a - A.b * A.b, 1); desc = "Mediatriz del segmento ab: los puntos que equidistan de a y de b.";
+      }
+      var m = 5.5; g.rangoIso(0, 0, m);
+      lectura.innerHTML = U.lec("Condición", txt, "ok") + U.lec("En coordenadas (z = x + yi)", cart, "pen") + U.lec("Qué dibuja", desc);
+      pie.innerHTML = "Una condición sobre el módulo, la parte real, la parte imaginaria o el argumento de z describe una figura del plano. Escribiendo z = x + yi y operando, se obtiene su ecuación cartesiana.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -5, xmax: 5, ymin: -5, ymax: 5, w: 420, h: 380, etx: "Re", ety: "Im", etiqueta: "Lugar geométrico en el plano complejo" });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "circ", t: "|z − c| = r" }, { k: "re", t: "Re z = k" }, { k: "im", t: "Im z = k" }, { k: "arg", t: "arg z = α" }, { k: "med", t: "|z − a| = |z − b|" }], st.modo, function (k) { st.modo = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // MANDELBROT: z → z² + c, un fractal con complejos
+  // ============================================================
+  B.w.mandelbrot = function (host) {
+    var cuerpo = B.caja(host, "Curiosidad", "El conjunto de Mandelbrot: z → z² + c");
+    cuerpo.innerHTML = '<div class="mb-fila"><canvas class="mb-cv" width="360" height="270" role="img" aria-label="Conjunto de Mandelbrot: toca un punto para ver su órbita"></canvas><div class="w-plot mb-orb"></div></div><div class="lectura"></div><p class="w-pie"></p>';
+    var cv = cuerpo.querySelector("canvas"), ctx = cv.getContext && cv.getContext("2d"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var X0 = -2.2, X1 = 0.8, Y0 = -1.125, Y1 = 1.125, MAXI = 60, st = { c: z(-0.2, 0.5) }, g;
+    function iter(c, max) { var zz = z(0, 0), i = 0; while (i < max && zz.a * zz.a + zz.b * zz.b <= 4) { zz = z(zz.a * zz.a - zz.b * zz.b + c.a, 2 * zz.a * zz.b + c.b); i++; } return i; }
+    function dibuja() {
+      if (!ctx) return;
+      var w = cv.width, h = cv.height, img = ctx.createImageData(w, h);
+      for (var py = 0; py < h; py++) for (var px = 0; px < w; px++) {
+        var c = z(X0 + (X1 - X0) * px / w, Y1 - (Y1 - Y0) * py / h), n = iter(c, MAXI), o = (py * w + px) * 4;
+        if (n >= MAXI) { img.data[o] = 20; img.data[o + 1] = 24; img.data[o + 2] = 50; } else { var t = n / MAXI; img.data[o] = 240 * Math.min(1, t * 4); img.data[o + 1] = 200 * Math.min(1, t * 3); img.data[o + 2] = 120 + 135 * (1 - t); }
+        img.data[o + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+    }
+    function marca() {
+      if (!ctx) return;
+      var px = (st.c.a - X0) / (X1 - X0) * cv.width, py = (Y1 - st.c.b) / (Y1 - Y0) * cv.height;
+      ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fillStyle = "#e0245e"; ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+    }
+    function pinta() {
+      dibuja(); marca();
+      var zz = z(0, 0), orb = [zz], i = 0;
+      while (i < 40 && zz.a * zz.a + zz.b * zz.b <= 100) { zz = z(zz.a * zz.a - zz.b * zz.b + st.c.a, 2 * zz.a * zz.b + st.c.b); orb.push(zz); i++; }
+      var escapa = zz.a * zz.a + zz.b * zz.b > 4;
+      g.limpiar();
+      var m = 2.2; g.rangoIso(0, 0, m);
+      var pts = orb.map(function (q) { return [Math.max(-9, Math.min(9, q.a)), Math.max(-9, Math.min(9, q.b))]; });
+      g.polilinea(pts, { clase: "c-faint" });
+      pts.forEach(function (q, k) { g.punto(q[0], q[1], { r: k === 0 ? 5 : 3.5, clase: k === 0 ? "c-ok" : escapa ? "c-red" : "c-pen" }); });
+      lectura.innerHTML = U.lec("c elegido", C.txt(st.c, 3), "red") + U.lec("¿La órbita escapa?", escapa ? "sí: tras " + orb.length + " pasos |z| &gt; 2" : "no: se queda cerca del origen (c ∈ conjunto)", escapa ? "red" : "ok") + U.lec("z₁ · z₂ · z₃", orb.slice(1, 4).map(function (q) { return C.txt(q, 2); }).join(" ; "));
+      pie.innerHTML = "Se parte de z₀ = 0 y se repite z → z² + c con el complejo c que tocas. Si los valores se mantienen acotados, c pertenece al <b>conjunto de Mandelbrot</b> (la zona oscura); si se escapan hacia infinito, se colorea según la rapidez con que lo hacen. Toda esa belleza sale de multiplicar y sumar números complejos.";
+    }
+    cv.addEventListener("pointerdown", function (e) {
+      var rc = cv.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width, py = (e.clientY - rc.top) / rc.height;
+      st.c = z(Math.round((X0 + (X1 - X0) * px) * 1000) / 1000, Math.round((Y1 - (Y1 - Y0) * py) * 1000) / 1000); pinta();
+    });
+    g = new B.Plot(cuerpo.querySelector(".mb-orb"), { xmin: -2.5, xmax: 2.5, ymin: -2.2, ymax: 2.2, w: 360, h: 270, etx: "Re", ety: "Im", etiqueta: "Órbita de 0 con la regla z → z² + c" });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de equilibrio químico
    eqtiempo: cinética real (v directa = v inversa)
    equilibrio: simulador de perturbaciones (Le Chatelier con Q y Kc)
@@ -5370,6 +5733,245 @@
     }
     g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 360, ymin: -7.5, ymax: 7.5, w: 640, h: 270, sinX: true, etx: "x", ety: "", etiqueta: "Suma de seno y coseno" });
     [0, 90, 180, 270, 360].forEach(function (a) { g.segmento(a, -7.5, a, 7.5, { clase: "c-faint", dash: "2 5", capa: "fijo" }); g.texto(a, 0, a + "°", { dy: 15, dx: a === 360 ? -14 : a === 0 ? 14 : 0, ancla: "middle", clase: "faint", capa: "fijo" }); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
+   Bachi para Firu · laboratorio de vectores (Matemáticas I, tema 7; también sirve a Física)
+   vectores · escalar · combinacion · segmento · baricentro · fuerzas · trabajo
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  B.lab = B.lab || {};
+  var V = B.lab.vec = {};
+  var R = Math.PI / 180;
+  function cero(x) { return Math.abs(x) < 1e-12 ? 0 : x; }
+
+  V.mod = function (u) { return Math.hypot(u[0], u[1]); };
+  V.dot = function (u, v) { return u[0] * v[0] + u[1] * v[1]; };
+  V.det = function (u, v) { return u[0] * v[1] - u[1] * v[0]; };
+  V.ang = function (u, v) { var c = V.dot(u, v) / (V.mod(u) * V.mod(v)); return Math.acos(Math.max(-1, Math.min(1, c))) / R; };
+  V.txt = function (u, d) { d = d == null ? 2 : d; return "(" + fmt(cero(u[0]), d) + ", " + fmt(cero(u[1]), d) + ")"; };
+  function snap(v, lim) { v = Math.round(v * 2) / 2; return Math.max(-lim, Math.min(lim, v)); }
+
+  // Punto asible con ajuste a la cuadrícula de 0,5
+  function asa(g, get, set, clase, etq, lim) {
+    var h = g.punto(0, 0, { capa: "top", r: 9, clase: clase });
+    g.arrastrar(h, function (x, y, tecla) {
+      if (tecla) set(snap(x, lim), get()[1]); else set(snap(x, lim), snap(y, lim));
+    }, { get: function () { return get()[0]; }, paso: 0.5, etiqueta: etq });
+    return h;
+  }
+  function campoPlot(host, o) {
+    var g = new B.Plot(host, { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: o.w || 520, h: o.h || 380, etx: "x", ety: "y", etiqueta: o.etiqueta });
+    g.rangoIso(o.cx || 0, o.cy || 0, o.semi || 5);
+    return g;
+  }
+  function etiqueta(g, p, t, clase, dx, dy) { g.texto(p[0], p[1], t, { dx: dx == null ? 8 : dx, dy: dy == null ? -8 : dy, clase: clase }); }
+
+  // ============================================================
+  // VECTORES: suma, resta, producto por un número, módulo
+  // ============================================================
+  B.w.vectores = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Operaciones con vectores");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { modo: "suma", u: [3, 1], v: [1, 3], k: 2 }, g, h1, h2, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sk = U.slider(ctl, { et: "Número <i>k</i>", min: -3, max: 3, step: 0.5, val: st.k, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var u = st.u, v = st.v, m = st.modo, k = st.k, res, tit;
+      sk.el.style.display = m === "esc" ? "" : "none";
+      g.limpiar(); g.mover(h1, u[0], u[1]); g.mover(h2, v[0], v[1]);
+      h2.style.display = m === "esc" || m === "mod" ? "none" : "";
+      U.flecha(g, 0, 0, u[0], u[1], { clase: "c-pen" }); etiqueta(g, u, "u", "pen");
+      if (m !== "esc" && m !== "mod") { U.flecha(g, 0, 0, v[0], v[1], { clase: "c-red" }); etiqueta(g, v, "v", "red"); }
+      if (m === "suma") {
+        res = [u[0] + v[0], u[1] + v[1]]; tit = "u + v";
+        g.segmento(u[0], u[1], res[0], res[1], { clase: "c-red", dash: "4 4" }); g.segmento(v[0], v[1], res[0], res[1], { clase: "c-pen", dash: "4 4" });
+        U.flecha(g, 0, 0, res[0], res[1], { clase: "c-ok" }); etiqueta(g, res, "u + v", "ok");
+        pie.innerHTML = "<b>Regla del paralelogramo</b>: u + v es la diagonal del paralelogramo de lados u y v. Equivale a la <b>regla del triángulo</b>: se coloca el origen de v en el extremo de u (línea discontinua roja) y el vector suma va del origen de u al extremo de v.";
+      } else if (m === "res") {
+        res = [u[0] - v[0], u[1] - v[1]]; tit = "u − v";
+        U.flecha(g, v[0], v[1], u[0], u[1], { clase: "c-ok" }); etiqueta(g, [(u[0] + v[0]) / 2, (u[1] + v[1]) / 2], "u − v", "ok", 6, -8);
+        pie.innerHTML = "<b>u − v</b> es el vector que va del <b>extremo de v al extremo de u</b> (verde). Es la forma de calcular el vector AB entre dos puntos: AB = B − A (extremo menos origen).";
+      } else if (m === "esc") {
+        res = [k * u[0], k * u[1]]; tit = "k·u";
+        if (k !== 0) { U.flecha(g, 0, 0, res[0], res[1], { clase: "c-ok" }); etiqueta(g, res, "k·u", "ok"); }
+        pie.innerHTML = "Multiplicar por k estira o encoge u: el módulo se multiplica por |k|. Si <b>k es negativo</b>, el sentido se invierte; si k = 0 se obtiene el vector nulo. Todos los múltiplos de u son <b>paralelos</b> a u.";
+      } else {
+        res = u; tit = "u";
+        g.segmento(0, 0, u[0], 0, { clase: "c-red" }).setAttribute("stroke-width", 3); g.segmento(u[0], 0, u[0], u[1], { clase: "c-ok" }).setAttribute("stroke-width", 3);
+        g.texto(u[0] / 2, 0, "u₁ = " + fmt(u[0], 1), { dy: 16, ancla: "middle", clase: "red" }); g.texto(u[0], u[1] / 2, "u₂ = " + fmt(u[1], 1), { dx: 8, clase: "ok" });
+        pie.innerHTML = "Las componentes u₁ y u₂ son los <b>catetos</b> de un triángulo rectángulo y el vector es la hipotenusa: |u| = √(u₁² + u₂²) (Pitágoras).";
+      }
+      lectura.innerHTML = U.lec("u", V.txt(u), "pen") + (m !== "esc" && m !== "mod" ? U.lec("v", V.txt(v), "red") : "") + U.lec(tit, V.txt(res), "ok") + U.lec("Módulo de " + tit, fmt(V.mod(res), 3)) + (m === "mod" ? U.lec("Vector unitario u/|u|", V.mod(u) > 0 ? V.txt([u[0] / V.mod(u), u[1] / V.mod(u)], 3) : "—") : "");
+    }
+    g = campoPlot(cuerpo.querySelector(".rd-circ"), { etiqueta: "Vectores en el plano", semi: 6.5 });
+    h1 = asa(g, function () { return st.u; }, function (x, y) { st.u = [x, y]; pinta(); }, "c-pen", "Extremo de u", 7);
+    h2 = asa(g, function () { return st.v; }, function (x, y) { st.v = [x, y]; pinta(); }, "c-red", "Extremo de v", 7);
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "suma", t: "u + v" }, { k: "res", t: "u − v" }, { k: "esc", t: "k·u" }, { k: "mod", t: "módulo" }], st.modo, function (k) { st.modo = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // ESCALAR: producto escalar, ángulo y proyección
+  // ============================================================
+  B.w.escalar = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Producto escalar, ángulo y proyección");
+    cuerpo.innerHTML = '<div class="w-plot rd-circ"></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { u: [4, 1], v: [2, 3] }, g, h1, h2, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var u = st.u, v = st.v, d = V.dot(u, v), mu = V.mod(u), mv = V.mod(v);
+      g.limpiar(); g.mover(h1, u[0], u[1]); g.mover(h2, v[0], v[1]);
+      if (mu < 1e-9 || mv < 1e-9) { lectura.innerHTML = U.lec("Vector nulo", "mueve u y v para que no sean nulos", "red"); return; }
+      var ang = V.ang(u, v), cr = V.det(u, v), proy = d / (mu * mu), pp = [proy * u[0], proy * u[1]];
+      var tipo = Math.abs(d) < 1e-9 ? "perpendiculares (u·v = 0)" : Math.abs(cr) < 1e-9 ? (d > 0 ? "paralelos, mismo sentido" : "paralelos, sentido contrario") : d > 0 ? "ángulo agudo (u·v &gt; 0)" : "ángulo obtuso (u·v &lt; 0)";
+      U.flecha(g, 0, 0, u[0], u[1], { clase: "c-pen" }); U.flecha(g, 0, 0, v[0], v[1], { clase: "c-red" });
+      etiqueta(g, u, "u", "pen"); etiqueta(g, v, "v", "red");
+      g.segmento(v[0], v[1], pp[0], pp[1], { clase: "c-faint", dash: "4 4" });
+      g.segmento(0, 0, pp[0], pp[1], { clase: "c-ok" }).setAttribute("stroke-width", 5);
+      g.arco(0, 0, 0.8, Math.atan2(u[1], u[0]) / R, Math.atan2(u[1], u[0]) / R + (cr >= 0 ? ang : -ang), { clase: "c-hl" });
+      lectura.innerHTML = U.lec("u · v = u₁v₁ + u₂v₂", fmt(u[0], 1) + "·" + fmt(v[0], 1) + " + " + fmt(u[1], 1) + "·" + fmt(v[1], 1) + " = " + fmt(d, 2), "ok") + U.lec("|u| · |v| · cos α", fmt(mu, 3) + " · " + fmt(mv, 3) + " · " + fmt(Math.cos(ang * R), 4) + " = " + fmt(mu * mv * Math.cos(ang * R), 2)) + U.lec("Ángulo α", fmt(ang, 2) + "°", "red") + U.lec("Posición", tipo, "pen") + U.lec("Proyección de v sobre u (longitud con signo)", fmt(d / mu, 3), "ok");
+      pie.innerHTML = "Arrastra los extremos de u y v. El producto escalar es un <b>número</b> (no un vector): vale 0 cuando son perpendiculares, es positivo si el ángulo es agudo y negativo si es obtuso. El segmento verde es la <b>proyección ortogonal</b> de v sobre u: su longitud es (u·v)/|u|.";
+    }
+    g = campoPlot(cuerpo.querySelector(".rd-circ"), { etiqueta: "Dos vectores, su ángulo y la proyección", semi: 5.5 });
+    h1 = asa(g, function () { return st.u; }, function (x, y) { st.u = [x, y]; pinta(); }, "c-pen", "Extremo de u", 6);
+    h2 = asa(g, function () { return st.v; }, function (x, y) { st.v = [x, y]; pinta(); }, "c-red", "Extremo de v", 6);
+    pinta();
+  };
+
+  // ============================================================
+  // COMBINACION: bases y coordenadas
+  // ============================================================
+  B.w.combinacion = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Bases: cualquier vector es una combinación lineal");
+    cuerpo.innerHTML = '<div data-base class="chips"></div><div class="w-plot rd-circ"></div><div class="lectura"></div><p class="w-pie"></p>';
+    var BASES = { can: [[1, 0], [0, 1], "base canónica i = (1, 0), j = (0, 1)"], b1: [[2, 1], [-1, 1], "u = (2, 1), v = (−1, 1)"], b2: [[1, 1], [1, -1], "u = (1, 1), v = (1, −1)"], b3: [[3, 1], [1, 2], "u = (3, 1), v = (1, 2)"] };
+    var st = { base: "b1", w: [3, 4] }, g, hw, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var b = BASES[st.base], u = b[0], v = b[1], w = st.w, D = V.det(u, v), a = V.det(w, v) / D, c = V.det(u, w) / D;
+      g.limpiar(); g.mover(hw, w[0], w[1]);
+      var au = [a * u[0], a * u[1]], cv = [c * v[0], c * v[1]];
+      g.segmento(au[0], au[1], w[0], w[1], { clase: "c-red", dash: "4 4" }); g.segmento(cv[0], cv[1], w[0], w[1], { clase: "c-pen", dash: "4 4" });
+      U.flecha(g, 0, 0, au[0], au[1], { clase: "c-pen" }); U.flecha(g, 0, 0, cv[0], cv[1], { clase: "c-red" });
+      U.flecha(g, 0, 0, u[0], u[1], { clase: "c-pen" }); U.flecha(g, 0, 0, v[0], v[1], { clase: "c-red" });
+      g.texto(u[0], u[1], "u", { dx: 8, dy: -8, clase: "pen" }); g.texto(v[0], v[1], "v", { dx: 8, dy: -8, clase: "red" });
+      U.flecha(g, 0, 0, w[0], w[1], { clase: "c-ok" }); g.texto(w[0], w[1], "w", { dx: 8, dy: -8, clase: "ok" });
+      lectura.innerHTML = U.lec("Base elegida", BASES[st.base][2]) + U.lec("w (coordenadas habituales)", V.txt(w), "ok") + U.lec("w = a·u + b·v", "a = " + fmt(a, 3) + " · b = " + fmt(c, 3), "pen") + U.lec("Comprobación", fmt(a, 2) + "·" + V.txt(u, 0) + " + " + fmt(c, 2) + "·" + V.txt(v, 0) + " = " + V.txt([a * u[0] + c * v[0], a * u[1] + c * v[1]], 2));
+      pie.innerHTML = "Dos vectores <b>no paralelos</b> forman una <b>base</b>: cualquier vector w se escribe de forma única como a·u + b·v (a y b son sus coordenadas en esa base). Con la base canónica (i, j) las coordenadas son las de siempre. Arrastra w y cambia de base.";
+    }
+    g = campoPlot(cuerpo.querySelector(".rd-circ"), { etiqueta: "Un vector como combinación lineal de dos vectores de la base", semi: 6 });
+    hw = asa(g, function () { return st.w; }, function (x, y) { st.w = [x, y]; pinta(); }, "c-ok", "Extremo de w", 8);
+    U.fichas(cuerpo.querySelector("[data-base]"), Object.keys(BASES).map(function (k) { return { k: k, t: BASES[k][2] }; }), st.base, function (k) { st.base = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // SEGMENTO: punto medio, simétrico y división en una razón
+  // ============================================================
+  B.w.segmento = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Puntos de un segmento: P = A + t·AB");
+    cuerpo.innerHTML = '<div data-t class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { A: [-3, -2], B: [4, 3], t: 0.5 }, g, hA, hB, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sl = U.slider(ctl, { et: "Parámetro <i>t</i>", min: -1, max: 2, step: 0.05, val: st.t, on: function (v) { st.t = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    function pinta() {
+      var A = st.A, Bq = st.B, t = st.t, AB = [Bq[0] - A[0], Bq[1] - A[1]], P = [A[0] + t * AB[0], A[1] + t * AB[1]];
+      g.limpiar(); g.mover(hA, A[0], A[1]); g.mover(hB, Bq[0], Bq[1]);
+      g.segmento(-9 * AB[0] + A[0], -9 * AB[1] + A[1], 9 * AB[0] + A[0], 9 * AB[1] + A[1], { clase: "c-faint", dash: "3 5" });
+      g.segmento(A[0], A[1], Bq[0], Bq[1], { clase: "c-pen" }).setAttribute("stroke-width", 3);
+      g.punto(A[0], A[1], { r: 5, clase: "c-pen" }); g.punto(Bq[0], Bq[1], { r: 5, clase: "c-pen" });
+      etiqueta(g, A, "A", "pen"); etiqueta(g, Bq, "B", "pen");
+      g.punto(P[0], P[1], { r: 7, clase: "c-red" }); etiqueta(g, P, "P", "red");
+      var razon = Math.abs(1 - t) < 1e-9 ? "∞ (P = B)" : fmt(t / (1 - t), 3);
+      lectura.innerHTML = U.lec("AB = B − A", V.txt(AB), "pen") + U.lec("P = A + t·AB", V.txt(P, 3), "red") + U.lec("AP/PB", razon) + U.lec("Dónde está P", t < 0 ? "fuera, antes de A" : t > 1 ? "fuera, después de B" : t === 0 ? "en A" : t === 1 ? "en B" : Math.abs(t - 0.5) < 1e-9 ? "en el punto medio" : "dentro del segmento", "ok");
+      pie.innerHTML = "Cada punto de la recta AB se obtiene como P = A + t·AB. Con <b>t = 1/2</b> sale el <b>punto medio</b> M = ((a₁ + b₁)/2, (a₂ + b₂)/2). Con t entre 0 y 1, P está en el segmento; con <b>t = 2</b>, P es el <b>simétrico de A respecto de B</b>. Si P divide al segmento en la razón AP/PB = r, entonces t = r/(1 + r).";
+    }
+    g = campoPlot(cuerpo.querySelector(".rd-circ"), { etiqueta: "Segmento AB y un punto P = A + t·AB", semi: 6 });
+    hA = asa(g, function () { return st.A; }, function (x, y) { st.A = [x, y]; pinta(); }, "c-pen", "Punto A", 8);
+    hB = asa(g, function () { return st.B; }, function (x, y) { st.B = [x, y]; pinta(); }, "c-pen", "Punto B", 8);
+    U.fichas(cuerpo.querySelector("[data-t]"), [{ k: "0.5", t: "punto medio (t = 1/2)" }, { k: "0.3333333333333333", t: "t = 1/3" }, { k: "0.6666666666666666", t: "t = 2/3" }, { k: "0.25", t: "t = 1/4" }, { k: "2", t: "simétrico de A respecto de B (t = 2)" }, { k: "-1", t: "simétrico de B respecto de A (t = −1)" }], "", function (k) { st.t = parseFloat(k); sl.set(Math.round(st.t * 100) / 100); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // BARICENTRO: tres puntos, las medianas y el área
+  // ============================================================
+  B.w.baricentro = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Triángulo: baricentro, medianas y área");
+    cuerpo.innerHTML = '<div class="w-plot rd-circ"></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { A: [-4, -2], B: [4, -1], C: [0, 4] }, g, hs = {}, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var A = st.A, Bq = st.B, Cq = st.C;
+      g.limpiar(); ["A", "B", "C"].forEach(function (k) { g.mover(hs[k], st[k][0], st[k][1]); });
+      var G = [(A[0] + Bq[0] + Cq[0]) / 3, (A[1] + Bq[1] + Cq[1]) / 3], MA = [(Bq[0] + Cq[0]) / 2, (Bq[1] + Cq[1]) / 2], MB = [(A[0] + Cq[0]) / 2, (A[1] + Cq[1]) / 2], MC = [(A[0] + Bq[0]) / 2, (A[1] + Bq[1]) / 2];
+      var AB = [Bq[0] - A[0], Bq[1] - A[1]], AC = [Cq[0] - A[0], Cq[1] - A[1]], area = Math.abs(V.det(AB, AC)) / 2;
+      g.poligono([A, Bq, Cq], { clase: "z-pen", borde: "var(--pen)" });
+      [[A, MA], [Bq, MB], [Cq, MC]].forEach(function (p) { g.segmento(p[0][0], p[0][1], p[1][0], p[1][1], { clase: "c-ok", dash: "5 4" }); });
+      [MA, MB, MC].forEach(function (m) { g.punto(m[0], m[1], { r: 4, clase: "c-ok" }); });
+      g.punto(G[0], G[1], { r: 7, clase: "c-red" }); etiqueta(g, G, "G", "red");
+      etiqueta(g, A, "A", "pen"); etiqueta(g, Bq, "B", "pen"); etiqueta(g, Cq, "C", "pen");
+      lectura.innerHTML = U.lec("Baricentro G = (A + B + C)/3", V.txt(G, 3), "red") + U.lec("Puntos medios de los lados", V.txt(MA, 1) + " · " + V.txt(MB, 1) + " · " + V.txt(MC, 1), "ok") + U.lec("Área = ½·|det(AB, AC)|", fmt(area, 3), "pen") + U.lec("¿Están alineados?", area < 1e-9 ? "sí (área 0)" : "no");
+      pie.innerHTML = "El <b>baricentro</b> es la media de los tres vértices y es el punto donde se cortan las <b>medianas</b> (rectas del vértice al punto medio del lado opuesto, en verde). Divide cada mediana en dos trozos en razón 2 : 1. El área se calcula con el determinante de dos lados: S = ½·|AB₁·AC₂ − AB₂·AC₁|.";
+    }
+    g = campoPlot(cuerpo.querySelector(".rd-circ"), { etiqueta: "Triángulo con sus medianas y su baricentro", semi: 6 });
+    hs.A = asa(g, function () { return st.A; }, function (x, y) { st.A = [x, y]; pinta(); }, "c-pen", "Vértice A", 8);
+    hs.B = asa(g, function () { return st.B; }, function (x, y) { st.B = [x, y]; pinta(); }, "c-pen", "Vértice B", 8);
+    hs.C = asa(g, function () { return st.C; }, function (x, y) { st.C = [x, y]; pinta(); }, "c-pen", "Vértice C", 8);
+    pinta();
+  };
+
+  // ============================================================
+  // FUERZAS: composición de dos fuerzas y equilibrio
+  // ============================================================
+  B.w.fuerzas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Suma de fuerzas: la resultante y la equilibrante");
+    cuerpo.innerHTML = '<div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { f1: 6, a1: 20, f2: 5, a2: 110 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "|F₁| (N)", min: 0, max: 10, step: 0.5, val: st.f1, on: function (v) { st.f1 = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl, { et: "Ángulo de F₁", min: 0, max: 360, step: 5, val: st.a1, on: function (v) { st.a1 = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    U.slider(ctl, { et: "|F₂| (N)", min: 0, max: 10, step: 0.5, val: st.f2, on: function (v) { st.f2 = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl, { et: "Ángulo de F₂", min: 0, max: 360, step: 5, val: st.a2, on: function (v) { st.a2 = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    function pinta() {
+      var F1 = [st.f1 * Math.cos(st.a1 * R), st.f1 * Math.sin(st.a1 * R)], F2 = [st.f2 * Math.cos(st.a2 * R), st.f2 * Math.sin(st.a2 * R)], Rs = [F1[0] + F2[0], F1[1] + F2[1]];
+      g.limpiar();
+      g.segmento(F1[0], F1[1], Rs[0], Rs[1], { clase: "c-red", dash: "4 4" }); g.segmento(F2[0], F2[1], Rs[0], Rs[1], { clase: "c-pen", dash: "4 4" });
+      U.flecha(g, 0, 0, F1[0], F1[1], { clase: "c-pen" }); U.flecha(g, 0, 0, F2[0], F2[1], { clase: "c-red" });
+      etiqueta(g, F1, "F₁", "pen"); etiqueta(g, F2, "F₂", "red");
+      U.flecha(g, 0, 0, Rs[0], Rs[1], { clase: "c-ok" }); etiqueta(g, Rs, "R", "ok");
+      if (V.mod(Rs) > 1e-9) { U.flecha(g, 0, 0, -Rs[0], -Rs[1], { clase: "c-faint" }); etiqueta(g, [-Rs[0], -Rs[1]], "E", "faint"); }
+      var angR = ((Math.atan2(Rs[1], Rs[0]) / R) + 360) % 360;
+      lectura.innerHTML = U.lec("F₁", V.txt(F1) + " N", "pen") + U.lec("F₂", V.txt(F2) + " N", "red") + U.lec("Resultante R = F₁ + F₂", V.txt(Rs) + " N", "ok") + U.lec("|R| y ángulo", fmt(V.mod(Rs), 3) + " N · " + (V.mod(Rs) < 1e-9 ? "—" : fmt(angR, 1) + "°")) + U.lec("Equilibrante E = −R", V.txt([-Rs[0], -Rs[1]]) + " N") + U.lec("Ángulo entre F₁ y F₂", st.f1 > 0 && st.f2 > 0 ? fmt(V.ang(F1, F2), 1) + "°" : "—");
+      pie.innerHTML = "La fuerza neta es la <b>suma vectorial</b> de las fuerzas. Para que el cuerpo esté en equilibrio hace falta una tercera fuerza, la <b>equilibrante</b> E = −R, con el mismo módulo y sentido contrario (flecha gris). Prueba: dos fuerzas iguales a 120° dan una resultante igual a cada una de ellas.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -10, xmax: 10, ymin: -10, ymax: 10, w: 460, h: 380, etx: "x (N)", ety: "y (N)", etiqueta: "Fuerzas sobre un cuerpo" });
+    g.rangoIso(0, 0, 11);
+    pinta();
+  };
+
+  // ============================================================
+  // TRABAJO: W = F·d = |F||d|cos α
+  // ============================================================
+  B.w.trabajo = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El trabajo es un producto escalar");
+    cuerpo.innerHTML = '<div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { F: 8, a: 35, d: 5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "|F| (N)", min: 1, max: 12, step: 0.5, val: st.F, on: function (v) { st.F = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl, { et: "Ángulo α", min: 0, max: 180, step: 5, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    U.slider(ctl, { et: "|d| (m)", min: 1, max: 8, step: 0.5, val: st.d, on: function (v) { st.d = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var F = [st.F * Math.cos(st.a * R), st.F * Math.sin(st.a * R)], d = [st.d, 0], W = V.dot(F, d), Fp = F[0];
+      g.limpiar();
+      g.segmento(0, 0, st.d, 0, { clase: "c-ink" }).setAttribute("stroke-width", 4); U.flecha(g, 0, 0, st.d, 0, { clase: "c-ink", grosor: 4 }); g.texto(st.d, 0, "desplazamiento d", { dy: 20, ancla: "end", clase: "faint" });
+      U.flecha(g, 0, 0, F[0], F[1], { clase: "c-red" }); etiqueta(g, F, "F", "red");
+      g.segmento(F[0], F[1], F[0], 0, { clase: "c-faint", dash: "4 4" });
+      g.segmento(0, 0, Fp, 0, { clase: W >= 0 ? "c-ok" : "c-red" }).setAttribute("stroke-width", 6);
+      g.arco(0, 0, 1.2, 0, st.a, { clase: "c-hl" });
+      lectura.innerHTML = U.lec("W = F·d = |F|·|d|·cos α", fmt(st.F, 1) + "·" + fmt(st.d, 1) + "·" + fmt(Math.cos(st.a * R), 3) + " = " + fmt(W, 2) + " J", W >= 0 ? "ok" : "red") + U.lec("Componente de F en la dirección de d", fmt(Fp, 3) + " N") + U.lec("Signo del trabajo", st.a < 90 ? "positivo (la fuerza ayuda al movimiento)" : st.a === 90 ? "cero (fuerza perpendicular: no trabaja)" : "negativo (la fuerza frena)");
+      pie.innerHTML = "El trabajo de una fuerza constante es el producto escalar de la fuerza por el desplazamiento: sólo cuenta la <b>componente de F en la dirección del movimiento</b> (la proyección verde). Con α = 90° la fuerza no trabaja (por ejemplo, la normal o el peso en un suelo horizontal). Es lo que verás en Física de 1.º, tema de trabajo y energía.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -3, xmax: 14, ymin: -8, ymax: 8, w: 520, h: 330, etx: "", ety: "", limpio: true, etiqueta: "Fuerza, desplazamiento y trabajo" });
+    g.rangoIso(4, 0, 6.5);
     pinta();
   };
 })(window);
@@ -9194,6 +9796,1281 @@
   ];
 
   B.registrar("mates1", "t5", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+
+})(window);
+
+/* ============================================================
+   Matemáticas I · ampliaciones · Tema 6: Números complejos
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, raiz = H.raiz, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates1/t6/" + ref); }
+
+  var resumen = [
+    "La <b>unidad imaginaria</b> i cumple i² = −1. Un complejo es <b>z = a + bi</b> (parte real a, parte imaginaria b). Las potencias de i se repiten de 4 en 4.",
+    "Se suma y se resta por partes; se multiplica con la distributiva (i² = −1); se divide <b>multiplicando por el conjugado</b> del denominador.",
+    "En el plano complejo z es el punto (a, b). <b>Módulo</b> |z| = √(a² + b²); <b>argumento</b> θ con tan θ = b/a (¡mira el cuadrante!).",
+    "Forma polar: <b>z = r<sub>θ</sub> = r(cos θ + i·sen θ)</b>. Multiplicar: módulos × y argumentos +. Dividir: módulos ÷ y argumentos −.",
+    "<b>De Moivre</b>: zⁿ = rⁿ·(cos nθ + i·sen nθ). Las <b>raíces n-ésimas</b> son n puntos de un polígono regular: ⁿ√r con argumentos (θ + 360°k)/n.",
+    "Toda ecuación polinómica de grado n tiene n raíces complejas (contando repeticiones)."
+  ];
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Por qué
+  secciones[0] =
+    "<h5>Una pequeña historia: los complejos nacieron de las ecuaciones de tercer grado</h5>" +
+    "<p>Los números imaginarios no surgieron de la ecuación x² + 1 = 0 (esa se descartaba diciendo «no tiene solución»), sino de una sorpresa en el siglo XVI. Cuando Cardano (1545) publicó la fórmula para resolver las ecuaciones de tercer grado, ocurrió algo extraño: ecuaciones como x³ = 15x + 4, que tienen una solución real evidente (x = 4), obligaban en la fórmula a pasar por raíces cuadradas de números negativos. Bombelli (1572) tuvo la idea de operar con esos símbolos «imposibles» como si fueran números, y al final del cálculo los trozos imaginarios se cancelaban y salía el 4. Había que aceptarlos: eran un puente necesario. Euler les dio la letra <b>i</b> (siglo XVIII) y Gauss los dibujó en un plano (hacia 1800).</p>" +
+    "<h5>Cuidado con √(−1)</h5>" +
+    "<p>Se puede escribir i = √−1, pero las propiedades de las raíces de reales positivos <b>no</b> siguen valiendo con negativos. Por ejemplo, √(−4)·√(−9) = (2i)(3i) = 6i² = <b>−6</b>, y en cambio √((−4)(−9)) = √36 = 6. Por eso conviene escribir siempre primero √(−a) = √a·i y operar después: √(−4) = 2i, √(−9) = 3i, √(−5) = i√5.</p>" +
+    "<h5>Las potencias de i dan vueltas de 90°</h5>" +
+    "<p>Calculando: i⁰ = 1, i¹ = i, i² = −1, i³ = i²·i = −i, i⁴ = i²·i² = 1, i⁵ = i⁴·i = i… ¡se repite cada 4! Así que para calcular iⁿ basta dividir n entre 4 y mirar el <b>resto</b>: resto 0 → 1; resto 1 → i; resto 2 → −1; resto 3 → −i. (Multiplicar por i equivale a girar 90°, como se ve en el plano complejo.)</p>" +
+    w("potenciasi") +
+    ejemplo("Potencias grandes", "Calcula i²⁵, i¹⁰² y i⁻³, y la suma 1 + i + i² + i³ + … + i⁹⁹.", [
+      "25 = 4·6 + 1 → i²⁵ = i¹ = <b>i</b>.",
+      "102 = 4·25 + 2 → i¹⁰² = i² = <b>−1</b>.",
+      "i⁻³ = 1/i³ = 1/(−i) = i/(−i·i) = i/1 = <b>i</b>. (También: −3 + 4 = 1 → i¹ = i, porque sumar un múltiplo de 4 al exponente no cambia el resultado.)",
+      "Cada cuatro potencias seguidas suman 1 + i − 1 − i = 0. La suma de i⁰ a i⁹⁹ tiene 100 términos = 25 bloques de 4 → <b>0</b>."
+    ]) +
+    "<h5>Ecuaciones de segundo grado que antes «no tenían solución»</h5>" +
+    "<p>Con i, la fórmula de la ecuación de segundo grado funciona siempre: si Δ = b² − 4ac es negativo, √Δ = i·√|Δ| y las soluciones son dos complejos <b>conjugados</b>.</p>" +
+    ejemplo("Δ negativo", "Resuelve x² + 2x + 5 = 0 y x² + x + 1 = 0.", [
+      "x² + 2x + 5 = 0: Δ = 4 − 20 = −16 → √Δ = 4i → x = (−2 ± 4i)/2 = <b>−1 ± 2i</b>. (Comprobación: la suma −2 = −b/a y el producto (−1)² + 2² = 5 = c/a ✓.)",
+      "x² + x + 1 = 0: Δ = 1 − 4 = −3 → √Δ = i√3 → x = <b>(−1 ± i√3)/2</b>. Son los números llamados «raíces cúbicas de la unidad» (ya aparecerán en este tema)."
+    ]) +
+    "<h5>El teorema fundamental del álgebra</h5>" +
+    "<p>Con los complejos se cierra el círculo: <b>toda ecuación polinómica de grado n tiene exactamente n raíces complejas</b> (contando cada raíz tantas veces como su multiplicidad). Por eso x² + 1 tiene dos (i y −i), x³ − 1 tiene tres, etc. No hace falta inventar ningún número más. Además, si el polinomio tiene coeficientes reales, las raíces no reales vienen siempre <b>por parejas de conjugados</b>: si 3 − 2i es raíz, 3 + 2i también.</p>";
+
+  // ---------------------------------------------------------------- 2. Binómica
+  secciones[1] =
+    "<h5>Igualdad, conjugado y opuesto</h5>" +
+    "<ul><li><b>Dos complejos son iguales</b> cuando tienen la misma parte real y la misma parte imaginaria: a + bi = c + di ⇔ a = c y b = d. Es la propiedad más usada para <i>resolver ecuaciones</i>: una igualdad entre complejos equivale a <b>dos igualdades entre reales</b>.</li>" +
+    "<li>El <b>opuesto</b> de a + bi es −a − bi. El <b>conjugado</b> es a − bi (se cambia sólo el signo de la parte imaginaria).</li>" +
+    "<li>Un número es <b>real</b> si b = 0, <b>imaginario puro</b> si a = 0 y b ≠ 0. Un complejo es igual a su conjugado si y sólo si es real.</li></ul>" +
+    ejemplo("Hallar x e y reales", "Halla x e y para que (2x − y) + (x + 3y)i = 5 + 6i.", [
+      "Igualamos partes reales: 2x − y = 5. Igualamos partes imaginarias: x + 3y = 6.",
+      "Despejando y = 2x − 5 en la segunda: x + 3(2x − 5) = 6 → 7x = 21 → x = 3, y = 1.",
+      "<b>x = 3 e y = 1</b>. Comprobación: (6 − 1) + (3 + 3)i = 5 + 6i ✓."
+    ]) +
+    ejemplo("Parte real e imaginaria", "Indica Re(z), Im(z) y el conjugado de z = −2 + 5i, w = 7i y u = 4.", [
+      "z = −2 + 5i: Re = −2, Im = 5 (el 5, no «5i»), conjugado −2 − 5i.",
+      "w = 7i: Re = 0, Im = 7, imaginario puro, conjugado −7i.",
+      "u = 4: Re = 4, Im = 0, real puro, conjugado 4 (igual a sí mismo)."
+    ]);
+
+  // ---------------------------------------------------------------- 3. Operaciones
+  secciones[2] =
+    "<h5>Las reglas, con una calculadora que muestra los pasos</h5>" +
+    "<p>Prueba con tus números y mira cómo se desarrolla cada operación, y dónde aparece cada resultado en el plano:</p>" +
+    w("operaciones") +
+    "<h5>Propiedades del conjugado (lo que más se usa)</h5>" +
+    "<ul><li><b>z + z̄ = 2a</b> (siempre un número real) y <b>z − z̄ = 2bi</b> (imaginario puro).</li>" +
+    "<li><b>z·z̄ = a² + b² = |z|²</b> (siempre un real ≥ 0). Es la clave de la división.</li>" +
+    "<li>El conjugado de una suma, producto o cociente es la suma, producto o cociente de los conjugados: conj(z·w) = z̄·w̄.</li></ul>" +
+    ejemplo("División con el conjugado", "Calcula (3 − 2i)/(1 + 2i).", [
+      "Multiplicamos arriba y abajo por el conjugado del denominador, 1 − 2i.",
+      "Denominador: (1 + 2i)(1 − 2i) = 1 + 4 = 5.",
+      "Numerador: (3 − 2i)(1 − 2i) = 3 − 6i − 2i + 4i² = 3 − 8i − 4 = −1 − 8i.",
+      "(−1 − 8i)/5 = <b>−1/5 − (8/5)i</b> = −0,2 − 1,6i."
+    ]) +
+    ejemplo("Potencias de un complejo en binómica", "Calcula (1 + i)² y (2 − i)³.", [
+      "(1 + i)² = 1 + 2i + i² = 1 + 2i − 1 = <b>2i</b> (es la identidad notable (a + b)² con i² = −1).",
+      "(2 − i)² = 4 − 4i + i² = 3 − 4i. Entonces (2 − i)³ = (3 − 4i)(2 − i) = 6 − 3i − 8i + 4i² = 6 − 11i − 4 = <b>2 − 11i</b>."
+    ]) +
+    ejemplo("Despejar un complejo", "Resuelve (1 + 2i)·z = 3 − i.", [
+      "z = (3 − i)/(1 + 2i). Multiplicamos por el conjugado del denominador: (3 − i)(1 − 2i)/5 = (3 − 6i − i + 2i²)/5 = (1 − 7i)/5.",
+      "<b>z = 1/5 − (7/5)i</b> = 0,2 − 1,4i. Comprobación: (1 + 2i)(0,2 − 1,4i) = 0,2 − 1,4i + 0,4i − 2,8i² = 0,2 + 2,8 − i = 3 − i ✓."
+    ]) +
+    ojo("al multiplicar, no te olvides de que <b>i² = −1</b>: el producto (a + bi)(c + di) tiene parte real ac − bd, con un <b>menos</b>. Y no «dejes» una i en el denominador: siempre se multiplica por el conjugado hasta que el denominador sea real.");
+
+  // ---------------------------------------------------------------- 4. Plano
+  secciones[3] =
+    "<h5>Dos números en el plano: suma, producto y cociente</h5>" +
+    "<p>El plano complejo no es sólo una forma de dibujar: las operaciones tienen un significado geométrico. Arrastra los puntos y observa. La <b>suma</b> es la diagonal del paralelogramo (como sumar vectores). El <b>conjugado</b> es el reflejo respecto del eje real. El <b>opuesto</b>, el simétrico respecto del origen. Y el <b>producto</b> y el <b>cociente</b> son giros y estiramientos:</p>" +
+    w("plano") +
+    "<p>Una consecuencia importante: <b>multiplicar por i</b> es girar 90° (porque i tiene módulo 1 y argumento 90°). Por ejemplo, el punto 2 + i, al multiplicarlo por i, pasa a ser (2 + i)·i = 2i + i² = −1 + 2i: es el mismo punto girado 90° alrededor del origen en sentido antihorario.</p>" +
+    ejemplo("Un giro de 90° y la suma", "El triángulo con vértices 0, 4 y 4 + 3i: gíralo 90° alrededor del origen. ¿Dónde caen 4 y 4 + 3i?", [
+      "Girar 90° es multiplicar por i: 4·i = <b>4i</b> y (4 + 3i)·i = 4i + 3i² = <b>−3 + 4i</b>.",
+      "El vértice 0 no se mueve. Comprobamos que las distancias se conservan: |4 + 3i| = 5 y |−3 + 4i| = 5 ✓."
+    ]);
+
+  // ---------------------------------------------------------------- 5. Módulo y argumento
+  secciones[4] =
+    "<h5>Cómo calcular el argumento sin equivocarse de cuadrante</h5>" +
+    "<p>La calculadora, con tan⁻¹(b/a), sólo devuelve ángulos entre −90° y 90° (cuadrantes I y IV). Si el afijo está en el II o III, el ángulo sale equivocado en 180°. El método seguro:</p>" +
+    "<ol><li>Dibuja (o razona) en qué <b>cuadrante</b> está el punto (a, b).</li><li>Calcula el <b>ángulo de referencia</b> α = arctan(|b|/|a|) (siempre agudo).</li><li>El argumento es α (cuadrante I), 180° − α (II), 180° + α (III) o 360° − α (IV). Si está sobre un eje, se lee directamente.</li></ol>" +
+    ejemplo("Un argumento en cada cuadrante", "Calcula módulo y argumento de 1 + i, −1 + i, −√3 − i y 2 − 2√3 i.", [
+      "<b>1 + i</b>: |z| = √2. 1.er cuadrante, α = arctan(1) = 45° → θ = <b>45°</b>.",
+      "<b>−1 + i</b>: |z| = √2. 2.º cuadrante, α = 45° → θ = 180° − 45° = <b>135°</b>.",
+      "<b>−√3 − i</b>: |z| = √(3 + 1) = 2. 3.er cuadrante, α = arctan(1/√3) = 30° → θ = 180° + 30° = <b>210°</b>.",
+      "<b>2 − 2√3 i</b>: |z| = √(4 + 12) = 4. 4.º cuadrante, α = arctan(2√3/2) = arctan √3 = 60° → θ = 360° − 60° = <b>300°</b> (o −60°)."
+    ]) +
+    ejemplo("Sobre los ejes", "Argumento de 3, −2, 5i y −4i.", [
+      "<b>3</b>: eje real positivo → 0°. <b>−2</b>: eje real negativo → 180°. <b>5i</b>: eje imaginario positivo → 90°. <b>−4i</b>: eje imaginario negativo → 270° (o −90°)."
+    ]) +
+    "<h5>Propiedades del módulo</h5>" +
+    "<ul><li>|z|² = z·z̄ y |z̄| = |−z| = |z|.</li><li>|z·w| = |z|·|w| y |z/w| = |z|/|w|.</li><li>Desigualdad triangular: |z + w| ≤ |z| + |w| (el lado de un triángulo no supera a la suma de los otros dos).</li><li>|z − w| es la <b>distancia entre los puntos</b> z y w. Esto permite describir circunferencias y mediatrices (sección 9).</li></ul>" +
+    "<p>El argumento no es único: si θ es un argumento, θ + 360°·k también. Se suele tomar el <b>argumento principal</b>, el que está en [0°, 360°) (o en (−180°, 180°], según el libro). También se mide en radianes: arg(−1 + i) = 3π/4.</p>";
+
+  // ---------------------------------------------------------------- 6. Polar
+  secciones[5] =
+    "<h5>Cuatro formas de escribir el mismo número</h5>" +
+    tabla(["Forma", "Escritura", "Ejemplo (z = 1 + i)"], [
+      ["Binómica", "a + bi", "1 + i"],
+      ["Polar", "r<sub>θ</sub>", "√2<sub>45°</sub>"],
+      ["Trigonométrica", "r(cos θ + i·sen θ)", "√2(cos 45° + i·sen 45°)"],
+      ["Exponencial (Euler)", "r·e<sup>iθ</sup> (θ en radianes)", "√2·e<sup>iπ/4</sup>"]
+    ]) +
+    "<p>La última (fórmula de Euler, e<sup>iθ</sup> = cos θ + i·sen θ) aparece en cursos de ingeniería y física: la verás en 2.º y en la universidad. Una consecuencia famosa: e<sup>iπ</sup> + 1 = 0, que une los cinco números más importantes de las matemáticas.</p>" +
+    w("conversor") +
+    ejemplo("De binómica a polar", "Escribe z = −1 + i y w = 4 − 4√3 i en forma polar.", [
+      "z = −1 + i: |z| = √2 y θ = 135° (2.º cuadrante). <b>z = √2<sub>135°</sub></b>.",
+      "w = 4 − 4√3 i: |w| = √(16 + 48) = 8. α = arctan(4√3/4) = 60°, 4.º cuadrante → θ = 300°. <b>w = 8<sub>300°</sub></b>."
+    ]) +
+    ejemplo("De polar a binómica", "Pasa a binómica 3<sub>150°</sub> y 2<sub>90°</sub>.", [
+      "3<sub>150°</sub> = 3(cos 150° + i·sen 150°) = 3(−√3/2 + i/2) = <b>−3√3/2 + (3/2)i ≈ −2,598 + 1,5i</b>.",
+      "2<sub>90°</sub> = 2(cos 90° + i·sen 90°) = 2(0 + i) = <b>2i</b>."
+    ]) +
+    "<p>Algunos números tienen formas polares que conviene reconocer: 1 = 1<sub>0°</sub>, i = 1<sub>90°</sub>, −1 = 1<sub>180°</sub>, −i = 1<sub>270°</sub>; y cualquier real positivo r = r<sub>0°</sub>, real negativo −r = r<sub>180°</sub>.</p>";
+
+  // ---------------------------------------------------------------- 7. Mult, div, potencias
+  secciones[6] =
+    "<h5>Por qué en polar se multiplican los módulos y se suman los argumentos</h5>" +
+    "<p>Es una consecuencia directa de las fórmulas de suma de ángulos del Tema 5. Sea z = r(cos α + i·sen α) y w = s(cos β + i·sen β). Entonces:</p>" +
+    "<p>z·w = rs[(cos α·cos β − sen α·sen β) + i(sen α·cos β + cos α·sen β)] = rs[<b>cos(α + β) + i·sen(α + β)</b>] = (rs)<sub>α+β</sub>.</p>" +
+    "<p>Dividir es lo inverso: (r/s)<sub>α−β</sub>. Y la potencia, repetir el producto n veces, da el <b>teorema de De Moivre</b>: (r<sub>θ</sub>)ⁿ = (rⁿ)<sub>nθ</sub>.</p>" +
+    ejemplo("Producto, cociente y potencia", "Calcula 2<sub>30°</sub>·5<sub>75°</sub>, 12<sub>200°</sub>/3<sub>50°</sub> y (3<sub>20°</sub>)⁴.", [
+      "Producto: módulos 2·5 = 10, argumentos 30° + 75° = 105°. <b>10<sub>105°</sub></b>.",
+      "Cociente: módulos 12/3 = 4, argumentos 200° − 50° = 150°. <b>4<sub>150°</sub></b>.",
+      "Potencia: módulo 3⁴ = 81, argumento 4·20° = 80°. <b>81<sub>80°</sub></b>."
+    ]) +
+    ejemplo("Una potencia grande, sin desarrollar", "Calcula (1 + i)⁸ y (√3 + i)¹⁰.", [
+      "1 + i = √2<sub>45°</sub>. (1 + i)⁸ = ((√2)⁸)<sub>8·45°</sub> = 16<sub>360°</sub> = 16<sub>0°</sub> = <b>16</b>.",
+      "√3 + i = 2<sub>30°</sub>. (√3 + i)¹⁰ = (2¹⁰)<sub>300°</sub> = 1024(cos 300° + i·sen 300°) = 1024(1/2 − (√3/2)i) = <b>512 − 512√3 i ≈ 512 − 886,8i</b>."
+    ]) +
+    ejemplo("Combinar forma polar y binómica", "Calcula (1 + i)²⁰/(1 − i)¹⁰.", [
+      "1 + i = √2<sub>45°</sub> → (1 + i)²⁰ = ((√2)²⁰)<sub>900°</sub> = 1024<sub>180°</sub> = −1024.",
+      "1 − i = √2<sub>315°</sub> → (1 − i)¹⁰ = ((√2)¹⁰)<sub>3150°</sub> = 32<sub>270°</sub> (3150° − 8·360° = 270°) = −32i.",
+      "Cociente: (−1024)/(−32i) = 32/i = −32i. En polar: <b>32<sub>270°</sub></b>."
+    ]) +
+    ojo("al multiplicar en polar, los argumentos se <b>suman</b> (no se multiplican) y al elevar a n el módulo se eleva a n pero el argumento <b>se multiplica</b> por n. Y recuerda reducir el argumento resultante a [0°, 360°).");
+
+  // ---------------------------------------------------------------- Nuevas
+  var nuevas = [
+    {
+      h: "8. Raíces n-ésimas de un número complejo",
+      html:
+        "<p>Calcular una raíz n-ésima de w es encontrar todos los z con zⁿ = w. En ℂ hay <b>exactamente n</b>. Con De Moivre se encuentran fácilmente: si w = r<sub>θ</sub>, buscamos z = ρ<sub>φ</sub> con ρⁿ = r y nφ = θ + 360°·k (el argumento de zⁿ sólo se conoce salvo vueltas completas). Despejando:</p>" +
+        H.formula("ⁿ√(r<sub>θ</sub>) = ( ⁿ√r )<sub>(θ + 360°·k)/n</sub>          k = 0, 1, 2, …, n − 1") +
+        "<p>Esos n números tienen el <b>mismo módulo</b> y sus argumentos se separan 360°/n: son los vértices de un <b>polígono regular de n lados</b> inscrito en una circunferencia. Cambia el índice y el número:</p>" +
+        w("raices") +
+        ejemplo("Raíces cúbicas de 8", "Halla las raíces cúbicas de 8.", [
+          "8 = 8<sub>0°</sub>. Módulo de las raíces: ∛8 = 2. Argumentos: (0° + 360°·k)/3 = 0°, 120°, 240°.",
+          "<b>2<sub>0°</sub> = 2</b>, <b>2<sub>120°</sub> = −1 + √3 i</b> y <b>2<sub>240°</sub> = −1 − √3 i</b>. Forman un triángulo equilátero de radio 2; sólo una de las tres es real."
+        ]) +
+        ejemplo("Raíces cuadradas de −4", "Halla las raíces cuadradas de −4.", [
+          "−4 = 4<sub>180°</sub>. Módulo: √4 = 2. Argumentos: (180° + 360°k)/2 = 90°, 270°.",
+          "<b>2<sub>90°</sub> = 2i</b> y <b>2<sub>270°</sub> = −2i</b>. (Se comprueba: (2i)² = 4i² = −4 ✓.)"
+        ]) +
+        ejemplo("Raíces cuartas de −16", "Halla las raíces cuartas de −16.", [
+          "−16 = 16<sub>180°</sub>. Módulo: ⁴√16 = 2. Argumentos: (180° + 360°k)/4 = 45°, 135°, 225°, 315°.",
+          "Las cuatro raíces son 2<sub>45°</sub>, 2<sub>135°</sub>, 2<sub>225°</sub> y 2<sub>315°</sub>, es decir, <b>±√2 ± √2 i</b> (los vértices de un cuadrado). Su suma es 0, como la de las raíces de cualquier z<sup>n</sup> − w con n ≥ 2."
+        ]) +
+        ejemplo("Raíces de la unidad", "Halla las raíces sextas de 1 y el lado del polígono que forman.", [
+          "1 = 1<sub>0°</sub>: módulo 1 y argumentos 0°, 60°, 120°, 180°, 240°, 300°: z = 1, (1 + √3 i)/2, (−1 + √3 i)/2, −1, (−1 − √3 i)/2, (1 − √3 i)/2.",
+          "Forman un hexágono regular inscrito en la circunferencia de radio 1, y por eso el lado mide <b>1</b> (en un hexágono regular, el lado es igual al radio). En general, el lado es 2·sen(180°/n)."
+        ]) +
+        ojo("no te quedes con una sola raíz: cuando se pide «las raíces», hay que dar las <b>n</b>. Y comprueba con tu calculadora que (raíz)ⁿ vuelve a w.")
+    },
+    {
+      h: "9. Ecuaciones en ℂ",
+      html:
+        "<p>Casi todas las ecuaciones con complejos se resuelven con una de estas técnicas:</p>" +
+        "<ul><li><b>Ecuaciones polinómicas</b> con las fórmulas del Tema 3 (la ecuación de segundo grado con Δ &lt; 0 da dos conjugados).</li>" +
+        "<li><b>Ecuaciones binomias</b> zⁿ = w: raíces n-ésimas en polar.</li>" +
+        "<li><b>Con z y z̄ a la vez</b>: se escribe z = x + yi (x, y reales), se desarrolla y se iguala parte real con parte real y parte imaginaria con parte imaginaria.</li></ul>" +
+        ejemplo("Con z y su conjugado", "Resuelve z + 2z̄ = 3 + 2i.", [
+          "Sea z = x + yi, con lo que z̄ = x − yi. Entonces z + 2z̄ = (x + yi) + (2x − 2yi) = 3x − yi.",
+          "Igualando con 3 + 2i: 3x = 3 y −y = 2 → x = 1, y = −2.",
+          "<b>z = 1 − 2i</b>. Comprobación: (1 − 2i) + 2(1 + 2i) = 3 + 2i ✓."
+        ]) +
+        ejemplo("Raíz cuadrada en binómica", "Halla las raíces cuadradas de −3 + 4i sin pasar a polar.", [
+          "Buscamos z = x + yi con z² = −3 + 4i, es decir, (x² − y²) + 2xy·i = −3 + 4i → x² − y² = −3 y 2xy = 4.",
+          "De la segunda, y = 2/x. En la primera: x² − 4/x² = −3 → x⁴ + 3x² − 4 = 0 (bicuadrada) → x² = 1 (la otra, x² = −4, no es real) → x = ±1, y = ±2.",
+          "Raíces: <b>1 + 2i</b> y <b>−1 − 2i</b>. Comprobación: (1 + 2i)² = 1 + 4i − 4 = −3 + 4i ✓."
+        ]) +
+        ejemplo("z² = z̄", "Halla todos los complejos que cumplen z² = z̄.", [
+          "Con z = x + yi: (x² − y²) + 2xy·i = x − yi → x² − y² = x y 2xy = −y.",
+          "De la segunda: y(2x + 1) = 0 → y = 0 o x = −1/2.",
+          "Si y = 0: x² = x → x = 0 o x = 1. Si x = −1/2: 1/4 − y² = −1/2 → y² = 3/4 → y = ±√3/2.",
+          "<b>Cuatro soluciones</b>: 0, 1 y (−1 ± √3 i)/2 (las dos últimas son 1<sub>120°</sub> y 1<sub>240°</sub>)."
+        ]) +
+        ejemplo("Sistema con complejos", "Resuelve z + w = 4 + i y z − w = 2 + 3i.", [
+          "Sumando: 2z = 6 + 4i → z = 3 + 2i. Restando: 2w = 2 − 2i → w = 1 − i.",
+          "<b>z = 3 + 2i y w = 1 − i</b>. (Mismas técnicas de reducción que con reales.)"
+        ])
+    },
+    {
+      h: "10. Geometría con complejos: lugares geométricos y giros",
+      html:
+        "<p>Como |z − a| es la distancia de z al punto a, muchas figuras se describen con una condición sencilla sobre z. Escribiendo z = x + yi se pasa a la ecuación cartesiana de siempre. Prueba las cinco condiciones más típicas:</p>" +
+        w("lugar") +
+        ejemplo("Pasar a coordenadas", "Describe el conjunto |z − 2i| = 3 y el conjunto |z − 1| = |z + i|.", [
+          "|z − 2i| = 3: z = x + yi → |x + (y − 2)i| = 3 → x² + (y − 2)² = 9. Es la <b>circunferencia de centro (0, 2) y radio 3</b>.",
+          "|z − 1| = |z + i|: la distancia a 1 es igual a la distancia a −i: es la <b>mediatriz</b> del segmento que une 1 con −i. En coordenadas: (x − 1)² + y² = x² + (y + 1)² → −2x + 1 = 2y + 1 → <b>y = −x</b>."
+        ]) +
+        "<h5>Giros, homotecias y movimientos con complejos</h5>" +
+        "<p>Multiplicar por un complejo r<sub>α</sub> es hacer un <b>giro de ángulo α</b> alrededor del origen y una <b>homotecia de razón r</b>. Si r = 1, es un giro puro. Para girar respecto de otro centro c, se resta c, se gira y se vuelve a sumar: z' = c + (z − c)·1<sub>α</sub>.</p>" +
+        ejemplo("Un giro de 60°", "Gira el punto 2 + i un ángulo de 60° alrededor del origen.", [
+          "Multiplicamos por 1<sub>60°</sub> = cos 60° + i·sen 60° = 1/2 + (√3/2)i.",
+          "(2 + i)(1/2 + (√3/2)i) = 1 + √3 i + i/2 + (√3/2)i² = (1 − √3/2) + (√3 + 1/2)i ≈ <b>0,134 + 2,232i</b>.",
+          "Comprobación: |2 + i| = √5 = 2,236 y |0,134 + 2,232i| = 2,236 ✓ (el giro conserva el módulo)."
+        ]) +
+        ejemplo("Un cuadrado con complejos", "Un cuadrado tiene un vértice en 1 + i y centro en el origen. ¿Cuáles son los otros vértices?", [
+          "Girar 90° alrededor del centro es multiplicar por i: los vértices son z, iz, −z y −iz.",
+          "Con z = 1 + i: i(1 + i) = −1 + i; −z = −1 − i; −i(1 + i) = 1 − i.",
+          "<b>Vértices: 1 + i, −1 + i, −1 − i, 1 − i</b>."
+        ]) +
+        ejemplo("Área de un triángulo", "Calcula el área del triángulo de vértices 0, 1 + 2i y 3 + i.", [
+          "Con z₁ = 1 + 2i y z₂ = 3 + i, el área es ½·|Im(z̄₁·z₂)| = ½·|x₁y₂ − x₂y₁| = ½·|1·1 − 3·2| = ½·5 = <b>2,5</b>.",
+          "(Es el módulo del producto vectorial: la misma fórmula del determinante que verás en el tema de vectores.)"
+        ])
+    },
+    {
+      h: "11. Una curiosidad: el conjunto de Mandelbrot",
+      html:
+        "<p>No cae en el examen, pero sirve para ver que sumar y multiplicar complejos esconde mundos enteros. Para cada número complejo c se repite la regla <b>z → z² + c</b> partiendo de z = 0. Si el resultado se mantiene acotado, c <b>pertenece</b> al conjunto de Mandelbrot (la mancha oscura); si se dispara, se colorea según la rapidez. Toca un punto de la imagen y mira la órbita que genera:</p>" +
+        w("mandelbrot")
+    },
+    {
+      h: "12. ¿Qué forma uso? Mapa de decisiones",
+      html:
+        "<p>Cada operación tiene una forma preferida. Decide con qué empezarías cada problema:</p>" +
+        w("clasificar", "forma") +
+        "<p>Une también cada situación con la técnica que la resuelve:</p>" +
+        w("emparejar", "tecnicas")
+    },
+    {
+      h: "13. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
+    },
+    {
+      h: "14. Autocomprobación del tema",
+      html: "<p>Diez preguntas de test con explicación y tarjetas para fijar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
+    }
+  ];
+
+  var datos = {
+    forma: {
+      titulo: "¿Binómica o polar?",
+      consigna: "Toca una operación y después la forma con la que resulta más cómoda.",
+      categorias: ["Forma binómica (a + bi)", "Forma polar (r<sub>θ</sub>)"],
+      items: [
+        { t: "Sumar (3 + 2i) + (1 − 4i)", c: 0 }, { t: "Restar dos complejos", c: 0 }, { t: "Dividir (3 + 2i)/(1 − i)", c: 0 }, { t: "Multiplicar dos complejos pequeños: (2 + i)(1 − 3i)", c: 0 },
+        { t: "Calcular (1 + i)²⁰", c: 1 }, { t: "Hallar las raíces cúbicas de 8", c: 1 }, { t: "Multiplicar 5<sub>40°</sub> · 2<sub>80°</sub>", c: 1 }, { t: "Calcular (√3 + i)¹⁰", c: 1 },
+        { t: "Hallar el conjugado de 4 − 7i", c: 0 }, { t: "Raíz cuarta de −16", c: 1 }
+      ]
+    },
+    tecnicas: {
+      titulo: "¿Cómo se resuelve?",
+      consigna: "Une cada situación con la técnica adecuada.",
+      pares: [
+        ["Un cociente de complejos en binómica", "Multiplicar numerador y denominador por el conjugado del denominador"],
+        ["Una potencia grande como (1 + i)¹⁵", "Pasar a polar y usar De Moivre"],
+        ["Una ecuación con z y z̄", "Escribir z = x + yi e igualar partes real e imaginaria"],
+        ["Calcular iⁿ para n grande", "Dividir n entre 4 y mirar el resto"],
+        ["Raíces n-ésimas de un complejo", "Módulo ⁿ√r y argumentos (θ + 360°k)/n"],
+        ["Ecuación de 2.º grado con Δ &lt; 0", "Fórmula con √Δ = i·√|Δ|: dos soluciones conjugadas"],
+        ["Un giro de 90° alrededor del origen", "Multiplicar por i"],
+        ["Dos complejos iguales", "Igualar partes reales y partes imaginarias"]
+      ]
+    },
+    tj1: {
+      titulo: "Números complejos",
+      cartas: [
+        { a: "Unidad imaginaria", b: "i² = −1 · potencias: i⁰ = 1, i¹ = i, i² = −1, i³ = −i, y se repite cada 4." },
+        { a: "Forma binómica", b: "z = a + bi · Re(z) = a, Im(z) = b (el coeficiente, sin la i) · conjugado z̄ = a − bi." },
+        { a: "Suma y producto", b: "(a + bi) ± (c + di) = (a ± c) + (b ± d)i · (a + bi)(c + di) = (ac − bd) + (ad + bc)i" },
+        { a: "Cociente", b: "Se multiplica por el conjugado del denominador: (a + bi)/(c + di) = (a + bi)(c − di)/(c² + d²)" },
+        { a: "Conjugado: propiedades", b: "z + z̄ = 2a · z·z̄ = a² + b² = |z|² · conj(z·w) = z̄·w̄" },
+        { a: "Módulo y argumento", b: "|z| = √(a² + b²) · tan θ = b/a, eligiendo el cuadrante con el signo de a y de b." },
+        { a: "Forma polar y trigonométrica", b: "z = r<sub>θ</sub> = r(cos θ + i·sen θ) · a = r·cos θ, b = r·sen θ" },
+        { a: "Producto y cociente en polar", b: "r<sub>α</sub>·s<sub>β</sub> = (rs)<sub>α+β</sub> · r<sub>α</sub>/s<sub>β</sub> = (r/s)<sub>α−β</sub>" },
+        { a: "Teorema de De Moivre", b: "(r<sub>θ</sub>)ⁿ = (rⁿ)<sub>nθ</sub> = rⁿ(cos nθ + i·sen nθ)" },
+        { a: "Raíces n-ésimas de r<sub>θ</sub>", b: "n raíces: módulo ⁿ√r y argumentos (θ + 360°·k)/n, con k = 0, …, n − 1. Forman un polígono regular." },
+        { a: "Multiplicar por i", b: "Es un giro de 90° (antihorario) alrededor del origen." },
+        { a: "|z − a|", b: "Es la distancia entre z y a. |z − a| = r es una circunferencia; |z − a| = |z − b| es una mediatriz." },
+        { a: "Teorema fundamental del álgebra", b: "Un polinomio de grado n tiene n raíces complejas (contadas con multiplicidad). Si los coeficientes son reales, las no reales vienen en pares conjugados." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "Un alumno calcula (2 + 3i)(1 − i) multiplicando sólo «real por real» e «imaginario por imaginario»: 2·1 + 3i·(−i) = 2 + 3 = 5. ¿Qué falla?",
+          op: ["Nada: el resultado es 5", "Faltan los productos cruzados: (2 + 3i)(1 − i) = 5 + i", "i² vale +1", "El resultado es 6i"], ok: 1,
+          porque: "(2 + 3i)(1 − i) = 2 − 2i + 3i − 3i² = 2 + i + 3 = 5 + i (con i² = −1)." },
+        { q: "Un alumno escribe (1 + i)² = 1² + i² = 1 − 1 = 0. ¿Qué falla?",
+          op: ["Nada", "Falta el doble producto: (1 + i)² = 1 + 2i + i² = 2i", "i² = 1", "El resultado es 2"], ok: 1,
+          porque: "Es la identidad notable (a + b)² = a² + 2ab + b² del Tema 3, también válida con complejos. Resultado 2i." },
+        { q: "Para dividir (3 + 2i)/(1 − i), un alumno multiplica sólo el denominador por 1 + i. ¿Qué falla?",
+          op: ["Nada", "Hay que multiplicar numerador y denominador (si no, cambia el valor de la fracción)", "Debía multiplicar por 1 − i", "Debía restar"], ok: 1,
+          porque: "Multiplicar sólo el denominador cambia el valor. (3 + 2i)(1 + i)/[(1 − i)(1 + i)] = (1 + 5i)/2." },
+        { q: "El argumento de −1 + i lo calcula un alumno como arctan(1/(−1)) = −45°, y lo da como argumento. ¿Qué falla?",
+          op: ["Nada", "El punto está en el 2.º cuadrante: el argumento es 135°. La calculadora no distingue cuadrantes", "El argumento es 45°", "El argumento es 225°"], ok: 1,
+          porque: "tan 135° = −1 y tan(−45°) = −1: la tangente es la misma en los dos. Sólo el cuadrante decide." },
+        { q: "Un alumno calcula (3<sub>20°</sub>)⁴ como 12<sub>80°</sub>. ¿Qué falla?",
+          op: ["Nada", "El módulo se ELEVA a 4: 3⁴ = 81, el resultado es 81<sub>80°</sub>", "El argumento no cambia", "El argumento debía ser 24°"], ok: 1,
+          porque: "De Moivre: (r<sub>θ</sub>)ⁿ = (rⁿ)<sub>nθ</sub>. Se eleva el módulo y se multiplica el argumento por n." },
+        { q: "Un alumno dice «√(−4)·√(−9) = √36 = 6». ¿Qué falla?",
+          op: ["Nada", "Con radicandos negativos no vale √a·√b = √(ab): (2i)(3i) = −6", "El resultado es 36", "El resultado es 6i"], ok: 1,
+          porque: "Hay que pasar primero a imaginarios: √(−4) = 2i y √(−9) = 3i, y 2i·3i = 6i² = −6." },
+        { q: "Un alumno da como raíces cúbicas de 8 sólo el número 2. ¿Qué falla?",
+          op: ["Nada", "En ℂ hay 3 raíces cúbicas: 2, −1 + √3 i y −1 − √3 i", "Hay 2 raíces", "Sólo hay una, porque 8 es real"], ok: 1,
+          porque: "Son los vértices de un triángulo equilátero: 2<sub>0°</sub>, 2<sub>120°</sub> y 2<sub>240°</sub>." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "¿Cuánto vale i⁷⁵?",
+          op: ["−i", "i", "1", "−1"], ok: 0,
+          porque: "75 = 4·18 + 3 → i⁷⁵ = i³ = −i." },
+        { q: "(3 + 2i)(1 − 4i) =",
+          op: ["11 − 10i", "−5 − 10i", "3 − 8i", "11 + 10i"], ok: 0,
+          porque: "3 − 12i + 2i − 8i² = 3 − 10i + 8 = 11 − 10i." },
+        { q: "El conjugado de 5 − 3i es…",
+          op: ["5 + 3i", "−5 + 3i", "−5 − 3i", "3 − 5i"], ok: 0,
+          porque: "Se cambia el signo de la parte imaginaria." },
+        { q: "El módulo de 3 − 4i vale…",
+          op: ["5", "7", "1", "25"], ok: 0,
+          porque: "√(9 + 16) = 5." },
+        { q: "El argumento de −√3 − i es…",
+          op: ["210°", "30°", "150°", "330°"], ok: 0,
+          porque: "3.er cuadrante, ángulo de referencia 30°: 180° + 30° = 210°." },
+        { q: "2<sub>30°</sub> · 3<sub>60°</sub> =",
+          op: ["6<sub>90°</sub>", "5<sub>90°</sub>", "6<sub>1800°</sub>", "5<sub>1800°</sub>"], ok: 0,
+          porque: "Módulos se multiplican (6) y argumentos se suman (90°)." },
+        { q: "(1 + i)⁴ =",
+          op: ["−4", "4", "4i", "−4i"], ok: 0,
+          porque: "(1 + i)² = 2i → (2i)² = 4i² = −4. Con polar: (√2)⁴ = 4 y 4·45° = 180°: 4<sub>180°</sub> = −4." },
+        { q: "¿Cuántas raíces cuartas distintas tiene cualquier número complejo no nulo?",
+          op: ["4", "1", "2", "Infinitas"], ok: 0,
+          porque: "Siempre hay n raíces n-ésimas distintas." },
+        { q: "Multiplicar un complejo por i equivale a…",
+          op: ["girar 90° alrededor del origen", "girarlo 180°", "reflejarlo respecto al eje real", "duplicar su módulo"], ok: 0,
+          porque: "i = 1<sub>90°</sub>: módulo 1 (no cambia la longitud) y argumento +90°." },
+        { q: "Las soluciones de x² − 2x + 5 = 0 son…",
+          op: ["1 ± 2i", "−1 ± 2i", "2 ± i", "1 ± 4i"], ok: 0,
+          porque: "Δ = 4 − 20 = −16 → x = (2 ± 4i)/2 = 1 ± 2i." }
+      ]
+    }
+  };
+
+  var ejercicios = [
+    // ================= ★ básico =================
+    { id: "j1", nivel: 1,
+      enunciado: "Calcula i⁴⁵ y escribe su parte real y su parte imaginaria.",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 0 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 1 }],
+      pistas: ["Divide el exponente entre 4 y mira el resto."],
+      pasos: ["45 = 4·11 + 1 → i⁴⁵ = i¹ = i: parte real 0 y parte imaginaria 1."],
+      resultado: "i" },
+    { id: "j2", nivel: 1,
+      enunciado: "Calcula (2 − 3i) + (5 + i). Escribe la parte real y la imaginaria.",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 7 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: -2 }],
+      pistas: ["Se suman partes reales y partes imaginarias por separado."],
+      pasos: ["(2 + 5) + (−3 + 1)i = 7 − 2i."],
+      resultado: "7 − 2i" },
+    { id: "j3", nivel: 1,
+      enunciado: "Calcula (2 + 3i)(4 − i).",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 11 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 10 }],
+      pistas: ["Distributiva, y sustituye i² por −1."],
+      pasos: ["(2 + 3i)(4 − i) = 8 − 2i + 12i − 3i² = 8 + 10i + 3 = 11 + 10i."],
+      resultado: "11 + 10i" },
+    { id: "j4", nivel: 1,
+      enunciado: "Para z = 3 − 4i, calcula su módulo y la parte imaginaria de su conjugado.",
+      check: [{ tipo: "num", etiqueta: "|z| =", valor: 5 }, { tipo: "num", etiqueta: "Im(z̄) =", valor: 4 }],
+      pistas: ["|z| = √(a² + b²). El conjugado cambia el signo de la parte imaginaria."],
+      pasos: ["|z| = √(9 + 16) = 5.", "z̄ = 3 + 4i, con parte imaginaria 4."],
+      resultado: "|z| = 5 · z̄ = 3 + 4i" },
+    { id: "j5", nivel: 1,
+      enunciado: "Calcula (1 + i)².",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 0 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 2 }],
+      pistas: ["(a + b)² = a² + 2ab + b², con i² = −1."],
+      pasos: ["(1 + i)² = 1 + 2i + i² = 1 + 2i − 1 = 2i."],
+      resultado: "2i" },
+    { id: "j6", nivel: 1,
+      enunciado: "Resuelve x² + 4 = 0 en ℂ. Las soluciones son ±bi: ¿cuánto vale b?",
+      check: { tipo: "num", etiqueta: "b =", valor: 2 },
+      pistas: ["x² = −4."],
+      pasos: ["x² = −4 → x = ±√(−4) = ±2i."],
+      resultado: "x = 2i y x = −2i" },
+    { id: "j7", nivel: 1,
+      enunciado: "Calcula (4 + 2i)/(1 + i).",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 3 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: -1 }],
+      pistas: ["Multiplica arriba y abajo por 1 − i."],
+      pasos: ["(4 + 2i)(1 − i)/[(1 + i)(1 − i)] = (4 − 4i + 2i − 2i²)/2 = (6 − 2i)/2 = 3 − i."],
+      resultado: "3 − i" },
+    { id: "j8", nivel: 1,
+      enunciado: "Escribe z = 2i en forma polar: módulo y argumento (en grados).",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 2 }, { tipo: "num", etiqueta: "argumento =", valor: 90, unidad: "°" }],
+      pistas: ["El afijo (0, 2) está en el eje imaginario positivo."],
+      pasos: ["|z| = 2 y el argumento es 90°: z = 2<sub>90°</sub>."],
+      resultado: "2<sub>90°</sub>" },
+    { id: "j9", nivel: 1,
+      enunciado: "Escribe en forma binómica el número 4<sub>60°</sub>. Da la parte real y la imaginaria (decimales).",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 2 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 3.4641, tol: 0.002 }],
+      pistas: ["a = r·cos θ y b = r·sen θ."],
+      pasos: ["a = 4·cos 60° = 2. b = 4·sen 60° = 4·(√3/2) = 2√3 ≈ 3,464.", "4<sub>60°</sub> = 2 + 2√3 i."],
+      resultado: "2 + 2√3 i" },
+    { id: "j10", nivel: 1,
+      enunciado: "Calcula el módulo de −5 + 12i.",
+      check: { tipo: "num", etiqueta: "módulo =", valor: 13 },
+      pistas: ["Pitágoras con a = −5 y b = 12."],
+      pasos: ["√(25 + 144) = √169 = 13."],
+      resultado: "13" },
+    // ================= ★★ medio =================
+    { id: "j11", nivel: 2,
+      enunciado: "Calcula la suma 1 + i + i² + i³ + … + i⁹⁹ (100 términos).",
+      check: { tipo: "num", etiqueta: "suma =", valor: 0 },
+      pistas: ["Cada bloque de 4 potencias consecutivas suma 0."],
+      pasos: ["1 + i − 1 − i = 0. Hay 100 términos = 25 bloques de 4: la suma es 25·0 = 0."],
+      resultado: "0" },
+    { id: "j12", nivel: 2,
+      enunciado: "Resuelve x² − 2x + 5 = 0 en ℂ. Las soluciones son a ± bi con b &gt; 0: da a y b.",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 1 }, { tipo: "num", etiqueta: "b =", valor: 2 }],
+      pistas: ["Δ = 4 − 20 = −16."],
+      pasos: ["x = (2 ± √(−16))/2 = (2 ± 4i)/2 = 1 ± 2i."],
+      resultado: "x = 1 ± 2i" },
+    { id: "j13", nivel: 2,
+      enunciado: "Calcula (3 − 2i)/(1 + 2i). Da la parte real y la imaginaria (decimales).",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: -0.2 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: -1.6 }],
+      pistas: ["Multiplica por el conjugado 1 − 2i."],
+      pasos: ["(3 − 2i)(1 − 2i) = 3 − 6i − 2i + 4i² = −1 − 8i. Denominador: 5.", "(−1 − 8i)/5 = −0,2 − 1,6i."],
+      resultado: "−1/5 − (8/5)i" },
+    { id: "j14", nivel: 2,
+      enunciado: "Resuelve (1 + 2i)·z = 3 − i. Da la parte real e imaginaria de z (decimales).",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 0.2 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: -1.4 }],
+      pistas: ["z = (3 − i)/(1 + 2i)."],
+      pasos: ["z = (3 − i)(1 − 2i)/5 = (3 − 6i − i + 2i²)/5 = (1 − 7i)/5 = 0,2 − 1,4i."],
+      resultado: "z = (1 − 7i)/5" },
+    { id: "j15", nivel: 2,
+      enunciado: "Halla los reales x e y que cumplen (2x − y) + (x + 3y)i = 5 + 6i.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 3 }, { tipo: "num", etiqueta: "y =", valor: 1 }],
+      pistas: ["Dos complejos son iguales si lo son sus partes real e imaginaria."],
+      pasos: ["2x − y = 5 y x + 3y = 6.", "y = 2x − 5 → x + 6x − 15 = 6 → x = 3, y = 1."],
+      resultado: "x = 3 e y = 1" },
+    { id: "j16", nivel: 2,
+      enunciado: "Calcula el módulo y el argumento (en grados) de −1 + i.",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 1.4142, tol: 0.002 }, { tipo: "num", etiqueta: "argumento =", valor: 135, unidad: "°" }],
+      pistas: ["El afijo (−1, 1) está en el 2.º cuadrante."],
+      pasos: ["|z| = √2. Ángulo de referencia 45° → 180° − 45° = 135°."],
+      resultado: "√2<sub>135°</sub>" },
+    { id: "j17", nivel: 2,
+      enunciado: "Calcula el módulo y el argumento (en grados, entre 0° y 360°) de −√3 − i.",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 2 }, { tipo: "num", etiqueta: "argumento =", valor: 210, unidad: "°" }],
+      pistas: ["3.er cuadrante: 180° + ángulo de referencia."],
+      pasos: ["|z| = √(3 + 1) = 2. α = arctan(1/√3) = 30°.", "θ = 180° + 30° = 210°."],
+      resultado: "2<sub>210°</sub>" },
+    { id: "j18", nivel: 2,
+      enunciado: "Escribe en binómica 3<sub>150°</sub>. Da la parte real y la imaginaria (decimales).",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: -2.598, tol: 0.002 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 1.5 }],
+      pistas: ["cos 150° = −√3/2 y sen 150° = 1/2."],
+      pasos: ["a = 3·(−√3/2) = −3√3/2 ≈ −2,598. b = 3·(1/2) = 1,5."],
+      resultado: "−3√3/2 + (3/2)i" },
+    { id: "j19", nivel: 2,
+      enunciado: "Calcula 2<sub>30°</sub> · 5<sub>75°</sub> en forma polar: módulo y argumento.",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 10 }, { tipo: "num", etiqueta: "argumento =", valor: 105, unidad: "°" }],
+      pistas: ["Se multiplican los módulos y se suman los argumentos."],
+      pasos: ["Módulo 2·5 = 10. Argumento 30° + 75° = 105°."],
+      resultado: "10<sub>105°</sub>" },
+    { id: "j20", nivel: 2,
+      enunciado: "Calcula 12<sub>200°</sub> / 3<sub>50°</sub> en forma polar: módulo y argumento.",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 4 }, { tipo: "num", etiqueta: "argumento =", valor: 150, unidad: "°" }],
+      pistas: ["Se dividen los módulos y se restan los argumentos."],
+      pasos: ["Módulo 12/3 = 4. Argumento 200° − 50° = 150°."],
+      resultado: "4<sub>150°</sub>" },
+    { id: "j21", nivel: 2,
+      enunciado: "Calcula (1 − i)⁶ en forma binómica: parte real y parte imaginaria.",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 0 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 8 }],
+      pistas: ["1 − i = √2<sub>315°</sub>. O bien (1 − i)² = −2i."],
+      pasos: ["(1 − i)² = 1 − 2i + i² = −2i. Entonces (1 − i)⁶ = (−2i)³ = −8i³ = −8·(−i) = 8i.", "En polar: (√2)⁶ = 8 y 6·315° = 1890° = 5·360° + 90°: 8<sub>90°</sub> = 8i."],
+      resultado: "8i" },
+    { id: "j22", nivel: 2,
+      enunciado: "Calcula (√3 + i)¹⁰ en forma binómica (decimales): parte real e imaginaria.",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 512 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: -886.81, tol: 0.001 }],
+      pistas: ["√3 + i = 2<sub>30°</sub>."],
+      pasos: ["(2<sub>30°</sub>)¹⁰ = 1024<sub>300°</sub> = 1024(cos 300° + i·sen 300°) = 1024(1/2 − (√3/2)i).", "= 512 − 512√3 i ≈ 512 − 886,81i."],
+      resultado: "512 − 512√3 i" },
+    { id: "j23", nivel: 2,
+      enunciado: "Halla las raíces cuadradas de −4. Escribe la parte imaginaria de cada una.",
+      check: { tipo: "lista", etiqueta: "partes imaginarias:", valores: [2, -2] },
+      pistas: ["−4 = 4<sub>180°</sub>."],
+      pasos: ["Módulo √4 = 2, argumentos 90° y 270°: 2i y −2i."],
+      resultado: "2i y −2i" },
+    { id: "j24", nivel: 2,
+      enunciado: "Halla las raíces cúbicas de 8. Escribe la parte real e imaginaria de la que tiene argumento 120°.",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: -1 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 1.7321, tol: 0.002 }],
+      pistas: ["8 = 8<sub>0°</sub>: módulo 2 y argumentos 0°, 120°, 240°."],
+      pasos: ["2<sub>120°</sub> = 2(cos 120° + i·sen 120°) = 2(−1/2 + (√3/2)i) = −1 + √3 i."],
+      resultado: "−1 + √3 i (y 2, y −1 − √3 i)" },
+    { id: "j25", nivel: 2,
+      enunciado: "Halla las raíces cuadradas de −3 + 4i. Da la de parte real positiva: parte real e imaginaria.",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 1 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 2 }],
+      pistas: ["Sea z = x + yi con z² = −3 + 4i: x² − y² = −3 y 2xy = 4."],
+      pasos: ["y = 2/x → x⁴ + 3x² − 4 = 0 → x² = 1 → x = ±1.", "Raíces: 1 + 2i y −1 − 2i."],
+      resultado: "±(1 + 2i)" },
+    // ================= ★★★ nivel PAU =================
+    { id: "j26", nivel: 3,
+      enunciado: "Resuelve z + 2z̄ = 3 + 2i. Da la parte real e imaginaria de z.",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 1 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: -2 }],
+      pistas: ["Sea z = x + yi y z̄ = x − yi."],
+      pasos: ["z + 2z̄ = 3x − yi = 3 + 2i → x = 1 e y = −2.", "z = 1 − 2i."],
+      resultado: "z = 1 − 2i" },
+    { id: "j27", nivel: 3,
+      enunciado: "Calcula las raíces cuartas de −16. ¿Cuál es su módulo común y cuánto suman las cuatro?",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 2 }, { tipo: "num", etiqueta: "suma =", valor: 0 }],
+      pistas: ["−16 = 16<sub>180°</sub>: argumentos (180° + 360°k)/4."],
+      pasos: ["Módulo ⁴√16 = 2. Argumentos 45°, 135°, 225°, 315°: ±√2 ± √2 i.", "Están a 90° unas de otras (un cuadrado centrado en el origen): la suma es 0."],
+      resultado: "módulo 2 · suma 0" },
+    { id: "j28", nivel: 3,
+      enunciado: "¿Qué figura describe |z − 2i| = 3?",
+      check: { tipo: "opcion", etiqueta: "Es", opciones: ["una circunferencia de centro (0, 2) y radio 3", "una circunferencia de centro (2, 0) y radio 3", "una recta horizontal", "una circunferencia de centro (0, −2) y radio 3"], ok: 0 },
+      pistas: ["|z − a| es la distancia entre z y a."],
+      pasos: ["z = x + yi: |x + (y − 2)i| = 3 → x² + (y − 2)² = 9: circunferencia de centro (0, 2) y radio 3."],
+      resultado: "circunferencia de centro (0, 2) y radio 3" },
+    { id: "j29", nivel: 3,
+      enunciado: "Gira el punto 2 + i un ángulo de 60° alrededor del origen (sentido antihorario). Da la parte real e imaginaria del resultado (decimales).",
+      check: [{ tipo: "num", etiqueta: "parte real =", valor: 0.134, tol: 0.01 }, { tipo: "num", etiqueta: "parte imaginaria =", valor: 2.232, tol: 0.002 }],
+      pistas: ["Multiplica por cos 60° + i·sen 60°."],
+      pasos: ["(2 + i)(1/2 + (√3/2)i) = 1 + √3 i + i/2 + (√3/2)i² = (1 − √3/2) + (√3 + 1/2)i.", "≈ 0,134 + 2,232i."],
+      resultado: "≈ 0,134 + 2,232i" },
+    { id: "j30", nivel: 3,
+      enunciado: "Las raíces sextas de 1 forman un hexágono regular. ¿Cuánto mide su lado?",
+      check: { tipo: "num", etiqueta: "lado =", valor: 1 },
+      pistas: ["Las raíces están en la circunferencia de radio 1; el lado de un polígono regular de n lados inscrito en radio r es 2r·sen(180°/n)."],
+      pasos: ["Lado = 2·1·sen 30° = 1. En el hexágono regular el lado coincide con el radio."],
+      resultado: "1" },
+    { id: "j31", nivel: 3,
+      enunciado: "Demuestra que, para todo complejo z = a + bi, se cumple z·z̄ = |z|².",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 5, items: [
+        { t: "Escribe z·z̄ = (a + bi)(a − bi)", p: 0.5 },
+        { t: "Desarrolla: a² − abi + abi − b²i²", p: 0.5 },
+        { t: "Usa i² = −1 y simplifica a a² + b²", p: 0.5 },
+        { t: "Reconoce a² + b² = |z|² (módulo al cuadrado)", p: 0.5 }
+      ] },
+      pasos: ["z·z̄ = (a + bi)(a − bi) = a² − abi + abi − b²i² = a² − b²·(−1) = a² + b² = |z|². ∎"],
+      resultado: "z·z̄ = |z|²" },
+    { id: "j32", nivel: 3,
+      enunciado: "Demuestra con las fórmulas del seno y del coseno de la suma que r<sub>α</sub>·s<sub>β</sub> = (rs)<sub>α+β</sub>.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe r(cos α + i·sen α)·s(cos β + i·sen β) y desarrolla la distributiva", p: 0.5 },
+        { t: "Agrupa la parte real: cos α·cos β − sen α·sen β (usando i² = −1)", p: 0.5 },
+        { t: "Agrupa la parte imaginaria: sen α·cos β + cos α·sen β", p: 0.5 },
+        { t: "Reconoce cos(α + β) y sen(α + β) y concluye rs·[cos(α + β) + i·sen(α + β)]", p: 0.5 }
+      ] },
+      pasos: ["rs[(cos α·cos β − sen α·sen β) + i(sen α·cos β + cos α·sen β)].", "Las dos expresiones son cos(α + β) y sen(α + β). ∎"],
+      resultado: "r<sub>α</sub>·s<sub>β</sub> = (rs)<sub>α+β</sub>" },
+    { id: "j33", nivel: 3,
+      enunciado: "Halla todos los complejos que cumplen z² = z̄. ¿Cuántas soluciones hay y cuánto suman todas?",
+      check: [{ tipo: "num", etiqueta: "nº de soluciones =", valor: 4 }, { tipo: "num", etiqueta: "suma =", valor: 0 }],
+      pistas: ["z = x + yi. x² − y² = x y 2xy = −y."],
+      pasos: ["De 2xy = −y: y = 0 o x = −1/2.", "y = 0 → x² = x → x = 0 o 1. x = −1/2 → y = ±√3/2.", "Soluciones: 0, 1, −1/2 ± (√3/2)i. Suma: 0 + 1 − 1/2 − 1/2 = 0."],
+      resultado: "0, 1 y (−1 ± √3 i)/2 → cuatro, suma 0" },
+    { id: "j34", nivel: 3,
+      enunciado: "Calcula el área del triángulo de vértices 0, 1 + 2i y 3 + i.",
+      check: { tipo: "num", etiqueta: "área =", valor: 2.5 },
+      pistas: ["Área = ½·|x₁y₂ − x₂y₁|."],
+      pasos: ["½·|1·1 − 3·2| = ½·5 = 2,5."],
+      resultado: "2,5" },
+    { id: "j35", nivel: 3,
+      enunciado: "Las raíces quintas de 1 forman un pentágono regular. ¿Cuánto mide su lado (decimal)?",
+      check: { tipo: "num", etiqueta: "lado =", valor: 1.1756, tol: 0.002 },
+      pistas: ["Radio 1 y 5 lados: lado = 2·sen(180°/5)."],
+      pasos: ["Lado = 2·sen 36° = 2·0,5878 = 1,1756."],
+      resultado: "≈ 1,1756" },
+    { id: "j36", nivel: 3,
+      enunciado: "Calcula (1 + i)²⁰/(1 − i)¹⁰ y da su módulo y su argumento (en grados entre 0° y 360°).",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 32 }, { tipo: "num", etiqueta: "argumento =", valor: 270, unidad: "°" }],
+      pistas: ["Pasa cada base a polar: 1 + i = √2<sub>45°</sub> y 1 − i = √2<sub>315°</sub>."],
+      pasos: ["(1 + i)²⁰ = 1024<sub>900°</sub> = 1024<sub>180°</sub>. (1 − i)¹⁰ = 32<sub>3150°</sub> = 32<sub>270°</sub>.", "Cociente: módulo 1024/32 = 32 y argumento 180° − 270° = −90° ≡ 270°."],
+      resultado: "32<sub>270°</sub> = −32i" }
+  ];
+
+  var lamina = [
+    { titulo: "Unidad imaginaria y forma binómica",
+      items: [
+        { label: "Definición", formula: "i² = −1  ·  z = a + bi", cuando: "Re(z) = a, Im(z) = b (sin la i).", ejemplo: "z = 3 − 2i → Re = 3, Im = −2" },
+        { label: "Potencias de i", formula: "i⁰ = 1, i¹ = i, i² = −1, i³ = −i", cuando: "Divide el exponente entre 4: el resto decide.", ejemplo: "i²⁵ = i · i¹⁰² = −1" },
+        { label: "Conjugado", formula: "z̄ = a − bi  ·  z·z̄ = a² + b² = |z|²", ejemplo: "z + z̄ = 2a" }
+      ],
+      nota: "Dos complejos son iguales si lo son sus partes real e imaginaria." },
+    { titulo: "Operaciones en binómica", ancha: true,
+      tabla: { cab: ["Operación", "Cómo se hace"], filas: [
+        ["Suma / resta", "partes reales con reales, imaginarias con imaginarias"],
+        ["Producto", "(a+bi)(c+di) = (ac − bd) + (ad + bc)i   (i² = −1)"],
+        ["Cociente", "multiplicar arriba y abajo por el conjugado del denominador"],
+        ["Potencias pequeñas", "(1 + i)² = 2i · usar (a ± b)² con i² = −1"]
+      ] },
+      nota: "Nunca dejes una i en el denominador." },
+    { titulo: "Módulo, argumento y forma polar",
+      items: [
+        { label: "Módulo", formula: "|z| = √(a² + b²)", ejemplo: "|3 − 4i| = 5" },
+        { label: "Argumento", formula: "tan θ = b/a  (según el cuadrante)", ojo: "La calculadora sólo da cuadrantes I y IV: corrige con 180°." },
+        { label: "Forma polar y trigonométrica", formula: "z = r<sub>θ</sub> = r(cos θ + i·sen θ)", ejemplo: "−1 + i = √2<sub>135°</sub>" }
+      ],
+      pasos: ["Dibuja el afijo y mira el cuadrante.", "Ángulo de referencia α = arctan(|b|/|a|).", "θ = α (I), 180° − α (II), 180° + α (III), 360° − α (IV)."] },
+    { titulo: "Operaciones en polar y raíces", ancha: true,
+      items: [
+        { label: "Producto y cociente", formula: "r<sub>α</sub>·s<sub>β</sub> = (rs)<sub>α+β</sub>  ·  r<sub>α</sub>/s<sub>β</sub> = (r/s)<sub>α−β</sub>" },
+        { label: "De Moivre", formula: "(r<sub>θ</sub>)ⁿ = (rⁿ)<sub>nθ</sub>", ejemplo: "(1 + i)⁸ = (√2)⁸<sub>360°</sub> = 16" },
+        { label: "Raíces n-ésimas", formula: "ⁿ√(r<sub>θ</sub>) = (ⁿ√r)<sub>(θ + 360°k)/n</sub>, k = 0 … n − 1", cuando: "Hay n raíces: un polígono regular de n lados.", ejemplo: "∛8: 2<sub>0°</sub>, 2<sub>120°</sub>, 2<sub>240°</sub>" }
+      ],
+      nota: "Multiplicar por i = girar 90°. Multiplicar por 1<sub>α</sub> = girar α." },
+    { titulo: "Ecuaciones y geometría",
+      pasos: ["Ecuación de 2.º grado con Δ < 0: x = (−b ± i√|Δ|)/2a (conjugados).", "Con z y z̄: z = x + yi e igualar partes real e imaginaria.", "zⁿ = w: raíces n-ésimas en polar.", "|z − a| = r: circunferencia. |z − a| = |z − b|: mediatriz. Re z = k, Im z = k: rectas."],
+      nota: "Teorema fundamental del álgebra: grado n ⇒ n raíces en ℂ." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "(1 + i)² = 1 + i² = 0", bien: "(1 + i)² = 1 + 2i + i² = 2i", por: "Falta el doble producto." },
+        { mal: "√(−4)·√(−9) = √36 = 6", bien: "(2i)(3i) = −6", por: "Con radicandos negativos no vale √a·√b = √ab." },
+        { mal: "arg(−1 + i) = arctan(−1) = −45°", bien: "135°", por: "Hay que mirar el cuadrante." },
+        { mal: "(3<sub>20°</sub>)⁴ = 12<sub>80°</sub>", bien: "81<sub>80°</sub>", por: "El módulo se ELEVA a 4." },
+        { mal: "Raíz cúbica de 8 = 2 (solo)", bien: "2, −1 ± √3 i", por: "En ℂ hay n raíces n-ésimas." },
+        { mal: "Re(3 − 2i) = −2i", bien: "Re = 3 · Im = −2", por: "La parte imaginaria es −2, sin la i." }
+      ] }
+  ];
+
+  B.registrar("mates1", "t6", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+
+})(window);
+
+/* ============================================================
+   Matemáticas I · ampliaciones · Tema 7: Vectores en el plano
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, raiz = H.raiz, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates1/t7/" + ref); }
+
+  var resumen = [
+    "Un vector tiene <b>módulo, dirección y sentido</b>. Con coordenadas: AB = B − A (extremo menos origen); |v| = √(v₁² + v₂²).",
+    "Se suman y restan por componentes; k·u multiplica cada componente. Dos vectores no paralelos forman una <b>base</b>.",
+    "<b>Producto escalar</b>: u·v = u₁v₁ + u₂v₂ = |u||v|cos α. Es un <b>número</b>; si vale 0, los vectores son perpendiculares.",
+    "<b>Paralelos</b> si u₁/v₁ = u₂/v₂ (o det = 0); <b>perpendiculares</b> si u·v = 0. Un perpendicular a (a, b) es (−b, a).",
+    "Punto medio: ((a₁+b₁)/2, (a₂+b₂)/2). Baricentro: ((x₁+x₂+x₃)/3, (y₁+y₂+y₃)/3). Área del triángulo: ½|det(AB, AC)|.",
+    "Las fuerzas, velocidades y desplazamientos son vectores: se suman con la regla del paralelogramo y el trabajo es W = F·d."
+  ];
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Qué es un vector
+  secciones[0] =
+    "<h5>Magnitudes escalares y vectoriales</h5>" +
+    "<p>Algunas magnitudes se dicen con un número (la masa, la temperatura, el tiempo, la energía): son <b>escalares</b>. Otras necesitan además una dirección y un sentido (la fuerza, la velocidad, la aceleración, el desplazamiento): son <b>vectoriales</b>. La diferencia es práctica: dos fuerzas de 5 N no se «suman» como 5 + 5 = 10 N, sino que depende de hacia dónde tiren (en el mismo sentido, 10 N; en sentidos opuestos, 0; en perpendicular, 7,07 N).</p>" +
+    tabla(["Magnitud", "Tipo", "Por qué"], [
+      ["Temperatura (20 °C)", "escalar", "basta un número"], ["Masa (3 kg)", "escalar", "basta un número"],
+      ["Fuerza (5 N hacia el este)", "vectorial", "hay que decir hacia dónde"], ["Velocidad (80 km/h hacia el norte)", "vectorial", "dirección y sentido importan"],
+      ["Desplazamiento (3 m a la derecha, 4 m arriba)", "vectorial", "no es lo mismo que la distancia recorrida"]
+    ]) +
+    "<h5>Vector fijo y vector libre</h5>" +
+    "<p>Un <b>vector fijo</b> AB tiene un origen A y un extremo B concretos. Dos vectores fijos son <b>equipolentes</b> si tienen el mismo módulo, dirección y sentido; todos los equipolentes a uno dado forman un <b>vector libre</b>. En el curso trabajamos con vectores libres: «el vector (3, 4)» es el mismo se dibuje donde se dibuje; sólo cuenta cómo es.</p>" +
+    "<ul><li>El <b>vector nulo</b> 0 = (0, 0) tiene módulo 0 y no tiene dirección ni sentido.</li><li>El <b>opuesto</b> de v, −v, tiene el mismo módulo y dirección pero sentido contrario. Además AB y BA son vectores opuestos.</li></ul>" +
+    "<p>Dibuja y mueve vectores aquí. Los extremos son arrastrables (se ajustan a la cuadrícula) y verás la suma, la resta, el producto por un número y el módulo:</p>" +
+    w("vectores");
+
+  // ---------------------------------------------------------------- 2. Coordenadas
+  secciones[1] =
+    "<h5>Las componentes y la base canónica</h5>" +
+    "<p>Las coordenadas de un vector dicen <b>cuánto hay que avanzar en horizontal y en vertical</b> para ir del origen al extremo. Se puede escribir v = (v₁, v₂), pero también v = v₁·<b>i</b> + v₂·<b>j</b>, donde i = (1, 0) y j = (0, 1) son los vectores unitarios de los ejes (la <b>base canónica</b>). Por ejemplo (3, −2) = 3i − 2j.</p>" +
+    "<h5>De puntos a vectores y de vectores a puntos</h5>" +
+    "<ul><li><b>Vector entre dos puntos</b>: AB = B − A. Con A = (1, 2) y B = (4, 6): AB = (3, 4).</li>" +
+    "<li><b>Extremo a partir del origen</b>: B = A + AB. Con A = (2, 5) y AB = (−3, 1): B = (−1, 6).</li>" +
+    "<li><b>Origen a partir del extremo</b>: A = B − AB.</li></ul>" +
+    ejemplo("El cuarto vértice de un paralelogramo", "Tres vértices de un paralelogramo ABCD son A = (1, 1), B = (5, 2) y C = (6, 5). Halla D.", [
+      "En un paralelogramo los lados opuestos son <b>equipolentes</b>: AB = DC (mismo vector).",
+      "AB = B − A = (4, 1). Entonces DC = C − D = (4, 1) → D = C − (4, 1) = (6 − 4, 5 − 1) = <b>(2, 4)</b>.",
+      "Comprobación: AD = (1, 3) y BC = (1, 3) ✓ (el otro par de lados opuestos también coincide)."
+    ]) +
+    ejemplo("Un vector con origen y extremo desconocidos", "El vector AB = (−3, 4) tiene su extremo en B = (2, 1). Halla A y el vector BA.", [
+      "A = B − AB = (2 − (−3), 1 − 4) = <b>(5, −3)</b>.",
+      "BA = −AB = <b>(3, −4)</b> (mismo módulo, sentido contrario)."
+    ]) +
+    ojo("el orden importa: AB = B − A, es decir, <b>extremo menos origen</b>. Si te equivocas de orden, te sale el opuesto BA. Y no confundas el <i>punto</i> A = (1, 2) con el <i>vector</i> OA = (1, 2): tienen las mismas coordenadas pero son objetos distintos.");
+
+  // ---------------------------------------------------------------- 3. Suma, resta, escalares
+  secciones[2] =
+    "<h5>Propiedades de las operaciones</h5>" +
+    "<p>La suma de vectores es <b>conmutativa</b> (u + v = v + u) y <b>asociativa</b>; el nulo es el elemento neutro y cada vector tiene su opuesto. El producto por un número cumple k(u + v) = ku + kv y (k + m)u = ku + mu. En total, los vectores se manejan casi como los números, y por eso se puede hablar de «despejar» un vector: si 2x + u = v, entonces x = (v − u)/2.</p>" +
+    ejemplo("Despejar un vector", "Con u = (1, −2) y v = (5, 4), halla x tal que 2x + u = v.", [
+      "2x = v − u = (5 − 1, 4 + 2) = (4, 6) → x = (4, 6)/2 = <b>(2, 3)</b>.",
+      "Comprobación: 2·(2, 3) + (1, −2) = (4, 6) + (1, −2) = (5, 4) = v ✓."
+    ]) +
+    "<h5>Combinaciones lineales y bases</h5>" +
+    "<p>Una <b>combinación lineal</b> de u y v es cualquier vector de la forma a·u + b·v. Si u y v <b>no son paralelos</b>, todo vector del plano se puede escribir de una única manera como combinación lineal de ellos: se dice que {u, v} es una <b>base</b>, y los números (a, b) son las <b>coordenadas</b> del vector en esa base. Arrastra w y mira cómo cambian a y b según la base:</p>" +
+    w("combinacion") +
+    ejemplo("Coordenadas en otra base", "Escribe w = (5, 1) como combinación lineal de u = (1, 1) y v = (1, −1).", [
+      "Buscamos a y b con (5, 1) = a(1, 1) + b(1, −1) = (a + b, a − b).",
+      "Igualando componentes: a + b = 5 y a − b = 1 → sumando, 2a = 6 → a = 3 y b = 2.",
+      "<b>w = 3u + 2v</b>. Las coordenadas de w en la base {u, v} son (3, 2)."
+    ]) +
+    ejemplo("¿Forman base?", "¿Es {(2, 3), (4, 6)} una base? ¿Y {(2, 3), (4, 5)}?", [
+      "(4, 6) = 2·(2, 3): son <b>paralelos</b> (uno es múltiplo del otro): no forman base (no «generan» todo el plano).",
+      "(2, 3) y (4, 5): 2/4 ≠ 3/5 (o: 2·5 − 3·4 = −2 ≠ 0), no son paralelos: <b>sí forman base</b>."
+    ]);
+
+  // ---------------------------------------------------------------- 4. Módulo
+  secciones[3] =
+    "<h5>Vectores unitarios y vectores con módulo dado</h5>" +
+    "<p>Para <b>normalizar</b> un vector se divide entre su módulo: v/|v| es unitario, con la misma dirección y sentido que v. Y al revés, para obtener un vector de módulo m en la dirección de v se hace m·v/|v|.</p>" +
+    ejemplo("Normalizar y escalar", "Con v = (3, −4), calcula el vector unitario con su misma dirección y sentido, y un vector de módulo 10 con sentido contrario.", [
+      "|v| = √(9 + 16) = 5. Unitario: v/5 = <b>(3/5, −4/5) = (0,6, −0,8)</b> (módulo 1: 0,36 + 0,64 = 1 ✓).",
+      "De módulo 10 y sentido contrario: −10·v/5 = −2·v = <b>(−6, 8)</b> (módulo 10 ✓)."
+    ]) +
+    "<h5>El ángulo de dirección: un vector es un número complejo</h5>" +
+    "<p>El ángulo θ que forma un vector con el eje X positivo cumple v = |v|·(cos θ, sen θ), y tan θ = v₂/v₁ (eligiendo el cuadrante con los signos). Es la misma «forma polar» de los números complejos del Tema 6: un vector del plano y un número complejo se manejan con las mismas ideas. Por ejemplo, el vector (1, √3) tiene módulo 2 y ángulo 60°: (1, √3) = 2(cos 60°, sen 60°).</p>" +
+    ejemplo("Descomponer una fuerza", "Una fuerza de 20 N forma un ángulo de 30° con la horizontal. Halla sus componentes.", [
+      "F = 20·(cos 30°, sen 30°) = 20·(√3/2, 1/2) = <b>(10√3, 10) ≈ (17,32, 10) N</b>.",
+      "Es el mismo cálculo que en los problemas de plano inclinado y proyectiles de Física."
+    ]) +
+    "<p>Dos propiedades del módulo: |k·v| = |k|·|v| y la <b>desigualdad triangular</b> |u + v| ≤ |u| + |v| (en un triángulo, un lado nunca es mayor que la suma de los otros dos; sólo hay igualdad si u y v tienen la misma dirección y sentido).</p>";
+
+  // ---------------------------------------------------------------- 5. Producto escalar
+  secciones[4] =
+    "<h5>Por qué las dos fórmulas dan lo mismo</h5>" +
+    "<p>La forma geométrica u·v = |u||v|cos α es la definición; la algebraica u₁v₁ + u₂v₂ es un cálculo más cómodo. Equivalen gracias al teorema del coseno: en el triángulo de lados u, v y u − v, |u − v|² = |u|² + |v|² − 2|u||v|cos α. Pero también |u − v|² = (u₁ − v₁)² + (u₂ − v₂)² = |u|² + |v|² − 2(u₁v₁ + u₂v₂). Igualando se obtiene la relación entre las dos formas.</p>" +
+    "<p>Mueve los vectores y observa cómo cambia el producto, el ángulo y la proyección:</p>" +
+    w("escalar") +
+    "<h5>Propiedades y significado</h5>" +
+    "<ul><li><b>Conmutativo</b> (u·v = v·u) y <b>distributivo</b> (u·(v + w) = u·v + u·w).</li><li><b>u·u = |u|²</b>: el producto de un vector por sí mismo es el cuadrado de su módulo.</li><li>El <b>signo</b> informa del ángulo: u·v &gt; 0 si α es agudo, u·v = 0 si α = 90°, u·v &lt; 0 si α es obtuso.</li><li>La <b>proyección ortogonal</b> de v sobre u es el vector (u·v/|u|²)·u, de longitud (u·v)/|u| (con signo).</li></ul>" +
+    ejemplo("El ángulo entre dos vectores", "Calcula el ángulo que forman u = (1, 2) y v = (3, −1).", [
+      "u·v = 1·3 + 2·(−1) = 3 − 2 = 1. |u| = √5 y |v| = √10.",
+      "cos α = u·v/(|u||v|) = 1/(√5·√10) = 1/√50 = 0,1414 → α = arccos 0,1414 = <b>81,87°</b> (agudo, porque u·v &gt; 0)."
+    ]) +
+    ejemplo("Proyección ortogonal", "Calcula la proyección de v = (2, 3) sobre u = (4, 1).", [
+      "u·v = 8 + 3 = 11 y |u|² = 17.",
+      "Vector proyección: (11/17)·(4, 1) = (44/17, 11/17) ≈ <b>(2,59, 0,65)</b>. Su longitud (con signo) es u·v/|u| = 11/√17 = 2,67.",
+      "La diferencia v − proyección = (2 − 2,59, 3 − 0,65) = (−0,59, 2,35) es perpendicular a u: (−0,59)·4 + 2,35·1 = 0 ✓."
+    ]) +
+    ejemplo("El ángulo de un triángulo", "Calcula el ángulo en A del triángulo de vértices A = (0, 0), B = (4, 0) y C = (1, 3).", [
+      "AB = (4, 0) y AC = (1, 3). AB·AC = 4. |AB| = 4 y |AC| = √10.",
+      "cos A = 4/(4·√10) = 1/√10 = 0,3162 → A = <b>71,57°</b>."
+    ]) +
+    ojo("el producto escalar es un <b>número</b>, no un vector. No escribas u·v = (3, 5) ni «u·v = 0 ⇒ u = 0 o v = 0»: dos vectores no nulos pueden tener producto escalar 0 (si son perpendiculares). Tampoco se «simplifica»: de u·v = u·w no se deduce v = w.");
+
+  // ---------------------------------------------------------------- 6. Paralelos y perpendiculares
+  secciones[5] =
+    "<h5>Tres formas de decir «paralelos»</h5>" +
+    "<p>Los vectores u y v son <b>paralelos</b> si v = k·u. En coordenadas esto se detecta de tres maneras equivalentes: componentes proporcionales (u₁/v₁ = u₂/v₂), <b>determinante nulo</b> (u₁v₂ − u₂v₁ = 0, que evita las divisiones y los ceros), o ángulo 0° o 180°.</p>" +
+    "<h5>Perpendiculares y el vector perpendicular</h5>" +
+    "<p>u ⊥ v si u·v = 0. Para <b>fabricar</b> un vector perpendicular a (a, b) basta intercambiar las componentes y cambiar el signo de una: <b>(−b, a)</b> (es girar 90°; y (b, −a) gira −90°). Se comprueba: (a, b)·(−b, a) = −ab + ab = 0.</p>" +
+    ejemplo("Valores de k", "Con u = (2, 3), halla k para que v = (k, −6) sea paralelo a u y k para que v = (k, −4) sea perpendicular a u.", [
+      "Paralelos: 2/k = 3/(−6) → 3k = −12 → <b>k = −4</b> (v = (−4, −6) = −2u).",
+      "Perpendiculares (con v = (k, −4)): u·v = 2k − 12 = 0 → <b>k = 6</b>."
+    ]) +
+    ejemplo("Un vector perpendicular y unitario", "Halla un vector unitario perpendicular a (3, −2).", [
+      "Un perpendicular: (2, 3) (o (−2, −3)). Comprobación: 3·2 + (−2)·3 = 0 ✓.",
+      "Su módulo es √13. Unitario: (2/√13, 3/√13) ≈ <b>(0,555, 0,832)</b>. (El otro, (−0,555, −0,832), también vale.)"
+    ]) +
+    ejemplo("Puntos alineados", "¿Están alineados A = (1, 2), B = (3, 5) y C = (7, 11)?", [
+      "Tres puntos están alineados si AB y AC son paralelos. AB = (2, 3) y AC = (6, 9).",
+      "Determinante: 2·9 − 3·6 = 18 − 18 = 0 → son paralelos: <b>los tres puntos están alineados</b> (AC = 3·AB)."
+    ]);
+
+  // ---------------------------------------------------------------- 7. Punto medio
+  secciones[6] =
+    "<h5>De punto medio a cualquier punto del segmento</h5>" +
+    "<p>El punto medio es el caso particular de una idea más general: el punto P con AP = t·AB es P = A + t·AB = (1 − t)A + tB. Para t = 1/2 se obtiene el punto medio; para t = 1/3 o 2/3, los puntos que dividen el segmento en tres partes iguales; y con t fuera de [0, 1], puntos de la recta fuera del segmento. Mueve A, B y t:</p>" +
+    w("segmento") +
+    ejemplo("Punto que divide en una razón", "Halla el punto P del segmento AB, con A = (1, 2) y B = (7, 8), tal que AP/PB = 2.", [
+      "AP/PB = 2 significa que AP es el doble de PB, es decir, AP = (2/3)·AB (t = r/(1 + r) = 2/3).",
+      "AB = (6, 6). P = A + (2/3)·AB = (1 + 4, 2 + 4) = <b>(5, 6)</b>. Comprobación: AP = (4, 4) y PB = (2, 2): razón 2 ✓."
+    ]) +
+    ejemplo("El simétrico de un punto", "Halla el simétrico de A = (1, 3) respecto de M = (4, −1).", [
+      "M es el punto medio entre A y su simétrico A': M = (A + A')/2 → A' = 2M − A = (8 − 1, −2 − 3) = <b>(7, −5)</b>."
+    ]) +
+    "<h5>El baricentro de un triángulo</h5>" +
+    "<p>Las tres medianas de un triángulo (rectas que unen un vértice con el punto medio del lado opuesto) se cortan en un punto, el <b>baricentro</b> G, que es la media de los tres vértices: <b>G = ((x₁ + x₂ + x₃)/3, (y₁ + y₂ + y₃)/3)</b>. Divide cada mediana en dos partes en razón 2 : 1 (el trozo del vértice al baricentro es el doble del que va al lado). Es el punto de equilibrio de un triángulo de cartón. Mueve los vértices:</p>" +
+    w("baricentro") +
+    ejemplo("Baricentro y diagonales", "Calcula el baricentro del triángulo A = (−4, −2), B = (4, −1), C = (0, 4). ¿Qué punto es el punto medio de las diagonales de un paralelogramo ABCD con A = (1, 1), B = (5, 2), C = (6, 5), D = (2, 4)?", [
+      "G = ((−4 + 4 + 0)/3, (−2 − 1 + 4)/3) = <b>(0, 1/3)</b>.",
+      "Punto medio de AC: ((1 + 6)/2, (1 + 5)/2) = (3,5; 3). Punto medio de BD: ((5 + 2)/2, (2 + 4)/2) = (3,5; 3). <b>Coinciden</b>: las diagonales de un paralelogramo se cortan en su punto medio (y se usa para hallar el cuarto vértice: A + C = B + D)."
+    ]);
+
+  // ---------------------------------------------------------------- Nuevas
+  var nuevas = [
+    {
+      h: "8. Áreas con vectores: el determinante",
+      html:
+        "<p>El <b>determinante</b> de dos vectores, det(u, v) = u₁v₂ − u₂v₁, mide el área (con signo) del paralelogramo que forman. Es muy cómodo para áreas y para saber si tres puntos están alineados:</p>" +
+        H.formula("Área del paralelogramo = |u₁v₂ − u₂v₁|          Área del triángulo = ½·|u₁v₂ − u₂v₁|") +
+        "<p>Por qué: el área de un paralelogramo es base × altura = |u|·|v|·sen α, y u₁v₂ − u₂v₁ = |u||v|·sen α (con signo según el giro de u a v). Si det = 0, el área es 0: los vectores son paralelos (los puntos están alineados). El triángulo ABC es la mitad del paralelogramo que forman AB y AC.</p>" +
+        ejemplo("Área de un triángulo", "Calcula el área del triángulo A = (1, 1), B = (5, 2), C = (3, 6).", [
+          "AB = (4, 1) y AC = (2, 5). det(AB, AC) = 4·5 − 1·2 = 18.",
+          "Área del triángulo = ½·|18| = <b>9</b> (el paralelogramo correspondiente tendría área 18)."
+        ]) +
+        ejemplo("Área de un polígono", "Calcula el área del cuadrilátero A = (0, 0), B = (4, 0), C = (5, 3), D = (1, 4).", [
+          "Se divide en dos triángulos con la diagonal AC. Triángulo ABC: AB = (4, 0), AC = (5, 3): det = 12 → área 6.",
+          "Triángulo ACD: AC = (5, 3), AD = (1, 4): det = 20 − 3 = 17 → área 8,5.",
+          "Total: 6 + 8,5 = <b>14,5</b>."
+        ]) +
+        ejemplo("¿Para qué valor de k están alineados?", "Halla k para que A = (1, 2), B = (3, 5) y C = (5, k) estén alineados.", [
+          "AB = (2, 3) y AC = (4, k − 2). Alineados ⇔ det(AB, AC) = 0: 2(k − 2) − 3·4 = 0 → 2k − 4 − 12 = 0 → <b>k = 8</b>.",
+          "Comprobación: AC = (4, 6) = 2·AB ✓."
+        ])
+    },
+    {
+      h: "9. Vectores y Física: fuerzas, velocidades y trabajo",
+      html:
+        "<p>La mayor parte de las aplicaciones de los vectores está en la Física. Las magnitudes vectoriales se suman con la regla del paralelogramo: la <b>fuerza resultante</b> es la suma de las fuerzas, la <b>velocidad resultante</b> es la suma de velocidades, y el <b>trabajo</b> de una fuerza es su producto escalar por el desplazamiento.</p>" +
+        w("fuerzas") +
+        ejemplo("Dos fuerzas perpendiculares", "Sobre un cuerpo actúan F₁ = 10 N a 30° y F₂ = 6 N a 120°. Calcula la resultante.", [
+          "F₁ y F₂ forman 90°, así que |R| = √(10² + 6²) = √136 = <b>11,66 N</b>.",
+          "Dirección: forma con F₁ el ángulo arctan(6/10) = 30,96°, luego R está a 30° + 30,96° = <b>60,96°</b> del eje X.",
+          "En componentes: F₁ = (8,66, 5), F₂ = (−3, 5,196) → R = (5,66, 10,196), con módulo 11,66 ✓."
+        ]) +
+        ejemplo("Un barco que cruza un río", "Un barco apunta perpendicularmente a la orilla a 12 km/h y la corriente le arrastra a 5 km/h. ¿Cuál es su velocidad respecto de tierra y cuánto se desvía?", [
+          "Velocidad del barco (0, 12) y corriente (5, 0): resultante (5, 12), módulo √(25 + 144) = <b>13 km/h</b>.",
+          "Desviación respecto de la perpendicular: tan α = 5/12 → <b>α = 22,6°</b> (aguas abajo)."
+        ]) +
+        ejemplo("Equilibrio", "Una lámpara de 50 N cuelga de dos cables simétricos que forman 60° con la horizontal. ¿Qué tensión soporta cada cable?", [
+          "Equilibrio: la suma vectorial de las tres fuerzas es cero. Cada cable tira con una tensión T en un ángulo de 60° con la horizontal.",
+          "Componente vertical: 2·T·sen 60° = 50 (el peso) → T = 50/(2·0,866) = <b>28,87 N</b>. Las componentes horizontales (±T cos 60°) se cancelan."
+        ]) +
+        "<h5>El trabajo como producto escalar</h5>" +
+        "<p>Cuando una fuerza constante F desplaza su punto de aplicación un vector d, realiza el trabajo <b>W = F·d = |F||d|cos α</b>. Sólo trabaja la componente de la fuerza que va en la dirección del desplazamiento (fuerza perpendicular: no trabaja).</p>" +
+        w("trabajo") +
+        ejemplo("Trabajo con componentes", "Una fuerza F = (3, 4) N desplaza un cuerpo d = (5, 2) m. Calcula el trabajo y el ángulo entre F y d.", [
+          "W = F·d = 3·5 + 4·2 = <b>23 J</b>.",
+          "|F| = 5 N, |d| = √29 = 5,385 m → cos α = 23/(5·5,385) = 0,8542 → <b>α = 31,4°</b> (agudo: el trabajo es positivo)."
+        ])
+    },
+    {
+      h: "10. Demostrar con vectores",
+      html:
+        "<p>Muchos teoremas de geometría se demuestran con unas pocas líneas usando el producto escalar. La receta: elige dos vectores del dibujo, exprésalo todo con ellos y usa u·v = 0 para la perpendicularidad.</p>" +
+        ejemplo("Las diagonales de un rombo son perpendiculares", "Demuestra que en un rombo las diagonales se cortan en ángulo recto.", [
+          "Sea el rombo con lados u y v desde un vértice: como todos los lados son iguales, |u| = |v|. Las diagonales son u + v y u − v.",
+          "(u + v)·(u − v) = u·u − u·v + v·u − v·v = |u|² − |v|² = 0 porque |u| = |v|.",
+          "Producto escalar nulo ⇒ las diagonales son perpendiculares. ∎"
+        ]) +
+        ejemplo("Un ángulo inscrito en una semicircunferencia es recto", "Demuestra el teorema de Tales: si AB es un diámetro y C está en la circunferencia, el ángulo en C es recto.", [
+          "Coloquemos el centro O en el origen: B = −A y |A| = |C| = r. Los vectores CA = A − C y CB = B − C = −A − C.",
+          "CA·CB = (A − C)·(−A − C) = −A·A − A·C + C·A + C·C = −|A|² + |C|² = −r² + r² = 0.",
+          "Producto nulo ⇒ CA ⊥ CB: el ángulo en C es de 90°. ∎"
+        ]) +
+        ejemplo("Un teorema de Pitágoras vectorial", "Demuestra que si u ⊥ v, entonces |u + v|² = |u|² + |v|².", [
+          "|u + v|² = (u + v)·(u + v) = u·u + 2u·v + v·v = |u|² + 2u·v + |v|².",
+          "Si u ⊥ v, u·v = 0 y queda |u|² + |v|². ∎ (Es el teorema de Pitágoras, y el teorema del coseno con ángulo recto.)"
+        ])
+    },
+    {
+      h: "11. ¿Escalar o vector? Mapa de resultados",
+      html:
+        "<p>Un fallo muy típico es no darse cuenta de qué clase de objeto sale de cada operación. Clasifícalas:</p>" +
+        w("clasificar", "tipo") +
+        w("emparejar", "formulas")
+    },
+    {
+      h: "12. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
+    },
+    {
+      h: "13. Autocomprobación del tema",
+      html: "<p>Diez preguntas de test con explicación y tarjetas con las fórmulas del tema.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
+    }
+  ];
+
+  var datos = {
+    tipo: {
+      titulo: "¿Qué sale: un número o un vector?",
+      consigna: "Toca una operación y después el tipo de resultado.",
+      categorias: ["Un vector", "Un número (escalar)", "Un punto"],
+      items: [
+        { t: "u + v", c: 0 }, { t: "3·u", c: 0 }, { t: "B − A", c: 0 }, { t: "u/|u|", c: 0 },
+        { t: "u · v (producto escalar)", c: 1 }, { t: "|u|", c: 1 }, { t: "El ángulo entre u y v", c: 1 }, { t: "det(u, v)", c: 1 }, { t: "El trabajo W = F·d", c: 1 },
+        { t: "El punto medio de AB", c: 2 }, { t: "El baricentro de ABC", c: 2 }, { t: "A + AB", c: 2 }
+      ]
+    },
+    formulas: {
+      titulo: "Cada fórmula con su significado",
+      consigna: "Une cada fórmula con lo que calcula.",
+      pares: [
+        ["B − A", "Vector AB entre dos puntos"],
+        ["√(v₁² + v₂²)", "Módulo del vector"],
+        ["u₁v₁ + u₂v₂", "Producto escalar"],
+        ["u·v / (|u||v|)", "Coseno del ángulo entre u y v"],
+        ["(−b, a)", "Vector perpendicular a (a, b)"],
+        ["((a₁ + b₁)/2, (a₂ + b₂)/2)", "Punto medio de AB"],
+        ["½·|u₁v₂ − u₂v₁|", "Área del triángulo de lados u y v"],
+        ["(u·v / |u|²)·u", "Proyección ortogonal de v sobre u"]
+      ]
+    },
+    tj1: {
+      titulo: "Vectores en el plano",
+      cartas: [
+        { a: "Vector entre dos puntos", b: "AB = B − A (extremo menos origen). BA = −AB." },
+        { a: "Módulo y vector unitario", b: "|v| = √(v₁² + v₂²) · unitario: v/|v|" },
+        { a: "Suma, resta y producto por un número", b: "(u₁ ± v₁, u₂ ± v₂) · k·(u₁, u₂) = (ku₁, ku₂). Si k &lt; 0, cambia el sentido." },
+        { a: "Producto escalar", b: "u·v = u₁v₁ + u₂v₂ = |u||v|cos α. Es un número. u·u = |u|²." },
+        { a: "Ángulo entre dos vectores", b: "cos α = u·v/(|u||v|). Agudo si u·v &gt; 0, recto si = 0, obtuso si &lt; 0." },
+        { a: "Vectores paralelos", b: "u₁/v₁ = u₂/v₂ (o det(u, v) = 0). Uno es múltiplo del otro." },
+        { a: "Vectores perpendiculares", b: "u·v = 0. Un perpendicular a (a, b) es (−b, a)." },
+        { a: "Base de vectores", b: "Dos vectores no paralelos: todo vector es a·u + b·v, con a y b únicos." },
+        { a: "Punto medio y punto en una razón", b: "M = ((a₁ + b₁)/2, (a₂ + b₂)/2) · P = A + t·AB con t = r/(1 + r) si AP/PB = r" },
+        { a: "Baricentro", b: "G = (A + B + C)/3. Divide las medianas en razón 2 : 1." },
+        { a: "Proyección de v sobre u", b: "Vector: (u·v/|u|²)·u · longitud con signo: u·v/|u|" },
+        { a: "Área del triángulo con vectores", b: "S = ½·|det(AB, AC)| = ½·|AB₁·AC₂ − AB₂·AC₁|" },
+        { a: "Trabajo de una fuerza constante", b: "W = F·d = |F||d|cos α (julios). Perpendicular → 0." },
+        { a: "Cuarto vértice de un paralelogramo ABCD", b: "AB = DC → D = A + C − B. Las diagonales comparten punto medio." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "Con A = (1, 2) y B = (4, 6), un alumno calcula AB = (1 − 4, 2 − 6) = (−3, −4). ¿Qué falla?",
+          op: ["Nada", "AB es extremo menos origen: B − A = (3, 4). Él ha calculado BA", "Debía sumar", "Debía dividir"], ok: 1,
+          porque: "Para ir de A a B hay que avanzar 3 en horizontal y 4 en vertical: AB = (3, 4). El vector (−3, −4) es el opuesto, BA." },
+        { q: "Un alumno escribe u·v = (2, −1)·(3, 5) = (6, −5). ¿Qué falla?",
+          op: ["Nada", "El producto escalar es un número: 2·3 + (−1)·5 = 1", "Debía ser (5, 4)", "Debía ser (6, 5)"], ok: 1,
+          porque: "u·v = u₁v₁ + u₂v₂ es un escalar. Multiplicar componente a componente no es el producto escalar." },
+        { q: "Un alumno dice: «u·v = 0, luego u = 0 o v = 0». ¿Qué falla?",
+          op: ["Nada", "Pueden ser dos vectores no nulos perpendiculares, como (1, 0) y (0, 1)", "Sólo ocurre en la recta", "Debía ser u = v"], ok: 1,
+          porque: "A diferencia de los números reales, el producto escalar puede ser 0 con dos vectores no nulos: es la condición de perpendicularidad." },
+        { q: "Un alumno comprueba que u = (2, 3) y v = (4, 5) son paralelos porque 2 &lt; 4 y 3 &lt; 5. ¿Qué falla?",
+          op: ["Nada", "Paralelos significa proporcionales: 2/4 = 0,5 ≠ 3/5 = 0,6, luego no lo son", "Debía restar", "Son perpendiculares"], ok: 1,
+          porque: "u ∥ v ⇔ u₁v₂ − u₂v₁ = 0. Aquí 2·5 − 3·4 = −2 ≠ 0." },
+        { q: "Un alumno calcula el módulo de (3, 4) como 3 + 4 = 7. ¿Qué falla?",
+          op: ["Nada", "El módulo se calcula con Pitágoras: √(9 + 16) = 5", "Es 12", "Es 25"], ok: 1,
+          porque: "|v| = √(v₁² + v₂²). Sumar componentes no mide la longitud de la flecha (la hipotenusa)." },
+        { q: "Un alumno halla el punto medio de A = (2, 6) y B = (8, 2) como (2 + 8, 6 + 2) = (10, 8). ¿Qué falla?",
+          op: ["Nada", "Hay que dividir entre 2: ((2 + 8)/2, (6 + 2)/2) = (5, 4)", "Debía restar", "Debía multiplicar"], ok: 1,
+          porque: "El punto medio es la media de cada coordenada. (10, 8) está fuera del segmento." },
+        { q: "Un alumno afirma que si u·v &gt; 0 entonces los vectores tienen el mismo sentido. ¿Qué falla?",
+          op: ["Nada", "u·v &gt; 0 sólo dice que el ángulo es agudo, no que sean paralelos", "u·v &gt; 0 significa perpendiculares", "u·v &gt; 0 significa que son opuestos"], ok: 1,
+          porque: "Con (1, 0) y (1, 1), u·v = 1 &gt; 0 pero forman 45°. El mismo sentido exige además que sean paralelos (α = 0°)." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "Con A = (−1, 3) y B = (4, −2), el vector AB es…",
+          op: ["(5, −5)", "(−5, 5)", "(3, 1)", "(3, −5)"], ok: 0,
+          porque: "AB = B − A = (4 − (−1), −2 − 3) = (5, −5)." },
+        { q: "El módulo del vector (−6, 8) es…",
+          op: ["10", "2", "14", "48"], ok: 0,
+          porque: "√(36 + 64) = √100 = 10." },
+        { q: "u = (2, 5) y v = (−5, k) son perpendiculares si k vale…",
+          op: ["2", "−2", "5", "−5/2"], ok: 0,
+          porque: "u·v = −10 + 5k = 0 → k = 2." },
+        { q: "El ángulo entre u = (1, 0) y v = (1, 1) es…",
+          op: ["45°", "90°", "0°", "60°"], ok: 0,
+          porque: "cos α = 1/(1·√2) = √2/2 → α = 45°." },
+        { q: "El punto medio de A = (2, −4) y B = (6, 10) es…",
+          op: ["(4, 3)", "(8, 6)", "(2, 7)", "(4, 6)"], ok: 0,
+          porque: "((2 + 6)/2, (−4 + 10)/2) = (4, 3)." },
+        { q: "¿Cuál es un vector perpendicular a (3, −2)?",
+          op: ["(2, 3)", "(−3, 2)", "(3, 2)", "(2, −3)"], ok: 0,
+          porque: "3·2 + (−2)·3 = 0 ✓. (−3, 2) es el opuesto (paralelo)." },
+        { q: "El baricentro del triángulo (0, 0), (6, 0), (0, 9) es…",
+          op: ["(2, 3)", "(3, 4,5)", "(6, 9)", "(1, 2)"], ok: 0,
+          porque: "((0 + 6 + 0)/3, (0 + 0 + 9)/3) = (2, 3)." },
+        { q: "El área del triángulo de vértices (0, 0), (4, 0) y (0, 3) es…",
+          op: ["6", "12", "7", "3,5"], ok: 0,
+          porque: "½·|4·3 − 0·0| = 6." },
+        { q: "El vector unitario en la dirección de (3, −4) es…",
+          op: ["(0,6, −0,8)", "(3, −4)", "(1, −1)", "(0,8, −0,6)"], ok: 0,
+          porque: "(3, −4)/5 = (0,6, −0,8)." },
+        { q: "Una fuerza F = (3, 4) N desplaza un cuerpo d = (2, −1) m. El trabajo es…",
+          op: ["2 J", "10 J", "−2 J", "5 J"], ok: 0,
+          porque: "W = 3·2 + 4·(−1) = 6 − 4 = 2 J." }
+      ]
+    }
+  };
+
+  var ejercicios = [
+    // ================= ★ básico =================
+    { id: "v1", nivel: 1,
+      enunciado: "Con A = (−2, 5) y B = (3, −1), calcula el vector AB y su módulo.",
+      check: [{ tipo: "num", etiqueta: "AB₁ =", valor: 5 }, { tipo: "num", etiqueta: "AB₂ =", valor: -6 }, { tipo: "num", etiqueta: "|AB| =", valor: 7.8102, tol: 0.002 }],
+      pistas: ["AB = B − A (extremo menos origen)."],
+      pasos: ["AB = (3 − (−2), −1 − 5) = (5, −6).", "|AB| = √(25 + 36) = √61 ≈ 7,81."],
+      resultado: "AB = (5, −6) · |AB| = √61" },
+    { id: "v2", nivel: 1,
+      enunciado: "Con u = (4, −3) y v = (−2, 5), calcula 2u − 3v.",
+      check: [{ tipo: "num", etiqueta: "componente x =", valor: 14 }, { tipo: "num", etiqueta: "componente y =", valor: -21 }],
+      pistas: ["Primero 2u = (8, −6) y 3v = (−6, 15)."],
+      pasos: ["2u − 3v = (8 + 6, −6 − 15) = (14, −21)."],
+      resultado: "(14, −21)" },
+    { id: "v3", nivel: 1,
+      enunciado: "Calcula el módulo del vector (−6, 8).",
+      check: { tipo: "num", etiqueta: "módulo =", valor: 10 },
+      pistas: ["Pitágoras con los dos catetos 6 y 8."],
+      pasos: ["√(36 + 64) = √100 = 10."],
+      resultado: "10" },
+    { id: "v4", nivel: 1,
+      enunciado: "Calcula el vector unitario con la dirección y sentido de v = (3, −4).",
+      check: [{ tipo: "num", etiqueta: "componente x =", valor: 0.6 }, { tipo: "num", etiqueta: "componente y =", valor: -0.8 }],
+      pistas: ["Divide cada componente entre el módulo."],
+      pasos: ["|v| = 5 → v/5 = (3/5, −4/5) = (0,6, −0,8)."],
+      resultado: "(0,6, −0,8)" },
+    { id: "v5", nivel: 1,
+      enunciado: "Calcula el producto escalar de u = (2, 5) y v = (−1, 3).",
+      check: { tipo: "num", etiqueta: "u·v =", valor: 13 },
+      pistas: ["u₁v₁ + u₂v₂."],
+      pasos: ["2·(−1) + 5·3 = −2 + 15 = 13."],
+      resultado: "13" },
+    { id: "v6", nivel: 1,
+      enunciado: "Halla k para que u = (2, 5) y v = (−5, k) sean perpendiculares.",
+      check: { tipo: "num", etiqueta: "k =", valor: 2 },
+      pistas: ["Perpendiculares ⇔ producto escalar 0."],
+      pasos: ["u·v = 2·(−5) + 5k = −10 + 5k = 0 → k = 2."],
+      resultado: "k = 2" },
+    { id: "v7", nivel: 1,
+      enunciado: "Halla k para que u = (3, −6) y v = (k, 4) sean paralelos.",
+      check: { tipo: "num", etiqueta: "k =", valor: -2 },
+      pistas: ["Componentes proporcionales: 3/k = −6/4."],
+      pasos: ["3·4 = −6·k → k = −2. (v = (−2, 4) = −(2/3)·u.)"],
+      resultado: "k = −2" },
+    { id: "v8", nivel: 1,
+      enunciado: "Calcula el punto medio del segmento de extremos A = (2, −4) y B = (6, 10).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 4 }, { tipo: "num", etiqueta: "y =", valor: 3 }],
+      pistas: ["La media de cada coordenada."],
+      pasos: ["M = ((2 + 6)/2, (−4 + 10)/2) = (4, 3)."],
+      resultado: "M = (4, 3)" },
+    { id: "v9", nivel: 1,
+      enunciado: "Tres vértices de un paralelogramo ABCD son A = (0, 0), B = (4, 1) y C = (6, 5). Halla D.",
+      check: [{ tipo: "num", etiqueta: "D₁ =", valor: 2 }, { tipo: "num", etiqueta: "D₂ =", valor: 4 }],
+      pistas: ["AB = DC → D = A + C − B."],
+      pasos: ["D = (0 + 6 − 4, 0 + 5 − 1) = (2, 4).", "Comprobación: AD = (2, 4) y BC = (2, 4) ✓."],
+      resultado: "D = (2, 4)" },
+    { id: "v10", nivel: 1,
+      enunciado: "Halla un vector perpendicular a (4, −1) cuya primera componente sea 1. ¿Cuánto vale su segunda componente?",
+      check: { tipo: "num", etiqueta: "segunda componente =", valor: 4 },
+      pistas: ["(4, −1)·(1, y) = 0."],
+      pasos: ["4·1 + (−1)·y = 0 → y = 4. El vector es (1, 4)."],
+      resultado: "(1, 4)" },
+    // ================= ★★ medio =================
+    { id: "v11", nivel: 2,
+      enunciado: "Calcula el ángulo que forman u = (1, 2) y v = (3, −1).",
+      check: { tipo: "num", etiqueta: "ángulo =", valor: 81.87, unidad: "°" },
+      pistas: ["cos α = u·v/(|u||v|)."],
+      pasos: ["u·v = 3 − 2 = 1. |u| = √5 y |v| = √10.", "cos α = 1/√50 = 0,1414 → α = 81,87°."],
+      resultado: "≈ 81,87°" },
+    { id: "v12", nivel: 2,
+      enunciado: "Calcula el ángulo entre u = (2, 2) y v = (−1, 3).",
+      check: { tipo: "num", etiqueta: "ángulo =", valor: 63.43, unidad: "°" },
+      pistas: ["u·v = −2 + 6 = 4."],
+      pasos: ["|u| = 2√2 = 2,828 y |v| = √10 = 3,162.", "cos α = 4/8,944 = 0,4472 → α = 63,43°."],
+      resultado: "≈ 63,43°" },
+    { id: "v13", nivel: 2,
+      enunciado: "Calcula el vector proyección ortogonal de v = (2, 3) sobre u = (4, 1) (decimales).",
+      check: [{ tipo: "num", etiqueta: "componente x =", valor: 2.588, tol: 0.003 }, { tipo: "num", etiqueta: "componente y =", valor: 0.647, tol: 0.005 }],
+      pistas: ["Proyección = (u·v/|u|²)·u."],
+      pasos: ["u·v = 11 y |u|² = 17. (11/17)·(4, 1) = (44/17, 11/17) ≈ (2,588, 0,647)."],
+      resultado: "(44/17, 11/17)" },
+    { id: "v14", nivel: 2,
+      enunciado: "Escribe w = (7, −1) como combinación lineal a·(1, 1) + b·(1, −1). Da a y b.",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 3 }, { tipo: "num", etiqueta: "b =", valor: 4 }],
+      pistas: ["(a + b, a − b) = (7, −1)."],
+      pasos: ["a + b = 7 y a − b = −1 → a = 3, b = 4.", "Comprobación: 3·(1, 1) + 4·(1, −1) = (7, −1) ✓."],
+      resultado: "w = 3·(1, 1) + 4·(1, −1)" },
+    { id: "v15", nivel: 2,
+      enunciado: "Escribe w = (4, 5) como a·(2, 1) + b·(−1, 1). Da a y b.",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 3 }, { tipo: "num", etiqueta: "b =", valor: 2 }],
+      pistas: ["(2a − b, a + b) = (4, 5)."],
+      pasos: ["2a − b = 4 y a + b = 5 → sumando 3a = 9 → a = 3 y b = 2."],
+      resultado: "a = 3, b = 2" },
+    { id: "v16", nivel: 2,
+      enunciado: "Halla el punto P del segmento AB, con A = (−2, 1) y B = (6, 5), tal que AP/PB = 3.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 4 }, { tipo: "num", etiqueta: "y =", valor: 4 }],
+      pistas: ["AP = (3/4)·AB (t = r/(1 + r))."],
+      pasos: ["AB = (8, 4). P = A + (3/4)·AB = (−2 + 6, 1 + 3) = (4, 4).", "Comprobación: AP = (6, 3) y PB = (2, 1): razón 3 ✓."],
+      resultado: "P = (4, 4)" },
+    { id: "v17", nivel: 2,
+      enunciado: "Halla el simétrico de A = (−3, 2) respecto del punto M = (1, 1).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 5 }, { tipo: "num", etiqueta: "y =", valor: 0 }],
+      pistas: ["M es el punto medio entre A y A': A' = 2M − A."],
+      pasos: ["A' = (2 + 3, 2 − 2) = (5, 0)."],
+      resultado: "A' = (5, 0)" },
+    { id: "v18", nivel: 2,
+      enunciado: "Calcula el baricentro del triángulo A = (−1, 2), B = (5, −4), C = (2, 8).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 2 }, { tipo: "num", etiqueta: "y =", valor: 2 }],
+      pistas: ["La media de las coordenadas de los tres vértices."],
+      pasos: ["G = ((−1 + 5 + 2)/3, (2 − 4 + 8)/3) = (2, 2)."],
+      resultado: "G = (2, 2)" },
+    { id: "v19", nivel: 2,
+      enunciado: "Calcula el área del triángulo de vértices A = (2, 1), B = (7, 3) y C = (4, 8).",
+      check: { tipo: "num", etiqueta: "área =", valor: 15.5 },
+      pistas: ["½·|det(AB, AC)|."],
+      pasos: ["AB = (5, 2) y AC = (2, 7). det = 5·7 − 2·2 = 31.", "Área = 31/2 = 15,5."],
+      resultado: "15,5" },
+    { id: "v20", nivel: 2,
+      enunciado: "Halla k para que A = (−1, 0), B = (2, 3) y C = (5, k) estén alineados.",
+      check: { tipo: "num", etiqueta: "k =", valor: 6 },
+      pistas: ["AB ∥ AC: determinante nulo."],
+      pasos: ["AB = (3, 3) y AC = (6, k). 3k − 18 = 0 → k = 6.", "AC = (6, 6) = 2·AB ✓."],
+      resultado: "k = 6" },
+    { id: "v21", nivel: 2,
+      enunciado: "Calcula el ángulo en C del triángulo A = (1, 1), B = (5, 1), C = (3, 5).",
+      check: { tipo: "num", etiqueta: "ángulo C =", valor: 53.13, unidad: "°" },
+      pistas: ["Usa los vectores CA y CB."],
+      pasos: ["CA = (−2, −4) y CB = (2, −4). CA·CB = −4 + 16 = 12. |CA| = |CB| = √20.", "cos C = 12/20 = 0,6 → C = 53,13°."],
+      resultado: "≈ 53,13°" },
+    { id: "v22", nivel: 2,
+      enunciado: "Una fuerza F = (6, −2) N desplaza un cuerpo d = (4, 3) m. Calcula el trabajo.",
+      check: { tipo: "num", etiqueta: "W =", valor: 18, unidad: "J" },
+      pistas: ["W = F·d."],
+      pasos: ["W = 6·4 + (−2)·3 = 24 − 6 = 18 J."],
+      resultado: "18 J" },
+    { id: "v23", nivel: 2,
+      enunciado: "Dos fuerzas perpendiculares de 8 N y 6 N actúan sobre un cuerpo. Calcula el módulo de la resultante y el ángulo que forma con la fuerza de 8 N.",
+      check: [{ tipo: "num", etiqueta: "|R| =", valor: 10, unidad: "N" }, { tipo: "num", etiqueta: "ángulo =", valor: 36.87, unidad: "°" }],
+      pistas: ["Pitágoras y tan α = 6/8."],
+      pasos: ["|R| = √(64 + 36) = 10 N.", "tan α = 6/8 → α = 36,87°."],
+      resultado: "10 N, a 36,87° de la de 8 N" },
+    { id: "v24", nivel: 2,
+      enunciado: "Con u = (1, −2) y v = (0, 4), halla el vector x tal que 3x − u = 2v.",
+      check: [{ tipo: "num", etiqueta: "componente x =", valor: 1 / 3, tol: 0.002, ph: "decimal o 1/3" }, { tipo: "num", etiqueta: "componente y =", valor: 2 }],
+      pistas: ["3x = 2v + u."],
+      pasos: ["3x = (0, 8) + (1, −2) = (1, 6) → x = (1/3, 2)."],
+      resultado: "x = (1/3, 2)" },
+    // ================= ★★★ nivel PAU =================
+    { id: "v25", nivel: 3,
+      enunciado: "Halla k para que u = (k, 2) y v = (3, −1) formen un ángulo de 45°.",
+      check: { tipo: "num", etiqueta: "k =", valor: 4 },
+      pistas: ["cos 45° = u·v/(|u||v|). Eleva al cuadrado y descarta la solución que da un coseno negativo."],
+      pasos: ["(3k − 2)/(√(k² + 4)·√10) = √2/2 → elevando: 2(3k − 2)² = 10(k² + 4) → k² − 3k − 4 = 0 → k = 4 o k = −1.", "Con k = −1, 3k − 2 = −5 &lt; 0 (ángulo de 135°): se descarta. <b>k = 4</b>."],
+      resultado: "k = 4" },
+    { id: "v26", nivel: 3,
+      enunciado: "Halla un vector de módulo 10 perpendicular a (3, 4), con primera componente positiva. Da sus componentes.",
+      check: [{ tipo: "num", etiqueta: "componente x =", valor: 8 }, { tipo: "num", etiqueta: "componente y =", valor: -6 }],
+      pistas: ["Un perpendicular a (3, 4) es (−4, 3), de módulo 5. Multiplica por ±2."],
+      pasos: ["(−4, 3) tiene módulo 5. Para módulo 10: ±2·(−4, 3) = (−8, 6) o (8, −6).", "Con primera componente positiva: (8, −6)."],
+      resultado: "(8, −6)" },
+    { id: "v27", nivel: 3,
+      enunciado: "Un triángulo equilátero tiene vértices A = (0, 0) y B = (4, 0). Halla el tercer vértice C con ordenada positiva.",
+      check: [{ tipo: "num", etiqueta: "C₁ =", valor: 2 }, { tipo: "num", etiqueta: "C₂ =", valor: 3.4641, tol: 0.002 }],
+      pistas: ["C está sobre la mediatriz de AB (x = 2) y a distancia 4 de A."],
+      pasos: ["C = (2, y) con 2² + y² = 16 → y = √12 = 2√3 ≈ 3,464.", "(También: ángulo de 60° en A: C = 4(cos 60°, sen 60°) = (2, 2√3).)"],
+      resultado: "C = (2, 2√3)" },
+    { id: "v28", nivel: 3,
+      enunciado: "Demuestra con vectores que las diagonales de un rombo son perpendiculares.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Llama u y v a dos lados consecutivos y observa que |u| = |v| por ser un rombo", p: 0.5 },
+        { t: "Expresa las diagonales como u + v y u − v", p: 0.5 },
+        { t: "Calcula el producto escalar (u + v)·(u − v) = |u|² − |v|²", p: 0.5 },
+        { t: "Concluye que vale 0 y, por tanto, las diagonales son perpendiculares", p: 0.5 }
+      ] },
+      pasos: ["(u + v)·(u − v) = u·u − u·v + v·u − v·v = |u|² − |v|² = 0.", "Producto escalar nulo ⇒ perpendiculares. ∎"],
+      resultado: "Diagonales perpendiculares" },
+    { id: "v29", nivel: 3,
+      enunciado: "Demuestra que en todo paralelogramo, la suma de los cuadrados de las diagonales es igual a la suma de los cuadrados de los cuatro lados.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Llama u y v a los lados; las diagonales son u + v y u − v", p: 0.5 },
+        { t: "Desarrolla |u + v|² = |u|² + 2u·v + |v|²", p: 0.5 },
+        { t: "Desarrolla |u − v|² = |u|² − 2u·v + |v|²", p: 0.5 },
+        { t: "Suma: 2|u|² + 2|v|², que es la suma de los cuadrados de los cuatro lados", p: 0.5 }
+      ] },
+      pasos: ["|u + v|² + |u − v|² = (|u|² + 2u·v + |v|²) + (|u|² − 2u·v + |v|²) = 2|u|² + 2|v|².", "Los cuatro lados valen |u|, |v|, |u|, |v|: la suma de sus cuadrados es 2|u|² + 2|v|². ∎"],
+      resultado: "Ley del paralelogramo" },
+    { id: "v30", nivel: 3,
+      enunciado: "Calcula el área del cuadrilátero A = (0, 0), B = (5, 0), C = (6, 4), D = (1, 5) dividiéndolo en dos triángulos.",
+      check: { tipo: "num", etiqueta: "área =", valor: 23 },
+      pistas: ["Triángulos ABC y ACD, con la diagonal AC."],
+      pasos: ["ABC: AB = (5, 0), AC = (6, 4): det = 20 → área 10.", "ACD: AC = (6, 4), AD = (1, 5): det = 30 − 4 = 26 → área 13.", "Total: 10 + 13 = 23."],
+      resultado: "23" },
+    { id: "v31", nivel: 3,
+      enunciado: "Calcula la distancia del punto P = (5, 1) a la recta que pasa por el origen y por A = (3, 4).",
+      check: { tipo: "num", etiqueta: "distancia =", valor: 3.4 },
+      pistas: ["La distancia es la altura del paralelogramo formado por OA y OP: |det(OA, OP)|/|OA|."],
+      pasos: ["det(OA, OP) = 3·1 − 4·5 = −17. |OA| = 5.", "Distancia = 17/5 = 3,4."],
+      resultado: "3,4" },
+    { id: "v32", nivel: 3,
+      enunciado: "Un avión vuela con una velocidad propia de 200 km/h hacia el norte y sopla un viento de 50 km/h hacia el este. Calcula su velocidad respecto del suelo (módulo) y la desviación respecto del norte.",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 206.16, unidad: "km/h" }, { tipo: "num", etiqueta: "desviación =", valor: 14.04, unidad: "°" }],
+      pistas: ["Velocidades: (0, 200) y (50, 0)."],
+      pasos: ["v = (50, 200): |v| = √(2500 + 40000) = 206,16 km/h.", "tan δ = 50/200 → δ = 14,04° hacia el este."],
+      resultado: "206,16 km/h, 14,04° al este del norte" },
+    { id: "v33", nivel: 3,
+      enunciado: "Un cuadro de 100 N cuelga de dos cables simétricos que forman 40° con la horizontal. Calcula la tensión de cada cable.",
+      check: { tipo: "num", etiqueta: "tensión =", valor: 77.79, unidad: "N" },
+      pistas: ["Las componentes verticales de las dos tensiones equilibran el peso: 2T·sen 40° = 100."],
+      pasos: ["T = 100/(2·sen 40°) = 100/(2·0,6428) = 77,79 N."],
+      resultado: "≈ 77,8 N" },
+    { id: "v34", nivel: 3,
+      enunciado: "Halla el punto del eje X que equidista de A = (1, 2) y B = (5, 4).",
+      check: { tipo: "num", etiqueta: "x =", valor: 4.5 },
+      pistas: ["P = (x, 0). Iguala |PA|² y |PB|²."],
+      pasos: ["(x − 1)² + 4 = (x − 5)² + 16 → x² − 2x + 5 = x² − 10x + 41 → 8x = 36 → x = 4,5."],
+      resultado: "P = (4,5, 0)" },
+    { id: "v35", nivel: 3,
+      enunciado: "En el triángulo A = (1, 0), B = (5, 0), C = (3, 4), calcula la longitud de la mediana que sale de A.",
+      check: { tipo: "num", etiqueta: "longitud =", valor: 3.6056, tol: 0.002 },
+      pistas: ["La mediana va de A al punto medio de BC."],
+      pasos: ["Punto medio de BC: ((5 + 3)/2, (0 + 4)/2) = (4, 2).", "Mediana: (4 − 1, 2 − 0) = (3, 2), de longitud √13 ≈ 3,606."],
+      resultado: "√13 ≈ 3,606" },
+    { id: "v36", nivel: 3,
+      enunciado: "Gira el vector (3, 1) un ángulo de 90° en sentido antihorario. ¿Cuáles son las componentes del vector girado?",
+      check: [{ tipo: "num", etiqueta: "componente x =", valor: -1 }, { tipo: "num", etiqueta: "componente y =", valor: 3 }],
+      pistas: ["Girar 90° (a, b) → (−b, a)."],
+      pasos: ["(a, b) = (3, 1) → (−1, 3). Comprobación: perpendicular al original: 3·(−1) + 1·3 = 0 y del mismo módulo √10 ✓."],
+      resultado: "(−1, 3)" }
+  ];
+
+  var lamina = [
+    { titulo: "Vector: coordenadas y módulo",
+      items: [
+        { label: "Entre dos puntos", formula: "AB = B − A = (b₁ − a₁, b₂ − a₂)", ejemplo: "A = (1, 2), B = (4, 6) → AB = (3, 4)", ojo: "Extremo menos origen. BA = −AB." },
+        { label: "Módulo", formula: "|v| = √(v₁² + v₂²)", ejemplo: "|(3, 4)| = 5" },
+        { label: "Unitario", formula: "u = v/|v|", ejemplo: "(3, −4) → (0,6, −0,8)" },
+        { label: "Con ángulo", formula: "v = |v|·(cos θ, sen θ)" }
+      ] },
+    { titulo: "Operaciones",
+      items: [
+        { label: "Suma y resta", formula: "(u₁ ± v₁, u₂ ± v₂)", cuando: "Regla del paralelogramo o del triángulo." },
+        { label: "Producto por un número", formula: "k·(u₁, u₂) = (k·u₁, k·u₂)", ojo: "Si k &lt; 0 cambia el sentido." },
+        { label: "Combinación lineal y base", formula: "w = a·u + b·v", cuando: "Si u y v no son paralelos, a y b son únicos." }
+      ] },
+    { titulo: "Producto escalar",
+      items: [
+        { label: "Fórmula algebraica", formula: "u·v = u₁v₁ + u₂v₂", ojo: "Es un NÚMERO, no un vector." },
+        { label: "Fórmula geométrica", formula: "u·v = |u|·|v|·cos α", cuando: "Para el ángulo: cos α = u·v/(|u||v|)." },
+        { label: "Proyección de v sobre u", formula: "(u·v/|u|²)·u", ejemplo: "longitud con signo: u·v/|u|" }
+      ],
+      nota: "u·v &gt; 0: ángulo agudo · u·v = 0: perpendiculares · u·v &lt; 0: ángulo obtuso." },
+    { titulo: "Paralelos y perpendiculares",
+      tabla: { cab: ["Condición", "Fórmula"], filas: [["u ∥ v", "u₁/v₁ = u₂/v₂  ·  det(u, v) = u₁v₂ − u₂v₁ = 0"], ["u ⊥ v", "u·v = 0"], ["Perpendicular a (a, b)", "(−b, a)"], ["Tres puntos alineados", "AB ∥ AC (det = 0)"]] },
+      nota: "Con det no hay divisiones ni problemas con los ceros." },
+    { titulo: "Puntos y áreas", ancha: true,
+      items: [
+        { label: "Punto medio", formula: "M = ((a₁ + b₁)/2, (a₂ + b₂)/2)" },
+        { label: "Punto de AB en una razón AP/PB = r", formula: "P = A + t·AB con t = r/(1 + r)", ejemplo: "r = 2: t = 2/3" },
+        { label: "Simétrico de A respecto de M", formula: "A' = 2M − A" },
+        { label: "Baricentro", formula: "G = ((x₁ + x₂ + x₃)/3, (y₁ + y₂ + y₃)/3)", cuando: "Divide cada mediana en razón 2 : 1." },
+        { label: "Área del triángulo", formula: "S = ½·|det(AB, AC)|", ejemplo: "AB = (4, 1), AC = (2, 5) → S = ½·18 = 9" }
+      ],
+      nota: "Cuarto vértice del paralelogramo ABCD: D = A + C − B." },
+    { titulo: "Vectores en Física",
+      items: [
+        { label: "Resultante", formula: "R = F₁ + F₂ + …", cuando: "Equilibrio: R = 0.", ejemplo: "8 N y 6 N perpendiculares → 10 N" },
+        { label: "Trabajo", formula: "W = F·d = |F||d|cos α", ojo: "Fuerza perpendicular al movimiento: W = 0." },
+        { label: "Componentes", formula: "F = |F|(cos θ, sen θ)", ejemplo: "20 N a 30° → (17,3; 10) N" }
+      ] },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "AB = A − B", bien: "AB = B − A", por: "Extremo menos origen." },
+        { mal: "u·v = (6, −5)", bien: "u·v = 1 (un número)", por: "El producto escalar es un escalar." },
+        { mal: "u·v = 0 ⇒ u = 0 ó v = 0", bien: "puede ser u ⊥ v", por: "Dos vectores no nulos pueden ser perpendiculares." },
+        { mal: "|(3, 4)| = 3 + 4", bien: "|(3, 4)| = 5", por: "Pitágoras." },
+        { mal: "Punto medio = (a₁ + b₁, a₂ + b₂)", bien: "…dividido entre 2", por: "Es una media." },
+        { mal: "Paralelos si 2 < 4 y 3 < 5", bien: "Paralelos si son proporcionales", por: "2/4 ≠ 3/5." }
+      ] }
+  ];
+
+  B.registrar("mates1", "t7", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
 })(window);
 
