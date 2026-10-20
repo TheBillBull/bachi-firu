@@ -48,7 +48,7 @@
       ymin: o.ymin == null ? -5 : o.ymin, ymax: o.ymax == null ? 5 : o.ymax,
       izq: 14, der: 16, arr: 14, abj: 14,
       etx: o.etx === undefined ? "x" : o.etx, ety: o.ety === undefined ? "y" : o.ety,
-      sinEjes: !!o.sinEjes
+      sinEjes: !!o.sinEjes, sinY: !!o.sinY
     };
     // En pantallas estrechas el lienzo se dibuja con menos "píxeles virtuales" para que
     // los números y las etiquetas sigan siendo legibles al encogerse
@@ -98,7 +98,7 @@
       var t = svg("text", { x: this.px(x), y: this.py(y0) + 15, "text-anchor": "middle", "class": "p-num" }, g);
       t.textContent = B.fmt(x, 3);
     }
-    for (var y = Math.ceil(c.ymin / sy) * sy; y <= c.ymax + 1e-9; y += sy) {
+    for (var y = Math.ceil(c.ymin / sy) * sy; y <= c.ymax + 1e-9 && !c.sinY; y += sy) {
       if (Math.abs(y) < sy / 1e3) continue;
       svg("line", { y1: this.py(y), y2: this.py(y), x1: c.izq, x2: c.w - c.der, "class": "p-gr" }, g);
       var t2 = svg("text", { x: this.px(x0) - 6, y: this.py(y) + 4, "text-anchor": "end", "class": "p-num" }, g);
@@ -106,9 +106,9 @@
     }
     if (!c.sinEjes) {
       svg("line", { x1: c.izq, x2: c.w - c.der, y1: this.py(y0), y2: this.py(y0), "class": "p-eje" }, g);
-      svg("line", { x1: this.px(x0), x2: this.px(x0), y1: c.arr, y2: c.h - c.abj, "class": "p-eje" }, g);
+      if (!c.sinY) svg("line", { x1: this.px(x0), x2: this.px(x0), y1: c.arr, y2: c.h - c.abj, "class": "p-eje" }, g);
       if (c.etx) { var lx = svg("text", { x: c.w - c.der - 2, y: this.py(y0) - 6, "text-anchor": "end", "class": "p-et" }, g); lx.textContent = c.etx; }
-      if (c.ety) { var ly = svg("text", { x: this.px(x0) + 7, y: c.arr + 12, "class": "p-et" }, g); ly.textContent = c.ety; }
+      if (c.ety && !c.sinY) { var ly = svg("text", { x: this.px(x0) + 7, y: c.arr + 12, "class": "p-et" }, g); ly.textContent = c.ety; }
     }
     // los elementos ya dibujados en la capa fija dejan de ser válidos
     while (this.gFijo.firstChild) this.gFijo.removeChild(this.gFijo.firstChild);

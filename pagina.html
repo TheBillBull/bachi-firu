@@ -714,14 +714,7 @@
 </main>
 
 <!-- Ampliaciones: capa aparte que se fusiona con el contenido de abajo sin modificarlo -->
-<script src="ampliaciones/grafica.js"></script>
-<script src="ampliaciones/nucleo.js"></script>
-<script src="ampliaciones/actividades.js"></script>
-<script src="ampliaciones/lab_analisis.js"></script>
-<script src="ampliaciones/lab_equilibrio.js"></script>
-<script src="ampliaciones/mates1.js"></script>
-<script src="ampliaciones/quimica2.js"></script>
-<script src="ampliaciones/historia_esp.js"></script>
+<script src="ampliaciones/bachi.js"></script>
 <script>
 (function () {
   "use strict";
@@ -16367,6 +16360,7 @@
     var vistos = contarVistos(asignaturaActual), total = d.temas.length;
     var extra = [plural(contarDe(d.ejercicios), "ejercicio resuelto", "ejercicios resueltos")];
     if (d.simulacros && d.simulacros.length) extra.push(plural(d.simulacros.length, "simulacro", "simulacros"));
+    if (window.BACHI && BACHI.resumenAsig(asignaturaActual)) extra.push(BACHI.resumenAsig(asignaturaActual));
     document.getElementById("asigProgress").innerHTML =
       '<span class="dots" aria-hidden="true">' + dotsHtml(asignaturaActual) + '</span>' +
       '<span>' + vistos + ' de ' + total + ' temas vistos</span>' +
@@ -16397,7 +16391,7 @@
       html += '<div class="tema-row' + (vista ? " done" : "") + (abierto ? " open" : "") + (t.ready ? "" : " disabled") + '" data-tema="' + t.id + '">' +
         '<span class="tema-num">' + (i + 1) + '</span>' +
         (t.ready
-          ? '<button type="button" class="tema-open" aria-expanded="' + abierto + '" aria-controls="detail-' + t.id + '"><span>' + t.titulo + '</span><span class="chev" aria-hidden="true">›</span></button>'
+          ? '<button type="button" class="tema-open" aria-expanded="' + abierto + '" aria-controls="detail-' + t.id + '"><span>' + t.titulo + '</span>' + (window.BACHI ? BACHI.insignia(asignaturaActual, t.id) : '') + '<span class="chev" aria-hidden="true">›</span></button>'
           : '<span class="tema-open">' + t.titulo + '<span class="tema-sub">Próximamente</span></span>') +
         '<button type="button" class="tema-check' + (vista ? " done" : "") + '" data-check="' + t.id + '"' + (t.ready ? "" : " disabled") +
           ' aria-pressed="' + vista + '" aria-label="Tema ' + (i + 1) + ' visto" title="' + (vista ? "Quitar la marca de visto" : "Marcar como visto") + '">' + (vista ? "✓" : "") + '</button>' +
@@ -16458,6 +16452,7 @@
       }).join('') + '</nav>';
 
       var html = '<div class="lesson-block">';
+      if (window.BACHI) html += BACHI.cabecera(asignaturaActual, id);
       secciones.forEach(function (s, i) {
         html += "<h3 id='sec-" + id + "-" + i + "'><span class='swipe'>" + s.h + "</span></h3>" + s.html;
       });

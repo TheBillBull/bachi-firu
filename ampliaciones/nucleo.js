@@ -104,6 +104,62 @@
   };
 
   // ============================================================
+  // Cabecera de estudio de cada tema ampliado:
+  //   resumen: ["idea 1", ...]  → "En 1 minuto"
+  // y una ruta (explora → comprueba → practica → repasa) con accesos directos.
+  // El botón "texto largo" oculta o muestra la teoría original (nunca se borra).
+  // ============================================================
+  B.cabecera = function (asig, tema) {
+    var def = B.ampl[asig] && B.ampl[asig][tema];
+    if (!def || !def.resumen) return "";
+    var html = (def.secciones ? Object.keys(def.secciones).map(function (k) { return def.secciones[k]; }) : []).concat((def.nuevas || []).map(function (n) { return n.html; })).join("");
+    var labs = (html.match(/data-w='(?!quiz|tarjetas|emparejar|orden|clasificar|linea)[a-z0-9_]+'/gi) || []).length;
+    var paso = function (n, id, t, sub) { return '<button type="button" class="cab-paso" data-bx-ir="' + id + '" data-asig="' + asig + '" data-tema="' + tema + '"><i>' + n + "</i><span><b>" + t + "</b><small>" + sub + "</small></span></button>"; };
+    var ne = (def.ejercicios || []).length;
+    return '<div class="cab no-print"><div class="cab-1m"><b class="cab-t">En 1 minuto</b><ul>' + def.resumen.map(function (r) { return "<li>" + r + "</li>"; }).join("") + "</ul></div>" +
+      '<div class="cab-ruta"><b class="cab-t">Ruta de estudio</b><div class="cab-pasos">' +
+      paso(1, "explora", "Explora", labs ? labs + (labs === 1 ? " laboratorio" : " laboratorios") : "diagramas") +
+      paso(2, "comprueba", "Comprueba", "test y tarjetas") +
+      paso(3, "ejercicios", "Practica", ne + " ejercicios por niveles") +
+      paso(4, "lamina", "Repasa", "chuleta del tema") +
+      '</div></div></div>';
+  };
+
+  document.addEventListener("click", function (e) {
+    var ir = e.target.closest("[data-bx-ir]");
+    if (!ir) return;
+    var destino = ir.getAttribute("data-bx-ir"), det = ir.closest(".tema-detail");
+    function scrollA(el) { if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    if (destino === "explora") { scrollA(det && det.querySelector(".w:not(.w-quiz)")); return; }
+    if (destino === "comprueba") { scrollA(det && (det.querySelector("[data-w=quiz]:last-of-type") || Array.prototype.slice.call(det.querySelectorAll("[data-w=quiz]")).pop())); return; }
+    // ejercicios o lámina: cambia de pestaña y baja hasta el bloque de este tema
+    var tab = document.querySelector('.tab[data-panel="' + destino + '"]');
+    if (!tab) return;
+    var titulo = det && det.previousElementSibling ? det.previousElementSibling.textContent : "";
+    tab.click();
+    setTimeout(function () {
+      var bloques = document.querySelectorAll("#panel-" + destino + " .tema-block"), objetivo = null;
+      Array.prototype.forEach.call(bloques, function (b) { var h = b.querySelector(".tema-head"); if (h && titulo && titulo.indexOf(h.textContent.replace(/^Tema\s*\d+/, "").trim()) >= 0) objetivo = b; });
+      scrollA(objetivo || document.getElementById("panel-" + destino));
+    }, 60);
+  });
+
+  // Marca visible en la lista de temas: qué temas llevan ampliación y cuánta
+  B.insignia = function (asig, tema) {
+    var def = B.ampl[asig] && B.ampl[asig][tema];
+    if (!def || tema === "_simulacros") return "";
+    var labs = ((def.secciones ? Object.keys(def.secciones).map(function (k) { return def.secciones[k]; }) : []).concat((def.nuevas || []).map(function (n) { return n.html; })).join("").match(/data-w='/g) || []).length;
+    var ne = (def.ejercicios || []).length;
+    return '<span class="ampliado" title="' + ne + " ejercicios nuevos, " + labs + ' actividades interactivas">Ampliado</span>';
+  };
+  B.resumenAsig = function (asig) {
+    var A = B.ampl[asig];
+    if (!A) return "";
+    var n = Object.keys(A).filter(function (k) { return k !== "_simulacros"; }).length;
+    return n ? n + (n === 1 ? " tema ampliado" : " temas ampliados") : "";
+  };
+
+  // ============================================================
   // Láminas resumen ampliadas (chuletas que sirven de verdad)
   // Cada bloque puede llevar: items (fórmula + cuándo + ejemplo + ojo),
   // pasos (método numerado), tabla y errores (mal / bien / por qué).

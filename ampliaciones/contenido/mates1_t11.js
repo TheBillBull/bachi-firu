@@ -449,7 +449,15 @@
       ] }
   ];
 
-  B.registrar("mates1", "t11", { secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+  var resumen = [
+    "f'(a) es la <b>pendiente de la tangente</b> en a: el límite de la TVM cuando h → 0.",
+    "Qué regla usar: mira la <b>última operación</b> (suma, producto, cociente o cadena).",
+    "Tangente en a: <b>y − f(a) = f'(a)·(x − a)</b>.",
+    "f' &gt; 0 crece · f' &lt; 0 decrece · extremo si f' <b>cambia de signo</b>.",
+    "Optimización: función objetivo en una variable → derivar → comprobar."
+  ];
+
+  B.registrar("mates1", "t11", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
   // ============================================================
   // SIMULACRO NUEVO: monográfico de derivadas (5 bloques × 2 puntos)
