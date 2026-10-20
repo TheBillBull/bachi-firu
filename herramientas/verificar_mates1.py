@@ -413,6 +413,102 @@ comprobar('t3 error: (x²+1)/(x²−1) no simplifica', sp.cancel((x**2 + 1)/(x**
 # metodos/clasificar: coherencia de la teoría (las categorías de «tipos» coinciden con soluciones comprobadas)
 comprobar('t3 tipos: soluciones de las ecuaciones de la actividad', sorted(sp.solve(x**2 - 5*x + 6, x)) == [2, 3] and sorted(sp.solve(x**4 - 5*x**2 + 4, x)) == [-2, -1, 1, 2] and sp.solve(2**(x + 1) - 16, x) == [3] and sorted(sp.solve(5*x**3 - 10*x**2, x)) == [0, 2] and sp.solve(sp.sqrt(2*x + 1) - (x - 1), x) == [4] and sp.solve(x/(x - 3) - 2, x) == [6] and sp.solve(sp.sqrt(x) + 3 - 8, x) == [25] and sp.solve(sp.log(x - 5, 2) - 3, x) == [13])
 
+
+# =====================================================================
+# TEMA 4 · Trigonometría: razones y resolución de triángulos
+# =====================================================================
+import math
+E4 = {e['id']: e for e in datos['ampl']['mates1']['t4']['ejercicios']}
+def v4(id_, k=0):
+    c = E4[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+def n4(id_, k=0): return v4(id_, k)['valor']
+D = math.radians
+def sd(a): return math.sin(D(a))
+def cd(a): return math.cos(D(a))
+def td(a): return math.tan(D(a))
+def near(a, b, tol=0.006): return abs(a - b) <= tol * max(abs(b), 1e-9)
+
+comprobar('t4 g1', near(math.hypot(5, 12), n4('g1', 0), 1e-9) and near(5/12, n4('g1', 1), 0.002))
+comprobar('t4 g2', near(math.sqrt(1 - 0.36), n4('g2', 0), 1e-9) and near(0.6/0.8, n4('g2', 1), 1e-9))
+comprobar('t4 g3', near(135*math.pi/180, n4('g3', 0), 0.002) and near(5*math.pi/6*180/math.pi, n4('g3', 1), 1e-9) and sp.Rational(135, 180) == sp.Rational(3, 4))
+comprobar('t4 g4', sp.simplify(sp.sin(sp.pi/3)*sp.cos(sp.pi/6) + sp.cos(sp.pi/3)*sp.sin(sp.pi/6)) == 1 == n4('g4'))
+comprobar('t4 g5', 180 < 200 < 270 and sd(200) < 0 and cd(200) < 0 and v4('g5')['ok'] == 0)
+comprobar('t4 g6', sp.sin(5*sp.pi/6) == sp.Rational(1, 2) and n4('g6') == 0.5)
+comprobar('t4 g7', near(30*td(60), n4('g7'), 0.001))
+comprobar('t4 g8', near(math.sqrt(1 - 0.36), n4('g8'), 1e-9))
+comprobar('t4 g9', near(4*sd(70), n4('g9', 0), 0.003) and near(4*cd(70), n4('g9', 1), 0.003))
+comprobar('t4 g10', 2*5 == n4('g10', 0) and sp.Rational(1, 2)*25*2 == n4('g10', 1))
+comprobar('t4 g11', near(-math.sqrt(1 - 9/25), n4('g11', 0), 1e-9) and near(3/5/(-4/5), n4('g11', 1), 1e-9))
+c12 = -1/math.sqrt(5); s12 = 2*c12
+comprobar('t4 g12', near(s12, n4('g12', 0), 0.002) and near(c12, n4('g12', 1), 0.002) and abs(s12**2 + c12**2 - 1) < 1e-12 and abs(s12/c12 - 2) < 1e-12)
+comprobar('t4 g13', sp.simplify(sp.cos(sp.rad(210))*sp.sin(sp.rad(300)) - sp.Rational(3, 4)) == 0 and n4('g13') == 0.75)
+comprobar('t4 g14', sp.sin(11*sp.pi/6) == -sp.Rational(1, 2) and sp.cos(7*sp.pi/3) == sp.Rational(1, 2) and (n4('g14', 0), n4('g14', 1)) == (-0.5, 0.5))
+xs15 = [a for a in range(0, 360) if abs(sd(a) - 0.5) < 1e-12]
+comprobar('t4 g15', xs15 == [30, 150] == sorted(v4('g15')['valores']))
+Cg = 180 - 40 - 65; k16 = 12/sd(Cg)
+comprobar('t4 g16', Cg == 75 and near(k16*sd(40), n4('g16', 0), 0.002) and near(k16*sd(65), n4('g16', 1), 0.002))
+comprobar('t4 g17', near(math.sqrt(81 + 36 - 108*cd(50)), n4('g17'), 0.001))
+comprobar('t4 g18', near(math.degrees(math.acos((36 + 49 - 81)/(2*6*7))), n4('g18'), 0.001))
+comprobar('t4 g19', near(0.5*8*11*sd(40), n4('g19'), 0.001))
+comprobar('t4 g20', math.sqrt(21*8*7*6) == 84 == n4('g20'))
+h21 = 50/(math.sqrt(3) - 1)
+comprobar('t4 g21', near(h21, n4('g21'), 0.001) and abs(h21/(h21 + 50) - td(30)) < 1e-12)
+comprobar('t4 g22', near(math.sqrt(144 + 81 - 216*cd(110)), n4('g22'), 0.001))
+comprobar('t4 g23', near(54*sd(50), n4('g23'), 0.001))
+comprobar('t4 g24', near(math.degrees(math.atan(0.08)), n4('g24', 0), 0.002) and near(100*td(10), n4('g24', 1), 0.002))
+# g25: caso ambiguo
+B1 = math.degrees(math.asin(10*sd(40)/8)); B2 = 180 - B1
+cs = sorted([8*sd(180 - 40 - Bx)/sd(40) for Bx in (B1, B2)], reverse=True)
+comprobar('t4 g25', n4('g25', 0) == 2 and 10*sd(40) < 8 < 10 and near(cs[0], sorted(v4('g25', 1)['valores'])[1], 0.003) and near(cs[1], sorted(v4('g25', 1)['valores'])[0], 0.005))
+comprobar('t4 g26', near(10*sd(40), n4('g26', 0), 0.001) and n4('g26', 1) == 10)
+comprobar('t4 g27', near(10/(2*sd(60)), n4('g27'), 0.001))
+k29 = 100/sd(43)
+comprobar('t4 g29', near(k29*sd(75), n4('g29', 0), 0.001) and near(k29*sd(62), n4('g29', 1), 0.001) and 180 - 62 - 75 == 43)
+comprobar('t4 g30', near(math.sqrt(36**2 + 48**2 - 2*36*48*cd(80)), n4('g30'), 0.001))
+comprobar('t4 g31', near(2*10*sd(18), n4('g31', 0), 0.002) and near(10*cd(18), n4('g31', 1), 0.002) and abs(10/(2*10*sd(18)) - (1 + math.sqrt(5))/2) < 1e-9)
+comprobar('t4 g32', near(80/td(25) - 80/td(40), n4('g32'), 0.001))
+comprobar('t4 g33', near(6*0.5*36*sd(60), n4('g33'), 0.001) and sp.simplify(54*sp.sqrt(3) - 6*sp.Rational(1, 2)*36*sp.sin(sp.pi/3)) == 0)
+t_ = sp.symbols('t'); r34 = sp.solve(t_**2 - sp.Rational(7, 5)*t_ + sp.Rational(12, 25), t_)
+comprobar('t4 g34', sorted(r34) == [sp.Rational(3, 5), sp.Rational(4, 5)] and sorted([10*r for r in r34]) == [6, 8] == sorted(v4('g34')['valores']))
+comprobar('t4 g35', near(2*math.degrees(math.atan(5/12)), n4('g35'), 0.001))
+
+# teoría y quiz
+comprobar('t4 teoría: resolución con hipotenusa 12 y 35°', near(12*sd(35), 6.88, 0.001) and near(12*cd(35), 9.83, 0.001) and abs(6.88**2 + 9.83**2 - 144) < 0.2)
+comprobar('t4 teoría: catetos 5 y 12', math.hypot(5, 12) == 13 and near(math.degrees(math.atan(5/12)), 22.62, 0.001) and near(90 - math.degrees(math.atan(5/12)), 67.38, 0.001))
+comprobar('t4 teoría: cateto 8 y 40°', near(8*td(40), 6.71, 0.001) and near(8/cd(40), 10.44, 0.001))
+comprobar('t4 teoría: pendiente y escalera', near(math.degrees(math.atan(0.08)), 4.57, 0.002) and near(100*td(10), 17.63, 0.002) and near(5*sd(65), 4.53, 0.003) and near(5*cd(65), 2.11, 0.003))
+comprobar('t4 teoría: grados-minutos', 35 + 27/60 == 35.45 and 12 + 18/60 == 12.3)
+comprobar('t4 teoría: arco y sector', sp.Rational(135, 180) == sp.Rational(3, 4) and 5*180/6 == 150 and 2*5 == 10 and sp.Rational(1, 2)*25*2 == 25)
+comprobar('t4 teoría: notables desde triángulos', sp.sin(sp.pi/4) == sp.sqrt(2)/2 and sp.sqrt(1 + 1) == sp.sqrt(2) and sp.sqrt(4 - 1) == sp.sqrt(3) and sp.tan(sp.pi/6) == sp.sqrt(3)/3 and sp.tan(sp.pi/3) == sp.sqrt(3) and all(sp.sin(sp.rad(a)) == sp.sqrt(k)/2 for a, k in [(0, 0), (30, 1), (45, 2), (60, 3), (90, 4)]))
+comprobar('t4 teoría: tabla de notables', [sp.sin(sp.rad(a)) for a in (0, 30, 45, 60, 90)] == [0, sp.Rational(1, 2), sp.sqrt(2)/2, sp.sqrt(3)/2, 1] and [sp.cos(sp.rad(a)) for a in (0, 30, 45, 60, 90)] == [1, sp.sqrt(3)/2, sp.sqrt(2)/2, sp.Rational(1, 2), 0])
+comprobar('t4 teoría: relación fundamental', abs(math.sqrt(1 - 9/25) - 4/5) < 1e-12 and sp.Rational(1, 5) + sp.Rational(4, 5) == 1 and (sp.Rational(-12, 13))**2 + (sp.Rational(-5, 13))**2 == 1 and sp.Rational(-12, 13)/sp.Rational(-5, 13) == sp.Rational(12, 5))
+comprobar('t4 teoría: reducciones', sp.sin(sp.rad(210)) == -sp.Rational(1, 2) and sp.cos(sp.rad(315)) == sp.sqrt(2)/2 and sp.tan(sp.rad(120)) == -sp.sqrt(3) and sp.sin(sp.rad(1110)) == sp.Rational(1, 2) and sp.cos(sp.rad(-60)) == sp.Rational(1, 2) and sp.cos(7*sp.pi/3) == sp.Rational(1, 2) and 1110 - 3*360 == 30)
+comprobar('t4 teoría: complementarios y equivalencias', abs(sd(70) - cd(20)) < 1e-12 and all(abs(sd(180 - a) - sd(a)) < 1e-12 and abs(cd(180 - a) + cd(a)) < 1e-12 and abs(sd(180 + a) + sd(a)) < 1e-12 and abs(cd(360 - a) - cd(a)) < 1e-12 and abs(td(90 - a) - 1/td(a)) < 1e-9 and abs(cd(90 + a) + sd(a)) < 1e-12 for a in (20, 33, 71)))
+comprobar('t4 teoría: ecuaciones simples', [a for a in range(360) if abs(cd(a) - 0.5) < 1e-12] == [60, 300] and [a for a in range(360) if abs(td(a) - 1) < 1e-9] == [45, 225])
+comprobar('t4 teoría: teorema del seno 40°, 65°, 12', near(12/sd(75), 12.423, 0.001) and near(12.423*sd(40), 7.99, 0.003) and near(12.423*sd(65), 11.26, 0.003) and 180 - 40 - 65 == 75)
+comprobar('t4 teoría: radio circunscrito', 10/sd(30) == 20.000000000000004 or abs(10/sd(30) - 20) < 1e-9)
+comprobar('t4 teoría: caso ambiguo 8, 10, 40°', abs(10*sd(40) - 6.43) < 0.005 and near(B1, 53.46, 0.001) and near(B2, 126.54, 0.001) and near(8*sd(180 - 40 - B1)/sd(40), 12.42, 0.002) and near(8*sd(180 - 40 - B2)/sd(40), 2.90, 0.005))
+comprobar('t4 teoría: 0 y 1 solución', 10*sd(40)/5 > 1 and near(10*sd(40)/12, 0.5357, 0.001) and near(math.degrees(math.asin(10*sd(40)/12)), 32.39, 0.002) and 40 + (180 - 32.39) > 180)
+comprobar('t4 teoría: coseno LLL 7,5,8', near(math.degrees(math.acos((25 + 64 - 49)/80)), 60, 1e-9) and near(math.degrees(math.acos(88/112)), 38.21, 0.001) and near(180 - 60 - 38.21, 81.79, 0.001))
+a_l = math.sqrt(39)
+Bl = math.degrees(math.acos((39 + 25 - 49)/(2*a_l*5)))
+comprobar('t4 teoría: coseno LAL 7,5,60', abs(a_l**2 - (49 + 25 - 70*0.5)) < 1e-9 and near(Bl, 76.10, 0.001) and near(180 - 60 - Bl, 43.90, 0.001) and near(5/sd(180 - 60 - Bl), 7.21, 0.002) and near(a_l/sd(60), 7.21, 0.002))
+comprobar('t4 teoría: clasificar triángulo 4,5,8', 4**2 + 5**2 < 8**2 and 8 < 4 + 5)
+comprobar('t4 teoría: demostración del coseno', sp.simplify(sp.expand((sp.Symbol('b')*sp.cos(sp.Symbol('A')) - sp.Symbol('c'))**2 + (sp.Symbol('b')*sp.sin(sp.Symbol('A')))**2) - (sp.Symbol('b')**2 + sp.Symbol('c')**2 - 2*sp.Symbol('b')*sp.Symbol('c')*sp.cos(sp.Symbol('A')))) == 0)
+comprobar('t4 teoría: áreas', near(0.5*8*11*sd(40), 28.28, 0.001) and math.sqrt(21*8*7*6) == 84 and abs(0.5*5*8*sd(60) - 10*math.sqrt(3)) < 1e-9 and abs(math.sqrt(10*3*5*2) - 10*math.sqrt(3)) < 1e-9 and near(54*sd(50), 41.37, 0.001) and near(54*math.sqrt(3), 93.53, 0.001))
+comprobar('t4 teoría: aplicaciones', near(3/td(40), 3.58, 0.002) and near(50/(math.sqrt(3) - 1), 68.30, 0.001) and near(100/sd(43), 146.63, 0.001) and near(146.63*sd(75), 141.63, 0.001) and near(146.63*sd(62), 129.46, 0.002) and near(math.sqrt(36**2 + 48**2 - 2*36*48*cd(80)), 54.77, 0.001) and near(80/td(25), 171.55, 0.001) and near(80/td(40), 95.34, 0.001) and near(80/td(25) - 80/td(40), 76.2, 0.002))
+comprobar('t4 quiz y errores', near(math.sqrt(1 - 0.36)/0.6, 4/3, 1e-12) and sp.cos(sp.rad(210)) == -sp.sqrt(3)/2 and near(10*sd(40), 6.43, 0.002) and near(30*math.sqrt(3), 51.96, 0.001) and abs(math.sin(30) - (-0.988)) < 1e-3 and abs(sd(30) - 0.5) < 1e-12 and abs(sd(60) - 2*sd(30)) > 0.1 and sd(150) > 0 and 4**2 + 5**2 == 41)
+# clasificar de notables: las categorías de la actividad coinciden con sympy
+CAT = ["1/2", "√2/2", "√3/2", "√3/3", "1", "√3", "−1/2", "−√3/2"]
+VAL = [sp.Rational(1, 2), sp.sqrt(2)/2, sp.sqrt(3)/2, sp.sqrt(3)/3, 1, sp.sqrt(3), -sp.Rational(1, 2), -sp.sqrt(3)/2]
+FUN = {'sen': sp.sin, 'cos': sp.cos, 'tan': sp.tan}
+ok_not = True
+for it in datos['ampl']['mates1']['t4']['datos']['notables']['items']:
+    fn, ang = it['t'].split(' '); ang = int(ang.replace('°', ''))
+    ok_not = ok_not and sp.simplify(FUN[fn](sp.rad(ang)) - VAL[it['c']]) == 0
+comprobar('t4 notables: cada razón en su categoría', ok_not)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)

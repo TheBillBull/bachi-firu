@@ -451,3 +451,10 @@
 .tsig .tsig-p.polo { background: var(--line); color: var(--ink-soft); }
 .ctl .chip-btn { white-space: normal; text-align: left; max-width: 100%; }
 @media (max-width: 600px) { .ampl .lam-tabla { display: block; overflow-x: auto; max-width: 100%; } }
+
+/* ---- Trigonometría ---- */
+.gn-fila { display: grid; grid-template-columns: minmax(0, 360px) 1fr; gap: 14px; align-items: center; }
+.gn-fila .lectura { grid-template-columns: 1fr 1fr; margin: 0; }
+.gn-circ, .rd-circ { max-width: 420px; margin: 0 auto; }
+.plot .p-punto.c-hl { fill: var(--hl); }
+@media (max-width: 700px) { .gn-fila { grid-template-columns: 1fr; } .gn-fila .lectura { grid-template-columns: 1fr 1fr; } }

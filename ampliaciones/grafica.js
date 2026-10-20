@@ -48,7 +48,7 @@
       ymin: o.ymin == null ? -5 : o.ymin, ymax: o.ymax == null ? 5 : o.ymax,
       izq: 14, der: 16, arr: 14, abj: 14,
       etx: o.etx === undefined ? "x" : o.etx, ety: o.ety === undefined ? "y" : o.ety,
-      sinEjes: !!o.sinEjes, sinY: !!o.sinY, sinX: !!o.sinX
+      sinEjes: !!o.sinEjes || !!o.limpio, sinY: !!o.sinY || !!o.limpio, sinX: !!o.sinX || !!o.limpio, limpio: !!o.limpio
     };
     // En pantallas estrechas el lienzo se dibuja con menos "píxeles virtuales" para que
     // los números y las etiquetas sigan siendo legibles al encogerse
@@ -85,8 +85,8 @@
     var sx = paso(c.xmax - c.xmin), sy = paso(c.ymax - c.ymin);
     var maxLab = 1;
     for (var yy = Math.ceil(c.ymin / sy) * sy; yy <= c.ymax + 1e-9; yy += sy) maxLab = Math.max(maxLab, B.fmt(yy, 3).length);
-    c.izq = 12 + Math.min(maxLab, 6) * 6.2;
-    c.abj = 26;
+    c.izq = c.limpio ? 14 : 12 + Math.min(maxLab, 6) * 6.2;
+    c.abj = c.limpio ? 14 : 26;
     this.clipRect.setAttribute("x", c.izq); this.clipRect.setAttribute("y", c.arr);
     this.clipRect.setAttribute("width", c.w - c.izq - c.der); this.clipRect.setAttribute("height", c.h - c.arr - c.abj);
     svg("rect", { x: c.izq, y: c.arr, width: c.w - c.izq - c.der, height: c.h - c.arr - c.abj, "class": "p-marco" }, g);
@@ -180,6 +180,27 @@
   Plot.prototype.vertical = function (x, o) { return this.segmento(x, this.c.ymin, x, this.c.ymax, o); };
   Plot.prototype.horizontal = function (y, o) { return this.segmento(this.c.xmin, y, this.c.xmax, y, o); };
 
+  // Polígono cerrado y relleno: pts = [[x, y], ...]
+  Plot.prototype.poligono = function (pts, o) {
+    o = o || {};
+    var d = "";
+    for (var i = 0; i < pts.length; i++) d += (i ? "L" : "M") + this.px(pts[i][0]).toFixed(1) + " " + this.py(pts[i][1]).toFixed(1);
+    var p = svg("path", { d: d + "Z", "class": "p-zona " + (o.clase || "z-pen") }, this.capa(o));
+    if (o.borde) { p.style.stroke = o.borde; p.style.strokeWidth = o.grosor || 1.6; p.style.strokeLinejoin = "round"; }
+    if (o.dash) p.setAttribute("stroke-dasharray", o.dash);
+    return p;
+  };
+  // Arco de circunferencia (ángulos en grados, sentido antihorario) en coordenadas del dibujo
+  Plot.prototype.arco = function (cx, cy, r, a0, a1, o) {
+    var pts = [], n = Math.max(6, Math.ceil(Math.abs(a1 - a0) / 3));
+    for (var i = 0; i <= n; i++) { var a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+    return this.polilinea(pts, o);
+  };
+  // Rango con la misma escala en los dos ejes (para geometría): centro (cx, cy) y semialtura
+  Plot.prototype.rangoIso = function (cx, cy, semi) {
+    var c = this.c, pw = c.w - c.izq - c.der, ph = c.h - c.arr - c.abj, sw = semi * pw / ph;
+    this.rango(cx - sw, cx + sw, cy - semi, cy + semi);
+  };
   Plot.prototype.punto = function (x, y, o) {
     o = o || {};
     var p = svg("circle", { cx: this.px(x), cy: this.py(y), r: o.r || 5, "class": "p-punto " + (o.clase || "c-pen") }, this.capa(o));
