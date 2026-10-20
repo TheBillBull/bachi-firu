@@ -30,6 +30,8 @@
     if (r.ok) {
       var f = r.f;
       r.g = function (x) { var v; try { v = f(x); } catch (e) { return NaN; } return typeof v === "number" && isFinite(v) ? v : NaN; };
+      r.gi = function (x) { var v; try { v = f(x); } catch (e) { return NaN; } return typeof v === "number" ? v : NaN; };   // conserva ±∞ (desbordamientos y polos)
+      r.g.gi = r.gi;
     }
     return r;
   };
@@ -180,6 +182,11 @@
   // ------------------------------------------------------------
   F.infinito = function (g, signo) {
     var ts = [1e2, 1e3, 1e4, 1e5, 1e6, 1e7], v = ts.map(function (t) { return g(signo * t); }), i;
+    if (v.some(isNaN) && g.gi) {
+      // desbordamiento (por ejemplo eˣ para x enorme): vale ±∞ de verdad
+      var w = ts.map(function (t) { return g.gi(signo * t); });
+      if (!w.some(isNaN) && w.some(function (t) { return !isFinite(t); })) return { tipo: "inf", signo: Math.sign(w.filter(function (t) { return !isFinite(t); })[0]) };
+    }
     if (v.some(isNaN)) return { tipo: "indef" };
     var L = v[5], escala = Math.max(1, Math.abs(L));
     if (Math.abs(v[5] - v[4]) <= 1e-4 * escala && Math.abs(v[4] - v[3]) <= 1e-3 * escala) {
@@ -468,28 +475,30 @@
         { q: "¿Es continua en x = 0?", op: ["Sí: los dos trozos se unen en (0, −1)", "No: hay un salto", "No: hay un hueco", "No se puede saber"], ok: 0, por: "Por la izquierda f vale −0 − 1 = −1 y por la derecha 0² − 1 = −1: coinciden con f(0) = −1." }
       ] }
   ];
-  B.w.leergrafica = function (host) {
-    var cuerpo = B.caja(host, "Entrenamiento", "Lee la gráfica y rellena la ficha");
-    cuerpo.innerHTML = '<div data-sel class="chips"></div><div class="w-plot"></div><div class="lg-pregs"></div><p class="w-pie">Elige una respuesta en cada apartado: se corrige al momento y te explica por qué.</p>';
-    var st = { k: "A" }, g, pregs = cuerpo.querySelector(".lg-pregs");
+  // Lector genérico: una gráfica a la vez, con preguntas de opción múltiple corregidas al instante
+  F.lector = function (host, etiqueta, titulo, GR, pie) {
+    var cuerpo = B.caja(host, etiqueta, titulo);
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div class="w-plot"></div><div class="lg-pregs"></div><p class="w-pie">' + (pie || "Elige una respuesta en cada apartado: se corrige al momento y te explica por qué.") + '</p>';
+    var st = { k: GR[0].k }, g, pregs = cuerpo.querySelector(".lg-pregs");
     function dibuja() {
-      var G = GRAFS.filter(function (z) { return z.k === st.k; })[0];
+      var G = GR.filter(function (z) { return z.k === st.k; })[0];
       g.rango(G.rg[0], G.rg[1], G.rg[2], G.rg[3]); g.limpiar();
-      if (G.asv != null) g.vertical(G.asv, { clase: "c-red", dash: "6 5" });
-      if (G.ash != null) g.horizontal(G.ash, { clase: "c-red", dash: "6 5" });
+      [].concat(G.asv == null ? [] : G.asv).forEach(function (c) { g.vertical(c, { clase: "c-red", dash: "6 5" }); });
+      [].concat(G.ash == null ? [] : G.ash).forEach(function (c) { g.horizontal(c, { clase: "c-red", dash: "6 5" }); });
       G.tr.forEach(function (t) {
         var a = Math.max(t.a, G.rg[0]), b = Math.min(t.b, G.rg[1]);
         g.curva(t.f, { clase: "c-pen", x0: a, x1: b, n: 500 }).setAttribute("stroke-width", 3);
         if (isFinite(t.a) && isFinite(t.f(t.a))) pto(g, t.a, t.f(t.a), "c-pen", !t.ca, 5);
         if (isFinite(t.b) && t.b < G.rg[1] && isFinite(t.f(t.b))) pto(g, t.b, t.f(t.b), "c-pen", !t.cb, 5);
       });
+      (G.pts || []).forEach(function (q) { pto(g, q[0], q[1], "c-pen", !!q[2], 5); });
       pregs.innerHTML = G.preguntas.map(function (p, i) {
         return '<div class="lg-p" data-i="' + i + '"><b>' + (i + 1) + '. ' + p.q + '</b><div class="chips">' + p.op.map(function (o, j) { return '<button type="button" class="chip-btn" data-j="' + j + '">' + o + "</button>"; }).join("") + '</div><p class="lg-r"></p></div>';
       }).join("");
     }
     pregs.addEventListener("click", function (e) {
       var b = e.target.closest("[data-j]"); if (!b) return;
-      var cont = b.closest(".lg-p"), G = GRAFS.filter(function (z) { return z.k === st.k; })[0], p = G.preguntas[+cont.getAttribute("data-i")], j = +b.getAttribute("data-j");
+      var cont = b.closest(".lg-p"), G = GR.filter(function (z) { return z.k === st.k; })[0], p = G.preguntas[+cont.getAttribute("data-i")], j = +b.getAttribute("data-j");
       Array.prototype.forEach.call(cont.querySelectorAll(".chip-btn"), function (x) { x.classList.remove("on", "bien", "mal"); });
       b.classList.add(j === p.ok ? "bien" : "mal");
       var r = cont.querySelector(".lg-r");
@@ -497,7 +506,8 @@
       r.innerHTML = j === p.ok ? "<b>✓ Correcto.</b> " + p.por : "<b>Todavía no.</b> Mira otra vez la gráfica e inténtalo de nuevo.";
     });
     g = marco(cuerpo.querySelector(".w-plot"), "Gráfica para leer", 600, 320);
-    U.fichas(cuerpo.querySelector("[data-sel]"), GRAFS.map(function (z) { return { k: z.k, t: z.t }; }), "A", function (k) { st.k = k; dibuja(); });
+    U.fichas(cuerpo.querySelector("[data-sel]"), GR.map(function (z) { return { k: z.k, t: z.t }; }), GR[0].k, function (k) { st.k = k; dibuja(); });
     dibuja();
   };
+  B.w.leergrafica = function (host) { F.lector(host, "Entrenamiento", "Lee la gráfica y rellena la ficha", GRAFS); };
 })(window);

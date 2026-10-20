@@ -489,3 +489,13 @@
 .lg-p .chip-btn.mal { background: var(--red-soft); border-color: var(--red); color: var(--red); }
 .lg-r { margin: 6px 0 0; font-size: 13.5px; line-height: 1.45; } .lg-r:empty { display: none; }
 .lg-r.ok { color: var(--ok); } .lg-r.mal { color: var(--red); }
+
+/* ---- Límites ---- */
+.ac-tabla { overflow-x: auto; margin: 10px 0 0; }
+.ac-t { width: 100%; min-width: 360px; }
+.ac-t thead th { background: var(--sheet-2); font: 600 12px var(--body); color: var(--ink-soft); text-align: center; padding: 6px 8px; white-space: nowrap; }
+.ac-t th { white-space: nowrap; }
+.ac-t td { font: 500 14.5px/1.35 var(--math); text-align: center; }
+.ac-t td.pen { color: var(--pen); } .ac-t td.red { color: var(--red); }
+.ac-t tbody tr + tr td, .ac-t tbody tr + tr th { border-top: 1px solid var(--line); }
+.bz-acc { margin-top: 8px; }

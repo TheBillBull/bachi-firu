@@ -966,6 +966,96 @@ comprobar('t9 teoría: estudios completos', intervalo(-X**2 + 4*X - 3 > 0) == sp
 comprobar('t9 teoría: a trozos −x / x² / 4', [(-v if v < 0 else v**2 if v <= 2 else 4) for v in (-3, 0, 1, 2, 5)] == [3, 0, 1, 4, 4])
 comprobar('t9 quiz', (intervalo(X - 2 >= 0) == sp.Interval(2, sp.oo)) and sp.expand((X**3 - 5*X).subs(X, -X) + (X**3 - 5*X)) == 0 and ((-X**2 + 6*X - 5).subs(X, 3) == 4) and (sp.log(64, 2) - sp.log(27, 3) == 3) and (2*sp.pi/4 == sp.pi/2) and (lambda f, g: f(g(1)))(lambda t: t**2, lambda t: t + 3) == 16 and sp.solve(sp.Eq(X, 2*Y9 + 6), Y9) == [(X - 6)/2] and [2*3**k for k in range(4)] == [2, 6, 18, 54])
 
+
+# =====================================================================
+# TEMA 10 · Límites y continuidad
+# =====================================================================
+E10 = {e['id']: e for e in datos['ampl']['mates1']['t10']['ejercicios']}
+def v10(id_, k=0):
+    c = E10[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+def n10(id_, k=0): return v10(id_, k)['valor']
+oo = sp.oo
+def LIM(e, a=oo, d='+-'): return sp.limit(e, X, a, d)
+def cerca(a, b, tol=1e-9): return abs(float(a) - float(b)) <= tol * max(1, abs(float(b)))
+
+# ---- ejercicios ----
+comprobar('t10 l1', LIM(2*X**3 - X + 4, -1) == 3 == n10('l1'))
+comprobar('t10 l2', LIM((X**2 - 1)/(X - 1), 1) == 2 == n10('l2'))
+comprobar('t10 l3', LIM((X**2 + X - 2)/(X + 2), -2) == -3 == n10('l3'))
+comprobar('t10 l4', LIM((X**2 + 5*X)/X, 0) == 5 == n10('l4'))
+comprobar('t10 l5', LIM((4*X - 1)/(2*X + 7)) == 2 == n10('l5'))
+comprobar('t10 l6', LIM((3*X**2 + 1)/(X**3 - 2)) == 0 == n10('l6'))
+comprobar('t10 l7', LIM((X**2 + 1)/(X + 3)) == oo and v10('l7')['ok'] == 0 and E10['l7']['check']['opciones'][0] == '+∞')
+comprobar('t10 l8', LIM(sp.Abs(X)/X, 0, '-') == -1 and LIM(sp.Abs(X)/X, 0, '+') == 1 and (n10('l8', 0), n10('l8', 1)) == (-1, 1))
+comprobar('t10 l9', LIM(1/(X - 2), 2, '-') == -oo and E10['l9']['check']['opciones'][v10('l9')['ok']] == '−∞')
+comprobar('t10 l10', sp.solve(X - 5, X) == [5] and LIM(3/(X - 5)) == 0 and LIM(3/(X - 5), 5, '+') == oo and (n10('l10', 0), n10('l10', 1)) == (5, 0))
+comprobar('t10 l11', LIM(2*X + 1, 1, '-') == 3 and LIM(X**2 + 2, 1, '+') == 3 and (X**2 + 2).subs(X, 1) == 3 and v10('l11')['ok'] == 0)
+comprobar('t10 l12', LIM(sp.sin(3*X)/X, 0) == 3 == n10('l12'))
+comprobar('t10 l13', LIM((sp.sqrt(X) - 2)/(X - 4), 4) == sp.Rational(1, 4) and cerca(sp.Rational(1, 4), n10('l13')))
+comprobar('t10 l14', LIM((sp.sqrt(X + 9) - 3)/X, 0) == sp.Rational(1, 6) and cerca(n10('l14'), 1/6))
+comprobar('t10 l15', LIM((X**3 - 27)/(X**2 - 9), 3) == sp.Rational(9, 2) and cerca(sp.Rational(9, 2), n10('l15')))
+comprobar('t10 l16', LIM((X**2 - X - 2)/(X**2 - 4), 2) == sp.Rational(3, 4) and cerca(sp.Rational(3, 4), n10('l16')))
+comprobar('t10 l17', LIM((5*X**3 + X)/(2*X**3 - 7*X**2)) == sp.Rational(5, 2) and cerca(sp.Rational(5, 2), n10('l17')))
+comprobar('t10 l18', LIM((X**2 + 1)/(3*X - 2), -oo) == -oo and E10['l18']['check']['opciones'][v10('l18')['ok']] == '−∞')
+comprobar('t10 l19', LIM(sp.sqrt(X**2 + 5*X) - X) == sp.Rational(5, 2) and cerca(sp.Rational(5, 2), n10('l19')))
+comprobar('t10 l20', LIM(sp.sqrt(X**2 + 4) - X) == 0 == n10('l20'))
+comprobar('t10 l21', LIM(1/(X - 1) - 2/(X**2 - 1), 1) == sp.Rational(1, 2) and cerca(sp.Rational(1, 2), n10('l21')))
+comprobar('t10 l22', LIM((1 + 4/X)**X) == sp.exp(4) and cerca(sp.exp(4), n10('l22'), 5e-3))
+comprobar('t10 l23', LIM(((X + 2)/(X - 1))**X) == sp.exp(3) and cerca(sp.exp(3), n10('l23'), 5e-3))
+comprobar('t10 l24', LIM((1 - sp.cos(3*X))/X**2, 0) == sp.Rational(9, 2) and cerca(sp.Rational(9, 2), n10('l24')))
+comprobar('t10 l25', sp.factor(X**2 - X - 2) == (X - 2)*(X + 1) and LIM((X + 1)/(X**2 - X - 2), 2, '+') == oo and LIM((X + 1)/(X**2 - X - 2), -1) == -sp.Rational(1, 3) and n10('l25') == 2)
+f26 = (X**2 - 3*X + 5)/(X - 2); comprobar('t10 l26', sp.div(X**2 - 3*X + 5, X - 2, X) == (X - 1, 3) and LIM(f26/X) == 1 and LIM(f26 - X) == -1 and (n10('l26', 0), n10('l26', 1)) == (1, -1))
+comprobar('t10 l27', LIM((3*X**2 + 1)/(X**2 + 2)) == 3 == n10('l27'))
+comprobar('t10 l28', LIM((X**2 - 1)/(X - 1), 1) == 2 == n10('l28'))
+comprobar('t10 l29', sp.solve(2*sp.Symbol('kq') - 1 - (4 - sp.Symbol('kq')), sp.Symbol('kq')) == [sp.Rational(5, 3)] and cerca(5/3, n10('l29'), 1e-9))
+comprobar('t10 l30', LIM(X*sp.sin(1/X)) == 1 == n10('l30'))
+f31 = (X**2 - 9)/(X**2 - 4*X + 3); comprobar('t10 l31', sp.factor(f31) == (X + 3)/(X - 1) and LIM(f31, 1, '+') == oo and LIM(f31, 3) == 3 and LIM(f31) == 1 and (n10('l31', 0), n10('l31', 1), n10('l31', 2)) == (1, 1, 3))
+f32 = (X**2 - 4)/(X**2 + X - 6); comprobar('t10 l32', LIM(f32, 2) == sp.Rational(4, 5) and cerca(n10('l32', 0), 0.8) and LIM(f32, -3, '+') in (oo, -oo) and LIM(f32, -3, '-') in (oo, -oo) and v10('l32', 1)['ok'] == 2)
+kq, aq, bq = sp.symbols('kq aq bq'); comprobar('t10 l33', sp.solve(aq + 2 - 5, aq) == [3] and sp.solve(1 + bq - 5, bq) == [4] and (n10('l33', 0), n10('l33', 1)) == (3, 4))
+g34 = lambda t: t**3 - 2*t - 5; comprobar('t10 l34', g34(2) == -1 and g34(3) == 16 and g34(sp.Rational(5, 2)) == sp.Rational(45, 8) and cerca(n10('l34'), 5.625))
+f35 = lambda t: t**5 + t - 1; comprobar('t10 l35', f35(0) == -1 and f35(1) == 1)
+comprobar('t10 l36', cerca(sp.Rational(3, 10)/3, n10('l36')) and abs(float(sp.Abs(3*X - 2 - 4).subs(X, 2.1)) - 0.3) < 1e-9)
+comprobar('t10 l37', LIM(2**X/X**5) == oo and LIM(sp.log(X)/X) == 0 and (v10('l37', 0)['ok'], v10('l37', 1)['ok']) == (0, 1) and E10['l37']['check'][0]['opciones'][0] == '+∞' and E10['l37']['check'][1]['opciones'][1] == '0')
+f38 = (2*X**2 + 1)/X; comprobar('t10 l38', LIM(f38, 0, '+') == oo and LIM(f38/X) == 2 and LIM(f38 - 2*X) == 0 and (n10('l38', 0), n10('l38', 1), n10('l38', 2)) == (0, 2, 0))
+T10 = sp.Symbol('T10', positive=True); comprobar('t10 l39', LIM(200*X/(X + 20)) == 200 and sp.solve(200*T10/(T10 + 20) - 100, T10) == [20] and (n10('l39', 0), n10('l39', 1)) == (200, 20))
+comprobar('t10 l40', LIM((X**3 - 8)/(X - 2), 2) == 12 == n10('l40') and [round((x_**3 - 8)/(x_ - 2), 6) for x_ in (1.9, 1.99, 1.999, 2.001, 2.01)] == [11.41, 11.9401, 11.994001, 12.006001, 12.0601])
+f41 = (X**2 - 1)/(X**2 - 4)
+comprobar('t10 l41', sp.simplify(f41.subs(X, -X) - f41) == 0 and f41.subs(X, 0) == sp.Rational(1, 4) and sorted(sp.solve(f41, X)) == [-1, 1] and LIM(f41, 2, '+') == oo and LIM(f41, 2, '-') == -oo and LIM(f41, -2, '-') == oo and LIM(f41, -2, '+') == -oo and LIM(f41) == 1 and sp.solve_univariate_inequality(f41 > 0, X, relational=False) == sp.Union(sp.Interval.open(-oo, -2), sp.Interval.open(-1, 1), sp.Interval.open(2, oo)))
+comprobar('t10 l42', all(abs(sp.sin(n_*sp.pi)) < 1e-12 and abs(sp.sin(sp.pi/2 + 2*n_*sp.pi) - 1) < 1e-12 for n_ in range(1, 6)))
+comprobar('t10 l43', sp.simplify(sp.Abs((3*X - 2) - 4) - 3*sp.Abs(X - 2)) == 0)
+comprobar('t10 l44', sp.simplify(LIM((sp.sqrt(1 + kq*X) - 1)/X, 0) - kq/2) == 0 and sp.solve(kq/2 - 3, kq) == [6] and n10('l44') == 6)
+comprobar('t10 l45', sp.simplify(LIM(sp.sqrt(X**2 + aq*X) - X) - aq/2) == 0 and sp.solve(aq/2 - 4, aq) == [8] and n10('l45') == 8)
+comprobar('t10 l46', LIM((500 + 3*X)/X) == 3 == n10('l46'))
+
+# ---- teoría ----
+comprobar('t10 teoría: tabla de (x²−1)/(x−1)', [round((x_**2 - 1)/(x_ - 1), 4) for x_ in (0.9, 0.99, 0.999, 0.9999, 1.1, 1.01, 1.001, 1.0001)] == [1.9, 1.99, 1.999, 1.9999, 2.1, 2.01, 2.001, 2.0001] and LIM((X**2 - 1)/(X - 1), 1) == 2)
+comprobar('t10 teoría: laterales', LIM((X**2 - 4)/sp.Abs(X - 2), 2, '+') == 4 and LIM((X**2 - 4)/sp.Abs(X - 2), 2, '-') == -4 and LIM(X**2, 1, '-') == 1 and LIM(2*X - 1, 1, '+') == 1 and LIM((X + 1)/(X - 3), 3, '+') == oo and LIM((X + 1)/(X - 3), 3, '-') == -oo and LIM(3/(X - 1)**2, 1) == oo and LIM(sp.sqrt(X), 0, '+') == 0)
+comprobar('t10 teoría: sustituir', abs(((-1)**2 + 2)/(-1 - 3) + 0.75) < 1e-12 and sp.sqrt(4**2 - 7) == 3 and sp.cos(0)/(0 + 2) == sp.Rational(1, 2) and (2**2 + 3*2 - 1) == 9)
+comprobar('t10 teoría: 0/0 factorizar', LIM((X**2 - 3*X + 2)/(X**2 - 1), 1) == -sp.Rational(1, 2) and LIM((X**3 - 8)/(X**2 - 4), 2) == 3 and sp.factor(X**3 - 3*X + 2) == (X - 1)**2*(X + 2) and LIM((X**3 - 3*X + 2)/(X**2 - 2*X + 1), 1) == 3 and sp.expand((X - 2)*(X**2 + 2*X + 4)) == X**3 - 8)
+comprobar('t10 teoría: conjugados', LIM((sp.sqrt(X + 4) - 2)/X, 0) == sp.Rational(1, 4) and LIM((sp.sqrt(1 + X) - sp.sqrt(1 - X))/X, 0) == 1)
+comprobar('t10 teoría: notables', LIM(sp.sin(X)/X, 0) == 1 and LIM(sp.tan(X)/X, 0) == 1 and LIM((1 - sp.cos(X))/X**2, 0) == sp.Rational(1, 2) and LIM((sp.exp(X) - 1)/X, 0) == 1 and LIM(sp.log(1 + X)/X, 0) == 1 and LIM(sp.sin(3*X)/X, 0) == 3 and LIM((1 - sp.cos(2*X))/X**2, 0) == 2)
+comprobar('t10 teoría: infinito', LIM((2*X**3 - X)/(5*X**3 + 4*X**2)) == sp.Rational(2, 5) and LIM((X**2 + 1)/(X + 3)) == oo and LIM((X**2 + 1)/(X + 3), -oo) == -oo and LIM(sp.sqrt(X**2 + 1)/X) == 1 and LIM(sp.sqrt(X**2 + 1)/X, -oo) == -1 and LIM(sp.sqrt(X**2 + 3*X) - X) == sp.Rational(3, 2) and LIM(X**2/(X + 1) - X) == -1 and LIM(sp.sqrt(X**2 + 1) - X) == 0)
+comprobar('t10 teoría: número e', LIM((1 + 1/X)**X) == sp.E and LIM((1 + 2/X)**X) == sp.exp(2) and LIM(((X + 1)/(X - 1))**X) == sp.exp(2) and LIM((1 + 3/X)**(2*X)) == sp.exp(6) and cerca(sp.exp(2), 7.389, 1e-3) and cerca(sp.exp(6), 403.4, 1e-3))
+comprobar('t10 teoría: jerarquía', LIM((X**5 + 3*X)/2**X) == 0 and LIM(sp.log(X)/sp.sqrt(X)) == 0 and LIM((3**X - 2**X)/4**X) == 0 and LIM(X**3/X**2) == oo and LIM(sp.atan(X)) == sp.pi/2 and LIM(sp.atan(X), -oo) == -sp.pi/2)
+f6 = (X**2 - 4)/(X**2 - 3*X + 2)
+comprobar('t10 teoría: asíntotas', sp.factor(X**2 - 3*X + 2) == (X - 1)*(X - 2) and LIM(f6, 2) == 4 and abs(LIM(f6, 1, '+')) == oo and LIM(f6) == 1 and sp.div(X**2 + 1, X - 1, X) == (X + 1, 2) and LIM((X**2 + 1)/(X - 1)/X) == 1 and LIM((X**2 + 1)/(X - 1) - X) == 1 and LIM(sp.sqrt(X**2 + 1)/X) == 1 and LIM(sp.sqrt(X**2 + 1) - X) == 0 and LIM(sp.sqrt(X**2 + 1)/X, -oo) == -1 and LIM(sp.sqrt(X**2 + 1) + X, -oo) == 0)
+comprobar('t10 teoría: continuidad', LIM((X**2 - 1)/(X**2 - X - 2), -1) == sp.Rational(2, 3) and LIM((X**2 - 1)/(X**2 - X - 2), 2, '+') == oo and LIM(sp.sin(X)/X, 0) == 1)
+comprobar('t10 teoría: parámetros a,b', sp.solve(4*bq - 4, bq) == [1] and sp.solve(2 + aq - 1, aq) == [-1])
+comprobar('t10 teoría: sándwich', LIM(X*sp.sin(1/X), 0) == 0 and LIM(sp.sin(X)/X) == 0 and LIM(sp.cos(X)/X**2) == 0 and LIM(X**2*sp.sin(1/X), 0) == 0)
+comprobar('t10 teoría: ε–δ', sp.simplify(sp.Abs((2*X + 1) - 3) - 2*sp.Abs(X - 1)) == 0)
+comprobar('t10 teoría: aplicaciones', LIM(50*X/(X + 5)) == 50 and sp.solve(50*T10/(T10 + 5) - 40, T10) == [20] and LIM((100 + 2*X)/X) == 2 and LIM((1 + 1/X)**X) == sp.E and LIM(55*(1 - sp.exp(-sp.Rational(1, 5)*X))) == 55 and cerca(55*(1 - sp.exp(-6)), 54.86, 1e-3))
+comprobar('t10 teoría: Bolzano', (1**3 + 1 - 3, 2**3 + 2 - 3) == (-1, 7) and sp.Rational(3, 2)**3 + sp.Rational(3, 2) - 3 == sp.Rational(15, 8) and cerca(sp.cos(1) - 1, -0.4597, 1e-3) and cerca(sp.nsolve(sp.cos(X) - X, X, 0.7), 0.739085, 1e-5))
+comprobar('t10 teoría: estudio completo', LIM((X**2 - 4)/(X**2 - 1), 1, '+') == -oo and LIM((X**2 - 4)/(X**2 - 1), 1, '-') == oo and LIM((X**2 - 4)/(X**2 - 1), -1, '-') == -oo and LIM((X**2 - 4)/(X**2 - 1), -1, '+') == oo and LIM((X**2 - 4)/(X**2 - 1)) == 1 and sp.simplify(((X**2 - 4)/(X**2 - 1)).subs(X, -X) - (X**2 - 4)/(X**2 - 1)) == 0 and ((0**2 - 4)/(0**2 - 1)) == 4 and LIM(X - sp.sqrt(X**2 + 1)) == 0 and LIM((X - sp.sqrt(X**2 + 1))/X, -oo) == 2 and LIM(X - sp.sqrt(X**2 + 1) - 2*X, -oo) == 0)
+comprobar('t10 teoría: parámetros y trozos', sp.solve(1 + aq - 2, aq) == [1] and sp.factor(X**2 + X - 2) == (X - 1)*(X + 2) and LIM((X**2 + X - 2)/(X - 1), 1) == 3 and LIM((X**2 - 4)/(X - 2), 2, '-') == 4 and 3*2 - 2 == 4)
+banco = [
+    (LIM((X**3 - 3*X)/(X + 1), 2), sp.Rational(2, 3)), (LIM((X + 2)/(X**2 - 1), 1, '+'), oo), (LIM((X + 2)/(X**2 - 1), 1, '-'), -oo), (LIM((X**3 - 2*X**2)/X**2, 0), -2), (LIM((X**3 + 1)/(X + 1), -1), 3), (LIM((X**4 - 1)/(X - 1), 1), 4),
+    (LIM((sp.sqrt(X) - 1)/(X - 1), 1), sp.Rational(1, 2)), (LIM((sp.sqrt(X**2 + 9) - 3)/X**2, 0), sp.Rational(1, 6)), (LIM(sp.tan(X)/(2*X), 0), sp.Rational(1, 2)), (LIM((sp.exp(2*X) - 1)/X, 0), 2),
+    (LIM((X**3 + 2*X)/(4*X**3 - X**2)), sp.Rational(1, 4)), (LIM((2*X + 1)/sp.sqrt(X**2 + 3), -oo), -2), (LIM(sp.sqrt(X + 1) - sp.sqrt(X)), 0), (LIM(X - sp.sqrt(X**2 - 4*X)), 2),
+    (LIM(((X + 1)/(X + 3))**X), sp.exp(-2)), (LIM((1 + 3*X)**(1/X), 0, '+'), sp.exp(3)), (LIM(sp.cos(X)/X**2), 0), (LIM(X**2*sp.sin(1/X), 0), 0)]
+comprobar('t10 banco de límites (18 valores)', all(a == b for a, b in banco) and len(banco) == 18, str([(a, b) for a, b in banco if a != b]))
+comprobar('t10 quiz y errores', LIM((X**2 - 9)/(X + 3), -3) == -6 and LIM((5*X**2 + 3)/(2*X**2 - X)) == sp.Rational(5, 2) and LIM(1/X, 0, '+') == oo and LIM(sp.sin(4*X)/X, 0) == 4 and LIM((1 + 3/X)**X) == sp.exp(3) and LIM((4*X - 1)/(2*X + 5)) == 2 and LIM(X**4/3**X) == 0 and LIM(X*sp.sin(1/X), 0) == 0 and LIM((X**2 - 4)/(X**2 - 3*X + 2), 2) == 4 and LIM((1 + 1/X)**(2*X)) == sp.exp(2) and LIM(sp.sin(X)/X, 0) == 1 and LIM(sp.sqrt(X**2 + 3*X) - X) == sp.Rational(3, 2) and LIM(sp.sqrt(X**2 + 1)/X, -oo) == -1)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)
