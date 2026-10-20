@@ -413,3 +413,9 @@
 .cs-linea b { font: 600 26px/1.2 var(--math); color: var(--ink); overflow-wrap: anywhere; }
 .cs-linea b.cs-dec { color: var(--pen); }
 .cs-hr { border: 0; border-top: 1px dashed var(--line); margin: 18px 0; }
+
+/* ---- Sucesiones ---- */
+.reb-fila { display: grid; grid-template-columns: 130px 1fr; gap: 10px; align-items: end; }
+.reb-fila .w-plot { margin: 0; }
+@media (max-width: 520px) { .reb-fila { grid-template-columns: 90px 1fr; } }
+.plot .p-zona { stroke-linejoin: round; }

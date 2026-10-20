@@ -48,7 +48,7 @@
       ymin: o.ymin == null ? -5 : o.ymin, ymax: o.ymax == null ? 5 : o.ymax,
       izq: 14, der: 16, arr: 14, abj: 14,
       etx: o.etx === undefined ? "x" : o.etx, ety: o.ety === undefined ? "y" : o.ety,
-      sinEjes: !!o.sinEjes, sinY: !!o.sinY
+      sinEjes: !!o.sinEjes, sinY: !!o.sinY, sinX: !!o.sinX
     };
     // En pantallas estrechas el lienzo se dibuja con menos "píxeles virtuales" para que
     // los números y las etiquetas sigan siendo legibles al encogerse
@@ -92,7 +92,7 @@
     svg("rect", { x: c.izq, y: c.arr, width: c.w - c.izq - c.der, height: c.h - c.arr - c.abj, "class": "p-marco" }, g);
     var x0 = Math.min(Math.max(0, c.xmin), c.xmax), y0 = Math.min(Math.max(0, c.ymin), c.ymax);
     var x;
-    for (x = Math.ceil(c.xmin / sx) * sx; x <= c.xmax + 1e-9; x += sx) {
+    for (x = Math.ceil(c.xmin / sx) * sx; x <= c.xmax + 1e-9 && !c.sinX; x += sx) {
       if (Math.abs(x) < sx / 1e3) continue;
       svg("line", { x1: this.px(x), x2: this.px(x), y1: c.arr, y2: c.h - c.abj, "class": "p-gr" }, g);
       var t = svg("text", { x: this.px(x), y: this.py(y0) + 15, "text-anchor": "middle", "class": "p-num" }, g);
@@ -156,6 +156,15 @@
   Plot.prototype.recta = function (m, x0, y0, o) {
     var c = this.c;
     return this.segmento(c.xmin, y0 + m * (c.xmin - x0), c.xmax, y0 + m * (c.xmax - x0), o);
+  };
+
+  // Rectángulo entre (x0, y0) y (x1, y1) en coordenadas de datos (barras, áreas)
+  Plot.prototype.rect = function (x0, y0, x1, y1, o) {
+    o = o || {};
+    var X = Math.min(this.px(x0), this.px(x1)), Y = Math.min(this.py(y0), this.py(y1));
+    var r = svg("rect", { x: X, y: Y, width: Math.abs(this.px(x1) - this.px(x0)), height: Math.abs(this.py(y1) - this.py(y0)), "class": "p-zona " + (o.clase || "z-pen") }, this.capa(o));
+    if (o.borde) { r.style.stroke = o.borde; r.style.strokeWidth = 1.2; }
+    return r;
   };
 
   // Línea quebrada por una lista de puntos [x, y] (series de datos, simulaciones)

@@ -205,6 +205,82 @@ ok_cl = all(clase(VAL[k]) == CL[k] for k in VAL)
 items_dat = {it['t'].split(' (')[0]: it['c'] for it in datos['ampl']['mates1']['t1']['datos']['clasnum']['items']}
 comprobar('t1 clasificar: clases coinciden con sympy y con los datos', ok_cl and all(items_dat[k] == CL[k] for k in CL), str([k for k in CL if items_dat.get(k) != CL[k]]))
 
+
+# =====================================================================
+# TEMA 2 · Sucesiones
+# =====================================================================
+E2 = {e['id']: e for e in datos['ampl']['mates1']['t2']['ejercicios']}
+def v2(id_, k=0):
+    c = E2[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+n_ = sp.symbols('n', positive=True, integer=True)
+def termsf(expr, N=6): return [expr.subs(n_, i) for i in range(1, N + 1)]
+
+comprobar('t2 s1: 2n+1 → 3,5,7,9,11', termsf(2*n_ + 1, 5) == [3, 5, 7, 9, 11])
+comprobar('t2 s2', 4 + 7*(-3) == v2('s2')['valor'] == -17)
+comprobar('t2 s3', Q(10, 5) == v2('s3')['valor'] == 2)
+a10 = 2 + 9*3; comprobar('t2 s4', 10*(2 + a10)/2 == v2('s4')['valor'] == 155)
+comprobar('t2 s5: 3n−2 creciente (d = 3)', sp.simplify((3*(n_ + 1) - 2) - (3*n_ - 2)) == 3)
+fib = [1, 1]
+for _ in range(8): fib.append(fib[-1] + fib[-2])
+comprobar('t2 s6: Fibonacci a9 = 34', fib[8] == v2('s6')['valor'] == 34)
+a1_, d_ = sp.symbols('a1 d')
+sol7 = sp.solve([a1_ + 4*d_ - 17, a1_ + 11*d_ - 45], [a1_, d_])
+comprobar('t2 s7', (sol7[a1_], sol7[d_]) == (v2('s7', 0)['valor'], v2('s7', 1)['valor']) == (1, 4))
+mult = list(range(105, 500, 7))
+comprobar('t2 s8: múltiplos de 7 entre 100 y 500', mult[0] == 105 and mult[-1] == 497 and len(mult) == 57 and sum(mult) == 17157 == v2('s8')['valor'])
+d9 = Q(18 - 3, 4 + 1); prog9 = [3 + k*d9 for k in range(6)]
+comprobar('t2 s9', d9 == v2('s9', 0)['valor'] == 3 and prog9 == [3, 6, 9, 12, 15, 18] and prog9[3] == v2('s9', 1)['valor'] == 12)
+r10 = sp.solve(sp.Eq(12*sp.Symbol('r')**3, 96), sp.Symbol('r'))
+r10 = [x for x in r10 if x.is_real][0]; a10_ = 12/r10**2
+comprobar('t2 s10', (r10, a10_, a10_*(r10**8 - 1)/(r10 - 1)) == (2, 3, 765) and (v2('s10', 0)['valor'], v2('s10', 1)['valor'], v2('s10', 2)['valor']) == (2, 3, 765))
+comprobar('t2 s11', Q(9)/(1 - Q(1, 3)) == Q(27, 2) == v2('s11')['valor'] or float(Q(27, 2)) == v2('s11')['valor'])
+comprobar('t2 s12', round(1000*1.05**10, 2) == 1628.89 == v2('s12')['valor'])
+dif = sp.simplify((2*(n_ + 1) - 1)/(n_ + 2) - (2*n_ - 1)/(n_ + 1))
+comprobar('t2 s13: (2n−1)/(n+1)', sp.simplify(dif - 3/((n_ + 1)*(n_ + 2))) == 0 and sp.simplify((2*n_ - 1)/(n_ + 1) - (2 - 3/(n_ + 1))) == 0 and v2('s13')['ok'] == 0)
+prod14 = 1
+for t_ in [2*3**k for k in range(5)]: prod14 *= t_
+comprobar('t2 s14', prod14 == 1889568 == v2('s14')['valor'] == 18**5 and Q(324)**Q(5, 2) == 1889568)
+tot15 = 10 + 2*sum(10*0.6**k for k in range(1, 400))
+comprobar('t2 s15', abs(tot15 - 40) < 1e-9 and Q(6)/(1 - Q(6, 10)) == 15 and v2('s15')['valor'] == 40)
+nn = sp.symbols('nn', positive=True)
+sol16 = sp.solve(sp.Eq(2*nn**2 + 3*nn, 495), nn)
+comprobar('t2 s16', sol16 == [15] and sum(5 + 4*k for k in range(15)) == 495 and 5 + 14*4 == 61 and v2('s16')['valor'] == 15)
+cap17 = sum(1000*1.05**k for k in range(1, 11))
+comprobar('t2 s17', abs(cap17 - 13206.79) < 0.01 and v2('s17')['valor'] == 13206.79, f'{cap17:.4f}')
+comprobar('t2 s18: 0,6363… = 63/99 = 7/11', Q(63, 100)/(1 - Q(1, 100)) == Q(7, 11) and abs(float(Q(7, 11)) - v2('s18')['valor']) < 1e-12)
+comprobar('t2 s19', Q(1)/(1 + Q(1, 2)) == Q(2, 3) and abs(v2('s19')['valor'] - 2/3) < 1e-12)
+aa, dd = sp.symbols('aa dd')
+sol20 = sp.solve([3*aa - 21, (aa - dd)*aa*(aa + dd) - 315], [aa, dd])
+comprobar('t2 s20', all(sorted([s_[0] - s_[1], s_[0], s_[0] + s_[1]]) == [5, 7, 9] for s_ in sol20) and (v2('s20', 0)['valor'], v2('s20', 1)['valor']) == (5, 9))
+r_ = sp.symbols('r_')
+sol21 = sp.solve(2*r_**2 - 5*r_ + 2, r_)
+comprobar('t2 s21', sorted(sol21) == [Q(1, 2), 2] and all(abs(sum(4*r**k for k in (-1, 0, 1)) - 14) < 1e-12 and 4**3 == 64 for r in [2, 0.5]) and (v2('s21', 0)['valor'], v2('s21', 1)['valor']) == (2, 8))
+# suma geométrica: demostración y fórmula
+a_, r2 = sp.symbols('a r', positive=True)
+Sn = sp.summation(a_*r2**(sp.Symbol('i', integer=True)), (sp.Symbol('i', integer=True), 0, n_ - 1))
+comprobar('t2 s22: fórmula Sₙ geométrica', sp.simplify(Sn.subs({a_: 3, r2: 2, n_: 8}) - 765) == 0 and sp.simplify(sp.Rational(3)*(2**8 - 1)/(2 - 1)) == 765)
+# teoría
+comprobar('t2 teoría: términos generales', termsf(n_/(n_ + 1), 4) == [Q(1, 2), Q(2, 3), Q(3, 4), Q(4, 5)] and termsf(n_**2 + 1, 5) == [2, 5, 10, 17, 26] and termsf((-1)**n_, 4) == [-1, 1, -1, 1] and termsf(2**n_, 4) == [2, 4, 8, 16] and termsf(3*n_ - 1, 4) == [2, 5, 8, 11] and termsf(3*2**(n_ - 1), 4) == [3, 6, 12, 24])
+comprobar('t2 teoría: n/2ⁿ decreciente, cociente (n+1)/(2n)', sp.simplify((n_ + 1)/2**(n_ + 1) / (n_/2**n_) - (n_ + 1)/(2*n_)) == 0 and termsf(n_/2**n_, 3) == [Q(1, 2), Q(1, 2), Q(3, 8)])
+vals = [(1 + 1/k)**k for k in range(1, 2000)]
+comprobar('t2 teoría: (1+1/n)ⁿ creciente y < 3, → e', all(vals[i] < vals[i + 1] for i in range(len(vals) - 1)) and max(vals) < 3 and abs(vals[-1] - float(sp.E)) < 2e-3)
+comprobar('t2 teoría: tabla de sucesiones', sp.simplify((1/(n_ + 1) - 1/n_) + 1/(n_*(n_ + 1))) == 0 and sp.limit((n_ + 1)/n_, n_, sp.oo) == 1)
+comprobar('t2 teoría: Gauss 1+…+100 = 5050', sum(range(1, 101)) == 5050 and 50*101 == 5050)
+comprobar('t2 teoría: ejemplo a5=17,a12=45 → a20, S20', 1 + 19*4 == 77 and 20*(1 + 77)/2 == 780)
+comprobar('t2 teoría: clasificación (a)(b)(c)', [5 + 3*(k - 1) for k in range(1, 5)] == [5, 8, 11, 14] and termsf(3*n_ + 2, 4) == [5, 8, 11, 14] and [2*3**(k - 1) for k in range(1, 5)] == [2, 6, 18, 54])
+seg = [(termsf(n_**2 + 1, 5)[i + 2] - termsf(n_**2 + 1, 5)[i + 1]) - (termsf(n_**2 + 1, 5)[i + 1] - termsf(n_**2 + 1, 5)[i]) for i in range(3)]
+comprobar('t2 teoría: segunda diferencia constante = 2', seg == [2, 2, 2])
+comprobar('t2 teoría: 1,3,7,15 = 2ⁿ−1', [2**k - 1 for k in range(1, 5)] == [1, 3, 7, 15])
+comprobar('t2 teoría: interés 1000·1,05¹⁰ y duplicar 14,2 años', round(1000*1.05**10, 2) == 1628.89 and round(1628.89 - 1000, 2) == 628.89 and abs(float(sp.log(2)/sp.log(Q(105, 100))) - 14.2067) < 1e-3)
+comprobar('t2 teoría: φ² = φ + 1', sp.simplify(((1 + sqrt(5))/2)**2 - ((1 + sqrt(5))/2) - 1) == 0)
+fr_ = [fib[i + 1]/fib[i] for i in range(len(fib) - 1)]
+comprobar('t2 teoría: Fibonacci cociente → φ', abs(fr_[-1] - float((1 + sqrt(5))/2)) < 1e-3)
+# quiz
+comprobar('t2 quiz: a₁₀=−11, r=1/3, S₅₀=1275, S∞=9, 16^(1/4)=2, 2000·1,03⁵', 7 + 9*(-2) == -11 and Q(27, 81) == Q(1, 3) and 50*51//2 == 1275 and Q(6)/(1 - Q(1, 3)) == 9 and 16**0.25 == 2 and round(2000*1.03**5, 2) == 2318.55)
+comprobar('t2 errores: aₙ=1/n decreciente', sp.simplify((1/(n_ + 1) - 1/n_) + 1/(n_*(n_ + 1))) == 0)
+comprobar('t2 pelota con simulación (suma de alturas)', abs(10 + 2*sum(10*0.6**k for k in range(1, 200)) - 10*(1.6)/(0.4)) < 1e-9)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)
