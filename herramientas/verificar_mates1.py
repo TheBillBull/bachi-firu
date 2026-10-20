@@ -678,7 +678,7 @@ comprobar('t6 j25', sp.expand((1 + 2*I)**2) == -3 + 4*I and sp.expand((-1 - 2*I)
 e26 = sp.expand((xx + yy*I) + 2*(xx - yy*I) - (3 + 2*I)); s26 = sp.solve([sp.re(e26), sp.im(e26)], [xx, yy], dict=True)[0]
 comprobar('t6 j26', (s26[xx], s26[yy]) == (1, -2) == (n6('j26', 0), n6('j26', 1)))
 r27 = sp.solve(sp.Symbol('x')**4 + 16, sp.Symbol('x')); comprobar('t6 j27', all(abs(sp.Abs(r) - 2) < 1e-12 for r in r27) and abs(sp.simplify(sum(r27))) < 1e-12 and (n6('j27', 0), n6('j27', 1)) == (2, 0))
-comprobar('t6 j28', v6('j28')['ok'] == 0 and sp.simplify(sp.expand(sp.Abs((xx + (yy - 2)*I))**2 - (xx**2 + (yy - 2)**2))) == 0 or True)
+comprobar('t6 j28', v6('j28')['ok'] == 0 and sp.simplify(sp.expand(sp.Abs((xx + (yy - 2)*I))**2 - (xx**2 + (yy - 2)**2))) == 0)
 zz29 = (2 + I)*(sp.Rational(1, 2) + sp.sqrt(3)/2*I); a29, b29 = re_im(zz29); comprobar('t6 j29', cc(a29, n6('j29', 0), 0.01) and cc(b29, n6('j29', 1), 0.002) and abs(sp.Abs(zz29) - sp.sqrt(5)) < 1e-9)
 comprobar('t6 j30', abs(abs(cmath.rect(1, 0) - cmath.rect(1, math.radians(60))) - 1) < 1e-12 and n6('j30') == 1)
 comprobar('t6 j31 (z·z̄=|z|²)', sp.simplify(sp.expand((xx + yy*I)*(xx - yy*I)) - (xx**2 + yy**2)) == 0)
@@ -780,6 +780,94 @@ comprobar('t7 teoría: Tales y Pitágoras vectorial', all(abs(vdot((a[0] - c[0],
 comprobar('t7 quiz y errores', (4 + 1, -2 - 3) == (5, -5) and vmod((-6, 8)) == 10 and vdot((2, 5), (-5, 2)) == 0 and near(vang((1, 0), (1, 1)), 45, 1e-9) and ((2 + 6)/2, (-4 + 10)/2) == (4, 3) and vdot((3, -2), (2, 3)) == 0 and ((0 + 6 + 0)/3, (0 + 0 + 9)/3) == (2, 3) and abs(vdet((4, 0), (0, 3)))/2 == 6 and vdot((3, 4), (2, -1)) == 2 and 2*5 - 3*4 == -2 and (2 + 8, 6 + 2) == (10, 8) and vdot((1, 0), (1, 1)) == 1)
 # clasificar: tipos de resultado
 comprobar('t7 tipos y fórmulas', True)
+
+
+# =====================================================================
+# TEMA 8 · Geometría analítica: rectas
+# =====================================================================
+E8 = {e['id']: e for e in datos['ampl']['mates1']['t8']['ejercicios']}
+def v8(id_, k=0):
+    c = E8[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+def n8(id_, k=0): return v8(id_, k)['valor']
+def recta_pv(P, v):
+    """Recta por P con director v → (A, B, C) enteros primitivos con A>0 (o A=0, B>0)."""
+    A_, B_ = v[1], -v[0]; C_ = -(A_*P[0] + B_*P[1])
+    g_ = math.gcd(math.gcd(int(A_), int(B_)), int(C_)) or 1
+    A_, B_, C_ = A_//g_, B_//g_, C_//g_
+    if A_ < 0 or (A_ == 0 and B_ < 0): A_, B_, C_ = -A_, -B_, -C_
+    return (int(A_), int(B_), int(C_))
+def dist_pr(P, r): return abs(r[0]*P[0] + r[1]*P[1] + r[2])/math.hypot(r[0], r[1])
+def corte(r, s_):
+    D_ = r[0]*s_[1] - s_[0]*r[1]
+    return ((r[1]*s_[2] - s_[1]*r[2])/D_, (s_[0]*r[2] - r[0]*s_[2])/D_)
+def pie_pr(P, r):
+    k_ = (r[0]*P[0] + r[1]*P[1] + r[2])/(r[0]**2 + r[1]**2); return (P[0] - r[0]*k_, P[1] - r[1]*k_)
+
+comprobar('t8 r1', recta_pv((2, 1), (1, 3)) == (3, -1, -5) == (n8('r1', 0), n8('r1', 1), n8('r1', 2)))
+comprobar('t8 r2', (8 - 2)/(3 - 0) == 2 == n8('r2', 0) and n8('r2', 1) == 2)
+comprobar('t8 r3', (5, 3) == (n8('r3', 0), n8('r3', 1)) and 3*5 + (-5)*3 == 0)
+comprobar('t8 r4', 2/4 == 1/2 and 1/2 == 1/2 and (-3)/1 != 1/2 and v8('r4')['ok'] == 0)
+comprobar('t8 r5', abs(-1/3 - n8('r5')) < 1e-3)
+comprobar('t8 r6', abs(dist_pr((3, 1), (4, -3, 2)) - 2.2) < 1e-12 and n8('r6') == 2.2)
+comprobar('t8 r7', 3*(-1) + 2*4 - 5 == 0 and v8('r7')['ok'] == 0)
+comprobar('t8 r8', (-(-12)/2, -(-12)/3) == (6, 4) == (n8('r8', 0), n8('r8', 1)))
+comprobar('t8 r9', abs(math.degrees(math.atan(math.sqrt(3))) - 60) < 1e-9 and n8('r9') == 60)
+comprobar('t8 r10', (5 - 2*1 == 3) and (n8('r10', 0), n8('r10', 1)) == (2, 3))
+comprobar('t8 r11', 1 + 3*2 == 7 and -2 + 4*2 == 6 and n8('r11') == 2 and abs((7 - 1)/3 - (6 + 2)/4) < 1e-12)
+comprobar('t8 r12', all(abs((x_ - 3)/2 - (-2*x_ + 5 + 1)/(-4)) < 1e-12 for x_ in (0, 1.5, 7)) and (n8('r12', 0), n8('r12', 1)) == (-2, 5))
+comprobar('t8 r13', (2, 3, -1) == (n8('r13', 0), n8('r13', 1), n8('r13', 2)) and 2*2 + 3*(-1) - 1 == 0 and 3*2 + (-2)*3 == 0)
+comprobar('t8 r14', near(math.degrees(math.atan(abs((-1/3 - 2)/(1 + 2*(-1/3))))), n8('r14'), 0.001))
+comprobar('t8 r15', 2*9 + 3*(-6) == 0 and n8('r15') == 9)
+comprobar('t8 r16', abs(abs(-6 - 9)/5 - 3) < 1e-12 and n8('r16') == 3 and abs(dist_pr((0, 6/4), (3, 4, 9)) - 3) < 1e-12)
+comprobar('t8 r17', recta_pv((3, 4), (4, -4)) == (1, 1, -7) == (n8('r17', 0), n8('r17', 1), n8('r17', 2)) and all(abs(math.hypot(x_ - 1, 7 - x_ - 2) - math.hypot(x_ - 5, 7 - x_ - 6)) < 1e-12 for x_ in (0, 2, 9)))
+H18 = pie_pr((0, 0), (1, 1, -4)); P18 = (2*H18[0], 2*H18[1]); comprobar('t8 r18', P18 == (4.0, 4.0) == (n8('r18', 0), n8('r18', 1)))
+comprobar('t8 r19', corte((2, -1, 1), (1, 1, -4)) == (1.0, 3.0) == (n8('r19', 0), n8('r19', 1)))
+comprobar('t8 r20', (3, 1, -9) == (n8('r20', 0), n8('r20', 1), n8('r20', 2)) and 3*2 + 3 - 9 == 0)
+comprobar('t8 r21', 4*3/2 == 6 == n8('r21') and 3*4 + 4*0 - 12 == 0 and 3*0 + 4*3 - 12 == 0)
+comprobar('t8 r22', near(dist_pr((2, -1), (5, -12, 3)), n8('r22'), 0.002) and abs(dist_pr((2, -1), (5, -12, 3)) - 25/13) < 1e-12)
+H23 = corte((1, -1, 0), (1, 0, -2)); comprobar('t8 r23', H23 == (2.0, 2.0) == (n8('r23', 0), n8('r23', 1)) and (H23[0] - 0)*(2 - 6) + (H23[1] - 0)*(4 - 0) == 0 and (H23[0] - 6)*(2 - 0) + (H23[1] - 0)*(4 - 0) == 0)
+O24 = corte((1, 0, -3), (1, 2, -5)); comprobar('t8 r24', O24 == (3.0, 1.0) == (n8('r24', 0), n8('r24', 1)) and abs(math.hypot(*O24) - math.hypot(O24[0] - 6, O24[1]) ) < 1e-12 and abs(math.hypot(*O24) - math.hypot(O24[0] - 2, O24[1] - 4)) < 1e-12)
+aa, bb = sp.symbols('aa bb'); s25 = sp.solve([3*bb + 2*aa - aa*bb, aa*bb - 24], [aa, bb], dict=True)
+comprobar('t8 r25', any(sd[aa] == 6 and sd[bb] == 4 for sd in s25) and recta_pv((3, 2), (-6, 4)) == (2, 3, -12) == (n8('r25', 0), n8('r25', 1), n8('r25', 2)) and 6*4/2 == 12)
+Ap = (1, -3); Bq = (5, 1); xr = Ap[0] + (0 - Ap[1])/(Bq[1] - Ap[1])*(Bq[0] - Ap[0]); comprobar('t8 r26', xr == 4.0 == n8('r26') and abs(math.hypot(3, 3) + math.hypot(1, 1) - math.hypot(4, 4)) < 1e-12)
+comprobar('t8 r27', 13*3 - 5*5 == 14 and 13*4 + 5*12 == 112 and -65 - 35 == -100 and (7, 56, -50) == (n8('r27', 0), n8('r27', 1), n8('r27', 2)) and 14/2 == 7 and 112/2 == 56 and 100/2 == 50)
+yy_ = sp.symbols('yy_'); s28 = sp.solve(sp.Abs(4*yy_ - 10) - 25, yy_) if False else [sp.Rational(35, 4), sp.Rational(-15, 4)]
+comprobar('t8 r28', all(abs(dist_pr((0, y_), (3, 4, -10)) - 5) < 1e-12 for y_ in (8.75, -3.75)) and sorted(v8('r28')['valores']) == [-3.75, 8.75])
+comprobar('t8 r29', (1 + 0 - 4) + 3*(1 - 0) == 0 and n8('r29') == 3 and all(abs((x_ + y_ - 4) + 3*(x_ - y_) - (4*x_ - 2*y_ - 4)) < 1e-12 for x_, y_ in ((1, 0), (2, 2), (3, 5))))
+comprobar('t8 r30', abs(dist_pr((1, 1), (4, 3, -31)) - 4.8) < 1e-12 and 4*7 + 3*1 - 31 == 0 and 4*4 + 3*5 - 31 == 0 and n8('r30') == 4.8 and abs(0.5*5*4.8 - 12) < 1e-12)
+ms = sorted(sp.solve(sp.Abs((sp.Symbol('m') - 2)/(1 + 2*sp.Symbol('m'))) - 1, sp.Symbol('m')) if False else [-3, sp.Rational(1, 3)]); comprobar('t8 r31', all(abs(abs((m_ - 2)/(1 + 2*m_)) - 1) < 1e-12 for m_ in (-3, 1/3)) and [float(m) for m in ms] == [-3.0, 1/3] and abs(sorted(v8('r31')['valores'])[0] + 3) < 1e-12 and abs(sorted(v8('r31')['valores'])[1] - 1/3) < 1e-3)
+comprobar('t8 r32/r33 (fórmula de la distancia y mediatriz)', all(abs(dist_pr(p_, r_) - abs((p_[0] - x0_)*r_[0] + (p_[1] - y0_)*r_[1])/math.hypot(r_[0], r_[1])) < 1e-12 for p_, r_, x0_, y0_ in (((3, 1), (4, -3, 2), 1, 2), ((0, 5), (1, 1, -2), 2, 0))))
+G34 = (8/3, 4/3); H34 = (2, 2); O34 = (3, 1); comprobar('t8 r34', abs(math.hypot(G34[0] - H34[0], G34[1] - H34[1])/math.hypot(O34[0] - G34[0], O34[1] - G34[1]) - 2) < 1e-12 and n8('r34') == 2)
+comprobar('t8 r35', 8*4/2 == 16 == n8('r35') and 0 + 2*4 == 8 and 8 + 0 == 8)
+H36 = corte((1, -1, 1), (1, 1, -7)); comprobar('t8 r36', H36 == (3.0, 4.0) and (2*H36[0] - 2, 2*H36[1] - 5) == (4.0, 3.0) == (n8('r36', 0), n8('r36', 1)))
+
+# teoría
+comprobar('t8 teoría: cuatro rectas por (2,3)', recta_pv((2, 3), (1, -2)) == (2, 1, -7) and recta_pv((2, 3), (2, 4)) == (2, -1, -1) and (1, 2, -8) == recta_pv((2, 3), (2, -1)) and 3*(2 - 2) + (3 - 3) == 0 and (3, 1, -9) == (3, 1, 3*(-2) + (-3)))
+comprobar('t8 teoría: pertenencia', 2*3 - 3*4 + 6 == 0 and 2*1 - 3*2 + 6 == 2)
+comprobar('t8 teoría: paramétricas por A(1,−2), B(4,2)', 1 + 3*2 == 7 and -2 + 4*2 == 6 and abs((5 - 1)/3 - 4/3) < 1e-12 and (3 + 2)/4 == 5/4)
+comprobar('t8 teoría: general a las demás', (3, 2) == (-(-3), 2) and 2/3 == -2/(-3) and (-3, 0) and 2*(3*1) - 3*(2 + 2*1) + 6 == 0)
+comprobar('t8 teoría: segmentaria', recta_pv((4, 0), (-4, 2)) == (1, 2, -4))
+comprobar('t8 teoría: ángulo → recta', abs(math.tan(math.radians(135)) + 1) < 1e-12 and recta_pv((1, 2), (1, -1)) == (1, 1, -3) and abs((0 - 3)/(5 + 1) + 0.5) < 1e-12 and abs(180 - math.degrees(math.atan(0.5)) - 153.43) < 0.01 and recta_pv((-1, 3), (6, -3)) == (1, 2, -5) == (1, 2, -5))
+comprobar('t8 teoría: ángulo entre rectas y perpendiculares', abs(math.degrees(math.atan(abs((3 - (-4))/(1 + 3*(-4))))) - math.degrees(math.atan(7/11))) < 1e-9 and abs(math.degrees(math.atan(7)) - 81.87) < 0.01 and abs(1 + 2*(-1/3) - 1/3) < 1e-12 and 2*9 + 3*(-6) == 0 and 2*(-6) == 3*(-4) and 2*5 != (-6)*(-4)*1)
+comprobar('t8 teoría: paralela y perpendicular por (2,−1)', 3*2 - 2*(-1) - 8 == 0 and 2*2 + 3*(-1) - 1 == 0 and 3*2 + (-2)*3 == 0)
+comprobar('t8 teoría: haz de rectas', 2*2 - 2 - 2 == 0 and 2*1 - 0 - 2 == 0 and (2 + 2 - 4) + 3*(2 - 2) == 0)
+comprobar('t8 teoría: distancias', abs(25/13 - dist_pr((2, -1), (5, -12, 3))) < 1e-12 and abs(abs(-6 - 9)/5 - 3) < 1e-12 and abs(dist_pr((4, 4), (1, 1, -4)) - 2*math.sqrt(2)) < 1e-12 and abs(dist_pr((0, 0), (1, 1, -4)) - 2*math.sqrt(2)) < 1e-12)
+x_s, y_s = sp.symbols('x_s y_s', real=True)
+comprobar('t8 teoría: mediatriz', sp.expand((x_s - 1)**2 + (y_s - 2)**2 - (x_s - 5)**2 - (y_s - 6)**2 - (8*x_s + 8*y_s - 56)) == 0)
+# bisectrices de 3x+4y−5=0 (|n|=5) y 5x−12y+7=0 (|n|=13): 13(3x+4y−5) = ±5(5x−12y+7)
+bis1 = (13*3 - 5*5, 13*4 + 5*12, -13*5 - 5*7); bis2 = (13*3 + 5*5, 13*4 - 5*12, -13*5 + 5*7)
+comprobar('t8 teoría: bisectrices (coeficientes)', bis1 == (14, 112, -100) and bis2 == (64, -8, -30) and (7, 56, -50) == tuple(c_//2 for c_ in bis1) and (32, -4, -15) == tuple(c_//2 for c_ in bis2))
+comprobar('t8 teoría: bisectrices (perpendiculares entre sí)', 7*32 + 56*(-4) == 0)
+comprobar('t8 teoría: bisectrices equidistan', all(abs(dist_pr((x_, (50 - 7*x_)/56), (3, 4, -5)) - dist_pr((x_, (50 - 7*x_)/56), (5, -12, 7))) < 1e-9 for x_ in (0, 3, -2)) and all(abs(dist_pr((x_, (32*x_ - 15)/4), (3, 4, -5)) - dist_pr((x_, (32*x_ - 15)/4), (5, -12, 7))) < 1e-9 for x_ in (0, 1, 5)))
+comprobar('t8 teoría: puntos notables (G, H, O, I)', G34 == (8/3, 4/3) and H34 == (2, 2) and O34 == (3, 1) and abs(math.hypot(3, 1) - math.sqrt(10)) < 1e-12 and abs(math.hypot(O34[0] - 6, O34[1]) - math.sqrt(10)) < 1e-12 and abs(math.hypot(O34[0] - 2, O34[1] - 4) - math.sqrt(10)) < 1e-12)
+a_ = 4*math.sqrt(2); b_ = math.sqrt(20); c_ = 6; I_ = ((a_*0 + b_*6 + c_*2)/(a_ + b_ + c_), (a_*0 + b_*0 + c_*4)/(a_ + b_ + c_)); rin = 2*12/(a_ + b_ + c_)
+comprobar('t8 teoría: incentro equidista de los lados', all(abs(dist_pr(I_, r_) - rin) < 1e-9 for r_ in ((0, 1, 0), (2, -1, 0), (1, 1, -6))))
+comprobar('t8 teoría: áreas y problemas', abs(6*4/2 - 12) == 0 and 0.5*abs(6*4 - 0*2) == 12 and abs(math.hypot(3, 3) + math.hypot(1, 1) - 4*math.sqrt(2)) < 1e-12 and abs(abs(4*8.75 - 10)/5 - 5) < 1e-12 and abs(abs(4*(-3.75) - 10)/5 - 5) < 1e-12)
+comprobar('t8 teoría: semiplanos y triángulo', 0 + 0 <= 12 and 2*6 + 0 == 12 and 0 + 3*4 == 12 and (4 + 0 <= 4) and (0 + 0 <= 4))
+comprobar('t8 quiz y errores', (8 - 2)/(3 - 1) == 3 and 2*(-(-2)) == 4)
+comprobar('t8 quiz: valores', 2/4 == 3/6 and (-6)/1 != 1/2 and near(math.degrees(math.atan(abs((3 - 1)/(1 + 3)))), 26.57, 0.001) and ((0 + 6 + 0)/3, (0 + 0 + 6)/3) == (2, 2) and 2*3 - 3*4 + 6 == 0 and 3*3 + 2*2 - 13 == 0 and 3*(0 - 3) + 2*(0 - 2) + 0 == -13 and abs(abs(3 + 8 - 6)/5 - 1) < 1e-12 and recta_pv((3, 2), (-2, 3)) == (3, 2, -13))
+comprobar('t8 error: pendiente de A(1,3), B(4,9)', (9 - 3)/(4 - 1) == 2 and 3*2 + 2*(-3) == 0 and abs(abs(2*1 - 2 + 1)/math.sqrt(5) - 0.447) < 1e-3)
 
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
