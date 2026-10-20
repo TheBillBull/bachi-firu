@@ -134,6 +134,8 @@
   };
 
   B.barraLamina = function () {
+    // dentro de claude.ai el visor bloquea window.print(): el botón solo se ofrece en la web publicada
+    if (global.claude && global.claude.use) return "";
     return '<div class="lam-barra no-print"><button type="button" class="chip-btn" data-bx-print>🖨 Imprimir o guardar como PDF</button>' +
       '<span class="hand-note">cada lámina cabe en una hoja: llévatela de chuleta de estudio</span></div>';
   };
