@@ -499,3 +499,20 @@
 .ac-t td.pen { color: var(--pen); } .ac-t td.red { color: var(--red); }
 .ac-t tbody tr + tr td, .ac-t tbody tr + tr th { border-top: 1px solid var(--line); }
 .bz-acc { margin-top: 8px; }
+
+/* ---- FyQ I · tema 6 · termoquímica (q6-) ---- */
+.q6-sep { margin: 14px 0 4px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 14px; color: var(--ink-soft); }
+.q6-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px; }
+.q6-fila > div > b { display: block; font: 600 13px var(--body); margin-bottom: 4px; color: var(--ink-soft); }
+@media (max-width: 700px) { .q6-fila { grid-template-columns: 1fr; } }
+.q6-obj { margin: 6px 0 8px; font: 600 16px/1.4 var(--math); color: var(--pen); }
+.q6-hrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 12px; align-items: center; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 10px; margin: 6px 0; background: var(--sheet); }
+.q6-hrow.q6-uso { border-color: var(--pen); background: color-mix(in srgb, var(--pen) 6%, var(--sheet)); }
+.q6-heq { font: 500 16px/1.45 var(--math); }
+.q6-hdh { color: var(--red); white-space: nowrap; margin-left: 6px; font-size: 14px; }
+.q6-hc { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
+.q6-hc select { font: 600 14px var(--body); padding: 4px 6px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--sheet); color: var(--ink); }
+@media (max-width: 700px) { .q6-hrow { grid-template-columns: 1fr; } }
+.q6-acc { margin-top: 8px; }
+.q6-cur td, .q6-cur th { background: var(--hl-mark); font-weight: 700; }
+.q6-tab small { color: var(--ink-faint); font-weight: 400; }
