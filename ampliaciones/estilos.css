@@ -419,3 +419,35 @@
 .reb-fila .w-plot { margin: 0; }
 @media (max-width: 520px) { .reb-fila { grid-template-columns: 90px 1fr; } }
 .plot .p-zona { stroke-linejoin: round; }
+
+/* ---- Álgebra ---- */
+.ctl .bx-campo input[type=text] { font: 500 16px/1.3 var(--math); color: var(--ink); background: var(--sheet); border: 1.5px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 0; max-width: 100%; }
+.ctl .bx-campo input[type=text]:focus-visible { outline: 2.5px solid var(--pen); outline-offset: 1px; }
+.w-pasos { margin: 10px 0 0; }
+.w-pasos p { margin: 8px 0 0; }
+.w-ol { margin: 6px 0 6px 1.3em; padding: 0; }
+.w-ol li { margin: 6px 0; line-height: 1.55; }
+.w-tabla { overflow-x: auto; }
+.ruf-zona, .w-ruf { overflow-x: auto; }
+.ruf { border-collapse: collapse; margin: 12px auto; font: 600 20px/1 var(--math); }
+.ruf td { min-width: 52px; height: 46px; text-align: center; padding: 0 10px; }
+.ruf tr > td:first-child { border-right: 2.5px solid var(--ink); }
+.ruf .ruf-co { color: var(--ink); }
+.ruf .ruf-cero { color: var(--ink-faint); }
+.ruf .ruf-a { color: var(--red); }
+.ruf .ruf-prod { color: var(--red); }
+.ruf .ruf-linea td:not(:first-child) { border-top: 2.5px solid var(--ink); }
+.ruf .ruf-res { color: var(--pen); font-weight: 700; }
+.ruf .ruf-resto { color: var(--ok); }
+.ruf .ruf-resto { border-left: 2px dashed var(--ok); }
+.ruf .ruf-oculto { visibility: hidden; }
+.tsig { border-collapse: collapse; width: 100%; font: 600 15px/1.3 var(--math); text-align: center; margin: 12px 0 0; }
+.tsig th, .tsig td { border: 1px solid var(--line); padding: 6px 8px; }
+.tsig thead th { background: var(--sheet-2); font-size: 13px; }
+.tsig tbody th { background: var(--sheet-2); font: 600 12px var(--body); color: var(--ink-soft); text-align: left; }
+.tsig .mas { color: var(--ok); background: var(--ok-soft); font-size: 20px; }
+.tsig .menos { color: var(--red); background: var(--red-soft); font-size: 20px; }
+.tsig .tsig-p.cero { background: var(--hl-mark); }
+.tsig .tsig-p.polo { background: var(--line); color: var(--ink-soft); }
+.ctl .chip-btn { white-space: normal; text-align: left; max-width: 100%; }
+@media (max-width: 600px) { .ampl .lam-tabla { display: block; overflow-x: auto; max-width: 100%; } }

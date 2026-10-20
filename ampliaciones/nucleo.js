@@ -282,10 +282,15 @@
       return { ok: Mate.equivalente(r.f, esperado.f, c.dom), msg: "He leído: " + r.texto };
     }
     if (c.tipo === "lista") {
-      var partes = String(raw).split(/[;,]|\sy\s|\so\s/).map(function (s) { return Mate.numero(s); });
+      var esp = c.valores.slice().sort(function (a, b) { return a - b; });
+      // «3, 0,5» → la coma seguida de espacio separa; la coma pegada a una cifra puede ser decimal.
+      var partes = String(raw).split(/;|,\s+|\sy\s|\so\s/).map(function (s) { return Mate.numero(s); });
+      if (partes.length !== esp.length || partes.some(isNaN)) {
+        var alt = String(raw).split(/[;,]|\sy\s|\so\s/).map(function (s) { return Mate.numero(s); });
+        if (!alt.some(isNaN) && (alt.length === esp.length || partes.some(isNaN))) partes = alt;
+      }
       if (partes.some(isNaN)) return { ok: false, msg: "Escribe los valores separados por comas, por ejemplo: 0, 2." };
       partes.sort(function (a, b) { return a - b; });
-      var esp = c.valores.slice().sort(function (a, b) { return a - b; });
       var igual = partes.length === esp.length && partes.every(function (p, i) { return Math.abs(p - esp[i]) <= Math.max(1e-9, Math.abs(esp[i]) * (c.tol == null ? 0.005 : c.tol)); });
       return { ok: igual, msg: igual || partes.length === esp.length ? "" : "Pide " + esp.length + " valor" + (esp.length === 1 ? "" : "es") + "." };
     }

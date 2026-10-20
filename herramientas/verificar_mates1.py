@@ -281,6 +281,138 @@ comprobar('t2 quiz: a₁₀=−11, r=1/3, S₅₀=1275, S∞=9, 16^(1/4)=2, 2000
 comprobar('t2 errores: aₙ=1/n decreciente', sp.simplify((1/(n_ + 1) - 1/n_) + 1/(n_*(n_ + 1))) == 0)
 comprobar('t2 pelota con simulación (suma de alturas)', abs(10 + 2*sum(10*0.6**k for k in range(1, 200)) - 10*(1.6)/(0.4)) < 1e-9)
 
+
+# =====================================================================
+# TEMA 3 · Álgebra
+# =====================================================================
+E3 = {e['id']: e for e in datos['ampl']['mates1']['t3']['ejercicios']}
+def v3(id_, k=0):
+    c = E3[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+def num3(id_, k=0): return v3(id_, k)['valor']
+def vals3(id_, k=0): return sorted(v3(id_, k)['valores'])
+def raices_reales(e): return sorted(sp.real_roots(sp.Poly(sp.expand(e), x)))
+def cerca_lista(a, b, tol=1e-9): return len(a) == len(b) and all(abs(float(i) - float(j)) < tol for i, j in zip(sorted(a), sorted(b)))
+y, z = sp.symbols('y z')
+def coefs(e, g=2):
+    pl = sp.Poly(sp.expand(e), x); return [pl.coeff_monomial(x**k) for k in range(g, -1, -1)]
+
+# ---- ejercicios ★
+comprobar('t3 e1', (3*x**4 - 2*x + 5).subs(x, -1) == 10 == num3('e1'))
+comprobar('t3 e2', coefs((2*x**2 - 3*x + 1) - (x**2 + 5*x - 4)) == [1, -8, 5] and (num3('e2', 0), num3('e2', 1), num3('e2', 2)) == (1, -8, 5))
+comprobar('t3 e3', coefs((x + 4)**2)[1:] == [8, 16] == [num3('e3', 0), num3('e3', 1)])
+comprobar('t3 e4', sp.factor(x**2 - 49) == (x - 7)*(x + 7) and v3('e4')['ok'] == 0 and v3('e4')['opciones'][0] == '(x − 7)(x + 7)')
+q5, r5 = sp.div(x**3 - 4*x**2 + x + 6, x - 2, x)
+comprobar('t3 e5', r5 == 0 == num3('e5') and q5 == x**2 - 2*x - 3)
+comprobar('t3 e6', sorted(sp.solve(x**2 - 5*x + 6, x)) == vals3('e6') == [2, 3])
+comprobar('t3 e7', sorted(sp.solve(3*x**2 - 12, x)) == vals3('e7') == [-2, 2])
+s8 = sp.solve([x + y - 10, x - y - 2], [x, y]); comprobar('t3 e8', (s8[x], s8[y]) == (6, 4) == (num3('e8', 0), num3('e8', 1)))
+comprobar('t3 e9', sp.solve_univariate_inequality(2*x - 3 > 7, x, relational=False) == sp.Interval.open(5, sp.oo) and v3('e9')['opciones'][v3('e9')['ok']] == '(5, +∞)')
+comprobar('t3 e10', sp.log(32, 2) == 5 == num3('e10', 0) and sp.solve(2**x - 16, x) == [4] and num3('e10', 1) == 4)
+# ---- ejercicios ★★
+comprobar('t3 e11', sp.expand((x - 2)*(x**2 + 2*x + 4)) == x**3 - 8 and coefs((x - 2)*(x**2 + 2*x + 4), 2) == [0, 0, -8] and (num3('e11', 0), num3('e11', 1), num3('e11', 2)) == (0, 0, -8))
+q12, r12 = sp.div(2*x**3 + x**2 - 5*x + 2, x**2 + x - 2, x)
+comprobar('t3 e12', q12 == 2*x - 1 and r12 == 0 and (num3('e12', 0), num3('e12', 1), num3('e12', 2)) == (2, -1, 0))
+comprobar('t3 e13', raices_reales(x**3 - 6*x**2 + 11*x - 6) == vals3('e13') == [1, 2, 3])
+comprobar('t3 e14', sp.factor(x**3 - x**2 - 4*x + 4) == (x - 2)*(x - 1)*(x + 2) and raices_reales(x**3 - x**2 - 4*x + 4) == vals3('e14') == [-2, 1, 2])
+k = sp.symbols('k')
+comprobar('t3 e15', sp.solve((x**3 + 3*x**2 + k*x - 6).subs(x, -3), k) == [-2] and num3('e15') == -2 and sp.factor((x**3 + 3*x**2 - 2*x - 6)) == (x + 3)*(x**2 - 2))
+comprobar('t3 e16', (x**5 - 2*x**3 + x - 7).subs(x, -1) == -7 == num3('e16') and sp.rem(x**5 - 2*x**3 + x - 7, x + 1, x) == -7)
+comprobar('t3 e17', sorted(sp.solve(2*x**2 - 7*x + 3, x)) == [Q(1, 2), 3] and cerca_lista(v3('e17')['valores'], [3, 0.5]))
+comprobar('t3 e18', sp.solve(sp.discriminant(x**2 - 6*x + k, x), k) == [9] == [num3('e18')])
+comprobar('t3 e19', sorted(sp.solve(x**4 - 13*x**2 + 36, x)) == [-3, -2, 2, 3] == vals3('e19'))
+s20 = sp.solve([2*x + 3*y - 13, 3*x - y - 3], [x, y]); comprobar('t3 e20', (s20[x], s20[y]) == (2, 3) == (num3('e20', 0), num3('e20', 1)))
+sol21 = sp.solve(1/x + 1/(x + 2) - Q(3, 4), x)
+comprobar('t3 e21', sorted(sol21) == [Q(-4, 3), 2] and cerca_lista(v3('e21')['valores'], [2, -4/3]) and all(s not in (0, -2) for s in sol21))
+sol22 = [t for t in sp.solve((sp.sqrt(2*x - 1) + 2 - x), x)]
+comprobar('t3 e22', sol22 == [5] == [num3('e22')] and (sp.sqrt(2*1 - 1) + 2 - 1) != 0)
+sol23 = sp.solve(2**(2*x) - 5*2**x + 4, x)
+comprobar('t3 e23', sorted(sol23) == [0, 2] == vals3('e23'))
+sol24 = [t for t in sp.solve(sp.log(x + 2, 3) + sp.log(x - 4, 3) - 3, x) if t.is_real]
+comprobar('t3 e24', sol24 == [7] == [num3('e24')] and sp.log(9, 3) + sp.log(3, 3) == 3)
+comprobar('t3 e25', sp.solve_univariate_inequality(x**2 - x - 6 < 0, x, relational=False) == sp.Interval.open(-2, 3) and v3('e25')['opciones'][v3('e25')['ok']] == '(−2, 3)')
+comprobar('t3 e26', sorted(sp.solve(x + 1/x - Q(10, 3), x)) == [Q(1, 3), 3] and cerca_lista(v3('e26')['valores'], [3, 1/3]))
+# ---- ejercicios ★★★
+a_, b_ = sp.symbols('a b')
+s27 = sp.solve([(x**3 + a_*x**2 + b_*x - 6).subs(x, 1), (x**3 + a_*x**2 + b_*x - 6).subs(x, -3)], [a_, b_])
+comprobar('t3 e27', (s27[a_], s27[b_]) == (4, 1) == (num3('e27', 0), num3('e27', 1)) and sp.factor(x**3 + 4*x**2 + x - 6) == (x - 1)*(x + 2)*(x + 3))
+p28 = x**4 - 3*x**3 - 3*x**2 + 11*x - 6
+comprobar('t3 e28', sp.factor(p28) == (x - 3)*(x - 1)**2*(x + 2) and sorted(sp.roots(p28).keys()) == vals3('e28', 0) == [-2, 1, 3] and sp.roots(p28)[1] == 2 and num3('e28', 1) == 1)
+comprobar('t3 e29', sp.simplify(sp.cancel((x**3 - x)/(x**2 - 2*x + 1)) - x*(x + 1)/(x - 1)) == 0 and v3('e29')['opciones'][v3('e29')['ok']] == 'x(x + 1)/(x − 1)')
+comprobar('t3 e30', sp.solve(sp.together(x + 3/(x - 3) - 3 - 3/(x - 3)), x) == [3] and sp.denom(sp.together(x + 3/(x - 3))).subs(x, 3) == 0 and v3('e30')['opciones'][v3('e30')['ok']] == 'No tiene solución')
+ec31 = [t for t in sp.solve(sp.sqrt(2*x + 3) - sp.sqrt(x + 1) - 1, x)]
+comprobar('t3 e31', sorted(ec31) == [-1, 3] == vals3('e31') and all(abs(float(sp.sqrt(2*t + 3) - sp.sqrt(t + 1) - 1)) < 1e-12 for t in (-1, 3)))
+tt = sp.Symbol('tt', positive=True); sol32 = [sp.log(t_, 2) for t_ in sp.solve(tt + 2/tt - 3, tt)]; comprobar('t3 e32', sorted(sol32) == [0, 1] == vals3('e32') and all(abs(float(2**v + 2**(1 - v)) - 3) < 1e-12 for v in (0, 1)))
+sol33 = [t for t in sp.solve(sp.log(x**2 - 4, 10) - sp.log(x + 2, 10) - 1, x) if t.is_real and (t**2 - 4) > 0 and (t + 2) > 0]
+comprobar('t3 e33', sol33 == [12] == [num3('e33')] and abs(float(sp.log(140, 10) - sp.log(14, 10)) - 1) < 1e-12)
+ineq34 = sp.solve_univariate_inequality((x**2 - x - 6)/(x - 1) <= 0, x, relational=False)
+comprobar('t3 e34', ineq34 == sp.Union(sp.Interval(-sp.oo, -2), sp.Interval.Lopen(1, 3)) and v3('e34')['opciones'][v3('e34')['ok']] == '(−∞, −2] ∪ (1, 3]')
+s35 = sp.solve([x**2 + y**2 - 34, x - y - 2], [x, y])
+comprobar('t3 e35', sorted(s[0] for s in s35) == vals3('e35', 0) == [-3, 5] and sorted(s[1] for s in s35) == vals3('e35', 1) == [-5, 3])
+t36 = sp.solve(1/x + 1/(x - 5) - Q(1, 6), x)
+comprobar('t3 e36', sorted(t36) == [2, 15] and num3('e36') == 15 and Q(1, 15) + Q(1, 10) == Q(1, 6))
+mm = sp.symbols('m')
+comprobar('t3 e37', sp.solve_univariate_inequality(mm**2 - 16 > 0, mm, relational=False) == sp.Union(sp.Interval.open(-sp.oo, -4), sp.Interval.open(4, sp.oo)) and v3('e37')['opciones'][v3('e37')['ok']] == '(−∞, −4) ∪ (4, +∞)')
+s38 = sp.solve([x + y + z - 6, 2*x - y + z - 6, x + 2*y - z - 1], [x, y, z])
+comprobar('t3 e38', (s38[x], s38[y], s38[z]) == (2, 1, 3) == (num3('e38', 0), num3('e38', 1), num3('e38', 2)))
+comprobar('t3 e39 (Vieta)', sp.simplify(sum(sp.solve(a_*x**2 + b_*x + sp.Symbol('c'), x)) + b_/a_) == 0 and sp.simplify(sp.Mul(*sp.solve(a_*x**2 + b_*x + sp.Symbol('c'), x)) - sp.Symbol('c')/a_) == 0)
+p40 = sp.expand(2*(x - 1)*(x + 2)*(x - Q(1, 2)))
+comprobar('t3 e40', coefs(p40, 3) == [2, 1, -5, 2] and (num3('e40', 0), num3('e40', 1), num3('e40', 2)) == (1, -5, 2))
+
+# ---- teoría: números de los ejemplos
+comprobar('t3 teoría: suma, resta y producto de polinomios', sp.expand((3*x**3 - 2*x**2 + 5*x - 1) + (-x**3 + 4*x**2 - x + 7)) == 2*x**3 + 2*x**2 + 4*x + 6 and sp.expand((3*x**3 - 2*x**2 + 5*x - 1) - (-x**3 + 4*x**2 - x + 7)) == 4*x**3 - 6*x**2 + 6*x - 8 and sp.expand((2*x**2 - 3*x + 1)*(x**2 + 4*x - 2)) == 2*x**4 + 5*x**3 - 15*x**2 + 10*x - 2)
+comprobar('t3 teoría: truco P(1)', ((2 - 3 + 1)*(1 + 4 - 2)) == 0 and (2 + 5 - 15 + 10 - 2) == 0)
+comprobar('t3 teoría: divisiones', sp.div(x**3 - 2*x**2 - 5*x + 6, x**2 + x - 2, x) == (x - 3, 0) and sp.div(2*x**3 - x**2 + 3*x - 4, x**2 + 1, x) == (2*x - 1, x - 3))
+comprobar('t3 teoría: Ruffini x+3', sp.div(x**3 + 2*x**2 - 5*x - 6, x + 3, x) == (x**2 - x - 2, 0) and sp.factor(x**3 + 2*x**2 - 5*x - 6) == (x - 2)*(x + 1)*(x + 3))
+comprobar('t3 teoría: Ruffini con huecos', sp.div(2*x**4 - 3*x**2 + x - 6, x - 2, x) == (2*x**3 + 4*x**2 + 5*x + 11, 16) and (2*x**4 - 3*x**2 + x - 6).subs(x, 2) == 16)
+comprobar('t3 teoría: divisor (2x−1)', sp.div(2*x**3 + 3*x**2 + 4*x - 3, 2*x - 1, x) == (x**2 + 2*x + 3, 0) and sp.div(2*x**3 + 3*x**2 + 4*x - 3, x - Q(1, 2), x)[0] == 2*x**2 + 4*x + 6)
+comprobar('t3 teoría: parámetros', sp.solve((x**3 + k*x**2 - 4*x + 4).subs(x, 2), k) == [-1] and sp.factor(x**3 - x**2 - 4*x + 4) == (x - 1)*(x - 2)*(x + 2) and (x**4 - 3*x**2 + 2*x + 5).subs(x, -2) == 5)
+s_ab = sp.solve([(x**3 + a_*x**2 + b_*x + 6).subs(x, 1), (x**3 + a_*x**2 + b_*x + 6).subs(x, -2)], [a_, b_])
+comprobar('t3 teoría: dos parámetros', (s_ab[a_], s_ab[b_]) == (-2, -5) and sp.factor(x**3 - 2*x**2 - 5*x + 6) == (x - 1)*(x + 2)*(x - 3))
+comprobar('t3 teoría: identidades', sp.expand((3*x - 5)**2) == 9*x**2 - 30*x + 25 and sp.expand((x - 2)**3) == x**3 - 6*x**2 + 12*x - 8 and 99**2 == 9801 and 101*99 == 9999 and 1002**2 == 1004004 and sp.factor(x**2 + 10*x + 25) == (x + 5)**2 and sp.factor(4*x**2 - 12*x + 9) == (2*x - 3)**2 and sp.factor(3*x**3 - 12*x) == 3*x*(x - 2)*(x + 2) and sp.factor(x**4 - 16) == (x - 2)*(x + 2)*(x**2 + 4) and sp.factor(x**3 + 8) == (x + 2)*(x**2 - 2*x + 4) and sp.factor(8*x**3 - 27) == (2*x - 3)*(4*x**2 + 6*x + 9))
+comprobar('t3 teoría: racionalizar y completar cuadrado', sp.simplify(1/(sp.sqrt(5) - 2) - (sp.sqrt(5) + 2)) == 0 and sp.expand((x + 3)**2 - 4) == x**2 + 6*x + 5 and sp.expand((x + 5)**4) == x**4 + 20*x**3 + 150*x**2 + 500*x + 625)
+comprobar('t3 teoría: binomio de Pascal', sp.expand((x + 1)**4) == x**4 + 4*x**3 + 6*x**2 + 4*x + 1)
+comprobar('t3 teoría: factorización de 2x³−3x²−3x+2', sp.factor(2*x**3 - 3*x**2 - 3*x + 2) == (x - 2)*(x + 1)*(2*x - 1) and sp.div(2*x**3 - 3*x**2 - 3*x + 2, x + 1, x) == (2*x**2 - 5*x + 2, 0))
+comprobar('t3 teoría: raíz doble', sp.factor(x**3 - 3*x**2 + 4) == (x + 1)*(x - 2)**2 and sp.div(x**3 - 3*x**2 + 4, x + 1, x) == (x**2 - 4*x + 4, 0))
+rr = sp.expand((x - 1)*(x - 2)*(x + 3))
+comprobar('t3 teoría: polinomio con raíces 1, 2, −3 y Cardano–Vieta', rr == x**3 - 7*x + 6 and 1 + 2 - 3 == 0 and 1*2 + 1*(-3) + 2*(-3) == -7 and 1*2*(-3) == -6)
+p4 = x**4 - 2*x**3 - 7*x**2 + 8*x + 12
+comprobar('t3 teoría: grado 4', sp.factor(p4) == (x - 3)*(x - 2)*(x + 1)*(x + 2) and sp.div(p4, x + 1, x) == (x**3 - 3*x**2 - 4*x + 12, 0) and sum([-2, -1, 2, 3]) == 2 and (-2)*(-1)*2*3 == 12)
+# segundo grado
+comprobar('t3 teoría: incompletas e inc. con parámetro', sp.factor(5*x**2 - 20*x) == 5*x*(x - 4) and sp.solve(3*x**2 - 27, x) == [-3, 3] and sp.solve(x**2 + 4, x) == [-2*sp.I, 2*sp.I])
+comprobar('t3 teoría: x(x+5)=3(x+4)', sorted(sp.solve(x*(x + 5) - 3*(x + 4), x)) == [-1 - sp.sqrt(13), -1 + sp.sqrt(13)] and 4 + 48 == 52)
+comprobar('t3 teoría: suma y producto, ecuación con soluciones 3 y −5', sp.expand((x - 3)*(x + 5)) == x**2 + 2*x - 15 and 3 + (-5) == -2 and 3*(-5) == -15)
+comprobar('t3 teoría: parámetros k (Δ)', sp.solve(sp.discriminant(x**2 + k*x + 9, x), k) == [-6, 6] and sp.solve_univariate_inequality(16 - 4*k < 0, k, relational=False) == sp.Interval.open(4, sp.oo))
+comprobar('t3 teoría: rectángulo perímetro 30, área 56', sorted(sp.solve(x*(15 - x) - 56, x)) == [7, 8] and 2*(7 + 8) == 30)
+comprobar('t3 teoría: bicuadradas', sorted(sp.solve(x**4 + x**2 - 6, x)) == [-sp.sqrt(2), sp.sqrt(2)] if False else [r for r in sp.solve(x**4 + x**2 - 6, x) if r.is_real] == [-sp.sqrt(2), sp.sqrt(2)] and sorted(sp.solve(x**6 - 7*x**3 - 8, x), key=lambda r: float(sp.re(r)))[0] is not None and 2**6 - 7*2**3 - 8 == 0 and (-1)**6 - 7*(-1)**3 - 8 == 0 and sorted(sp.solve(sp.Symbol('t')**2 - 5*sp.Symbol('t') + 6, sp.Symbol('t'))) == [2, 3] and 4 - 5*2 + 6 == 0 and 9 - 5*3 + 6 == 0)
+comprobar('t3 teoría: fórmula de 2.º grado (completar cuadrado)', sp.simplify(((-b_ + sp.sqrt(b_**2 - 4*a_*sp.Symbol('c')))/(2*a_))*a_**2*4 - 2*a_*(-b_ + sp.sqrt(b_**2 - 4*a_*sp.Symbol('c')))) == 0 and sp.simplify(a_*((-b_ + sp.sqrt(b_**2 - 4*a_*sp.Symbol('c')))/(2*a_))**2 + b_*((-b_ + sp.sqrt(b_**2 - 4*a_*sp.Symbol('c')))/(2*a_)) + sp.Symbol('c')) == 0)
+# sistemas
+s_a = sp.solve([x + 2*y - 7, 3*x - y - 7], [x, y]); comprobar('t3 teoría: sistema x+2y=7, 3x−y=7', s_a == {x: 3, y: 2} and (3, 2) == (3, 2))
+comprobar('t3 teoría: sistema con parámetro', sp.Matrix([[1, 2], [2, 4]]).det() == 0 and sp.Matrix([[1, 2, 4], [2, 4, 8]]).rank() == 1 and sp.Matrix([[1, 2, 4], [2, 4, 9]]).rank() == 2)
+comprobar('t3 teoría: x+y=5, xy=6', sorted(sp.solve([x + y - 5, x*y - 6], [x, y])) == [(2, 3), (3, 2)])
+comprobar('t3 teoría: x²+y²=25, x−y=1', sorted(sp.solve([x**2 + y**2 - 25, x - y - 1], [x, y])) == [(-3, -4), (4, 3)])
+comprobar('t3 teoría: Gauss', sp.solve([x + y + z - 6, 2*x - y + z - 3, x + 2*y - z - 2], [x, y, z]) == {x: 1, y: 2, z: 3} and (-3*2 - 3) == -9 and (2 - 2*3) == -4)
+# fracciones algebraicas y ecuaciones
+comprobar('t3 teoría: simplificar (x²−9)/(x²+x−6)', sp.cancel((x**2 - 9)/(x**2 + x - 6)) == (x - 3)/(x - 2) and sp.solve(x**2 + x - 6, x) == [-3, 2] and sp.cancel((x**2 + 2*x + 1)/(x**2 - 1)) == (x + 1)/(x - 1))
+comprobar('t3 teoría: operaciones con fracciones', sp.simplify(1/(x - 1) + 2/(x + 1) - (3*x - 1)/(x**2 - 1)) == 0 and sp.simplify(x/(x - 2) - 2/(x**2 - 2*x) - (x**2 - 2)/(x*(x - 2))) == 0 and sp.simplify((x**2 - 4)/(x + 1)*(x + 1)/(x - 2) - (x + 2)) == 0 and sp.simplify(x/(x + 2)/((x - 1)/(x + 2)**2) - x*(x + 2)/(x - 1)) == 0)
+comprobar('t3 teoría: ecuaciones racionales', sorted(sp.solve(1/x + 1/(x + 2) - Q(3, 4), x)) == [Q(-4, 3), 2] and sp.solve(x/(x - 1) - 2/(x + 1) - 2/(x**2 - 1), x) == [0] and sp.simplify(x/(x - 1) - 2/(x + 1) - 2/(x**2 - 1)).subs(x, 0) == 0)
+comprobar('t3 teoría: x/(x−1) − 2/(x+1) = 2/(x²−1) → x²−x = 0', sp.expand(x*(x + 1) - 2*(x - 1) - 2) == x**2 - x)
+comprobar('t3 teoría: irracionales', [r for r in sp.solve(sp.sqrt(x + 6) - x, x)] == [3] and sp.solve(sp.sqrt(x + 7) - sp.sqrt(x - 2) - 1, x) == [18] and sp.sqrt(25) - sp.sqrt(16) == 1 and sorted(sp.solve(x**2 - x - 6, x)) == [-2, 3])
+comprobar('t3 teoría: exponenciales', sp.solve(3**(x - 1) - 27, x) == [4] and sp.solve(2**(x + 1) + 2**x - 12, x) == [2] and [r for r in sp.solve(4**x - 3*2**x - 4, x) if r.is_real] == [2] and abs(float(sp.log(7, 10)/sp.log(5, 10)) - 1.2091) < 1e-3)
+comprobar('t3 teoría: logaritmos', sp.log(8, 2) == 3 and sp.log(sp.Rational(1, 1000), 10) == -3 and sp.log(81, 3) == 4 and abs(float(sp.log(5, 2)) - 2.3219) < 1e-3 and [r for r in sp.solve(sp.log(x + 3, 2) + sp.log(x - 3, 2) - 4, x) if r.is_real and r > 3] == [5] and sp.solve(2*sp.log(x) - sp.log(x + 6), x) == [3] and sp.solve(sp.log(2*x - 1, 3) - 2, x) == [5])
+# inecuaciones
+comprobar('t3 teoría: inecuaciones de 1.º y 2.º grado', sp.solve_univariate_inequality(3*x - 7 < 2*x + 5, x, relational=False) == sp.Interval.open(-sp.oo, 12) and sp.solve_univariate_inequality(-2*x + 6 >= 0, x, relational=False) == sp.Interval(-sp.oo, 3) and sp.solve_univariate_inequality(x**2 - 3*x - 4 >= 0, x, relational=False) == sp.Union(sp.Interval(-sp.oo, -1), sp.Interval(4, sp.oo)))
+comprobar('t3 teoría: inecuaciones racionales', sp.solve_univariate_inequality((x - 1)/(x + 2) > 0, x, relational=False) == sp.Union(sp.Interval.open(-sp.oo, -2), sp.Interval.open(1, sp.oo)) and sp.solve_univariate_inequality((x**2 - 4)/(x**2 - 1) <= 0, x, relational=False) == sp.Union(sp.Interval.Ropen(-2, -1), sp.Interval.Lopen(1, 2)) and sp.solve_univariate_inequality((x - 1)*(x + 2)*(x - 4) < 0, x, relational=False) == sp.Union(sp.Interval.open(-sp.oo, -2), sp.Interval.open(1, 4)))
+comprobar('t3 teoría: sistema de inecuaciones', sp.Interval.open(2, sp.oo).intersect(sp.Interval.open(-5, 5)) == sp.Interval.open(2, 5))
+# problemas
+comprobar('t3 teoría: problemas', 35 + 37 + 39 == 111 and sp.solve(3*x + 10 - 2*(x + 10), x) == [10] and sp.solve(4*x + 6*(20 - x) - 104, x) == [8] and sp.solve(60*(x + 2) - 90*x, x) == [4] and 90*4 == 360 == 60*6 and Q(1, 6) + Q(1, 3) == Q(1, 2) and Q(1, 4) - Q(1, 12) == Q(1, 6) and sorted(sp.solve(x*(x + 3) - 40, x)) == [-8, 5] and sp.solve(8*x + 5*(120 - x) - 810, x) == [70])
+# quiz y errores
+comprobar('t3 quiz y errores', (x**3 - 2*x + 1).subs(x, 1) == 0 and sp.factor(x**3 - 2*x**2 - 5*x + 6) == (x - 1)*(x - 3)*(x + 2) and sp.discriminant(x**2 - 4*x + 4, x) == 0 and sp.Matrix([[1, 2, 4], [2, 4, 9]]).rank() == 2 and sp.log(32, 2) == 5 and sp.expand((x - 3)*(x + 5)) == x**2 + 2*x - 15 and (x**3 + k*x**2 - 4*x + 4).subs({x: 2, k: -1}) == 0 and (x + 5)**2 != x**2 + 25 and (6**2, 1 + 25) == (36, 26) and sp.log(10, 10) == 1 and abs(float(sp.log(21, 10)) - 1.3222) < 1e-3 and sp.discriminant(x**2 - 4*x + 5, x) == -4)
+comprobar('t3 error: −2x>6 → x<−3', sp.solve_univariate_inequality(-2*x > 6, x, relational=False) == sp.Interval.open(-sp.oo, -3))
+comprobar('t3 error: (x²+1)/(x²−1) no simplifica', sp.cancel((x**2 + 1)/(x**2 - 1)) == (x**2 + 1)/(x**2 - 1) and ((3**2 + 1)/(3**2 - 1)) == 1.25)
+# metodos/clasificar: coherencia de la teoría (las categorías de «tipos» coinciden con soluciones comprobadas)
+comprobar('t3 tipos: soluciones de las ecuaciones de la actividad', sorted(sp.solve(x**2 - 5*x + 6, x)) == [2, 3] and sorted(sp.solve(x**4 - 5*x**2 + 4, x)) == [-2, -1, 1, 2] and sp.solve(2**(x + 1) - 16, x) == [3] and sorted(sp.solve(5*x**3 - 10*x**2, x)) == [0, 2] and sp.solve(sp.sqrt(2*x + 1) - (x - 1), x) == [4] and sp.solve(x/(x - 3) - 2, x) == [6] and sp.solve(sp.sqrt(x) + 3 - 8, x) == [25] and sp.solve(sp.log(x - 5, 2) - 3, x) == [13])
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)
