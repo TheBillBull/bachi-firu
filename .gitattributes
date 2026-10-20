@@ -1,2 +1,3 @@
 *.html text eol=lf
 *.sh text eol=lf
+ampliaciones/estilos.css merge=union

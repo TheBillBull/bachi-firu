@@ -1713,8 +1713,9 @@
     (B.ampl[asig] = B.ampl[asig] || {})[tema] = def;
   };
 
-  B.registrarSimulacros = function (asig, lista) {
-    (B.ampl[asig] = B.ampl[asig] || {})._simulacros = lista;
+  B.registrarSimulacros = function (asig, lista) {      // se pueden registrar varios lotes (uno por archivo de tema)
+    var a = (B.ampl[asig] = B.ampl[asig] || {});
+    a._simulacros = (a._simulacros || []).concat(lista);
   };
 
   // "mates1/t11/quiz1" → B.ampl.mates1.t11.datos.quiz1
