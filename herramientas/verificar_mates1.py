@@ -509,6 +509,129 @@ for it in datos['ampl']['mates1']['t4']['datos']['notables']['items']:
     ok_not = ok_not and sp.simplify(FUN[fn](sp.rad(ang)) - VAL[it['c']]) == 0
 comprobar('t4 notables: cada razón en su categoría', ok_not)
 
+
+# =====================================================================
+# TEMA 5 · Fórmulas trigonométricas
+# =====================================================================
+E5 = {e['id']: e for e in datos['ampl']['mates1']['t5']['ejercicios']}
+def v5(id_, k=0):
+    c = E5[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+def n5(id_, k=0): return v5(id_, k)['valor']
+def l5(id_, k=0): return sorted(v5(id_, k)['valores'])
+def sol_trig(eq, rango=range(0, 36000)):
+    """Soluciones en [0°, 360°) de eq(grados) == 0, por búsqueda numérica fina (paso 0,01°)."""
+    out = []
+    prev = eq(0.0)
+    if abs(prev) < 1e-9: out.append(0.0)
+    for i in range(1, 36000):
+        a = i/100; v = eq(a)
+        if abs(v) < 1e-9: out.append(round(a, 2))
+        elif prev*v < 0 and abs(prev) < 5 and abs(v) < 5:
+            lo, hi = (i - 1)/100, a
+            for _ in range(60):
+                m = (lo + hi)/2
+                if eq(lo)*eq(m) <= 0: hi = m
+                else: lo = m
+            r = round((lo + hi)/2, 4)
+            if abs(eq(r)) < 1e-7: out.append(r)
+        prev = v
+    res = []
+    for r in out:
+        if not res or abs(r - res[-1]) > 0.011: res.append(r)
+    return res
+def lista_igual(a, b, tol=0.02): return len(a) == len(b) and all(abs(x - y) < tol for x, y in zip(sorted(a), sorted(b)))
+
+comprobar('t5 h1', abs(sd(75) - (math.sqrt(6) + math.sqrt(2))/4) < 1e-12 and near(sd(75), n5('h1'), 0.001))
+comprobar('t5 h2', abs(cd(105) - (math.sqrt(2) - math.sqrt(6))/4) < 1e-12 and near(cd(105), n5('h2'), 0.002))
+comprobar('t5 h3', near(2*5/13*12/13, n5('h3', 0), 0.002) and near((12/13)**2 - (5/13)**2, n5('h3', 1), 0.002))
+comprobar('t5 h4', abs(td(75) - (2 + math.sqrt(3))) < 1e-12 and near(td(75), n5('h4'), 0.002))
+comprobar('t5 h5', lista_igual([a for a in range(0, 360) if abs(sd(a) - math.sqrt(3)/2) < 1e-9], l5('h5')))
+comprobar('t5 h6', lista_igual([a for a in range(0, 360) if abs(cd(a) + 0.5) < 1e-9], l5('h6')))
+comprobar('t5 h7', lista_igual([a for a in range(0, 360) if abs(td(a) - 1) < 1e-9], l5('h7')))
+comprobar('t5 h8', abs(math.sqrt((1 - 7/25)/2) - 0.6) < 1e-12 and n5('h8') == 0.6)
+comprobar('t5 h9', abs(sd(50)*cd(40) + cd(50)*sd(40) - 1) < 1e-12 and n5('h9') == 1)
+comprobar('t5 h10', abs(cd(15)**2 - sd(15)**2 - math.sqrt(3)/2) < 1e-12 and near(math.sqrt(3)/2, n5('h10'), 0.002))
+# h11: ángulos reales de los cuadrantes
+a11 = 180 - math.degrees(math.asin(4/5)); b11 = 180 + math.degrees(math.acos(12/13))
+comprobar('t5 h11', near(sd(a11 - b11), n5('h11', 0), 0.002) and near(cd(a11 + b11), n5('h11', 1), 0.002) and near(-63/65, n5('h11', 0), 0.002) and abs(sd(a11 - b11) + 63/65) < 1e-9 and abs(cd(a11 + b11) - 56/65) < 1e-9)
+comprobar('t5 h12', Q(2 + 3, 1 - 6) == -1 == n5('h12'))
+a13 = math.degrees(math.atan(3/4))
+comprobar('t5 h13', near(sd(2*a13), n5('h13', 0), 1e-9) and near(cd(2*a13), n5('h13', 1), 1e-9) and near(td(2*a13), n5('h13', 2), 0.002))
+comprobar('t5 h14', abs(3*0.6 - 4*0.6**3 - 0.936) < 1e-12 and abs(sd(3*math.degrees(math.asin(0.6))) - 0.936) < 1e-9 and n5('h14') == 0.936)
+a15 = 180 + math.degrees(math.acos(4/5))   # cos = −4/5 en 3.er cuadrante: a = 180° + 36,87°
+comprobar('t5 h15', 180 < a15 < 270 and near(sd(a15/2), n5('h15', 0), 0.002) and near(cd(a15/2), n5('h15', 1), 0.002))
+comprobar('t5 h16', near(sd(22.5), n5('h16'), 0.002) and abs(sd(22.5) - math.sqrt(2 - math.sqrt(2))/2) < 1e-12)
+comprobar('t5 h17', lista_igual(sol_trig(lambda a: sd(2*a) - 0.5), l5('h17')))
+comprobar('t5 h18', lista_igual(sol_trig(lambda a: 2*cd(a)**2 - 3*cd(a) + 1), l5('h18')))
+comprobar('t5 h19', lista_igual(sol_trig(lambda a: sd(2*a) - cd(a)), l5('h19')))
+comprobar('t5 h20', lista_igual(sol_trig(lambda a: 2*sd(a)**2 + cd(a) - 1), l5('h20')))
+comprobar('t5 h21', lista_igual([a for a in sol_trig(lambda a: sd(a)*(1 - 2*cd(a))) if abs(cd(a)) > 1e-9], l5('h21')))
+comprobar('t5 h22', lista_igual(sol_trig(lambda a: cd(2*a) + 3*sd(a) - 2), l5('h22')))
+comprobar('t5 h23', all(abs(math.sin(x) + math.sqrt(3)/2) < 1e-9 for x in v5('h23')['valores']) and abs(v5('h23')['valores'][0] - 4*math.pi/3) < 1e-12)
+comprobar('t5 h24', abs(sd(90) + sd(30) - 1.5) < 1e-12 and abs(2*sd(60)*cd(30) - 1.5) < 1e-12 and n5('h24') == 1.5 and all(abs((sd(3*a) + sd(a)) - 2*sd(2*a)*cd(a)) < 1e-12 for a in (11, 47, 100)))
+# demostraciones: comprobación simbólica de cada identidad
+xs_ = sp.symbols('xs')
+comprobar('t5 h25', sp.simplify(sp.tan(xs_) + 1/sp.tan(xs_) - 2/sp.sin(2*xs_)) == 0)
+comprobar('t5 h26', sp.simplify(sp.sin(xs_)/(1 + sp.cos(xs_)) + (1 + sp.cos(xs_))/sp.sin(xs_) - 2/sp.sin(xs_)) == 0)
+comprobar('t5 h27', sp.simplify(sp.cos(2*xs_) - (1 - sp.tan(xs_)**2)/(1 + sp.tan(xs_)**2)) == 0)
+a_s, b_s = sp.symbols('a_s b_s')
+comprobar('t5 h28', sp.simplify(sp.expand_trig(sp.cos(a_s + b_s)) - (sp.cos(a_s)*sp.cos(b_s) - sp.sin(a_s)*sp.sin(b_s))) == 0 and sp.expand_trig(sp.cos(a_s - b_s)) == sp.cos(a_s)*sp.cos(b_s) + sp.sin(a_s)*sp.sin(b_s))
+sol29 = sol_trig(lambda a: sd(a) + cd(a) - 1)
+comprobar('t5 h29', lista_igual(sol29, l5('h29')) and abs(sd(180) + cd(180) - 1) > 0.5 and abs(sd(270) + cd(270) - 1) > 0.5)
+comprobar('t5 h30', lista_igual(sol_trig(lambda a: sd(3*a) + sd(a)), l5('h30')))
+comprobar('t5 h31', lista_igual(sol_trig(lambda a: sd(a) + sd(3*a) - cd(a) - cd(3*a)), l5('h31')))
+comprobar('t5 h32', lista_igual(sol_trig(lambda a: 4*sd(a)**2 - 1), l5('h32')))
+mx = max(sd(a/10) + cd(a/10) for a in range(0, 3600)); amx = [a/10 for a in range(0, 3600) if abs(sd(a/10) + cd(a/10) - mx) < 1e-9]
+comprobar('t5 h33', near(mx, n5('h33', 0), 0.002) and amx == [45.0] and abs(mx - math.sqrt(2)) < 1e-9 and n5('h33', 1) == 45)
+comprobar('t5 h34', all(abs(3*sd(a) + 4*cd(a) - 5*sd(a + math.degrees(math.atan2(4, 3)))) < 1e-9 for a in (0, 17, 90, 200)) and near(math.degrees(math.atan2(4, 3)), n5('h34', 1), 0.002) and n5('h34', 0) == 5)
+comprobar('t5 h35', lista_igual(sol_trig(lambda a: sd(a) - math.sqrt(3)*cd(a) - 1), l5('h35')) and all(abs(sd(a) - math.sqrt(3)*cd(a) - 2*sd(a - 60)) < 1e-12 for a in (0, 33, 90)))
+comprobar('t5 h36', abs(math.degrees(math.atan(1/2) + math.atan(1/3)) - 45) < 1e-9 and sp.Rational(1, 2) + sp.Rational(1, 3) == sp.Rational(5, 6) and n5('h36') == 45)
+
+# teoría
+P_, Q_ = sp.symbols('P_ Q_')
+comprobar('t5 teoría: deducción de las fórmulas de suma', sp.simplify(sp.expand_trig(sp.sin(a_s + b_s)) - (sp.sin(a_s)*sp.cos(b_s) + sp.cos(a_s)*sp.sin(b_s))) == 0 and sp.simplify(sp.expand_trig(sp.sin(a_s - b_s)) - (sp.sin(a_s)*sp.cos(b_s) - sp.cos(a_s)*sp.sin(b_s))) == 0 and sp.simplify(sp.expand_trig(sp.tan(a_s + b_s)) - (sp.tan(a_s) + sp.tan(b_s))/(1 - sp.tan(a_s)*sp.tan(b_s))) == 0)
+comprobar('t5 teoría: distancia entre dos puntos de la circunferencia', sp.simplify(sp.expand((sp.cos(a_s) - sp.cos(b_s))**2 + (sp.sin(a_s) - sp.sin(b_s))**2) - (2 - 2*(sp.cos(a_s)*sp.cos(b_s) + sp.sin(a_s)*sp.sin(b_s)))) == 0 or sp.simplify(sp.trigsimp(sp.expand((sp.cos(a_s) - sp.cos(b_s))**2 + (sp.sin(a_s) - sp.sin(b_s))**2)) - (2 - 2*(sp.cos(a_s)*sp.cos(b_s) + sp.sin(a_s)*sp.sin(b_s)))) == 0)
+comprobar('t5 teoría: 75°, 15°, 105°', abs(sd(75) - (math.sqrt(6) + math.sqrt(2))/4) < 1e-12 and abs(cd(15) - sd(75)) < 1e-12 and abs(td(105) + (2 + math.sqrt(3))) < 1e-9 and sp.simplify((sp.sqrt(3) + 1)**2/(1 - 3) + 2 + sp.sqrt(3)) == 0)
+comprobar('t5 teoría: ejemplo con otros cuadrantes', abs(a11 - 126.87) < 0.01 and abs(b11 - 202.62) < 0.01 and abs((a11 - b11) + 75.75) < 0.01 and abs((a11 + b11) - 329.49) < 0.01 and abs(sd(a11 - b11) + 0.9692) < 1e-4 and abs(cd(a11 + b11) - 0.8615) < 1e-4 and Q(-48, 65) + Q(-15, 65) == Q(-63, 65) and Q(36, 65) + Q(20, 65) == Q(56, 65))
+comprobar('t5 teoría: a=b=90 con cos(a+b), sen 30+sen 60', abs(cd(180) - (cd(90)*cd(90) - sd(90)*sd(90))) < 1e-12 and abs(sd(30) + sd(60) - 1.366) < 1e-3)
+comprobar('t5 teoría: doble de sen a = 5/13', Q(2*5*12, 169) == Q(120, 169) and Q(144 - 25, 169) == Q(119, 169) and Q(1) - 2*Q(25, 169) == Q(119, 169))
+comprobar('t5 teoría: potencias y triple', sp.simplify(sp.cos(a_s)**2 - (1 + sp.cos(2*a_s))/2) == 0 and sp.simplify(sp.sin(a_s)**2 - (1 - sp.cos(2*a_s))/2) == 0 and sp.simplify(sp.expand_trig(sp.sin(3*a_s)) - (3*sp.sin(a_s) - 4*sp.sin(a_s)**3)) == 0 and sp.simplify(sp.expand_trig(sp.cos(3*a_s)) - (4*sp.cos(a_s)**3 - 3*sp.cos(a_s))) == 0)
+comprobar('t5 teoría: ángulo mitad con signo', abs(math.sqrt(9/10) - 3/math.sqrt(10)) < 1e-12 and abs(sd(a15/2) - 3/math.sqrt(10)) < 1e-9 and abs(cd(a15/2) + 1/math.sqrt(10)) < 1e-9 and abs(td(a15/2) + 3) < 1e-9 and Q(-3, 5)/(1 + Q(-4, 5)) == -3)
+comprobar('t5 teoría: 22,5°', sp.simplify(sp.sin(sp.pi/8) - sp.sqrt(2 - sp.sqrt(2))/2) == 0 and sp.simplify(sp.cos(sp.pi/8) - sp.sqrt(2 + sp.sqrt(2))/2) == 0 and near(sd(22.5), 0.3827, 0.001) and near(cd(22.5), 0.9239, 0.001))
+comprobar('t5 teoría: ecuaciones del texto', lista_igual(sol_trig(lambda a: sd(2*a) - 0.5), [15, 75, 195, 255]) and lista_igual(sol_trig(lambda a: sd(a) + cd(a) - 1), [0, 90]) and lista_igual(sol_trig(lambda a: sd(2*a) - cd(a)), [30, 90, 150, 270]) and lista_igual(sol_trig(lambda a: sd(3*a) + sd(a)), [0, 90, 180, 270]))
+comprobar('t5 teoría: transformación suma → producto', all(abs((sd(A_) + sd(B_)) - 2*sd((A_ + B_)/2)*cd((A_ - B_)/2)) < 1e-12 and abs((sd(A_) - sd(B_)) - 2*cd((A_ + B_)/2)*sd((A_ - B_)/2)) < 1e-12 and abs((cd(A_) + cd(B_)) - 2*cd((A_ + B_)/2)*cd((A_ - B_)/2)) < 1e-12 and abs((cd(A_) - cd(B_)) + 2*sd((A_ + B_)/2)*sd((A_ - B_)/2)) < 1e-12 for A_, B_ in ((75, 15), (130, 40), (200, 17))) and abs((sd(75) + sd(15)) - math.sqrt(6)/2) < 1e-12)
+comprobar('t5 teoría: producto → suma', all(abs(sd(A_)*cd(B_) - 0.5*(sd(A_ + B_) + sd(A_ - B_))) < 1e-12 and abs(cd(A_)*cd(B_) - 0.5*(cd(A_ + B_) + cd(A_ - B_))) < 1e-12 and abs(sd(A_)*sd(B_) - 0.5*(cd(A_ - B_) - cd(A_ + B_))) < 1e-12 for A_, B_ in ((75, 15), (130, 40))))
+comprobar('t5 teoría: amplitud', all(abs(sd(a) + cd(a) - math.sqrt(2)*sd(a + 45)) < 1e-12 for a in (0, 30, 100)) and abs(math.degrees(math.atan2(-math.sqrt(3), 1)) + 60) < 1e-9 and abs(3*sd(0) + 4*cd(0) - 5*sd(53.13)) < 1e-3)
+comprobar('t5 teoría: demostración del ejemplo', sp.simplify(sp.sin(xs_)/(1 + sp.cos(xs_)) - (1 - sp.cos(xs_))/sp.sin(xs_)) == 0 and sp.simplify((1 + sp.cos(xs_))*(1 - sp.cos(xs_)) - sp.sin(xs_)**2) == 0)
+comprobar('t5 teoría: reducciones desde la suma', all(abs(sd(a + 90) - cd(a)) < 1e-12 and abs(sd(180 - a) - sd(a)) < 1e-12 for a in (10, 55, 170)))
+comprobar('t5 quiz y errores', abs(sd(75) - (math.sqrt(6) + math.sqrt(2))/4) < 1e-12 and 2*Q(3, 5)*Q(4, 5) == Q(24, 25) and abs(1 - 2*sd(33)**2 - cd(66)) < 1e-12 and lista_igual(sol_trig(lambda a: sd(2*a) - 0.5), [15, 75, 195, 255]) and abs(math.sqrt((1 + 0.8)/2) - math.sqrt(0.9)) < 1e-12 and abs(math.sqrt(0.9) - 0.949) < 1e-3 and sp.simplify((1 + sp.sqrt(3)/3)/(1 - sp.sqrt(3)/3) - (2 + sp.sqrt(3))) == 0 and abs(math.sqrt(2) - max(sd(a) + cd(a) for a in range(361))) < 1e-3 and abs(math.sqrt((1 - 0.6)/2) - 0.4472) < 1e-4)
+# clasificar: identidades, ecuaciones y falsas, por comprobación numérica
+import random
+def clasifica(f):
+    pts = [random.uniform(0.1, 6.2) for _ in range(400)]; vals = []
+    for t in pts:
+        try: vals.append(abs(f(t)) < 1e-9)
+        except Exception: pass
+    return 0 if all(vals) else (1 if any(vals) else 2)
+F_ = {
+  'sen²x + cos²x = 1': lambda t: math.sin(t)**2 + math.cos(t)**2 - 1, 'cos 2x = 2cos²x − 1': lambda t: math.cos(2*t) - 2*math.cos(t)**2 + 1,
+  'sen(x + 90°) = cos x': lambda t: math.sin(t + math.pi/2) - math.cos(t), '1 + tan²x = 1/cos²x': lambda t: 1 + math.tan(t)**2 - 1/math.cos(t)**2,
+  'sen x = 1/2': lambda t: math.sin(t) - 0.5, 'sen 2x = sen x': lambda t: math.sin(2*t) - math.sin(t), 'sen x + cos x = 1': lambda t: math.sin(t) + math.cos(t) - 1, '(sen x + cos x)² = 1': lambda t: (math.sin(t) + math.cos(t))**2 - 1,
+}
+ok_cl5 = True
+for it in datos['ampl']['mates1']['t5']['datos']['tipos']['items']:
+    if it['t'] in F_:
+        # una identidad se cumple siempre; una ecuación solo en algunos puntos: con muestras aleatorias, "alguno" no se ve, así que se decide por los ceros exactos
+        t = it['t']
+        esp = it['c']
+        if esp == 0: ok_cl5 = ok_cl5 and all(abs(F_[t](u)) < 1e-9 for u in (0.3, 1.1, 2.2, 4.0, 5.5))
+        else: ok_cl5 = ok_cl5 and any(abs(F_[t](u)) > 1e-3 for u in (0.3, 1.1, 2.2, 4.0, 5.5)) and (esp == 1) and any(abs(F_[t](u)) < 1e-9 for u in [0, math.pi/6, math.pi/2, math.pi, 2*math.pi, math.pi/3, 5*math.pi/6, math.pi/4, 7*math.pi/6, 3*math.pi/2])
+    else:
+        # falsas en general: sen(a+b)=sen a+sen b, cos 2x = 2 cos x, sen 2x = 2 sen x
+        ok_cl5 = ok_cl5 and it['c'] == 2
+comprobar('t5 tipos: identidad / ecuación / falsa', ok_cl5)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)

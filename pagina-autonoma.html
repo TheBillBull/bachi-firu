@@ -1046,6 +1046,17 @@
 .gn-circ, .rd-circ { max-width: 420px; margin: 0 auto; }
 .plot .p-punto.c-hl { fill: var(--hl); }
 @media (max-width: 700px) { .gn-fila { grid-template-columns: 1fr; } .gn-fila .lectura { grid-template-columns: 1fr 1fr; } }
+.fo-fila { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 14px; align-items: start; }
+.fo-circ { max-width: 360px; margin: 0 auto; }
+.fo-t { width: 100%; border-collapse: collapse; font: 500 15px/1.35 var(--math); }
+.fo-t th { text-align: left; font-weight: 600; padding: 6px 8px; }
+.fo-t td { padding: 6px 8px; text-align: right; white-space: nowrap; }
+.fo-t tr.izq th, .fo-t tr.izq td { background: var(--sheet-2); border-radius: 6px; }
+.fo-t tr.ok td:nth-child(3) { color: var(--ok); font: 700 13px var(--body); text-align: left; }
+.fo-t tr.mal td:nth-child(3) { color: var(--red); font: 700 13px var(--body); text-align: left; }
+.fo-t tr.ok th { color: var(--ok); } .fo-t tr.mal th { color: var(--red); }
+.fo-t tr + tr.izq th { padding-top: 12px; }
+@media (max-width: 700px) { .fo-fila { grid-template-columns: 1fr; } .fo-t { font-size: 14px; } .fo-t th, .fo-t td { padding: 5px 6px; } }
 </style>
 
 <header class="topbar">
@@ -5155,6 +5166,215 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de fórmulas trigonométricas (Matemáticas I, tema 5)
+   formulas · identidad · ecuaciontrig · amplitud
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, T = B.lab.trig;
+  var R = Math.PI / 180;
+  function rad(d) { return d * R; }
+  function sen(d) { return Math.sin(rad(d)); }
+  function cos(d) { return Math.cos(rad(d)); }
+  function cero(x) { return Math.abs(x) < 1e-12 ? 0 : x; }
+  function mod360(d) { return ((d % 360) + 360) % 360; }
+
+  // ============================================================
+  // FORMULAS: las fórmulas de suma, diferencia, doble y mitad con números
+  // ============================================================
+  B.w.formulas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Comprueba las fórmulas con números");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="fo-fila"><div class="w-plot fo-circ"></div><div class="fo-tabla"></div></div><div data-ctl></div><p class="w-pie"></p>';
+    var st = { modo: "suma", a: 50, b: 30 }, g;
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), tabla = cuerpo.querySelector(".fo-tabla"), pie = cuerpo.querySelector(".w-pie");
+    var sa = U.slider(ctl, { et: "Ángulo <i>a</i>", min: 0, max: 360, step: 1, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    var sb = U.slider(ctl, { et: "Ángulo <i>b</i>", min: 0, max: 360, step: 1, val: st.b, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    function fila(etq, v, clase, nota) { return "<tr class='" + (clase || "") + "'><th>" + etq + "</th><td>" + fmt(v, 4) + "</td><td>" + (nota || "") + "</td></tr>"; }
+    function par(etq1, v1, etq2, v2, malo) {
+      var iguales = Math.abs(v1 - v2) < 1e-9;
+      return fila(etq1, v1, "izq") + fila(etq2, v2, iguales ? "ok" : "mal", iguales ? "✓ igual" : "≠");
+    }
+    function punto(ang, clase, etq, rad_) {
+      var r = rad_ || 1;
+      g.segmento(0, 0, r * cos(ang), r * sen(ang), { clase: clase }).setAttribute("stroke-width", 2.5);
+      g.punto(r * cos(ang), r * sen(ang), { r: 5, clase: clase });
+      g.texto(1.12 * cos(ang), 1.12 * sen(ang), etq, { ancla: "middle", dy: 4, clase: clase === "c-pen" ? "pen" : clase === "c-red" ? "red" : "ok" });
+    }
+    function pinta() {
+      var a = st.a, b = st.b, m = st.modo, h = "<table class='fo-t'><tbody>";
+      sb.el.style.display = (m === "suma" || m === "resta") ? "" : "none";
+      g.limpiar();
+      if (m === "suma" || m === "resta") {
+        var sg = m === "suma" ? 1 : -1, ab = a + sg * b;
+        g.arco(0, 0, 0.3, 0, a, { clase: "c-pen" }); g.arco(0, 0, 0.42, a, ab, { clase: "c-red" });
+        punto(a, "c-pen", "a"); punto(sg * b + a, "c-ok", "a" + (sg > 0 ? "+" : "−") + "b");
+        h += par("sen(a " + (sg > 0 ? "+" : "−") + " b)", sen(ab), "sen a·cos b " + (sg > 0 ? "+" : "−") + " cos a·sen b", sen(a) * cos(b) + sg * cos(a) * sen(b));
+        h += par("cos(a " + (sg > 0 ? "+" : "−") + " b)", cos(ab), "cos a·cos b " + (sg > 0 ? "−" : "+") + " sen a·sen b", cos(a) * cos(b) - sg * sen(a) * sen(b));
+        if (Math.abs(cos(a) * cos(b)) > 1e-9 && Math.abs(cos(ab)) > 1e-9) {
+          var ta = sen(a) / cos(a), tb = sen(b) / cos(b);
+          h += par("tan(a " + (sg > 0 ? "+" : "−") + " b)", sen(ab) / cos(ab), "(tan a " + (sg > 0 ? "+" : "−") + " tan b)/(1 " + (sg > 0 ? "−" : "+") + " tan a·tan b)", (ta + sg * tb) / (1 - sg * ta * tb));
+        }
+        h += fila("Error típico: sen a " + (sg > 0 ? "+" : "−") + " sen b", sen(a) + sg * sen(b), Math.abs(sen(a) + sg * sen(b) - sen(ab)) < 1e-9 ? "ok" : "mal", Math.abs(sen(a) + sg * sen(b) - sen(ab)) < 1e-9 ? "(coincide por casualidad)" : "✗ no vale");
+        pie.innerHTML = "Las fórmulas se cumplen para <b>cualquier</b> par de ángulos (muévelos). En cambio, «sen(a + b) = sen a + sen b» <b>casi nunca</b> es cierto: sólo coincide por casualidad en algunos valores sueltos.";
+      } else if (m === "doble") {
+        g.arco(0, 0, 0.3, 0, a, { clase: "c-pen" }); g.arco(0, 0, 0.42, 0, 2 * a, { clase: "c-red" });
+        punto(a, "c-pen", "a"); punto(2 * a, "c-ok", "2a");
+        h += par("sen 2a", sen(2 * a), "2·sen a·cos a", 2 * sen(a) * cos(a));
+        h += par("cos 2a", cos(2 * a), "cos²a − sen²a", cos(a) * cos(a) - sen(a) * sen(a));
+        h += par("cos 2a", cos(2 * a), "2·cos²a − 1", 2 * cos(a) * cos(a) - 1);
+        h += par("cos 2a", cos(2 * a), "1 − 2·sen²a", 1 - 2 * sen(a) * sen(a));
+        if (Math.abs(cos(2 * a)) > 1e-9 && Math.abs(cos(a)) > 1e-9) h += par("tan 2a", sen(2 * a) / cos(2 * a), "2·tan a/(1 − tan²a)", 2 * (sen(a) / cos(a)) / (1 - Math.pow(sen(a) / cos(a), 2)));
+        h += fila("Error típico: 2·sen a", 2 * sen(a), Math.abs(2 * sen(a) - sen(2 * a)) < 1e-9 ? "ok" : "mal", Math.abs(2 * sen(a) - sen(2 * a)) < 1e-9 ? "(casualidad)" : "✗ no vale");
+        pie.innerHTML = "Las tres formas de cos 2a son <b>la misma</b> expresión escrita de tres maneras (se pasa de una a otra con sen²a + cos²a = 1). Elige la que use el dato que te dan.";
+      } else {
+        var cu = Math.floor(mod360(a / 2) / 90) + 1, sS = mod360(a / 2) < 180 ? 1 : -1, sC = (mod360(a / 2) < 90 || mod360(a / 2) > 270) ? 1 : -1;
+        g.arco(0, 0, 0.3, 0, a / 2, { clase: "c-pen" }); g.arco(0, 0, 0.42, 0, a, { clase: "c-red" });
+        punto(a / 2, "c-pen", "a/2"); punto(a, "c-ok", "a");
+        h += par("sen(a/2)", sen(a / 2), (sS > 0 ? "+" : "−") + "√((1 − cos a)/2)", sS * Math.sqrt((1 - cos(a)) / 2));
+        h += par("cos(a/2)", cos(a / 2), (sC > 0 ? "+" : "−") + "√((1 + cos a)/2)", sC * Math.sqrt((1 + cos(a)) / 2));
+        h += fila("Signo elegido", 0, "izq", "a/2 está en el " + (cu > 4 ? 4 : cu) + ".º cuadrante: sen " + (sS > 0 ? "+" : "−") + ", cos " + (sC > 0 ? "+" : "−"));
+        h += fila("Error típico: sen a / 2", sen(a) / 2, Math.abs(sen(a) / 2 - sen(a / 2)) < 1e-9 ? "ok" : "mal", Math.abs(sen(a) / 2 - sen(a / 2)) < 1e-9 ? "(casualidad)" : "✗ no vale");
+        pie.innerHTML = "En las fórmulas del ángulo mitad el signo ± <b>no se elige a capricho</b>: lo decide el cuadrante en el que cae <b>a/2</b>. Con a entre 0° y 360°, a/2 está siempre entre 0° y 180°, así que sen(a/2) es siempre positivo y cos(a/2) cambia de signo en a = 180°.";
+      }
+      tabla.innerHTML = h + "</tbody></table>";
+    }
+    g = new B.Plot(cuerpo.querySelector(".fo-circ"), { xmin: -1.6, xmax: 1.6, ymin: -1.6, ymax: 1.6, w: 340, h: 340, limpio: true, etiqueta: "Los ángulos sobre la circunferencia" });
+    g.rangoIso(0, 0, 1.45);
+    g.arco(0, 0, 1, 0, 360, { clase: "c-faint", capa: "fijo" });
+    g.segmento(-1.4, 0, 1.4, 0, { clase: "c-ink", capa: "fijo" }); g.segmento(0, -1.4, 0, 1.4, { clase: "c-ink", capa: "fijo" });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "suma", t: "Suma a + b" }, { k: "resta", t: "Diferencia a − b" }, { k: "doble", t: "Ángulo doble" }, { k: "mitad", t: "Ángulo mitad" }], st.modo, function (k) { st.modo = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // IDENTIDAD: ¿son iguales dos expresiones? (con gráficas)
+  // ============================================================
+  B.w.identidad = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "¿Identidad o ecuación? Compara dos expresiones");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="lectura"></div><div class="w-plot"></div><p class="w-pie"></p>';
+    var PRE = [["sen(2x)", "2 sen(x) cos(x)", "sen 2x = 2 sen x cos x"], ["cos(2x)", "2cos(x)^2-1", "cos 2x = 2cos²x − 1"], ["sen(x+pi/2)", "cos(x)", "sen(x + 90°) = cos x"], ["tan(x)+1/tan(x)", "2/sen(2x)", "tan x + cotan x = 2/sen 2x"], ["sen(x)/(1+cos(x))", "(1-cos(x))/sen(x)", "sen x/(1+cos x) = (1−cos x)/sen x"], ["sen(2x)", "2 sen(x)", "sen 2x = 2 sen x (¡falso!)"], ["sen(x+pi/3)", "sen(x)+sen(pi/3)", "sen(x + 60°) = sen x + sen 60° (¡falso!)"], ["sen(x)", "cos(x)", "sen x = cos x (sólo una ecuación)"]];
+    var st = { f: PRE[0][0], g: PRE[0][1] }, grf;
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function campo(et, val, ancho) {
+      var l = document.createElement("label"); l.className = "bx-campo";
+      l.innerHTML = '<span class="bx-et">' + et + '</span><input type="text" autocomplete="off" spellcheck="false" style="width:' + ancho + 'px" value="' + val + '" aria-label="' + et + '">'; ctl.appendChild(l); return l.querySelector("input");
+    }
+    var iF = campo("Izquierda", st.f, 190), iG = campo("Derecha", st.g, 190);
+    function pinta() {
+      var f = B.Mate.compilar(st.f), gg = B.Mate.compilar(st.g);
+      if (!f.ok || !gg.ok) { lectura.innerHTML = U.lec("Revisa lo que has escrito", f.ok ? gg.error : f.error, "red"); grf.limpiar(); return; }
+      var N = 720, iguales = 0, total = 0, maxd = 0, pts = [], vals = [];
+      for (var i = 1; i < N; i++) {
+        var x = 2 * Math.PI * i / N, a, b;
+        try { a = f.f(x); b = gg.f(x); } catch (e) { continue; }
+        if (!isFinite(a) || !isFinite(b) || Math.abs(a) > 1e6 || Math.abs(b) > 1e6) continue;
+        total++;
+        var d = Math.abs(a - b), esc = Math.max(1, Math.abs(a), Math.abs(b));
+        if (d / esc < 1e-8) { iguales++; if (pts.length < 8 && (!pts.length || Math.abs(pts[pts.length - 1] - x) > 0.3)) pts.push(x); }
+        maxd = Math.max(maxd, d / esc);
+        if (Math.abs(a) < 6) vals.push(a); if (Math.abs(b) < 6) vals.push(b);
+      }
+      var veredicto, cl;
+      if (total < 10) { veredicto = "no hay puntos para comparar"; cl = "red"; }
+      else if (iguales === total) { veredicto = "coinciden en los " + total + " puntos probados: parece una <b>identidad</b>"; cl = "ok"; }
+      else if (iguales === 0) { veredicto = "no coinciden en ningún punto"; cl = "red"; }
+      else { veredicto = "coinciden en " + iguales + " de " + total + " puntos: es una <b>ecuación</b> (sólo se cumple para algunos x)"; cl = "pen"; }
+      lectura.innerHTML = U.lec("Resultado de la prueba", veredicto, cl) + U.lec("Mayor diferencia observada", fmt(maxd, 6)) + U.lec("Valores de x donde coinciden (ejemplos, en rad)", iguales && iguales < total ? pts.map(function (p) { return fmt(p, 3); }).join(", ") : iguales === total ? "todos" : "ninguno");
+      var mn = Math.min.apply(null, vals.concat([-1])), mx = Math.max.apply(null, vals.concat([1])), pad = (mx - mn) * 0.12;
+      grf.rango(0, 2 * Math.PI, mn - pad, mx + pad);
+      grf.limpiar();
+      [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2, 2 * Math.PI].forEach(function (a2, k) { grf.texto(a2, 0, ["0", "π/2", "π", "3π/2", "2π"][k], { dy: 16, dx: k === 4 ? -14 : k === 0 ? 10 : 0, ancla: "middle", clase: "faint" }); });
+      grf.curva(f.f, { clase: "c-pen", n: 600 });
+      grf.curva(gg.f, { clase: "c-red", dash: "7 5", n: 600 });
+      pie.innerHTML = "Curva <b style='color:var(--pen)'>azul</b> = lado izquierdo, <b style='color:var(--red)'>roja discontinua</b> = lado derecho. Si se superponen siempre, es una identidad. <b>Ojo:</b> esta prueba es sólo una <i>comprobación numérica</i>; en un examen hay que <b>demostrar</b> la igualdad con álgebra.";
+    }
+    grf = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 6.28, ymin: -2, ymax: 2, w: 640, h: 270, sinX: true, etx: "x", ety: "", etiqueta: "Los dos lados de la igualdad" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE.map(function (p, i) { return { k: String(i), t: p[2] }; }), "", function (k) { st.f = PRE[+k][0]; st.g = PRE[+k][1]; iF.value = st.f; iG.value = st.g; pinta(); });
+    iF.addEventListener("input", function () { st.f = iF.value; pinta(); });
+    iG.addEventListener("input", function () { st.g = iG.value; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // ECUACIONTRIG: sen(m·x) = k, cos(m·x) = k, tan(m·x) = k en [0°, 360°)
+  // ============================================================
+  T.soluciones = function (fn, m, k) {
+    var base = [], res = [], n, a;
+    if (fn === "sen") { if (Math.abs(k) > 1 + 1e-12) return { base: [], x: [] }; a = Math.asin(Math.max(-1, Math.min(1, k))) / R; base = [a, 180 - a]; }
+    else if (fn === "cos") { if (Math.abs(k) > 1 + 1e-12) return { base: [], x: [] }; a = Math.acos(Math.max(-1, Math.min(1, k))) / R; base = [a, -a]; }
+    else { a = Math.atan(k) / R; base = [a]; }
+    var per = fn === "tan" ? 180 : 360;
+    base.forEach(function (b) { for (n = -2 * m - 2; n <= 2 * m + 2; n++) { var x = (b + per * n) / m; x = Math.round(x * 1e8) / 1e8; if (x >= -1e-9 && x < 360 - 1e-9) res.push(Math.abs(x) < 1e-9 ? 0 : x); } });
+    res.sort(function (p, q) { return p - q; });
+    var u = []; res.forEach(function (x) { if (!u.length || Math.abs(x - u[u.length - 1]) > 1e-6) u.push(x); });
+    return { base: base, x: u };
+  };
+
+  B.w.ecuaciontrig = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Resuelve sen(m·x) = k, cos(m·x) = k o tan(m·x) = k");
+    cuerpo.innerHTML = '<div data-fn class="chips"></div><div data-m class="chips"></div><div data-kk class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { fn: "sen", m: 1, k: 0.5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sl = U.slider(ctl, { et: "Valor <i>k</i>", min: -1.2, max: 1.2, step: 0.01, val: st.k, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    var NOTK = { sen: [[-1, "−1"], [-Math.sqrt(3) / 2, "−√3/2"], [-Math.sqrt(2) / 2, "−√2/2"], [-0.5, "−1/2"], [0, "0"], [0.5, "1/2"], [Math.sqrt(2) / 2, "√2/2"], [Math.sqrt(3) / 2, "√3/2"], [1, "1"]], tan: [[-Math.sqrt(3), "−√3"], [-1, "−1"], [-Math.sqrt(3) / 3, "−√3/3"], [0, "0"], [Math.sqrt(3) / 3, "√3/3"], [1, "1"], [Math.sqrt(3), "√3"]] };
+    NOTK.cos = NOTK.sen;
+    function eligeK() {
+      var arr = NOTK[st.fn];
+      U.fichas(cuerpo.querySelector("[data-kk]"), arr.map(function (p, i) { return { k: String(i), t: "k = " + p[1] }; }), "", function (i) { st.k = arr[+i][0]; sl.set(Math.round(st.k * 100) / 100); pinta(); });
+      var lim = st.fn === "tan" ? 4 : 1.2; sl.input.min = -lim; sl.input.max = lim;
+      if (Math.abs(st.k) > lim) st.k = Math.max(-lim, Math.min(lim, st.k)); sl.set(Math.round(st.k * 100) / 100);
+    }
+    function f(x) { var a = st.m * x; return st.fn === "sen" ? sen(a) : st.fn === "cos" ? cos(a) : Math.tan(rad(a)); }
+    function pinta() {
+      var sol = T.soluciones(st.fn, st.m, st.k), tit = st.fn + " " + (st.m === 1 ? "x" : st.m + "x");
+      var lim = st.fn === "tan" ? 4 : 1.5;
+      g.rango(0, 360, -lim, lim);
+      g.limpiar();
+      [0, 90, 180, 270, 360].forEach(function (a) { g.segmento(a, -lim, a, lim, { clase: "c-faint", dash: "2 5" }); g.texto(a, 0, a + "°", { dy: 15, dx: a === 360 ? -14 : a === 0 ? 14 : 0, ancla: "middle", clase: "faint" }); });
+      g.curva(f, { clase: "c-pen", n: 720 });
+      g.horizontal(st.k, { clase: "c-red", dash: "6 4" });
+      sol.x.forEach(function (x) { g.punto(x, st.k, { r: 6, clase: "c-ok" }); g.segmento(x, 0, x, st.k, { clase: "c-ok", dash: "3 3" }); });
+      var gen;
+      if (!sol.base.length) gen = "no tiene solución (|k| &gt; 1)";
+      else {
+        var ar = st.m === 1 ? "x" : st.m + "x";
+        gen = st.fn === "sen" ? ar + " = " + fmt(sol.base[0], 2) + "° + 360°n  ó  " + ar + " = " + fmt(sol.base[1], 2) + "° + 360°n" : st.fn === "cos" ? ar + " = ±" + fmt(sol.base[0], 2) + "° + 360°n" : ar + " = " + fmt(sol.base[0], 2) + "° + 180°n";
+        if (st.m > 1) gen += "  ⇒  x = (…)/" + st.m;
+      }
+      lectura.innerHTML = U.lec("Ecuación", tit + " = " + fmt(st.k, 2)) + U.lec("Soluciones generales", gen, "pen") + U.lec("En [0°, 360°)", sol.x.length ? sol.x.map(function (x) { return fmt(x, 2) + "°"; }).join(" · ") : "ninguna", sol.x.length ? "ok" : "red") + U.lec("Número de soluciones", sol.x.length);
+      pie.innerHTML = "Las soluciones son los cortes de la curva con la recta horizontal y = k. Con <b>m = " + st.m + "</b> la curva se repite " + st.m + " vez" + (st.m === 1 ? "" : "es") + " en una vuelta, así que " + (st.fn === "tan" ? "hay " + st.m + " soluciones" : "hay hasta " + 2 * st.m + " soluciones") + ". Para despejar x hay que <b>dividir entre m <i>todo</i></b>, incluido el «+360°n».";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 360, ymin: -1.5, ymax: 1.5, w: 640, h: 270, sinX: true, etx: "x", ety: "", etiqueta: "La curva y la recta y = k" });
+    U.fichas(cuerpo.querySelector("[data-fn]"), [{ k: "sen", t: "seno" }, { k: "cos", t: "coseno" }, { k: "tan", t: "tangente" }], st.fn, function (k) { st.fn = k; st.k = k === "tan" ? 1 : 0.5; eligeK(); pinta(); });
+    U.fichas(cuerpo.querySelector("[data-m]"), [{ k: "1", t: "ángulo x" }, { k: "2", t: "ángulo 2x" }, { k: "3", t: "ángulo 3x" }], "1", function (k) { st.m = +k; pinta(); });
+    eligeK(); pinta();
+  };
+
+  // ============================================================
+  // AMPLITUD: a·sen x + b·cos x = R·sen(x + φ)
+  // ============================================================
+  B.w.amplitud = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "a·sen x + b·cos x = R·sen(x + φ)");
+    cuerpo.innerHTML = '<div class="w-plot"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { a: 3, b: 4 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "Coeficiente <i>a</i> (de sen x)", min: -5, max: 5, step: 0.5, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl, { et: "Coeficiente <i>b</i> (de cos x)", min: -5, max: 5, step: 0.5, val: st.b, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var a = st.a, b = st.b, Rr = Math.hypot(a, b), ph = Math.atan2(b, a) / R;
+      g.limpiar();
+      g.curva(function (x) { return a * sen(x) + b * cos(x); }, { clase: "c-pen", n: 360 });
+      if (Rr > 1e-9) g.curva(function (x) { return Rr * sen(x + ph); }, { clase: "c-red", dash: "7 5", n: 360 });
+      g.horizontal(Rr, { clase: "c-ok", dash: "3 4" }); g.horizontal(-Rr, { clase: "c-ok", dash: "3 4" });
+      g.texto(355, Rr, "R = " + fmt(Rr, 3), { dy: -6, ancla: "end", clase: "ok" });
+      lectura.innerHTML = U.lec("Amplitud R = √(a² + b²)", fmt(Rr, 4), "ok") + U.lec("Desfase φ (tan φ = b/a)", fmt(ph, 2) + "°", "red") + U.lec("a·sen x + b·cos x =", Rr < 1e-9 ? "0" : fmt(Rr, 3) + "·sen(x " + (ph < 0 ? "−" : "+") + " " + fmt(Math.abs(ph), 2) + "°)", "pen") + U.lec("Valor máximo · mínimo", fmt(Rr, 3) + " · " + fmt(-Rr, 3));
+      pie.innerHTML = "La suma de un seno y un coseno <b>del mismo ángulo</b> es siempre otra onda senoidal: la curva azul (suma) y la roja discontinua (R·sen(x + φ)) coinciden. Se obtiene con sen(x + φ) = sen x·cos φ + cos x·sen φ comparando coeficientes: R·cos φ = a y R·sen φ = b. Útil para resolver «a·sen x + b·cos x = c» y para hallar máximos.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 360, ymin: -7.5, ymax: 7.5, w: 640, h: 270, sinX: true, etx: "x", ety: "", etiqueta: "Suma de seno y coseno" });
+    [0, 90, 180, 270, 360].forEach(function (a) { g.segmento(a, -7.5, a, 7.5, { clase: "c-faint", dash: "2 5", capa: "fijo" }); g.texto(a, 0, a + "°", { dy: 15, dx: a === 360 ? -14 : a === 0 ? 14 : 0, ancla: "middle", clase: "faint", capa: "fijo" }); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Historia de España · ampliaciones
    Tema 7: La Restauración borbónica (1874-1902)
    Lo original de pagina.html no se toca: esto se añade al final de cada
@@ -8326,6 +8546,654 @@
   ];
 
   B.registrar("mates1", "t4", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+
+})(window);
+
+/* ============================================================
+   Matemáticas I · ampliaciones · Tema 5: Fórmulas trigonométricas
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, raiz = H.raiz, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates1/t5/" + ref); }
+
+  var resumen = [
+    "<b>Suma y diferencia</b>: sen(a ± b) = sen a·cos b ± cos a·sen b · cos(a ± b) = cos a·cos b ∓ sen a·sen b. Con ellas se sacan <b>todas</b> las demás.",
+    "<b>Ángulo doble</b>: sen 2a = 2·sen a·cos a · cos 2a = cos²a − sen²a = 2cos²a − 1 = 1 − 2sen²a.",
+    "<b>Ángulo mitad</b>: sen(a/2) = ±√((1 − cos a)/2) · cos(a/2) = ±√((1 + cos a)/2). El signo lo decide el cuadrante de a/2.",
+    "Una <b>ecuación</b> trigonométrica tiene infinitas soluciones (+360°·n); en un examen se piden las de [0°, 360°).",
+    "Una <b>identidad</b> se demuestra transformando <i>un</i> lado hasta llegar al otro (nunca «pasando cosas» de un lado a otro).",
+    "Técnicas: factor común (sin dividir entre sen o cos), cambio de variable t = sen x, ángulo doble, pasar sumas a productos."
+  ];
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Suma y diferencia
+  secciones[0] =
+    "<h5>De dónde sale: la distancia entre dos puntos de la circunferencia</h5>" +
+    "<p>Las fórmulas de suma no son una invención: se deducen con lo que ya sabes. Dibuja en la circunferencia goniométrica dos puntos, P = (cos a, sen a) y Q = (cos b, sen b). Calculamos su distancia al cuadrado de dos formas:</p>" +
+    "<ul><li><b>Con las coordenadas</b>: |PQ|² = (cos a − cos b)² + (sen a − sen b)² = (cos²a + sen²a) + (cos²b + sen²b) − 2(cos a·cos b + sen a·sen b) = 2 − 2(cos a·cos b + sen a·sen b).</li>" +
+    "<li><b>Con el teorema del coseno</b> en el triángulo OPQ (dos lados de longitud 1 que forman el ángulo a − b): |PQ|² = 1 + 1 − 2·1·1·cos(a − b) = 2 − 2·cos(a − b).</li></ul>" +
+    "<p>Igualando: <b>cos(a − b) = cos a·cos b + sen a·sen b</b>. El resto se deduce en cadena:</p>" +
+    "<ul><li>Cambiando b por −b (cos(−b) = cos b y sen(−b) = −sen b): <b>cos(a + b) = cos a·cos b − sen a·sen b</b>.</li>" +
+    "<li>Como sen x = cos(90° − x): sen(a + b) = cos(90° − a − b) = cos((90° − a) − b) = cos(90° − a)·cos b + sen(90° − a)·sen b = <b>sen a·cos b + cos a·sen b</b>.</li>" +
+    "<li>Cambiando b por −b: <b>sen(a − b) = sen a·cos b − cos a·sen b</b>.</li>" +
+    "<li>Dividiendo sen(a + b) entre cos(a + b) y dividiendo todo entre cos a·cos b: <b>tan(a + b) = (tan a + tan b)/(1 − tan a·tan b)</b>.</li></ul>" +
+    "<p>Moraleja práctica: de memoria sólo hacen falta <b>las dos primeras</b>, la del coseno de la suma y la del seno de la suma; todas las demás se deducen. Comprueba con números que las fórmulas funcionan (y que las «falsas» tentadoras no):</p>" +
+    w("formulas") +
+    "<h5>Cómo recordar los signos</h5>" +
+    "<p>En el <b>seno</b> el signo del medio es el <i>mismo</i> que el de dentro del paréntesis (sen(a + b) lleva +, sen(a − b) lleva −). En el <b>coseno</b> el signo del medio es el <i>contrario</i> (cos(a + b) lleva −, cos(a − b) lleva +). En la tangente, el numerador conserva el signo y el denominador lo cambia.</p>" +
+    "<h5>Ángulos que se descomponen en notables</h5>" +
+    ejemplo("Valores exactos de 75°, 15° y 105°", "Calcula sen 75°, cos 15° y tan 105° sin calculadora.", [
+      "<b>sen 75°</b> = sen(45° + 30°) = sen 45°·cos 30° + cos 45°·sen 30° = (√2/2)(√3/2) + (√2/2)(1/2) = (√6 + √2)/4 ≈ <b>0,9659</b>.",
+      "<b>cos 15°</b> = cos(45° − 30°) = cos 45°·cos 30° + sen 45°·sen 30° = (√2/2)(√3/2) + (√2/2)(1/2) = (√6 + √2)/4. Es el mismo valor que sen 75°, como debe ser (75° y 15° son complementarios).",
+      "<b>tan 105°</b> = tan(60° + 45°) = (√3 + 1)/(1 − √3·1) = (√3 + 1)/(1 − √3). Multiplicamos arriba y abajo por (1 + √3): (√3 + 1)²/(1 − 3) = (4 + 2√3)/(−2) = <b>−(2 + √3) ≈ −3,732</b> (negativa porque 105° está en el 2.º cuadrante)."
+    ]) +
+    ejemplo("Conozco otras razones", "Si sen a = 4/5 (a en el 2.º cuadrante) y cos b = −12/13 (b en el 3.er cuadrante), calcula sen(a − b) y cos(a + b).", [
+      "Primero se completan las razones que faltan, con la relación fundamental y los signos de cada cuadrante: cos a = −3/5 (2.º cuadrante) y sen b = −5/13 (3.er cuadrante).",
+      "sen(a − b) = sen a·cos b − cos a·sen b = (4/5)(−12/13) − (−3/5)(−5/13) = −48/65 − 15/65 = <b>−63/65</b>.",
+      "cos(a + b) = cos a·cos b − sen a·sen b = (−3/5)(−12/13) − (4/5)(−5/13) = 36/65 + 20/65 = <b>56/65</b>.",
+      "Comprobación con la calculadora: a = 126,87° y b = 202,62°, así que a − b = −75,75° y a + b = 329,49°; sen(−75,75°) = −0,9692 = −63/65 ✓ y cos 329,49° = 0,8615 = 56/65 ✓."
+    ]) +
+    ojo("sen(a + b) <b>no</b> es sen a + sen b. Por ejemplo, sen(30° + 60°) = sen 90° = 1, pero sen 30° + sen 60° = 0,5 + 0,866 = 1,366. Y el coseno de una suma no es la suma de cosenos. La <b>suma</b> de ángulos entra en las fórmulas, no los separa.") +
+    "<h5>Consecuencias inmediatas (las reducciones del Tema 4)</h5>" +
+    "<p>Si en las fórmulas pones ángulos como 90° o 180°, recuperas las identidades del tema anterior: sen(x + 90°) = sen x·cos 90° + cos x·sen 90° = cos x, y sen(180° − x) = sen 180°·cos x − cos 180°·sen x = sen x. Por eso <b>no tienes que memorizar</b> las tablas de reducción: salen de aquí.</p>";
+
+  // ---------------------------------------------------------------- 2. Ángulo doble
+  secciones[1] =
+    "<h5>Es la fórmula de la suma con b = a</h5>" +
+    "<p>Si en sen(a + b) pones b = a: sen 2a = sen a·cos a + cos a·sen a = <b>2·sen a·cos a</b>. Y en cos(a + b): cos 2a = cos²a − sen²a. Usando sen²a + cos²a = 1 hay dos formas más de escribirlo: cambiando sen²a = 1 − cos²a queda <b>2cos²a − 1</b>, y cambiando cos²a = 1 − sen²a queda <b>1 − 2sen²a</b>. La tangente sale de la fórmula de la suma: tan 2a = 2·tan a/(1 − tan²a).</p>" +
+    ejemplo("Conozco una razón y quiero el doble", "Si sen a = 5/13 y a es agudo, calcula sen 2a, cos 2a y tan 2a.", [
+      "cos a = √(1 − 25/169) = 12/13 (agudo → positivo).",
+      "sen 2a = 2·(5/13)·(12/13) = <b>120/169</b> ≈ 0,710.",
+      "cos 2a = cos²a − sen²a = 144/169 − 25/169 = <b>119/169</b> ≈ 0,704. (Con la otra forma: 1 − 2·25/169 = 119/169 ✓.)",
+      "tan 2a = sen 2a/cos 2a = <b>120/119</b>."
+    ]) +
+    "<h5>Para pasar de grado 2 a grado 1: las fórmulas de reducción de potencias</h5>" +
+    "<p>Despejando cos²a y sen²a de las formas «2cos²a − 1» y «1 − 2sen²a» se obtienen unas fórmulas muy usadas en cálculo (para integrar potencias de seno y coseno, en 2.º de Bachillerato) y para resolver ecuaciones:</p>" +
+    H.formula("cos²a = " + fr("1 + cos 2a", "2") + "          sen²a = " + fr("1 − cos 2a", "2")) +
+    "<h5>Y el ángulo triple, por si te lo preguntan</h5>" +
+    "<p>Sin fórmula nueva: sen 3a = sen(2a + a) = sen 2a·cos a + cos 2a·sen a = 2sen a·cos²a + (1 − 2sen²a)·sen a = 2sen a(1 − sen²a) + sen a − 2sen³a = <b>3·sen a − 4·sen³a</b>. De la misma forma cos 3a = 4cos³a − 3cos a.</p>" +
+    ejemplo("Comprobación del seno del triple", "Si sen a = 0,6, calcula sen 3a con la fórmula y comprueba con la calculadora.", [
+      "sen 3a = 3·0,6 − 4·0,6³ = 1,8 − 4·0,216 = 1,8 − 0,864 = <b>0,936</b>.",
+      "Comprobación: a = arcsen 0,6 = 36,87° → 3a = 110,61° → sen 110,61° = 0,936 ✓."
+    ]) +
+    ojo("sen 2a <b>no</b> es 2·sen a. Para a = 30°: sen 60° = 0,866, pero 2·sen 30° = 1. Es el mismo error de «sacar el 2 fuera» que con la suma: el seno no es una función lineal.");
+
+  // ---------------------------------------------------------------- 3. Ángulo mitad
+  secciones[2] =
+    "<h5>Cómo se obtiene y por qué lleva ±</h5>" +
+    "<p>De cos 2x = 1 − 2sen²x se despeja sen²x = (1 − cos 2x)/2. Si llamamos a = 2x (es decir, x = a/2), queda sen²(a/2) = (1 − cos a)/2, y al hacer la raíz cuadrada hay dos signos posibles. El mismo razonamiento con cos 2x = 2cos²x − 1 da cos²(a/2) = (1 + cos a)/2. Dividiendo, aparece una versión de la tangente <b>sin signo</b>:</p>" +
+    H.formula("tan(a/2) = " + fr("1 − cos a", "sen a") + " = " + fr("sen a", "1 + cos a")) +
+    "<p>Esta última tiene la ventaja de que no necesita elegir un signo (el signo lo lleva el propio sen a). El signo en las otras dos lo decide el cuadrante de a/2; se ve con la tabla de signos del Tema 4.</p>" +
+    ejemplo("El cuadrante decide el signo", "Si cos a = −4/5 y a está en el 3.er cuadrante (180° &lt; a &lt; 270°), calcula sen(a/2), cos(a/2) y tan(a/2).", [
+      "Si 180° &lt; a &lt; 270°, entonces 90° &lt; a/2 &lt; 135°: a/2 está en el <b>2.º cuadrante</b> (seno positivo, coseno negativo).",
+      "sen(a/2) = +√((1 − cos a)/2) = √((1 + 4/5)/2) = √(9/10) = <b>3/√10 ≈ 0,949</b>.",
+      "cos(a/2) = −√((1 + cos a)/2) = −√((1 − 4/5)/2) = −√(1/10) = <b>−1/√10 ≈ −0,316</b>.",
+      "tan(a/2) = sen(a/2)/cos(a/2) = <b>−3</b>. Comprobación con la forma sin signo: sen a = −3/5 (3.er cuadrante) → tan(a/2) = sen a/(1 + cos a) = (−3/5)/(1/5) = −3 ✓."
+    ]) +
+    ejemplo("Un valor exacto nuevo", "Calcula sen 22,5° y cos 22,5° con las fórmulas del ángulo mitad.", [
+      "22,5° = 45°/2, y 22,5° está en el 1.er cuadrante (todo positivo).",
+      "sen 22,5° = √((1 − cos 45°)/2) = √((1 − √2/2)/2) = √((2 − √2)/4) = <b>√(2 − √2)/2 ≈ 0,3827</b>.",
+      "cos 22,5° = √((1 + cos 45°)/2) = <b>√(2 + √2)/2 ≈ 0,9239</b>."
+    ]) +
+    ojo("el ± de las fórmulas del ángulo mitad <b>no</b> se deja sin decidir: hay que elegir el signo. Un error muy frecuente es calcular a/2 mal (olvidar dividir entre 2 el intervalo de a) y elegir el signo con el cuadrante de a. Escribe siempre la desigualdad de a/2 antes de decidir.");
+
+  // ---------------------------------------------------------------- 4. Ecuaciones
+  secciones[3] =
+    "<h5>Ecuaciones básicas y cómo ver sus soluciones</h5>" +
+    "<p>Una ecuación trigonométrica es una igualdad que se cumple sólo para <i>algunos</i> ángulos. Como las razones son periódicas hay infinitas soluciones, pero en los problemas se pide casi siempre las de una vuelta, [0°, 360°). La gráfica lo hace transparente: las soluciones son los cortes de la curva con la recta horizontal y = k. Cambia la función, el ángulo (x, 2x, 3x) y el valor k:</p>" +
+    w("ecuaciontrig") +
+    "<p>Resumen de lo que ves: <b>sen x = k</b> (con |k| ≤ 1) tiene dos soluciones por vuelta (α y 180° − α); <b>cos x = k</b> también dos (α y −α, que en [0°, 360°) es 360° − α); <b>tan x = k</b> tiene siempre una (α) y la otra por vuelta es α + 180°.</p>" +
+    "<h5>Cuando el ángulo es 2x, 3x, x/2…</h5>" +
+    "<p>Primero se resuelve para el ángulo completo (todo lo que está dentro del seno) y al final se despeja x, <b>dividiendo también el «+360°·n»</b>. Esto multiplica el número de soluciones por vuelta.</p>" +
+    ejemplo("sen 2x = 1/2 en [0°, 360°)", "Resuelve sen 2x = 1/2.", [
+      "2x = 30° + 360°·n  ó  2x = 150° + 360°·n.",
+      "Dividimos entre 2: x = 15° + 180°·n  ó  x = 75° + 180°·n.",
+      "En [0°, 360°): n = 0 y n = 1 en cada familia → <b>x = 15°, 75°, 195°, 255°</b> (cuatro soluciones: el doble que con sen x = 1/2)."
+    ]) +
+    "<h5>Ecuaciones que hay que transformar primero</h5>" +
+    "<p>El truco es siempre conseguir <b>una sola razón</b> y <b>un solo ángulo</b> (o un producto igual a 0). Se usan: sen²x + cos²x = 1 (para dejar todo en sen o en cos), el ángulo doble (para eliminar el 2x) y el factor común.</p>" +
+    ejemplo("Segundo grado en coseno", "Resuelve 2cos²x − 3cos x + 1 = 0 en [0°, 360°).", [
+      "Cambio t = cos x: 2t² − 3t + 1 = 0 → t = (3 ± 1)/4 → t = 1 o t = 1/2.",
+      "cos x = 1 → x = 0°. cos x = 1/2 → x = 60° o x = 300°.",
+      "<b>x = 0°, 60°, 300°</b>."
+    ]) +
+    ejemplo("Pasar a una sola razón", "Resuelve 2sen²x + cos x − 1 = 0 en [0°, 360°).", [
+      "Sustituimos sen²x = 1 − cos²x: 2(1 − cos²x) + cos x − 1 = 0 → −2cos²x + cos x + 1 = 0 → 2cos²x − cos x − 1 = 0.",
+      "t = cos x: t = (1 ± 3)/4 → t = 1 o t = −1/2.",
+      "cos x = 1 → x = 0°. cos x = −1/2 → x = 120° o 240°. <b>x = 0°, 120°, 240°</b>."
+    ]) +
+    ejemplo("Con el ángulo doble: no dividas", "Resuelve sen 2x = cos x en [0°, 360°).", [
+      "sen 2x = 2·sen x·cos x. La ecuación queda 2·sen x·cos x = cos x → 2·sen x·cos x − cos x = 0 → cos x·(2·sen x − 1) = 0.",
+      "Un producto es 0 si algún factor lo es: cos x = 0 → x = 90° o 270°; 2·sen x − 1 = 0 → sen x = 1/2 → x = 30° o 150°.",
+      "<b>x = 30°, 90°, 150°, 270°</b>. Si «simplificases» dividiendo entre cos x perderías las soluciones 90° y 270°."
+    ]) +
+    ejemplo("Una ecuación con tangente", "Resuelve tan x = 2·sen x en [0°, 360°).", [
+      "Condición: cos x ≠ 0. Escribimos tan x = sen x/cos x: sen x/cos x = 2·sen x → sen x = 2·sen x·cos x → sen x(1 − 2cos x) = 0.",
+      "sen x = 0 → x = 0° o 180°. 1 − 2cos x = 0 → cos x = 1/2 → x = 60° o 300°.",
+      "Ninguna de las soluciones hace cos x = 0: <b>x = 0°, 60°, 180°, 300°</b>."
+    ]) +
+    "<h5>Cuando aparecen elevados al cuadrado: comprueba</h5>" +
+    ejemplo("Solución falsa", "Resuelve sen x + cos x = 1 en [0°, 360°).", [
+      "Elevamos al cuadrado: sen²x + 2·sen x·cos x + cos²x = 1 → 1 + sen 2x = 1 → sen 2x = 0 → 2x = 0°, 180°, 360°, 540° → x = 0°, 90°, 180°, 270°.",
+      "Comprobamos en la ecuación original: x = 0° → 0 + 1 = 1 ✓ · x = 90° → 1 + 0 = 1 ✓ · x = 180° → 0 − 1 = −1 ✗ · x = 270° → −1 + 0 = −1 ✗.",
+      "<b>x = 0° y x = 90°</b>. Al elevar al cuadrado se perdió el signo y aparecieron dos soluciones falsas (como en las ecuaciones irracionales del Tema 3)."
+    ]) +
+    "<p>Unas pautas para no perderse: <b>(1)</b> reduce a una razón y un ángulo; <b>(2)</b> si te sale un producto, iguala cada factor a 0, nunca simplifiques una razón; <b>(3)</b> resuelve la ecuación básica con los dos ángulos por vuelta; <b>(4)</b> si había ángulo 2x, 3x…, divide al final; <b>(5)</b> da las soluciones del intervalo pedido y, si elevaste al cuadrado, comprueba.</p>" +
+    ojo("al resolver sen x = 0,5 la calculadora da <b>un solo</b> ángulo (30°), pero siempre hay otro en la misma vuelta (150°). Con el coseno, la otra solución es 360° − α. Haz el dibujo de la circunferencia: te recuerda que son dos.");
+
+  // ---------------------------------------------------------------- 5. Identidades
+  secciones[4] =
+    "<h5>Tu caja de herramientas</h5>" +
+    "<p>Para demostrar una identidad se usan siempre las mismas piezas; conviene tenerlas a mano:</p>" +
+    "<ul><li><b>sen²x + cos²x = 1</b>, y sus versiones 1 − cos²x = sen²x y 1 − sen²x = cos²x.</li>" +
+    "<li><b>tan x = sen x/cos x</b>, cotan x = cos x/sen x, y 1 + tan²x = 1/cos²x.</li>" +
+    "<li>Ángulo doble, suma y mitad.</li>" +
+    "<li>Álgebra: factor común, <b>(1 − cos x)(1 + cos x) = 1 − cos²x = sen²x</b>, denominador común, multiplicar por el conjugado.</li></ul>" +
+    "<h5>Cuatro estrategias que funcionan</h5>" +
+    "<ol><li><b>Pasar todo a seno y coseno</b>. Si hay tangentes, cotangentes, secantes… escríbelas con sen y cos: casi siempre simplifica.</li>" +
+    "<li><b>Denominador común</b> cuando hay sumas de fracciones, y después simplificar con sen² + cos² = 1.</li>" +
+    "<li><b>Multiplicar por el conjugado</b> cuando aparece 1 ± cos x o 1 ± sen x en un denominador (es el truco del ejemplo del tema).</li>" +
+    "<li><b>Trabajar el lado más complicado</b> hasta llegar al otro, anotando cada paso. Nunca se opera en los dos lados a la vez.</li></ol>" +
+    "<p>Antes de empezar una demostración, puedes comprobar numéricamente si la igualdad es plausible: prueba la identidad (y otras que no lo son) en el comprobador. <b>Pero ojo</b>, comprobar con números no es demostrar: un examen exige el álgebra.</p>" +
+    w("identidad") +
+    ejemplo("Convertir a seno y coseno", "Demuestra que tan x + 1/tan x = 2/sen 2x.", [
+      "Lado izquierdo: tan x + cotan x = sen x/cos x + cos x/sen x = (sen²x + cos²x)/(sen x·cos x) = 1/(sen x·cos x).",
+      "Lado derecho: 2/sen 2x = 2/(2·sen x·cos x) = 1/(sen x·cos x).",
+      "Los dos lados son iguales a 1/(sen x·cos x). ∎ (Aquí hemos llevado los dos lados a una misma expresión intermedia: es una forma válida de demostrar, siempre que cada paso sea una igualdad.)"
+    ]) +
+    ejemplo("Suma de fracciones", "Demuestra que sen x/(1 + cos x) + (1 + cos x)/sen x = 2/sen x.", [
+      "Denominador común sen x·(1 + cos x): [sen²x + (1 + cos x)²]/[sen x·(1 + cos x)].",
+      "Numerador: sen²x + 1 + 2cos x + cos²x = (sen²x + cos²x) + 1 + 2cos x = 2 + 2cos x = 2(1 + cos x).",
+      "Queda 2(1 + cos x)/[sen x·(1 + cos x)] = 2/sen x. ∎"
+    ]) +
+    ejemplo("Con tangentes y ángulo doble", "Demuestra que cos 2x = (1 − tan²x)/(1 + tan²x).", [
+      "Partimos del lado derecho. Como 1 + tan²x = 1/cos²x, el denominador es 1/cos²x.",
+      "Numerador: 1 − tan²x = (cos²x − sen²x)/cos²x. Entonces el cociente es [(cos²x − sen²x)/cos²x]·cos²x = cos²x − sen²x = cos 2x. ∎"
+    ]) +
+    "<p>Y una advertencia sobre lo que <b>no</b> se debe hacer: pasar términos de un lado al otro, multiplicar los dos lados en cruz o elevar al cuadrado «para ver si sale». Esas operaciones son válidas para resolver una ecuación, pero en una identidad suponen dar ya por cierto lo que quieres demostrar.</p>";
+
+  // ---------------------------------------------------------------- Nuevas
+  var nuevas = [
+    {
+      h: "6. Transformar sumas en productos (y al revés)",
+      html:
+        "<p>Las fórmulas de suma y diferencia, sumadas o restadas entre sí, producen unas identidades muy cómodas para resolver ecuaciones, porque convierten una <b>suma</b> de razones (difícil de igualar a 0) en un <b>producto</b> (fácil: cada factor a 0). Por ejemplo, sumando sen(x + y) = sen x·cos y + cos x·sen y y sen(x − y) = sen x·cos y − cos x·sen y queda sen(x + y) + sen(x − y) = 2·sen x·cos y. Llamando A = x + y y B = x − y (x = (A + B)/2, y = (A − B)/2):</p>" +
+        tabla(["Suma", "Producto"], [
+          ["sen A + sen B", "2·sen((A + B)/2)·cos((A − B)/2)"],
+          ["sen A − sen B", "2·cos((A + B)/2)·sen((A − B)/2)"],
+          ["cos A + cos B", "2·cos((A + B)/2)·cos((A − B)/2)"],
+          ["cos A − cos B", "−2·sen((A + B)/2)·sen((A − B)/2)"]
+        ]) +
+        "<p>Y al revés (producto a suma): sen A·cos B = ½[sen(A + B) + sen(A − B)], cos A·cos B = ½[cos(A + B) + cos(A − B)] y sen A·sen B = ½[cos(A − B) − cos(A + B)]. No hace falta memorizarlas todas: se deducen de las de suma en un renglón.</p>" +
+        ejemplo("Un valor exacto", "Calcula sen 75° + sen 15° sin calculadora.", [
+          "sen 75° + sen 15° = 2·sen((75° + 15°)/2)·cos((75° − 15°)/2) = 2·sen 45°·cos 30° = 2·(√2/2)(√3/2) = <b>√6/2 ≈ 1,2247</b>.",
+          "Comprobación con los valores de la sección 1: 0,9659 + 0,2588 = 1,2247 ✓."
+        ]) +
+        ejemplo("Ecuación con una suma de senos", "Resuelve sen 3x + sen x = 0 en [0°, 360°).", [
+          "Transformamos: sen 3x + sen x = 2·sen((3x + x)/2)·cos((3x − x)/2) = 2·sen 2x·cos x = 0.",
+          "sen 2x = 0 → 2x = 0°, 180°, 360°, 540° → x = 0°, 90°, 180°, 270°. cos x = 0 → x = 90°, 270° (ya están).",
+          "<b>x = 0°, 90°, 180°, 270°</b>."
+        ]) +
+        ejemplo("Ecuación con dos sumas", "Resuelve sen x + sen 3x = cos x + cos 3x en [0°, 360°).", [
+          "Transformamos cada lado: 2·sen 2x·cos x = 2·cos 2x·cos x → 2·cos x·(sen 2x − cos 2x) = 0.",
+          "cos x = 0 → x = 90° o 270°. sen 2x = cos 2x → tan 2x = 1 → 2x = 45° + 180°·n → x = 22,5° + 90°·n → x = 22,5°, 112,5°, 202,5°, 292,5°.",
+          "<b>Seis soluciones: x = 22,5°, 90°, 112,5°, 202,5°, 270°, 292,5°</b>. (No dividimos entre cos x: perderíamos 90° y 270°.)"
+        ])
+    },
+    {
+      h: "7. Combinar seno y coseno en una sola onda",
+      html:
+        "<p>La suma a·sen x + b·cos x aparece mucho (ondas, corrientes alternas, movimiento armónico) y se puede escribir como <b>una sola</b> función seno con amplitud y desfase. Se busca R y φ tales que R·sen(x + φ) = R·cos φ·sen x + R·sen φ·cos x sea igual a a·sen x + b·cos x. Comparando coeficientes: R·cos φ = a y R·sen φ = b. Elevando al cuadrado y sumando: R² = a² + b² y tan φ = b/a.</p>" +
+        H.formula("a·sen x + b·cos x = R·sen(x + φ)       con R = √(a² + b²) y tan φ = b/a") +
+        w("amplitud") +
+        ejemplo("Valor máximo", "¿Cuál es el valor máximo de f(x) = sen x + cos x y en qué ángulo de [0°, 360°) se alcanza?", [
+          "a = b = 1: R = √2 y tan φ = 1 → φ = 45°. Entonces f(x) = √2·sen(x + 45°).",
+          "El seno vale 1 como máximo, así que el máximo de f es <b>√2 ≈ 1,414</b>, cuando x + 45° = 90°, es decir, en <b>x = 45°</b>."
+        ]) +
+        ejemplo("Ecuación a·sen x + b·cos x = c", "Resuelve sen x − √3·cos x = 1 en [0°, 360°).", [
+          "a = 1 y b = −√3: R = √(1 + 3) = 2 y tan φ = −√3 (con a &gt; 0) → φ = −60°. Así sen x − √3·cos x = 2·sen(x − 60°).",
+          "2·sen(x − 60°) = 1 → sen(x − 60°) = 1/2 → x − 60° = 30° o 150° (+360°·n).",
+          "<b>x = 90° o x = 210°</b>. Comprobación: sen 90° − √3·cos 90° = 1 ✓ y sen 210° − √3·cos 210° = −0,5 + 1,5 = 1 ✓."
+        ]) +
+        ejemplo("Amplitud de 3·sen x + 4·cos x", "Escribe 3·sen x + 4·cos x como R·sen(x + φ).", [
+          "R = √(9 + 16) = 5 y tan φ = 4/3 → φ = arctan(4/3) = 53,13°.",
+          "Por tanto 3·sen x + 4·cos x = <b>5·sen(x + 53,13°)</b>: oscila entre −5 y 5."
+        ])
+    },
+    {
+      h: "8. Mapa de fórmulas: qué hay que memorizar y qué se deduce",
+      html:
+        "<p>Muchos alumnos tienen la sensación de que «hay cientos de fórmulas». En realidad, todo parte de dos o tres:</p>" +
+        "<ul><li>sen²x + cos²x = 1 (Pitágoras en la circunferencia) y tan x = sen x/cos x.</li>" +
+        "<li>La suma de ángulos: cos(a − b) = cos a·cos b + sen a·sen b (y de ella, las otras tres).</li></ul>" +
+        "<p>De la suma salen el doble (b = a), el triple (suma de 2a y a), las reducciones de ángulos (con 90° y 180°) y, despejando, el mitad y las transformaciones. Une cada resultado con su fórmula:</p>" +
+        w("emparejar", "formulas") +
+        "<p>Y ahora decide si cada igualdad es una identidad, una ecuación (cierta sólo para algunos ángulos) o directamente falsa:</p>" +
+        w("clasificar", "tipos") +
+        "<p>Ordena los pasos de la demostración de una identidad:</p>" +
+        w("orden", "demo")
+    },
+    {
+      h: "9. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
+    },
+    {
+      h: "10. Autocomprobación del tema",
+      html: "<p>Diez preguntas de test con explicación y tarjetas para memorizar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
+    }
+  ];
+
+  var datos = {
+    formulas: {
+      titulo: "Cada resultado con su fórmula",
+      consigna: "Une cada expresión con su desarrollo.",
+      pares: [
+        ["sen 2a", "2·sen a·cos a"],
+        ["cos 2a (en función de cos a)", "2cos²a − 1"],
+        ["cos 2a (en función de sen a)", "1 − 2sen²a"],
+        ["cos(a − b)", "cos a·cos b + sen a·sen b"],
+        ["sen(a + b)", "sen a·cos b + cos a·sen b"],
+        ["tan 2a", "2tan a/(1 − tan²a)"],
+        ["sen²a", "(1 − cos 2a)/2"],
+        ["sen(a/2) (con signo)", "±√((1 − cos a)/2)"],
+        ["sen 3a", "3·sen a − 4·sen³a"]
+      ]
+    },
+    tipos: {
+      titulo: "¿Identidad, ecuación o falsa?",
+      consigna: "Toca una igualdad y después la categoría correcta.",
+      categorias: ["Identidad (siempre cierta)", "Ecuación (cierta sólo para algunos x)", "Falsa en general"],
+      items: [
+        { t: "sen²x + cos²x = 1", c: 0 }, { t: "cos 2x = 2cos²x − 1", c: 0 }, { t: "sen(x + 90°) = cos x", c: 0 }, { t: "1 + tan²x = 1/cos²x", c: 0 },
+        { t: "sen x = 1/2", c: 1 }, { t: "sen 2x = sen x", c: 1 }, { t: "sen x + cos x = 1", c: 1 }, { t: "(sen x + cos x)² = 1", c: 1 },
+        { t: "sen(a + b) = sen a + sen b", c: 2 }, { t: "cos 2x = 2cos x", c: 2 }, { t: "sen(2x) = 2 sen x", c: 2 }
+      ]
+    },
+    demo: {
+      titulo: "Demostrar sen x/(1 + cos x) = (1 − cos x)/sen x",
+      consigna: "Ordena los pasos de la demostración.",
+      items: [
+        { t: "Partimos del lado izquierdo: sen x/(1 + cos x)", nota: "Se trabaja un solo lado." },
+        { t: "Multiplicamos numerador y denominador por (1 − cos x)", nota: "Es multiplicar por 1: no cambia el valor." },
+        { t: "El denominador es una diferencia de cuadrados: (1 + cos x)(1 − cos x) = 1 − cos²x", nota: "Identidad notable del Tema 3." },
+        { t: "Por la relación fundamental, 1 − cos²x = sen²x", nota: "sen²x + cos²x = 1." },
+        { t: "Queda sen x·(1 − cos x)/sen²x; simplificamos un factor sen x", nota: "Se tachan factores, no sumandos." },
+        { t: "Llegamos a (1 − cos x)/sen x, que es el lado derecho. ∎", nota: "Fin: hemos pasado del lado izquierdo al derecho con igualdades." }
+      ]
+    },
+    tj1: {
+      titulo: "Fórmulas trigonométricas",
+      cartas: [
+        { a: "sen(a ± b)", b: "sen a·cos b ± cos a·sen b" },
+        { a: "cos(a ± b)", b: "cos a·cos b ∓ sen a·sen b (el signo del medio es el CONTRARIO)" },
+        { a: "tan(a ± b)", b: "(tan a ± tan b)/(1 ∓ tan a·tan b)" },
+        { a: "sen 2a", b: "2·sen a·cos a" },
+        { a: "cos 2a (tres formas)", b: "cos²a − sen²a = 2cos²a − 1 = 1 − 2sen²a" },
+        { a: "tan 2a", b: "2·tan a/(1 − tan²a)" },
+        { a: "Reducción de potencias", b: "cos²a = (1 + cos 2a)/2 · sen²a = (1 − cos 2a)/2" },
+        { a: "sen(a/2) y cos(a/2)", b: "±√((1 − cos a)/2) y ±√((1 + cos a)/2). El signo lo da el cuadrante de a/2." },
+        { a: "tan(a/2) sin signo", b: "(1 − cos a)/sen a = sen a/(1 + cos a)" },
+        { a: "sen 3a y cos 3a", b: "3·sen a − 4·sen³a · 4·cos³a − 3·cos a" },
+        { a: "Suma de senos a producto", b: "sen A + sen B = 2·sen((A + B)/2)·cos((A − B)/2)" },
+        { a: "Soluciones de sen x = k, cos x = k, tan x = k", b: "sen: α + 360°n y 180° − α + 360°n · cos: ±α + 360°n · tan: α + 180°n" },
+        { a: "a·sen x + b·cos x", b: "R·sen(x + φ), R = √(a² + b²), tan φ = b/a" },
+        { a: "Cómo se demuestra una identidad", b: "Se transforma UN lado (a sen y cos, denominador común, conjugado) hasta obtener el otro. No se pasan términos de un lado a otro." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "Un alumno calcula sen 75° = sen 45° + sen 30° = 0,707 + 0,5 = 1,207. ¿Qué falla?",
+          op: ["Nada", "sen(a + b) ≠ sen a + sen b: hay que usar sen a·cos b + cos a·sen b = 0,9659", "Debía restar", "El resultado correcto es 1"], ok: 1,
+          porque: "Un seno nunca puede ser mayor que 1, así que 1,207 es imposible. La fórmula correcta da (√2/2)(√3/2) + (√2/2)(1/2) = 0,9659." },
+        { q: "Un alumno escribe cos(a + b) = cos a·cos b + sen a·sen b. ¿Qué falla?",
+          op: ["Nada", "El signo del medio en el coseno de una suma es −: cos a·cos b − sen a·sen b", "Falta un 2", "Debía llevar tangentes"], ok: 1,
+          porque: "Prueba con a = b = 90°: cos 180° = −1 y la fórmula correcta da 0·0 − 1·1 = −1, pero la errónea daría +1." },
+        { q: "Un alumno resuelve sen 2x = cos x dividiendo entre cos x y obtiene 2 sen x = 1, es decir, x = 30° y 150°. ¿Qué ha perdido?",
+          op: ["Nada", "Las soluciones x = 90° y 270°, donde cos x = 0: no se puede dividir entre una expresión que puede valer 0", "La solución x = 0°", "La solución x = 180°"], ok: 1,
+          porque: "Debió factorizar: cos x(2 sen x − 1) = 0. De cos x = 0 salen 90° y 270°; de sen x = 1/2, 30° y 150°." },
+        { q: "Para resolver sen x = 0,5 en [0°, 360°), un alumno da sólo x = 30° porque «la calculadora da 30°». ¿Qué falla?",
+          op: ["Nada", "También x = 150° (180° − 30°): en una vuelta, el seno toma cada valor en dos ángulos", "También x = 330°", "También x = 210°"], ok: 1,
+          porque: "El seno es positivo en los cuadrantes I y II; en el 2.º cuadrante el ángulo de referencia 30° da 180° − 30° = 150°." },
+        { q: "Al resolver sen 2x = 1/2, un alumno escribe 2x = 30° + 360°n y concluye x = 30° + 360°n. ¿Qué falla?",
+          op: ["Nada", "Al despejar x hay que dividir también la parte 360°n entre 2: x = 15° + 180°n", "Falta multiplicar por 2", "El resultado es x = 60° + 360°n"], ok: 1,
+          porque: "Si 2x = 30° + 360°n, entonces x = 15° + 180°n. (Y además falta la segunda familia, 2x = 150° + 360°n.)" },
+        { q: "Un alumno «demuestra» una identidad pasando términos de un lado a otro hasta llegar a algo evidente. ¿Qué falla?",
+          op: ["Nada: es un método válido", "Pasar términos supone dar la igualdad por cierta, que es lo que se debe demostrar", "Debe multiplicar en cruz", "Falta una constante"], ok: 1,
+          porque: "En una identidad se parte de un lado y se transforma con igualdades hasta llegar al otro. «Pasar cosas» es una técnica de las ecuaciones." },
+        { q: "Si cos a = 0,6 con a agudo, un alumno calcula sen(a/2) = −√((1 − 0,6)/2) = −0,447. ¿Qué falla?",
+          op: ["Nada", "a/2 está en el 1.er cuadrante, donde el seno es positivo: sen(a/2) = +0,447", "Debía ser √((1 + 0,6)/2)", "El valor es 0,2"], ok: 1,
+          porque: "Si 0° &lt; a &lt; 90°, entonces 0° &lt; a/2 &lt; 45°: primer cuadrante, seno positivo. El signo lo decide a/2, no a." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "El valor exacto de sen 75° es…",
+          op: ["(√6 + √2)/4", "(√6 − √2)/4", "√3/2", "(√3 + 1)/2"], ok: 0,
+          porque: "sen(45° + 30°) = (√2/2)(√3/2) + (√2/2)(1/2) = (√6 + √2)/4 ≈ 0,966." },
+        { q: "Si sen a = 3/5 y a es agudo, sen 2a vale…",
+          op: ["24/25", "6/5", "7/25", "3/10"], ok: 0,
+          porque: "cos a = 4/5, sen 2a = 2·(3/5)·(4/5) = 24/25." },
+        { q: "cos 2a, escrito en función de sen a, es…",
+          op: ["1 − 2sen²a", "2sen²a − 1", "1 + 2sen²a", "2sen a·cos a"], ok: 0,
+          porque: "cos 2a = cos²a − sen²a = 1 − sen²a − sen²a = 1 − 2sen²a." },
+        { q: "Las soluciones de sen x = 1/2 en [0°, 360°) son…",
+          op: ["30° y 150°", "30° y 330°", "60° y 120°", "30° y 210°"], ok: 0,
+          porque: "sen 30° = 1/2 y también sen(180° − 30°) = sen 150° = 1/2." },
+        { q: "El número de soluciones de sen 2x = 1/2 en [0°, 360°) es…",
+          op: ["4", "2", "1", "8"], ok: 0,
+          porque: "2x = 30° + 360°n o 150° + 360°n → x = 15° + 180°n o 75° + 180°n: cuatro en una vuelta." },
+        { q: "Si cos a = 0,8 y a es agudo, ¿cuánto vale cos(a/2)?",
+          op: ["√0,9 ≈ 0,949", "√0,1 ≈ 0,316", "0,4", "√0,4 ≈ 0,632"], ok: 0,
+          porque: "cos(a/2) = +√((1 + 0,8)/2) = √0,9 ≈ 0,949 (a/2 es agudo: positivo)." },
+        { q: "tan(45° + 30°) es igual a…",
+          op: ["2 + √3", "1 + √3/3", "√3", "(√3 − 1)/2"], ok: 0,
+          porque: "(1 + √3/3)/(1 − 1·√3/3) = (3 + √3)/(3 − √3) = (3 + √3)²/6 = (12 + 6√3)/6 = 2 + √3." },
+        { q: "Para resolver 2cos²x − 3cos x + 1 = 0 el cambio adecuado es…",
+          op: ["t = cos x", "t = 2x", "t = cos²x", "t = tan x"], ok: 0,
+          porque: "Con t = cos x queda 2t² − 3t + 1 = 0, una ecuación de segundo grado normal." },
+        { q: "Al demostrar una identidad trigonométrica, lo correcto es…",
+          op: ["Transformar un lado hasta llegar al otro", "Pasar todos los términos a un lado", "Elevar al cuadrado los dos lados", "Sustituir x por un valor"], ok: 0,
+          porque: "Probar con un valor no demuestra nada, y las demás operaciones suponen cierta la igualdad." },
+        { q: "El valor máximo de sen x + cos x es…",
+          op: ["√2", "2", "1", "√3"], ok: 0,
+          porque: "sen x + cos x = √2·sen(x + 45°), cuyo máximo es √2 ≈ 1,414." }
+      ]
+    }
+  };
+
+  var ejercicios = [
+    // ================= ★ básico =================
+    { id: "h1", nivel: 1,
+      enunciado: "Calcula sen 75° como suma de dos ángulos notables. Da el valor decimal.",
+      check: { tipo: "num", etiqueta: "sen 75° =", valor: 0.9659, tol: 0.001 },
+      pistas: ["75° = 45° + 30°."],
+      pasos: ["sen(45° + 30°) = sen 45°·cos 30° + cos 45°·sen 30° = (√2/2)(√3/2) + (√2/2)(1/2) = (√6 + √2)/4 ≈ 0,9659."],
+      resultado: "(√6 + √2)/4 ≈ 0,9659" },
+    { id: "h2", nivel: 1,
+      enunciado: "Calcula cos 105° como cos(60° + 45°). Da el valor decimal.",
+      check: { tipo: "num", etiqueta: "cos 105° =", valor: -0.2588, tol: 0.002 },
+      pistas: ["cos(a + b) = cos a·cos b − sen a·sen b."],
+      pasos: ["cos 105° = cos 60°·cos 45° − sen 60°·sen 45° = (1/2)(√2/2) − (√3/2)(√2/2) = (√2 − √6)/4 ≈ −0,2588.", "Es negativo, como corresponde al 2.º cuadrante."],
+      resultado: "(√2 − √6)/4 ≈ −0,2588" },
+    { id: "h3", nivel: 1,
+      enunciado: "Si sen a = 5/13 y a es agudo, calcula sen 2a y cos 2a (decimales).",
+      check: [{ tipo: "num", etiqueta: "sen 2a =", valor: 120 / 169, tol: 0.002 }, { tipo: "num", etiqueta: "cos 2a =", valor: 119 / 169, tol: 0.002 }],
+      pistas: ["Primero cos a = √(1 − sen²a)."],
+      pasos: ["cos a = 12/13.", "sen 2a = 2·(5/13)(12/13) = 120/169 ≈ 0,710.", "cos 2a = (12/13)² − (5/13)² = 119/169 ≈ 0,704."],
+      resultado: "sen 2a = 120/169 · cos 2a = 119/169" },
+    { id: "h4", nivel: 1,
+      enunciado: "Calcula tan 75° = tan(45° + 30°). Da el valor decimal.",
+      check: { tipo: "num", etiqueta: "tan 75° =", valor: 3.732, tol: 0.002 },
+      pistas: ["tan(a + b) = (tan a + tan b)/(1 − tan a·tan b) con tan 45° = 1 y tan 30° = √3/3."],
+      pasos: ["tan 75° = (1 + √3/3)/(1 − √3/3) = (3 + √3)/(3 − √3).", "Racionalizando: (3 + √3)²/6 = (12 + 6√3)/6 = 2 + √3 ≈ 3,732."],
+      resultado: "2 + √3 ≈ 3,732" },
+    { id: "h5", nivel: 1,
+      enunciado: "Resuelve sen x = √3/2 para x en [0°, 360°).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [60, 120], unidad: "°" },
+      pistas: ["sen 60° = √3/2. El otro ángulo con el mismo seno es 180° − 60°."],
+      pasos: ["x = 60° (1.er cuadrante) y x = 180° − 60° = 120° (2.º cuadrante)."],
+      resultado: "x = 60° y x = 120°" },
+    { id: "h6", nivel: 1,
+      enunciado: "Resuelve cos x = −1/2 para x en [0°, 360°).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [120, 240], unidad: "°" },
+      pistas: ["cos 60° = 1/2: ángulo de referencia 60°, con coseno negativo (cuadrantes II y III)."],
+      pasos: ["2.º cuadrante: 180° − 60° = 120°. 3.er cuadrante: 180° + 60° = 240°."],
+      resultado: "x = 120° y x = 240°" },
+    { id: "h7", nivel: 1,
+      enunciado: "Resuelve tan x = 1 para x en [0°, 360°).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [45, 225], unidad: "°" },
+      pistas: ["La tangente se repite cada 180°."],
+      pasos: ["tan 45° = 1. Sumando 180°: x = 225°."],
+      resultado: "x = 45° y x = 225°" },
+    { id: "h8", nivel: 1,
+      enunciado: "Si cos a = 7/25 y a es agudo, calcula sen(a/2).",
+      check: { tipo: "num", etiqueta: "sen(a/2) =", valor: 0.6 },
+      pistas: ["a/2 también es agudo: signo positivo."],
+      pasos: ["sen(a/2) = √((1 − cos a)/2) = √((1 − 7/25)/2) = √(18/50) = √(9/25) = 3/5 = 0,6."],
+      resultado: "3/5" },
+    { id: "h9", nivel: 1,
+      enunciado: "Calcula sen 50°·cos 40° + cos 50°·sen 40° sin calculadora.",
+      check: { tipo: "num", etiqueta: "valor =", valor: 1 },
+      pistas: ["Es el desarrollo de una fórmula de suma."],
+      pasos: ["sen a·cos b + cos a·sen b = sen(a + b) con a = 50° y b = 40°: sen 90° = 1."],
+      resultado: "1" },
+    { id: "h10", nivel: 1,
+      enunciado: "Calcula cos²15° − sen²15° sin calculadora (valor decimal).",
+      check: { tipo: "num", etiqueta: "valor =", valor: 0.866, tol: 0.002 },
+      pistas: ["Es cos 2a con a = 15°."],
+      pasos: ["cos²a − sen²a = cos 2a → cos 30° = √3/2 ≈ 0,866."],
+      resultado: "√3/2" },
+    // ================= ★★ medio =================
+    { id: "h11", nivel: 2,
+      enunciado: "Si sen a = 4/5 (a en el 2.º cuadrante) y cos b = −12/13 (b en el 3.er cuadrante), calcula sen(a − b) y cos(a + b).",
+      check: [{ tipo: "num", etiqueta: "sen(a − b) =", valor: -63 / 65, tol: 0.002, ph: "p/q o decimal" }, { tipo: "num", etiqueta: "cos(a + b) =", valor: 56 / 65, tol: 0.002 }],
+      pistas: ["cos a = −3/5 y sen b = −5/13 (por los cuadrantes)."],
+      pasos: ["sen(a − b) = (4/5)(−12/13) − (−3/5)(−5/13) = −48/65 − 15/65 = −63/65.", "cos(a + b) = (−3/5)(−12/13) − (4/5)(−5/13) = 36/65 + 20/65 = 56/65."],
+      resultado: "sen(a − b) = −63/65 · cos(a + b) = 56/65" },
+    { id: "h12", nivel: 2,
+      enunciado: "Si tan a = 2 y tan b = 3, calcula tan(a + b).",
+      check: { tipo: "num", etiqueta: "tan(a + b) =", valor: -1 },
+      pistas: ["tan(a + b) = (tan a + tan b)/(1 − tan a·tan b)."],
+      pasos: ["(2 + 3)/(1 − 2·3) = 5/(−5) = −1."],
+      resultado: "−1" },
+    { id: "h13", nivel: 2,
+      enunciado: "Si tan a = 3/4 y a es agudo, calcula sen 2a, cos 2a y tan 2a.",
+      check: [{ tipo: "num", etiqueta: "sen 2a =", valor: 0.96 }, { tipo: "num", etiqueta: "cos 2a =", valor: 0.28 }, { tipo: "num", etiqueta: "tan 2a =", valor: 24 / 7, tol: 0.002 }],
+      pistas: ["tan a = 3/4 → catetos 3 y 4, hipotenusa 5: sen a = 3/5 y cos a = 4/5."],
+      pasos: ["sen 2a = 2·(3/5)(4/5) = 24/25 = 0,96.", "cos 2a = 16/25 − 9/25 = 7/25 = 0,28.", "tan 2a = (24/25)/(7/25) = 24/7. (Con la fórmula: 2·(3/4)/(1 − 9/16) = (3/2)/(7/16) = 24/7.)"],
+      resultado: "sen 2a = 24/25 · cos 2a = 7/25 · tan 2a = 24/7" },
+    { id: "h14", nivel: 2,
+      enunciado: "Si sen a = 0,6, calcula sen 3a con la fórmula del seno del triple, sen 3a = 3·sen a − 4·sen³a.",
+      check: { tipo: "num", etiqueta: "sen 3a =", valor: 0.936 },
+      pistas: ["Sustituye sen a = 0,6 en la fórmula."],
+      pasos: ["sen 3a = 3·0,6 − 4·0,216 = 1,8 − 0,864 = 0,936."],
+      resultado: "0,936" },
+    { id: "h15", nivel: 2,
+      enunciado: "Si cos a = −4/5 y 180° &lt; a &lt; 270°, calcula sen(a/2) y cos(a/2).",
+      check: [{ tipo: "num", etiqueta: "sen(a/2) =", valor: 0.9487, tol: 0.002 }, { tipo: "num", etiqueta: "cos(a/2) =", valor: -0.3162, tol: 0.002 }],
+      pistas: ["Si 180° &lt; a &lt; 270°, entonces 90° &lt; a/2 &lt; 135°: 2.º cuadrante."],
+      pasos: ["sen(a/2) = +√((1 + 4/5)/2) = √(9/10) = 3/√10 ≈ 0,949.", "cos(a/2) = −√((1 − 4/5)/2) = −√(1/10) ≈ −0,316."],
+      resultado: "sen(a/2) = 3/√10 · cos(a/2) = −1/√10" },
+    { id: "h16", nivel: 2,
+      enunciado: "Calcula el valor exacto de sen 22,5° como decimal usando el ángulo mitad de 45°.",
+      check: { tipo: "num", etiqueta: "sen 22,5° =", valor: 0.3827, tol: 0.002 },
+      pistas: ["22,5° = 45°/2, en el 1.er cuadrante."],
+      pasos: ["sen 22,5° = √((1 − cos 45°)/2) = √((1 − 0,7071)/2) = √0,14645 = 0,3827 (= √(2 − √2)/2)."],
+      resultado: "√(2 − √2)/2 ≈ 0,3827" },
+    { id: "h17", nivel: 2,
+      enunciado: "Resuelve sen 2x = 1/2 en [0°, 360°).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [15, 75, 195, 255], unidad: "°" },
+      pistas: ["2x = 30° + 360°n ó 150° + 360°n. Divide entre 2."],
+      pasos: ["x = 15° + 180°n ó x = 75° + 180°n.", "En [0°, 360°): 15°, 195°, 75°, 255°."],
+      resultado: "x = 15°, 75°, 195°, 255°" },
+    { id: "h18", nivel: 2,
+      enunciado: "Resuelve 2cos²x − 3cos x + 1 = 0 en [0°, 360°).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [0, 60, 300], unidad: "°" },
+      pistas: ["Cambio t = cos x."],
+      pasos: ["2t² − 3t + 1 = 0 → t = 1 o t = 1/2.", "cos x = 1 → x = 0°. cos x = 1/2 → x = 60° o 300°."],
+      resultado: "x = 0°, 60°, 300°" },
+    { id: "h19", nivel: 2,
+      enunciado: "Resuelve sen 2x = cos x en [0°, 360°). Escribe las cuatro soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [30, 90, 150, 270], unidad: "°" },
+      pistas: ["Escribe sen 2x = 2 sen x cos x y saca factor común cos x. No dividas entre cos x."],
+      pasos: ["cos x(2 sen x − 1) = 0.", "cos x = 0 → 90°, 270°. sen x = 1/2 → 30°, 150°."],
+      resultado: "x = 30°, 90°, 150°, 270°" },
+    { id: "h20", nivel: 2,
+      enunciado: "Resuelve 2sen²x + cos x − 1 = 0 en [0°, 360°).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [0, 120, 240], unidad: "°" },
+      pistas: ["Sustituye sen²x = 1 − cos²x para tener una sola razón."],
+      pasos: ["2(1 − cos²x) + cos x − 1 = 0 → 2cos²x − cos x − 1 = 0 → cos x = 1 o −1/2.", "x = 0°; x = 120° o 240°."],
+      resultado: "x = 0°, 120°, 240°" },
+    { id: "h21", nivel: 2,
+      enunciado: "Resuelve tan x = 2·sen x en [0°, 360°). Escribe las cuatro soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [0, 60, 180, 300], unidad: "°" },
+      pistas: ["tan x = sen x/cos x (con cos x ≠ 0). Llega a sen x(1 − 2cos x) = 0."],
+      pasos: ["sen x = 2 sen x cos x → sen x(1 − 2cos x) = 0.", "sen x = 0 → 0°, 180°. cos x = 1/2 → 60°, 300°. Ninguna con cos x = 0."],
+      resultado: "x = 0°, 60°, 180°, 300°" },
+    { id: "h22", nivel: 2,
+      enunciado: "Resuelve cos 2x + 3sen x − 2 = 0 en [0°, 360°). Escribe las tres soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [30, 90, 150], unidad: "°" },
+      pistas: ["cos 2x = 1 − 2sen²x deja la ecuación sólo en sen x."],
+      pasos: ["1 − 2sen²x + 3sen x − 2 = 0 → 2sen²x − 3sen x + 1 = 0 → sen x = 1 o 1/2.", "sen x = 1 → 90°; sen x = 1/2 → 30° y 150°."],
+      resultado: "x = 30°, 90°, 150°" },
+    { id: "h23", nivel: 2,
+      enunciado: "Resuelve sen x = −√3/2 para x en [0, 2π) (en radianes). Escribe las dos soluciones en decimales.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [4 * Math.PI / 3, 5 * Math.PI / 3], unidad: "rad", tol: 0.002, ph: "decimales (o 4pi/3, 5pi/3)" },
+      pistas: ["sen es negativo en los cuadrantes III y IV; el ángulo de referencia es π/3."],
+      pasos: ["III: π + π/3 = 4π/3 ≈ 4,189. IV: 2π − π/3 = 5π/3 ≈ 5,236."],
+      resultado: "x = 4π/3 y x = 5π/3" },
+    { id: "h24", nivel: 2,
+      enunciado: "Escribe sen 3x + sen x como un producto y calcula su valor para x = 30°.",
+      check: { tipo: "num", etiqueta: "valor en x = 30° =", valor: 1.5, tol: 0.002 },
+      pistas: ["sen A + sen B = 2 sen((A + B)/2) cos((A − B)/2)."],
+      pasos: ["sen 3x + sen x = 2·sen 2x·cos x.", "Con x = 30°: 2·sen 60°·cos 30° = 2·(√3/2)(√3/2) = 3/2 = 1,5. (Directo: sen 90° + sen 30° = 1 + 0,5 = 1,5 ✓.)"],
+      resultado: "2·sen 2x·cos x → 1,5" },
+    // ================= ★★★ nivel PAU =================
+    { id: "h25", nivel: 3,
+      enunciado: "Demuestra que tan x + 1/tan x = 2/sen 2x.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe tan x y 1/tan x en función de sen x y cos x", p: 0.5 },
+        { t: "Suma las fracciones con denominador común sen x·cos x", p: 0.5 },
+        { t: "Usa sen²x + cos²x = 1 en el numerador y obtiene 1/(sen x·cos x)", p: 0.5 },
+        { t: "Aplica sen 2x = 2·sen x·cos x al lado derecho y comprueba que coincide", p: 0.5 }
+      ] },
+      pasos: ["tan x + 1/tan x = sen x/cos x + cos x/sen x = (sen²x + cos²x)/(sen x·cos x) = 1/(sen x·cos x).", "2/sen 2x = 2/(2·sen x·cos x) = 1/(sen x·cos x). Iguales. ∎"],
+      resultado: "Identidad demostrada" },
+    { id: "h26", nivel: 3,
+      enunciado: "Demuestra que sen x/(1 + cos x) + (1 + cos x)/sen x = 2/sen x.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Reduce a denominador común sen x·(1 + cos x)", p: 0.5 },
+        { t: "Desarrolla (1 + cos x)² en el numerador", p: 0.5 },
+        { t: "Usa sen²x + cos²x = 1 para obtener 2 + 2cos x = 2(1 + cos x)", p: 0.5 },
+        { t: "Simplifica el factor (1 + cos x) y llega a 2/sen x", p: 0.5 }
+      ] },
+      pasos: ["[sen²x + (1 + cos x)²]/[sen x(1 + cos x)] = [sen²x + 1 + 2cos x + cos²x]/[sen x(1 + cos x)] = (2 + 2cos x)/[sen x(1 + cos x)] = 2/sen x. ∎"],
+      resultado: "Identidad demostrada" },
+    { id: "h27", nivel: 3,
+      enunciado: "Demuestra que cos 2x = (1 − tan²x)/(1 + tan²x).",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe tan²x = sen²x/cos²x en numerador y denominador", p: 0.5 },
+        { t: "Reduce a común denominador: (cos²x − sen²x)/cos²x entre (cos²x + sen²x)/cos²x", p: 0.5 },
+        { t: "Usa cos²x + sen²x = 1 en el denominador", p: 0.5 },
+        { t: "Reconoce cos²x − sen²x = cos 2x", p: 0.5 }
+      ] },
+      pasos: ["(1 − tan²x)/(1 + tan²x) = [(cos²x − sen²x)/cos²x]/[(cos²x + sen²x)/cos²x] = (cos²x − sen²x)/(cos²x + sen²x) = cos²x − sen²x = cos 2x. ∎"],
+      resultado: "Identidad demostrada" },
+    { id: "h28", nivel: 3,
+      enunciado: "Deduce la fórmula de cos(a + b) a partir de cos(a − b) = cos a·cos b + sen a·sen b.",
+      check: { tipo: "rubrica", etiqueta: "Tu deducción", filas: 5, items: [
+        { t: "Escribe a + b = a − (−b)", p: 0.5 },
+        { t: "Aplica la fórmula de cos(a − b) cambiando b por −b", p: 0.5 },
+        { t: "Usa cos(−b) = cos b y sen(−b) = −sen b", p: 0.5 },
+        { t: "Obtiene cos(a + b) = cos a·cos b − sen a·sen b", p: 0.5 }
+      ] },
+      pasos: ["cos(a + b) = cos(a − (−b)) = cos a·cos(−b) + sen a·sen(−b).", "Como cos(−b) = cos b y sen(−b) = −sen b: cos(a + b) = cos a·cos b − sen a·sen b."],
+      resultado: "cos(a + b) = cos a·cos b − sen a·sen b" },
+    { id: "h29", nivel: 3,
+      enunciado: "Resuelve sen x + cos x = 1 en [0°, 360°) y comprueba las soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [0, 90], unidad: "°" },
+      pistas: ["Eleva al cuadrado: 1 + sen 2x = 1.", "Comprueba cada candidata en la ecuación original."],
+      pasos: ["sen²x + 2sen x cos x + cos²x = 1 → sen 2x = 0 → x = 0°, 90°, 180°, 270°.", "x = 180°: 0 − 1 ≠ 1 ✗. x = 270°: −1 + 0 ≠ 1 ✗.", "Válidas: 0° y 90°."],
+      resultado: "x = 0° y x = 90°" },
+    { id: "h30", nivel: 3,
+      enunciado: "Resuelve sen 3x + sen x = 0 en [0°, 360°). Escribe las cuatro soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [0, 90, 180, 270], unidad: "°" },
+      pistas: ["Transforma la suma en un producto: 2 sen 2x cos x."],
+      pasos: ["2·sen 2x·cos x = 0.", "sen 2x = 0 → x = 0°, 90°, 180°, 270°. cos x = 0 → 90°, 270°."],
+      resultado: "x = 0°, 90°, 180°, 270°" },
+    { id: "h31", nivel: 3,
+      enunciado: "Resuelve sen x + sen 3x = cos x + cos 3x en [0°, 360°). Escribe las seis soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [22.5, 90, 112.5, 202.5, 270, 292.5], unidad: "°", ph: "seis valores" },
+      pistas: ["Transforma las dos sumas en productos y saca factor común cos x."],
+      pasos: ["2 sen 2x cos x = 2 cos 2x cos x → cos x (sen 2x − cos 2x) = 0.", "cos x = 0 → 90°, 270°. tan 2x = 1 → 2x = 45° + 180°n → x = 22,5° + 90°n: 22,5°, 112,5°, 202,5°, 292,5°."],
+      resultado: "x = 22,5°, 90°, 112,5°, 202,5°, 270°, 292,5°" },
+    { id: "h32", nivel: 3,
+      enunciado: "Resuelve 4sen²x − 1 = 0 en [0°, 360°). Escribe las cuatro soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [30, 150, 210, 330], unidad: "°" },
+      pistas: ["sen x = ±1/2: ¡las dos raíces cuadradas!"],
+      pasos: ["sen²x = 1/4 → sen x = 1/2 o sen x = −1/2.", "sen x = 1/2 → 30°, 150°. sen x = −1/2 → 210°, 330°."],
+      resultado: "x = 30°, 150°, 210°, 330°" },
+    { id: "h33", nivel: 3,
+      enunciado: "Halla el valor máximo de f(x) = sen x + cos x y el ángulo de [0°, 360°) en el que se alcanza.",
+      check: [{ tipo: "num", etiqueta: "máximo =", valor: Math.SQRT2, tol: 0.002 }, { tipo: "num", etiqueta: "en x =", valor: 45, unidad: "°" }],
+      pistas: ["Escribe f(x) = R·sen(x + φ) con R = √(a² + b²)."],
+      pasos: ["R = √2 y φ = 45°: f(x) = √2·sen(x + 45°).", "Máximo √2 ≈ 1,414 cuando x + 45° = 90° → x = 45°."],
+      resultado: "√2 en x = 45°" },
+    { id: "h34", nivel: 3,
+      enunciado: "Escribe 3·sen x + 4·cos x = R·sen(x + φ) y da R y φ (en grados).",
+      check: [{ tipo: "num", etiqueta: "R =", valor: 5 }, { tipo: "num", etiqueta: "φ =", valor: 53.13, unidad: "°" }],
+      pistas: ["R = √(a² + b²), tan φ = b/a."],
+      pasos: ["R = √(9 + 16) = 5. tan φ = 4/3 → φ = 53,13° (a y b positivos: 1.er cuadrante)."],
+      resultado: "5·sen(x + 53,13°)" },
+    { id: "h35", nivel: 3,
+      enunciado: "Resuelve sen x − √3·cos x = 1 en [0°, 360°).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [90, 210], unidad: "°" },
+      pistas: ["R = 2 y φ = −60°: sen x − √3 cos x = 2 sen(x − 60°)."],
+      pasos: ["2·sen(x − 60°) = 1 → sen(x − 60°) = 1/2 → x − 60° = 30° o 150°.", "x = 90° o x = 210°. Comprobación: sen 90° − √3·0 = 1 ✓ y sen 210° − √3·cos 210° = −0,5 + 1,5 = 1 ✓."],
+      resultado: "x = 90° y x = 210°" },
+    { id: "h36", nivel: 3,
+      enunciado: "Si tan a = 1/2 y tan b = 1/3, con a y b agudos, ¿cuánto vale a + b (en grados)?",
+      check: { tipo: "num", etiqueta: "a + b =", valor: 45, unidad: "°" },
+      pistas: ["Calcula tan(a + b) con la fórmula de la suma."],
+      pasos: ["tan(a + b) = (1/2 + 1/3)/(1 − 1/6) = (5/6)/(5/6) = 1.", "Como a y b son agudos y tan a, tan b &lt; 1, ambos son menores de 45°, luego a + b &lt; 90°: a + b = 45°."],
+      resultado: "45°" }
+  ];
+
+  var lamina = [
+    { titulo: "Suma y diferencia de ángulos", ancha: true,
+      items: [
+        { label: "Seno", formula: "sen(a ± b) = sen a·cos b ± cos a·sen b", ojo: "El signo del medio es el MISMO que en el paréntesis." },
+        { label: "Coseno", formula: "cos(a ± b) = cos a·cos b ∓ sen a·sen b", ojo: "El signo del medio es el CONTRARIO." },
+        { label: "Tangente", formula: "tan(a ± b) = " + fr("tan a ± tan b", "1 ∓ tan a·tan b"), ejemplo: "tan 75° = (1 + √3/3)/(1 − √3/3) = 2 + √3" }
+      ],
+      nota: "Ejemplo: sen 75° = sen(45° + 30°) = (√6 + √2)/4. Y sen(a + b) NO es sen a + sen b." },
+    { titulo: "Ángulo doble y reducción de potencias",
+      items: [
+        { label: "Seno y coseno del doble", formula: "sen 2a = 2·sen a·cos a · cos 2a = cos²a − sen²a", ejemplo: "sen a = 5/13 → sen 2a = 120/169" },
+        { label: "Tres formas de cos 2a", formula: "cos²a − sen²a = 2cos²a − 1 = 1 − 2sen²a", cuando: "Elige la que use el dato (cos o sen)." },
+        { label: "Tangente", formula: "tan 2a = " + fr("2·tan a", "1 − tan²a") },
+        { label: "Potencias", formula: "cos²a = (1 + cos 2a)/2 · sen²a = (1 − cos 2a)/2" }
+      ],
+      nota: "Triple: sen 3a = 3sen a − 4sen³a · cos 3a = 4cos³a − 3cos a." },
+    { titulo: "Ángulo mitad",
+      items: [
+        { label: "Seno y coseno", formula: "sen(a/2) = ±" + raiz(fr("1 − cos a", "2")) + "   cos(a/2) = ±" + raiz(fr("1 + cos a", "2")), cuando: "El signo lo decide el cuadrante de a/2.", ojo: "Escribe la desigualdad de a/2 antes de elegir el signo." },
+        { label: "Tangente sin signo", formula: "tan(a/2) = " + fr("1 − cos a", "sen a") + " = " + fr("sen a", "1 + cos a") }
+      ] },
+    { titulo: "Ecuaciones trigonométricas",
+      tabla: { cab: ["Ecuación", "Soluciones (n entero)"], filas: [
+        ["sen x = k", "x = α + 360°n  ó  x = 180° − α + 360°n"],
+        ["cos x = k", "x = ±α + 360°n"],
+        ["tan x = k", "x = α + 180°n"],
+        ["sen 2x = k", "2x = α + 360°n ó 180° − α + 360°n → divide TODO entre 2"]
+      ] },
+      pasos: ["Reduce a una sola razón y un solo ángulo (sen² + cos² = 1, ángulo doble).", "Si sale un producto, iguala cada factor a 0. NO dividas entre una razón.", "Cambio t = sen x (o cos x) si hay segundo grado.", "Da las soluciones del intervalo; si elevaste al cuadrado, comprueba."],
+      nota: "Con la calculadora sale un solo ángulo: dibuja la circunferencia para encontrar el otro." },
+    { titulo: "Cómo demostrar una identidad", ancha: true,
+      pasos: ["Elige el lado más complicado.", "Pasa todo a seno y coseno (tan = sen/cos…).", "Denominador común / multiplica por el conjugado: (1 + cos)(1 − cos) = 1 − cos² = sen².", "Usa sen² + cos² = 1 y las fórmulas del ángulo doble.", "Llega al otro lado. ∎ Nunca pases términos de un lado a otro."],
+      nota: "Comprobar con un valor no es demostrar. En un examen hay que hacerlo con álgebra." },
+    { titulo: "Sumas y productos", ancha: true,
+      tabla: { cab: ["Suma", "Producto"], filas: [
+        ["sen A + sen B", "2·sen((A+B)/2)·cos((A−B)/2)"], ["sen A − sen B", "2·cos((A+B)/2)·sen((A−B)/2)"], ["cos A + cos B", "2·cos((A+B)/2)·cos((A−B)/2)"], ["cos A − cos B", "−2·sen((A+B)/2)·sen((A−B)/2)"]
+      ] },
+      nota: "a·sen x + b·cos x = R·sen(x + φ) con R = √(a²+b²) y tan φ = b/a." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "sen(a + b) = sen a + sen b", bien: "sen a·cos b + cos a·sen b", por: "sen 30° + sen 60° = 1,37 > 1: imposible." },
+        { mal: "cos(a + b) = cos a·cos b + sen a·sen b", bien: "… − sen a·sen b", por: "El signo del coseno de la suma es el contrario." },
+        { mal: "sen 2a = 2·sen a", bien: "sen 2a = 2·sen a·cos a", por: "El seno no es lineal." },
+        { mal: "Dividir entre cos x en sen 2x = cos x", bien: "Factor común: cos x(2sen x − 1) = 0", por: "Dividir pierde las soluciones con cos x = 0." },
+        { mal: "sen 2x = 1/2 → x = 30° + 360°n", bien: "x = 15° + 180°n y 75° + 180°n", por: "Al despejar x se divide también el período." },
+        { mal: "Pasar términos para demostrar una identidad", bien: "Transformar un solo lado", por: "Dar por cierta la igualdad es hacer trampa." }
+      ] }
+  ];
+
+  B.registrar("mates1", "t5", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
 })(window);
 

@@ -458,3 +458,14 @@
 .gn-circ, .rd-circ { max-width: 420px; margin: 0 auto; }
 .plot .p-punto.c-hl { fill: var(--hl); }
 @media (max-width: 700px) { .gn-fila { grid-template-columns: 1fr; } .gn-fila .lectura { grid-template-columns: 1fr 1fr; } }
+.fo-fila { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 14px; align-items: start; }
+.fo-circ { max-width: 360px; margin: 0 auto; }
+.fo-t { width: 100%; border-collapse: collapse; font: 500 15px/1.35 var(--math); }
+.fo-t th { text-align: left; font-weight: 600; padding: 6px 8px; }
+.fo-t td { padding: 6px 8px; text-align: right; white-space: nowrap; }
+.fo-t tr.izq th, .fo-t tr.izq td { background: var(--sheet-2); border-radius: 6px; }
+.fo-t tr.ok td:nth-child(3) { color: var(--ok); font: 700 13px var(--body); text-align: left; }
+.fo-t tr.mal td:nth-child(3) { color: var(--red); font: 700 13px var(--body); text-align: left; }
+.fo-t tr.ok th { color: var(--ok); } .fo-t tr.mal th { color: var(--red); }
+.fo-t tr + tr.izq th { padding-top: 12px; }
+@media (max-width: 700px) { .fo-fila { grid-template-columns: 1fr; } .fo-t { font-size: 14px; } .fo-t th, .fo-t td { padding: 5px 6px; } }
