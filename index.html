@@ -5981,6 +5981,257 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de derivadas II (Matemáticas I, tema 11)
+   tresgraficas (f, f′, f″) · derivabilidad · linealizacion · valormedio · optimizar2 · cinematica
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, F = B.lab.fun;
+  B.lab = B.lab || {};
+  var D = B.lab.der = {};
+  var INF = Infinity, fil = F.fil, pto = F.pto, etq = F.etq, num = F.num, campo = F.campo;
+
+  // ------------------------------------------------------------
+  // Derivadas numéricas (sólo para dibujar y comprobar)
+  // ------------------------------------------------------------
+  D.d1 = function (f, x) { var h = 1e-5 * Math.max(1, Math.abs(x)); return (f(x + h) - f(x - h)) / (2 * h); };
+  D.d2 = function (f, x) { var h = 1e-3 * Math.max(1, Math.abs(x)); return (f(x + h) - 2 * f(x) + f(x - h)) / (h * h); };
+  // Cambios de signo de una función en [A, B]: devuelve [{ x, de, a }] con el signo antes y después
+  D.cambios = function (g, A, Bm, N) {
+    N = N || 1500; var out = [], prev = null, px = null, i;
+    for (i = 0; i <= N; i++) {
+      var x = A + (Bm - A) * i / N, v = g(x), s = isNaN(v) ? 0 : v > 1e-6 ? 1 : v < -1e-6 ? -1 : 0;
+      if (s === 0) continue;
+      if (prev !== null && s !== prev) {
+        var a = px, b = x, sa = prev;
+        for (var k = 0; k < 50; k++) { var m = (a + b) / 2, vm = g(m), sm = isNaN(vm) ? 0 : vm > 1e-9 ? 1 : vm < -1e-9 ? -1 : 0; if (sm === 0) { a = b = m; break; } if (sm === sa) a = m; else b = m; }
+        out.push({ x: F.redond((a + b) / 2), de: sa, a: s });
+      }
+      prev = s; px = x;
+    }
+    return out;
+  };
+
+  function marco3(host, etiq, h) { return new B.Plot(host, { xmin: -5, xmax: 5, ymin: -5, ymax: 5, w: 620, h: h || 200, etx: "x", ety: "", etiqueta: etiq }); }
+
+  // ============================================================
+  // TRESGRAFICAS: f, f′ y f″ una debajo de la otra
+  // ============================================================
+  var P3 = ["x^3-3x", "x^4-4x^2", "sin(x)", "e^(-x^2)", "x/(1+x^2)", "x^3", "ln(x)", "x*e^x", "1/x", "x^2"];
+  B.w.tresgraficas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "f, f′ y f″: tres gráficas que se explican entre sí");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div data-zoom class="chips"></div><div class="w-plot dr-g1"></div><div class="w-plot dr-g2"></div><div class="w-plot dr-g3"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { f: P3[0], X: 3 }, g1, g2, g3, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var inp = campo(ctl, "f(x) =", st.f, 240);
+    function pinta() {
+      var r = F.leer(st.f); [g1, g2, g3].forEach(function (g) { g.limpiar(); });
+      if (!r.ok) { lectura.innerHTML = fil("Revisa lo que has escrito", r.error, "red"); return; }
+      var f = r.g, X = st.X, d1 = function (x) { return D.d1(f, x); }, d2 = function (x) { return D.d2(f, x); };
+      var ext = D.cambios(d1, -X, X), inf = D.cambios(d2, -X, X);
+      var y1 = F.rangoY(f, -X, X), y2 = F.rangoY(d1, -X, X), y3 = F.rangoY(d2, -X, X);
+      g1.rango(-X, X, y1[0], y1[1]); g2.rango(-X, X, y2[0], y2[1]); g3.rango(-X, X, y3[0], y3[1]);
+      [g1, g2, g3].forEach(function (g) { g.limpiar(); });
+      // zonas: f′ > 0 (crece) y f″ > 0 (curva hacia arriba)
+      var N = 200, i;
+      for (i = 0; i < N; i++) {
+        var xa = -X + 2 * X * i / N, xb = -X + 2 * X * (i + 1) / N, xm = (xa + xb) / 2, a = d1(xm), c = d2(xm);
+        if (!isNaN(a)) g2.rect(xa, Math.min(0, y2[1]), xb, Math.max(0, y2[0]), { clase: a > 0 ? "z-ok" : "z-red" });
+        if (!isNaN(c)) g3.rect(xa, Math.min(0, y3[1]), xb, Math.max(0, y3[0]), { clase: c > 0 ? "z-pen" : "z-red" });
+      }
+      g1.curva(f, { clase: "c-pen", n: 600 }).setAttribute("stroke-width", 3); g2.curva(d1, { clase: "c-red", n: 600 }).setAttribute("stroke-width", 3); g3.curva(d2, { clase: "c-ok", n: 600 }).setAttribute("stroke-width", 3);
+      ext.forEach(function (e) { pto(g1, e.x, f(e.x), "c-red", false, 6); etq(g1, e.x, f(e.x), e.de > 0 ? "máx" : "mín", "red", 0, e.de > 0 ? -10 : 18, "middle"); pto(g2, e.x, 0, "c-red", false, 5); g2.segmento(e.x, y2[0], e.x, y2[1], { clase: "c-faint", dash: "3 4" }); });
+      inf.forEach(function (e) { pto(g1, e.x, f(e.x), "c-ok", false, 6); etq(g1, e.x, f(e.x), "inflexión", "ok", 0, -10, "middle"); pto(g3, e.x, 0, "c-ok", false, 5); g3.segmento(e.x, y3[0], e.x, y3[1], { clase: "c-faint", dash: "3 4" }); });
+      function lista(l, fn) { return l.length ? l.slice(0, 6).map(fn).join(" · ") + (l.length > 6 ? " · …" : "") : "ninguno"; }
+      var ps = function (e) { return "x = " + num(e.x, 3); };
+      lectura.innerHTML = fil("Máximos relativos", lista(ext.filter(function (e) { return e.de > 0; }), function (e) { return "(" + num(e.x, 3) + ", " + num(f(e.x), 3) + ")"; }), "red") + fil("Mínimos relativos", lista(ext.filter(function (e) { return e.de < 0; }), function (e) { return "(" + num(e.x, 3) + ", " + num(f(e.x), 3) + ")"; }), "red") +
+        fil("f′ cambia de signo en", lista(ext, ps), "") + fil("Puntos de inflexión (f″ cambia de signo)", lista(inf, function (e) { return "(" + num(e.x, 3) + ", " + num(f(e.x), 3) + ")"; }), "ok") +
+        fil("Cómo leerlo", "En la gráfica de f′: verde = f′ &gt; 0 (f crece), rojo = f′ &lt; 0 (f decrece). En la de f″: azul = f″ &gt; 0 (f curvada hacia arriba, ∪), rojo = f″ &lt; 0 (curvada hacia abajo, ∩).", "ancho");
+      pie.innerHTML = "Las derivadas se calculan numéricamente para dibujar. Mira que <b>los máximos y mínimos de f están donde f′ corta al eje X</b>, y que <b>los puntos de inflexión están donde f″ corta al eje X</b> (o donde f′ tiene un máximo o un mínimo).";
+    }
+    g1 = marco3(cuerpo.querySelector(".dr-g1"), "Función f", 220); g2 = marco3(cuerpo.querySelector(".dr-g2"), "Derivada f′", 170); g3 = marco3(cuerpo.querySelector(".dr-g3"), "Segunda derivada f″", 170);
+    U.fichas(cuerpo.querySelector("[data-pre]"), P3.map(function (p, i) { return { k: String(i), t: p }; }), "0", function (k) { st.f = P3[+k]; inp.value = st.f; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-zoom]"), [{ k: "1.5", t: "Zoom ±1,5" }, { k: "3", t: "±3" }, { k: "6", t: "±6" }, { k: "12", t: "±12" }], "3", function (k) { st.X = parseFloat(k); pinta(); });
+    inp.addEventListener("input", function () { st.f = inp.value; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // DERIVABILIDAD: continuidad + derivadas laterales
+  // ============================================================
+  var PD = [
+    { t: "x² | ax + b en x = 1", c: 1, par: ["a", "b"], v: [2, 0], rg: [-1, 3, -2, 5], f: function (x, a, b) { return x < 1 ? x * x : a * x + b; }, txt: function (a, b) { return "x² si x &lt; 1 · " + fmt(a, 1) + "x " + (b < 0 ? "− " : "+ ") + fmt(Math.abs(b), 1) + " si x ≥ 1"; }, nota: "Para que sea <b>derivable</b> hay que cumplir dos cosas en x = 1: que sea continua (1 = a + b) y que las pendientes coincidan (2 = a). Resultado: a = 2, b = −1." },
+    { t: "a x² + 1 | b x + 2 en x = 1", c: 1, par: ["a", "b"], v: [1, 1], rg: [-1, 3, -3, 5], f: function (x, a, b) { return x < 1 ? a * x * x + 1 : b * x + 2; }, txt: function (a, b) { return fmt(a, 1) + "x² + 1 si x &lt; 1 · " + fmt(b, 1) + "x + 2 si x ≥ 1"; }, nota: "Continuidad: a + 1 = b + 2. Derivabilidad: 2a = b. Resolviendo: a = −1, b = −2." },
+    { t: "|x| en x = 0", c: 0, par: [], v: [], rg: [-3, 3, -1, 3], f: function (x) { return Math.abs(x); }, txt: function () { return "|x|"; }, nota: "Punto angular: las pendientes laterales son −1 y 1. Continua pero <b>no derivable</b> en 0." },
+    { t: "∛x en x = 0", c: 0, par: [], v: [], rg: [-3, 3, -2, 2], f: function (x) { return Math.cbrt(x); }, txt: function () { return "∛x"; }, nota: "Es continua y las secantes se hacen cada vez más verticales: <b>tangente vertical</b>, la derivada tiende a +∞. No es derivable en 0." },
+    { t: "∛(x²) en x = 0", c: 0, par: [], v: [], rg: [-3, 3, -1, 3], f: function (x) { return Math.cbrt(x * x); }, txt: function () { return "∛(x²)"; }, nota: "<b>Cúspide</b>: las pendientes laterales tienden a −∞ y +∞. No derivable." },
+    { t: "x·|x| en x = 0", c: 0, par: [], v: [], rg: [-2, 2, -4, 4], f: function (x) { return x * Math.abs(x); }, txt: function () { return "x·|x|"; }, nota: "Aquí las pendientes laterales coinciden (0 y 0): es <b>derivable</b> en 0 aunque lleve valor absoluto." }
+  ];
+  B.w.derivabilidad = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "¿Es derivable? Continuidad y derivadas laterales");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, a: 2, b: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sa, sb;
+    sa = U.slider(ctl, { et: "Parámetro <i>a</i>", min: -4, max: 4, step: 0.5, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    sb = U.slider(ctl, { et: "Parámetro <i>b</i>", min: -4, max: 4, step: 0.5, val: st.b, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var P = PD[st.i], a = st.a, b = st.b, f = function (x) { return P.f(x, a, b); }, c = P.c, h = 1e-6;
+      sa.el.style.display = sb.el.style.display = P.par.length ? "" : "none";
+      g.rango(P.rg[0], P.rg[1], P.rg[2], P.rg[3]); g.limpiar();
+      var fc = f(c), fl = f(c - h), fr = f(c + h), izq = (f(c - h) - f(c - 2 * h)) / h, der = (f(c + 2 * h) - f(c + h)) / h;
+      g.curva(f, { clase: "c-pen", n: 700 }).setAttribute("stroke-width", 3);
+      var W = (P.rg[1] - P.rg[0]) * 0.35;
+      if (isFinite(izq) && Math.abs(izq) < 1e3) g.segmento(c - W, fl - izq * W, c, fl, { clase: "c-ok", dash: "6 4" });
+      if (isFinite(der) && Math.abs(der) < 1e3) g.segmento(c, fr, c + W, fr + der * W, { clase: "c-red", dash: "6 4" });
+      pto(g, c, fc, "c-ink", false, 6);
+      if (Math.abs(fl - fc) > 1e-4) pto(g, c, fl, "c-ok", true, 6);
+      var cont = Math.abs(fl - fc) < 1e-4 && Math.abs(fr - fc) < 1e-4, mismo = cont && Math.abs(izq - der) < 1e-3 * Math.max(1, Math.abs(izq));
+      var txtD = function (d) { return Math.abs(d) > 1e3 ? (d > 0 ? "+∞" : "−∞") : fmt(d, 4); };
+      lectura.innerHTML = fil("Función", P.txt(a, b), "pen ancho") + fil("Valor por la izquierda · f(" + fmt(c, 0) + ") · por la derecha", fmt(fl, 4) + " · " + fmt(fc, 4) + " · " + fmt(fr, 4), "") +
+        fil("¿Continua en x = " + fmt(c, 0) + "?", cont ? "sí" : "no (los tres valores no coinciden)", cont ? "ok" : "red") + fil("Pendiente del trozo izquierdo en x = " + fmt(c, 0), txtD(izq), "ok") + fil("Pendiente del trozo derecho en x = " + fmt(c, 0), txtD(der), "red") +
+        fil("¿Derivable en x = " + fmt(c, 0) + "?", mismo ? "sí, f′(" + fmt(c, 0) + ") = " + fmt(izq, 3) : cont ? "no: es continua, pero las pendientes laterales son distintas" : "no: para ser derivable primero tiene que ser continua", mismo ? "ok ancho" : "red ancho");
+      pie.innerHTML = P.nota + " Las rectas de trazos son las «tangentes laterales»: <b style='color:var(--ok)'>verde</b> la de la izquierda y <b style='color:var(--red)'>roja</b> la de la derecha; si coinciden, la función es derivable.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 3, ymin: -2, ymax: 5, w: 600, h: 330, etiqueta: "Derivabilidad" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PD.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; var P = PD[st.i]; if (P.par.length) { st.a = P.v[0]; st.b = P.v[1]; sa.set(st.a); sb.set(st.b); } pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // LINEALIZACION: f(a + h) ≈ f(a) + f′(a)·h
+  // ============================================================
+  var PL = [
+    { t: "√x en a = 4", f: Math.sqrt, a: 4, rg: [2, 6, 1, 3], ej: 0.1 },
+    { t: "ln x en a = 1", f: Math.log, a: 1, rg: [0.2, 2, -1.7, 0.8], ej: 0.05 },
+    { t: "sen x en a = 0", f: Math.sin, a: 0, rg: [-1.5, 1.5, -1.5, 1.5], ej: 0.3 },
+    { t: "eˣ en a = 0", f: Math.exp, a: 0, rg: [-1.5, 1.5, -0.5, 4.5], ej: 0.1 },
+    { t: "1/x en a = 1", f: function (x) { return 1 / x; }, a: 1, rg: [0.4, 2, -0.2, 3], ej: 0.1 },
+    { t: "∛x en a = 8", f: Math.cbrt, a: 8, rg: [4, 12, 1, 3.4], ej: 0.5 }
+  ];
+  B.w.linealizacion = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Aproximación lineal: la tangente como calculadora");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, h: 0.1 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sh;
+    sh = U.slider(ctl, { et: "Desplazamiento <i>h</i>", min: -1, max: 1, step: 0.01, val: st.h, on: function (v) { st.h = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    function pinta() {
+      var P = PL[st.i], a = P.a, h = st.h, f = P.f, d = D.d1(f, a), L = function (x) { return f(a) + d * (x - a); }, x = a + h, ex = f(x), ap = L(x);
+      g.rango(P.rg[0], P.rg[1], P.rg[2], P.rg[3]); g.limpiar();
+      g.curva(f, { clase: "c-pen", n: 500 }).setAttribute("stroke-width", 3); g.curva(L, { clase: "c-ok", dash: "6 4", n: 2 });
+      pto(g, a, f(a), "c-ink", false, 5); etq(g, a, f(a), "a", "faint", 0, 16, "middle");
+      g.segmento(x, ex, x, ap, { clase: "c-red" }).setAttribute("stroke-width", 4); pto(g, x, ex, "c-pen", false, 6); pto(g, x, ap, "c-ok", false, 6);
+      var err = ex - ap;
+      lectura.innerHTML = fil("Recta tangente en a", "L(x) = " + fmt(f(a), 4) + (d < 0 ? " − " : " + ") + fmt(Math.abs(d), 4) + "·(x − " + fmt(a, 2) + ")", "ok ancho") + fil("Valor exacto f(" + fmt(x, 3) + ")", fmt(ex, 6), "pen") + fil("Aproximación L(" + fmt(x, 3) + ")", fmt(ap, 6), "ok") +
+        fil("Error", fmt(err, 6) + "  (" + fmt(Math.abs(ex) > 1e-12 ? Math.abs(err / ex) * 100 : 0, 3) + " %)", "red");
+      pie.innerHTML = "Cerca del punto de tangencia, la gráfica y la tangente casi coinciden: <b>f(a + h) ≈ f(a) + f′(a)·h</b>. El error (segmento rojo) crece rápido al alejarte: pasa de pequeño a grande de forma cuadrática en h. Es el principio con el que las calculadoras y los ordenadores aproximan funciones.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 2, xmax: 6, ymin: 1, ymax: 3, w: 600, h: 320, etiqueta: "Función y tangente" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PL.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; st.h = PL[st.i].ej; sh.set(st.h); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // VALORMEDIO: la tangente paralela a la secante
+  // ============================================================
+  var PV = [
+    { t: "x²", f: function (x) { return x * x; }, a: 0, b: 2, rg: [-0.5, 2.5, -0.5, 4.5] },
+    { t: "x³ − 3x", f: function (x) { return x * x * x - 3 * x; }, a: -2, b: 2, rg: [-2.5, 2.5, -3.5, 3.5] },
+    { t: "sen x", f: Math.sin, a: 0, b: 3, rg: [-0.5, 3.5, -0.5, 1.5] },
+    { t: "√x", f: Math.sqrt, a: 0, b: 4, rg: [-0.5, 4.5, -0.5, 2.5] },
+    { t: "eˣ", f: Math.exp, a: 0, b: 2, rg: [-0.5, 2.5, -0.5, 8] },
+    { t: "|x| (no derivable en 0)", f: Math.abs, a: -1, b: 2, rg: [-1.5, 2.5, -0.5, 2.5] }
+  ];
+  B.w.valormedio = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Teorema del valor medio: ¿dónde es la tangente paralela a la secante?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, a: 0, b: 2 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sa, sb;
+    sa = U.slider(ctl, { et: "Extremo <i>a</i>", min: -2.5, max: 4, step: 0.1, val: st.a, on: function (v) { st.a = Math.min(v, st.b - 0.2); pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    sb = U.slider(ctl, { et: "Extremo <i>b</i>", min: -2.5, max: 4, step: 0.1, val: st.b, on: function (v) { st.b = Math.max(v, st.a + 0.2); pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var P = PV[st.i], a = st.a, b = st.b, f = P.f; g.rango(P.rg[0], P.rg[1], P.rg[2], P.rg[3]); g.limpiar();
+      var fa = f(a), fb = f(b);
+      if (isNaN(fa) || isNaN(fb)) { lectura.innerHTML = fil("Intervalo", "f no está definida en un extremo", "red"); return; }
+      var m = (fb - fa) / (b - a), cs = D.cambios(function (x) { return D.d1(f, x) - m; }, a + 1e-6, b - 1e-6, 800).map(function (e) { return e.x; });
+      g.curva(f, { clase: "c-pen", n: 600 }).setAttribute("stroke-width", 3);
+      g.segmento(a, fa, b, fb, { clase: "c-red" }).setAttribute("stroke-width", 3); pto(g, a, fa, "c-red", false, 6); pto(g, b, fb, "c-red", false, 6);
+      var W = (b - a) * 0.45;
+      cs.forEach(function (c) { var fc = f(c); g.segmento(c - W, fc - m * W, c + W, fc + m * W, { clase: "c-ok", dash: "6 4" }); pto(g, c, fc, "c-ok", false, 6); });
+      lectura.innerHTML = fil("Pendiente de la secante (TVM)", "(" + fmt(fb, 4) + " − " + fmt(fa, 4) + ")/(" + fmt(b, 2) + " − " + fmt(a, 2) + ") = " + fmt(m, 4), "red ancho") +
+        fil("Puntos c con f′(c) = TVM", cs.length ? cs.map(function (c) { return "c = " + fmt(c, 4); }).join(" · ") : "ninguno: f no es derivable en todo (a, b)", cs.length ? "ok ancho" : "red ancho");
+      pie.innerHTML = "<b>Teorema del valor medio</b>: si f es continua en [a, b] y derivable en (a, b), existe al menos un c ∈ (a, b) con <b>f′(c) = (f(b) − f(a))/(b − a)</b>: en algún punto la pendiente instantánea es igual a la pendiente media. Con |x| y un intervalo que contiene al 0, la hipótesis falla (no es derivable en 0) y puede no haber tal c.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -0.5, xmax: 2.5, ymin: -0.5, ymax: 4.5, w: 600, h: 320, etiqueta: "Secante y tangentes paralelas" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PV.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; var P = PV[st.i]; st.a = P.a; st.b = P.b; sa.set(P.a); sb.set(P.b); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // OPTIMIZAR2: problemas de máximos y mínimos con la función objetivo dibujada
+  // ============================================================
+  var PO = [
+    { t: "Corral junto a un río", x: "x (m, lado perpendicular al río)", dom: [0.5, 49.5], f: function (x) { return x * (100 - 2 * x); }, tipo: "máximo", u: "m²", obj: "A(x) = x(100 − 2x)", enun: "Con 100 m de valla se cerca un corral rectangular apoyado en un río (el lado del río no lleva valla). ¿Qué lado x da el área máxima?", sol: "A′(x) = 100 − 4x = 0 → x = 25 m; el lado paralelo al río mide 100 − 50 = 50 m y A = 1 250 m².", x0: 10 },
+    { t: "Caja abierta", x: "x (cm, lado del cuadrado que se recorta)", dom: [0.2, 14.8], f: function (x) { return x * (30 - 2 * x) * (30 - 2 * x); }, tipo: "máximo", u: "cm³", obj: "V(x) = x(30 − 2x)²", enun: "De una cartulina cuadrada de 30 cm de lado se recortan cuatro cuadrados de lado x en las esquinas y se dobla para hacer una caja sin tapa. ¿Qué x da el volumen máximo?", sol: "V′(x) = (30 − 2x)² − 4x(30 − 2x) = (30 − 2x)(30 − 6x) = 0 → x = 5 cm (x = 15 anula el volumen); V = 5·20·20 = 2 000 cm³.", x0: 2 },
+    { t: "Lata de 1 litro", x: "r (cm, radio de la base)", dom: [1.5, 12], f: function (r) { return 2 * Math.PI * r * r + 2000 / r; }, tipo: "mínimo", u: "cm²", obj: "S(r) = 2πr² + 2000/r", enun: "Una lata cilíndrica debe tener 1 litro (1 000 cm³) de capacidad. ¿Qué radio minimiza la chapa empleada (superficie total)?", sol: "S′(r) = 4πr − 2000/r² = 0 → r³ = 500/π → r = 5,42 cm; h = 1000/(πr²) = 10,84 cm = 2r. S = 553,6 cm².", x0: 3 },
+    { t: "Punto de la parábola más cercano", x: "x (abscisa del punto (x, x²))", dom: [-2.5, 2.5], f: function (x) { return Math.sqrt(x * x + (x * x - 2) * (x * x - 2)); }, tipo: "mínimo", u: "u", obj: "d(x) = √(x² + (x² − 2)²)", enun: "¿Qué punto de la parábola y = x² está más cerca del punto (0, 2)? (Se minimiza la distancia d; basta con minimizar d².)", sol: "d² = x⁴ − 3x² + 4; (d²)′ = 4x³ − 6x = 2x(2x² − 3) = 0 → x = ±√(3/2) = ±1,2247 (x = 0 es un máximo relativo). d = √(7/4) = 1,3229.", x0: 0.3 },
+    { t: "Beneficio de una tienda", x: "p (€, precio)", dom: [10.5, 49.5], f: function (p) { return (p - 10) * (200 - 4 * p); }, tipo: "máximo", u: "€", obj: "B(p) = (p − 10)(200 − 4p)", enun: "Un artículo cuesta 10 € fabricarlo y, vendido a p €, se venden 200 − 4p unidades. ¿Qué precio maximiza el beneficio?", sol: "B′(p) = 200 − 4p − 4(p − 10) = 240 − 8p = 0 → p = 30 €; B = 20·80 = 1 600 €.", x0: 20 }
+  ];
+  B.w.optimizar2 = function (host) {
+    var cuerpo = B.caja(host, "Problema", "Máximos y mínimos: busca el óptimo y compruébalo con la derivada");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><p class="w-intro oz-enun"></p><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><div class="ctl oz-acc"></div><p class="w-pie oz-sol"></p>';
+    var st = { i: 0, x: 10, ver: false }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".oz-sol"), enun = cuerpo.querySelector(".oz-enun"), sl;
+    function configura() { var P = PO[st.i]; sl.input.min = P.dom[0]; sl.input.max = P.dom[1]; sl.input.step = (P.dom[1] - P.dom[0]) / 400; st.x = P.x0; sl.set(P.x0); st.ver = false; }
+    sl = U.slider(ctl, { et: "Valor de <i>x</i>", min: 0, max: 50, step: 0.1, val: st.x, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    U.boton(cuerpo.querySelector(".oz-acc"), "Mostrar / ocultar el óptimo con la derivada", function () { st.ver = !st.ver; pinta(); }, "btn-comprobar");
+    function pinta() {
+      var P = PO[st.i], f = P.f, x = st.x; enun.innerHTML = "<b>" + P.t + ".</b> " + P.enun;
+      var y = F.rangoY(f, P.dom[0], P.dom[1]); g.rango(P.dom[0], P.dom[1], Math.min(y[0], 0), y[1]); g.limpiar();
+      g.curva(f, { clase: "c-pen", n: 500 }).setAttribute("stroke-width", 3);
+      var d = D.d1(f, x), crit = D.cambios(function (t) { return D.d1(f, t); }, P.dom[0], P.dom[1], 1200);
+      if (st.ver) crit.forEach(function (c) { if ((c.de > 0) === (P.tipo === "máximo")) { g.segmento(c.x, 0, c.x, f(c.x), { clase: "c-ok", dash: "4 4" }); pto(g, c.x, f(c.x), "c-ok", false, 7); } });
+      g.segmento(x, 0, x, f(x), { clase: "c-faint", dash: "3 4" }); pto(g, x, f(x), "c-red", false, 6);
+      var W = (P.dom[1] - P.dom[0]) * 0.12; g.segmento(x - W, f(x) - d * W, x + W, f(x) + d * W, { clase: "c-red", dash: "5 4" });
+      var opt = crit.filter(function (c) { return (c.de > 0) === (P.tipo === "máximo"); })[0];
+      lectura.innerHTML = fil("Función objetivo", P.obj, "pen ancho") + fil("Tu valor", "x = " + fmt(x, 3) + " → " + fmt(f(x), 3) + " " + P.u, "red") + fil("f′(x) en tu valor", fmt(d, 3) + (d > 0 ? "  (sube: aún se puede mejorar hacia la derecha)" : d < 0 ? "  (baja: se mejora hacia la izquierda)" : "  (¡tangente horizontal!)"), "") +
+        (st.ver && opt ? fil("Óptimo (" + P.tipo + ")", "x = " + fmt(opt.x, 4) + " → " + fmt(f(opt.x), 3) + " " + P.u, "ok ancho") : "");
+      pie.innerHTML = st.ver ? "<b>Resolución:</b> " + P.sol : "Mueve x y observa cómo cambia la función objetivo y su pendiente (recta roja de trazos). En el óptimo la tangente es <b>horizontal</b>: f′(x) = 0. Pulsa el botón para ver la solución con la derivada.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 50, ymin: 0, ymax: 1300, w: 600, h: 320, etx: "x", ety: "", etiqueta: "Función objetivo" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PO.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; configura(); pinta(); });
+    configura(); pinta();
+  };
+
+  // ============================================================
+  // CINEMATICA: s, v = s′, a = s″ en una situación real
+  // ============================================================
+  var PC = [
+    { t: "Un coche", s: function (t) { return t * t * t - 6 * t * t + 9 * t; }, T: 5, u: ["m", "m/s", "m/s²"], nota: "Posición cúbica: s = t³ − 6t² + 9t. La velocidad v = s′ = 3t² − 12t + 9 = 3(t − 1)(t − 3) se anula en t = 1 y t = 3 (el coche se detiene y da marcha atrás entre esos instantes); a = s″ = 6t − 12 se anula en t = 2." },
+    { t: "Pelota lanzada hacia arriba", s: function (t) { return 20 * t - 5 * t * t; }, T: 4, u: ["m", "m/s", "m/s²"], nota: "h = 20t − 5t². La velocidad v = 20 − 10t se anula en t = 2 (altura máxima) y la aceleración es constante, a = −10 m/s² (la gravedad)." },
+    { t: "Crecimiento de bacterias", s: function (t) { return 100 * Math.exp(0.3 * t); }, T: 8, u: ["bacterias", "bacterias/h", "bacterias/h²"], nota: "N = 100·e^(0,3t). La velocidad de crecimiento N′ = 0,3·N es <b>proporcional a la población</b>: por eso crece cada vez más deprisa." },
+    { t: "Depósito que se vacía", s: function (t) { return Math.pow(10 - t, 2); }, T: 10, u: ["litros", "L/min", "L/min²"], nota: "V = (10 − t)². V′ = −2(10 − t) &lt; 0: el volumen baja, y lo hace cada vez más despacio (V″ = 2 &gt; 0)." }
+  ];
+  B.w.cinematica = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "La derivada como velocidad y la segunda derivada como aceleración");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot cn-s"></div><div class="w-plot cn-v"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, t: 1.5 }, g1, g2, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl;
+    sl = U.slider(ctl, { et: "Instante <i>t</i>", min: 0, max: 5, step: 0.05, val: st.t, on: function (v) { st.t = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    function pinta() {
+      var P = PC[st.i], t = st.t, s = P.s, v = function (x) { return D.d1(s, x); }, a = function (x) { return D.d2(s, x); };
+      sl.input.max = P.T; var ys = F.rangoY(s, 0, P.T), yv = F.rangoY(function (x) { return v(x); }, 0, P.T), ya = F.rangoY(function (x) { return a(x); }, 0, P.T);
+      g1.rango(0, P.T, ys[0], ys[1]); g1.limpiar(); var lo = Math.min(yv[0], ya[0]), hi = Math.max(yv[1], ya[1]); g2.rango(0, P.T, lo, hi); g2.limpiar();
+      g1.curva(s, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 3); g2.curva(v, { clase: "c-red", n: 400 }).setAttribute("stroke-width", 3); g2.curva(a, { clase: "c-ok", n: 400 }).setAttribute("stroke-width", 3);
+      var vt = v(t), at = a(t), W = P.T * 0.15;
+      g1.segmento(t - W, s(t) - vt * W, t + W, s(t) + vt * W, { clase: "c-red", dash: "5 4" }); pto(g1, t, s(t), "c-pen", false, 6);
+      pto(g2, t, vt, "c-red", false, 6); pto(g2, t, at, "c-ok", false, 6); g2.segmento(t, lo, t, hi, { clase: "c-faint", dash: "3 4" });
+      var movim = Math.abs(vt) < 1e-3 ? "instantáneamente parado" : vt > 0 ? "aumenta (v &gt; 0)" : "disminuye (v &lt; 0)", ritmo = Math.abs(at) < 1e-3 ? "ritmo constante" : (vt * at > 0 ? "cada vez más deprisa (v y a del mismo signo)" : "cada vez más despacio (v y a de signo contrario)");
+      lectura.innerHTML = fil("Valor s(" + fmt(t, 2) + ")", fmt(s(t), 3) + " " + P.u[0], "pen") + fil("Velocidad v = s′(" + fmt(t, 2) + ")", fmt(vt, 3) + " " + P.u[1], "red") + fil("Aceleración a = s″(" + fmt(t, 2) + ")", fmt(at, 3) + " " + P.u[2], "ok") +
+        fil("Qué pasa ahora", "s " + movim + "; " + ritmo, "ancho");
+      pie.innerHTML = P.nota + " La recta roja de trazos es la tangente: su pendiente es la velocidad.";
+    }
+    g1 = new B.Plot(cuerpo.querySelector(".cn-s"), { xmin: 0, xmax: 5, ymin: -2, ymax: 10, w: 620, h: 210, etx: "t", ety: "", etiqueta: "Posición" });
+    g2 = new B.Plot(cuerpo.querySelector(".cn-v"), { xmin: 0, xmax: 5, ymin: -5, ymax: 10, w: 620, h: 210, etx: "t", ety: "", etiqueta: "Velocidad (rojo) y aceleración (verde)" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PC.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; st.t = Math.min(st.t, PC[st.i].T); pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de números (Matemáticas I, tema 1)
    intervalos · opintervalos · valorabs · radicales · cientifica · errabs
    ============================================================ */
@@ -15809,7 +16060,7 @@
   var B = global.BACHI;
 
   // ---------- ayudantes de maquetación (compartidos en nucleo.js) ----------
-  var H = B.h, fr = H.fr, raiz = H.raiz, formula = H.formula, ejemplo = H.ejemplo, ojo = H.ojo;
+  var H = B.h, fr = H.fr, raiz = H.raiz, formula = H.formula, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
   function w(nombre, ref) { return H.w(nombre, ref && "mates1/t11/" + ref); }
 
   // ============================================================
@@ -15960,6 +16211,160 @@
     w("fprima");
 
   // ============================================================
+  // AMPLIACIÓN DE LAS SECCIONES EXISTENTES (se añade al final de cada una)
+  // ============================================================
+  secciones[0] +=
+    "<h5>La TVM con tablas de datos</h5>" +
+    "<p>Muchas veces no hay fórmula, sólo una tabla de mediciones. La TVM se calcula igual, con dos filas de la tabla, y sigue siendo «cuánto cambia la magnitud por cada unidad de x».</p>" +
+    ejemplo("Temperaturas de un día", "Un termómetro marcó 8 °C a las 6 h, 18 °C a las 12 h, 21 °C a las 15 h y 11 °C a las 21 h. Calcula la TVM en [6, 12], en [12, 15] y en [15, 21] e interprétalas.", [
+      "TVM[6, 12] = (18 − 8)/(12 − 6) = 10/6 = <b>1,67 °C/h</b>: de media sube 1,67 grados cada hora.",
+      "TVM[12, 15] = (21 − 18)/(15 − 12) = 3/3 = <b>1 °C/h</b>: sigue subiendo, pero más despacio.",
+      "TVM[15, 21] = (11 − 21)/(21 − 15) = −10/6 = <b>−1,67 °C/h</b>: negativa, porque entre las 15 y las 21 h la temperatura baja."
+    ]) +
+    "<h5>Dos TVM que conviene saberse</h5>" +
+    "<ul><li><b>En una función afín</b> f(x) = mx + n la TVM vale m en <i>cualquier</i> intervalo: por eso su gráfica es una recta y su ritmo de cambio es constante.</li>" +
+    "<li><b>En f(x) = x²</b>: TVM[a, b] = (b² − a²)/(b − a) = (b − a)(b + a)/(b − a) = <b>a + b</b>. La pendiente de la secante entre dos puntos de la parábola es la suma de sus abscisas. (Por eso, cuando b se acerca a a, la TVM se acerca a 2a: la derivada de x² es 2x.)</li></ul>" +
+    ejemplo("La TVM de x³", "Calcula la TVM de f(x) = x³ en [−1, 2] y explica qué significa.", [
+      "f(−1) = −1 y f(2) = 8.",
+      "TVM[−1, 2] = (8 − (−1))/(2 − (−1)) = 9/3 = <b>3</b>.",
+      "La secante que une (−1, −1) con (2, 8) tiene pendiente 3: de media, f sube 3 unidades por cada unidad que avanza x."
+    ]);
+
+  secciones[1] +=
+    "<h5>La derivada como función: f′(x)</h5>" +
+    "<p>Hasta ahora hemos calculado la derivada en un punto concreto, f′(a). Si en la definición dejamos <i>x</i> libre, obtenemos la <b>función derivada</b> f′(x), que da la pendiente de la tangente en cada punto. Las reglas de derivación que verás después son atajos para obtenerla sin hacer el límite cada vez. Veamos cuatro derivadas «a mano» para comprobar que las reglas dicen la verdad:</p>" +
+    ejemplo("(x²)′ = 2x", "Calcula por la definición la derivada de f(x) = x².", [
+      "f(x + h) − f(x) = (x + h)² − x² = 2xh + h².",
+      "Dividiendo entre h: 2x + h → cuando h → 0: <b>f′(x) = 2x</b>."
+    ]) +
+    ejemplo("(x³)′ = 3x²", "Calcula por la definición la derivada de f(x) = x³.", [
+      "(x + h)³ − x³ = 3x²h + 3xh² + h³ (desarrollo del binomio).",
+      "Dividiendo entre h: 3x² + 3xh + h² → 3x² cuando h → 0: <b>f′(x) = 3x²</b>."
+    ]) +
+    ejemplo("(√x)′ = 1/(2√x)", "Calcula por la definición la derivada de f(x) = √x (para x &gt; 0).", [
+      "(√(x + h) − √x)/h: es una indeterminación 0/0 con raíces; se multiplica por el conjugado √(x + h) + √x.",
+      "Numerador: (x + h) − x = h. Queda h/(h(√(x + h) + √x)) = 1/(√(x + h) + √x).",
+      "Cuando h → 0: 1/(2√x). <b>f′(x) = 1/(2√x)</b>."
+    ]) +
+    ejemplo("(1/x)′ = −1/x²", "Calcula por la definición la derivada de f(x) = 1/x.", [
+      "1/(x + h) − 1/x = (x − (x + h))/(x(x + h)) = −h/(x(x + h)).",
+      "Dividiendo entre h: −1/(x(x + h)) → −1/x² cuando h → 0: <b>f′(x) = −1/x²</b>."
+    ]) +
+    "<h5>Notaciones</h5>" +
+    "<p>La derivada de y = f(x) se escribe de varias formas equivalentes: <b>f′(x)</b> (Lagrange), <b>y′</b>, <b>dy/dx</b> o <b>df/dx</b> (Leibniz, que recuerda a «cambio de y entre cambio de x») y <b>D f</b>. La derivada segunda se escribe f″(x) o d²f/dx².</p>" +
+    "<h5>Derivadas laterales y cuándo no existe la derivada</h5>" +
+    "<p>La derivada en a es un límite, y un límite exige que los dos laterales coincidan. Se definen la <b>derivada por la izquierda</b> f′(a⁻) = lím<sub>h→0⁻</sub> [f(a + h) − f(a)]/h y la <b>derivada por la derecha</b> f′(a⁺) = lím<sub>h→0⁺</sub> [f(a + h) − f(a)]/h. <b>f es derivable en a si y sólo si ambas existen, son finitas e iguales.</b> Hay cuatro maneras típicas de que falle:</p>" +
+    tabla(["Situación", "Ejemplo", "Qué se ve", "Derivadas laterales"], [
+      ["Punto anguloso", "|x| en x = 0", "pico en forma de V", "−1 y 1 (finitas y distintas)"],
+      ["Cúspide", "∛(x²) en x = 0", "pico afilado vertical", "−∞ y +∞"],
+      ["Tangente vertical", "∛x en x = 0", "la gráfica sube «de pie»", "+∞ y +∞ (el límite es infinito)"],
+      ["Discontinuidad", "salto en x = 0", "la función se rompe", "no existen"]
+    ]) +
+    "<p><b>Derivable ⇒ continua.</b> Si f′(a) existe, f(a + h) − f(a) = [(f(a + h) − f(a))/h]·h → f′(a)·0 = 0, es decir, f(a + h) → f(a): f es continua en a. El recíproco es falso: |x| es continua en 0 y no es derivable. Y una función <b>no continua</b> jamás puede ser derivable en ese punto: lo primero que se comprueba en un problema de derivabilidad de una función a trozos es la continuidad.</p>";
+
+  secciones[2] +=
+    "<h5>El ángulo de la tangente</h5>" +
+    "<p>Como f′(a) = tan α, siendo α el ángulo que forma la tangente con el eje X, el ángulo se obtiene con α = arctan f′(a). Si f′(a) = 1, la tangente forma 45° con el eje; si f′(a) = 0, es horizontal; si f′(a) = −1, forma 135° (o −45°).</p>" +
+    "<h5>Tangente que pasa por un punto que no está en la curva</h5>" +
+    "<p>Si te piden la tangente desde un punto exterior P, el punto de tangencia es una <i>incógnita</i> t: la tangente en (t, f(t)) es y − f(t) = f′(t)(x − t), y se impone que pase por P.</p>" +
+    ejemplo("Tangentes desde un punto exterior", "Halla las tangentes a y = x² que pasan por P = (1, −3).", [
+      "En un punto (t, t²) la tangente es y − t² = 2t(x − t).",
+      "Imponemos que pase por (1, −3): −3 − t² = 2t(1 − t) → −3 − t² = 2t − 2t² → t² − 2t − 3 = 0 → t = 3 o t = −1.",
+      "Para t = 3: y − 9 = 6(x − 3) → <b>y = 6x − 9</b>. Para t = −1: y − 1 = −2(x + 1) → <b>y = −2x − 1</b>.",
+      "Comprobación: en x = 1, 6·1 − 9 = −3 ✓ y −2·1 − 1 = −3 ✓."
+    ]) +
+    "<h5>Ángulo entre dos curvas</h5>" +
+    "<p>El ángulo entre dos curvas que se cortan es el ángulo entre sus tangentes en el punto de corte, y se calcula con las pendientes: tan θ = |(m₂ − m₁)/(1 + m₁m₂)| (Tema 8).</p>" +
+    ejemplo("Ángulo de corte", "Calcula el ángulo con el que se cortan y = x² e y = √x en el punto (1, 1).", [
+      "Pendientes en x = 1: para x², m₁ = 2x = 2. Para √x, m₂ = 1/(2√x) = 1/2.",
+      "tan θ = |(1/2 − 2)/(1 + 2·1/2)| = |−3/2|/2 = 3/4.",
+      "θ = arctan(3/4) = <b>36,87°</b>."
+    ]);
+
+  secciones[3] +=
+    "<h5>Por qué funcionan las reglas (para quien quiera entender de verdad)</h5>" +
+    "<ul>" +
+    "<li><b>Suma:</b> el límite de una suma es la suma de los límites, luego (f + g)′ = f′ + g′. Igual con las constantes: (k·f)′ = k·f′.</li>" +
+    "<li><b>Potencia:</b> (x + h)ⁿ = xⁿ + n·xⁿ⁻¹h + (términos con h²…). Al restar xⁿ y dividir entre h queda n·xⁿ⁻¹ + (términos con h) → n·xⁿ⁻¹.</li>" +
+    "<li><b>Producto:</b> f(x + h)g(x + h) − f(x)g(x) = [f(x + h) − f(x)]·g(x + h) + f(x)·[g(x + h) − g(x)]. Al dividir entre h y tomar límite (g es continua) queda f′g + fg′.</li>" +
+    "<li><b>Cociente:</b> sale de aplicar el producto a f·(1/g) y de que (1/g)′ = −g′/g².</li>" +
+    "</ul>" +
+    "<h5>Derivadas sucesivas</h5>" +
+    "<p>Como f′ es otra función, se puede volver a derivar: f″ = (f′)′ es la <b>derivada segunda</b>, f‴ la tercera, etc. Mide cómo cambia la pendiente. En física, si s(t) es la posición, s′ = velocidad y s″ = aceleración. En matemáticas, el signo de f″ dice hacia dónde se curva la gráfica (lo verás en «Concavidad»).</p>" +
+    ejemplo("Derivadas sucesivas", "Calcula f′, f″ y f‴ de f(x) = x⁴ − 3x².", [
+      "f′(x) = 4x³ − 6x.",
+      "f″(x) = 12x² − 6.",
+      "f‴(x) = 24x."
+    ]) +
+    "<h5>Funciones definidas a trozos y valor absoluto</h5>" +
+    "<p>Se deriva cada trozo por separado en el interior de su intervalo. En los puntos de unión hay que estudiar las derivadas laterales (siguiente sección). Para el valor absoluto: (|x|)′ = 1 si x &gt; 0 y −1 si x &lt; 0 (en x = 0 no existe); en general (|u|)′ = u′·u/|u| = u′·signo(u).</p>";
+
+  secciones[4] +=
+    "<h5>Más derivadas elementales</h5>" +
+    "<p>Para completar la tabla de derivadas que pueden pedirte:</p>" +
+    "<table class='lamina-table'><tbody>" +
+    "<tr><td>(aˣ)′</td><td>aˣ·ln a</td><td>(logₐ x)′</td><td>1/(x·ln a)</td></tr>" +
+    "<tr><td>(arcsen x)′</td><td>1/√(1 − x²)</td><td>(arccos x)′</td><td>−1/√(1 − x²)</td></tr>" +
+    "<tr><td>(arctan x)′</td><td>1/(1 + x²)</td><td>(cotg x)′</td><td>−1/sen²x</td></tr>" +
+    "</tbody></table>" +
+    "<p>Con la cadena, cada una se multiplica por u′: por ejemplo (arctan u)′ = u′/(1 + u²).</p>" +
+    "<h5>Cadenas de tres capas</h5>" +
+    "<p>Si hay más de dos capas, se derivan <b>de fuera hacia dentro</b> y se multiplican todas las derivadas.</p>" +
+    ejemplo("Tres capas: e<sup>sen(x²)</sup>", "Deriva f(x) = e<sup>sen(x²)</sup>.", [
+      "Capa 1 (fuera): e<sup>u</sup> → e<sup>u</sup>, con u = sen(x²).",
+      "Capa 2: sen(v) → cos(v), con v = x².",
+      "Capa 3: x² → 2x.",
+      "<b>f′(x) = e<sup>sen(x²)</sup>·cos(x²)·2x</b>."
+    ]) +
+    ejemplo("Un cuadrado de un seno", "Deriva f(x) = sen²(3x) = [sen(3x)]².", [
+      "Fuera: ( )² → 2( ). Dentro: sen(3x) → cos(3x)·3.",
+      "f′(x) = 2·sen(3x)·cos(3x)·3 = 6·sen(3x)·cos(3x) = <b>3·sen(6x)</b> (por el seno del ángulo doble)."
+    ]) +
+    "<h5>Derivación logarítmica: cuando la variable está en la base y en el exponente</h5>" +
+    "<p>Para f(x) = g(x)<sup>h(x)</sup> no sirven ni la regla de la potencia (exponente constante) ni la de la exponencial (base constante). Se toman logaritmos: ln f = h·ln g, se deriva en los dos lados (el izquierdo da f′/f) y se despeja:</p>" +
+    H.formula("(g<sup>h</sup>)′ = g<sup>h</sup>·( h′·ln g + h·g′/g )") +
+    ejemplo("La derivada de xˣ", "Calcula la derivada de f(x) = xˣ (x &gt; 0).", [
+      "ln f = x·ln x. Se deriva: f′/f = 1·ln x + x·(1/x) = ln x + 1.",
+      "Se despeja: <b>f′(x) = xˣ(ln x + 1)</b>. Por ejemplo, f′(1) = 1·(0 + 1) = 1."
+    ]);
+
+  secciones[5] +=
+    "<h5>Más preguntas típicas de tangentes</h5>" +
+    ejemplo("Tangente paralela a una recta dada", "¿En qué puntos de f(x) = x³ − 3x² la tangente es paralela a y = 9x + 1? Escribe las tangentes.", [
+      "Paralela: misma pendiente 9. f′(x) = 3x² − 6x = 9 → x² − 2x − 3 = 0 → x = 3 o x = −1.",
+      "x = 3: f(3) = 27 − 27 = 0 → tangente y = 9(x − 3) = <b>9x − 27</b>.",
+      "x = −1: f(−1) = −1 − 3 = −4 → y + 4 = 9(x + 1) → <b>y = 9x + 5</b>."
+    ]) +
+    ejemplo("Normal de un logaritmo", "Halla la recta normal a f(x) = ln x en x = 1.", [
+      "f(1) = 0 y f′(x) = 1/x → f′(1) = 1. La normal tiene pendiente −1.",
+      "y − 0 = −1·(x − 1) → <b>y = −x + 1</b>."
+    ]) +
+    ejemplo("Tangente perpendicular", "¿En qué punto de f(x) = x² − 4x la tangente es perpendicular a la recta y = −x/2 + 3?", [
+      "Pendiente de la recta: −1/2. La tangente debe tener pendiente 2 (m₁·m₂ = −1).",
+      "f′(x) = 2x − 4 = 2 → x = 3, f(3) = −3. El punto es <b>(3, −3)</b>."
+    ]) +
+    "<h5>Derivada y velocidad: un primer vistazo</h5>" +
+    "<p>Si s(t) es la posición, la tangente a la gráfica de s en un instante tiene pendiente igual a la velocidad en ese instante. Prueba con las cuatro situaciones del simulador (en la sección sobre la derivada en las ciencias).</p>";
+
+  secciones[6] +=
+    "<h5>Extremos absolutos en un intervalo cerrado</h5>" +
+    "<p>Si f es continua en [a, b], alcanza un máximo y un mínimo absolutos (teorema de Weierstrass). Se encuentran <b>comparando los valores de f en los puntos críticos y en los extremos del intervalo</b>: el mayor es el máximo absoluto y el menor el mínimo.</p>" +
+    ejemplo("Extremos absolutos", "Halla los extremos absolutos de f(x) = x³ − 3x en [−2, 3].", [
+      "f′(x) = 3x² − 3 = 0 → x = ±1 (los dos están en el intervalo).",
+      "Valores: f(−2) = −8 + 6 = −2 · f(−1) = 2 · f(1) = −2 · f(3) = 27 − 9 = 18.",
+      "<b>Máximo absoluto</b>: 18, en x = 3 (un extremo del intervalo). <b>Mínimo absoluto</b>: −2, que se alcanza en x = −2 y en x = 1."
+    ]) +
+    "<h5>El criterio de la segunda derivada</h5>" +
+    "<p>Si f′(a) = 0 (tangente horizontal) y la segunda derivada existe en a:</p>" +
+    tabla(["f″(a)", "Conclusión"], [["&gt; 0", "mínimo relativo (la gráfica es una «sonrisa» ∪ en a)"], ["&lt; 0", "máximo relativo (una «cara triste» ∩)"], ["= 0", "no concluye: hay que estudiar el signo de f′ (x⁴ tiene mínimo, −x⁴ máximo y x³ ninguno)"]]) +
+    ejemplo("Con la segunda derivada", "Clasifica los puntos críticos de f(x) = x³ − 6x² + 9x + 1.", [
+      "f′(x) = 3x² − 12x + 9 = 3(x − 1)(x − 3) → puntos críticos x = 1 y x = 3.",
+      "f″(x) = 6x − 12. f″(1) = −6 &lt; 0 → <b>máximo</b> en (1, f(1)) = (1, 5). f″(3) = 6 &gt; 0 → <b>mínimo</b> en (3, f(3)) = (3, 1)."
+    ]) +
+    "<h5>Puntos donde f′ no existe</h5>" +
+    "<p>Un extremo puede estar donde f′ no existe: f(x) = |x − 2| tiene un mínimo en x = 2 (punto anguloso) y f(x) = ∛(x²) otro en x = 0 (cúspide). Por eso, además de resolver f′ = 0, se miran los puntos del dominio donde f′ no existe.</p>";
+
+  // ============================================================
   // SECCIONES NUEVAS al final del tema
   // ============================================================
   var nuevas = [
@@ -15987,17 +16392,211 @@
         ojo("tres fallos típicos: (1) dar la x cuando preguntan por el área o el volumen máximo; (2) no comprobar si el punto crítico es máximo o mínimo; (3) dar una solución que se sale del dominio (una longitud negativa, por ejemplo)."),
     },
     {
-      h: "9. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "9. Aproximación lineal: la tangente como calculadora",
+      html:
+        "<p>Cerca del punto de tangencia, la recta tangente y la curva casi coinciden. Eso permite <b>aproximar valores</b> de una función complicada con una recta:</p>" +
+        H.formula("f(a + h) ≈ f(a) + f′(a)·h        (h pequeño)") +
+        ejemplo("Una raíz sin calculadora", "Aproxima √4,1 usando la tangente de f(x) = √x en a = 4.", [
+          "f(4) = 2 y f′(x) = 1/(2√x) → f′(4) = 1/4.",
+          "√4,1 = f(4 + 0,1) ≈ 2 + (1/4)·0,1 = <b>2,025</b>. (El valor exacto es 2,02485: el error es de 0,00015.)"
+        ]) +
+        ejemplo("Un logaritmo", "Aproxima ln 1,02 con la tangente de ln x en a = 1.", [
+          "f(1) = 0 y f′(1) = 1/1 = 1. ln 1,02 ≈ 0 + 1·0,02 = <b>0,02</b> (exacto: 0,0198026)."
+        ]) +
+        ejemplo("Una potencia", "Aproxima 1,03¹⁰.", [
+          "f(x) = x¹⁰ en a = 1: f(1) = 1 y f′(1) = 10. 1,03¹⁰ ≈ 1 + 10·0,03 = <b>1,3</b> (exacto: 1,3439; con h = 0,03 y exponente grande el error ya se nota)."
+        ]) +
+        w("linealizacion") +
+        "<p><b>Diferencial.</b> Se llama diferencial de f en x a dy = f′(x)·dx: el cambio de y que predice la tangente cuando x cambia en dx. Es la idea que está detrás del cálculo de <i>errores</i>: si mides una arista de un cubo con un error de 0,1 cm, el volumen V = x³ cambia aproximadamente dV = 3x²·dx.</p>" +
+        ojo("la aproximación sólo es buena para h pequeño. Con h grande la recta se separa de la curva. Y el error es mayor cuanto más «curvada» esté la gráfica (cuanto mayor sea |f″|).")
+    },
+    {
+      h: "10. Derivabilidad de funciones a trozos y con valor absoluto",
+      html:
+        "<p>Es uno de los problemas más repetidos en los exámenes. Para que f sea derivable en el punto de unión x = c de dos trozos hacen falta <b>dos</b> condiciones (en este orden):</p>" +
+        "<ol><li><b>Continuidad</b>: el valor por la izquierda, el valor por la derecha y f(c) coinciden.</li><li><b>Derivadas laterales iguales</b>: la derivada del trozo izquierdo en c es igual que la del trozo derecho en c.</li></ol>" +
+        "<p>Con parámetros, esas dos condiciones forman un <b>sistema de ecuaciones</b>. Explora el simulador: con a = 2 y b = 0 las pendientes coinciden pero hay un salto; con b = −1 se unen sin pico.</p>" +
+        w("derivabilidad") +
+        ejemplo("Dos parámetros", "Halla a y b para que f(x) = { x² + ax + b si x &lt; 1 ; 3x − 1 si x ≥ 1 } sea derivable en x = 1.", [
+          "<b>Continuidad</b>: por la izquierda 1 + a + b; por la derecha (y f(1)) 3·1 − 1 = 2. Entonces 1 + a + b = 2 → a + b = 1.",
+          "<b>Derivadas laterales</b>: izquierda 2x + a → 2 + a; derecha 3. Entonces 2 + a = 3 → a = 1.",
+          "De a + b = 1 se tiene b = 0. <b>a = 1, b = 0</b>."
+        ]) +
+        ejemplo("Otro sistema", "Halla a y b para que f(x) = { ax² + 1 si x ≤ 1 ; bx + 2 si x &gt; 1 } sea derivable en x = 1.", [
+          "Continuidad: a + 1 = b + 2 → a − b = 1.",
+          "Derivadas: 2a = b.",
+          "Sustituyendo: a − 2a = 1 → a = −1 y b = −2. <b>a = −1, b = −2</b>."
+        ]) +
+        ejemplo("Con valor absoluto", "Estudia la derivabilidad de f(x) = |x² − 4| en x = 2 y x = −2.", [
+          "Cerca de x = 2: x² − 4 &gt; 0 para x &gt; 2 y &lt; 0 para x &lt; 2. Entonces f(x) = x² − 4 por la derecha, con pendiente 2x = 4 en x = 2; y f(x) = −(x² − 4) por la izquierda, con pendiente −2x = −4.",
+          "Las derivadas laterales son −4 y 4: son distintas. <b>No es derivable en x = 2</b> (punto anguloso). Por simetría, tampoco en x = −2."
+        ]) +
+        ejemplo("Una trampa agradable", "Estudia la derivabilidad de f(x) = (x − 1)·|x − 1| en x = 1.", [
+          "Para x &gt; 1: f(x) = (x − 1)², con derivada 2(x − 1) → 0. Para x &lt; 1: f(x) = −(x − 1)², con derivada −2(x − 1) → 0.",
+          "Las derivadas laterales valen las dos 0: <b>es derivable en x = 1</b> y f′(1) = 0, aunque tenga valor absoluto."
+        ])
+    },
+    {
+      h: "11. Concavidad y puntos de inflexión: la segunda derivada",
+      html:
+        "<p>La primera derivada dice si f sube o baja. La <b>segunda derivada</b> dice <b>hacia dónde se curva</b> la gráfica:</p>" +
+        tabla(["Si…", "f está…", "Imagen", "La pendiente f′…"], [
+          ["f″ &gt; 0", "curvada hacia arriba (∪)", "una «sonrisa»: la tangente queda por debajo de la curva", "va aumentando"],
+          ["f″ &lt; 0", "curvada hacia abajo (∩)", "una «cara triste»: la tangente queda por encima", "va disminuyendo"]
+        ]) +
+        "<p><b>Nota sobre los nombres.</b> Unos libros llaman «cóncava» a ∪ y «convexa» a ∩, y otros al revés. Para no confundirte, di siempre «curvada hacia arriba/abajo» y dibuja la forma.</p>" +
+        "<p>Un <b>punto de inflexión</b> es un punto donde la gráfica cambia de curvarse hacia un lado a curvarse hacia el otro: f″ cambia de signo (y la tangente atraviesa la curva). En un punto de inflexión suele cumplirse f″ = 0, pero <i>f″ = 0 no basta</i>: f(x) = x⁴ tiene f″(0) = 0 y no hay inflexión (siempre curva hacia arriba).</p>" +
+        ejemplo("Concavidad e inflexión", "Estudia la curvatura de f(x) = x⁴ − 4x³.", [
+          "f′(x) = 4x³ − 12x² y f″(x) = 12x² − 24x = 12x(x − 2).",
+          "f″ = 0 → x = 0 y x = 2. Signo de f″: positivo en (−∞, 0), negativo en (0, 2), positivo en (2, +∞).",
+          "Curvada hacia arriba en (−∞, 0) ∪ (2, +∞) y hacia abajo en (0, 2). <b>Puntos de inflexión</b>: (0, 0) y (2, f(2)) = (2, −16)."
+        ]) +
+        "<p>Mira las tres gráficas a la vez: la de f, la de f′ y la de f″. Observa que los máximos y mínimos de f son los ceros de f′, y los puntos de inflexión de f son los ceros de f″ (y los máximos o mínimos de f′):</p>" +
+        w("tresgraficas")
+    },
+    {
+      h: "12. Estudio completo y representación gráfica de funciones",
+      html:
+        "<p>Con todo lo que sabes ya puedes hacer el <b>estudio completo</b> de una función y dibujarla. El guion:</p>" +
+        "<ol><li><b>Dominio</b> y puntos de corte con los ejes.</li><li><b>Simetría</b> (par/impar) y periodicidad.</li><li><b>Asíntotas</b> (Tema 10).</li><li><b>Primera derivada</b>: crecimiento, decrecimiento y extremos relativos.</li><li><b>Segunda derivada</b>: curvatura y puntos de inflexión.</li><li><b>Tabla resumen</b> y <b>gráfica</b>.</li></ol>" +
+        ejemplo("Un polinomio", "Estudia y representa f(x) = x³ − 6x² + 9x.", [
+          "<b>Dominio</b> ℝ. <b>Cortes</b>: f(0) = 0; f(x) = x(x − 3)² = 0 → x = 0 y x = 3 (raíz doble: la gráfica toca el eje en x = 3 sin cruzarlo).",
+          "<b>f′(x)</b> = 3x² − 12x + 9 = 3(x − 1)(x − 3) → crece en (−∞, 1) ∪ (3, +∞), decrece en (1, 3). <b>Máximo relativo</b> (1, 4); <b>mínimo relativo</b> (3, 0).",
+          "<b>f″(x)</b> = 6x − 12 = 0 → x = 2. Curvada hacia abajo para x &lt; 2 y hacia arriba para x &gt; 2: <b>inflexión</b> (2, 2).",
+          "Sin asíntotas (polinomio de grado 3: tiende a ±∞). Con estos puntos se dibuja: sube hasta (1, 4), baja pasando por (2, 2) hasta (3, 0) y vuelve a subir."
+        ]) +
+        ejemplo("Una racional", "Estudia y representa f(x) = x²/(x − 1).", [
+          "<b>Dominio</b> ℝ − {1}. <b>Cortes</b>: f(0) = 0 (único corte: x² = 0 → x = 0).",
+          "<b>Asíntotas</b>: vertical x = 1 (numerador 1 ≠ 0). Oblicua: x²/(x − 1) = x + 1 + 1/(x − 1), así que y = x + 1 (grado del numerador = grado del denominador + 1).",
+          "<b>f′(x)</b> = [2x(x − 1) − x²]/(x − 1)² = x(x − 2)/(x − 1)². Se anula en x = 0 y x = 2. Signo: crece en (−∞, 0) ∪ (2, +∞) y decrece en (0, 1) ∪ (1, 2). <b>Máximo relativo</b> (0, 0); <b>mínimo relativo</b> (2, 4).",
+          "<b>f″(x)</b> = 2/(x − 1)³: nunca se anula, luego no hay inflexión. Curvada hacia abajo en (−∞, 1) y hacia arriba en (1, +∞).",
+          "Dibujo: dos ramas separadas por x = 1, pegadas a la oblicua y = x + 1."
+        ]) +
+        ejemplo("Con exponencial", "Estudia f(x) = x·e⁻ˣ.", [
+          "<b>Dominio</b> ℝ. Corte: x = 0. <b>Asíntota horizontal</b>: lím<sub>x→+∞</sub> x·e⁻ˣ = 0 (la exponencial gana a la potencia): y = 0 en +∞.",
+          "<b>f′(x)</b> = e⁻ˣ − x·e⁻ˣ = (1 − x)e⁻ˣ: crece en (−∞, 1), decrece en (1, +∞). <b>Máximo</b> (1, 1/e) ≈ (1; 0,368).",
+          "<b>f″(x)</b> = −e⁻ˣ − (1 − x)e⁻ˣ = (x − 2)e⁻ˣ: cambia de signo en x = 2 → <b>inflexión</b> (2, 2/e²) ≈ (2; 0,271)."
+        ]) +
+        "<p>Para comprobar tus estudios, usa el analizador del Tema 9 (ficha automática) y las tres gráficas de la sección anterior.</p>" +
+        w("analisis")
+    },
+    {
+      h: "13. Más problemas de optimización",
+      html:
+        "<p>Cada uno de estos problemas es de los que caen en exámenes. Pruébalos primero en el simulador (busca el óptimo moviendo x) y después resuélvelos con la derivada.</p>" +
+        w("optimizar2") +
+        ejemplo("Coste medio mínimo", "El coste de fabricar x unidades es C(x) = x² + 100x + 2500 €. ¿Para qué producción es mínimo el coste medio por unidad?", [
+          "Coste medio: M(x) = C(x)/x = x + 100 + 2500/x (x &gt; 0).",
+          "M′(x) = 1 − 2500/x² = 0 → x² = 2500 → x = 50.",
+          "M′ &lt; 0 si x &lt; 50 y M′ &gt; 0 si x &gt; 50: mínimo. <b>Producción de 50 unidades</b>, con coste medio M(50) = 50 + 100 + 50 = 200 €/unidad."
+        ]) +
+        ejemplo("Rectángulo inscrito en una circunferencia", "Halla el rectángulo de mayor área inscrito en una circunferencia de radio r.", [
+          "Los vértices son (±x, ±y) con x² + y² = r². Área A = 2x·2y = 4xy = 4x√(r² − x²).",
+          "Maximizar A es lo mismo que maximizar A² = 16x²(r² − x²) = 16(r²x² − x⁴). Derivada: 16(2r²x − 4x³) = 32x(r² − 2x²) = 0 → x² = r²/2.",
+          "Entonces y² = r²/2 también: x = y = r/√2. <b>Es un cuadrado de lado r√2</b>, con área máxima 2r²."
+        ]) +
+        ejemplo("Caja de base cuadrada", "Una caja abierta (sin tapa) de base cuadrada debe tener 108 dm³. ¿Qué dimensiones minimizan el material?", [
+          "Lado de la base x, altura h: x²h = 108 → h = 108/x². Superficie: S = x² + 4xh = x² + 432/x.",
+          "S′ = 2x − 432/x² = 0 → x³ = 216 → x = 6 dm.",
+          "S′ &lt; 0 antes y &gt; 0 después: mínimo. <b>x = 6 dm, h = 108/36 = 3 dm</b> y S = 36 + 72 = 108 dm²."
+        ]) +
+        "<h5>Casos clásicos que conviene recordar</h5>" +
+        tabla(["Problema", "Solución"], [
+          ["Rectángulo de perímetro fijo, área máxima", "el cuadrado"],
+          ["Rectángulo de área fija, perímetro mínimo", "el cuadrado"],
+          ["Lata cilíndrica de volumen fijo, superficie mínima", "altura = diámetro (h = 2r)"],
+          ["Caja abierta de base cuadrada y volumen fijo", "altura = mitad del lado de la base"],
+          ["Dos números de suma fija, producto máximo", "iguales"],
+          ["Dos números de producto fijo, suma mínima", "iguales"]
+        ])
+    },
+    {
+      h: "14. La derivada en las ciencias: velocidad, aceleración y ritmos de cambio",
+      html:
+        "<p>La derivada mide <b>el ritmo de cambio instantáneo</b> de una magnitud respecto de otra. Por eso aparece en todas las ciencias: si N(t) es una población, N′(t) es su velocidad de crecimiento; si C(x) es un coste, C′(x) es el coste marginal; si s(t) es una posición, s′ es la velocidad y s″ la aceleración. Observa cómo se relacionan las tres gráficas:</p>" +
+        w("cinematica") +
+        ejemplo("Caída libre", "Se suelta un objeto desde 80 m de altura: h(t) = 80 − 5t². Calcula la velocidad en t = 2 s y con qué velocidad llega al suelo.", [
+          "v(t) = h′(t) = −10t (negativa: baja). En t = 2: v = <b>−20 m/s</b> (20 m/s hacia abajo).",
+          "Llega al suelo cuando h = 0: 80 − 5t² = 0 → t = 4 s. Entonces v(4) = <b>−40 m/s</b>.",
+          "La aceleración a = v′ = −10 m/s² (la gravedad, constante)."
+        ]) +
+        ejemplo("Coste marginal", "El coste de producir x unidades es C(x) = 0,01x³ − 0,6x² + 13x (euros). Calcula el coste marginal en x = 10 e interprétalo.", [
+          "C′(x) = 0,03x² − 1,2x + 13 → C′(10) = 3 − 12 + 13 = <b>4 €/unidad</b>.",
+          "Significa que, produciendo ya 10 unidades, fabricar una más cuesta aproximadamente 4 €. (C(11) − C(10) = 3,71: la derivada lo aproxima razonablemente.)"
+        ]) +
+        ejemplo("Crecimiento de una población", "N(t) = 500·e^(0,2t) bacterias (t en horas). ¿Con qué rapidez crece a las 5 h?", [
+          "N′(t) = 500·0,2·e^(0,2t) = 0,2·N(t). Es <b>proporcional a la población</b>.",
+          "N(5) = 500e = 1 359,1 y N′(5) = 0,2·1 359,1 = <b>271,8 bacterias/hora</b>."
+        ]) +
+        ejemplo("Concentración máxima de un fármaco", "C(t) = 8t·e^(−0,5t) (mg/L, t en horas). ¿Cuándo es máxima y cuánto vale?", [
+          "C′(t) = 8e^(−0,5t) + 8t·(−0,5)e^(−0,5t) = 8e^(−0,5t)(1 − 0,5t).",
+          "C′ = 0 → t = 2 h. C′ &gt; 0 antes y &lt; 0 después: máximo.",
+          "<b>C(2) = 16/e = 5,89 mg/L</b>, a las 2 horas."
+        ])
+    },
+    {
+      h: "15. El teorema del valor medio (para ir más allá)",
+      html:
+        "<p><b>Teorema del valor medio (Lagrange).</b> Si f es continua en [a, b] y derivable en (a, b), existe al menos un c ∈ (a, b) tal que</p>" +
+        H.formula("f′(c) = " + fr("f(b) − f(a)", "b − a")) +
+        "<p>Es decir: en algún punto, la pendiente de la tangente (instantánea) es igual a la pendiente de la secante (media). Un caso particular es el <b>teorema de Rolle</b>: si además f(a) = f(b), existe c con f′(c) = 0 (entre dos alturas iguales tiene que haber una cima o un valle).</p>" +
+        w("valormedio") +
+        ejemplo("Hallar c", "Halla el punto c que garantiza el teorema para f(x) = x³ − x en [0, 2].", [
+          "f(0) = 0 y f(2) = 6, así que la pendiente media vale (6 − 0)/(2 − 0) = 3.",
+          "f′(c) = 3c² − 1 = 3 → c² = 4/3 → c = 2/√3 = <b>1,1547</b> (la raíz negativa queda fuera del intervalo)."
+        ]) +
+        ejemplo("El radar", "Un coche recorre 100 km en exactamente 1 hora. ¿Qué dice el teorema?", [
+          "Si s(t) es la posición, la velocidad media es (s(1) − s(0))/1 = 100 km/h. El teorema asegura que existe un instante c en que la velocidad instantánea fue exactamente <b>100 km/h</b>: es la base de los radares de tramo."
+        ])
+    },
+    {
+      h: "16. Banco de derivadas resueltas, por tipos",
+      html:
+        "<p>Veinticuatro derivadas con la regla que las resuelve. Tápalas y deriva tú antes de mirar la solución.</p>" +
+        tabla(["Función", "Regla", "Derivada"], [
+          ["5x⁴ − 3x² + 2x − 7", "potencia y suma", "20x³ − 6x + 2"],
+          ["x⁻² + 4√x", "potencias", "−2x⁻³ + 2/√x"],
+          ["(2x − 1)(x² + 3)", "producto", "6x² − 2x + 6"],
+          ["x·eˣ", "producto", "(1 + x)eˣ"],
+          ["x²·ln x", "producto", "2x ln x + x"],
+          ["(x + 1)/(x − 1)", "cociente", "−2/(x − 1)²"],
+          ["x/(x² + 1)", "cociente", "(1 − x²)/(x² + 1)²"],
+          ["eˣ/x", "cociente", "eˣ(x − 1)/x²"],
+          ["sen x·cos x", "producto", "cos²x − sen²x = cos 2x"],
+          ["tg x", "tabla", "1/cos²x"],
+          ["sen(3x²)", "cadena", "6x·cos(3x²)"],
+          ["cos²x", "cadena", "−2 sen x cos x = −sen 2x"],
+          ["e<sup>−x²</sup>", "cadena", "−2x·e<sup>−x²</sup>"],
+          ["ln(x² + 1)", "cadena", "2x/(x² + 1)"],
+          ["√(1 − x²)", "cadena", "−x/√(1 − x²)"],
+          ["(2x + 1)⁵", "cadena", "10(2x + 1)⁴"],
+          ["ln(sen x)", "cadena", "cos x/sen x = cotg x"],
+          ["e<sup>sen x</sup>", "cadena", "cos x·e<sup>sen x</sup>"],
+          ["2ˣ", "tabla", "2ˣ·ln 2"],
+          ["xˣ", "logarítmica", "xˣ(ln x + 1)"],
+          ["arctan(2x)", "cadena", "2/(1 + 4x²)"],
+          ["ln(x + √(x² + 1))", "cadena", "1/√(x² + 1)"],
+          ["(x² + 1)/eˣ", "cociente", "−(x − 1)²e⁻ˣ"],
+          ["1/√x", "potencia", "−1/(2x√x)"]
+        ]) +
+        "<p>Y para entrenar de forma automática con corrección, el entrenador de derivadas:</p>" +
+        w("derivador")
+    },
+    {
+      h: "17. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html:
         "<p>Casi todos los fallos en derivadas son siempre los mismos. Leerlos una vez no basta: hay que <b>detectarlos</b> en un ejercicio ya hecho. Cada pregunta muestra un razonamiento con un error; elige cuál es.</p>" +
         w("quiz", "errores")
     },
     {
-      h: "10. Autocomprobación del tema",
+      h: "18. Autocomprobación del tema",
       html:
-        "<p>Ocho preguntas para saber si el tema está en su sitio, y un juego de parejas para fijar las derivadas más usadas. Si fallas alguna, la explicación te dice por qué.</p>" +
+        "<p>Dieciséis preguntas de test, juegos de parejas y de clasificación para fijar las reglas, un problema de optimización para ordenar y tarjetas con todo lo esencial. Si fallas alguna, la explicación te dice por qué.</p>" +
         w("quiz", "quiz1") +
-        w("emparejar", "emp1")
+        w("emparejar", "emp1") +
+        w("clasificar", "reglas") +
+        w("orden", "optim") +
+        w("tarjetas", "tj1")
     }
   ];
 
@@ -16093,6 +16692,96 @@
         ["√x", "1 ÷ (2√x)"]
       ]
     }
+  };
+
+
+  // ---------------- actividades ampliadas ----------------
+  datos.errores.preguntas.push(
+    { q: "Un alumno deriva f(x) = (x² + 1)³ y escribe f′(x) = 3(x² + 1)². ¿Qué falta?",
+      op: ["Nada", "Multiplicar por la derivada de lo de dentro: 2x. Resultado: 6x(x² + 1)²", "Restar 1 al exponente otra vez", "Dividir entre 3"], ok: 1,
+      porque: "Regla de la cadena: la derivada de la potencia (3u²) se multiplica por u′ = 2x. f′(x) = 3(x² + 1)²·2x = 6x(x² + 1)²." },
+    { q: "Un alumno deriva ln(x²) y escribe 1/x². ¿Qué ha hecho mal?",
+      op: ["Nada", "(ln u)′ = u′/u = 2x/x² = 2/x: olvidó la derivada de lo de dentro", "La derivada de ln es ln", "Debía usar la regla del cociente"], ok: 1,
+      porque: "(ln u)′ = u′/u con u = x². Sale 2x/x² = 2/x. (También: ln(x²) = 2 ln x para x &gt; 0, cuya derivada es 2/x.)" },
+    { q: "Para f(x) = x³ − 12x, un alumno resuelve f′(2) = 0 y dice «hay un máximo en x = 2». ¿Qué falla?",
+      op: ["Nada", "f″(2) = 12 &gt; 0, así que en x = 2 hay un mínimo, no un máximo (el máximo está en x = −2)", "f′(2) no vale 0", "Es un punto de inflexión"], ok: 1,
+      porque: "f′(x) = 3x² − 12 = 0 → x = ±2. Con la segunda derivada f″(x) = 6x: f″(2) = 12 &gt; 0 → mínimo; f″(−2) = −12 &lt; 0 → máximo." },
+    { q: "Un alumno dice que f(x) = { x² si x &lt; 1 ; x si x ≥ 1 } es derivable en x = 1 «porque es continua». ¿Qué falla?",
+      op: ["Nada", "Continua no implica derivable: las pendientes laterales son 2 y 1, distintas", "No es continua", "La derivada vale 3"], ok: 1,
+      porque: "Por la izquierda la pendiente es 2x = 2 y por la derecha es 1. Hay un punto anguloso en (1, 1): continua pero no derivable." },
+    { q: "Un alumno intenta hallar el rectángulo de perímetro 40 de área máxima y da como respuesta «x = 10». ¿Qué falta?",
+      op: ["Nada: x = 10 es la respuesta a lo que se pide", "Si se pregunta por el área máxima hay que calcular A(10) = 100 y dar también las dimensiones 10 × 10", "Comprobar que x = 10 es mínimo", "Derivar otra vez"], ok: 1,
+      porque: "Hay que responder exactamente a lo que preguntan: dimensiones (10 × 10) y/o área máxima (100 m²), con unidades." }
+);
+  datos.quiz1.preguntas.push(
+    { q: "La pendiente de la tangente a f(x) = x³ − 3x² + 2 en x = 1 es…",
+      op: ["−3", "0", "3", "−1"], ok: 0,
+      porque: "f′(x) = 3x² − 6x → f′(1) = 3 − 6 = −3." },
+    { q: "La derivada de f(x) = e<sup>x²</sup> es…",
+      op: ["2x·e<sup>x²</sup>", "e<sup>x²</sup>", "x²·e<sup>x² − 1</sup>", "2e<sup>x</sup>"], ok: 0,
+      porque: "Cadena: e<sup>u</sup>·u′ con u = x², u′ = 2x." },
+    { q: "Si f′(x) = x² − 4, f decrece en…",
+      op: ["(−2, 2)", "(−∞, −2) ∪ (2, +∞)", "(2, +∞)", "todo ℝ"], ok: 0,
+      porque: "f′ &lt; 0 ⟺ x² &lt; 4 ⟺ −2 &lt; x &lt; 2." },
+    { q: "Si f″(x) = 6x − 12, f tiene un punto de inflexión en…",
+      op: ["x = 2", "x = 12", "x = 6", "x = 0"], ok: 0,
+      porque: "f″ = 0 en x = 2 y cambia de signo (negativa antes, positiva después)." },
+    { q: "Para f(x) = x² en [1, 3], el teorema del valor medio da c =…",
+      op: ["2", "1,5", "√5", "3"], ok: 0,
+      porque: "Pendiente media: (9 − 1)/2 = 4. f′(c) = 2c = 4 → c = 2." },
+    { q: "Usando la tangente de f(x) = √x en a = 9, √9,1 ≈…",
+      op: ["3,0167", "3,1", "3,01", "3,0333"], ok: 0,
+      porque: "f′(9) = 1/6; √9,1 ≈ 3 + 0,1/6 = 3,0167 (exacto: 3,01662)." },
+    { q: "Un rectángulo tiene perímetro 100 m. El área máxima posible es…",
+      op: ["625 m²", "500 m²", "2 500 m²", "250 m²"], ok: 0,
+      porque: "Con lados x y 50 − x: A = x(50 − x), máximo en x = 25: A = 625 m² (el cuadrado)." },
+    { q: "La derivada de f(x) = ln(x² + 1) en x = 1 vale…",
+      op: ["1", "2", "1/2", "0"], ok: 0,
+      porque: "f′(x) = 2x/(x² + 1) → f′(1) = 2/2 = 1." }
+  );
+  datos.tj1 = {
+    titulo: "Derivadas: lo imprescindible",
+    cartas: [
+      { a: "Definición de derivada", b: "f′(a) = lím<sub>h→0</sub> [f(a + h) − f(a)]/h = pendiente de la tangente = ritmo de cambio instantáneo." },
+      { a: "Derivable y continua", b: "Derivable ⇒ continua. Continua no implica derivable (|x| en 0). Para derivar a trozos: continuidad + derivadas laterales iguales." },
+      { a: "Reglas básicas", b: "(xⁿ)′ = nxⁿ⁻¹ · (f ± g)′ = f′ ± g′ · (kf)′ = kf′ · (c)′ = 0." },
+      { a: "Producto y cociente", b: "(fg)′ = f′g + fg′ · (f/g)′ = (f′g − fg′)/g²." },
+      { a: "Regla de la cadena", b: "[f(g(x))]′ = f′(g(x))·g′(x): la de fuera sin tocar lo de dentro, por la derivada de lo de dentro." },
+      { a: "Derivadas elementales", b: "(eˣ)′ = eˣ · (aˣ)′ = aˣ ln a · (ln x)′ = 1/x · (sen x)′ = cos x · (cos x)′ = −sen x · (tg x)′ = 1/cos²x." },
+      { a: "Derivación logarítmica", b: "(g<sup>h</sup>)′ = g<sup>h</sup>(h′ ln g + h g′/g). Ejemplo: (xˣ)′ = xˣ(ln x + 1)." },
+      { a: "Tangente y normal", b: "Tangente: y − f(a) = f′(a)(x − a). Normal: pendiente −1/f′(a). Tangente horizontal: f′(a) = 0." },
+      { a: "Monotonía y extremos", b: "f′ &gt; 0 crece · f′ &lt; 0 decrece · extremo si f′ cambia de signo (de + a −: máximo; de − a +: mínimo)." },
+      { a: "Segunda derivada", b: "f″ &gt; 0: curvada hacia arriba (∪) · f″ &lt; 0: hacia abajo (∩) · inflexión si f″ cambia de signo. Criterio: f′(a) = 0 y f″(a) &gt; 0 ⇒ mínimo; &lt; 0 ⇒ máximo." },
+      { a: "Extremos absolutos en [a, b]", b: "Comparar f en los puntos críticos y en los extremos a y b: el mayor es el máximo, el menor el mínimo." },
+      { a: "Optimización", b: "Función objetivo → una sola variable con la condición del enunciado → derivar → igualar a 0 → comprobar máximo/mínimo y dominio → responder con unidades." },
+      { a: "Aproximación lineal", b: "f(a + h) ≈ f(a) + f′(a)·h para h pequeño. Diferencial: dy = f′(x)dx." },
+      { a: "Teorema del valor medio", b: "f continua en [a, b] y derivable en (a, b) ⇒ ∃c: f′(c) = (f(b) − f(a))/(b − a). Rolle: si f(a) = f(b), f′(c) = 0." },
+      { a: "Derivada en las ciencias", b: "Velocidad v = s′, aceleración a = s″ = v′. Coste marginal C′(x). Crecimiento de una población N′(t)." },
+      { a: "Estudio completo", b: "Dominio · cortes · simetría · asíntotas · f′ (crece, extremos) · f″ (curvatura, inflexión) · tabla · gráfica." }
+    ]
+  };
+  datos.reglas = {
+    titulo: "¿Qué regla uso primero?",
+    consigna: "Toca una función y después la regla que aplicarías primero (la de la última operación).",
+    categorias: ["Suma, resta o constante por función", "Producto", "Cociente", "Cadena (función dentro de otra)", "Derivación logarítmica"],
+    items: [
+      { t: "x⁴ − 3x + 2", c: 0 }, { t: "2x³ − √x", c: 0 }, { t: "x²·sen x", c: 1 }, { t: "x·ln x", c: 1 }, { t: "(x + 1)·eˣ", c: 1 },
+      { t: "(x + 1)/(x − 2)", c: 2 }, { t: "eˣ/x²", c: 2 }, { t: "sen(5x)", c: 3 }, { t: "e<sup>x² + 1</sup>", c: 3 }, { t: "ln(3x − 1)", c: 3 },
+      { t: "√(x² + 4)", c: 3 }, { t: "(3x + 1)⁷", c: 3 }, { t: "xˣ", c: 4 }, { t: "x<sup>sen x</sup>", c: 4 }
+    ]
+  };
+  datos.optim = {
+    titulo: "Un problema de optimización completo",
+    consigna: "Ordena los pasos para resolver: «Una caja abierta de base cuadrada debe tener 500 cm³; halla las dimensiones que minimizan el material».",
+    items: [
+      { t: "Nombrar las incógnitas: lado de la base x y altura h", nota: "Siempre se empieza dibujando y poniendo letras." },
+      { t: "Escribir la función objetivo: superficie S = x² + 4xh", nota: "Es lo que hay que hacer mínimo: base más cuatro caras." },
+      { t: "Usar la condición del volumen x²h = 500 para despejar h = 500/x²", nota: "Así la función queda con una sola variable." },
+      { t: "Sustituir: S(x) = x² + 2000/x, con x &gt; 0", nota: "4x·(500/x²) = 2000/x." },
+      { t: "Derivar e igualar a 0: S′(x) = 2x − 2000/x² = 0 → x³ = 1000 → x = 10", nota: "El punto crítico candidato." },
+      { t: "Comprobar que es mínimo: S′ &lt; 0 antes de 10 y S′ &gt; 0 después", nota: "También valdría S″(10) &gt; 0." },
+      { t: "Responder: x = 10 cm, h = 500/100 = 5 cm, S = 300 cm²", nota: "Con unidades y respondiendo a lo que se pide." }
+    ]
   };
 
   // ============================================================
@@ -16255,6 +16944,240 @@
     "f' &gt; 0 crece · f' &lt; 0 decrece · extremo si f' <b>cambia de signo</b>.",
     "Optimización: función objetivo en una variable → derivar → comprobar."
   ];
+
+
+  // ---------------- ejercicios ampliados (d17–d51) ----------------
+  ejercicios.push(
+    // ===== ★ básico =====
+    { id: "d17", nivel: 1,
+      enunciado: "Calcula la tasa de variación media de f(x) = x³ en el intervalo [−1, 2].",
+      check: { tipo: "num", etiqueta: "TVM =", valor: 3 },
+      pistas: ["f(−1) = −1 y f(2) = 8."],
+      pasos: ["TVM = (8 − (−1))/(2 − (−1)) = 9/3 = 3."], resultado: "3" },
+    { id: "d18", nivel: 1,
+      enunciado: "Deriva f(x) = 6x⁵ − x³/3 + 2/x.",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "30x^4 - x^2 - 2/x^2", ph: "por ejemplo 30x^4 - ..." },
+      pistas: ["Escribe 2/x como 2x⁻¹.", "x³/3 = (1/3)x³."],
+      pasos: ["6x⁵ → 30x⁴ · −x³/3 → −x² · 2/x = 2x⁻¹ → −2x⁻² = −2/x²."], resultado: "f′(x) = 30x⁴ − x² − 2/x²" },
+    { id: "d19", nivel: 1,
+      enunciado: "Calcula por la definición f′(1) para f(x) = x² + 3x.",
+      check: { tipo: "num", etiqueta: "f′(1) =", valor: 5 },
+      pistas: ["f(1 + h) − f(1) = (1 + h)² + 3(1 + h) − 4."],
+      pasos: ["f(1) = 4. f(1 + h) = 1 + 2h + h² + 3 + 3h = 4 + 5h + h².", "(f(1 + h) − f(1))/h = 5 + h → 5."], resultado: "5" },
+    { id: "d20", nivel: 1,
+      enunciado: "Deriva f(x) = x·eˣ.",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "(1+x)e^x", ph: "por ejemplo (1+x)e^x" },
+      pistas: ["Regla del producto."],
+      pasos: ["f′ = 1·eˣ + x·eˣ = (1 + x)eˣ."], resultado: "f′(x) = (1 + x)eˣ" },
+    { id: "d21", nivel: 1,
+      enunciado: "Deriva f(x) = ln(x² + 4).",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "2x/(x^2+4)", ph: "una fracción en x" },
+      pistas: ["(ln u)′ = u′/u."],
+      pasos: ["u = x² + 4, u′ = 2x → f′ = 2x/(x² + 4)."], resultado: "f′(x) = 2x/(x² + 4)" },
+    { id: "d22", nivel: 1,
+      enunciado: "Halla la pendiente de la tangente a y = √x en x = 9 (como número decimal o fracción).",
+      check: { tipo: "num", etiqueta: "m =", valor: 1 / 6 },
+      pistas: ["f′(x) = 1/(2√x)."],
+      pasos: ["f′(9) = 1/(2·3) = 1/6."], resultado: "1/6 ≈ 0,1667" },
+    { id: "d23", nivel: 1,
+      enunciado: "¿En qué punto tiene tangente horizontal la parábola f(x) = x² − 6x + 1?",
+      check: { tipo: "num", etiqueta: "x =", valor: 3 },
+      pistas: ["Tangente horizontal: f′(x) = 0."],
+      pasos: ["f′(x) = 2x − 6 = 0 → x = 3. (Es el vértice.)"], resultado: "x = 3" },
+
+    // ===== ★★ medio =====
+    { id: "d24", nivel: 2,
+      enunciado: "Deriva f(x) = (x² − 1)/(x² + 1) y simplifica.",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "4x/(x^2+1)^2", ph: "una fracción en x" },
+      pistas: ["(u′v − uv′)/v²."],
+      pasos: ["u = x² − 1, v = x² + 1: [2x(x² + 1) − (x² − 1)2x]/(x² + 1)².", "Numerador: 2x³ + 2x − 2x³ + 2x = 4x."], resultado: "f′(x) = 4x/(x² + 1)²" },
+    { id: "d25", nivel: 2,
+      enunciado: "Deriva f(x) = sen²(3x) y simplifica con el seno del ángulo doble.",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "3sin(6x)", ph: "por ejemplo 3sin(6x)" },
+      pistas: ["Cadena de tres capas: ( )², sen, 3x."],
+      pasos: ["f′ = 2 sen(3x)·cos(3x)·3 = 6 sen 3x cos 3x = 3 sen 6x."], resultado: "f′(x) = 3 sen 6x" },
+    { id: "d26", nivel: 2,
+      enunciado: "Deriva f(x) = x²·e⁻ˣ.",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "(2x-x^2)e^(-x)", ph: "por ejemplo (2x-x^2)e^(-x)" },
+      pistas: ["Producto: u = x², v = e⁻ˣ con v′ = −e⁻ˣ."],
+      pasos: ["f′ = 2x·e⁻ˣ + x²·(−e⁻ˣ) = (2x − x²)e⁻ˣ."], resultado: "f′(x) = (2x − x²)e⁻ˣ" },
+    { id: "d27", nivel: 2,
+      enunciado: "Deriva f(x) = √(x² + 1).",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "x/sqrt(x^2+1)", ph: "una fracción con raíz" },
+      pistas: ["(√u)′ = u′/(2√u)."],
+      pasos: ["u′ = 2x → 2x/(2√(x² + 1)) = x/√(x² + 1)."], resultado: "f′(x) = x/√(x² + 1)" },
+    { id: "d28", nivel: 2,
+      enunciado: "Halla la recta tangente a f(x) = x²·ln x en x = 1 (y = mx + n).",
+      check: [{ tipo: "num", etiqueta: "m =", valor: 1 }, { tipo: "num", etiqueta: "n =", valor: -1 }],
+      pistas: ["f(1) = 0. f′(x) = 2x ln x + x."],
+      pasos: ["f′(1) = 0 + 1 = 1.", "y − 0 = 1·(x − 1) → y = x − 1."], resultado: "y = x − 1" },
+    { id: "d29", nivel: 2,
+      enunciado: "¿En qué punto de f(x) = x² − 2x la tangente es paralela a y = 4x + 3? Da la abscisa x del punto y la ordenada en el origen n de esa tangente (y = 4x + n).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 3 }, { tipo: "num", etiqueta: "n =", valor: -9 }],
+      pistas: ["f′(x) = 4."],
+      pasos: ["2x − 2 = 4 → x = 3; f(3) = 3.", "y − 3 = 4(x − 3) → y = 4x − 9."], resultado: "x = 3 · y = 4x − 9" },
+    { id: "d30", nivel: 2,
+      enunciado: "Halla la recta normal a f(x) = eˣ en x = 0 (y = mx + n).",
+      check: [{ tipo: "num", etiqueta: "m =", valor: -1 }, { tipo: "num", etiqueta: "n =", valor: 1 }],
+      pistas: ["f(0) = 1, f′(0) = 1: la normal tiene pendiente −1."],
+      pasos: ["y − 1 = −1·(x − 0) → y = −x + 1."], resultado: "y = −x + 1" },
+    { id: "d31", nivel: 2,
+      enunciado: "Halla el valor del máximo relativo y el del mínimo relativo de f(x) = x³ − 12x.",
+      check: [{ tipo: "num", etiqueta: "valor del máximo =", valor: 16 }, { tipo: "num", etiqueta: "valor del mínimo =", valor: -16 }],
+      pistas: ["f′(x) = 3x² − 12 = 0 → x = ±2."],
+      pasos: ["f′ &gt; 0 en (−∞, −2) y (2, +∞); &lt; 0 en (−2, 2).", "Máximo en x = −2: f(−2) = −8 + 24 = 16. Mínimo en x = 2: f(2) = 8 − 24 = −16."], resultado: "máximo 16 · mínimo −16" },
+    { id: "d32", nivel: 2,
+      enunciado: "Halla el valor mínimo de f(x) = x·eˣ (da un decimal con 4 cifras).",
+      check: { tipo: "num", etiqueta: "mínimo =", valor: -0.3679 },
+      pistas: ["f′(x) = (1 + x)eˣ = 0 → x = −1."],
+      pasos: ["f′ &lt; 0 si x &lt; −1 y &gt; 0 si x &gt; −1: mínimo en x = −1.", "f(−1) = −e⁻¹ = −0,3679."], resultado: "−1/e ≈ −0,3679" },
+    { id: "d33", nivel: 2,
+      enunciado: "Halla a y b para que f(x) = { ax² + b si x &lt; 1 ; 2x + 3 si x ≥ 1 } sea derivable en x = 1.",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 1 }, { tipo: "num", etiqueta: "b =", valor: 4 }],
+      pistas: ["Continuidad: a + b = 2·1 + 3. Derivadas: 2a = 2."],
+      pasos: ["Derivadas laterales: 2a = 2 → a = 1.", "Continuidad: a + b = 5 → b = 4."], resultado: "a = 1, b = 4" },
+    { id: "d34", nivel: 2,
+      enunciado: "Halla a y b para que f(x) = { x³ + ax si x ≤ 1 ; bx² + 2 si x &gt; 1 } sea derivable en x = 1.",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 5 }, { tipo: "num", etiqueta: "b =", valor: 4 }],
+      pistas: ["Continuidad: 1 + a = b + 2. Derivadas: 3 + a = 2b."],
+      pasos: ["De la primera, a = b + 1. En la segunda: 3 + b + 1 = 2b → b = 4.", "a = 5."], resultado: "a = 5, b = 4" },
+    { id: "d35", nivel: 2,
+      enunciado: "Una caja abierta de base cuadrada debe tener 500 cm³. Halla el lado de la base x, la altura h y la superficie mínima S.",
+      check: [{ tipo: "num", etiqueta: "x (cm) =", valor: 10 }, { tipo: "num", etiqueta: "h (cm) =", valor: 5 }, { tipo: "num", etiqueta: "S (cm²) =", valor: 300 }],
+      pistas: ["x²h = 500 → h = 500/x². S = x² + 4xh = x² + 2000/x."],
+      pasos: ["S′ = 2x − 2000/x² = 0 → x³ = 1000 → x = 10.", "h = 500/100 = 5. S = 100 + 200 = 300."], resultado: "10 cm, 5 cm, 300 cm²" },
+    { id: "d36", nivel: 2,
+      enunciado: "Halla dos números positivos x e y con x + y = 20 tales que x²·y sea máximo. Da x e y (con dos decimales).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 13.33 }, { tipo: "num", etiqueta: "y =", valor: 6.67 }],
+      pistas: ["P(x) = x²(20 − x) = 20x² − x³."],
+      pasos: ["P′(x) = 40x − 3x² = x(40 − 3x) = 0 → x = 40/3 = 13,33 (x = 0 da P = 0, mínimo).", "y = 20 − 40/3 = 20/3 = 6,67."], resultado: "x = 40/3, y = 20/3" },
+    { id: "d37", nivel: 2,
+      enunciado: "Se quiere cercar un jardín rectangular de 800 m² con la menor cantidad de valla posible. Halla el lado x y el perímetro mínimo.",
+      check: [{ tipo: "num", etiqueta: "lado x (m) =", valor: 28.28 }, { tipo: "num", etiqueta: "perímetro (m) =", valor: 113.14 }],
+      pistas: ["Lados x e y = 800/x. Perímetro P = 2x + 1600/x."],
+      pasos: ["P′ = 2 − 1600/x² = 0 → x² = 800 → x = 28,28.", "Es un cuadrado: P = 4·28,28 = 113,14 m."], resultado: "28,28 m · 113,14 m" },
+    { id: "d38", nivel: 2,
+      enunciado: "El coste de fabricar x unidades es C(x) = 0,5x² + 20x + 800 €. ¿Para qué x es mínimo el coste medio por unidad y cuánto vale entonces?",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 40 }, { tipo: "num", etiqueta: "coste medio mínimo (€/unidad) =", valor: 60 }],
+      pistas: ["M(x) = C(x)/x = 0,5x + 20 + 800/x."],
+      pasos: ["M′(x) = 0,5 − 800/x² = 0 → x² = 1600 → x = 40.", "M(40) = 20 + 20 + 20 = 60."], resultado: "x = 40 · 60 €/unidad" },
+    { id: "d39", nivel: 2,
+      enunciado: "Usa la aproximación lineal de f(x) = ∛x en a = 8 para estimar ∛8,12 (da el resultado con dos decimales).",
+      check: { tipo: "num", etiqueta: "∛8,12 ≈", valor: 2.01 },
+      pistas: ["f′(x) = 1/(3·∛(x²)) → f′(8) = 1/12."],
+      pasos: ["f(8.12) ≈ 2 + (1/12)·0,12 = 2 + 0,01 = 2,01.", "(Valor exacto: 2,00998.)"], resultado: "≈ 2,01" },
+    { id: "d40", nivel: 2,
+      enunciado: "Aproxima ln 1,05 con la tangente de ln x en a = 1.",
+      check: { tipo: "num", etiqueta: "ln 1,05 ≈", valor: 0.05 },
+      pistas: ["ln 1 = 0 y f′(1) = 1."],
+      pasos: ["ln(1 + 0,05) ≈ 0 + 1·0,05 = 0,05. (Exacto: 0,04879.)"], resultado: "≈ 0,05" },
+    { id: "d41", nivel: 2,
+      enunciado: "Halla el valor de c que da el teorema del valor medio para f(x) = x³ en [0, 3] (con tres decimales).",
+      check: { tipo: "num", etiqueta: "c =", valor: 1.732 },
+      pistas: ["La pendiente media es (27 − 0)/3 = 9. Resuelve f′(c) = 9."],
+      pasos: ["3c² = 9 → c² = 3 → c = √3 = 1,732 (−√3 queda fuera de (0, 3))."], resultado: "c = √3 ≈ 1,732" },
+    { id: "d42", nivel: 2,
+      enunciado: "Halla las abscisas de los puntos de inflexión de f(x) = x⁴ − 6x².",
+      check: { tipo: "lista", etiqueta: "x =", valores: [-1, 1], ph: "dos valores" },
+      pistas: ["f″(x) = 12x² − 12."],
+      pasos: ["f″ = 12(x² − 1) = 0 → x = ±1. f″ cambia de signo en los dos: inflexión en x = −1 y x = 1."], resultado: "x = −1 y x = 1" },
+    { id: "d43", nivel: 2,
+      enunciado: "Halla el punto de inflexión de f(x) = x³ − 3x² (abscisa y ordenada).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 1 }, { tipo: "num", etiqueta: "y =", valor: -2 }],
+      pistas: ["f″(x) = 6x − 6."],
+      pasos: ["f″ = 0 → x = 1 (con cambio de signo).", "f(1) = 1 − 3 = −2. Punto (1, −2)."], resultado: "(1, −2)" },
+
+    // ===== ★★★ avanzado =====
+    { id: "d44", nivel: 3,
+      enunciado: "Para f(x) = x + 1/x halla la abscisa y la ordenada del mínimo relativo (en x &gt; 0).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 1 }, { tipo: "num", etiqueta: "y =", valor: 2 }],
+      pistas: ["f′(x) = 1 − 1/x²."],
+      pasos: ["1 − 1/x² = 0 → x = ±1. Para x &gt; 0: x = 1.", "f″(x) = 2/x³ → f″(1) = 2 &gt; 0: mínimo. f(1) = 2."], resultado: "mínimo en (1, 2)" },
+    { id: "d45", nivel: 3,
+      enunciado: "Calcula f′(1) para f(x) = x<sup>2x</sup> (derivación logarítmica).",
+      check: { tipo: "num", etiqueta: "f′(1) =", valor: 2 },
+      pistas: ["ln f = 2x·ln x. Deriva los dos lados."],
+      pasos: ["f′/f = 2 ln x + 2x·(1/x) = 2 ln x + 2.", "f′(x) = x<sup>2x</sup>(2 ln x + 2) → f′(1) = 1·(0 + 2) = 2."], resultado: "2" },
+    { id: "d46", nivel: 3,
+      enunciado: "Deriva f(x) = arctan(3x).",
+      check: { tipo: "expr", etiqueta: "f′(x) =", expr: "3/(1+9x^2)", ph: "una fracción en x" },
+      pistas: ["(arctan u)′ = u′/(1 + u²)."],
+      pasos: ["u = 3x, u′ = 3 → 3/(1 + 9x²)."], resultado: "f′(x) = 3/(1 + 9x²)" },
+    { id: "d47", nivel: 3,
+      enunciado: "La posición de un móvil es s(t) = t³ − 9t² + 24t (m, t en s). Halla los dos instantes en que se detiene y la aceleración en el primero de ellos.",
+      check: [{ tipo: "lista", etiqueta: "instantes t =", valores: [2, 4], ph: "dos valores" }, { tipo: "num", etiqueta: "a en el primer instante =", valor: -6 }],
+      pistas: ["Se detiene cuando v = s′ = 0."],
+      pasos: ["v(t) = 3t² − 18t + 24 = 3(t − 2)(t − 4) → t = 2 y t = 4.", "a(t) = v′(t) = 6t − 18 → a(2) = −6 m/s²."], resultado: "t = 2 s y t = 4 s · a(2) = −6 m/s²" },
+    { id: "d48", nivel: 3,
+      enunciado: "La concentración de un fármaco es C(t) = 10t·e^(−t/4) (mg/L, t en h). Halla cuándo es máxima y su valor (con dos decimales).",
+      check: [{ tipo: "num", etiqueta: "t (h) =", valor: 4 }, { tipo: "num", etiqueta: "C máxima (mg/L) =", valor: 14.72 }],
+      pistas: ["C′(t) = 10e^(−t/4)(1 − t/4)."],
+      pasos: ["C′ = 0 → t = 4 h (antes C′ &gt; 0, después C′ &lt; 0: máximo).", "C(4) = 40e⁻¹ = 14,72 mg/L."], resultado: "t = 4 h · C = 40/e ≈ 14,72 mg/L" },
+    { id: "d49", nivel: 3,
+      enunciado: "Haz el estudio completo (cortes, crecimiento y extremos, curvatura e inflexión) de f(x) = x³ − 3x².",
+      check: { tipo: "rubrica", etiqueta: "Tu estudio", filas: 9, items: [
+        { t: "Dominio ℝ. Cortes: f(0) = 0 y x²(x − 3) = 0 → x = 0 (doble) y x = 3", p: 0.5 },
+        { t: "f′(x) = 3x² − 6x = 3x(x − 2): crece en (−∞, 0) ∪ (2, +∞), decrece en (0, 2)", p: 0.5 },
+        { t: "Máximo relativo (0, 0) y mínimo relativo (2, −4)", p: 0.5 },
+        { t: "f″(x) = 6x − 6: curvada hacia abajo en (−∞, 1) y hacia arriba en (1, +∞)", p: 0.5 },
+        { t: "Punto de inflexión (1, −2)", p: 0.5 }
+      ] },
+      pasos: ["f(x) = x²(x − 3): cortes en 0 (doble) y 3.", "f′ = 3x(x − 2): puntos críticos 0 y 2; máx (0, 0), mín (2, −4).", "f″ = 6(x − 1): inflexión en (1, −2)."], resultado: "Máx (0, 0) · mín (2, −4) · inflexión (1, −2)" },
+    { id: "d50", nivel: 3,
+      enunciado: "Demuestra que si f es derivable en a entonces es continua en a.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe f(a + h) − f(a) = [(f(a + h) − f(a))/h]·h para h ≠ 0", p: 0.5 },
+        { t: "Aplica límites: el primer factor tiende a f′(a) (existe y es finito) y h → 0", p: 0.5 },
+        { t: "Concluye lím(f(a + h) − f(a)) = f′(a)·0 = 0", p: 0.5 },
+        { t: "Deduce lím f(a + h) = f(a): f es continua en a", p: 0.5 }
+      ] },
+      pasos: ["f(a + h) − f(a) = [(f(a + h) − f(a))/h]·h.", "Cuando h → 0, el corchete → f′(a) y h → 0, luego el producto → 0.", "Entonces f(a + h) → f(a): f es continua en a. ∎"], resultado: "Derivable ⇒ continua" },
+    { id: "d51", nivel: 3,
+      enunciado: "Calcula por la definición la derivada de f(x) = √(x + 1) en a = 3.",
+      check: { tipo: "num", etiqueta: "f′(3) =", valor: 0.25 },
+      pistas: ["Multiplica por el conjugado √(4 + h) + 2."],
+      pasos: ["f(3 + h) − f(3) = √(4 + h) − 2. Conjugado: h/(√(4 + h) + 2).", "Dividiendo entre h: 1/(√(4 + h) + 2) → 1/4."], resultado: "1/4" }
+  );
+
+  lamina.push(
+    { titulo: "Derivabilidad de funciones a trozos",
+      pasos: ["Comprueba que es <b>continua</b> en el punto de unión (valor izquierdo = derecho = f(c)).", "Calcula la derivada de cada trozo y evalúala en c.", "Si las dos <b>derivadas laterales coinciden</b>, es derivable.", "Con parámetros: continuidad + igualdad de derivadas = sistema de ecuaciones."],
+      nota: "Derivable ⇒ continua; continua no implica derivable (punto anguloso |x|, cúspide, tangente vertical)." },
+    { titulo: "Segunda derivada y curvatura",
+      items: [
+        { label: "Curvatura", formula: "f″ &gt; 0: ∪ (hacia arriba) · f″ &lt; 0: ∩ (hacia abajo)" },
+        { label: "Punto de inflexión", formula: "f″ cambia de signo", ojo: "f″ = 0 no basta (x⁴)." },
+        { label: "Criterio de extremos", formula: "f′(a) = 0 y f″(a) &gt; 0 ⇒ mínimo; f″(a) &lt; 0 ⇒ máximo", cuando: "Si f″(a) = 0 no concluye." }
+      ] },
+    { titulo: "Estudio completo de una función", ancha: true,
+      pasos: ["Dominio y cortes con los ejes.", "Simetría (par/impar) y periodicidad.", "Asíntotas verticales, horizontales y oblicuas.", "f′: crecimiento y extremos relativos.", "f″: curvatura y puntos de inflexión.", "Tabla resumen y gráfica."],
+      nota: "Extremos absolutos en [a, b]: comparar los puntos críticos con los extremos del intervalo." },
+    { titulo: "Más derivadas y derivación logarítmica",
+      items: [
+        { label: "Otras elementales", formula: "(aˣ)′ = aˣ ln a · (logₐ x)′ = 1/(x ln a) · (arctan x)′ = 1/(1 + x²) · (arcsen x)′ = 1/√(1 − x²)" },
+        { label: "Base y exponente variables", formula: "(g<sup>h</sup>)′ = g<sup>h</sup>(h′ ln g + h g′/g)", ejemplo: "(xˣ)′ = xˣ(ln x + 1)" },
+        { label: "Valor absoluto", formula: "(|u|)′ = u′·u/|u|", ojo: "No existe donde u = 0." }
+      ] },
+    { titulo: "Aproximación lineal y valor medio",
+      items: [
+        { label: "Aproximación lineal", formula: "f(a + h) ≈ f(a) + f′(a)·h", ejemplo: "√4,1 ≈ 2 + 0,1/4 = 2,025" },
+        { label: "Teorema del valor medio", formula: "∃c ∈ (a, b): f′(c) = [f(b) − f(a)]/(b − a)", cuando: "f continua en [a, b] y derivable en (a, b)." },
+        { label: "Teorema de Rolle", formula: "f(a) = f(b) ⇒ ∃c: f′(c) = 0" }
+      ] },
+    { titulo: "La derivada en las ciencias",
+      items: [
+        { label: "Velocidad y aceleración", formula: "v = s′(t) · a = v′(t) = s″(t)" },
+        { label: "Coste marginal", formula: "C′(x) ≈ C(x + 1) − C(x)" },
+        { label: "Crecimiento exponencial", formula: "N = N₀e^(kt) ⇒ N′ = k·N", ejemplo: "La velocidad de crecimiento es proporcional a la población." }
+      ] }
+  );
+  resumen.push(
+    "Derivable ⇒ continua. A trozos: <b>continuidad + derivadas laterales iguales</b> en el punto de unión.",
+    "f″ &gt; 0: curvada hacia arriba (∪); f″ &lt; 0: hacia abajo (∩); inflexión donde f″ cambia de signo. Criterio: f′ = 0 y f″ &gt; 0 ⇒ mínimo.",
+    "Extremos absolutos en [a, b]: comparar puntos críticos y extremos del intervalo.",
+    "Aproximación lineal: f(a + h) ≈ f(a) + f′(a)·h · Valor medio: f′(c) = (f(b) − f(a))/(b − a).",
+    "Derivación logarítmica para g<sup>h</sup>: (xˣ)′ = xˣ(ln x + 1). Velocidad = s′, aceleración = s″."
+  );
 
   B.registrar("mates1", "t11", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
