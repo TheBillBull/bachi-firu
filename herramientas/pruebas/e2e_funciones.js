@@ -77,7 +77,7 @@ const { lanzar, abrirTema } = require('./e2e_common.js');
   await chip('ondas', '[data-fun]', 2); chk('tan periodo', await lec('ondas', 'Periodo'), t => /π/.test(t) && !/2π/.test(t));
   // leer gráfica
   await W('leergrafica').scrollIntoViewIfNeeded();
-  const clic = async (i, j) => { await W('leergrafica').locator('.lg-p').nth(i).locator('.chip-btn').nth(j).click(); await p.waitForTimeout(40); return W('leergrafica').locator('.lg-p').nth(i).locator('.lg-r').innerText(); };
+  const clic = async (i, j) => { await W('leergrafica').locator('.lg-p').nth(i).locator('.chip-btn[data-j="' + j + '"]').click(); await p.waitForTimeout(40); return W('leergrafica').locator('.lg-p').nth(i).locator('.lg-r').innerText(); };
   chk('leergrafica mal', await clic(0, 1), t => /Todavía no/.test(t)); chk('leergrafica bien', await clic(0, 0), t => /Correcto/.test(t));
   // galería
   await W('galeria').scrollIntoViewIfNeeded(); await chip('galeria', '[data-sel]', 5); chk('galería inversa', await lec('galeria', 'Asíntotas'), t => /x = 0/.test(t));

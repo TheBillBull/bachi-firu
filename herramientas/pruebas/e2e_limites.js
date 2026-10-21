@@ -53,7 +53,7 @@ const { lanzar, abrirTema } = require('./e2e_common.js');
   await W('jerarquia').scrollIntoViewIfNeeded(); await chip('jerarquia', '[data-pre]', 3); chk('jerarquia filas', await W('jerarquia').locator('tbody tr').count(), 6);
   // lector
   await W('leerlimites').scrollIntoViewIfNeeded();
-  const clic = async (i, j) => { await W('leerlimites').locator('.lg-p').nth(i).locator('.chip-btn').nth(j).click(); await p.waitForTimeout(40); return W('leerlimites').locator('.lg-p').nth(i).locator('.lg-r').innerText(); };
+  const clic = async (i, j) => { await W('leerlimites').locator('.lg-p').nth(i).locator('.chip-btn[data-j="' + j + '"]').click(); await p.waitForTimeout(40); return W('leerlimites').locator('.lg-p').nth(i).locator('.lg-r').innerText(); };
   chk('leerlimites mal', await clic(0, 1), t => /Todavía no/.test(t)); chk('leerlimites bien', await clic(0, 0), t => /Correcto/.test(t));
   const ov = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); chk('sin desborde horizontal', ov, v => v <= 1);
   console.log(mal ? mal + ' FALLOS de ' + n : n + ' comprobaciones de comportamiento de límites correctas', '· errores JS:', errs.length ? errs : 'ninguno');

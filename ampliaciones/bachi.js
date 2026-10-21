@@ -643,7 +643,7 @@
     var et = c.etiqueta ? '<span class="bx-et">' + c.etiqueta + "</span>" : "";
     if (c.tipo === "opcion") {
       return '<label class="bx-campo">' + et + '<select data-k="' + k + '"><option value="">Elige…</option>' +
-        c.opciones.map(function (o, i) { return '<option value="' + i + '">' + o + "</option>"; }).join("") + "</select>" +
+        B.barajar(c.opciones.map(function (_, i) { return i; })).map(function (i) { return '<option value="' + i + '">' + c.opciones[i] + "</option>"; }).join("") + "</select>" +   // el orden se baraja: la correcta no siempre es la primera
         '<span class="bx-mk" aria-hidden="true"></span></label>';
     }
     if (c.tipo === "rubrica") {
@@ -3835,7 +3835,7 @@
       });
       (G.pts || []).forEach(function (q) { pto(g, q[0], q[1], "c-pen", !!q[2], 5); });
       pregs.innerHTML = G.preguntas.map(function (p, i) {
-        return '<div class="lg-p" data-i="' + i + '"><b>' + (i + 1) + '. ' + p.q + '</b><div class="chips">' + p.op.map(function (o, j) { return '<button type="button" class="chip-btn" data-j="' + j + '">' + o + "</button>"; }).join("") + '</div><p class="lg-r"></p></div>';
+        return '<div class="lg-p" data-i="' + i + '"><b>' + (i + 1) + '. ' + p.q + '</b><div class="chips">' + B.barajar(p.op.map(function (_, j) { return j; })).map(function (j) { return '<button type="button" class="chip-btn" data-j="' + j + '">' + p.op[j] + "</button>"; }).join("") + '</div><p class="lg-r"></p></div>';
       }).join("");
     }
     pregs.addEventListener("click", function (e) {

@@ -213,7 +213,7 @@
     var et = c.etiqueta ? '<span class="bx-et">' + c.etiqueta + "</span>" : "";
     if (c.tipo === "opcion") {
       return '<label class="bx-campo">' + et + '<select data-k="' + k + '"><option value="">Elige…</option>' +
-        c.opciones.map(function (o, i) { return '<option value="' + i + '">' + o + "</option>"; }).join("") + "</select>" +
+        B.barajar(c.opciones.map(function (_, i) { return i; })).map(function (i) { return '<option value="' + i + '">' + c.opciones[i] + "</option>"; }).join("") + "</select>" +   // el orden se baraja: la correcta no siempre es la primera
         '<span class="bx-mk" aria-hidden="true"></span></label>';
     }
     if (c.tipo === "rubrica") {

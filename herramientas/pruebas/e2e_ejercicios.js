@@ -37,7 +37,7 @@ const { lanzar } = require('./e2e_common.js');
       else {
         for (let i = 0; i < campos.length; i++) {
           const c = campos[i], el = a.locator(`[data-k="${i}"]`);
-          if (c.tipo === 'opcion') await el.selectOption(String(c.ok));
+          if (c.tipo === 'opcion') await el.selectOption({ value: String(c.ok) });
           else if (c.tipo === 'num') await el.fill(String(c.valor).replace('.', ','));
           else if (c.tipo === 'expr') await el.fill(c.expr);
           else if (c.tipo === 'lista') await el.fill(c.valores.join(', ').replace(/\./g, ','));
