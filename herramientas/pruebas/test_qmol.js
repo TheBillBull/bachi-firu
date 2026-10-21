@@ -3,7 +3,7 @@ const path = require('path');
 const RAIZ = process.env.BACHI_RAIZ || path.join(__dirname, '..', '..');
 global.window = global;
 global.document = { addEventListener() {}, createElementNS() { return { setAttribute() {}, appendChild() {} }; }, body: { contains() { return true; } } };
-for (const f of ['grafica', 'nucleo', 'ui', 'lab_qmol']) require(RAIZ + '/ampliaciones/' + f + '.js');
+for (const f of ['grafica', 'nucleo', 'ui', 'lab_qmol_0motor']) require(RAIZ + '/ampliaciones/' + f + '.js');
 const Q = BACHI.lab.qmol; let mal = 0;
 function chk(n, got, esp) { if (JSON.stringify(got) !== JSON.stringify(esp)) { mal++; console.log('FALLO', n, '→', JSON.stringify(got), 'esperado', JSON.stringify(esp)); } }
 chk('H2O', Q.leer('H2O').elems, { H: 2, O: 1 }); chk('Ca(OH)2', Q.leer('Ca(OH)2').elems, { Ca: 1, O: 2, H: 2 }); chk('Al2(SO4)3', Q.leer('Al₂(SO₄)₃').elems, { Al: 2, S: 3, O: 12 });

@@ -98,7 +98,7 @@
     "<h5>Para hacerse una idea de lo grande que es</h5>" +
     "<ul><li>Si repartieras un mol de segundos entre los 8 000 millones de personas del planeta, a cada una le tocarían unos 7,5·10¹³ segundos: <b>unos 2,4 millones de años</b>.</li>" +
     "<li>Un mol de moléculas de agua es una cantidad que cabe en una mano: <b>18 mL</b> de agua líquida, más o menos una cucharada grande.</li>" +
-    "<li>En una gota de agua (0,05 mL) hay unos 1,7·10²¹ moléculas: un mol son unas 350 000 gotas.</li></ul>" +
+    "<li>En una gota de agua (0,05 mL) hay unos 1,7·10²¹ moléculas: un mol de agua (18 mL) son unas 360 gotas.</li></ul>" +
     "<h5>Moles de moléculas y moles de átomos</h5>" +
     "<p>El mol puede contar cualquier cosa, y hay que decir <b>qué</b> se cuenta. Un mol de moléculas de H₂O son 6,022·10²³ moléculas; pero cada molécula tiene 2 átomos de H y 1 de O. Por tanto, <b>1 mol de H₂O contiene 2 mol de átomos de H y 1 mol de átomos de O</b> (3 mol de átomos en total):</p>" +
     tabla(["Cantidad", "Moléculas de H₂O", "Átomos de H", "Átomos de O", "Átomos totales"], [
