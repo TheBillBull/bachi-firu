@@ -896,8 +896,8 @@
       html:
         "<p>Un problema de trigonometría se resuelve casi siempre con la misma receta: <b>(1)</b> dibuja el triángulo y anota los datos; <b>(2)</b> identifica el caso (LLL, LAL, ALA o LLA); <b>(3)</b> elige el teorema (coseno si no tienes una pareja lado-ángulo opuesto; seno si la tienes); <b>(4)</b> calcula con la calculadora en DEG; <b>(5)</b> comprueba (los ángulos suman 180°, el lado mayor está frente al ángulo mayor, el orden de magnitud es razonable); <b>(6)</b> contesta con unidades.</p>" +
         ejemplo("Problema 1 · Dos lados y el ángulo entre ellos", "En un triángulo ABC, AB = 10 cm, AC = 14 cm y el ángulo en A mide 50°. Calcula BC, los otros dos ángulos, el área y la altura desde C.", [
-          "LAL: teorema del coseno. a² = 10² + 14² − 2·10·14·cos 50° = 296 − 179,99 = 116,01 → a = BC = <b>10,77 cm</b>.",
-          "Ángulo B (opuesto a b = 14): cos B = (a² + c² − b²)/(2ac) = (116,01 + 100 − 196)/(2·10,77·10) = 0,0929 → B = <b>84,67°</b>. (Con el coseno no hay duda entre agudo y obtuso.)",
+          "LAL: teorema del coseno. a² = 10² + 14² − 2·10·14·cos 50° = 296 − 179,98 = 116,02 → a = BC = <b>10,77 cm</b>.",
+          "Ángulo B (opuesto a b = 14): cos B = (a² + c² − b²)/(2ac) = (116,02 + 100 − 196)/(2·10,77·10) = 0,0929 → B = <b>84,67°</b>. (Con el coseno no hay duda entre agudo y obtuso.)",
           "C = 180° − 50° − 84,67° = <b>45,33°</b>. Comprobación: el lado mayor (14) está frente al ángulo mayor (84,67°) ✓.",
           "Área = ½·10·14·sen 50° = <b>53,62 cm²</b>. La altura desde C sobre AB: h = 2S/AB = 107,25/10 = <b>10,72 cm</b>."
         ]) +
