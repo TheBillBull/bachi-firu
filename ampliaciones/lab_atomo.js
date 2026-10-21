@@ -395,7 +395,7 @@
     function rad(n) { return 12 + 11 * n; }
     function dibujaOrbitas(rElec, ang, fotonT) {
       gb.limpiar();
-      for (var n = 1; n <= 7; n++) { gb.arco(0, 0, rad(n) / 10, 0, 360, { clase: n === st.ni ? "c-pen" : n === st.nf ? "c-red" : "c-faint" }); if (n === st.ni || n === st.nf) gb.texto(rad(n) / 10 * Math.cos(2.4), rad(n) / 10 * Math.sin(2.4), "n=" + n, { dx: -6, dy: -4, clase: n === st.ni ? "pen" : "red", ancla: "end" }); }
+      for (var n = 1; n <= 7; n++) { gb.arco(0, 0, rad(n) / 10, 0, 360, { clase: n === st.ni ? "c-pen" : n === st.nf ? "c-red" : "c-faint" }); if (n === st.ni || n === st.nf) { var an = n === st.ni ? 2.45 : 3.85; gb.texto(rad(n) / 10 * Math.cos(an), rad(n) / 10 * Math.sin(an), "n=" + n, { dx: -6, dy: n === st.ni ? -4 : 12, clase: n === st.ni ? "pen" : "red", ancla: "end" }); } }
       gb.punto(0, 0, { r: 6, clase: "c-red" });
       var r = rElec / 10; gb.punto(r * Math.cos(ang), r * Math.sin(ang), { r: 5, clase: "c-pen" });
       if (fotonT != null) {
@@ -426,10 +426,10 @@
       for (k = nf + 1; k <= nf + 8; k++) ls.push([k, Q.bohr(k, nf).lambda]);
       var lim = Q.bohr(1e6, nf).lambda, lo = Math.min(lim, ls[0][1]), hi = Math.max.apply(null, ls.map(function (x) { return x[1]; }));
       var a = nf === 2 ? 340 : lo * 0.9, b = nf === 2 ? 700 : hi * 1.08;
-      ge.rango(a, b, 0, 1); ge.limpiar();
+      ge.rango(a, b, 0, 1.3); ge.limpiar();
       if (a < 780 && b > 380) { for (var x = Math.max(380, a); x < Math.min(780, b); x += 5) { var rc = ge.rect(x, 0, x + 5.5, 0.12, { clase: "z-pen" }); rc.style.fill = Q.colorLambda(x + 2); rc.style.opacity = 0.9; } }
-      ge.segmento(lim, 0, lim, 1, { clase: "c-faint", dash: "4 4" }); ge.texto(lim, 0.98, "límite " + fmt(lim, 0) + " nm", { dx: 4, clase: "faint" });
-      ls.forEach(function (x, i) { var s = ge.segmento(x[1], 0.12, x[1], 0.85, { clase: "c-ink" }); s.style.stroke = Q.colorLambda(x[1]) === "#8a2a2a" || Q.colorLambda(x[1]) === "#7a55b8" ? "var(--ink)" : Q.colorLambda(x[1]); s.setAttribute("stroke-width", 3); if (i < 4) ge.texto(x[1], i % 2 ? 0.97 : 0.9, ["α", "β", "γ", "δ"][i] + " " + fmt(x[1], 0), { dx: i % 2 ? 4 : -4, dy: 0, clase: "faint", ancla: i % 2 ? "start" : "end" }); });
+      ge.segmento(lim, 0, lim, 1.2, { clase: "c-faint", dash: "4 4" }); ge.texto(lim, 1.1, "límite de la serie: " + fmt(lim, 0) + " nm", nf === 2 ? { dx: 4, clase: "faint" } : { dx: -4, ancla: "end", clase: "faint" }); ge.texto(b, 0.2, "λ (nm)", { ancla: "end", dy: -4, clase: "faint" });
+      ls.forEach(function (x, i) { var s = ge.segmento(x[1], 0.12, x[1], 0.7, { clase: "c-ink" }); s.style.stroke = Q.colorLambda(x[1]) === "#8a2a2a" || Q.colorLambda(x[1]) === "#7a55b8" ? "var(--ink)" : Q.colorLambda(x[1]); s.setAttribute("stroke-width", 3); if (i < 4) ge.texto(x[1], i % 2 ? 0.9 : 0.78, ["α", "β", "γ", "δ"][i] + " " + fmt(x[1], 0), { dx: i % 2 ? 4 : -4, dy: 0, clase: "faint", ancla: i % 2 ? "start" : "end" }); });
     }
     cuerpo.querySelector(".q1-acc").innerHTML = "";
     U.boton(cuerpo.querySelector(".q1-acc"), "▶ Animar transición", function () {
@@ -445,8 +445,8 @@
     }, "btn-comprobar");
     gb = new B.Plot(cuerpo.querySelector(".q1-lienzo"), { xmin: -10, xmax: 10, ymin: -10, ymax: 10, w: 300, h: 300, limpio: true, etiqueta: "Órbitas de Bohr" });
     gb.rangoIso(0, 0, 10);
-    gn = new B.Plot(cuerpo.querySelector(".q1-niveles"), { xmin: 0, xmax: 1.7, ymin: -14.5, ymax: 0.8, w: 340, h: 300, sinX: true, etx: "", ety: "E (eV)", etiqueta: "Niveles de energía" });
-    ge = new B.Plot(cuerpo.querySelector(".q1-espectro"), { xmin: 340, xmax: 700, ymin: 0, ymax: 1, w: 640, h: 150, sinY: true, etx: "λ (nm)", ety: "", etiqueta: "Espectro de emisión" });
+    gn = new B.Plot(cuerpo.querySelector(".q1-niveles"), { xmin: 0, xmax: 1.7, ymin: -14.5, ymax: 2.2, w: 340, h: 300, sinX: true, etx: "", ety: "E (eV)", etiqueta: "Niveles de energía" });
+    ge = new B.Plot(cuerpo.querySelector(".q1-espectro"), { xmin: 340, xmax: 700, ymin: 0, ymax: 1.3, w: 640, h: 190, sinY: true, etx: "", ety: "", etiqueta: "Espectro de emisión" });
     U.fichas(cuerpo.querySelector("[data-serie]"), [{ k: "1", t: "Serie de Lyman (→ n=1, UV)" }, { k: "2", t: "Serie de Balmer (→ n=2, visible)" }, { k: "3", t: "Serie de Paschen (→ n=3, IR)" }, { k: "4", t: "Serie de Brackett (→ n=4, IR)" }], "2", function (k) { st.serie = +k; pinta(); });
     pinta();
   };
