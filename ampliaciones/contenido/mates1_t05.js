@@ -225,12 +225,12 @@
         w("orden", "demo")
     },
     {
-      h: "9. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "16. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "10. Autocomprobación del tema",
-      html: "<p>Diez preguntas de test con explicación y tarjetas para memorizar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
+      h: "17. Autocomprobación del tema",
+      html: "<p>Dieciséis preguntas de test con explicación y tarjetas para memorizar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
 
@@ -641,6 +641,366 @@
         { mal: "Pasar términos para demostrar una identidad", bien: "Transformar un solo lado", por: "Dar por cierta la igualdad es hacer trampa." }
       ] }
   ];
+
+  // ================================================================
+  // AMPLIACIÓN 2 · refuerzo del tema: rombo y pulsaciones, ecuaciones de 2.º grado,
+  // a·sen x + b·cos x = c, sistemas, identidades difíciles, retos y problemas de examen
+  // (simuladores nuevos en lab_trigo3.js)
+  // ================================================================
+  resumen.push(
+    "<b>Suma → producto</b> con el rombo: al sumar los vectores (cos A, sen A) y (cos B, sen B) sale una diagonal de longitud 2·cos((A − B)/2) y dirección (A + B)/2. Con ondas: sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t): <b>pulsaciones</b> de frecuencia |f₁ − f₂|.",
+    "<b>Ecuación de 2.º grado</b> en sen, cos o tan: cambio t = razón, resuelve, <b>descarta |t| &gt; 1</b> (seno y coseno) y deshaz el cambio. <b>a·sen x + b·cos x = c</b> sólo tiene solución si |c| ≤ √(a² + b²). Los <b>sistemas</b> se resuelven buscando ecuaciones para x + y y x − y."
+  );
+
+  nuevas.splice(nuevas.length - 2, 0,
+    {
+      h: "9. Suma y producto en acción: el rombo y las pulsaciones",
+      html:
+        "<p>Las fórmulas de la sección 6 no son sólo un truco algebraico: tienen una lectura geométrica y otra física muy bonitas.</p>" +
+        "<h5>El rombo de dos vectores unitarios</h5>" +
+        "<p>El punto de la circunferencia goniométrica de ángulo A es (cos A, sen A). Si sumas los vectores de dos puntos, A y B, obtienes la diagonal de un <b>rombo</b> (sus cuatro lados miden 1). En un rombo la diagonal es bisectriz: por eso la suma apunta en la dirección (A + B)/2; y como la mitad de la diagonal es el cateto de un triángulo rectángulo de hipotenusa 1 y ángulo (A − B)/2, la diagonal entera mide 2·cos((A − B)/2). Escribiendo sus coordenadas:</p>" +
+        H.formula("cos A + cos B = 2·cos((A + B)/2)·cos((A − B)/2)        sen A + sen B = 2·sen((A + B)/2)·cos((A − B)/2)") +
+        "<p>Son dos de las cuatro fórmulas de la tabla: ahora sabes de dónde salen. Mueve A y B y compara los dos lados de cada igualdad:</p>" +
+        w("rombo") +
+        "<h5>Sonidos que laten: las pulsaciones</h5>" +
+        "<p>Cuando suenan a la vez dos notas de frecuencias casi iguales, el volumen «late»: sube y baja varias veces por segundo. Es el fenómeno de las <b>pulsaciones</b> (o batidos), y se usa para <b>afinar</b> instrumentos: se toca la cuerda junto a un diapasón y se tensa hasta que desaparece el latido. Una nota pura de frecuencia f es sen(2πf·t), y la suma de dos notas es sen A + sen B con A = 2πf₁t y B = 2πf₂t:</p>" +
+        H.formula("sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t)") +
+        "<p>Lo que oyes es una onda de frecuencia <b>media</b> (f₁ + f₂)/2 cuya amplitud, 2·cos(π(f₁ − f₂)t) (la <b>envolvente</b>), sube y baja. El oído percibe la intensidad, no el signo, así que se oye un «golpe» cada vez que la envolvente llega a un máximo en valor absoluto: la frecuencia del batido es <b>|f₁ − f₂|</b>. Experimenta con las frecuencias:</p>" +
+        w("batidos") +
+        ejemplo("Valores exactos con sumas", "Calcula cos 75° + cos 15° y sen 105° − sen 15° sin calculadora.", [
+          "cos 75° + cos 15° = 2·cos 45°·cos 30° = 2·(√2/2)(√3/2) = <b>√6/2 ≈ 1,2247</b>.",
+          "sen 105° − sen 15° = 2·cos((105° + 15°)/2)·sen((105° − 15°)/2) = 2·cos 60°·sen 45° = 2·(1/2)(√2/2) = <b>√2/2 ≈ 0,7071</b>."
+        ]) +
+        ejemplo("Dos diapasones", "Dos diapasones suenan a la vez con 440 Hz y 444 Hz. Escribe la suma como producto y calcula la frecuencia de la nota que se oye y las pulsaciones por segundo.", [
+          "(A + B)/2 = π(440 + 444)t = 884πt y (A − B)/2 = π(440 − 444)t = −4πt. Como el coseno es par: sen(2π·440t) + sen(2π·444t) = <b>2·cos(4πt)·sen(884πt)</b>.",
+          "La nota que se oye es sen(884πt) = sen(2π·442t): <b>442 Hz</b>, la frecuencia media.",
+          "La envolvente 2·|cos(4πt)| llega a su máximo cuando 4πt = kπ, es decir, cada 0,25 s: <b>4 pulsaciones por segundo</b> = |440 − 444|."
+        ]) +
+        ejemplo("Producto a suma", "Calcula sen 75°·cos 15° sin calculadora.", [
+          "Usamos sen A·cos B = ½[sen(A + B) + sen(A − B)] con A = 75° y B = 15°.",
+          "= ½[sen 90° + sen 60°] = ½(1 + √3/2) = <b>(2 + √3)/4 ≈ 0,9330</b>.",
+          "Comprobación: sen 75° = cos 15° = 0,9659 y 0,9659² = 0,9330 ✓."
+        ]) +
+        ejemplo("Una diferencia de cosenos", "Resuelve cos 5x − cos x = 0 en [0°, 360°).", [
+          "cos 5x − cos x = −2·sen((5x + x)/2)·sen((5x − x)/2) = −2·sen 3x·sen 2x = 0.",
+          "sen 3x = 0 → 3x = 0°, 180°, …, 900° → x = 0°, 60°, 120°, 180°, 240°, 300°. sen 2x = 0 → 2x = 0°, 180°, 360°, 540° → x = 0°, 90°, 180°, 270°.",
+          "Reunidas: <b>x = 0°, 60°, 90°, 120°, 180°, 240°, 270° y 300°</b> (ocho; 0° y 180° salen en las dos).",
+          "Comprobación: cos 5x = cos x se cumple si 5x = ±x + 360°·k, es decir, 4x = 360°·k (x = 90°·k) o 6x = 360°·k (x = 60°·k) ✓."
+        ])
+    },
+    {
+      h: "10. Ecuaciones de 2.º grado en seno, coseno o tangente",
+      html:
+        "<p>Muchas ecuaciones trigonométricas acaban siendo una ecuación de segundo grado en una razón. El método tiene cuatro pasos:</p>" +
+        "<ol><li><b>Una sola razón y un solo ángulo.</b> Usa sen²x = 1 − cos²x (o al revés), cos 2x = 2cos²x − 1 = 1 − 2sen²x, tan x = sen x/cos x…</li>" +
+        "<li><b>Cambio de variable.</b> Llama t a la razón (t = sen x, cos x o tan x) y resuelve a·t² + b·t + c = 0 con t = (−b ± √(b² − 4ac))/(2a).</li>" +
+        "<li><b>Filtra las raíces.</b> Como −1 ≤ sen x ≤ 1 y −1 ≤ cos x ≤ 1, toda raíz con |t| &gt; 1 se <b>descarta</b>: no hay ningún ángulo con ese seno o coseno. Con la tangente valen todas.</li>" +
+        "<li><b>Deshaz el cambio.</b> Para cada raíz válida resuelve la ecuación básica, con sus dos ángulos por vuelta.</li></ol>" +
+        "<p>El simulador dibuja la parábola a·t² + b·t + c (los cortes con el eje son las raíces) sobre una franja verde que marca los valores posibles de un seno o un coseno; debajo, la misma expresión como función de x, cuyos ceros son las soluciones. Prueba los cuatro ejemplos y después tus propios coeficientes:</p>" +
+        w("cuadratica") +
+        ejemplo("Una raíz que se descarta", "Resuelve 2sen²x + 3sen x − 2 = 0 en [0°, 360°).", [
+          "Con t = sen x: 2t² + 3t − 2 = 0 → t = (−3 ± √(9 + 16))/4 = (−3 ± 5)/4 → t = 1/2 o t = −2.",
+          "t = −2 no vale: un seno nunca es menor que −1.",
+          "sen x = 1/2 → <b>x = 30° o x = 150°</b>."
+        ]) +
+        ejemplo("Pasar todo a coseno", "Resuelve 2sen²x = 3cos x en [0°, 360°).", [
+          "Sustituimos sen²x = 1 − cos²x: 2 − 2cos²x = 3cos x → 2cos²x + 3cos x − 2 = 0.",
+          "Con t = cos x: t = (−3 ± 5)/4 → t = 1/2 o t = −2 (descartada).",
+          "cos x = 1/2 → <b>x = 60° o x = 300°</b>."
+        ]) +
+        ejemplo("Con el ángulo doble", "Resuelve cos 2x + 5cos x + 3 = 0 en [0°, 360°).", [
+          "cos 2x = 2cos²x − 1: 2cos²x − 1 + 5cos x + 3 = 0 → 2cos²x + 5cos x + 2 = 0.",
+          "t = cos x: t = (−5 ± √(25 − 16))/4 = (−5 ± 3)/4 → t = −1/2 o t = −2 (descartada).",
+          "cos x = −1/2 → <b>x = 120° o x = 240°</b>."
+        ]) +
+        ejemplo("Con la tangente", "Resuelve tan²x − (1 + √3)·tan x + √3 = 0 en [0°, 360°).", [
+          "Con t = tan x, la suma de las raíces es 1 + √3 y su producto √3: son t = 1 y t = √3 (comprobación: 1·√3 = √3 ✓).",
+          "tan x = 1 → x = 45° y 225°. tan x = √3 → x = 60° y 240°.",
+          "<b>x = 45°, 60°, 225° y 240°</b>. Con la tangente no se descarta ninguna raíz."
+        ]) +
+        ejemplo("Raíz doble", "Resuelve 4sen²x − 4sen x + 1 = 0 en [0°, 360°).", [
+          "(2·sen x − 1)² = 0 → sen x = 1/2 (raíz doble: el discriminante es 16 − 16 = 0).",
+          "<b>x = 30° y x = 150°</b>: la raíz doble no añade soluciones, sólo cuenta una vez en t."
+        ]) +
+        ojo("no confundas la <i>razón</i> t con el <i>ángulo</i> x: la ecuación de segundo grado da valores de t; después hay que deshacer el cambio. Y nunca dividas entre una razón (sen x o cos x) para «simplificar»: saca factor común, o perderás soluciones.")
+    },
+    {
+      h: "11. a·sen x + b·cos x = c: tres caminos",
+      html:
+        "<p>En la sección 7 resolvimos sen x − √3·cos x = 1 con un ángulo auxiliar. Veamos el método completo, su condición de existencia y dos alternativas.</p>" +
+        "<h5>Camino 1: el ángulo auxiliar</h5>" +
+        "<p>Se escribe a·sen x + b·cos x = R·sen(x + φ), con R = √(a² + b²), cos φ = a/R y sen φ = b/R. La ecuación queda sen(x + φ) = c/R. Como un seno está entre −1 y 1, <b>hay solución sólo si |c| ≤ R</b>: si |c| = R hay una (el seno vale ±1) y si |c| &lt; R hay dos por vuelta.</p>" +
+        ejemplo("Cuando la recta es tangente", "Resuelve 3·sen x + 4·cos x = 5 en [0°, 360°).", [
+          "R = √(9 + 16) = 5 y φ = arctan(4/3) = 53,13°: 3·sen x + 4·cos x = 5·sen(x + 53,13°).",
+          "5·sen(x + 53,13°) = 5 → sen(x + 53,13°) = 1 → x + 53,13° = 90° → <b>x = 36,87°</b> (solución única: |c| = R)."
+        ]) +
+        ejemplo("Dos soluciones", "Resuelve 3·sen x + 4·cos x = 2 en [0°, 360°).", [
+          "Con R = 5 y φ = 53,13°: sen(x + 53,13°) = 2/5 = 0,4 → x + 53,13° = 23,58° o 156,42° (más 360°·n).",
+          "x = 23,58° − 53,13° = −29,55° ≡ 330,45°, o x = 156,42° − 53,13° = 103,29°.",
+          "<b>x = 103,29° y x = 330,45°</b>. Comprobación: 3·sen 103,29° + 4·cos 103,29° = 2,92 − 0,92 = 2 ✓."
+        ]) +
+        ejemplo("Sin solución", "Resuelve 3·sen x + 4·cos x = 6.", [
+          "R = 5, así que 3·sen x + 4·cos x = 5·sen(x + φ) nunca pasa de 5.",
+          "Como 6 &gt; 5 (|c| &gt; R), <b>la ecuación no tiene solución</b>: sen(x + φ) = 1,2 es imposible."
+        ]) +
+        "<h5>Camino 2: elevar al cuadrado (con comprobación)</h5>" +
+        "<p>Se aísla un término, se eleva al cuadrado y se usa sen²x = 1 − cos²x; sale una ecuación de segundo grado en cos x. Pero al elevar al cuadrado aparecen <b>soluciones falsas</b>, y hay que comprobar todas en la ecuación original.</p>" +
+        ejemplo("La misma ecuación, elevando al cuadrado", "Resuelve 3·sen x + 4·cos x = 2 elevando al cuadrado.", [
+          "3·sen x = 2 − 4·cos x → 9(1 − cos²x) = 4 − 16·cos x + 16·cos²x → 25·cos²x − 16·cos x − 5 = 0.",
+          "cos x = (16 ± √(256 + 500))/50 = (16 ± 27,50)/50 → cos x = 0,8699 o cos x = −0,2299.",
+          "Candidatos: 29,55°, 330,45° (cos = 0,8699) y 103,29°, 256,71° (cos = −0,2299).",
+          "Comprobamos: x = 29,55° da 3·0,4929 + 4·0,8699 = 4,96 ≠ 2 ✗; x = 330,45° da 2 ✓; x = 103,29° da 2 ✓; x = 256,71° da −3,84 ✗.",
+          "<b>x = 103,29° y x = 330,45°</b>, igual que con el ángulo auxiliar (que no genera soluciones falsas)."
+        ]) +
+        "<h5>Camino 3: el cambio t = tan(x/2)</h5>" +
+        "<p>Con t = tan(x/2) todo se expresa con fracciones algebraicas: <b>sen x = 2t/(1 + t²)</b>, <b>cos x = (1 − t²)/(1 + t²)</b> y tan x = 2t/(1 − t²). (Salen de sen x = 2·sen(x/2)·cos(x/2) = 2·tan(x/2)·cos²(x/2), de cos x = cos²(x/2) − sen²(x/2) y de 1/cos²(x/2) = 1 + tan²(x/2).) La ecuación se convierte en una de 2.º grado en t. Pero tan(x/2) no existe para x = 180°: <b>hay que comprobar a mano x = 180°</b>, que este método no puede dar.</p>" +
+        ejemplo("Con t = tan(x/2)", "Resuelve √3·sen x + cos x = 1 en [0°, 360°).", [
+          "Sustituimos: √3·2t/(1 + t²) + (1 − t²)/(1 + t²) = 1. Multiplicamos por 1 + t²: 2√3·t + 1 − t² = 1 + t² → 2t² − 2√3·t = 0 → 2t(t − √3) = 0.",
+          "t = 0 → x/2 = 0° → x = 0°. t = √3 → x/2 = 60° → x = 120°.",
+          "Comprobamos x = 180° aparte: √3·0 + (−1) = −1 ≠ 1, no es solución. <b>x = 0° y x = 120°</b>.",
+          "Con el ángulo auxiliar: R = 2, φ = 30°, 2·sen(x + 30°) = 1 → x + 30° = 30° o 150° → x = 0° o 120° ✓."
+        ])
+    },
+    {
+      h: "12. Sistemas de ecuaciones trigonométricas",
+      html:
+        "<p>Un sistema trigonométrico tiene dos incógnitas (dos ángulos x e y) y dos ecuaciones. No hay un método único, pero casi siempre funciona alguna de estas ideas: <b>(a)</b> despejar una incógnita si una ecuación es lineal en los ángulos (x + y = 120° → y = 120° − x); <b>(b)</b> sumar y restar las ecuaciones para formar sen(x ± y) o cos(x ± y); <b>(c)</b> pasar sumas a productos y dividir las ecuaciones; <b>(d)</b> pasar productos a sumas. El objetivo es llegar a ecuaciones para <b>x + y</b> y <b>x − y</b>, que forman un sistema lineal fácil.</p>" +
+        ejemplo("Suma de ángulos conocida", "Resuelve x + y = 120°, sen x + sen y = 3/2 con x e y entre 0° y 180°.", [
+          "sen x + sen y = 2·sen((x + y)/2)·cos((x − y)/2) = 2·sen 60°·cos((x − y)/2) = √3·cos((x − y)/2).",
+          "√3·cos((x − y)/2) = 3/2 → cos((x − y)/2) = √3/2 → (x − y)/2 = ±30° → x − y = ±60°.",
+          "Con x + y = 120°: si x − y = 60°, x = 90° e y = 30°; si x − y = −60°, x = 30° e y = 90°.",
+          "<b>(x, y) = (90°, 30°) o (30°, 90°)</b>. Comprobación: sen 90° + sen 30° = 1,5 ✓."
+        ]) +
+        ejemplo("Producto y suma de ángulos", "Resuelve x + y = 120°, sen x·sen y = 1/4 con x &gt; y, ambos entre 0° y 180°.", [
+          "Producto a suma: sen x·sen y = ½[cos(x − y) − cos(x + y)] = ½[cos(x − y) − cos 120°] = ½[cos(x − y) + 1/2].",
+          "½[cos(x − y) + 1/2] = 1/4 → cos(x − y) + 1/2 = 1/2 → cos(x − y) = 0 → x − y = 90° (se toma el positivo porque x &gt; y).",
+          "Con x + y = 120°: <b>x = 105° e y = 15°</b>. Comprobación: sen 105°·sen 15° = 0,9659·0,2588 = 0,25 ✓."
+        ]) +
+        ejemplo("Sumar y restar las ecuaciones", "Resuelve sen x·cos y = 3/4, cos x·sen y = 1/4 con x e y entre 0° y 90°.", [
+          "Sumando: sen x·cos y + cos x·sen y = sen(x + y) = 1. Restando: sen x·cos y − cos x·sen y = sen(x − y) = 1/2.",
+          "x + y está entre 0° y 180° y su seno es 1: x + y = 90°. x − y está entre −90° y 90° y su seno es 1/2: x − y = 30°.",
+          "Sistema lineal: <b>x = 60° e y = 30°</b>. Comprobación: sen 60°·cos 30° = (√3/2)(√3/2) = 3/4 ✓ y cos 60°·sen 30° = 1/4 ✓."
+        ]) +
+        ejemplo("Dividir las dos ecuaciones", "Resuelve sen x + sen y = √6/2, cos x + cos y = √6/2 con 0° &lt; y &lt; x &lt; 90°.", [
+          "Sumas a productos: 2·sen((x + y)/2)·cos((x − y)/2) = √6/2 y 2·cos((x + y)/2)·cos((x − y)/2) = √6/2.",
+          "Dividimos la primera entre la segunda (se simplifica cos((x − y)/2) ≠ 0): tan((x + y)/2) = 1 → (x + y)/2 = 45° → x + y = 90°.",
+          "En la primera: 2·sen 45°·cos((x − y)/2) = √6/2 → √2·cos((x − y)/2) = √6/2 → cos((x − y)/2) = √3/2 → x − y = 60°.",
+          "<b>x = 75° e y = 15°</b>."
+        ])
+    },
+    {
+      h: "13. Identidades difíciles: técnicas para los casos duros",
+      html:
+        "<p>Cuando una identidad no cede con «pasar todo a seno y coseno», suelen funcionar estas técnicas:</p>" +
+        "<ul><li><b>Multiplicar por el conjugado</b>: (1 + sen x)(1 − sen x) = 1 − sen²x = cos²x.</li>" +
+        "<li><b>Diferencia de cuadrados</b>: cos⁴x − sen⁴x = (cos²x − sen²x)(cos²x + sen²x).</li>" +
+        "<li><b>Sumas a productos</b> cuando hay ángulos múltiplos (x y 3x, por ejemplo).</li>" +
+        "<li><b>Denominador común</b>, y reconocer sen(a − b) en un numerador del tipo sen a·cos b − cos a·sen b.</li>" +
+        "<li><b>Un solo ángulo</b>: llevar todo al mismo ángulo con las fórmulas del doble y del triple.</li>" +
+        "<li>Como último recurso, <b>t = tan(x/2)</b> (sección 11): convierte cualquier identidad en una igualdad de fracciones algebraicas.</li></ul>" +
+        "<p>Recuerda que una identidad vale para todos los ángulos <i>en los que las dos expresiones están definidas</i> (los denominadores no se anulan); al simplificar, anota qué valores excluyes.</p>" +
+        ejemplo("Con el conjugado", "Demuestra que (1 + sen x)/cos x = cos x/(1 − sen x).", [
+          "Partimos del lado izquierdo y multiplicamos numerador y denominador por (1 − sen x) (que no es 0: excluimos x = 90°).",
+          "(1 + sen x)(1 − sen x)/(cos x·(1 − sen x)) = (1 − sen²x)/(cos x·(1 − sen x)) = cos²x/(cos x·(1 − sen x)).",
+          "Simplificando cos x queda <b>cos x/(1 − sen x)</b>, el lado derecho ∎."
+        ]) +
+        ejemplo("Diferencia de cuadrados", "Demuestra que cos⁴x − sen⁴x = cos 2x.", [
+          "cos⁴x − sen⁴x = (cos²x − sen²x)(cos²x + sen²x).",
+          "El segundo paréntesis vale 1 y el primero es cos 2x ∎."
+        ]) +
+        ejemplo("Sumas a productos", "Demuestra que (sen x + sen 3x)/(cos x + cos 3x) = tan 2x.", [
+          "Numerador: sen x + sen 3x = 2·sen 2x·cos x. Denominador: cos x + cos 3x = 2·cos 2x·cos x.",
+          "Cociente: (2·sen 2x·cos x)/(2·cos 2x·cos x) = sen 2x/cos 2x = tan 2x ∎ (se simplifica cos x ≠ 0)."
+        ]) +
+        ejemplo("Reconocer una resta", "Demuestra que sen 3x/sen x − cos 3x/cos x = 2.", [
+          "Denominador común: (sen 3x·cos x − cos 3x·sen x)/(sen x·cos x).",
+          "El numerador es sen(3x − x) = sen 2x = 2·sen x·cos x.",
+          "Queda 2·sen x·cos x/(sen x·cos x) = 2 ∎ (con sen x·cos x ≠ 0)."
+        ])
+    },
+    {
+      h: "14. Retos: el ángulo entre dos rectas y el valor exacto de sen 18°",
+      html:
+        "<h5>Ángulo entre dos rectas</h5>" +
+        "<p>Una recta de pendiente m forma con el eje X un ángulo α con tan α = m. Si dos rectas tienen pendientes m₁ y m₂ (ángulos α₁ y α₂), el ángulo entre ellas es α₂ − α₁ y, por la fórmula de la tangente de una diferencia:</p>" +
+        H.formula("tan θ = " + fr("m₂ − m₁", "1 + m₁·m₂") + "      (ángulo agudo: con valor absoluto)") +
+        "<p>Si 1 + m₁·m₂ = 0 la tangente no existe y θ = 90°: las rectas son perpendiculares (la condición m₁·m₂ = −1 que ya conoces).</p>" +
+        ejemplo("Dos rectas cualesquiera", "Calcula el ángulo agudo entre y = 3x − 1 e y = −x/2 + 4.", [
+          "Las pendientes son m₁ = 3 y m₂ = −1/2.",
+          "tan θ = |(−1/2 − 3)/(1 + 3·(−1/2))| = |(−7/2)/(−1/2)| = 7.",
+          "θ = arctan 7 = <b>81,87°</b>."
+        ]) +
+        "<h5>Un valor exacto sorprendente: sen 18°</h5>" +
+        "<p>Los valores de 30°, 45° y 60° no son los únicos «exactos». El de 18° (y con él los de 36°, 54° y 72°) está ligado al pentágono regular y al número áureo. Se deduce con las fórmulas del ángulo doble y del triple.</p>" +
+        ejemplo("El valor exacto de sen 18°", "Calcula sen 18° y cos 36° de forma exacta.", [
+          "Sea s = sen 18°. Como 3·18° + 2·18° = 90°, los ángulos 54° y 36° son complementarios: sen 3θ = cos 2θ con θ = 18°.",
+          "sen 3θ = 3s − 4s³ y cos 2θ = 1 − 2s². Igualando: 4s³ − 2s² − 3s + 1 = 0.",
+          "s = 1 es raíz (4 − 2 − 3 + 1 = 0), luego (s − 1)(4s² + 2s − 1) = 0. Como s ≠ 1, 4s² + 2s − 1 = 0.",
+          "s = (−2 ± √(4 + 16))/8 = (−1 ± √5)/4; la raíz positiva da <b>sen 18° = (√5 − 1)/4 ≈ 0,3090</b>.",
+          "Y cos 36° = 1 − 2·sen²18° = 1 − 2·(6 − 2√5)/16 = <b>(1 + √5)/4 ≈ 0,8090</b>: la mitad del número áureo (1 + √5)/2."
+        ])
+    },
+    {
+      h: "15. Problemas de examen resueltos paso a paso",
+      html:
+        "<p>En un examen de fórmulas trigonométricas se puntúa el <b>camino</b>: qué fórmula eliges, cómo la aplicas y si compruebas el resultado. Cuatro problemas típicos, resueltos con el nivel de detalle que conviene escribir:</p>" +
+        ejemplo("Problema 1 · Razones de una suma", "Sabiendo que sen a = 3/5 con a en el 2.º cuadrante y cos b = −5/13 con b en el 3.er cuadrante, calcula sen(a + b), cos(a − b) y tan(a + b), e indica en qué cuadrante está a + b.", [
+          "Completamos con la relación fundamental: cos a = −4/5 (2.º cuadrante: coseno negativo) y sen b = −12/13 (3.er cuadrante: seno negativo).",
+          "sen(a + b) = sen a·cos b + cos a·sen b = (3/5)(−5/13) + (−4/5)(−12/13) = −15/65 + 48/65 = <b>33/65</b>.",
+          "cos(a + b) = cos a·cos b − sen a·sen b = (−4/5)(−5/13) − (3/5)(−12/13) = 20/65 + 36/65 = 56/65, luego tan(a + b) = (33/65)/(56/65) = <b>33/56</b>.",
+          "cos(a − b) = cos a·cos b + sen a·sen b = 20/65 − 36/65 = <b>−16/65</b>.",
+          "Seno y coseno de a + b son positivos: a + b está en el 1.er cuadrante (salvo vueltas). Comprobación: (33/65)² + (56/65)² = (1089 + 3136)/4225 = 1 ✓."
+        ]) +
+        ejemplo("Problema 2 · Una ecuación con tres senos", "Resuelve sen x + sen 2x + sen 3x = 0 en [0°, 360°).", [
+          "Agrupamos los extremos: sen x + sen 3x = 2·sen 2x·cos x.",
+          "La ecuación queda 2·sen 2x·cos x + sen 2x = 0 → sen 2x·(2·cos x + 1) = 0 (factor común: no se divide).",
+          "sen 2x = 0 → 2x = 0°, 180°, 360°, 540° → x = 0°, 90°, 180°, 270°. 2·cos x + 1 = 0 → cos x = −1/2 → x = 120°, 240°.",
+          "<b>x = 0°, 90°, 120°, 180°, 240° y 270°</b>."
+        ]) +
+        ejemplo("Problema 3 · Máximo y mínimo", "Halla el máximo y el mínimo de f(x) = cos 2x − 3·cos x y los ángulos en que se alcanzan.", [
+          "cos 2x = 2cos²x − 1, así que f = 2t² − 3t − 1 con t = cos x ∈ [−1, 1].",
+          "La parábola tiene el vértice en t = 3/4, dentro del intervalo: f(3/4) = 2·9/16 − 9/4 − 1 = −17/8 = −2,125. Es el <b>mínimo</b>, en cos x = 3/4: x = 41,41° o x = 318,59°.",
+          "El máximo está en un extremo: f(−1) = 2 + 3 − 1 = 4 y f(1) = 2 − 3 − 1 = −2. <b>Máximo 4</b>, en cos x = −1: x = 180°."
+        ]) +
+        ejemplo("Problema 4 · Demostrar y aplicar", "Demuestra que tan(x/2) = (1 − cos x)/sen x y úsalo para calcular tan 15°.", [
+          "Con 1 − cos x = 2·sen²(x/2) y sen x = 2·sen(x/2)·cos(x/2): (1 − cos x)/sen x = 2·sen²(x/2)/(2·sen(x/2)·cos(x/2)) = sen(x/2)/cos(x/2) = tan(x/2) ∎.",
+          "Con x = 30°: tan 15° = (1 − cos 30°)/sen 30° = (1 − √3/2)/(1/2) = <b>2 − √3 ≈ 0,2679</b>."
+        ])
+    }
+  );
+
+  datos.errores.preguntas.push(
+    { q: "Un alumno resuelve 2sen²x + 3sen x − 2 = 0 con t = sen x, obtiene t = 1/2 y t = −2, y escribe además la solución x = arcsen(−2). ¿Qué falla?",
+      op: ["Nada: todas las raíces valen", "t = −2 se descarta: un seno no puede ser menor que −1 y arcsen(−2) no existe", "Debía usar cos x en vez de sen x", "t = 1/2 es la que sobra"], ok: 1,
+      porque: "Como −1 ≤ sen x ≤ 1, la raíz t = −2 no corresponde a ningún ángulo. Sólo vale sen x = 1/2: x = 30° y 150°." },
+    { q: "Para resolver sen 3x + sen x = 0, un alumno escribe sen 4x = 0. ¿Qué falla?",
+      op: ["Nada: sen A + sen B = sen(A + B)", "La suma de senos no es el seno de la suma: sen 3x + sen x = 2·sen 2x·cos x", "Debía dar sen 2x = 0", "Debía restar en vez de sumar"], ok: 1,
+      porque: "sen A + sen B ≠ sen(A + B) (con A = B = 30°: 1 ≠ 0,87). La suma a producto es 2·sen((A + B)/2)·cos((A − B)/2) = 2·sen 2x·cos x." },
+    { q: "Al resolver 3sen x + 4cos x = 6 con el ángulo auxiliar, un alumno llega a sen(x + φ) = 1,2 y la calculadora da «Math Error». ¿Qué significa?",
+      op: ["Que la calculadora está mal configurada", "Que la ecuación no tiene solución: 6 es mayor que R = 5, el máximo de 3sen x + 4cos x", "Que hay que usar grados", "Que x = 90°"], ok: 1,
+      porque: "3sen x + 4cos x = 5·sen(x + φ) oscila entre −5 y 5. Sólo hay solución si |c| ≤ R = 5; con c = 6 no existe ningún x." }
+  );
+
+  datos.quiz1.preguntas.push(
+    { q: "¿A qué es igual cos A − cos B?",
+      op: ["2·sen((A + B)/2)·sen((A − B)/2)", "−2·sen((A + B)/2)·sen((A − B)/2)", "2·cos((A + B)/2)·cos((A − B)/2)", "cos(A − B)"], ok: 1,
+      porque: "Restando cos(a + b) y cos(a − b) sale cos(a + b) − cos(a − b) = −2·sen a·sen b; con a = (A + B)/2 y b = (A − B)/2 se obtiene el signo menos." },
+    { q: "Dos diapasones de 256 Hz y 260 Hz suenan a la vez. ¿Cuántas pulsaciones por segundo se perciben?",
+      op: ["2", "4", "258", "516"], ok: 1,
+      porque: "La frecuencia del batido es |f₁ − f₂| = |256 − 260| = 4 pulsaciones por segundo (la nota que se oye tiene la frecuencia media, 258 Hz)." },
+    { q: "¿Cuántas soluciones tiene 2sen²x − sen x − 1 = 0 en [0°, 360°)?",
+      op: ["2", "3", "4", "1"], ok: 1,
+      porque: "Con t = sen x: t = 1 o t = −1/2. sen x = 1 da x = 90° (una) y sen x = −1/2 da 210° y 330°. En total 3 soluciones." },
+    { q: "La ecuación 3sen x + 4cos x = c tiene solución si y sólo si…",
+      op: ["c ≥ 0", "|c| ≤ 5", "|c| ≤ 7", "|c| ≤ 1"], ok: 1,
+      porque: "3sen x + 4cos x = 5·sen(x + φ), que toma todos los valores entre −5 y 5. Por eso hay solución exactamente cuando |c| ≤ 5 (R = √(3² + 4²))." },
+    { q: "El ángulo agudo entre las rectas y = 2x e y = x/3 mide…",
+      op: ["45°", "30°", "60°", "26,57°"], ok: 0,
+      porque: "tan θ = |(m₂ − m₁)/(1 + m₁m₂)| = |(1/3 − 2)/(1 + 2/3)| = (5/3)/(5/3) = 1, luego θ = 45°." },
+    { q: "Al resolver con t = tan(x/2) una ecuación a·sen x + b·cos x = c, ¿qué hay que comprobar aparte?",
+      op: ["x = 0°", "x = 90°", "x = 180°, porque tan(x/2) no existe", "x = 360°"], ok: 2,
+      porque: "Con x = 180°, x/2 = 90° y tan 90° no existe: el cambio no puede dar esa solución. Se comprueba a mano si x = 180° cumple la ecuación." }
+  );
+
+  ejercicios.push(
+    // ================= ★ básico =================
+    { id: "h37", nivel: 1,
+      enunciado: "Calcula cos 75° + cos 15° sin calculadora (da el valor decimal).",
+      check: { tipo: "num", etiqueta: "valor =", valor: 1.2247, tol: 0.002, ph: "decimal" },
+      pistas: ["cos A + cos B = 2·cos((A + B)/2)·cos((A − B)/2)."],
+      pasos: ["(75° + 15°)/2 = 45° y (75° − 15°)/2 = 30°.", "cos 75° + cos 15° = 2·cos 45°·cos 30° = 2·(√2/2)(√3/2) = √6/2 ≈ 1,2247."],
+      resultado: "√6/2 ≈ 1,2247" },
+    { id: "h38", nivel: 1,
+      enunciado: "Calcula el ángulo agudo entre las rectas y = x e y = x/3 + 1 (en grados).",
+      check: { tipo: "num", etiqueta: "θ =", valor: 26.565, unidad: "°" },
+      pistas: ["tan θ = |(m₂ − m₁)/(1 + m₁·m₂)|."],
+      pasos: ["m₁ = 1 y m₂ = 1/3.", "tan θ = (1 − 1/3)/(1 + 1/3) = (2/3)/(4/3) = 1/2.", "θ = arctan(1/2) = 26,565°."],
+      resultado: "≈ 26,57°" },
+    // ================= ★★ intermedio =================
+    { id: "h39", nivel: 2,
+      enunciado: "Resuelve 2sen²x = 3cos x en [0°, 360°). Escribe las dos soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [60, 300], unidad: "°" },
+      pistas: ["Sustituye sen²x = 1 − cos²x y usa t = cos x."],
+      pasos: ["2(1 − cos²x) = 3cos x → 2cos²x + 3cos x − 2 = 0.", "t = (−3 ± 5)/4 → t = 1/2 o t = −2 (descartada).", "cos x = 1/2 → x = 60° o 300°."],
+      resultado: "x = 60° y 300°" },
+    { id: "h40", nivel: 2,
+      enunciado: "Resuelve cos 2x + 5cos x + 3 = 0 en [0°, 360°). Escribe las dos soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [120, 240], unidad: "°" },
+      pistas: ["cos 2x = 2cos²x − 1."],
+      pasos: ["2cos²x − 1 + 5cos x + 3 = 0 → 2cos²x + 5cos x + 2 = 0.", "t = (−5 ± 3)/4 → t = −1/2 o t = −2 (descartada).", "cos x = −1/2 → x = 120° o 240°."],
+      resultado: "x = 120° y 240°" },
+    { id: "h41", nivel: 2,
+      enunciado: "Resuelve tan²x − (1 + √3)·tan x + √3 = 0 en [0°, 360°). Escribe las cuatro soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [45, 60, 225, 240], unidad: "°" },
+      pistas: ["Con t = tan x, busca dos números de suma 1 + √3 y producto √3."],
+      pasos: ["t = 1 y t = √3.", "tan x = 1 → 45° y 225°. tan x = √3 → 60° y 240°."],
+      resultado: "x = 45°, 60°, 225°, 240°" },
+    { id: "h42", nivel: 2,
+      enunciado: "Resuelve cos x + cos 3x = cos 2x en [0°, 360°). Escribe las seis soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [45, 60, 135, 225, 300, 315], unidad: "°" },
+      pistas: ["cos x + cos 3x = 2·cos 2x·cos x. Pasa todo a un lado y saca factor común cos 2x."],
+      pasos: ["2·cos 2x·cos x − cos 2x = 0 → cos 2x·(2cos x − 1) = 0.", "cos 2x = 0 → 2x = 90°, 270°, 450°, 630° → x = 45°, 135°, 225°, 315°.", "cos x = 1/2 → x = 60°, 300°."],
+      resultado: "x = 45°, 60°, 135°, 225°, 300°, 315°" },
+    { id: "h43", nivel: 2,
+      enunciado: "Dos diapasones suenan a la vez con frecuencias de 440 Hz y 444 Hz. Calcula la frecuencia del batido (pulsaciones por segundo) y la frecuencia de la nota que se oye.",
+      check: [{ tipo: "num", etiqueta: "batido =", valor: 4, unidad: "pulsaciones/s" }, { tipo: "num", etiqueta: "nota que se oye =", valor: 442, unidad: "Hz" }],
+      pistas: ["sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t)."],
+      pasos: ["Batido: |f₁ − f₂| = |440 − 444| = 4 pulsaciones por segundo.", "Nota que se oye: la frecuencia media (440 + 444)/2 = 442 Hz."],
+      resultado: "4 pulsaciones/s · 442 Hz" },
+    // ================= ★★★ reto =================
+    { id: "h44", nivel: 3,
+      enunciado: "Resuelve el sistema sen x·cos y = 3/4, cos x·sen y = 1/4 con x e y entre 0° y 90°. Da x e y en grados.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 60, unidad: "°" }, { tipo: "num", etiqueta: "y =", valor: 30, unidad: "°" }],
+      pistas: ["Suma y resta las dos ecuaciones: aparecen sen(x + y) y sen(x − y)."],
+      pasos: ["Suma: sen(x + y) = 1 → x + y = 90°. Resta: sen(x − y) = 1/2 → x − y = 30°.", "x = 60° e y = 30°. Comprobación: sen 60°·cos 30° = 3/4 ✓."],
+      resultado: "x = 60°, y = 30°" },
+    { id: "h45", nivel: 3,
+      enunciado: "Resuelve x + y = 120°, sen x·sen y = 1/4 con x &gt; y, ambos entre 0° y 180°. Da x e y en grados.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 105, unidad: "°" }, { tipo: "num", etiqueta: "y =", valor: 15, unidad: "°" }],
+      pistas: ["sen x·sen y = ½[cos(x − y) − cos(x + y)]."],
+      pasos: ["½[cos(x − y) − cos 120°] = ½[cos(x − y) + 1/2] = 1/4 → cos(x − y) = 0.", "x − y = 90° (x &gt; y) y x + y = 120° → x = 105°, y = 15°."],
+      resultado: "x = 105°, y = 15°" },
+    { id: "h46", nivel: 3,
+      enunciado: "Resuelve 3sen x + 4cos x = 2 en [0°, 360°). Escribe las dos soluciones (en grados, con decimales).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [103.29, 330.45], unidad: "°" },
+      pistas: ["R = 5 y φ = 53,13°: 3sen x + 4cos x = 5·sen(x + 53,13°)."],
+      pasos: ["sen(x + 53,13°) = 0,4 → x + 53,13° = 23,58° o 156,42°.", "x = −29,55° ≡ 330,45°, o x = 103,29°.", "Comprobación: 3·sen 103,29° + 4·cos 103,29° = 2 ✓."],
+      resultado: "x = 103,29° y 330,45°" },
+    { id: "h47", nivel: 3,
+      enunciado: "Demuestra que sen 3x/sen x − cos 3x/cos x = 2.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Reduce las fracciones a denominador común sen x·cos x", p: 0.5 },
+        { t: "Llega al numerador sen 3x·cos x − cos 3x·sen x", p: 0.5 },
+        { t: "Lo reconoce como sen(3x − x) = sen 2x", p: 0.5 },
+        { t: "Usa sen 2x = 2·sen x·cos x y simplifica hasta 2", p: 0.5 }
+      ] },
+      pasos: ["sen 3x/sen x − cos 3x/cos x = (sen 3x·cos x − cos 3x·sen x)/(sen x·cos x).", "El numerador es sen(3x − x) = sen 2x = 2·sen x·cos x.", "Queda 2·sen x·cos x/(sen x·cos x) = 2."],
+      resultado: "= 2 (con sen x·cos x ≠ 0)" },
+    { id: "h48", nivel: 3,
+      enunciado: "Sabiendo que s = sen 18° cumple sen 3θ = cos 2θ para θ = 18°, deduce la ecuación 4s² + 2s − 1 = 0 y calcula sen 18° y cos 36° (valores decimales).",
+      check: [{ tipo: "num", etiqueta: "sen 18° =", valor: 0.3090, tol: 0.002, ph: "decimal" }, { tipo: "num", etiqueta: "cos 36° =", valor: 0.8090, tol: 0.002, ph: "decimal" }],
+      pistas: ["sen 3θ = 3s − 4s³ y cos 2θ = 1 − 2s². Verás que s = 1 es una raíz.", "cos 36° = 1 − 2sen²18°."],
+      pasos: ["4s³ − 2s² − 3s + 1 = 0 = (s − 1)(4s² + 2s − 1). Como s ≠ 1: 4s² + 2s − 1 = 0.", "s = (−1 + √5)/4 ≈ 0,3090 (la raíz positiva).", "cos 36° = 1 − 2·0,3090² = 0,8090 = (1 + √5)/4."],
+      resultado: "sen 18° = (√5 − 1)/4 ≈ 0,3090 · cos 36° = (1 + √5)/4 ≈ 0,8090" }
+  );
+
+  lamina.push(
+    { titulo: "Ecuaciones de 2.º grado y a·sen x + b·cos x = c", ancha: true,
+      items: [
+        { label: "2.º grado en una razón", formula: "t = sen x, cos x o tan x  →  a·t² + b·t + c = 0", cuando: "Reduce a una razón y un ángulo (sen² = 1 − cos², cos 2x = 2cos² − 1).", ojo: "Descarta las raíces con |t| &gt; 1 (sen y cos). Con tan valen todas." },
+        { label: "Ángulo auxiliar", formula: "a·sen x + b·cos x = R·sen(x + φ),  R = √(a² + b²),  tan φ = b/a", cuando: "Sólo hay solución si |c| ≤ R.", ejemplo: "3sen x + 4cos x = 2 → x = 103,29° y 330,45°" },
+        { label: "Cambio t = tan(x/2)", formula: "sen x = 2t/(1 + t²)  ·  cos x = (1 − t²)/(1 + t²)", ojo: "Comprueba aparte x = 180°." }
+      ],
+      nota: "Elevar al cuadrado crea soluciones falsas: comprueba siempre en la ecuación original." },
+    { titulo: "Sistemas, pulsaciones y retos", ancha: true,
+      items: [
+        { label: "Sistemas", formula: "busca x + y y x − y: sumar y restar (sen(x ± y)), sumas a productos y dividir, productos a sumas", ejemplo: "sen x·cos y = 3/4, cos x·sen y = 1/4 → x = 60°, y = 30°" },
+        { label: "Pulsaciones", formula: "sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t)", cuando: "Batido = |f₁ − f₂|; nota = (f₁ + f₂)/2.", ejemplo: "440 Hz y 444 Hz → 4 pulsaciones/s" },
+        { label: "Ángulo entre rectas", formula: "tan θ = |(m₂ − m₁)/(1 + m₁·m₂)|", ejemplo: "pendientes 2 y 1/3 → 45°" },
+        { label: "Valor exacto de 18°", formula: "sen 18° = (√5 − 1)/4  ·  cos 36° = (1 + √5)/4" }
+      ],
+      nota: "Identidades difíciles: conjugado, diferencia de cuadrados, sumas a productos, denominador común o t = tan(x/2)." }
+  );
 
   B.registrar("mates1", "t5", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
