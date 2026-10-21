@@ -1129,6 +1129,57 @@ comprobar('t11 banco de derivadas (24)', len(banco11) == 24 and all(igual(sp.dif
 comprobar('t11 quiz ampliado', sp.diff(Xd**3 - 3*Xd**2 + 2, Xd).subs(Xd, 1) == -3 and igual(sp.diff(sp.exp(x**2), x), 2*x*sp.exp(x**2)) and sp.solve_univariate_inequality(Xd**2 - 4 < 0, Xd, relational=False) == sp.Interval.open(-2, 2) and sp.solve(6*Xd - 12, Xd) == [2] and sp.solve(2*Xd - sp.Rational(9 - 1, 2), Xd) == [2] and casiD(3 + 0.1/6, 3.0167, 1e-4) and abs(float(sp.sqrt(9.1)) - 3.01662) < 1e-5 and sp.solve(sp.diff(Xd*(50 - Xd), Xd), Xd) == [25] and (25*25) == 625 and sp.diff(sp.log(Xd**2 + 1), Xd).subs(Xd, 1) == 1)
 comprobar('t11 errores ampliados', igual(sp.diff((x**2 + 1)**3, x), 6*x*(x**2 + 1)**2) and igual(sp.diff(sp.log(x**2), x), 2/x) and sp.diff(Xd**3 - 12*Xd, Xd, 2).subs(Xd, 2) == 12 and sp.diff(Xd**3 - 12*Xd, Xd, 2).subs(Xd, -2) == -12 and (2*1, 1) == (2, 1))
 
+
+# =====================================================================
+# TEMA 1 · Números reales: ampliación (n21–n41 y teoría nueva)
+# =====================================================================
+E1 = {e['id']: e for e in datos['ampl']['mates1']['t1']['ejercicios']}
+def n1v(id_, k=0):
+    c = E1[id_]['check']; c = c if isinstance(c, list) else [c]
+    return c[k]
+Rq = sp.Rational
+def periodico(ent, ante, per):  # fracción exacta del decimal ent,ante(per)
+    a = len(ante); p_ = len(per)
+    todo = int(ent + ante + per); sin = int(ent + ante or '0')
+    return Rq(todo - sin, (10**p_ - 1)*10**a) if per else Rq(sin, 10**a)
+comprobar('t1 n21', periodico('0', '', '7') == Rq(7, 9) and abs(float(Rq(7, 9)) - n1v('n21')['valor']) < 1e-12)
+comprobar('t1 n22', periodico('2', '', '18') == Rq(24, 11) and abs(float(Rq(24, 11)) - n1v('n22')['valor']) < 1e-12)
+comprobar('t1 n23', sp.sqrt(3)*sp.sqrt(12) == 6 and n1v('n23')['valor'] == 6)
+comprobar('t1 n24', sp.simplify(sp.cbrt(54) - 3*sp.cbrt(2)) == 0 and sorted(n1v('n24')['valores']) == [2, 3])
+comprobar('t1 n25', sp.Integer(2)**Rq(3, 2)*sp.Integer(2)**Rq(1, 2) == 4 == n1v('n25')['valor'])
+comprobar('t1 n26', sp.Integer(8)**Rq(-2, 3) == Rq(1, 4) and n1v('n26')['valor'] == 0.25)
+comprobar('t1 n27', periodico('1', '0', '36') == Rq(57, 55) and abs(float(Rq(57, 55)) - n1v('n27')['valor']) < 1e-12 and float(Rq(57, 55)) - 1.036363636 < 1e-8)
+def long_per(q):
+    r = 1 % q; vistos = {}; pos = 0
+    while r and r not in vistos: vistos[r] = pos; pos += 1; r = r*10 % q
+    return 0 if r == 0 else pos - vistos[r]
+comprobar('t1 n28', long_per(13) == 6 == n1v('n28')['valor'] and long_per(7) == 6)
+def exacto(p_, q):
+    f = Rq(p_, q).q
+    while f % 2 == 0: f //= 2
+    while f % 5 == 0: f //= 5
+    return f == 1
+comprobar('t1 n29', [exacto(7, 40), exacto(5, 12), exacto(4, 7), exacto(8, 15)] == [True, False, False, False] and E1['n29']['check']['opciones'][n1v('n29')['ok']] == '7/40')
+comprobar('t1 n30', sp.cbrt(3) > sp.sqrt(2) and E1['n30']['check']['opciones'][n1v('n30')['ok']] == '∛3')
+comprobar('t1 n31', sp.simplify(6/sp.sqrt(8) - 3*sp.sqrt(2)/2) == 0)
+comprobar('t1 n32', sp.simplify(sp.radsimp(5/(sp.sqrt(7) - sp.sqrt(2))) - (sp.sqrt(7) + sp.sqrt(2))) == 0)
+comprobar('t1 n33', (-2 - Rq(1, 2), -2 + Rq(1, 2)) == (-Rq(5, 2), -Rq(3, 2)) and sorted(n1v('n33')['valores']) == [-2.5, -1.5])
+comprobar('t1 n34', sp.solve_univariate_inequality(sp.Abs(sp.Symbol('t', real=True) - 5) < 2, sp.Symbol('t', real=True), relational=False) == sp.Interval.open(3, 7) and sorted(n1v('n34')['valores']) == [3, 7])
+comprobar('t1 n35', sp.simplify(1/(2 - sp.sqrt(3)) + 1/(2 + sp.sqrt(3)) - 4) == 0 and n1v('n35')['valor'] == 4)
+comprobar('t1 n36', 3*sp.sqrt(2) > 2*sp.sqrt(3) and E1['n36']['check']['opciones'][n1v('n36')['ok']] == '3√2')
+comprobar('t1 n37', abs(float(9*sp.sqrt(3)) - 15.588) < 1e-3 and abs(float(9*sp.sqrt(3)) - n1v('n37')['valor']) < 0.01)
+comprobar('t1 n38', abs(float(5*sp.sqrt(3)) - 8.660) < 1e-3 and abs(float(5*sp.sqrt(3)) - n1v('n38')['valor']) < 0.01)
+comprobar('t1 n39', sp.sqrt(24 + 1) == 5 == n1v('n39')['valor'])
+# teoría
+comprobar('t1 teoría: generatrices', periodico('0', '', '45') == Rq(5, 11) and periodico('0', '2', '7') == Rq(5, 18) and periodico('3', '2', '7') == Rq(59, 18) and periodico('0', '125', '') == Rq(1, 8) and Rq(7, 40) == Rq('0.175') and abs(float(Rq(5, 12)) - 0.416666667) < 1e-8 and long_per(7) == 6)
+comprobar('t1 teoría: exponentes', sp.Integer(27)**Rq(2, 3) == 9 and sp.Integer(8)**Rq(-2, 3) == Rq(1, 4) and sp.Integer(2)**Rq(3, 2)*sp.Integer(2)**Rq(1, 2) == 4 and sp.Integer(5)**Rq(3, 4)/sp.Integer(5)**Rq(1, 4) == sp.sqrt(5) and sp.sqrt(2)*sp.sqrt(18) == 6 and sp.simplify(sp.sqrt(sp.cbrt(64)) - 2) == 0 and sp.simplify((sp.Integer(3)**Rq(2, 3))**3 - 9) == 0)
+comprobar('t1 teoría: radicales', sp.simplify(sp.sqrt(72) - 6*sp.sqrt(2)) == 0 and sp.simplify(3*sp.sqrt(12) - sp.sqrt(27) + sp.sqrt(75) - 8*sp.sqrt(3)) == 0 and float(sp.cbrt(3)) > float(sp.sqrt(2)) and abs(float(sp.cbrt(3)) - 1.4422) < 1e-4 and 2**3 == 8 and 3**2 == 9)
+comprobar('t1 teoría: racionalizar', sp.simplify(sp.radsimp(3/(2*sp.sqrt(5))) - 3*sp.sqrt(5)/10) == 0 and sp.simplify(sp.radsimp(4/(3 + sp.sqrt(2))) - (12 - 4*sp.sqrt(2))/7) == 0 and sp.simplify(sp.radsimp(6/(sp.sqrt(5) + sp.sqrt(3))) - 3*(sp.sqrt(5) - sp.sqrt(3))) == 0 and sp.simplify(1/(2 - sp.sqrt(3)) - (2 + sp.sqrt(3))) == 0)
+comprobar('t1 teoría: comparar', 2*sp.sqrt(3) < 3*sp.sqrt(2) and sp.sqrt(5) + sp.sqrt(3) < 4 and sp.expand((sp.sqrt(5) + sp.sqrt(3))**2) == 8 + 2*sp.sqrt(15) and 15 < 16 and 1.4 + 0.01111 < float(sp.sqrt(2)) < float(sp.cbrt(3)) < 1.5)
+comprobar('t1 teoría: entornos y problemas', (-2.5, -1.5) == (-2 - 0.5, -2 + 0.5) and (1 + 7)/2 == 4 and (7 - 1)/2 == 3 and (11.95, 12.05) == (12 - 0.05, 12 + 0.05) and sp.simplify(sp.sqrt(6**2 - 3**2) - 3*sp.sqrt(3)) == 0 and sp.simplify(36*sp.sqrt(3)/4 - 9*sp.sqrt(3)) == 0 and sp.sqrt(5**2 + 2*5**2) == 5*sp.sqrt(3) and abs(365*24*3600*3e8 - 9.4608e15) < 1e11)
+comprobar('t1 teoría: espiral', all(sp.sqrt(k)**2 == k for k in range(1, 18)))
+comprobar('t1 errores ampliados', periodico('0', '2', '7') == Rq(5, 18) and Rq(27, 90) != Rq(5, 18) and abs(float(sp.sqrt(2) + sp.sqrt(3)) - 3.146) < 1e-3 and sp.expand((3 + sp.sqrt(2))*(3 - sp.sqrt(2))) == 7)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)

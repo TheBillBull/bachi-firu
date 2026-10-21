@@ -278,11 +278,146 @@
         "<p><b>Los racionales y los irracionales están «mezclados»</b>: entre dos números reales distintos, por muy cerca que estén, siempre hay infinitos racionales y también infinitos irracionales. Por ejemplo, entre 1 y 2 están 3/2, 7/5, 1,41 (racionales) y √2, 1 + 1/π (irracionales). Y a pesar de eso, ℚ tiene «agujeros» (√2, π…) que ℝ rellena. Por eso la recta real no tiene huecos y los números racionales por sí solos no bastan para medir una diagonal.</p>"
     },
     {
-      h: "7. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "7. Decimales y fracciones: la fracción generatriz",
+      html:
+        "<p>Todo número racional se puede escribir como fracción p/q y, al dividir, da un decimal <b>exacto</b> o <b>periódico</b>. Y al revés: todo decimal exacto o periódico es una fracción. Pasar de uno a otro es una destreza básica.</p>" +
+        "<h5>De decimal a fracción</h5>" +
+        tabla(["Tipo", "Regla", "Ejemplo"], [
+          ["Exacto", "se escribe sin la coma sobre 1 seguido de tantos ceros como decimales", "0,125 = 125/1000 = 1/8"],
+          ["Periódico puro (0,(45))", "numerador = parte entera con el periodo menos la parte entera; denominador = tantos 9 como cifras tiene el periodo", "0,(45) = 45/99 = 5/11"],
+          ["Periódico mixto (0,2(7))", "numerador = (todo el número sin coma) − (lo que va hasta antes del periodo); denominador = tantos 9 como cifras del periodo y tantos 0 como cifras del anteperiodo", "0,2(7) = (27 − 2)/90 = 25/90 = 5/18"]
+        ]) +
+        ejemplo("Periódico mixto con parte entera", "Escribe 3,2(7) = 3,27777… como fracción.", [
+          "Método algebraico: x = 3,2777… Multiplicamos por 10 para dejar sólo el periodo detrás de la coma: 10x = 32,777… y por 100: 100x = 327,777…",
+          "Restamos: 100x − 10x = 327,777… − 32,777… = 295 → 90x = 295 → x = 295/90 = <b>59/18</b>.",
+          "Con la regla: numerador = 327 − 32 = 295 (todo el número sin coma menos hasta el anteperiodo) y denominador = 90 (un 9 por el periodo de una cifra y un 0 por el anteperiodo de una cifra). 295/90 = 59/18 ✓."
+        ]) +
+        "<h5>De fracción a decimal: ¿exacto o periódico?</h5>" +
+        "<p>Se divide p entre q. Como los restos posibles son menores que q, <b>algún resto se repite</b> (si no sale 0) y entonces las cifras se repiten: el periodo tiene <b>a lo sumo q − 1 cifras</b>. ¿Cuándo sale exacto? Una fracción <b>irreducible</b> p/q da decimal exacto si y sólo si el denominador sólo tiene los factores primos 2 y 5 (porque entonces se puede completar a una potencia de 10): 7/40 = 7/(2³·5) = 0,175, pero 5/12 = 5/(2²·3) = 0,41666… = 0,41(6).</p>" +
+        w("generatriz") +
+        ejemplo("Un periodo largo", "¿Cuántas cifras tiene el periodo de 1/7?", [
+          "Dividiendo: 1/7 = 0,142857 142857… El periodo es <b>142857</b>, de 6 cifras: el máximo posible, q − 1 = 6.",
+          "Curiosidad: 2/7 = 0,(285714), 3/7 = 0,(428571)… usan las mismas cifras desplazadas."
+        ])
+    },
+    {
+      h: "8. Raíces y exponentes racionales: propiedades y operaciones",
+      html:
+        "<h5>La raíz como potencia de exponente fraccionario</h5>" +
+        "<p><b>ⁿ√aᵐ = a<sup>m/n</sup></b> (con a &gt; 0). Esta forma permite usar las propiedades de las potencias con raíces: √x = x<sup>1/2</sup>, ∛x² = x<sup>2/3</sup>, 1/√x = x<sup>−1/2</sup>.</p>" +
+        tabla(["Propiedad", "Fórmula", "Ejemplo"], [
+          ["Producto de potencias", "aˣ·aʸ = aˣ⁺ʸ", "2<sup>3/2</sup>·2<sup>1/2</sup> = 2² = 4"],
+          ["Cociente", "aˣ / aʸ = aˣ⁻ʸ", "5<sup>3/4</sup> / 5<sup>1/4</sup> = 5<sup>1/2</sup> = √5"],
+          ["Potencia de potencia", "(aˣ)ʸ = aˣʸ", "(3<sup>2/3</sup>)³ = 3² = 9"],
+          ["Exponente negativo", "a⁻ˣ = 1/aˣ", "8<sup>−2/3</sup> = 1/8<sup>2/3</sup> = 1/4"],
+          ["Producto de raíces", "ⁿ√a·ⁿ√b = ⁿ√(ab)", "√2·√18 = √36 = 6"],
+          ["Raíz de raíz", "ᵐ√(ⁿ√a) = ᵐⁿ√a", "√(∛64) = ⁶√64 = 2"]
+        ]) +
+        ejemplo("Exponentes racionales", "Calcula 27<sup>2/3</sup> y 8<sup>−2/3</sup>.", [
+          "27<sup>2/3</sup> = (∛27)² = 3² = <b>9</b>. (Mejor sacar primero la raíz y después elevar.)",
+          "8<sup>−2/3</sup> = 1/8<sup>2/3</sup> = 1/(∛8)² = 1/2² = <b>1/4</b>."
+        ]) +
+        "<h5>Operar con radicales</h5>" +
+        "<ul>" +
+        "<li><b>Extraer factores</b>: √72 = √(36·2) = 6√2; ∛54 = ∛(27·2) = 3∛2.</li>" +
+        "<li><b>Sumar y restar</b>: sólo se pueden sumar radicales <i>semejantes</i> (mismo índice y mismo radicando): 3√2 + 5√2 = 8√2, pero √2 + √3 no se simplifica.</li>" +
+        "<li><b>Reducir a índice común</b> (para multiplicar, dividir o comparar radicales de distinto índice): √2 y ∛3 → mcm(2, 3) = 6: √2 = ⁶√(2³) = ⁶√8 y ∛3 = ⁶√(3²) = ⁶√9.</li>" +
+        "</ul>" +
+        ejemplo("Comparar con índice común", "¿Qué es mayor, √2 o ∛3?", [
+          "Índice común 6: √2 = ⁶√8 y ∛3 = ⁶√9.",
+          "Como 9 &gt; 8: <b>∛3 &gt; √2</b>. (En decimales: 1,4422 &gt; 1,4142.)"
+        ]) +
+        ejemplo("Una operación combinada", "Simplifica 3√12 − √27 + √75.", [
+          "√12 = 2√3, √27 = 3√3 y √75 = 5√3.",
+          "3·2√3 − 3√3 + 5√3 = (6 − 3 + 5)√3 = <b>8√3</b>."
+        ])
+    },
+    {
+      h: "9. Racionalización: todos los casos",
+      html:
+        "<p>Racionalizar es escribir una fracción con raíces en el denominador como otra equivalente <b>sin raíces en el denominador</b>. Es una convención (ayuda a comparar, a sumar fracciones y a evaluar a mano), no una necesidad. Hay tres casos:</p>" +
+        tabla(["Caso", "Se multiplica por", "Ejemplo"], [
+          ["k/(a√c)", "√c arriba y abajo", "3/(2√5) = 3√5/(2·5) = 3√5/10"],
+          ["k/(a + b√c)", "el conjugado a − b√c (suma por diferencia)", "4/(3 + √2) = 4(3 − √2)/(9 − 2) = (12 − 4√2)/7"],
+          ["k/(√c ± √d)", "el conjugado √c ∓ √d", "6/(√5 + √3) = 6(√5 − √3)/(5 − 3) = 3(√5 − √3)"]
+        ]) +
+        w("racionalizar") +
+        ejemplo("Una suma de fracciones", "Calcula 1/(2 − √3) + 1/(2 + √3).", [
+          "Racionalizando cada una: 1/(2 − √3) = (2 + √3)/(4 − 3) = 2 + √3 y 1/(2 + √3) = (2 − √3)/(4 − 3) = 2 − √3.",
+          "Suma: (2 + √3) + (2 − √3) = <b>4</b>. (Los conjugados siempre dan una suma entera.)"
+        ]) +
+        ojo("el conjugado de a + b√c es a − b√c, no −a − b√c. Y no se puede «cancelar» una raíz del numerador con otra del denominador si están sumadas: √2/(√2 + 1) no es 1/(1 + 1).")
+    },
+    {
+      h: "10. Los irracionales en la recta: la espiral de Pitágoras",
+      html:
+        "<p>Un número irracional no es «raro»: se puede <b>construir con regla y compás</b>. √2 es la diagonal de un cuadrado de lado 1 (por Pitágoras, d² = 1² + 1²). Con un cateto de longitud 1 y el otro la hipotenusa anterior se obtienen √3, √4, √5… (espiral de Pitágoras). Luego, con un compás, se traslada cada longitud sobre la recta numérica:</p>" +
+        w("espiral") +
+        "<ul><li>El <b>número áureo</b> φ = (1 + √5)/2 ≈ 1,618 se construye a partir de un triángulo de catetos 1 y 1/2 (hipotenusa √5/2).</li>" +
+        "<li><b>π</b> es la razón entre la longitud de una circunferencia y su diámetro; <b>e</b> es el límite de (1 + 1/n)ⁿ. Ni π ni e son raíces de ningún polinomio con coeficientes enteros: se llaman <b>trascendentes</b> (√2 y φ sí lo son: son <i>algebraicos</i>).</li>" +
+        "<li>Hay «más» irracionales que racionales: los racionales se pueden listar uno tras otro (son <i>numerables</i>) y los reales no.</li></ul>"
+    },
+    {
+      h: "11. Comparar y ordenar números reales",
+      html:
+        "<p>Para decidir cuál de dos números es mayor hay varias técnicas, según su forma:</p>" +
+        "<ul>" +
+        "<li><b>Aproximación decimal</b>: se calculan con precisión suficiente (si están muy cerca, hacen falta más cifras).</li>" +
+        "<li><b>Elevar al cuadrado</b> (sólo si los dos son positivos, porque entonces x ↦ x² conserva el orden).</li>" +
+        "<li><b>Índice común</b> para radicales de distinto índice.</li>" +
+        "<li><b>Metiendo el coeficiente dentro de la raíz</b>: a√b = √(a²b).</li>" +
+        "<li><b>Diferencia</b>: estudiar el signo de A − B (útil con conjugados).</li>" +
+        "</ul>" +
+        ejemplo("Metiendo dentro de la raíz", "¿Qué es mayor, 2√3 o 3√2?", [
+          "2√3 = √(4·3) = √12 y 3√2 = √(9·2) = √18.",
+          "Como 12 &lt; 18: <b>2√3 &lt; 3√2</b>. (3,464 &lt; 4,243.)"
+        ]) +
+        ejemplo("Elevando al cuadrado", "¿Qué es mayor, √5 + √3 o 4?", [
+          "Los dos son positivos. (√5 + √3)² = 5 + 3 + 2√15 = 8 + 2√15 y 4² = 16.",
+          "Comparamos 8 + 2√15 con 16 → 2√15 con 8 → √15 con 4 → 15 con 16. Como 15 &lt; 16, √5 + √3 &lt; 4. (2,236 + 1,732 = 3,968.)"
+        ]) +
+        ejemplo("Ordenar una lista", "Ordena de menor a mayor: 3/2, √2, 1,4(1), ∛3.", [
+          "Decimales: 3/2 = 1,5 · √2 = 1,41421… · 1,4(1) = 1,41111… · ∛3 = 1,44225…",
+          "<b>1,4(1) &lt; √2 &lt; ∛3 &lt; 3/2</b>."
+        ])
+    },
+    {
+      h: "12. Entornos y distancia en la recta real",
+      html:
+        "<p>La distancia entre dos números reales a y b es |a − b|. Un <b>entorno</b> de centro a y radio r es el conjunto de puntos que están a menos de r de a:</p>" +
+        H.formula("E(a, r) = {x : |x − a| &lt; r} = (a − r, a + r)") +
+        "<p>El <b>entorno reducido</b> E*(a, r) es el mismo sin el centro: 0 &lt; |x − a| &lt; r. Se usa en límites (Tema 10), donde el valor en a no importa. Un <b>semientorno</b> sólo toma un lado: (a, a + r) es el semientorno por la derecha.</p>" +
+        ejemplo("Pasar de entorno a intervalo y al revés", "Escribe E(−2; 0,5) como intervalo y |x − 5| &lt; 2 como intervalo. ¿Qué entorno es (1, 7)?", [
+          "E(−2; 0,5) = (−2 − 0,5; −2 + 0,5) = <b>(−2,5; −1,5)</b>.",
+          "|x − 5| &lt; 2 → −2 &lt; x − 5 &lt; 2 → <b>(3, 7)</b>.",
+          "(1, 7): centro (1 + 7)/2 = 4 y radio (7 − 1)/2 = 3 → <b>E(4, 3)</b>, es decir, |x − 4| &lt; 3."
+        ]) +
+        ejemplo("Tolerancias", "Una pieza debe medir 12,0 mm con una tolerancia de ±0,05 mm. ¿Qué medidas son válidas?", [
+          "|x − 12| ≤ 0,05 → x ∈ [11,95; 12,05] (el intervalo es cerrado porque la tolerancia incluye el límite)."
+        ])
+    },
+    {
+      h: "13. Problemas con números reales: geometría y medida",
+      html:
+        "<p>Los radicales aparecen en cuanto aplicamos Pitágoras. Tres resultados que conviene saber deducir:</p>" +
+        ejemplo("Triángulo equilátero", "Halla la altura y el área de un triángulo equilátero de lado a.", [
+          "La altura divide el triángulo en dos rectángulos de hipotenusa a y cateto a/2: h = √(a² − a²/4) = √(3a²/4) = <b>a√3/2</b>.",
+          "Área = base·altura/2 = a·(a√3/2)/2 = <b>a²√3/4</b>. Con a = 6: 9√3 = 15,59."
+        ]) +
+        ejemplo("Diagonal de un cubo", "Halla la diagonal de un cubo de arista a.", [
+          "La diagonal de una cara es a√2. La diagonal del cubo es la hipotenusa de un triángulo de catetos a y a√2: d = √(a² + 2a²) = <b>a√3</b>. Con a = 5: 8,66."
+        ]) +
+        ejemplo("Un año luz", "La luz recorre 3·10⁸ m/s. ¿Qué distancia recorre en un año (365 días)?", [
+          "Un año tiene 365·24·3600 = 3,1536·10⁷ s.",
+          "d = 3·10⁸ · 3,1536·10⁷ = <b>9,46·10¹⁵ m</b> ≈ 9,46 billones de km."
+        ])
+    },
+    {
+      h: "14. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo y entenderás por qué se comete.</p>" + w("quiz", "errores")
     },
     {
-      h: "8. Autocomprobación del tema",
+      h: "15. Autocomprobación del tema",
       html: "<p>Ocho preguntas de test con la explicación de cada respuesta, y tarjetas para memorizar las propiedades clave.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
@@ -550,6 +685,108 @@
       ] }
   ];
 
+
+  // ---------------- ampliación del tema (n21–n41) ----------------
+  ejercicios.push(
+    { id: "n21", nivel: 1, enunciado: "Escribe como fracción el decimal 0,(7) = 0,777… (puedes escribir 7/9).",
+      check: { tipo: "num", etiqueta: "x =", valor: 7 / 9, tol: 0.001, ph: "p/q" }, pistas: ["Un solo dígito en el periodo: sobre 9."], pasos: ["x = 0,777…; 10x − x = 7 → 9x = 7 → x = 7/9."], resultado: "7/9" },
+    { id: "n22", nivel: 1, enunciado: "Escribe como fracción 2,(18) = 2,1818…",
+      check: { tipo: "num", etiqueta: "x =", valor: 24 / 11, tol: 0.001, ph: "p/q" }, pistas: ["Periodo de 2 cifras: sobre 99."], pasos: ["2,(18) = (218 − 2)/99 = 216/99 = 24/11."], resultado: "24/11" },
+    { id: "n23", nivel: 1, enunciado: "Simplifica √(3)·√(12).",
+      check: { tipo: "num", etiqueta: "Resultado =", valor: 6 }, pistas: ["√a·√b = √(ab)."], pasos: ["√3·√12 = √36 = 6."], resultado: "6" },
+    { id: "n24", nivel: 1, enunciado: "Simplifica ∛54 = a·∛b con b lo menor posible. Da a y b.",
+      check: { tipo: "lista", etiqueta: "a, b =", valores: [2, 3], ph: "dos valores" }, pistas: ["54 = 27·2."], pasos: ["∛54 = ∛(27·2) = 3∛2: a = 3, b = 2."], resultado: "3∛2" },
+    { id: "n25", nivel: 1, enunciado: "Calcula 2<sup>3/2</sup>·2<sup>1/2</sup>.",
+      check: { tipo: "num", etiqueta: "Resultado =", valor: 4 }, pistas: ["Se suman los exponentes."], pasos: ["2^(3/2 + 1/2) = 2² = 4."], resultado: "4" },
+    { id: "n26", nivel: 1, enunciado: "Calcula 8<sup>−2/3</sup> (como decimal o fracción).",
+      check: { tipo: "num", etiqueta: "Resultado =", valor: 0.25 }, pistas: ["8^(2/3) = (∛8)² = 4."], pasos: ["8^(−2/3) = 1/8^(2/3) = 1/4."], resultado: "1/4" },
+    { id: "n27", nivel: 2, enunciado: "Escribe como fracción 1,0(36) = 1,03636…",
+      check: { tipo: "num", etiqueta: "x =", valor: 57 / 55, tol: 0.001, ph: "p/q" }, pistas: ["Todo sin coma: 1036; hasta el anteperiodo: 10. Denominador: 99 y un 0."], pasos: ["(1036 − 10)/990 = 1026/990 = 57/55."], resultado: "57/55" },
+    { id: "n28", nivel: 2, enunciado: "¿Cuántas cifras tiene el periodo de 1/13?",
+      check: { tipo: "num", etiqueta: "Cifras =", valor: 6 }, pistas: ["Divide 1 entre 13."], pasos: ["1/13 = 0,076923 076923… El periodo es 076923: 6 cifras."], resultado: "6" },
+    { id: "n29", nivel: 2, enunciado: "¿Cuál de estas fracciones tiene un desarrollo decimal exacto?",
+      check: { tipo: "opcion", etiqueta: "Es", opciones: ["7/40", "5/12", "4/7", "8/15"], ok: 0 }, pistas: ["Factoriza los denominadores: sólo 2 y 5 dan decimal exacto."], pasos: ["40 = 2³·5 → exacto (7/40 = 0,175). 12 = 2²·3, 7 y 15 = 3·5 tienen un factor distinto de 2 y 5 → periódicos."], resultado: "7/40" },
+    { id: "n30", nivel: 2, enunciado: "¿Qué es mayor, √2 o ∛3?",
+      check: { tipo: "opcion", etiqueta: "Es mayor", opciones: ["√2", "∛3", "son iguales"], ok: 1 }, pistas: ["Índice común 6."], pasos: ["√2 = ⁶√8 y ∛3 = ⁶√9 → ∛3 es mayor."], resultado: "∛3" },
+    { id: "n31", nivel: 2, enunciado: "Racionaliza 6/√8 y simplifica al máximo.",
+      check: { tipo: "expr", etiqueta: "Resultado =", expr: "3*sqrt(2)/2", ph: "puedes escribir sqrt(2)" }, pistas: ["√8 = 2√2."], pasos: ["6/(2√2) = 3/√2 = 3√2/2."], resultado: "3√2/2" },
+    { id: "n32", nivel: 2, enunciado: "Racionaliza 5/(√7 − √2).",
+      check: { tipo: "expr", etiqueta: "Resultado =", expr: "sqrt(7)+sqrt(2)", ph: "puedes escribir sqrt(7)+sqrt(2)" }, pistas: ["Multiplica por el conjugado √7 + √2."], pasos: ["Denominador: 7 − 2 = 5. Resultado: 5(√7 + √2)/5 = √7 + √2."], resultado: "√7 + √2" },
+    { id: "n33", nivel: 2, enunciado: "Escribe como intervalo el entorno E(−2; 0,5). Da los dos extremos.",
+      check: { tipo: "lista", etiqueta: "extremos =", valores: [-2.5, -1.5], ph: "dos valores" }, pistas: ["E(a, r) = (a − r, a + r)."], pasos: ["(−2 − 0,5; −2 + 0,5) = (−2,5; −1,5)."], resultado: "(−2,5; −1,5)" },
+    { id: "n34", nivel: 2, enunciado: "Resuelve |x − 5| &lt; 2 y da los extremos del intervalo.",
+      check: { tipo: "lista", etiqueta: "extremos =", valores: [3, 7], ph: "dos valores" }, pistas: ["−2 &lt; x − 5 &lt; 2."], pasos: ["3 &lt; x &lt; 7."], resultado: "(3, 7)" },
+    { id: "n35", nivel: 3, enunciado: "Calcula 1/(2 − √3) + 1/(2 + √3).",
+      check: { tipo: "num", etiqueta: "Resultado =", valor: 4 }, pistas: ["Racionaliza cada fracción con su conjugado."], pasos: ["(2 + √3)/(4 − 3) + (2 − √3)/(4 − 3) = 2 + √3 + 2 − √3 = 4."], resultado: "4" },
+    { id: "n36", nivel: 3, enunciado: "¿Qué es mayor, 2√3 o 3√2?",
+      check: { tipo: "opcion", etiqueta: "Es mayor", opciones: ["2√3", "3√2", "son iguales"], ok: 1 }, pistas: ["Mete los coeficientes dentro de la raíz."], pasos: ["2√3 = √12 y 3√2 = √18 → 3√2 es mayor."], resultado: "3√2" },
+    { id: "n37", nivel: 3, enunciado: "Halla el área de un triángulo equilátero de lado 6 (con dos decimales).",
+      check: { tipo: "num", etiqueta: "Área =", valor: 15.59, tol: 0.001 }, pistas: ["Área = a²√3/4."], pasos: ["36√3/4 = 9√3 = 15,59."], resultado: "9√3 ≈ 15,59" },
+    { id: "n38", nivel: 3, enunciado: "Halla la diagonal de un cubo de arista 5 (con dos decimales).",
+      check: { tipo: "num", etiqueta: "d =", valor: 8.66, tol: 0.001 }, pistas: ["d = a√3."], pasos: ["5√3 = 8,66."], resultado: "5√3 ≈ 8,66" },
+    { id: "n39", nivel: 3, enunciado: "En la espiral de Pitágoras (cateto fijo de longitud 1), ¿cuánto mide la hipotenusa del triángulo número 24?",
+      check: { tipo: "num", etiqueta: "Hipotenusa =", valor: 5 }, pistas: ["El triángulo k tiene hipotenusa √(k + 1)."], pasos: ["√(24 + 1) = √25 = 5."], resultado: "5" },
+    { id: "n40", nivel: 3, enunciado: "Demuestra que √3 es irracional.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 7, items: [
+        { t: "Supone por reducción al absurdo √3 = p/q con p, q enteros sin factores comunes", p: 0.5 },
+        { t: "Eleva al cuadrado: p² = 3q², luego p² es múltiplo de 3", p: 0.5 },
+        { t: "Deduce que p es múltiplo de 3 (si p no lo fuera, p² tampoco): p = 3k", p: 0.5 },
+        { t: "Sustituye: 9k² = 3q² → q² = 3k², luego q también es múltiplo de 3", p: 0.5 },
+        { t: "Contradicción: p y q tendrían el factor 3 en común. Concluye que √3 es irracional", p: 0.5 }
+      ] },
+      pasos: ["Supongamos √3 = p/q irreducible. Entonces p² = 3q² y 3 divide a p², luego 3 divide a p (3 es primo).", "p = 3k → 9k² = 3q² → q² = 3k²: 3 divide a q. Contradicción con la irreducibilidad. ∎"], resultado: "√3 es irracional" },
+    { id: "n41", nivel: 3, enunciado: "Demuestra que la suma de un número racional y un irracional es siempre irracional.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Sea r racional e i irracional. Supone por reducción al absurdo que r + i es racional, igual a s", p: 0.5 },
+        { t: "Despeja i = s − r", p: 0.5 },
+        { t: "Razona que la diferencia de dos racionales es racional", p: 0.5 },
+        { t: "Contradicción: i sería racional. Por tanto r + i es irracional", p: 0.5 }
+      ] },
+      pasos: ["Si r + i = s fuera racional, entonces i = s − r también lo sería (diferencia de racionales), contra la hipótesis. ∎"], resultado: "r + i es irracional" }
+  );
+  lamina.push(
+    { titulo: "Fracción generatriz", ancha: true,
+      tabla: { cab: ["Decimal", "Regla", "Ejemplo"], filas: [
+        ["Exacto", "sobre 10, 100, 1000… y simplificar", "0,125 = 125/1000 = 1/8"],
+        ["Periódico puro", "(periodo)/(tantos 9 como cifras)", "0,(45) = 45/99 = 5/11"],
+        ["Periódico mixto", "(todo − hasta anteperiodo)/(9…90…0)", "0,2(7) = (27 − 2)/90 = 5/18"]
+      ] },
+      nota: "Fracción irreducible con denominador de sólo factores 2 y 5 → decimal exacto. El periodo tiene a lo sumo q − 1 cifras." },
+    { titulo: "Raíces y exponentes racionales",
+      items: [
+        { label: "Raíz como potencia", formula: "ⁿ√aᵐ = a<sup>m/n</sup>", ejemplo: "∛x² = x<sup>2/3</sup>" },
+        { label: "Producto y raíz de raíz", formula: "ⁿ√a·ⁿ√b = ⁿ√(ab) · ᵐ√(ⁿ√a) = ᵐⁿ√a" },
+        { label: "Sumar radicales", formula: "sólo semejantes: 3√2 + 5√2 = 8√2", ojo: "√2 + √3 no se simplifica." },
+        { label: "Comparar", formula: "índice común, o a√b = √(a²b)" }
+      ] },
+    { titulo: "Racionalizar",
+      items: [
+        { label: "Una raíz", formula: "k/(a√c) = k√c/(a·c)" },
+        { label: "Binomio", formula: "k/(a + b√c) = k(a − b√c)/(a² − b²c)", cuando: "Se multiplica por el conjugado." },
+        { label: "Dos raíces", formula: "k/(√c + √d) = k(√c − √d)/(c − d)" }
+      ] },
+    { titulo: "Entornos y distancia",
+      items: [
+        { label: "Distancia", formula: "d(a, b) = |a − b|" },
+        { label: "Entorno", formula: "E(a, r) = {x : |x − a| &lt; r} = (a − r, a + r)" },
+        { label: "Entorno reducido", formula: "0 &lt; |x − a| &lt; r (sin el centro)" },
+        { label: "Intervalo → entorno", formula: "(p, q): centro (p + q)/2, radio (q − p)/2" }
+      ] }
+  );
+  datos.errores.preguntas.push(
+    { q: "Un alumno escribe 0,2(7) = 27/90 «porque son 2 y 7». ¿Qué falla?",
+      op: ["Nada", "Hay que restar el anteperiodo: (27 − 2)/90 = 25/90 = 5/18", "Debe ser 27/99", "Debe ser 7/90"], ok: 1,
+      porque: "En un periódico mixto el numerador es (todo el número sin coma) − (lo que hay antes del periodo): 27 − 2 = 25. Comprobación: 5/18 = 0,2777… ✓." },
+    { q: "Un alumno suma √2 + √3 y escribe √5. ¿Qué falla?",
+      op: ["Nada", "No se pueden sumar radicales de distinto radicando: √2 + √3 ≈ 3,146 y √5 ≈ 2,236", "Debe escribir 5", "Debe escribir √6"], ok: 1,
+      porque: "√a + √b ≠ √(a + b). Sólo se suman radicales semejantes (mismo índice y radicando)." },
+    { q: "Para racionalizar 1/(3 + √2), un alumno multiplica arriba y abajo por (−3 − √2). ¿Qué falla?",
+      op: ["Nada", "El conjugado de 3 + √2 es 3 − √2; multiplicar por −3 − √2 no elimina la raíz con suma por diferencia", "Debe multiplicar por 3 + √2", "Debe multiplicar por √2"], ok: 1,
+      porque: "(3 + √2)(3 − √2) = 9 − 2 = 7: sale un entero. Con −3 − √2 se obtiene −(3 + √2)², que aún lleva raíz." },
+    { q: "Un alumno compara 2√3 y 3√2 diciendo «2 &lt; 3, así que 2√3 &lt; 3√2», y acierta por casualidad. ¿Qué razonamiento correcto hay que usar?",
+      op: ["Ninguno: el suyo es válido", "Meter los coeficientes dentro de la raíz: √12 y √18, y comparar 12 &lt; 18", "Elevar sólo el 2 al cuadrado", "Comparar los radicandos 3 y 2"], ok: 1,
+      porque: "Comparar sólo un factor no es válido en general (compara 3√2 con 2√5 con el mismo razonamiento y fallarías). Se mete todo bajo la raíz o se eleva al cuadrado." }
+);
   B.registrar("mates1", "t1", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
 })(window);
