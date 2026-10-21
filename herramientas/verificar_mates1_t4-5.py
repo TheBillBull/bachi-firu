@@ -99,6 +99,10 @@ comprobar('t5: laminas ≥ 9', len(T5['lamina']) >= 9)
 # =====================================================================
 # TEMA 4 · teoría nueva
 # =====================================================================
+# --- 8. Fórmula general de dos observaciones (simulador «observador»)
+h30 = 50 * td(30) * td(45) / (td(45) - td(30)); x45 = h30 / td(45)
+comprobar('t4 §8 dos observaciones: h = d·tan α·tan β/(tan β − tan α) = 50/(√3 − 1)', cerca(h30, 68.30, 0.0051) and cerca(h30 / td(30) - h30 / td(45), 50, 1e-9) and cerca(h30, 50 / (math.sqrt(3) - 1), 1e-9) and cerca(x45, h30, 1e-9))
+
 # --- 11. Del valor al ángulo
 comprobar('t4 §11 arcsen(−0,8)', cerca(deg(math.asin(-0.8)), -53.13, 0.0051))
 comprobar('t4 §11 sen α = −0,8 en el 3.er cuadrante', cerca(180 + 53.13, 233.13, 0.0051) and sd(233.13) < 0 and cd(233.13) < 0 and cerca(360 - 53.13, 306.87, 0.0051))

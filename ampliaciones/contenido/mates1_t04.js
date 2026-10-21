@@ -726,6 +726,11 @@
     pares: [["Noreste", "045°"], ["Sureste", "135°"], ["Suroeste", "225°"], ["Noroeste", "315°"], ["Oeste", "270°"], ["N 30° E", "030°"], ["S 30° O", "210°"]]
   };
 
+  nuevas[0].html +=
+    "<h5>Una fórmula general para dos observaciones</h5>" +
+    "<p>El ejemplo de la torre se puede resolver de una vez. Si desde A (lejos) la elevación es α, desde B (más cerca, alineado con A y con el edificio, a distancia d de A) es β, y h es la altura, la diferencia de las dos distancias horizontales es d: h/tan α − h/tan β = d, de donde <b>h = d·tan α·tan β/(tan β − tan α)</b>. Con α = 30°, β = 45° y d = 50 m: h = 50·(1/√3)·1/(1 − 1/√3) = 50/(√3 − 1) = <b>68,30 m</b>, como antes. Cambia los ángulos y la distancia en el simulador y comprueba que <i>d</i> no tiene que ver con la distancia al edificio:</p>" +
+    w("observador");
+
   nuevas.splice(nuevas.length - 2, 0,
     {
       h: "11. Del valor al ángulo: arcsen, arccos y arctan",
