@@ -2191,14 +2191,15 @@
     if (destino === "explora") { scrollA(det && det.querySelector(".w:not(.w-quiz)")); return; }
     if (destino === "comprueba") { scrollA(det && (det.querySelector("[data-w=quiz]:last-of-type") || Array.prototype.slice.call(det.querySelectorAll("[data-w=quiz]")).pop())); return; }
     // ejercicios o lámina: cambia de pestaña y baja hasta el bloque de este tema
-    var tab = document.querySelector('.tab[data-panel="' + destino + '"]');
+    var panel = destino === "lamina" ? "laminas" : destino;   // la pestaña de las chuletas se llama "laminas"
+    var tab = document.querySelector('.tab[data-panel="' + panel + '"]');
     if (!tab) return;
     var titulo = det && det.previousElementSibling ? det.previousElementSibling.textContent : "";
     tab.click();
     setTimeout(function () {
-      var bloques = document.querySelectorAll("#panel-" + destino + " .tema-block"), objetivo = null;
+      var bloques = document.querySelectorAll("#panel-" + panel + " .tema-block"), objetivo = null;
       Array.prototype.forEach.call(bloques, function (b) { var h = b.querySelector(".tema-head"); if (h && titulo && titulo.indexOf(h.textContent.replace(/^Tema\s*\d+/, "").trim()) >= 0) objetivo = b; });
-      scrollA(objetivo || document.getElementById("panel-" + destino));
+      scrollA(objetivo || document.getElementById("panel-" + panel));
     }, 60);
   });
 
