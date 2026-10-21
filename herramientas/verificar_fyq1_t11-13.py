@@ -285,6 +285,109 @@ comprobar('t13 actividades: errores, test, tarjetas, parejas, clasificaciones y 
 comprobar('t13 mínimos: lámina ≥ 8 y secciones nuevas ≥ 8', len(dd13['lamina']) >= 8 and len(dd13['nuevas']) >= 8)
 
 # ----------------------------------------------------------------------------------------------
+# TEMA 12 · TRABAJO, ENERGÍA Y POTENCIA
+# Cada respuesta se recalcula con sympy (integrales y ecuaciones de conservación) o directamente, sin las fórmulas cerradas de la web.
+# ----------------------------------------------------------------------------------------------
+import math
+import sympy as sp
+E12 = ejercicios('t12')
+g12 = 9.8
+xx, vv_, hh_, dd_ = sp.symbols('x v h d', positive=True)
+sen = lambda a: math.sin(math.radians(a)); cos_ = lambda a: math.cos(math.radians(a))
+
+
+def despejar(eq, var):
+    return max(float(s) for s in sp.solve(eq, var))
+
+
+# --- ★ básico
+num(E12, 'w1', 0, 30 * 5 * cos_(0)); opcion(E12, 'w2', '0 J'); num(E12, 'w3', 0, 0.5 * 2 * 6**2); num(E12, 'w4', 0, 4 * g12 * 15)
+num(E12, 'w5', 0, 0.5 * 1000 * 20**2 / 1e3); num(E12, 'w6', 0, 3000 / 15)
+num(E12, 'w7', 0, 200 * g12 * 10); num(E12, 'w7', 1, 200 * g12 * 10 / 20)
+num(E12, 'w8', 0, despejar(sp.Rational(1, 2) * vv_**2 - 10 * 45, vv_))
+opcion(E12, 'w9', 'negativo'); num(E12, 'w10', 0, 2 * 3.6); num(E12, 'w11', 0, 0.5 * 80 * 10**2); num(E12, 'w12', 0, 400 / 500 * 100)
+# --- ★★ intermedio
+num(E12, 'w13', 0, 40 * 6 * cos_(30)); num(E12, 'w14', 0, 10 * g12 * 5 * cos_(180))
+fr15 = 0.2 * 5 * g12; Wn15 = 25 * 8 - fr15 * 8
+num(E12, 'w15', 0, -fr15 * 8); num(E12, 'w15', 1, Wn15); num(E12, 'w15', 2, math.sqrt(2 * Wn15 / 5))
+num(E12, 'w16', 0, despejar(sp.Rational(1, 2) * 8**2 - g12 * hh_, hh_))
+num(E12, 'w17', 0, 0.5 * g12 * 4)
+num(E12, 'w18', 0, 0.5 * 200 * 0.1**2); num(E12, 'w18', 1, despejar(0.5 * 0.05 * vv_**2 - 1, vv_))
+num(E12, 'w19', 0, float(sp.integrate(2 * xx, (xx, 0, 5))))
+num(E12, 'w20', 0, 40 * 8)
+num(E12, 'w21', 0, despejar(0.5 * vv_**2 - g12 * 5 * sen(30), vv_))
+num(E12, 'w22', 0, despejar(0.5 * vv_**2 - (g12 * 5 * sen(30) - 0.2 * g12 * cos_(30) * 5), vv_))
+num(E12, 'w23', 0, despejar(-6000 * dd_ + 0.5 * 1200 * 20**2, dd_))
+num(E12, 'w24', 0, 0.060 * 5); num(E12, 'w24', 1, 0.060 * 5 * 0.15)
+num(E12, 'w25', 0, despejar(0.5 * vv_**2 - g12 * 2 * (1 - cos_(60)), vv_))
+num(E12, 'w26', 0, 2 * g12 * 50 - 0.5 * 2 * 28**2)
+num(E12, 'w27', 0, 0.75 * 2000); num(E12, 'w27', 1, 150 * g12 * 12 / (0.75 * 2000))
+num(E12, 'w28', 0, 600 * g12 * 30 / 20)
+num(E12, 'w29', 0, despejar(0.5 * vv_**2 - g12 * 20, vv_))
+# rizo: v² = gR en la cima y conservación desde la altura h
+num(E12, 'w30', 0, despejar(sp.Rational(1, 1) * g12 * hh_ - (g12 * 2 * 5 + 0.5 * g12 * 5), hh_))
+# --- ★★★ avanzado
+d31 = despejar(0.5 * 10**2 - (0.6 + 0.25 * 0.8) * g12 * dd_, dd_)
+num(E12, 'w31', 0, d31); num(E12, 'w31', 1, math.sqrt(2 * g12 * (0.6 - 0.25 * 0.8) * d31))
+num(E12, 'w32', 0, despejar(0.5 * 1000 * vv_**2 - (3000 - 1000) * 100, vv_))
+num(E12, 'w33', 0, 700 * 30 / 1e3); num(E12, 'w33', 1, 700 * 30 / 735.5)
+num(E12, 'w34', 0, 0.5 * 400 * 0.2**2 / (0.3 * 1 * g12))
+num(E12, 'w35', 0, 0.38 * 0.92 * 0.85 * 100)
+num(E12, 'w36', 0, math.sqrt(2 * g12 * 0.5)); num(E12, 'w36', 1, 70 * g12 * 0.5)
+num(E12, 'w37', 0, 0.5 * 1000 * (20e3)**2 / 1e11); num(E12, 'w37', 1, 0.5 * 1000 * (20e3)**2 / 4.184e9)
+num(E12, 'w38', 0, 0.85 * 50 * 1000 * g12 * 80 / 1e6)
+N39 = 10 * g12 - 60 * sen(30); W39 = 60 * 10 * cos_(30) - 0.2 * N39 * 10
+num(E12, 'w39', 0, N39); num(E12, 'w39', 1, W39); num(E12, 'w39', 2, math.sqrt(2 * W39 / 10))
+for i_ in ('w40', 'w41', 'w42'): comprobar(i_ + ' es rúbrica', campos(E12, i_)[0]['tipo'] == 'rubrica')
+num(E12, 'w43', 0, 15**2 / (4 * g12)); opcion(E12, 'w44', 'su trabajo depende del camino')
+# la demostración de w40 con sympy: W = F·d = m·a·d con v² = v₀² + 2ad
+m_s, a_s, d_s, v0_s = sp.symbols('m a d v0', positive=True)
+comprobar('t12 w40: m·a·d = ½mv² − ½mv₀² con v² = v₀² + 2ad', sp.simplify(m_s * a_s * d_s - (sp.Rational(1, 2) * m_s * (v0_s**2 + 2 * a_s * d_s) - sp.Rational(1, 2) * m_s * v0_s**2)) == 0)
+comprobar('t12 mínimos: ≥ 40 ejercicios, ≥ 10 en el nivel 1 y ≥ 10 en el 3, todos con pasos', len(E12) >= 40 and sum(1 for e in E12.values() if e['nivel'] == 1) >= 10 and sum(1 for e in E12.values() if e['nivel'] == 3) >= 10 and all(e.get('pasos') for e in E12.values()))
+
+# --- teoría del tema 12
+comprobar('t12 ej. carrito: 207,8 J; 120° → −75 J; F·sen 30° = 20 N', cerca(40 * 6 * cos_(30), 207.8, 1e-3) and cerca(12 * 5 * -1, -60) and cerca(30 * 5 * cos_(120), -75) and cerca(40 * sen(30), 20))
+comprobar('t12 ej. todas las fuerzas del bloque: 200; 49; 9,8; −78,4; 121,6; 15,2·8', cerca(25 * 8, 200) and cerca(5 * g12, 49) and cerca(0.2 * 49, 9.8) and cerca(-9.8 * 8, -78.4) and cerca(200 - 78.4, 121.6) and cerca((25 - 9.8) * 8, 121.6))
+comprobar('t12 ej. F = 2x: 25 J; muelle 1 J, 4 J (×4)', cerca(float(sp.integrate(2 * xx, (xx, 0, 5))), 25) and cerca(0.5 * 200 * 0.1**2, 1) and cerca(0.5 * 200 * 0.2**2, 4))
+comprobar('t12 tabla de energías cinéticas', all(cerca(0.5 * m_ * v_**2, e_, 1.2e-2) for m_, v_, e_ in ((70, 1.4, 69), (0.057, 55.6, 88), (0.004, 400, 320), (80, 5.56, 1230), (1000, 13.9, 96500), (1000, 27.8, 386000), (1000, 33.3, 556000), (20000, 25, 6.25e6), (100000, 20, 20e6))))
+tabla_f = {30: (5.1, 8.9, 23.6), 50: (14.1, 24.6, 65.6), 90: (45.6, 79.7, 212.6), 120: (81.0, 141.7, 377.9)}
+comprobar('t12 tabla de distancias de frenado (12 valores)', all(cerca((kmh / 3.6)**2 / (2 * mu_ * g12), d_, 1e-2) for kmh, ds in tabla_f.items() for mu_, d_ in zip((0.7, 0.4, 0.15), ds)))
+comprobar('t12 ej. acelerar un coche: 200 kJ; 150 kJ; 250 kJ; 40 m; 6,97 m/s y 8,9 m/s con 200 J', cerca(0.5 * 1000 * 400, 200000) and cerca(0.5 * 1000 * (400 - 100), 150000) and cerca(0.5 * 1000 * (900 - 400), 250000) and cerca(0.5 * 1200 * 400 / 6000, 40) and cerca(6000 / 1200, 5) and cerca(math.sqrt(2 * 121.6 / 5), 6.97, 1e-3) and cerca(math.sqrt(2 * 200 / 5), 8.9, 1e-2))
+comprobar('t12 tabla E_p de referencias: 29,4; 14,7', cerca(2 * g12 * 1.5, 29.4) and cerca(2 * g12 * 0.75, 14.7) and cerca(2 * g12 * -0.75, -14.7))
+comprobar('t12 ej. peso no depende del camino: −490 J por los dos caminos', cerca(98 * 5 * cos_(180), -490) and cerca(5 / sen(30), 10) and cerca(98 * 10 * cos_(120), -490))
+comprobar('t12 ej. muelle lanza bola: 1 J; v² = 40; 6,32 m/s', cerca(0.5 * 200 * 0.1**2, 1) and cerca(2 * 1 / 0.05, 40) and cerca(math.sqrt(40), 6.32, 1e-3))
+comprobar('t12 ej. E_p Tierra/Luna: 686; 113,4; ratio 6', cerca(70 * 9.8, 686) and cerca(70 * 1.62, 113.4) and cerca(9.8 / 1.62, 6, 1e-2))
+comprobar('t12 ej. escalera: 2058 J; 412 W', cerca(70 * 9.8 * 3, 2058) and cerca(2058 / 5, 412, 1e-2))
+comprobar('t12 ej. altura máxima 3,265; péndulo 4,43; montaña 19,8 (71,3 km/h); rizo 12,5', cerca(32 / 9.8, 3.265, 1e-3) and cerca(math.sqrt(2 * 9.8 * 1), 4.43, 1e-3) and cerca(math.sqrt(2 * 9.8 * 20), 19.8, 1e-3) and cerca(19.8 * 3.6, 71.3, 1e-3) and cerca(2.5 * 5, 12.5))
+comprobar('t12 ej. plano con rozamiento: 7,0; 8,49; 16,01; 5,66; 35 %', cerca(math.sqrt(2 * 9.8 * 2.5), 7.0, 1e-3) and cerca(0.2 * 9.8 * cos_(30) * 5, 8.49, 1e-3) and cerca(24.5 - 8.49, 16.01, 1e-3) and cerca(math.sqrt(2 * 16.01), 5.66, 1e-3) and cerca((24.5 - 16.01) / 24.5, 0.35, 2e-2))
+comprobar('t12 ej. aire: 980; 784; 196; 20 %', cerca(2 * 9.8 * 50, 980) and cerca(0.5 * 2 * 28**2, 784) and cerca(980 - 784, 196) and cerca(196 / 980, 0.2))
+comprobar('t12 potencias: persona 80 W; Sol/consumo ≈ 8 000; gasolina 9,4 kWh/L; batería ≈ 50 veces', cerca(1700 * 4184 / 86400, 80, 5e-2) and cerca(1.7e17 / 2.0e13, 8000, 8e-2) and cerca(34 / 3.6, 9.4, 1e-2) and cerca(250 * 3600 / 1e6, 0.9, 1e-2) and cerca(46 / 0.9, 50, 3e-2))
+comprobar('t12 ej. grúa 19 600 J, 980 W; coche 21 kW y 28,6 CV', cerca(200 * 9.8 * 10, 19600) and cerca(19600 / 20, 980) and cerca(700 * 30, 21000) and cerca(21000 / 735.5, 28.6, 2e-3))
+comprobar('t12 ej. rendimiento motor: 1500; 17 640; 11,76; 500 W; cadena 29,7 %', cerca(0.75 * 2000, 1500) and cerca(150 * 9.8 * 12, 17640) and cerca(17640 / 1500, 11.76) and cerca(2000 - 1500, 500) and cerca(0.38 * 0.92 * 0.85, 0.297, 3e-3))
+comprobar('t12 método: dos caminos 3,20 m/s² y 5,66 m/s', cerca(9.8 * (0.5 - 0.2 * cos_(30)), 3.20, 1e-2) and cerca(math.sqrt(2 * 3.2026 * 5), 5.66, 1e-3) and cerca(9.8 * 5 * 0.5, 24.5) and cerca(0.2 * 9.8 * cos_(30) * 5, 8.49, 1e-3))
+comprobar('t12 ej. cuerda inclinada: 68; 13,6; −136; 519,6; 383,6; 8,76', cerca(98 - 60 * 0.5, 68) and cerca(0.2 * 68, 13.6) and cerca(-13.6 * 10, -136) and cerca(60 * 10 * cos_(30), 519.6, 1e-3) and cerca(519.6 - 136, 383.6, 1e-3) and cerca(math.sqrt(2 * 383.6 / 10), 8.76, 1e-3) and cerca(2 * 383.6 / 10, 76.7, 1e-3))
+comprobar('t12 ej. hacia arriba y de vuelta: 6,38 m; 7,07 m/s; tan 37° = 0,75 > 0,25', cerca(100 / (2 * 9.8 * 0.8), 6.38, 1e-3) and cerca(math.sqrt(2 * 9.8 * 0.4 * 6.378), 7.07, 1e-3) and cerca(0.6 / 0.8, 0.75) and cerca(0.25 * 0.8, 0.2))
+comprobar('t12 ej. muelle y suelo: 8 J; 2,94 N; 2,72 m', cerca(0.5 * 400 * 0.2**2, 8) and cerca(0.3 * 9.8, 2.94) and cerca(8 / 2.94, 2.72, 2e-3))
+comprobar('t12 factura: 1,35/0,20; 12/1,80; 36/5,40; 18/2,70; 240/36', cerca(0.009 * 5 * 30, 1.35) and cerca(1.35 * 0.15, 0.20, 3e-2) and cerca(0.1 * 4 * 30 * 0.15, 1.80) and cerca(0.15 * 8 * 30 * 0.15, 5.40) and cerca(1.2 * 0.5 * 30, 18) and cerca(18 * 0.15, 2.70) and cerca(2 * 4 * 30, 240) and cerca(240 * 0.15, 36))
+comprobar('t12 ej. bombilla: 0,3 kWh; 0,045 €; 1,08·10⁶ J', cerca(0.06 * 5, 0.3) and cerca(0.3 * 0.15, 0.045) and cerca(0.3 * 3.6e6, 1.08e6))
+comprobar('t12 alimentos: 836 800 J; 1220 m; 305 m', cerca(200 * 4184, 836800) and cerca(837000 / (70 * 9.8), 1220, 1e-3) and cerca(1220 * 0.25, 305, 1e-3))
+comprobar('t12 gasolina de acelerar: 386 kJ; 1,29 MJ; 0,038 L', cerca(0.5 * 1000 * 27.8**2, 386e3, 2e-3) and cerca(386 / 0.30, 1286, 1e-3) and cerca(1.286 / 34, 0.038, 1e-2))
+comprobar('t12 hidroeléctrica: 5·10⁴ kg/s; 39,2 MW; 33,3 MW', cerca(50 * 1000, 5e4) and cerca(5e4 * 9.8 * 80, 3.92e7) and cerca(0.85 * 39.2, 33.3, 2e-3))
+comprobar('t12 PAU 1: 40; 3,92; −15,68; 24,32 J; 4,93 m/s; 6,20 m; 10,2 m', cerca(10 * 4, 40) and cerca(0.2 * 2 * 9.8, 3.92) and cerca(-3.92 * 4, -15.68) and cerca(40 - 15.68, 24.32) and cerca(math.sqrt(24.32), 4.93, 1e-3) and cerca(24.32 / 3.92, 6.20, 1e-3) and cerca(4 + 6.204, 10.2, 1e-3) and cerca(3.92 * 10.204, 40, 1e-3))
+comprobar('t12 PAU 2: 17,1 m/s; 12,5 m/s; 4900 N; 15 m < 20 m', cerca(math.sqrt(2 * 9.8 * 15), 17.1, 5e-3) and cerca(math.sqrt(2 * 9.8 * 8), 12.5, 1e-2) and cerca(2 * 9.8 * 8, 156.8) and cerca(300 * (156.8 / 6 - 9.8), 4900, 1e-3) and cerca(2.5 * 6, 15))
+comprobar('t12 PAU 3: 1,5 J; 2,45 m/s; 1,22 m', cerca(0.5 * 300 * 0.1**2, 1.5) and cerca(math.sqrt(6), 2.45, 1e-3) and cerca(1.5 / (0.25 * 0.5 * 9.8), 1.22, 5e-3) and cerca(0.25 * 0.5 * 9.8, 1.225))
+F4 = 500 + 1200 * 9.8 * 0.05; P4 = F4 * 20
+comprobar('t12 PAU 4: 588; 1088 N; 21,8 kW; 29,6 CV; 72 533 W; 261 MJ; 7,68 L/h; 10,7 L/100 km', cerca(1200 * 9.8 * 0.05, 588) and cerca(F4, 1088) and cerca(P4, 21760) and cerca(P4 / 735.5, 29.6, 1e-3) and cerca(P4 / 0.30, 72533, 1e-3) and cerca(P4 / 0.3 * 3600 / 1e6, 261, 2e-3) and cerca(261 / 34, 7.68, 2e-3) and cerca(100 / 72 * 7.68, 10.7, 5e-3))
+comprobar('t12 PAU 5: L 5; a 3,528; v 5,94; Q 47,0; E_p 117,6 = 70,56 + 47,04; 6,0 m', cerca(3 / 0.6, 5) and cerca(9.8 * (0.6 - 0.24), 3.528) and cerca(math.sqrt(2 * 3.528 * 5), 5.94, 1e-3) and cerca(0.3 * 4 * 9.8 * 0.8 * 5, 47.04, 1e-3) and cerca(4 * 9.8 * 3, 117.6) and cerca(0.5 * 4 * 35.28, 70.56, 1e-3) and cerca(70.56 + 47.04, 117.6, 1e-3) and cerca(70.56 / 11.76, 6.0, 1e-3))
+vx6 = 20 * cos_(40); h6 = (400 - vx6**2) / (2 * 9.8)
+comprobar('t12 PAU 6: 15,32; 8,43 m; 17,4 m/s; 23,5 J; 16,5 J', cerca(vx6, 15.32, 1e-3) and cerca(h6, 8.43, 1e-3) and cerca((20 * sen(40))**2 / (2 * 9.8), 8.43, 1e-3) and cerca(math.sqrt(400 - 2 * 9.8 * 5), 17.4, 3e-3) and cerca(0.5 * 0.2 * vx6**2, 23.5, 2e-3) and cerca(0.2 * 9.8 * h6, 16.5, 5e-3) and cerca(0.5 * 0.2 * 400, 40))
+comprobar('t12 historia: Joule 4,18 J/cal', cerca(4.184, 4.18, 1e-2))
+comprobar('t12 test y errores: 20 J; 9; 147 J; 10 m/s; 5000 J; 150 vs 50 kJ; 0,729', cerca(10 * 4 * cos_(60), 20) and cerca(0.5 * 2 * 9, 9) and cerca(3 * 9.8 * 5, 147) and cerca(math.sqrt(2 * 10 * 5), 10) and cerca(500 * 10, 5000) and cerca(0.5 * 1000 * (400 - 100), 150000) and cerca(0.5 * 1000 * 10**2, 50000) and cerca(0.9**3, 0.729))
+comprobar('t12 gráfica leerfx: 60; 18; 6,32; 200; 16; 12; 32; −6; 42; 6,48', cerca(6 * 10, 60) and cerca(6 * 3, 18) and cerca(math.sqrt(2 * 60 / 3), 6.32, 1e-3) and cerca(80 / 0.4, 200) and cerca(0.5 * 0.4 * 80, 16) and cerca((40 + 80) / 2 * 0.2, 12) and cerca(8 * 4, 32) and cerca(-0.5 * 2 * 6, -6) and cerca(8 + 32 + 8 - 6, 42) and cerca(math.sqrt(42), 6.48, 1e-3) and cerca(sum((x2 - x1) * (y1 + y2) / 2 for (x1, y1), (x2, y2) in zip([(0, 0), (2, 8), (6, 8), (8, 0)], [(2, 8), (6, 8), (8, 0), (10, -6)])), 42, 1e-3))
+d12 = datos['ampl']['fyq1']['t12']
+comprobar('t12 mínimos: lámina ≥ 8, secciones nuevas ≥ 7, ≥ 5 clases de actividades', len(d12['lamina']) >= 8 and len(d12['nuevas']) >= 7 and len(d12['datos']) >= 5)
+
+# ----------------------------------------------------------------------------------------------
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f in fallos: print('  FALLO:', f)
 sys.exit(1 if fallos else 0)
