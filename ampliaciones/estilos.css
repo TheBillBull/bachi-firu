@@ -493,6 +493,7 @@
 /* ---- Límites ---- */
 .ac-tabla { overflow-x: auto; margin: 10px 0 0; }
 .ac-t { width: 100%; min-width: 360px; }
+@media (max-width: 480px) { .ac-t { min-width: 0; font-size: 13px; } .ac-t th, .ac-t td { padding: 5px 3px; } .ac-t thead th { white-space: normal; } }
 .ac-t thead th { background: var(--sheet-2); font: 600 12px var(--body); color: var(--ink-soft); text-align: center; padding: 6px 8px; white-space: nowrap; }
 .ac-t th { white-space: nowrap; }
 .ac-t td { font: 500 14.5px/1.35 var(--math); text-align: center; }

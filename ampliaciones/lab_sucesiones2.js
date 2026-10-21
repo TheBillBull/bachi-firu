@@ -157,7 +157,7 @@
       var A0 = Math.sqrt(3) / 4, A = A0, i;
       for (i = 1; i <= n; i++) A += 3 * Math.pow(4, i - 1) * A0 / Math.pow(9, i);
       var filas = [0, 1, 2, 3, 4, 5].map(function (j) { var Aj = A0, q; for (q = 1; q <= j; q++) Aj += 3 * Math.pow(4, q - 1) * A0 / Math.pow(9, q); return "<tr" + (j === n ? " class='izq'" : "") + "><th>" + j + "</th><td>" + (3 * Math.pow(4, j)) + "</td><td>" + fmt(Math.pow(1 / 3, j), 5) + "</td><td>" + fmt(3 * Math.pow(4 / 3, j), 4) + "</td><td>" + fmt(Aj, 5) + "</td></tr>"; }).join("");
-      tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>n</th><th>lados</th><th>longitud de cada lado</th><th>perímetro</th><th>área</th></tr></thead><tbody>" + filas + "</tbody></table>";
+      tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>n</th><th>lados</th><th>lado</th><th>perímetro</th><th>área</th></tr></thead><tbody>" + filas + "</tbody></table>";
       lectura.innerHTML = fil("Lados", "3·4ⁿ = " + (3 * Math.pow(4, n)), "pen") + fil("Perímetro", "3·(4/3)ⁿ = " + fmt(3 * Math.pow(4 / 3, n), 4) + "  → +∞", "red") + fil("Área", fmt(A, 5) + "  → 2√3/5 ≈ " + fmt(2 * Math.sqrt(3) / 5, 5), "ok");
       pie.innerHTML = "Cada paso sustituye el tercio central de cada lado por dos lados iguales: el número de lados se multiplica por 4 (<b>progresión geométrica de razón 4</b>) y la longitud de cada uno se divide entre 3 (razón 1/3), así que el perímetro se multiplica por 4/3 (<b>razón 4/3 &gt; 1: crece sin límite</b>). El área añadida en cada paso forma una serie geométrica de razón 4/9 &lt; 1, que <b>suma un valor finito</b> (8/5 del triángulo inicial).";
     }
@@ -219,9 +219,9 @@
     var MODOS = [["anual", 1], ["semestral", 2], ["trimestral", 4], ["mensual", 12], ["diaria", 365]];
     function pinta() {
       var C = st.C, r = st.r / 100, t = st.t, cont = C * Math.exp(r * t), k;
-      var filas = MODOS.map(function (m) { var v = C * Math.pow(1 + r / m[1], m[1] * t); return "<tr><th>" + m[0] + " (" + m[1] + " al año)</th><td>(1 + " + fmt(r, 3) + "/" + m[1] + ")<sup>" + (m[1] * t) + "</sup></td><td>" + fmt(v, 2) + " €</td></tr>"; }).join("") +
-        "<tr class='izq'><th>continua (k tan grande como se quiera)</th><td>e<sup>" + fmt(r * t, 3) + "</sup></td><td>" + fmt(cont, 2) + " €</td></tr>";
-      tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>Capitalización</th><th>factor</th><th>capital final</th></tr></thead><tbody>" + filas + "</tbody></table>";
+      var filas = MODOS.map(function (m) { var v = C * Math.pow(1 + r / m[1], m[1] * t); return "<tr><th>" + m[0] + " (" + m[1] + ")</th><td>" + fmt(v, 2) + " €</td><td>" + fmt(v - C, 2) + " €</td></tr>"; }).join("") +
+        "<tr class='izq'><th>continua (e<sup>rt</sup>)</th><td>" + fmt(cont, 2) + " €</td><td>" + fmt(cont - C, 2) + " €</td></tr>";
+      tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>Abonos (al año)</th><th>capital final</th><th>intereses</th></tr></thead><tbody>" + filas + "</tbody></table>";
       var base = C * Math.pow(1 + r, t), pts = [], j;
       g.rango(0, 31, base - (cont - base) * 0.15, cont + (cont - base) * 0.2); g.limpiar();
       g.horizontal(cont, { clase: "c-ok", dash: "6 5" });
