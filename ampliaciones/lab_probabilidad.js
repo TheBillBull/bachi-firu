@@ -253,14 +253,16 @@
     slider(ctl, "Sensibilidad (positivo si enfermo)", 0.5, 1, 0.005, st.sens, function (v) { st.sens = v; pinta(); }, function (v) { return fmt(100 * v, 1) + " %"; });
     slider(ctl, "Especificidad (negativo si sano)", 0.5, 1, 0.005, st.esp, function (v) { st.esp = v; pinta(); }, function (v) { return fmt(100 * v, 1) + " %"; });
     function pinta() {
-      var E = Math.round(1000 * st.prev), TP = Math.round(E * st.sens), FN = E - TP, S = 1000 - E, FP = Math.round(S * (1 - st.esp)), TN = S - FP;
+      // Cantidades exactas (pueden ser fraccionarias: 9,5 de 10 enfermos); sólo los puntos del dibujo se redondean
+      var Ex = 1000 * st.prev, TPx = Ex * st.sens, FNx = Ex - TPx, Sx = 1000 - Ex, FPx = Sx * (1 - st.esp), TNx = Sx - FPx;
+      var E = Math.round(Ex), TP = Math.round(E * st.sens), FN = E - TP, S = 1000 - E, FP = Math.round(S * (1 - st.esp)), TN = S - FP;
       var W = 600, H = 250; cont.innerHTML = ""; var s = lienzo(cont, W, H, "Mil personas: enfermos y sanos, con test positivo o negativo");
       var tipos = [["tp", TP], ["fn", FN], ["fp", FP], ["tn", TN]], lista = []; tipos.forEach(function (t) { for (var i = 0; i < t[1]; i++) lista.push(t[0]); });
       lista.forEach(function (t, i) { var c = i % 50, f = Math.floor(i / 50); el("circle", { cx: 18 + c * 11.4, cy: 16 + f * 11.4, r: 4.2, "class": "m13-pto " + t }, s); });
-      var pos = TP + FP, ppv = pos ? TP / pos : NaN, npv = (FN + TN) ? TN / (FN + TN) : NaN;
-      lectura.innerHTML = fil("Enfermos · sanos", E + " · " + S, "ancho") + fil("Enfermos con test positivo (VP)", TP, "red") + fil("Enfermos con test negativo (FN)", FN) + fil("Sanos con test positivo (FP)", FP, "pen") + fil("Sanos con test negativo (VN)", TN) +
-        fil("Si das positivo, ¿cuál es la probabilidad de estar enfermo?", pos ? TP + "/(" + TP + " + " + FP + ") = " + pct(ppv) : "—", "ok ancho") + fil("Si das negativo, ¿probabilidad de estar sano?", isNaN(npv) ? "—" : pct(npv), "ancho");
-      pie.innerHTML = "Cada punto es una persona: <b style='color:var(--red)'>rojo relleno</b> = enfermo con positivo; <b style='color:var(--red)'>rojo hueco</b> = enfermo con negativo; <b style='color:var(--pen)'>azul relleno</b> = sano con positivo (falso positivo); gris = sano con negativo. Cuando la enfermedad es <b>rara</b>, incluso un test muy bueno produce más falsos positivos que verdaderos: dar positivo no significa «estar enfermo» con seguridad. Es el fallo de la «falacia de la tasa base».";
+      var pos = TPx + FPx, ppv = pos ? TPx / pos : NaN, npv = (FNx + TNx) ? TNx / (FNx + TNx) : NaN, c1 = function (v) { return fmt(v, 1); };
+      lectura.innerHTML = fil("Enfermos · sanos", c1(Ex) + " · " + c1(Sx), "ancho") + fil("Enfermos con test positivo (VP)", c1(TPx), "red") + fil("Enfermos con test negativo (FN)", c1(FNx)) + fil("Sanos con test positivo (FP)", c1(FPx), "pen") + fil("Sanos con test negativo (VN)", c1(TNx)) +
+        fil("Si das positivo, ¿cuál es la probabilidad de estar enfermo?", pos ? c1(TPx) + "/(" + c1(TPx) + " + " + c1(FPx) + ") = " + pct(ppv) : "—", "ok ancho") + fil("Si das negativo, ¿probabilidad de estar sano?", isNaN(npv) ? "—" : pct(npv), "ancho");
+      pie.innerHTML = "Cada punto es una persona: <b style='color:var(--red)'>rojo relleno</b> = enfermo con positivo; <b style='color:var(--red)'>rojo hueco</b> = enfermo con negativo; <b style='color:var(--pen)'>azul relleno</b> = sano con positivo (falso positivo); gris = sano con negativo. Cuando la enfermedad es <b>rara</b>, incluso un test muy bueno produce más falsos positivos que verdaderos: dar positivo no significa «estar enfermo» con seguridad. Es el fallo de la «falacia de la tasa base». (Los puntos se redondean a personas enteras; las cuentas usan los valores exactos.)";
     }
     pinta();
   };
