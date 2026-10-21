@@ -5,7 +5,7 @@ global.window = global;
 const noop = () => {};
 global.document = { addEventListener: noop, createElementNS: () => ({ setAttribute: noop, appendChild: noop }) };
 const raiz = path.join(__dirname, '..', 'ampliaciones');
-['grafica', 'nucleo', 'ui', 'lab_atomo', 'lab_enlace', 'lab_formulacion', 'lab_qmol_0motor', 'lab_qmol_4est1', 'lab_qmol_5est2', 'lab_organica', 'lab_orgmas', 'lab_orgreacciones'].forEach(f => { const p = path.join(raiz, f + '.js'); if (fs.existsSync(p)) require(p); });
+['grafica', 'nucleo', 'ui', 'lab_atomo', 'lab_enlace', 'lab_formulacion_0motor', 'lab_qmol_0motor', 'lab_qmol_4est1', 'lab_qmol_5est2', 'lab_organica', 'lab_orgmas', 'lab_orgreacciones'].forEach(f => { const p = path.join(raiz, f + '.js'); if (fs.existsSync(p)) require(p); });
 const L = global.BACHI.lab, salida = {};
 if (L.quim) {
   const Q = L.quim, cfg = {}, cfgAb = {}, ion = {};

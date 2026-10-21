@@ -4,7 +4,7 @@
    (óxidos, peróxidos, hidróxidos, hidruros, hidrácidos, oxoácidos, sales binarias, oxisales, sales
    ácidas e iones) con su fórmula y sus nombres en nomenclatura SISTEMÁTICA (IUPAC 2005, prefijos),
    de STOCK (números romanos) y TRADICIONAL (-oso/-ico, hipo-/per-).
-   El motor no toca el DOM: se puede comprobar aparte (Node). Los simuladores (q3_*) están en lab_formulacion2.js.
+   El motor no toca el DOM: se puede comprobar aparte (Node). Los simuladores (q3_*) están en lab_formulacion_1base.js y lab_formulacion_2juegos.js.
    Convención de cada registro: { f: fórmula en ASCII ("Fe2(SO4)3"), fam, sist: [...], stock: [...], trad: [...], oxs, niv }
    (en cada lista de nombres, el primero es el nombre «de libro»; los demás son variantes admitidas).
    ============================================================ */
@@ -148,7 +148,7 @@
   // --- óxidos y peróxidos, hidróxidos, hidruros, sales binarias de metales: generados por cruce de valencias
   function iónicoMetal(fam, m, v, X, a, f, oxs, extra) {      // X: fórmula del grupo aniónico; a: carga (valor absoluto)
     var g = gcd(v, a), nm = a / g, nx = v / g, mon = m.s;
-    var r = { fam: fam, f: mk(mon, nm) + mk(X, nx), cat: m.s, v: v, nm: nm, nx: nx, a: a, niv: nv(m), oxs: oxs(nm, nx) };
+    var r = { fam: fam, f: mk(mon, nm) + mk(X, nx), cat: m.s, v: v, nm: nm, nx: nx, a: a, an: X, niv: nv(m), oxs: oxs(nm, nx) };
     for (var k in extra) r[k] = extra[k];
     return r;
   }
@@ -194,7 +194,7 @@
   [["H", 1, 1], ["Li", 1, 1], ["Na", 1, 1], ["K", 1, 1], ["Rb", 1, 2], ["Cs", 1, 2], ["Mg", 2, 1], ["Ca", 2, 1], ["Sr", 2, 2], ["Ba", 2, 1], ["Zn", 2, 1], ["Cd", 2, 2], ["Ag", 1, 1], ["Cu", 1, 2], ["Cu", 2, 2], ["Hg", 2, 2]].forEach(function (a) {
     var s = a[0], v = a[1], m = s === "H" ? { s: "H", n: "hidrógeno", v: [1], vo: [], niv: 1 } : MET[s];
     var g = gcd(v, 2), nm = 2 / g, nx = v / g;
-    var r = { fam: "peroxido", f: mk(s, nm) + mk("O2", nx), cat: s, v: v, nm: nm, nx: nx, a: 2, niv: a[2], oxs: [[s, nm, v], ["O", 2 * nx, -1]] };
+    var r = { fam: "peroxido", f: mk(s, nm) + mk("O2", nx), cat: s, v: v, nm: nm, nx: nx, a: 2, an: "O2", niv: a[2], oxs: [[s, nm, v], ["O", 2 * nx, -1]] };
     r.sist = ["dióxido de " + pr(nm) + m.n];
     var num = s === "H" ? "" : conNum(m, v), adj = s === "H" ? "" : adjetivo(m, v);
     r.stock = ["peróxido de " + m.n + num];
