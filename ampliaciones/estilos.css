@@ -530,3 +530,45 @@
 .q4-enun { font: 500 16px/1.5 var(--body); margin: 4px 0 10px; }
 .q4-emp-form .ctl { margin: 8px 0; }
 @media (max-width: 520px) { [data-w^="q4_"] .ctl label { flex-wrap: wrap; } [data-w^="q4_"] .ctl label .sl-et { white-space: normal; } [data-w^="q4_"] .ctl input[type=range] { flex: 1 1 140px; } }
+
+/* ---- FyQ I · tema 5: estequiometría (q5-) ---- */
+.q5-ec, .q5-ecuacion { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 10px 0; font: 600 20px/1.3 var(--math); color: var(--ink); }
+.q5-esp { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--sheet-2); }
+.q5-esp.q5-solo { border-color: transparent; background: transparent; padding: 2px 3px; }
+.q5-esp.q5-solo b { color: var(--pen); }
+.q5-paso { display: inline-flex; align-items: center; gap: 2px; }
+.q5-paso b { min-width: 24px; text-align: center; font: 700 20px var(--math); color: var(--pen); }
+.q5-paso button { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--sheet); color: var(--ink); font: 700 16px/1 var(--body); cursor: pointer; padding: 0; }
+.q5-paso button:hover { border-color: var(--pen); color: var(--pen); }
+.q5-paso button:focus-visible, .q5-selector select:focus-visible { outline: 2.5px solid var(--pen); outline-offset: 1px; }
+.q5-fl, .q5-mas { color: var(--ink-soft); font-weight: 700; }
+.q5-est { font: 500 11px var(--body); color: var(--ink-faint); margin-left: 1px; }
+.q5-pts { letter-spacing: -1px; font-size: 13px; margin-right: 6px; word-break: break-all; }
+.q5-t th, .q5-t td { white-space: normal; }
+.q5-t td { text-align: left; }
+.q5-t thead th { background: var(--sheet-2); font: 600 12px var(--body); color: var(--ink-soft); padding: 6px 8px; }
+.q5-t tbody tr + tr td, .q5-t tbody tr + tr th { border-top: 1px solid var(--line); }
+.q5-t tr.izq th, .q5-t tr.izq td { background: color-mix(in srgb, var(--pen) 10%, var(--sheet)); }
+.q5-tabla { overflow-x: auto; margin: 10px 0 0; }
+.q5-tabla .q5-t { min-width: 340px; }
+.q5-dato-t { font: 700 11.5px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 12px 0 6px; }
+.q5-selector select { font: 500 15px/1.3 var(--body); color: var(--ink); background: var(--sheet); border: 1.5px solid var(--line); border-radius: 8px; padding: 7px 8px; max-width: 100%; min-width: 0; }
+.q5-graf, .q5-flujo { width: 100%; max-width: 560px; height: auto; display: block; margin: 8px auto 0; color: var(--ink-soft); }
+.q5-bi { fill-opacity: .16; stroke-width: 1.6; stroke-dasharray: 4 3; }
+.q5-bf { fill-opacity: .92; }
+.q5-eje { stroke: var(--ink-faint); stroke-width: 1.5; }
+.q5-val { font: 700 12px var(--math); fill: var(--ink); }
+.q5-lbl { font: 600 12.5px var(--math); fill: var(--ink-soft); }
+.q5-est-t { font: 500 10.5px var(--body); fill: var(--ink-faint); }
+.q5-casc { margin: 10px 0 0; }
+.q5-cf { display: grid; grid-template-columns: minmax(110px, 190px) 1fr 84px; align-items: center; gap: 8px; margin: 6px 0; font: 600 13.5px var(--math); }
+.q5-cl { color: var(--ink-soft); }
+.q5-cbw { display: block; height: 22px; border-radius: 6px; background: var(--sheet-2); overflow: hidden; }
+.q5-cb { display: block; height: 100%; border-radius: 6px; }
+.q5-cv { text-align: right; color: var(--ink); }
+.q5-fila { grid-template-columns: minmax(110px, 170px) 1fr 66px; }
+.q5-fila.q5-sel span:first-child { color: var(--red); font-weight: 700; }
+.q5-rasgos { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
+.q5-enunc blockquote { margin: 8px 0 0; padding: 8px 12px; border-left: 3px solid var(--pen); background: var(--sheet-2); border-radius: 0 8px 8px 0; font: 500 15px/1.5 var(--body); color: var(--ink); }
+.q5-plan { margin-top: 6px; }
+@media (max-width: 520px) { .q5-cf, .q5-fila { grid-template-columns: 92px 1fr 62px; font-size: 12.5px; } .q5-ec, .q5-ecuacion { font-size: 17px; } [data-w^="q5_"] .ctl label { flex-wrap: wrap; } [data-w^="q5_"] .ctl label .sl-et { white-space: normal; } [data-w^="q5_"] .ctl input[type=range] { flex: 1 1 140px; } }
