@@ -73,6 +73,7 @@
     formula("W = área bajo la gráfica F(x)  (entre x₁ y x₂)") +
     "<p>El área cuenta como positiva si la fuerza es positiva y como negativa si la fuerza es negativa (por debajo del eje). Con esta idea se resuelven los casos que aparecen en 1.º de Bachillerato sin usar integrales: la gráfica es un rectángulo, un triángulo, un trapecio o la suma de varias figuras.</p>" +
     w("f12_fx", "fx") +
+    w("f12_leerfx") +
     "<p>El caso más importante es el <b>muelle</b>. Según la ley de Hooke, para estirar (o comprimir) un muelle una distancia x hay que hacer una fuerza F = k·x, donde k es la constante del muelle (N/m). La gráfica F–x es una recta que pasa por el origen, y el área bajo ella es un triángulo de base x y altura k·x:</p>" +
     formula("W = ½ · x · (k·x) = ½·k·x²") +
     ejemplo("Trabajo con una fuerza que crece linealmente", "Una fuerza varía con la posición como F = 2x (N, con x en m). Calcula el trabajo que hace entre x = 0 y x = 5 m.", [

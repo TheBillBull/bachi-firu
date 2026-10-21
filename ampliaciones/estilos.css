@@ -774,3 +774,10 @@
 .ampl .f12-duo > .w-plot { min-width: 0; margin: 0; }
 .ampl .f12-duo > .w-plot + .w-plot { border-top: 0; margin-top: 0; }
 @media (max-width: 760px) { .ampl .f12-duo { grid-template-columns: 1fr; } }
+
+/* ---- Física I · temas 10, 12 y 13 (dinámica, energía y MAS): en móvil la etiqueta del deslizador va encima y los botones largos se parten ---- */
+@media (max-width: 560px) {
+  .w[data-w^="f10_"] .ctl label, .w[data-w^="f12_"] .ctl label, .w[data-w^="f13_"] .ctl label { flex-wrap: wrap; row-gap: 2px; width: 100%; }
+  .w[data-w^="f10_"] .ctl .sl-et, .w[data-w^="f12_"] .ctl .sl-et, .w[data-w^="f13_"] .ctl .sl-et { flex: 1 1 100%; }
+}
+.w[data-w^="f10_"] .chip-btn, .w[data-w^="f12_"] .chip-btn, .w[data-w^="f13_"] .chip-btn { white-space: normal; text-align: left; max-width: 100%; }
