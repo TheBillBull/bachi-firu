@@ -259,7 +259,7 @@
     var gT = new B.Plot(cuerpo.querySelector(".f8-torre"), { xmin: -1, xmax: 1, ymin: -2, ymax: 60, w: 220, h: 340, limpio: true, etiqueta: "Altura de la piedra" });
     var gy = plotT(D[0], "t", "y", "Altura frente al tiempo", 440, 210), gv = plotT(D[1], "t", "v", "Velocidad frente al tiempo", 440, 210);
     var sh = U.slider(ctl, { et: "Altura inicial h₀ (m)", min: 0, max: 100, step: 5, val: st.h0, on: function (v) { st.h0 = v; st.t = 0; stt.set(0); pinta(); }, fmt: function (v) { return f2(v, 0); } });
-    var sv = U.slider(ctl, { et: "Velocidad inicial v₀ (m/s, + hacia arriba)", min: -20, max: 30, step: 1, val: st.v0, on: function (v) { st.v0 = v; st.t = 0; stt.set(0); pinta(); }, fmt: function (v) { return f2(v, 0); } });
+    var sv = U.slider(ctl, { et: "Velocidad v₀ (m/s, + ↑)", min: -20, max: 30, step: 1, val: st.v0, on: function (v) { st.v0 = v; st.t = 0; stt.set(0); pinta(); }, fmt: function (v) { return f2(v, 0); } });
     var stt = U.slider(ctl, { et: "Instante t (s)", min: 0, max: 12, step: 0.05, val: 0, on: function (v) { st.t = v; pinta(); }, fmt: function (v) { return f2(v, 2); } });
     U.animar(ctl, function (t, dt, reinicio) { if (reinicio) { st.t = 0; stt.set(0); pinta(); return; } if (dt) { var g = CUERPOS[st.astro][1], tf = M.tiro(Math.abs(st.v0), st.v0 >= 0 ? 90 : -90, st.h0, g).tv; st.t += dt; if (st.t >= tf) { st.t = tf; stt.set(Math.min(12, tf)); pinta(); return false; } stt.set(Math.min(12, st.t)); pinta(); } }, { auto: false });
     function pinta() {
