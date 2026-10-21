@@ -881,3 +881,8 @@
 .q3-ruta { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 8px 0 0; }
 .q3-mig { font-size: 12px; color: var(--ink-soft); background: var(--sheet-2); border-radius: 999px; padding: 2px 10px; }
 .q3-mig b { color: var(--pen); }
+/* tablas del tema 3: la primera columna lleva fórmulas, así que no se pasa a mayúsculas (Co ≠ CO) */
+.lam-tabla.q3t tbody th, .lam-tabla.q3-t tbody th { text-transform: none; letter-spacing: 0; font: 600 15px/1.4 var(--math); color: var(--ink); }
+.lam-tabla.q3t td { font-size: 14px; }
+.lam-tabla.q3t td, .lam-tabla.q3t th { overflow-wrap: anywhere; }
+.mv.q3f { font-family: inherit; color: inherit; font-size: inherit; }

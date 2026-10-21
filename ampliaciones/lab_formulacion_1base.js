@@ -131,7 +131,7 @@
       if (m) {
         h = "<h5>" + s + " · " + m.n + " <small>(metal)</small></h5>";
         h += "<p>Números de oxidación: " + m.v.map(function (v) { return "<b>+" + v + "</b>"; }).join(", ") + (m.vo.length ? " (y " + m.vo.map(function (v) { return "<b>+" + v + "</b>"; }).join(", ") + " solo en óxidos y oxoácidos)" : "") + ". " + (m.v.length + m.vo.length > 1 ? "Varias valencias: en Stock hay que indicarla con número romano." : "Una sola valencia: no se escribe número romano.") + "</p>";
-        h += "<table class='lam-tabla q3-t'><thead><tr><th>Valencia</th><th>Óxido</th><th>Hidróxido</th></tr></thead><tbody>";
+        h += "<table class='lam-tabla q3-t'><thead><tr><th>n.º ox.</th><th>Óxido</th><th>Hidróxido</th></tr></thead><tbody>";
         m.v.concat(m.vo).forEach(function (v) {
           var ox = F.hallar(F.mk(s, 2 / F.gcd(v, 2)) + F.mk("O", v / F.gcd(v, 2))), oh = m.vo.indexOf(v) < 0 ? F.hallar(F.mk(s, 1) + F.mk("OH", v)) : null;
           h += "<tr><th scope='row'>+" + v + "</th><td>" + (ox ? F.html(ox) + " — " + nom(ox) + (F.nombre(ox, "trad") && F.nombre(ox, "trad") !== nom(ox) ? " (" + F.nombre(ox, "trad") + ")" : "") : "—") + "</td><td>" + (oh ? F.html(oh) + " — " + nom(oh) : "—") + "</td></tr>";
@@ -360,7 +360,7 @@
       var vs = valencias(st.m); if (vs.indexOf(st.v) < 0) st.v = vs[vs.length - 1];
       cuerpo.querySelector("[data-fh]").style.display = T > 1 ? "" : "none"; cuerpo.querySelector("[data-fv]").style.display = vs.length > 1 ? "" : "none";
       var an = a2(st.a, st.h), cr = F.cruce(st.v, st.h), f = F.mk(st.m, cr.nCat) + F.mk(an.f, cr.nAn), r = F.hallar(f), ra = F.hallar(st.a), ia = F.hallar(an.f + (st.h > 1 ? st.h : "") + "-");
-      ec.innerHTML = "<span class='q3-eq'>" + F.pintar(st.a) + " − " + (st.h > 1 ? st.h + " " : "") + "H⁺ ⟶ " + F.pintarIon(an.f, -st.h) + "  +  " + F.pintarIon(st.m, st.v) + " ⟶ <b>" + F.pintar(f) + "</b></span>";
+      ec.innerHTML = "<span class='q3-eq'>" + F.pintar(st.a) + " − " + (st.h > 1 ? st.h + " " : "") + "H⁺ ⟶ " + F.pintarIon(an.f, -st.h) + ";   " + (cr.nAn > 1 ? cr.nAn + " " : "") + F.pintarIon(an.f, -st.h) + " + " + (cr.nCat > 1 ? cr.nCat + " " : "") + F.pintarIon(st.m, st.v) + " ⟶ <b>" + F.pintar(f) + "</b></span>";
       lectura.innerHTML = fil("Ácido", ra ? esc(F.nombre(ra, "trad")) : st.a, "") + fil("Anión", ia ? F.pintarIon(an.f, -st.h) + " · " + esc((F.nombre(ia, "stock") || "").replace(/^ion /, "")) : F.pintarIon(an.f, -st.h), "pen") +
         fil("Sal", "<span class='q3-big'>" + F.pintar(f) + "</span>", "ok") + fil("Tipo", r ? F.FAM[r.fam] : "—", "") + lineaNombres(r);
     }

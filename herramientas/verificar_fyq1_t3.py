@@ -515,35 +515,97 @@ for e in ejercicios:
         for c in e['cuenta']:
             comprobar(f"ej {e['id']} cuenta", abs(eval(c['py']) - c['val']) < 1e-6, c['py'])
 
-# elementos del texto (ejemplos, tablas, láminas): cada (fórmula, sistema, nombre) registrado por las funciones de ayuda
-ejem = T3.get('verif', [])
-for v in ejem:
-    f, q, sis, t = v['f'], v.get('q', 0), v['sis'], v['t']
+# --- entradas de verificación registradas por el contenido (teoría, ejemplos, tablas, láminas, actividades)
+#     {f, q, sis, t}   sis = sist | stock | trad | any: «t» es un nombre válido de f en ese sistema
+#     {f, q, sis:'formula'}: la fórmula existe y es neutra
+#     {f, q, sis, t, no:true}: «t» NO es un nombre de f (distractor o «incorrecto» deliberado)
+#     {f, fam}: f pertenece a esa familia
+def entrada(v, donde):
+    f, q = v['f'], v.get('q', 0)
+    if 'fam' in v and 'sis' not in v:
+        ints = interp_por_formula(f, q)
+        comprobar(f'{donde} familia {f}', any(i['fam'] == v['fam'] for i in ints), f"{f} → {[i['fam'] for i in ints]}")
+        return
+    sis, t = v['sis'], v.get('t', '')
     if sis == 'formula':
         ints = interp_por_formula(f, q)
-        comprobar(f'ejemplo fórmula {f}', len(ints) > 0, f'{f} no se reconoce')
+        comprobar(f'{donde} fórmula {f}', len(ints) > 0 and all(sum(n * o for (s, n, o) in i['oxs']) == q for i in ints), f'{f} no se reconoce o no es neutra')
+    elif v.get('no'):
+        comprobar(f'{donde} «{t}» NO debe ser nombre de {f}', not acepta_nombre(f, q, sis, t), f'{f}: es válido en {sis}')
     else:
-        comprobar(f'ejemplo {f} [{sis}] {t}', acepta_nombre(f, q, sis, t), f"py={canonico(f, q, sis if sis != 'any' else 'sist')}")
+        comprobar(f'{donde} {f} [{sis}] «{t}»', acepta_nombre(f, q, sis, t), f"py={canonico(f, q, sis if sis != 'any' else 'sist')}")
+
+ejem = T3.get('verif', [])
+for v in ejem: entrada(v, 'texto')
 
 # reglas de la teoría: hechos concretos que se recalculan aquí
 for c in T3.get('cuentas', []):
     comprobar('cuenta ' + c['py'], abs(eval(c['py']) - c['val']) < 1e-6, c['py'])
 
-# actividades: tarjetas, emparejar, clasificar (pares fórmula ↔ nombre)
+# actividades: tarjetas, emparejar, clasificar, test (pares fórmula ↔ nombre, familias, números de oxidación)
+n_act = 0
 for k, d in (T3.get('datos') or {}).items():
     for v in d.get('verif', []):
-        f, q, sis, t = v['f'], v.get('q', 0), v['sis'], v['t']
-        comprobar(f'actividad {k}: {f} [{sis}] {t}', acepta_nombre(f, q, sis, t), f"py={canonico(f, q, sis if sis != 'any' else 'sist')}")
-        n_verif += 1
+        entrada(v, f'actividad {k}'); n_act += 1
     if d.get('categorias') and d.get('items'):
         for it in d['items']:
-            if it.get('f'):
-                fam = d['categorias'][it['c']]
-                ints = interp_por_formula(it['f'], it.get('q', 0))
-                comprobar(f'clasificar {k}: {it["f"]}', any(i['fam'] == it['fam'] for i in ints), f"{[i['fam'] for i in ints]}")
+            if not it.get('f'): continue
+            n_act += 1
+            ints = interp_por_formula(it['f'], it.get('q', 0))
+            if it.get('fam'): comprobar(f'clasificar {k}: {it["f"]} familia', any(i['fam'] == it['fam'] for i in ints), f"{[i['fam'] for i in ints]}")
+            if it.get('el'):
+                val = [o for i in ints for (s, n, o) in i['oxs'] if s == it['el']]
+                comprobar(f'clasificar {k}: {it["f"]} n.º de oxidación de {it["el"]}', it['ox'] in val and d['categorias'][it['c']].replace('−', '-') == f"{it['ox']:+d}", f"py {val}")
+    # coherencia de los pares de «emparejar»: cada par distinto
+    if d.get('pares'):
+        comprobar(f'emparejar {k}: pares distintos', len({p[0] for p in d['pares']}) == len(d['pares']) and len({p[1] for p in d['pares']}) == len(d['pares']))
 
+# cada campo de texto de un ejercicio debe estar cubierto por una entrada «verif»
+sin_verif = []
+for e in ejercicios:
+    checks = e['check'] if isinstance(e['check'], list) else [e['check']]
+    cubiertos = {v.get('campo', 0) for v in (e.get('verif') or []) if v.get('dir') in ('nf', 'fn')}
+    for i, c in enumerate(checks):
+        if c['tipo'] == 'texto' and i not in cubiertos: sin_verif.append(f"{e['id']} campo {i}")
+comprobar('todos los campos de texto de los ejercicios están verificados', not sin_verif, str(sin_verif))
+
+# exploración blanda de la teoría: fórmulas escritas «a mano» que el nombrador reconoce o no (solo informa)
+def texto_plano(h):
+    h = re.sub(r'<[^>]+>', ' ', h)
+    return re.sub(r'\s+', ' ', h.replace('&lt;', '<').replace('&gt;', '>'))
+secc = T3.get('secciones') or {}
+html = ' '.join(list(secc.values()) + [n['html'] for n in (T3.get('nuevas') or [])])
+plano = texto_plano(html)
+SUBD = '₀₁₂₃₄₅₆₇₈₉'
+cand = set(re.findall(r'(?<![A-Za-zÁ-úñ(])((?:[A-Z][a-z]?[' + SUBD + r']*|\((?:[A-Z][a-z]?[' + SUBD + r']*)+\)[' + SUBD + r']*){2,})(?![a-zá-úñ])', plano))
+sin_reconocer, reconocidos = [], 0
+for tok in sorted(cand):
+    asc = tok.translate(SUB)
+    if not re.search(r'\d|\(', asc): continue          # sin subíndices: ruido (siglas, símbolos juntos)
+    if interp_por_formula(asc, 0): reconocidos += 1
+    else: sin_reconocer.append(tok)
+print(f'exploración de la teoría: {reconocidos} fórmulas escritas a mano reconocidas; sin reconocer (revisar a ojo; algunas son moléculas o iones): {len(sin_reconocer)}')
+if sin_reconocer: print('   ', ' · '.join(sin_reconocer[:90]))
+
+# exploración blanda 2: nombres entre «…» en la teoría que empiezan como un nombre de compuesto y no están en el catálogo propio
+if motores:
+    todos = set()
+    for r in motores['formulacion']['catalogo']:
+        for i in interp_por_formula(r['f'], r.get('q', 0)):
+            for s_ in SIS:
+                for x in i[s_]: todos.add(nombre_n(x))
+    citas = set(re.findall(r'«([^»]{4,80})»', plano))
+    raros = []
+    for c in sorted(citas):
+        w1 = nombre_n(c).split(' ')[0]
+        if re.fullmatch(r'(acido|[a-z]*(oxido|hidroxido|hidruro|uro|ato|ito))', w1) and nombre_n(c) not in todos and len(c.split(' ')) <= 8:
+            raros.append(c)
+    print(f'exploración de nombres entre «…»: {len(citas)} citas; empiezan como nombre de compuesto y no están en el catálogo propio: {len(raros)}')
+    if raros: print('   ', ' · '.join(raros[:70]))
+
+n_ej = sum(1 for e in ejercicios if e.get('verif'))
 print(f'catálogo del motor: {n_cat} compuestos {fam_cuenta}')
-print(f'ejercicios con verificación: {sum(1 for e in ejercicios if e.get("verif"))} de {len(ejercicios)} · comprobaciones de ejemplos y textos: {len(ejem)}')
+print(f'ejercicios: {len(ejercicios)} ({n_ej} con verificación de fórmula, nombre, familia o n.º de oxidación) · entradas de teoría verificadas: {len(ejem)} · de actividades: {n_act}')
 print(f'comprobaciones correctas: {ok} · fallos: {len(fallos)}')
 for f_ in fallos[:int(__import__('os').environ.get('MAXF', 25))]: print('  FALLO', f_[:420])
 sys.exit(1 if fallos else 0)
