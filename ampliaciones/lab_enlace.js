@@ -246,8 +246,9 @@
     var c = E.CATIONES[ic], a = E.ANIONES[ia], g = mcd(c[1], a[1]), x = a[1] / g, y = c[1] / g;      // x cationes, y aniones
     var f = c[0] + (x > 1 ? x : "") + a[0] + (y > 1 ? y : ""), d = c[2] + a[2], nu = x + y;
     var kap = E.KAP.K * nu * c[1] * a[1] / d * (1 - E.KAP.D / d), r = c[2] / a[2];
-    var cn = r < 0.225 ? 3 : r < 0.414 ? 4 : r < 0.732 ? 6 : r < 1 ? 8 : 12;
-    return { f: f, x: x, y: y, nu: nu, d: d, kap: kap, razon: r, cn: cn, q: c[1] * a[1], ref: E.RET[f] || null, ind: c[1] * a[1] / d };
+    var rr = r > 1 ? 1 / r : r;                       // si el catión es mayor que el anión, la regla se aplica al cociente inverso (pequeño/grande)
+    var cn = rr < 0.225 ? 3 : rr < 0.414 ? 4 : rr < 0.732 ? 6 : 8;
+    return { f: f, x: x, y: y, nu: nu, d: d, kap: kap, razon: r, rr: rr, cn: cn, q: c[1] * a[1], ref: E.RET[f] || null, ind: c[1] * a[1] / d };
   };
   // ------------------------------------------------------------
   // Ciclos de Born–Haber (kJ/mol): sublimación del metal, energías de ionización, atomización del no metal, afinidades, entalpía de formación
@@ -404,7 +405,7 @@
         fil("Tipo de enlace", r.tipo, "pen ancho") + fil("Tipos de elementos", Q.TIPOS[a.t] + " + " + Q.TIPOS[b.t].toLowerCase(), "ancho");
       // escala de Δχ
       var x = r.d == null ? null : Math.min(100, r.d / 3.5 * 100);
-      escala.innerHTML = '<div class="q2-barra"><span class="z1" style="width:' + (0.4 / 3.5 * 100) + '%"></span><span class="z2" style="width:' + ((1.7 - 0.4) / 3.5 * 100) + '%"></span><span class="z3" style="width:' + ((3.5 - 1.7) / 3.5 * 100) + '%"></span>' + (x == null ? "" : '<i class="q2-marca" style="left:' + x + '%"></i>') + '</div><div class="q2-rot"><span style="left:5%">apolar</span><span style="left:30%">polar</span><span style="left:72%">iónico (con un metal)</span></div>';
+      escala.innerHTML = '<div class="q2-barra"><span class="z1" style="width:' + (0.4 / 3.5 * 100) + '%"></span><span class="z2" style="width:' + ((1.7 - 0.4) / 3.5 * 100) + '%"></span><span class="z3" style="width:' + ((3.5 - 1.7) / 3.5 * 100) + '%"></span>' + (x == null ? "" : '<i class="q2-marca" style="left:' + x + '%"></i>') + '</div><div class="q2-rot"><span style="left:5%">apolar</span><span style="left:30%">polar</span><span style="left:72%">iónico</span></div>';
       pie.innerHTML = "Un par compartido se reparte según la electronegatividad. <b>Δχ &lt; 0,4</b>: covalente apolar · <b>0,4 ≤ Δχ &lt; 1,7</b>: covalente polar · <b>Δχ ≥ 1,7</b> entre un metal y un no metal: iónico · dos metales: metálico. Son fronteras orientativas: en realidad es un continuo (el «carácter iónico» del NaCl es ≈ 70 %, no 100 %).";
     }
     U.fichas(cuerpo.querySelector("[data-pre]"), PRE_EN.map(function (p, i) { return { k: String(i), t: p[0] }; }), "0", function (k) { var p = PRE_EN[+k]; st.a = p[1]; st.b = p[2]; sa.set(st.a); sb.set(st.b); pinta(); });
@@ -507,7 +508,7 @@
     cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="q2-fila"><div class="q2-lienzo q2-pl"></div><div class="lectura anch"></div></div><p class="w-pie"></p>';
     var st = { id: "h2o", ay: 0.5, ax: 0.3, ver: 1 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lienzo = cuerpo.querySelector(".q2-pl"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
     U.slider(ctl, { et: "Girar", min: 0, max: 360, step: 1, val: 29, on: function (v) { st.ay = v * Math.PI / 180; pinta(); }, fmt: function (v) { return v + "°"; } });
-    U.slider(ctl, { et: "Mostrar", min: 0, max: 1, step: 1, val: 1, on: function (v) { st.ver = v; pinta(); }, fmt: function (v) { return v ? "dipolos de enlace y resultante" : "solo la molécula"; } });
+    U.slider(ctl, { et: "Mostrar", min: 0, max: 1, step: 1, val: 1, on: function (v) { st.ver = v; pinta(); }, fmt: function (v) { return v ? "con dipolos" : "solo molécula"; } });
     function flecha(x0, y0, x1, y1, cl, w) {
       var a = Math.atan2(y1 - y0, x1 - x0), s = 8;
       return '<line x1="' + x0.toFixed(1) + '" y1="' + y0.toFixed(1) + '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '" class="' + cl + '" stroke-width="' + w + '"/><path d="M' + x1.toFixed(1) + " " + y1.toFixed(1) + "L" + (x1 - s * Math.cos(a - 0.4)).toFixed(1) + " " + (y1 - s * Math.sin(a - 0.4)).toFixed(1) + "L" + (x1 - s * Math.cos(a + 0.4)).toFixed(1) + " " + (y1 - s * Math.sin(a + 0.4)).toFixed(1) + 'Z" class="' + cl + ' punta"/>';
