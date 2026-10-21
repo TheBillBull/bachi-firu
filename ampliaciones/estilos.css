@@ -886,3 +886,5 @@
 .lam-tabla.q3t td { font-size: 14px; }
 .lam-tabla.q3t td, .lam-tabla.q3t th { overflow-wrap: anywhere; }
 .mv.q3f { font-family: inherit; color: inherit; font-size: inherit; }
+.bx-campo.bx-texto { flex: 1 1 100%; } .bx-form .bx-texto input[type=text] { flex: 1 1 200px; width: auto; max-width: 440px; }
+@media (max-width: 560px) { .bx-campo.bx-texto { flex-wrap: wrap; } .bx-texto .bx-et { flex: 1 0 100%; font-size: 15px; } .bx-form .bx-texto input[type=text] { flex: 1 1 100%; max-width: 100%; } .bx-texto .bx-mk { display: none; } }

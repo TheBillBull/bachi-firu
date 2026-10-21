@@ -128,7 +128,7 @@
   function add(r) {
     r.niv = r.niv || 1;
     var k = F.clave(r.f);
-    if (IDX[k]) { if (global.console) console.warn("fórmula repetida en el catálogo:", r.f); return null; }
+    if (IDX[k]) return null;          // fórmulas que coinciden con otra (p. ej. AuPO₃ como fosfito de oro(III) y metafosfato de oro(I)): vale la primera
     IDX[k] = r; CAT.push(r); (FAMS[r.fam] = FAMS[r.fam] || []).push(r);
     return r;
   }
@@ -296,6 +296,12 @@
   F.METALES.forEach(function (s) { MET[s].v.forEach(function (v) { CATS.push({ s: s, v: v, m: MET[s] }); }); });
   CATS.push({ s: "NH4", v: 1, m: { s: "NH4", n: "amonio", v: [1], vo: [], niv: 1 } });
   F.CATIONES = CATS;
+  // Sales binarias del ion amonio (NH₄Cl, (NH₄)₂S…)
+  [["F", 2], ["Cl", 1], ["Br", 2], ["I", 2], ["S", 1]].forEach(function (a) {
+    var x = a[0], e = NM[x], g = gcd(1, e.neg), nm = e.neg / g, nx = 1 / g;
+    add({ fam: "salBin", f: mk("NH4", nm) + mk(x, nx), cat: "NH4", v: 1, nm: nm, nx: nx, an: x, a: e.neg, tipo: "amonio", niv: a[1], oxs: [["NH4", nm, 1], [x, nx, -e.neg]],
+      sist: sistBin(e.an, nx, "amonio", nm, false), stock: [e.an + " de amonio"], trad: [e.an + " de amonio"] });
+  });
 
   // Oxisales y sales ácidas
   function sal(c, an, a, fam, nameParts) {      // c = {s, v, m}; an = fórmula del anión; a = carga; nameParts = datos para los nombres
@@ -310,7 +316,7 @@
     var base = adj ? [nameParts.trad + " " + adj] : (c.s !== "NH4" && multi(m) ? [] : [nameParts.trad + " de " + m.n]);
     r.trad = base;
     if (adj) r.trad.push(r.stock[0]);
-    (nameParts.tradExtra || []).forEach(function (t) { r.trad.push(t + (adj ? " " + adj : " de " + m.n)); });
+    (nameParts.tradExtra || []).forEach(function (t) { if (adj) r.trad.push(t + " " + adj); else if (c.s === "NH4" || !multi(m)) r.trad.push(t + " de " + m.n); });
     if (nameParts.sistExtra && na === 1) r.sist = r.sist.concat(nameParts.sistExtra.map(function (t) { return t + " de " + metal; }));
     r.oxs = nameParts.oxs(nm, na, c);
     return r;

@@ -210,10 +210,12 @@
     { titulo: "Prefijos, romanos y sufijos", tabla: { cab: ["Sistema", "Cómo", "Ejemplo"], filas: [
       ["Sistemática", "mono, di, tri, tetra, penta, hexa, hepta · bis, tris, tetrakis", nm("Fe2O3", "sist")], ["Stock", "romano = n.º de oxidación; solo si hay varios", nm("Fe2O3", "stock")], ["Tradicional", "-oso (menor) · -ico (mayor); hipo-, per-", nm("Fe2O3", "trad")]
     ] }, nota: "No mezcles: «tricloruro de hierro» o «cloruro de hierro(III)», no los dos." },
-    { titulo: "Serie de oxoácidos (tradicional)", tabla: { cab: ["n.º ox.", "Cl", "S", "N", "P", "C"], filas: [
-      ["+1", fm("HClO") + " hipocloroso", "—", "—", "—", "—"], ["+3", fm("HClO2") + " cloroso", "—", fm("HNO2") + " nitroso", fm("H3PO3") + " fosforoso", "—"],
-      ["+4", "—", fm("H2SO3") + " sulfuroso", "—", "—", fm("H2CO3") + " carbónico"], ["+5", fm("HClO3") + " clórico", "—", fm("HNO3") + " nítrico", fm("H3PO4") + " fosfórico", "—"],
-      ["+6", "—", fm("H2SO4") + " sulfúrico", "—", "—", "—"], ["+7", fm("HClO4") + " perclórico", "—", "—", "—", "—"]
+    { titulo: "Serie de oxoácidos (tradicional)", tabla: { cab: ["Elemento", "n.º ox.", "Ácido"], filas: [
+      ["Cloro", "+1", fm("HClO") + " hipocloroso"], ["", "+3", fm("HClO2") + " cloroso"], ["", "+5", fm("HClO3") + " clórico"], ["", "+7", fm("HClO4") + " perclórico"],
+      ["Azufre", "+4", fm("H2SO3") + " sulfuroso"], ["", "+6", fm("H2SO4") + " sulfúrico"],
+      ["Nitrógeno", "+3", fm("HNO2") + " nitroso"], ["", "+5", fm("HNO3") + " nítrico"],
+      ["Fósforo", "+3", fm("H3PO3") + " fosforoso"], ["", "+5", fm("H3PO4") + " fosfórico"],
+      ["Carbono", "+4", fm("H2CO3") + " carbónico"]
     ] }, nota: "Anión: -ico → -ato; -oso → -ito; los prefijos hipo- y per- se conservan." },
     { titulo: "Aniones imprescindibles", tabla: { cab: ["Ion", "Nombre", "Ion", "Nombre"], filas: [
       [fm("SO42-"), "sulfato", fm("SO32-"), "sulfito"], [fm("NO3-"), "nitrato", fm("NO2-"), "nitrito"], [fm("CO32-"), "carbonato", fm("PO43-"), "fosfato"],

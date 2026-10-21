@@ -246,7 +246,7 @@
       return '<label class="bx-campo bx-largo">' + et + '<textarea data-k="' + k + '" rows="' + (c.filas || 6) + '" placeholder="' + (c.ph || "Escribe aquí tu respuesta…") + '"></textarea></label>' +
         '<p class="wc" data-bx-wc>0 palabras</p>';
     }
-    return '<label class="bx-campo">' + et + '<input type="text" data-k="' + k + '" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + (c.ph || "") + '">' +
+    return '<label class="bx-campo' + (c.tipo === "texto" ? " bx-texto" : "") + '">' + et + '<input type="text" data-k="' + k + '" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + (c.ph || "") + '">' +
       (c.unidad ? '<span class="bx-un">' + c.unidad + "</span>" : "") + '<span class="bx-mk" aria-hidden="true"></span></label>';
   }
 

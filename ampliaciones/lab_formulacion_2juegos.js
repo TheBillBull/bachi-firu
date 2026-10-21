@@ -329,7 +329,7 @@
     metOH: { q: "¿El hidrógeno forma parte del grupo <b>OH</b> (hidroxilo), sin más oxígeno ni otro elemento?", si: R("hidroxido"), no: R("salAcida") },
     metOsolo: { q: "¿Hay <b>solo metal y oxígeno</b>?", si: "metO2", no: R("oxisal") },
     metO2: { q: "¿El oxígeno forma el grupo <b>O₂</b> (peróxido: subíndice par que no se simplifica, como Na₂O₂)?", si: R("peroxido"), no: R("oxido") },
-    metSinO: { q: "¿Contiene <b>hidrógeno</b>?", si: "metH", no: R("salBin") },
+    metSinO: { q: "¿Contiene <b>hidrógeno</b> (sin contar el del ion NH₄⁺)?", si: "metH", no: R("salBin") },
     metH: { q: "¿El hidrógeno está unido <b>solo al metal</b> (MHₙ)?", si: R("hidruroM"), no: R("salAcida") },
     nom: { q: "¿Contiene <b>oxígeno</b>?", si: "nomO", no: "nomSinO" },
     nomO: { q: "¿Contiene también <b>hidrógeno</b>?", si: "nomOH", no: R("oxido") },

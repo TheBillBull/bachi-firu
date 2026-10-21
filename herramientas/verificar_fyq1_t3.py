@@ -257,6 +257,16 @@ def anion_info(texto, na, nc):
     if m: out.append(('hidrogeno-X', m.group(1), 1))
     return out
 
+def agrupa(simbolo, n):
+    """subíndice con paréntesis si el grupo tiene más de un átomo: 'SO4',3 → '(SO4)3'; 'Cl',2 → 'Cl2'"""
+    if n == 1: return simbolo
+    return f'({simbolo}){n}' if sum(estiquiometria(simbolo).values()) > 1 else f'{simbolo}{n}'
+
+def formular_ionico(cat, v, anion, carga):
+    """FORMULADOR propio: cruce de valencias y simplificación (cat de valencia v, anión de carga −carga)"""
+    g = gcd(v, carga)
+    return agrupa(cat, carga // g) + agrupa(anion, v // g)
+
 def ionico(f):
     res = []
     m = re.fullmatch(r'(\(NH4\)|NH4|[A-Z][a-z]?)(\d*)(.*)', f)
@@ -284,7 +294,9 @@ def ionico(f):
                 nm, vs, vo, adj, sie = METAL[cat]
                 permitidas = vs + (vo if clase == 'oxido' else ())
                 if v not in permitidas: continue
-            res.append(sal_ionica(cat, nc, v, clase, dat, na, carga, texto))
+            d = sal_ionica(cat, nc, v, clase, dat, na, carga, texto)
+            d['refo'] = formular_ionico(cat, v, texto, carga)
+            res.append(d)
     return res
 
 def sal_ionica(cat, nc, v, clase, dat, na, carga, texto):
@@ -333,7 +345,7 @@ def sal_ionica(cat, nc, v, clase, dat, na, carga, texto):
             if h == 1 and tot == 2: ex += [anion_trad(ac) + ' ácido'] + (['bi' + anion_trad(ac)] if ac['x'] in ('C', 'S') else [])
             if h == 1 and tot == 3: ex += [anion_trad(ac) + ' monoácido']
             if h == 2 and tot == 3: ex += [anion_trad(ac) + ' diácido']
-            trad += [e + (' ' + adj if adj else ' de ' + nm) for e in ex]
+            trad += [e + (' ' + adj if adj else ' de ' + nm) for e in ex if adj or not multi]
         oxs = {(cat, nc, v), (ac['x'], ac['nx'] * na, ac['ox']), ('O', ac['no'] * na, -2)}
         if h: oxs.add(('H', h * na, 1))
         d.update(fam='salAcida' if h else 'oxisal', sist=sist, stock=stock, trad=trad, oxs=oxs)
@@ -341,7 +353,7 @@ def sal_ionica(cat, nc, v, clase, dat, na, carga, texto):
         x = dat; an = NOMET[x][1]
         grupo = lambda s: s if na == 1 else BIS[na] + '(' + s + ')'
         d.update(fam='salAcida', sist=[grupo('hidrogeno' + an) + ' de ' + metal_sist], stock=stockn('hidrogeno' + an),
-                 trad=tradicional('hidrogeno' + an) + ([stockn('hidrogeno' + an)[0]] if adj else []) + [e + (' ' + adj if adj else ' de ' + nm) for e in [an + ' ácido', 'bi' + an]],
+                 trad=tradicional('hidrogeno' + an) + ([stockn('hidrogeno' + an)[0]] if adj else []) + [e + (' ' + adj if adj else ' de ' + nm) for e in [an + ' ácido', 'bi' + an] if adj or not multi],
                  oxs={(cat, nc, v), ('H', na, 1), (x, na, -2)})
         if adj: d['trad'] = d['trad']
     return d
@@ -456,7 +468,7 @@ if motores:
         if not interps:
             comprobar('catálogo ' + r['f'], False, 'no reconocido por el nombrador independiente'); continue
         oxs_js = {(s, n, o) for s, n, o in r['oxs']}
-        bien = [i for i in interps if i['fam'] == r['fam'] and i['oxs'] == oxs_js and coincide(r, i)]
+        bien = [i for i in interps if i['fam'] == r['fam'] and i['oxs'] == oxs_js and coincide(r, i) and i.get('refo', r['f']) == r['f']]
         comprobar('catálogo ' + r['f'], bool(bien), f"web={r['fam']} {r['sist']} {r['stock']} {r['trad']} | py={[ (i['fam'], i['sist'], i['stock'], i['trad']) for i in interps]}")
         # neutralidad de carga
         carga = sum(n * o for s, n, o in r['oxs'])
@@ -472,6 +484,19 @@ def acepta_nombre(f, q, sis, texto):
         ls = [x for s in SIS for x in i[s]] if sis == 'any' else i[sis]
         if nombre_n(texto) in {nombre_n(x) for x in ls}: return True
     return False
+
+INV = {}
+def construir_inverso(catalogo):
+    """nombre → fórmulas posibles, con los nombres del nombrador propio (para formular a partir de un nombre)"""
+    for r in catalogo:
+        for i in interp_por_formula(r['f'], r.get('q', 0)):
+            for s_ in SIS:
+                for n_ in i[s_]: INV.setdefault((s_, nombre_n(n_)), set()).add(r['f'])
+def formular(nombre, sis):
+    """FORMULADOR desde el nombre: conjunto de fórmulas que tienen ese nombre en ese sistema ('any' = en cualquiera)"""
+    if sis == 'any': return set().union(*[INV.get((s_, nombre_n(nombre)), set()) for s_ in SIS])
+    return INV.get((sis, nombre_n(nombre)), set())
+if motores: construir_inverso(motores['formulacion']['catalogo'])
 
 def formula_correcta(f, q, texto):
     return formula_n(texto) == formula_n(f)
@@ -497,6 +522,8 @@ for e in ejercicios:
             comprobar(f"ej {e['id']} fórmula", any(formula_correcta(f, q, x) for x in campo['valores']) and all(formula_correcta(f, q, x) for x in campo['valores']), f"{f} vs {campo['valores']}")
             if v.get('nombre'):
                 comprobar(f"ej {e['id']} nombre del enunciado", acepta_nombre(f, q, sis, v['nombre']), f"{f} [{sis}] {v['nombre']} → {canonico(f, q, sis if sis != 'any' else 'sist')}")
+                # formulador: el nombre del enunciado debe llevar a esa fórmula y a ninguna otra (respuesta sin ambigüedad)
+                comprobar(f"ej {e['id']} el nombre «{v['nombre']}» da una sola fórmula", formular(v['nombre'], sis) == {f}, f"{formular(v['nombre'], sis)}")
         elif dr == 'fn':    # el enunciado da la fórmula; la respuesta es el nombre
             comprobar(f"ej {e['id']} nombre", all(acepta_nombre(f, q, sis, x) for x in campo['valores']) and len(campo['valores']) > 0,
                       f"{f} [{sis}] {campo['valores']} → py {canonico(f, q, sis if sis != 'any' else 'sist')}")
@@ -605,6 +632,8 @@ if motores:
     if raros: print('   ', ' · '.join(raros[:70]))
 
 n_ej = sum(1 for e in ejercicios if e.get('verif'))
+amb = sorted(k for k, v in INV.items() if len(v) > 1)
+print(f'formulador: {len(INV)} nombres distintos; con más de una fórmula (ambiguos): {len(amb)}' + (' ' + str([f"{k[0]}:{k[1]}" for k in amb[:8]]) if amb else ''))
 print(f'catálogo del motor: {n_cat} compuestos {fam_cuenta}')
 print(f'ejercicios: {len(ejercicios)} ({n_ej} con verificación de fórmula, nombre, familia o n.º de oxidación) · entradas de teoría verificadas: {len(ejem)} · de actividades: {n_act}')
 print(f'comprobaciones correctas: {ok} · fallos: {len(fallos)}')
