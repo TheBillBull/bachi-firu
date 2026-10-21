@@ -31,7 +31,7 @@
       var s = E.sal(st.c, st.a), c = E.CATIONES[st.c], a = E.ANIONES[st.a];
       lectura.innerHTML = fil("Compuesto", Q.sub(s.f) + "  (" + s.x + " " + ion(c[0], c[1]) + " + " + s.y + " " + anion(a[0], a[1]) + ")", "pen ancho") + fil("Distancia d = r₊ + r₋", s.d + " pm") + fil("q₊·q₋ / d (relativo)", fmt(s.ind * 1000, 2) + " · 10⁻³ pm⁻¹", "red") +
         fil("Energía reticular estimada (Kapustinskii)", miles(s.kap) + " kJ/mol", "ok") + fil("Energía reticular de tablas", s.ref ? miles(s.ref[0]) + " kJ/mol" : "no incluida en la tabla", "ancho") + fil("Punto de fusión", s.ref ? s.ref[1] + " °C" : "—") +
-        fil("Razón de radios r₊/r₋", f2(s.razon) + " → " + CN[s.cn], "ancho");
+        fil("Razón de radios r₊/r₋", f2(s.razon) + (s.razon > 1 ? " (catión mayor: se usa " + f2(s.rr) + ")" : "") + " → " + CN[s.cn], "ancho");
       pie.innerHTML = "<b>Ley de Coulomb</b>: la atracción entre dos iones es proporcional a q₊·q₋/d. Cuanto <b>mayor carga</b> y <b>menor tamaño</b> (menor d), mayor energía reticular y, por tanto, <b>mayor punto de fusión y dureza</b>. La estimación de Kapustinskii (U ≈ 1,2025·10⁵ · ν · |z₊z₋| / d · (1 − 34,5/d), con d en pm) suele quedar un 2–8 % por debajo del valor de tablas. La razón de radios predice cuántos aniones caben alrededor de un catión (índice de coordinación).";
     }
     function serie() {
@@ -61,7 +61,7 @@
     var cuerpo = B.caja(host, "Pruébalo", "Ciclo de Born–Haber: la energía reticular por la ley de Hess");
     cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="q2-pasos"></div><div class="lectura anch"></div><div class="q2-juego"></div><p class="w-pie"></p>';
     var st = { i: 0, k: 99 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pasos = cuerpo.querySelector(".q2-pasos"), pie = cuerpo.querySelector(".w-pie"), juego = cuerpo.querySelector(".q2-juego"), g, sl;
-    sl = U.slider(ctl, { et: "Pasos del ciclo", min: 0, max: 7, step: 1, val: 7, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { var n = E.BH[st.i].pasos.length; return v === 0 ? "ninguno" : v <= n ? v + " de " + n : v === n + 1 ? "+ red cristalina" : "+ formación (cierre del ciclo)"; } });
+    sl = U.slider(ctl, { et: "Pasos del ciclo", min: 0, max: 7, step: 1, val: 7, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { var n = E.BH[st.i].pasos.length; return v === 0 ? "ninguno" : v <= n ? v + " de " + n : v === n + 1 ? "+ red" : "+ cierre"; } });
     function pinta() {
       var c = E.BH[st.i], n = c.pasos.length, niv = [0], U_ = E.bhU(c), j, k = Math.min(st.k, n + 2);
       sl.input.max = n + 2; if (st.k > n + 2) { st.k = n + 2; sl.set(st.k); }
@@ -76,7 +76,7 @@
         g.texto(j + 1, (niv[j] + niv[j + 1]) / 2, (v > 0 ? "+" : "−") + miles(Math.abs(v)), { dx: 8, dy: 4, clase: v >= 0 ? "red" : "pen" }); g.texto(j + 1, niv[j + 1], "①②③④⑤"[j], { dy: v >= 0 ? -8 : 16, ancla: "middle", clase: "faint" });
       }
       if (k >= n + 1) { var s2 = g.segmento(n + 1.6, top, n + 1.6, c.hf, { clase: "c-ok" }); s2.setAttribute("stroke-width", 4); g.texto(n + 1.6, (top + c.hf) / 2, "−U = −" + miles(U_), { dx: 8, dy: 4, clase: "ok" }); g.segmento(n + 1, top, n + 1.6, top, { clase: "c-faint", dash: "3 4" }); g.texto(n + 1.6, top, "iones gaseosos", { dy: -8, ancla: "middle", clase: "faint" }); }
-      if (k >= n + 2) { var s3 = g.segmento(n + 2.5, 0, n + 2.5, c.hf, { clase: "c-ink" }); s3.setAttribute("stroke-width", 4); g.texto(n + 2.5, c.hf / 2, "ΔHf = " + miles(c.hf), { dx: -8, dy: 4, ancla: "end" }); g.segmento(n + 1.6, c.hf, n + 2.5, c.hf, { clase: "c-faint", dash: "3 4" }); g.texto(n + 2.5, c.hf, "sólido iónico", { dy: 16, ancla: "middle", clase: "faint" }); }
+      if (k >= n + 2) { var s3 = g.segmento(n + 2.5, 0, n + 2.5, c.hf, { clase: "c-ink" }); s3.setAttribute("stroke-width", 4); g.texto(n + 2.5, c.hf / 2, "ΔHf = " + miles(c.hf), { dx: -8, dy: 4, ancla: "end" }); g.segmento(n + 1.6, c.hf, n + 2.5, c.hf, { clase: "c-faint", dash: "3 4" }); g.texto(n + 2.5, c.hf, "sólido iónico", { dy: 16, dx: 6, ancla: "end", clase: "faint" }); }
       var suma = 0; for (j = 0; j < Math.min(k, n); j++) suma += c.pasos[j][1];
       pasos.innerHTML = "<ol class='q2-lista'>" + c.pasos.map(function (p, i) { return "<li" + (i < k ? "" : " style='opacity:.35'") + ">" + p[0] + " &nbsp;<b>" + (p[1] > 0 ? "+" : "−") + miles(Math.abs(p[1])) + " kJ/mol</b></li>"; }).join("") + "<li" + (k >= n + 1 ? "" : " style='opacity:.35'") + ">Formación de la red a partir de los iones gaseosos: <b>−U</b></li><li" + (k >= n + 2 ? "" : " style='opacity:.35'") + ">Formación directa del sólido a partir de los elementos: <b>ΔH<sub>f</sub> = " + miles(c.hf) + " kJ/mol</b> (dato experimental)</li></ol>";
       var ref = E.RET[c.f];
