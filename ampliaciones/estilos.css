@@ -499,3 +499,51 @@
 .ac-t td.pen { color: var(--pen); } .ac-t td.red { color: var(--red); }
 .ac-t tbody tr + tr td, .ac-t tbody tr + tr th { border-top: 1px solid var(--line); }
 .bz-acc { margin-top: 8px; }
+
+/* ---- Estadística bidimensional (m12) ---- */
+.m12-check { display: inline-flex; align-items: center; gap: 6px; font: 500 14px var(--body); margin: 0 14px 4px 0; cursor: pointer; }
+.m12-check input { width: 18px; height: 18px; accent-color: var(--pen); }
+.m12-t th, .m12-t td { text-align: center; }
+.m12-t input { width: 58px; padding: 4px 6px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--sheet); color: var(--ink); font: 600 14px var(--math); text-align: center; }
+.m12-tot th, .m12-tot td { border-top: 2px solid var(--line); font-weight: 700; }
+.m12-op { margin: 10px 0 0; }
+.m12-op .chip-btn.bien { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.m12-op .chip-btn.mal { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+.m12-tabla { max-height: 380px; overflow-y: auto; }
+.m12-cab { margin: 6px 0 4px; font-size: 13px; color: var(--ink-soft); }
+@media (max-width: 600px) { .m12-t input { width: 44px; padding: 3px 2px; font-size: 13px; } .m12-t th, .m12-t td { padding: 4px 3px; } }
+
+/* ---- Probabilidad (m13) ---- */
+.m13-svg { width: 100%; height: auto; display: block; max-width: 660px; margin: 8px auto 0; }
+.m13-t { font: 600 14px var(--body); fill: var(--ink); paint-order: stroke; stroke: var(--sheet); stroke-width: 3px; stroke-linejoin: round; }
+.m13-t.pen { fill: var(--pen); } .m13-t.red { fill: var(--red); } .m13-t.ok { fill: var(--ok); } .m13-t.faint { fill: var(--ink-faint); } .m13-t.sel { fill: var(--ink); font-weight: 800; }
+.m13-univ { fill: none; stroke: var(--line); stroke-width: 2; }
+.m13-vacio { fill: var(--sheet); stroke: none; } .m13-nada { fill: none; stroke: none; }
+.m13-reg { fill: color-mix(in srgb, var(--ok) 38%, transparent); stroke: none; }
+.m13-cir { fill: none; stroke-width: 3; } .m13-cir.pen { stroke: var(--pen); } .m13-cir.red { stroke: var(--red); }
+.m13-fa { fill: color-mix(in srgb, var(--pen) 14%, transparent); } .m13-fb { fill: color-mix(in srgb, var(--red) 14%, transparent); }
+.m13-rama { stroke: var(--ink-faint); stroke-width: 2.5; } .m13-rama.pen { stroke: var(--pen); } .m13-rama.faint { stroke: var(--ink-faint); }
+.m13-nodo { fill: var(--ink-soft); } .m13-hoja { fill: var(--sheet-2); stroke: var(--ink-faint); stroke-width: 2; } .m13-hoja.ok { fill: var(--ok); stroke: var(--ok); }
+.m13-bola { stroke: var(--sheet); stroke-width: 2; } .m13-bola.r { fill: var(--red); } .m13-bola.a { fill: var(--pen); }
+.m13-pto { stroke-width: 1.5; } .m13-pto.tp { fill: var(--red); stroke: var(--red); } .m13-pto.fn { fill: none; stroke: var(--red); } .m13-pto.fp { fill: var(--pen); stroke: var(--pen); } .m13-pto.tn { fill: var(--line); stroke: var(--line); }
+.m13-grid { display: grid; gap: 4px; margin: 10px 0; }
+.m13-cel { background: var(--sheet-2); border: 1.5px solid var(--line); border-radius: 6px; text-align: center; font: 600 12.5px var(--math); padding: 5px 1px; color: var(--ink-soft); }
+.m13-cel.fav { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.m13-venn { margin: 6px 0; }
+.m13-pascal { margin-top: 10px; overflow-x: auto; }
+.m13-pt { font-size: 13px; color: var(--ink-soft); margin: 0 0 4px; }
+.m13-pf { display: flex; justify-content: center; gap: 4px; margin-bottom: 3px; white-space: nowrap; }
+.m13-pc { min-width: 34px; padding: 2px 5px; text-align: center; font: 500 12px var(--math); background: var(--sheet-2); border-radius: 5px; color: var(--ink-soft); }
+.m13-pc.fila { color: var(--ink); background: var(--hl-mark); } .m13-pc.sel { background: var(--red); color: #fff; font-weight: 700; }
+.m13-mt { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; margin: 10px 0; }
+.m13-puerta { width: 96px; height: 130px; border-radius: 10px 10px 4px 4px; border: 3px solid var(--ink-soft); background: color-mix(in srgb, var(--pen) 28%, var(--sheet)); font: 700 40px var(--body); color: var(--ink); cursor: pointer; }
+.m13-puerta:disabled { cursor: default; } .m13-puerta.elegida { border-color: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 40%, transparent); } .m13-puerta.abierta { background: var(--sheet-2); font-size: 52px; }
+.m13-msg { flex-basis: 100%; text-align: center; margin: 0; font-weight: 600; }
+.m13-t2 input, .m13-urna input { width: 70px; padding: 4px 6px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--sheet); color: var(--ink); font: 600 14px var(--math); text-align: center; }
+.m13-t2 th, .m13-t2 td { text-align: center; }
+.m13-tot th, .m13-tot td { border-top: 2px solid var(--line); font-weight: 700; }
+@media (max-width: 520px) {
+  [data-w^="m13_"] .ctl label { flex-wrap: wrap; }
+  [data-w^="m13_"] .ctl label .sl-et { white-space: normal; flex: 1 1 100%; }
+  [data-w^="m13_"] .ctl label input[type=range] { flex: 1 1 60%; }
+}
