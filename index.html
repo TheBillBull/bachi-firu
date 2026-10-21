@@ -5232,6 +5232,210 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de números complejos II (Matemáticas I, tema 6)
+   euler · transformaciones · julia
+   Usa el motor B.lab.cx de lab_complejos.js (se consulta al montar el widget,
+   así que no importa el orden de carga de los archivos lab_*.js).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  var R = Math.PI / 180;
+  function z(a, b) { return { a: a, b: b }; }
+  function cero(x) { return Math.abs(x) < 1e-12 ? 0 : x; }
+  function mul(p, q) { return z(p.a * q.a - p.b * q.b, p.a * q.b + p.b * q.a); }
+
+  // ============================================================
+  // EULER: e^{iθ} = cos θ + i·sen θ, y la serie de potencias que lo explica
+  // ============================================================
+  B.w.euler = function (host) {
+    var C = B.lab.cx;
+    var cuerpo = B.caja(host, "Pruébalo", "La fórmula de Euler: e<sup>iθ</sup> = cos θ + i·sen θ");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { t: 90, n: 5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sT = U.slider(ctl, { et: "Ángulo <i>θ</i>", min: -180, max: 180, step: 15, val: st.t, on: function (v) { st.t = v; pinta(); }, fmt: function (v) { return v + "° = " + fmt(v * R, 3) + " rad"; } });
+    var sN = U.slider(ctl, { et: "Términos de la serie", min: 0, max: 14, step: 1, val: st.n, on: function (v) { st.n = v; pinta(); }, fmt: String });
+    function pinta() {
+      var th = st.t * R, e = z(cero(Math.cos(th)), cero(Math.sin(th)));
+      var term = z(1, 0), sum = z(1, 0), pts = [[1, 0]], mx = 1, k;
+      for (k = 1; k <= st.n; k++) {
+        term = mul(term, z(0, th)); term = z(term.a / k, term.b / k);
+        sum = z(sum.a + term.a, sum.b + term.b); pts.push([sum.a, sum.b]); mx = Math.max(mx, Math.hypot(sum.a, sum.b));
+      }
+      var m = Math.max(1.6, mx * 1.2);
+      g.limpiar(); g.rangoIso(0, 0, m);
+      g.arco(0, 0, 1, 0, 360, { clase: "c-faint", dash: "3 5" });
+      if (st.t !== 0) g.arco(0, 0, 0.3, 0, st.t, { clase: "c-hl" }).setAttribute("stroke-width", 3);
+      g.segmento(0, 0, e.a, 0, { clase: "c-pen" }).setAttribute("stroke-width", 5);
+      g.segmento(e.a, 0, e.a, e.b, { clase: "c-red" }).setAttribute("stroke-width", 5);
+      g.polilinea(pts, { clase: "c-faint", dash: "2 3" });
+      pts.forEach(function (q, i) { if (i < pts.length - 1) g.punto(q[0], q[1], { r: 3.5, clase: "c-faint" }); });
+      var S = pts[pts.length - 1];
+      g.punto(S[0], S[1], { r: 6, clase: "c-ink" }); g.texto(S[0], S[1], "S" + U.sub(st.n), { dx: 8, dy: 14, clase: "faint" });
+      U.flecha(g, 0, 0, e.a, e.b, { clase: "c-ok" }); g.punto(e.a, e.b, { r: 6, clase: "c-ok" }); g.texto(e.a, e.b, "e^(iθ)", { dx: 8, dy: -8, clase: "ok" });
+      var err = Math.hypot(sum.a - e.a, sum.b - e.b);
+      lectura.innerHTML = U.lec("cos θ (azul)", fmt(e.a, 4), "pen") + U.lec("sen θ (rojo)", fmt(e.b, 4), "red") +
+        U.lec("e<sup>iθ</sup> = cos θ + i·sen θ", C.txt(e, 3), "ok") +
+        U.lec("Suma de " + (st.n + 1) + " términos", C.txt(z(sum.a, sum.b), 4)) +
+        U.lec("Error |S − e<sup>iθ</sup>|", err < 1e-9 ? "0" : U.cient(err, 2), err < 0.01 ? "ok" : "red");
+      var especial = "";
+      if (st.t === 180 || st.t === -180) especial = " <b>Con θ = π: e<sup>iπ</sup> = −1</b>, es decir, e<sup>iπ</sup> + 1 = 0.";
+      else if (st.t === 90) especial = " Con θ = π/2: e<sup>iπ/2</sup> = i.";
+      else if (st.t === -90) especial = " Con θ = −π/2: e<sup>−iπ/2</sup> = −i.";
+      pie.innerHTML = "El punto verde <b>e<sup>iθ</sup></b> recorre la circunferencia unidad: su abscisa es cos θ y su ordenada sen θ. Los puntos grises son las sumas parciales de la serie 1 + (iθ) + (iθ)²/2! + (iθ)³/3! + …, que se acercan al punto verde al añadir términos." + especial;
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -3, xmax: 3, ymin: -3, ymax: 3, w: 420, h: 380, etx: "Re", ety: "Im", etiqueta: "Fórmula de Euler en la circunferencia unidad" });
+    var PRE = [[90, "θ = π/2"], [180, "θ = π"], [-90, "θ = −π/2"], [60, "θ = π/3"], [45, "θ = π/4"], [0, "θ = 0"]];
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE.map(function (p, i) { return { k: String(i), t: p[1] }; }), "", function (k) { var p = PRE[+k]; st.t = p[0]; sT.set(p[0]); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // TRANSFORMACIONES: qué hace con una figura z ↦ f(z)
+  // ============================================================
+  var EFE = [[1, 1], [1.6, 1], [1.6, 2], [2.4, 2], [2.4, 2.5], [1.6, 2.5], [1.6, 3], [2.8, 3], [2.8, 3.5], [1, 3.5]];
+  B.w.transformaciones = function (host) {
+    var C = B.lab.cx;
+    var cuerpo = B.caja(host, "Pruébalo", "Transformaciones del plano con complejos");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { modo: "giro", ca: 2, cb: 1, r: 1.5, al: 90, t: 1, pa: 1, pb: 1 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var S = {};
+    function sl(k, et, mn, mx, stp, f) { S[k] = U.slider(ctl, { et: et, min: mn, max: mx, step: stp, val: st[k], on: function (v) { st[k] = v; pinta(); }, fmt: f || function (v) { return fmt(v, 2); } }); }
+    sl("ca", "Re del vector", -4, 4, 0.5, function (v) { return fmt(v, 1); }); sl("cb", "Im del vector", -4, 4, 0.5, function (v) { return fmt(v, 1); });
+    sl("pa", "Centro (Re)", -4, 4, 0.5, function (v) { return fmt(v, 1); }); sl("pb", "Centro (Im)", -4, 4, 0.5, function (v) { return fmt(v, 1); });
+    sl("r", "Razón <i>k</i>", -2, 2, 0.25); sl("al", "Ángulo α", -180, 180, 15, function (v) { return v + "°"; });
+    sl("t", "De z a f(z)", 0, 1, 0.05, function (v) { return Math.round(v * 100) + " %"; });
+    var MOSTRAR = { trasl: ["ca", "cb"], homot: ["r"], giro: ["al"], conj: [], conjn: [], bis: [], semej: ["pa", "pb", "r", "al"] };
+    var TEXTO = {
+      trasl: function () { return "f(z) = z + (" + C.txt(z(st.ca, st.cb), 1) + ")"; },
+      homot: function () { return "f(z) = " + fmt(st.r, 2) + "·z"; },
+      giro: function () { return "f(z) = e<sup>i·" + st.al + "°</sup>·z = 1<sub>" + st.al + "°</sub>·z"; },
+      conj: function () { return "f(z) = z̄"; },
+      conjn: function () { return "f(z) = −z̄"; },
+      bis: function () { return "f(z) = i·z̄"; },
+      semej: function () { return "f(z) = c + " + fmt(st.r, 2) + "·1<sub>" + st.al + "°</sub>·(z − c), c = " + C.txt(z(st.pa, st.pb), 1); }
+    };
+    function f(p) {
+      var q = z(p[0], p[1]), o;
+      if (st.modo === "trasl") o = z(q.a + st.ca, q.b + st.cb);
+      else if (st.modo === "homot") o = z(st.r * q.a, st.r * q.b);
+      else if (st.modo === "giro") o = mul(z(Math.cos(st.al * R), Math.sin(st.al * R)), q);
+      else if (st.modo === "conj") o = z(q.a, -q.b);
+      else if (st.modo === "conjn") o = z(-q.a, -q.b);
+      else if (st.modo === "bis") o = z(q.b, q.a);
+      else { var c = z(st.pa, st.pb), d = mul(z(st.r * Math.cos(st.al * R), st.r * Math.sin(st.al * R)), z(q.a - c.a, q.b - c.b)); o = z(c.a + d.a, c.b + d.b); }
+      return [o.a, o.b];
+    }
+    var TIPO = {
+      trasl: ["Traslación", "sí", "sí", "Todos los puntos se desplazan el mismo vector: sumar un complejo."],
+      homot: ["Homotecia de centro 0 y razón k", "se multiplican por |k|", "sí si k &gt; 0 · no si k &lt; 0 (gira 180°)", "Multiplicar por un real k estira (|k| &gt; 1) o encoge (|k| &lt; 1) la figura; si k es negativo además la gira 180°."],
+      giro: ["Giro de centro 0 y ángulo α", "sí", "sí", "Multiplicar por 1<sub>α</sub> suma α al argumento de todos los puntos y deja intacto el módulo."],
+      conj: ["Simetría respecto del eje real", "sí", "no: invierte", "Conjugar cambia el signo de la parte imaginaria: cada punto pasa a su simétrico respecto del eje real. La F se ve «de espaldas»."],
+      conjn: ["Simetría respecto del eje imaginario", "sí", "no: invierte", "−z̄ = −a + bi: cambia el signo de la parte real. Es conjugar y después girar 180°."],
+      bis: ["Simetría respecto de la recta y = x", "sí", "no: invierte", "i·z̄ = i(a − bi) = b + ai: intercambia la parte real y la imaginaria, es decir, refleja respecto de la bisectriz del primer cuadrante."],
+      semej: ["Semejanza: giro y homotecia de centro c", "se multiplican por |k|", "sí si k &gt; 0", "Se lleva c al origen (z − c), se gira y se estira (· k·1<sub>α</sub>) y se devuelve a su sitio (+ c). El punto c queda fijo."]
+    };
+    function pinta() {
+      Object.keys(S).forEach(function (k) { S[k].el.style.display = k === "t" || MOSTRAR[st.modo].indexOf(k) >= 0 ? "" : "none"; });
+      if (st.modo === "trasl") { S.ca.el.querySelector(".sl-et").innerHTML = "Re de c"; S.cb.el.querySelector(".sl-et").innerHTML = "Im de c"; }
+      var t = st.t, img = EFE.map(function (p) { var q = f(p); return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]; });
+      var mx = 5; EFE.concat(img).forEach(function (p) { mx = Math.max(mx, Math.abs(p[0]), Math.abs(p[1])); });
+      var m = Math.ceil(mx * 1.15);
+      g.limpiar(); g.rangoIso(0, 0, m);
+      if (st.modo === "conj") g.segmento(-3 * m, 0, 3 * m, 0, { clase: "c-hl", dash: "6 4" }).setAttribute("stroke-width", 2.5);
+      if (st.modo === "conjn") g.segmento(0, -3 * m, 0, 3 * m, { clase: "c-hl", dash: "6 4" }).setAttribute("stroke-width", 2.5);
+      if (st.modo === "bis") g.segmento(-3 * m, -3 * m, 3 * m, 3 * m, { clase: "c-hl", dash: "6 4" }).setAttribute("stroke-width", 2.5);
+      g.poligono(EFE, { clase: "z-pen", borde: "var(--pen)" });
+      g.poligono(img, { clase: "z-red", borde: "var(--red)" });
+      var z0 = EFE[0], w0 = f(z0), p0 = img[0];
+      g.segmento(z0[0], z0[1], p0[0], p0[1], { clase: "c-faint", dash: "3 4" });
+      g.punto(z0[0], z0[1], { r: 5, clase: "c-pen" }); g.texto(z0[0], z0[1], "z", { dx: -14, dy: 14, clase: "pen" });
+      g.punto(p0[0], p0[1], { r: 5, clase: "c-red" }); g.texto(p0[0], p0[1], "f(z)", { dx: 7, dy: -7, clase: "red" });
+      if (st.modo === "semej") { g.punto(st.pa, st.pb, { r: 5, clase: "c-ok" }); g.texto(st.pa, st.pb, "c", { dx: 7, dy: 14, clase: "ok" }); }
+      if (st.modo === "giro" || st.modo === "homot") { g.punto(0, 0, { r: 4, clase: "c-ok" }); }
+      var tp = TIPO[st.modo];
+      lectura.innerHTML = U.lec("Transformación", TEXTO[st.modo](), "red") + U.lec("z = 1 + i", "f(z) = " + C.txt(z(w0[0], w0[1]), 3), "pen") + U.lec("Tipo", tp[0]) + U.lec("¿Conserva distancias?", tp[1], tp[1] === "sí" ? "ok" : "") + U.lec("¿Conserva la orientación?", tp[2]);
+      pie.innerHTML = tp[3] + " Azul: la figura original. Rojo: su imagen (mueve «De z a f(z)» para ver el recorrido).";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -6, xmax: 6, ymin: -6, ymax: 6, w: 420, h: 380, etx: "Re", ety: "Im", etiqueta: "Una figura y su imagen por una transformación compleja" });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "trasl", t: "z + c" }, { k: "homot", t: "k·z" }, { k: "giro", t: "e<sup>iα</sup>·z" }, { k: "conj", t: "z̄" }, { k: "conjn", t: "−z̄" }, { k: "bis", t: "i·z̄" }, { k: "semej", t: "giro de centro c" }], st.modo, function (k) { st.modo = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // JULIA: cada punto c del plano tiene su conjunto de Julia
+  // ============================================================
+  B.w.julia = function (host) {
+    var C = B.lab.cx;
+    var cuerpo = B.caja(host, "Curiosidad", "Conjuntos de Julia: z → z² + c");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="mb-fila"><canvas class="mb-cv" data-m width="300" height="225" role="img" aria-label="Conjunto de Mandelbrot: arrastra para elegir el parámetro c"></canvas><canvas class="mb-cv" data-j width="300" height="225" role="img" aria-label="Conjunto de Julia del parámetro c elegido" style="cursor:default"></canvas></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var cm = cuerpo.querySelector("[data-m]"), cj = cuerpo.querySelector("[data-j]"), mctx = cm.getContext && cm.getContext("2d"), jctx = cj.getContext && cj.getContext("2d");
+    var lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    var st = { a: -0.12, b: 0.74 }, MAXI = 50, base = null;
+    var MX0 = -2.2, MX1 = 0.8, MY0 = -1.125, MY1 = 1.125, JX0 = -1.8, JX1 = 1.8, JY0 = -1.35, JY1 = 1.35;
+    var sA = U.slider(ctl, { et: "Re(c)", min: -1.5, max: 1.5, step: 0.01, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    var sB = U.slider(ctl, { et: "Im(c)", min: -1.5, max: 1.5, step: 0.01, val: st.b, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    function color(img, o, n) {
+      if (n >= MAXI) { img.data[o] = 18; img.data[o + 1] = 22; img.data[o + 2] = 48; }
+      else { var t = n / MAXI; img.data[o] = 240 * Math.min(1, t * 4); img.data[o + 1] = 200 * Math.min(1, t * 3); img.data[o + 2] = 120 + 135 * (1 - t); }
+      img.data[o + 3] = 255;
+    }
+    function dibujaM() {
+      if (!mctx) return;
+      var w = cm.width, h = cm.height, img = mctx.createImageData(w, h);
+      for (var py = 0; py < h; py++) for (var px = 0; px < w; px++) {
+        var ca = MX0 + (MX1 - MX0) * px / w, cb = MY1 - (MY1 - MY0) * py / h, za = 0, zb = 0, n = 0;
+        while (n < MAXI && za * za + zb * zb <= 4) { var t = za * za - zb * zb + ca; zb = 2 * za * zb + cb; za = t; n++; }
+        color(img, (py * w + px) * 4, n);
+      }
+      base = img;
+    }
+    function pintaM() {
+      if (!mctx) return;
+      if (!base) dibujaM();
+      mctx.putImageData(base, 0, 0);
+      var px = (st.a - MX0) / (MX1 - MX0) * cm.width, py = (MY1 - st.b) / (MY1 - MY0) * cm.height;
+      mctx.beginPath(); mctx.arc(px, py, 6, 0, 2 * Math.PI); mctx.fillStyle = "#e0245e"; mctx.fill(); mctx.strokeStyle = "#fff"; mctx.lineWidth = 2; mctx.stroke();
+    }
+    function pintaJ() {
+      if (!jctx) return 0;
+      var w = cj.width, h = cj.height, img = jctx.createImageData(w, h), dentro = 0;
+      for (var py = 0; py < h; py++) for (var px = 0; px < w; px++) {
+        var za = JX0 + (JX1 - JX0) * px / w, zb = JY1 - (JY1 - JY0) * py / h, n = 0;
+        while (n < MAXI && za * za + zb * zb <= 4) { var t = za * za - zb * zb + st.a; zb = 2 * za * zb + st.b; za = t; n++; }
+        if (n >= MAXI) dentro++;
+        color(img, (py * w + px) * 4, n);
+      }
+      jctx.putImageData(img, 0, 0);
+      return dentro / (w * h);
+    }
+    function enM(c) { var za = 0, zb = 0, n = 0; while (n < 300 && za * za + zb * zb <= 4) { var t = za * za - zb * zb + c.a; zb = 2 * za * zb + c.b; za = t; n++; } return n >= 300; }
+    function pinta() {
+      pintaM();
+      var frac = pintaJ(), dentro = enM(z(st.a, st.b));
+      lectura.innerHTML = U.lec("Parámetro c", C.txt(z(st.a, st.b), 2), "red") +
+        U.lec("¿c está en el conjunto de Mandelbrot?", dentro ? "sí" : "no", dentro ? "ok" : "red") +
+        U.lec("Conjunto de Julia", dentro ? "conexo: una sola pieza" : "disperso: polvo de puntos", dentro ? "ok" : "red") +
+        U.lec("Puntos que no escapan", fmt(frac * 100, 1) + " %");
+      pie.innerHTML = "A la izquierda, el conjunto de Mandelbrot (arrastra el punto rojo para elegir <b>c</b>). A la derecha, el <b>conjunto de Julia de c</b>: los puntos z₀ cuya órbita z → z² + c no escapa al infinito (zona oscura); el color indica lo rápido que escapan los demás. Si c está dentro de Mandelbrot, el conjunto de Julia es de una sola pieza; si está fuera, se rompe en polvo.";
+    }
+    function elige(e) {
+      var rc = cm.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width, py = (e.clientY - rc.top) / rc.height;
+      st.a = Math.max(-1.5, Math.min(1.5, Math.round((MX0 + (MX1 - MX0) * px) * 100) / 100)); st.b = Math.max(-1.5, Math.min(1.5, Math.round((MY1 - (MY1 - MY0) * py) * 100) / 100));
+      sA.set(st.a); sB.set(st.b); pinta();
+    }
+    var down = false;
+    cm.addEventListener("pointerdown", function (e) { down = true; try { cm.setPointerCapture(e.pointerId); } catch (x) {} elige(e); });
+    cm.addEventListener("pointermove", function (e) { if (down) elige(e); });
+    cm.addEventListener("pointerup", function () { down = false; });
+    cm.addEventListener("pointercancel", function () { down = false; });
+    var PRE = [[-0.12, 0.74, "Conejo de Douady"], [0, 0, "Círculo (c = 0)"], [0, 1, "Dendrita (c = i)"], [-0.8, 0.16, "Dragón"], [-0.4, 0.6, "Galaxia"], [0.5, 0.55, "Polvo (c fuera)"]];
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE.map(function (p, i) { return { k: String(i), t: p[2] }; }), "0", function (k) { var p = PRE[+k]; st.a = p[0]; st.b = p[1]; sA.set(p[0]); sB.set(p[1]); pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de energía (Física y Química I, tema 12)
    datos B.lab.ener · f12_trabajo · f12_fx · f12_rampa · f12_montana · f12_pendulo
    f12_lanzamiento · f12_potencia · f12_sankey · f12_unidades
@@ -16442,6 +16646,234 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de rectas II (Matemáticas I, tema 8)
+   proglineal · haz · equilibrio
+   Es autónomo: no depende del orden de carga de los archivos lab_*.js.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  var R = Math.PI / 180;
+  function cero(x) { return Math.abs(x) < 1e-9 ? 0 : x; }
+  function entero(x) { return Math.abs(x - Math.round(x)) < 1e-9; }
+  function snap(v, lim) { v = Math.round(v * 2) / 2; return Math.max(-lim, Math.min(lim, v)); }
+  function asa(g, get, set, clase, etq, lim) {
+    var h = g.punto(0, 0, { capa: "top", r: 9, clase: clase });
+    g.arrastrar(h, function (x, y, tecla) { var p = get(); if (tecla) set(snap(x, lim), p[1]); else set(snap(x, lim), snap(y, lim)); }, { get: function () { return get()[0]; }, paso: 0.5, etiqueta: etq });
+    return h;
+  }
+  function etq(g, p, t, clase, dx, dy) { g.texto(p[0], p[1], t, { dx: dx == null ? 8 : dx, dy: dy == null ? -8 : dy, clase: clase }); }
+  function pt(p) { var d = entero(p[0]) && entero(p[1]) ? 0 : 2; return "(" + fmt(cero(p[0]), d) + (d ? "; " : ", ") + fmt(cero(p[1]), d) + ")"; }
+  // Ecuación Ax + By + C = 0 bien escrita
+  function ec(A, Bc, C, d) {
+    d = d == null ? 2 : d;
+    function term(c, v, primero) {
+      c = Math.abs(c) < 5e-3 ? 0 : c; if (c === 0) return "";
+      var a = Math.abs(c), s = c < 0 ? "−" : (primero ? "" : "+"), n = Math.abs(a - 1) < 1e-9 ? "" : fmt(a, d);
+      return (primero ? s : " " + s + " ") + n + v;
+    }
+    var t = term(A, "x", true); t += term(Bc, "y", t === "");
+    if (Math.abs(C) >= 5e-3) t += (t === "" ? (C < 0 ? "−" : "") : (C < 0 ? " − " : " + ")) + fmt(Math.abs(C), d);
+    return (t === "" ? "0" : t) + " = 0";
+  }
+  function recta(g, A, Bc, C, clase, dash) {   // dibuja la recta completa Ax + By + C = 0
+    var e = 400, l;
+    if (Math.abs(Bc) < 1e-12) { var x = -C / A; l = g.segmento(x, -e, x, e, { clase: clase, dash: dash }); }
+    else l = g.segmento(-e, (-A * -e - C) / Bc, e, (-A * e - C) / Bc, { clase: clase, dash: dash });
+    return l;
+  }
+
+  // ============================================================
+  // PROGLINEAL: optimizar una función lineal sobre una región (los óptimos están en los vértices)
+  // ============================================================
+  var BIG = 100;
+  var PL = [
+    { n: "Cultivos (máximo)", tipo: "max", p: 4, q: 3, ver: [12, 14],
+      cons: [[1, 1, "<=", 12, "x + y ≤ 12"], [2, 1, "<=", 18, "2x + y ≤ 18"], [1, 0, ">=", 2, "x ≥ 2"], [0, 1, ">=", 0, "y ≥ 0"]],
+      txt: "x e y son las hectáreas de trigo y de maíz: hay 12 ha, 18 horas de trabajo (2 h por ha de trigo y 1 h por ha de maíz) y al menos 2 ha de trigo. F = 4x + 3y es el beneficio en centenas de euros." },
+    { n: "Piensos (mínimo, región no acotada)", tipo: "min", p: 3, q: 4, ver: [12, 14],
+      cons: [[2, 1, ">=", 12, "2x + y ≥ 12"], [1, 2, ">=", 9, "x + 2y ≥ 9"], [1, 0, ">=", 0, "x ≥ 0"], [0, 1, ">=", 0, "y ≥ 0"]],
+      txt: "x e y son los kilos de dos piensos que deben aportar al menos 12 unidades de proteína (2 por kg de A, 1 por kg de B) y 9 de fibra (1 y 2). F = 3x + 4y es el coste en euros: se busca el mínimo." },
+    { n: "Infinitas soluciones", tipo: "max", p: 1, q: 1, ver: [12, 14],
+      cons: [[1, 1, "<=", 12, "x + y ≤ 12"], [2, 1, "<=", 18, "2x + y ≤ 18"], [1, 0, ">=", 2, "x ≥ 2"], [0, 1, ">=", 0, "y ≥ 0"]],
+      txt: "Con F = x + y, las rectas de nivel son paralelas al lado x + y = 12 y el máximo se alcanza en todos los puntos de ese lado." },
+    { n: "Sin solución", tipo: "max", p: 1, q: 1, ver: [8, 8],
+      cons: [[1, 1, "<=", 2, "x + y ≤ 2"], [1, 1, ">=", 5, "x + y ≥ 5"], [1, 0, ">=", 0, "x ≥ 0"], [0, 1, ">=", 0, "y ≥ 0"]],
+      txt: "Las condiciones x + y ≤ 2 y x + y ≥ 5 se contradicen: la región factible es vacía y el problema no tiene solución." }
+  ];
+  B.w.proglineal = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Programación lineal: el óptimo está en un vértice");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { i: 0, p: PL[0].p, q: PL[0].q, k: 20, tipo: PL[0].tipo }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var opt = null;
+    var sP = U.slider(ctl, { et: "Coef. de x en F", min: -6, max: 6, step: 0.5, val: st.p, on: function (v) { st.p = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    var sQ = U.slider(ctl, { et: "Coef. de y en F", min: -6, max: 6, step: 0.5, val: st.q, on: function (v) { st.q = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    var sK = U.slider(ctl, { et: "Nivel F = k", min: -20, max: 100, step: 0.5, val: st.k, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.boton(ctl, "Ir al óptimo", function () { if (opt !== null) { st.k = Math.max(-20, Math.min(100, opt)); sK.set(st.k); pinta(); } });
+    function recorta(poly, h) {
+      var out = [];
+      for (var i = 0; i < poly.length; i++) {
+        var P = poly[i], Qn = poly[(i + 1) % poly.length], fp = h.a * P[0] + h.b * P[1] - h.c, fq = h.a * Qn[0] + h.b * Qn[1] - h.c;
+        if (fp <= 1e-9) out.push(P);
+        if ((fp < -1e-9 && fq > 1e-9) || (fp > 1e-9 && fq < -1e-9)) { var t = fp / (fp - fq); out.push([P[0] + t * (Qn[0] - P[0]), P[1] + t * (Qn[1] - P[1])]); }
+      }
+      return out;
+    }
+    function unicos(pts) { var o = []; pts.forEach(function (p) { if (!o.some(function (q) { return Math.abs(q[0] - p[0]) < 1e-7 && Math.abs(q[1] - p[1]) < 1e-7; })) o.push(p); }); return o; }
+    function pinta() {
+      var pr = PL[st.i], H = pr.cons.map(function (c) { return c[2] === "<=" ? { a: c[0], b: c[1], c: c[3] } : { a: -c[0], b: -c[1], c: -c[3] }; });
+      var poly = [[-BIG, -BIG], [BIG, -BIG], [BIG, BIG], [-BIG, BIG]];
+      H.forEach(function (h) { poly = recorta(poly, h); });
+      poly = unicos(poly);
+      var vacia = poly.length < 3;
+      var ver = [];
+      if (!vacia) {
+        for (var i = 0; i < H.length; i++) for (var j = i + 1; j < H.length; j++) {
+          var D = H[i].a * H[j].b - H[j].a * H[i].b; if (Math.abs(D) < 1e-12) continue;
+          var x = (H[i].c * H[j].b - H[j].c * H[i].b) / D, y = (H[i].a * H[j].c - H[j].a * H[i].c) / D;
+          if (H.every(function (h) { return h.a * x + h.b * y - h.c <= 1e-7; })) ver.push([x, y]);
+        }
+        ver = unicos(ver);
+      }
+      var nulo = st.p === 0 && st.q === 0;
+      var F = function (p) { return st.p * p[0] + st.q * p[1]; };
+      var noAcot = !vacia && poly.some(function (p) { return Math.abs(p[0]) > BIG - 1e-6 || Math.abs(p[1]) > BIG - 1e-6; });
+      var mejores = [], sinOptimo = false, mejor = null;
+      if (!vacia && !nulo) {
+        var signo = st.tipo === "max" ? 1 : -1;
+        mejor = Math.max.apply(null, poly.map(function (p) { return signo * F(p); })) * signo;
+        var emp = poly.filter(function (p) { return Math.abs(F(p) - mejor) < 1e-7; });
+        if (emp.some(function (p) { return Math.abs(p[0]) > BIG - 1e-6 || Math.abs(p[1]) > BIG - 1e-6; })) sinOptimo = true; else mejores = emp;
+      }
+      opt = (!vacia && !nulo && !sinOptimo) ? mejor : null;
+      g.limpiar(); g.rango(-1, pr.ver[0], -1, pr.ver[1]);
+      if (!vacia) g.poligono(poly, { clase: "z-ok", borde: "var(--ok)", grosor: 1.2 });
+      pr.cons.forEach(function (c) { recta(g, c[0], c[1], -c[3], "c-red"); });
+      if (!nulo) { var l = recta(g, st.p, st.q, -st.k, "c-pen", "7 4"); l.setAttribute("stroke-width", 3); }
+      ver.forEach(function (v) {
+        var es = mejores.some(function (m) { return Math.abs(m[0] - v[0]) < 1e-7 && Math.abs(m[1] - v[1]) < 1e-7; });
+        g.punto(v[0], v[1], { r: es ? 8 : 5, clase: es ? "c-ok" : "c-ink" });
+        if (!nulo) g.texto(v[0], v[1], "F=" + fmt(F(v), 1).replace(",0", ""), { dx: 9, dy: -9, clase: es ? "ok" : "faint" });
+      });
+      var cards = "";
+      if (vacia) cards = U.lec("Región factible", "vacía: no hay solución", "red");
+      else {
+        cards = U.lec("Función objetivo", "F = " + fmt(st.p, 1) + "·x " + (st.q < 0 ? "− " : "+ ") + fmt(Math.abs(st.q), 1) + "·y · " + (st.tipo === "max" ? "máximo" : "mínimo"), "pen") + U.lec("Región", (noAcot ? "no acotada" : "acotada") + " · " + ver.length + " vértices");
+        ver.slice(0, 6).forEach(function (v) { var es = mejores.some(function (m) { return Math.abs(m[0] - v[0]) < 1e-7 && Math.abs(m[1] - v[1]) < 1e-7; }); cards += U.lec("Vértice " + pt(v), "F = " + fmt(F(v), 2), es ? "ok" : ""); });
+        cards += U.lec("Solución", nulo ? "F = 0 en todas partes" : sinOptimo ? "no hay " + (st.tipo === "max" ? "máximo" : "mínimo") + " (F mejora sin límite)" : mejores.length > 1 ? "infinitas: todo el lado entre " + pt(mejores[0]) + " y " + pt(mejores[1]) + " (F = " + fmt(mejor, 2) + ")" : (st.tipo === "max" ? "máximo" : "mínimo") + " en " + pt(mejores[0]) + ": F = " + fmt(mejor, 2), sinOptimo ? "red" : "ok");
+      }
+      lectura.innerHTML = cards;
+      pie.innerHTML = pr.txt + " <b>Restricciones:</b> " + pr.cons.map(function (c) { return c[4]; }).join(" · ") + ". Mueve el <b>nivel k</b>: la recta discontinua azul F = k se desplaza paralelamente a sí misma; el último punto de la región que toca es la solución, y siempre es un <b>vértice</b> (o un lado entero si la recta de nivel es paralela a él). Cambia los coeficientes para girar las rectas de nivel y ver cómo el óptimo salta de un vértice a otro.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 12, ymin: -1, ymax: 14, w: 540, h: 400, etx: "x", ety: "y", etiqueta: "Región factible y recta de nivel de la función objetivo" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PL.map(function (p, i) { return { k: String(i), t: p.n }; }), "0", function (k) {
+      st.i = +k; st.p = PL[st.i].p; st.q = PL[st.i].q; st.tipo = PL[st.i].tipo; sP.set(st.p); sQ.set(st.q); pinta();
+    });
+    pinta();
+  };
+
+  // ============================================================
+  // HAZ: todas las rectas por un punto, por la intersección de dos rectas, o paralelas
+  // ============================================================
+  var PARES = [[[1, 1, -4], [1, -1, 0]], [[2, -1, -1], [1, 2, -8]]];
+  B.w.haz = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Haz de rectas");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { modo: "centro", P: [1, 2], al: 45, par: 0, k: 1, Q: [3, -1], kp: 2 }, g, hP, hQ, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var S = {};
+    function sl(k, et, mn, mx, stp, f) { S[k] = U.slider(ctl, { et: et, min: mn, max: mx, step: stp, val: st[k], on: function (v) { st[k] = v; pinta(); }, fmt: f }); }
+    sl("al", "Ángulo de la recta", 0, 179, 1, function (v) { return v + "°"; });
+    sl("k", "Parámetro <i>k</i>", -4, 4, 0.25, function (v) { return fmt(v, 2); });
+    sl("kp", "Término k", -10, 10, 0.5, function (v) { return fmt(v, 1); });
+    var MOSTRAR = { centro: ["al"], inters: ["k"], paral: ["kp"] };
+    function pinta() {
+      Object.keys(S).forEach(function (k) { S[k].el.style.display = MOSTRAR[st.modo].indexOf(k) >= 0 ? "" : "none"; });
+      hP.style.display = st.modo === "centro" ? "" : "none"; hQ.style.display = st.modo === "inters" ? "" : "none";
+      g.limpiar();
+      var txt = "";
+      if (st.modo === "centro") {
+        g.mover(hP, st.P[0], st.P[1]);
+        for (var a = 0; a < 180; a += 15) { var m0 = Math.tan(a * R); if (a === 90) recta(g, 1, 0, -st.P[0], "c-faint", "2 4"); else recta(g, m0, -1, st.P[1] - m0 * st.P[0], "c-faint", "2 4"); }
+        var vert = st.al === 90, m = Math.tan(st.al * R), A, Bc, C;
+        if (vert) { A = 1; Bc = 0; C = -st.P[0]; } else { A = m; Bc = -1; C = st.P[1] - m * st.P[0]; }
+        var l = recta(g, A, Bc, C, "c-red"); l.setAttribute("stroke-width", 3);
+        g.punto(st.P[0], st.P[1], { r: 6, clase: "c-pen" }); etq(g, st.P, "P", "pen");
+        lectura.innerHTML = U.lec("Centro del haz P", pt(st.P), "pen") + U.lec("Pendiente m = tan α", vert ? "no existe (vertical)" : fmt(m, 3), "red") +
+          U.lec("Recta del haz", vert ? "x = " + fmt(st.P[0], 1) : "y − " + (st.P[1] < 0 ? "(" + fmt(st.P[1], 1) + ")" : fmt(st.P[1], 1)) + " = " + fmt(m, 2) + "·(x − " + (st.P[0] < 0 ? "(" + fmt(st.P[0], 1) + ")" : fmt(st.P[0], 1)) + ")") + U.lec("En forma general", ec(A, Bc, C, 2), "ok");
+        pie.innerHTML = "Las rectas que pasan por un punto P forman un <b>haz central</b>: y − y₀ = m·(x − x₀), una recta distinta para cada pendiente m (y la vertical x = x₀, que no tiene pendiente). Arrastra P y gira la recta con el ángulo.";
+      } else if (st.modo === "inters") {
+        var r = PARES[st.par][0], s = PARES[st.par][1], D = r[0] * s[1] - s[0] * r[1], P = [(r[1] * s[2] - s[1] * r[2]) / D, (s[0] * r[2] - r[0] * s[2]) / D];
+        g.mover(hQ, st.Q[0], st.Q[1]);
+        var rr = recta(g, r[0], r[1], r[2], "c-pen"); rr.setAttribute("stroke-width", 2.5); var ss = recta(g, s[0], s[1], s[2], "c-red"); ss.setAttribute("stroke-width", 2.5);
+        var A1 = r[0] + st.k * s[0], B1 = r[1] + st.k * s[1], C1 = r[2] + st.k * s[2];
+        var h1 = recta(g, A1, B1, C1, "c-ok"); h1.setAttribute("stroke-width", 3.5);
+        var fs = s[0] * st.Q[0] + s[1] * st.Q[1] + s[2], fr = r[0] * st.Q[0] + r[1] * st.Q[1] + r[2];
+        var kq = Math.abs(fs) < 1e-9 ? null : -fr / fs;
+        if (kq !== null) recta(g, r[0] + kq * s[0], r[1] + kq * s[1], r[2] + kq * s[2], "c-ink", "6 4");
+        g.punto(P[0], P[1], { r: 6, clase: "c-ink" }); etq(g, P, "P" + " " + pt(P), "faint", 8, 16);
+        g.punto(st.Q[0], st.Q[1], { r: 4, clase: "c-ink" });
+        lectura.innerHTML = U.lec("r (azul)", ec(r[0], r[1], r[2], 0), "pen") + U.lec("s (roja)", ec(s[0], s[1], s[2], 0), "red") + U.lec("Se cortan en P", pt(P)) +
+          U.lec("r + k·s = 0 con k = " + fmt(st.k, 2), ec(A1, B1, C1, 2), "ok") +
+          U.lec("Recta del haz por Q = " + pt(st.Q), kq === null ? "es s (k → ∞)" : "k = " + fmt(kq, 3), "");
+        pie.innerHTML = "Si r: A₁x + B₁y + C₁ = 0 y s: A₂x + B₂y + C₂ = 0 se cortan en P, la ecuación <b>r + k·s = 0</b> da (variando k) todas las rectas que pasan por P (salvo s). Sirve para hallar la recta por la intersección <i>sin calcular P</i>: se arrastra Q (punto negro) y la recta discontinua es la del haz que pasa por Q, con k = −r(Q)/s(Q).";
+      } else {
+        var n = [2, 1];
+        for (var c = -10; c <= 10; c += 2) recta(g, n[0], n[1], c, "c-faint", "2 4");
+        var lp = recta(g, n[0], n[1], st.kp, "c-red"); lp.setAttribute("stroke-width", 3);
+        var nn = Math.hypot(n[0], n[1]);
+        U.flecha(g, 0, 0, n[0] / nn * 1.5, n[1] / nn * 1.5, { clase: "c-pen" }); etq(g, [n[0] / nn * 1.5, n[1] / nn * 1.5], "n", "pen");
+        lectura.innerHTML = U.lec("Recta del haz", ec(n[0], n[1], st.kp, 1), "red") + U.lec("Vector normal común", "n = (2, 1)", "pen") + U.lec("Distancia al origen |k|/|n|", fmt(Math.abs(st.kp) / nn, 3), "ok") + U.lec("Separación entre k y k + 1", fmt(1 / nn, 3));
+        pie.innerHTML = "Las rectas <b>paralelas</b> a Ax + By + C = 0 forman el haz Ax + By + k = 0: comparten el vector normal (A, B) y solo cambia el término independiente k. La distancia entre dos de ellas, k₁ y k₂, es |k₁ − k₂|/√(A² + B²).";
+      }
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 520, h: 380, etx: "x", ety: "y", etiqueta: "Haz de rectas" });
+    g.rangoIso(0, 0, 6.5);
+    hP = asa(g, function () { return st.P; }, function (x, y) { st.P = [x, y]; pinta(); }, "c-pen", "Centro del haz", 6);
+    hQ = asa(g, function () { return st.Q; }, function (x, y) { st.Q = [x, y]; pinta(); }, "c-ok", "Punto por el que debe pasar la recta", 6);
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "centro", t: "Rectas por un punto" }, { k: "inters", t: "r + k·s = 0" }, { k: "paral", t: "Paralelas" }], st.modo, function (k) { st.modo = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // EQUILIBRIO: modelos lineales de coste e ingreso
+  // ============================================================
+  B.w.equilibrio = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Coste, ingreso y punto de equilibrio");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { F: 3000, c: 12, p: 20, x: 250 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var S = {};
+    function sl(k, et, mn, mx, stp, f) { S[k] = U.slider(ctl, { et: et, min: mn, max: mx, step: stp, val: st[k], on: function (v) { st[k] = v; pinta(); }, fmt: f }); }
+    var eur = function (v) { return fmt(v, 0) + " €"; }, eur1 = function (v) { return fmt(v, 1) + " €"; };
+    sl("F", "Costes fijos", 0, 6000, 100, eur); sl("c", "Coste por unidad", 0, 40, 0.5, eur1); sl("p", "Precio por unidad", 0, 60, 0.5, eur1); sl("x", "Unidades <i>x</i>", 0, 800, 10, function (v) { return fmt(v, 0); });
+    function pinta() {
+      var F = st.F, c = st.c, p = st.p, x = st.x, hay = p > c + 1e-9, xe = hay ? F / (p - c) : null, ye = hay ? p * xe : null;
+      var xmax = Math.max(100, Math.ceil((hay ? 2 * xe : 600) / 100) * 100); xmax = Math.min(xmax, 4000);
+      var C = function (u) { return F + c * u; }, I = function (u) { return p * u; };
+      var ymax = Math.max(C(xmax), I(xmax), 100) * 1.08;
+      g.limpiar(); g.rango(0, xmax, 0, ymax);
+      if (hay && xe < xmax) {
+        g.poligono([[0, F], [xe, ye], [0, 0]], { clase: "z-red" });
+        g.poligono([[xe, ye], [xmax, I(xmax)], [xmax, C(xmax)]], { clase: "z-ok" });
+      } else g.poligono([[0, F], [xmax, C(xmax)], [xmax, I(xmax)], [0, 0]], { clase: "z-red" });
+      var lc = g.segmento(0, C(0), xmax, C(xmax), { clase: "c-red" }); lc.setAttribute("stroke-width", 3); var li = g.segmento(0, 0, xmax, I(xmax), { clase: "c-pen" }); li.setAttribute("stroke-width", 3);
+      g.texto(xmax, C(xmax), "Coste", { dx: -4, dy: -8, ancla: "end", clase: "red" }); g.texto(xmax, I(xmax), "Ingreso", { dx: -4, dy: 16, ancla: "end", clase: "pen" });
+      if (hay && xe <= xmax) { g.punto(xe, ye, { r: 7, clase: "c-ok" }); g.texto(xe, ye, "equilibrio", { dx: 10, dy: 16, clase: "ok" }); }
+      g.segmento(Math.min(x, xmax), 0, Math.min(x, xmax), ymax, { clase: "c-hl", dash: "4 4" }); g.punto(Math.min(x, xmax), C(x), { r: 5, clase: "c-red" }); g.punto(Math.min(x, xmax), I(x), { r: 5, clase: "c-pen" });
+      var Bx = I(x) - C(x);
+      lectura.innerHTML = U.lec("Coste C(x) = " + fmt(F, 0) + " + " + fmt(c, 1) + "·x", fmt(C(x), 0) + " €", "red") + U.lec("Ingreso I(x) = " + fmt(p, 1) + "·x", fmt(I(x), 0) + " €", "pen") +
+        U.lec("Beneficio B(x) = I − C", (Bx >= 0 ? "+" : "−") + fmt(Math.abs(Bx), 0) + " € " + (Bx >= 0 ? "(ganas)" : "(pierdes)"), Bx >= 0 ? "ok" : "red") +
+        U.lec("Margen por unidad p − c", fmt(p - c, 1) + " €") +
+        U.lec("Punto de equilibrio", hay ? "x* = " + fmt(xe, 1) + " unidades (" + fmt(ye, 0) + " €)" : "no existe: p ≤ c", hay ? "ok" : "red");
+      pie.innerHTML = "El coste es una recta <b>C(x) = costes fijos + c·x</b> y el ingreso otra, <b>I(x) = p·x</b>. Donde se cortan (<b>punto de equilibrio</b>) C(x) = I(x), es decir, x* = costes fijos/(p − c): antes se pierde dinero (zona roja) y después se gana (zona verde). La pendiente de cada recta es lo que cuesta o lo que se cobra por cada unidad; la ordenada en el origen del coste son los gastos que hay que pagar aunque no se venda nada.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 800, ymin: 0, ymax: 20000, w: 540, h: 380, etx: "unidades", ety: "€", etiqueta: "Rectas de coste e ingreso y punto de equilibrio" });
+    var PRE = [["Taller", 3000, 12, 20, 250], ["Imprenta", 2000, 5, 9, 300], ["Margen pequeño", 1500, 18, 20, 400], ["Precio bajo", 1000, 15, 12, 200]];
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE.map(function (q, i) { return { k: String(i), t: q[0] }; }), "0", function (k) { var q = PRE[+k]; st.F = q[1]; st.c = q[2]; st.p = q[3]; st.x = q[4]; S.F.set(q[1]); S.c.set(q[2]); S.p.set(q[3]); S.x.set(q[4]); pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de sucesiones (Matemáticas I, tema 2)
    sucesion · aritmetica · geometrica · rebote · fibonacci
    ============================================================ */
@@ -18608,6 +19040,162 @@
     }
     g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -3, xmax: 14, ymin: -8, ymax: 8, w: 520, h: 330, etx: "", ety: "", limpio: true, etiqueta: "Fuerza, desplazamiento y trabajo" });
     g.rangoIso(4, 0, 6.5);
+    pinta();
+  };
+})(window);
+
+/* ============================================================
+   Bachi para Firu · laboratorio de vectores II (Matemáticas I, tema 7; también sirve a Física)
+   descomposicion · ejesgirados · moviles
+   Usa el motor B.lab.vec de lab_vectores.js (se consulta al montar el widget,
+   así que no importa el orden de carga de los archivos lab_*.js).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  var R = Math.PI / 180;
+  function cero(x) { return Math.abs(x) < 1e-12 ? 0 : x; }
+  function snap(v, lim) { v = Math.round(v * 2) / 2; return Math.max(-lim, Math.min(lim, v)); }
+  function txt(u, d) { d = d == null ? 2 : d; return "(" + fmt(cero(u[0]), d) + ", " + fmt(cero(u[1]), d) + ")"; }
+  // Punto asible con ajuste a la cuadrícula de 0,5
+  function asa(g, get, set, clase, etq, lim, r) {
+    var h = g.punto(0, 0, { capa: "top", r: r || 9, clase: clase });
+    g.arrastrar(h, function (x, y, tecla) { var p = get(); if (tecla) set(snap(x, lim), p[1]); else set(snap(x, lim), snap(y, lim)); }, { get: function () { return get()[0]; }, paso: 0.5, etiqueta: etq });
+    return h;
+  }
+  function etiqueta(g, p, t, clase, dx, dy) { g.texto(p[0], p[1], t, { dx: dx == null ? 8 : dx, dy: dy == null ? -8 : dy, clase: clase }); }
+
+  // ============================================================
+  // DESCOMPOSICION: el peso en un plano inclinado (componente paralela y perpendicular)
+  // ============================================================
+  B.w.descomposicion = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Plano inclinado: descomponer el peso");
+    cuerpo.innerHTML = '<div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { al: 30, m: 10, mu: 0.4 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var G = 9.8, L = 7, K = 50;
+    U.slider(ctl, { et: "Inclinación <i>α</i>", min: 0, max: 70, step: 1, val: st.al, on: function (v) { st.al = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    U.slider(ctl, { et: "Masa (kg)", min: 1, max: 20, step: 1, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: String });
+    U.slider(ctl, { et: "Rozamiento μ", min: 0, max: 1, step: 0.05, val: st.mu, on: function (v) { st.mu = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    function pinta() {
+      var a = st.al * R, sn = Math.sin(a), cs = Math.cos(a), P = st.m * G, Pp = P * sn, Pn = P * cs, fmax = st.mu * Pn;
+      var u = [cs, sn], n = [-sn, cs], s0 = 4.4, h = 0.42;
+      var C = [s0 * u[0] + h * n[0], s0 * u[1] + h * n[1]];
+      g.limpiar();
+      g.poligono([[0, 0], [L * cs, 0], [L * cs, L * sn]], { clase: "z-pen", borde: "var(--ink-faint)" });
+      if (st.al > 0) g.arco(L * cs, 0, 1.1, 180 - st.al, 180, { clase: "c-hl" }).setAttribute("stroke-width", 3);
+      if (st.al > 0) g.texto(L * cs - 1.5, 0.3, "α", { clase: "faint" });
+      var cuatro = [[-0.7, -h], [0.7, -h], [0.7, h], [-0.7, h]].map(function (q) { return [C[0] + q[0] * u[0] + q[1] * n[0], C[1] + q[0] * u[1] + q[1] * n[1]]; });
+      g.poligono(cuatro, { clase: "z-ok", borde: "var(--ink)" });
+      var W = [0, -P / K], Wp = [-Pp / K * u[0], -Pp / K * u[1]], Wn = [-Pn / K * n[0], -Pn / K * n[1]];
+      function desde(v) { return [C[0] + v[0], C[1] + v[1]]; }
+      g.segmento(C[0] + W[0], C[1] + W[1], C[0] + Wp[0], C[1] + Wp[1], { clase: "c-faint", dash: "4 4" });
+      g.segmento(C[0] + W[0], C[1] + W[1], C[0] + Wn[0], C[1] + Wn[1], { clase: "c-faint", dash: "4 4" });
+      U.flecha(g, C[0], C[1], C[0] + Wn[0], C[1] + Wn[1], { clase: "c-pen" });
+      U.flecha(g, C[0], C[1], C[0] + Wp[0], C[1] + Wp[1], { clase: "c-red" });
+      U.flecha(g, C[0], C[1], C[0] + W[0], C[1] + W[1], { clase: "c-ink" });
+      var Nv = [Pn / K * n[0], Pn / K * n[1]];
+      U.flecha(g, C[0], C[1], C[0] + Nv[0], C[1] + Nv[1], { clase: "c-ok" });
+      var f = Math.min(Pp, fmax);
+      if (f > 0.5) U.flecha(g, C[0], C[1], C[0] + f / K * u[0], C[1] + f / K * u[1], { clase: "c-faint", grosor: 4 });
+      etiqueta(g, desde(W), "P", "faint", 8, 4); etiqueta(g, desde(Wp), "P∥", "red", -10, 16); etiqueta(g, desde(Wn), "P⊥", "pen", 8, 12); etiqueta(g, desde(Nv), "N", "ok", 8, -6);
+      var desliza = Pp > fmax + 1e-9, acc = G * (sn - st.mu * cs);
+      lectura.innerHTML = U.lec("Peso P = m·g", fmt(P, 1) + " N", "") + U.lec("P∥ = P·sen α (baja por el plano)", fmt(Pp, 1) + " N", "red") +
+        U.lec("P⊥ = P·cos α (aprieta el plano)", fmt(Pn, 1) + " N", "pen") + U.lec("Normal N = P⊥", fmt(Pn, 1) + " N", "ok") +
+        U.lec("Rozamiento máximo μ·N", fmt(fmax, 1) + " N") +
+        U.lec("¿Desliza?", desliza ? "sí · a = " + fmt(acc, 2) + " m/s²" : "no: el rozamiento equilibra P∥", desliza ? "red" : "ok") +
+        U.lec("Ángulo crítico arctan μ", fmt(Math.atan(st.mu) / R, 1) + "°");
+      pie.innerHTML = "El peso P (negro) se descompone en la <b>componente paralela al plano</b> P∥ = P·sen α (roja, la que tira hacia abajo) y la <b>perpendicular</b> P⊥ = P·cos α (azul, la que aprieta contra el plano; la normal N, verde, la equilibra). La flecha gris es el rozamiento. Desliza si P∥ &gt; μ·N, es decir, si <b>tan α &gt; μ</b>. Con α = 0° todo el peso es perpendicular; con α = 90° todo sería paralelo.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -3, xmax: 10, ymin: -2, ymax: 8, w: 520, h: 400, etx: "", ety: "", limpio: true, etiqueta: "Bloque en un plano inclinado con su peso descompuesto" });
+    g.rangoIso(3.4, 2.8, 4.6);
+    pinta();
+  };
+
+  // ============================================================
+  // EJESGIRADOS: coordenadas en una base ortonormal girada
+  // ============================================================
+  B.w.ejesgirados = function (host) {
+    var V = B.lab.vec;
+    var cuerpo = B.caja(host, "Pruébalo", "Base ortonormal girada: coordenadas con el producto escalar");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot rd-circ"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { phi: 30, v: [4, 2] }, g, hv, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sP = U.slider(ctl, { et: "Giro de los ejes <i>φ</i>", min: -90, max: 90, step: 1, val: st.phi, on: function (v) { st.phi = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    function pinta() {
+      var p = st.phi * R, e1 = [Math.cos(p), Math.sin(p)], e2 = [-Math.sin(p), Math.cos(p)], v = st.v;
+      var a = V.dot(v, e1), b = V.dot(v, e2), A = [a * e1[0], a * e1[1]], Bv = [b * e2[0], b * e2[1]];
+      g.limpiar(); g.mover(hv, v[0], v[1]);
+      g.segmento(-9 * e1[0], -9 * e1[1], 9 * e1[0], 9 * e1[1], { clase: "c-pen", dash: "2 5" });
+      g.segmento(-9 * e2[0], -9 * e2[1], 9 * e2[0], 9 * e2[1], { clase: "c-red", dash: "2 5" });
+      g.segmento(v[0], v[1], A[0], A[1], { clase: "c-faint", dash: "4 4" }); g.segmento(v[0], v[1], Bv[0], Bv[1], { clase: "c-faint", dash: "4 4" });
+      U.flecha(g, 0, 0, A[0], A[1], { clase: "c-pen", grosor: 5 }); U.flecha(g, 0, 0, Bv[0], Bv[1], { clase: "c-red", grosor: 5 });
+      U.flecha(g, 0, 0, e1[0], e1[1], { clase: "c-ink", grosor: 2.5 }); U.flecha(g, 0, 0, e2[0], e2[1], { clase: "c-ink", grosor: 2.5 });
+      etiqueta(g, [e1[0] * 1.15, e1[1] * 1.15], "e₁", "pen", 4, 14); etiqueta(g, [e2[0] * 1.15, e2[1] * 1.15], "e₂", "red", -22, 4);
+      U.flecha(g, 0, 0, v[0], v[1], { clase: "c-ok" }); etiqueta(g, v, "v", "ok");
+      lectura.innerHTML = U.lec("e₁ = (cos φ, sen φ)", txt(e1, 3), "pen") + U.lec("e₂ = (−sen φ, cos φ)", txt(e2, 3), "red") +
+        U.lec("v en la base canónica", txt(v, 1), "ok") + U.lec("a = v·e₁ · b = v·e₂", "(" + fmt(cero(a), 3) + ", " + fmt(cero(b), 3) + ")", "") +
+        U.lec("Comprobación a²+b² = |v|²", fmt(a * a + b * b, 3) + " = " + fmt(V.dot(v, v), 3), "ok");
+      pie.innerHTML = "En una base <b>ortonormal</b> (vectores unitarios y perpendiculares) no hace falta resolver ningún sistema: las coordenadas de v son simplemente sus <b>productos escalares con los vectores de la base</b>, a = v·e₁ y b = v·e₂, y v = a·e₁ + b·e₂. Los ejes giran, las coordenadas cambian, pero la longitud de v (|v|² = a² + b²) no. Con φ = 0° se recupera la base canónica.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".rd-circ"), { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 520, h: 380, etx: "x", ety: "y", etiqueta: "Un vector y sus coordenadas en unos ejes girados" });
+    g.rangoIso(0, 0, 5.5);
+    hv = asa(g, function () { return st.v; }, function (x, y) { st.v = [x, y]; pinta(); }, "c-ok", "Extremo de v", 5.5);
+    U.fichas(cuerpo.querySelector("[data-pre]"), [{ k: "0", t: "φ = 0° (canónica)" }, { k: "45", t: "φ = 45°" }, { k: "37", t: "φ = 37°" }, { k: "v", t: "e₁ alineado con v" }], "", function (k) {
+      var f = k === "v" ? Math.max(-90, Math.min(90, Math.round(Math.atan2(st.v[1], st.v[0]) / R))) : +k; st.phi = f; sP.set(f); pinta();
+    });
+    pinta();
+  };
+
+  // ============================================================
+  // MOVILES: velocidad relativa y distancia mínima
+  // ============================================================
+  B.w.moviles = function (host) {
+    var V = B.lab.vec;
+    var cuerpo = B.caja(host, "Pruébalo", "Dos móviles: ¿cuánto se acercan?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot rd-circ" data-g1></div><div data-ctl></div><div class="w-plot rd-circ" data-g2></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { a0: [-4, -2], va: [2, 1], b0: [4, -3], vb: [-2, 2], t: 0 }, g, g2, hA, hVA, hB, hVB, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var TM = 8;
+    var sT = U.slider(ctl, { et: "Tiempo <i>t</i> (h)", min: 0, max: TM, step: 0.1, val: st.t, on: function (v) { st.t = v; pinta(); }, fmt: function (v) { return fmt(v, 1) + " h"; } });
+    function pos(r0, v, t) { return [r0[0] + v[0] * t, r0[1] + v[1] * t]; }
+    function pinta() {
+      var a0 = st.a0, b0 = st.b0, va = st.va, vb = st.vb, t = st.t;
+      var dr = [b0[0] - a0[0], b0[1] - a0[1]], dv = [vb[0] - va[0], vb[1] - va[1]], dv2 = V.dot(dv, dv);
+      var ts = dv2 < 1e-9 ? null : -V.dot(dr, dv) / dv2, dmin = dv2 < 1e-9 ? V.mod(dr) : Math.abs(V.det(dr, dv)) / Math.sqrt(dv2);
+      var At = pos(a0, va, t), Bt = pos(b0, vb, t), d = Math.hypot(Bt[0] - At[0], Bt[1] - At[1]);
+      g.limpiar(); g.mover(hA, a0[0], a0[1]); g.mover(hB, b0[0], b0[1]); g.mover(hVA, a0[0] + va[0], a0[1] + va[1]); g.mover(hVB, b0[0] + vb[0], b0[1] + vb[1]);
+      var pA = pos(a0, va, TM), pB = pos(b0, vb, TM);
+      g.segmento(a0[0], a0[1], pA[0], pA[1], { clase: "c-pen", dash: "5 4" }); g.segmento(b0[0], b0[1], pB[0], pB[1], { clase: "c-red", dash: "5 4" });
+      for (var k = 1; k <= 6; k++) { var qa = pos(a0, va, k), qb = pos(b0, vb, k); g.punto(qa[0], qa[1], { r: 2.5, clase: "c-pen" }); g.punto(qb[0], qb[1], { r: 2.5, clase: "c-red" }); }
+      U.flecha(g, a0[0], a0[1], a0[0] + va[0], a0[1] + va[1], { clase: "c-pen" }); U.flecha(g, b0[0], b0[1], b0[0] + vb[0], b0[1] + vb[1], { clase: "c-red" });
+      if (ts !== null && ts >= 0 && ts <= TM) {
+        var Ms = pos(a0, va, ts), Ns = pos(b0, vb, ts);
+        g.segmento(Ms[0], Ms[1], Ns[0], Ns[1], { clase: "c-ok" }).setAttribute("stroke-width", 4);
+        g.punto(Ms[0], Ms[1], { r: 4, clase: "c-ok" }); g.punto(Ns[0], Ns[1], { r: 4, clase: "c-ok" });
+      }
+      g.segmento(At[0], At[1], Bt[0], Bt[1], { clase: "c-ink", dash: "2 3" });
+      g.punto(At[0], At[1], { r: 7, clase: "c-pen" }); etiqueta(g, At, "A", "pen", 9, -9); g.punto(Bt[0], Bt[1], { r: 7, clase: "c-red" }); etiqueta(g, Bt, "B", "red", 9, -9);
+      // distancia en función del tiempo
+      var f = function (x) { return Math.hypot(dr[0] + dv[0] * x, dr[1] + dv[1] * x); }, ymax = 1;
+      for (var i = 0; i <= 40; i++) ymax = Math.max(ymax, f(TM * i / 40));
+      g2.limpiar(); g2.rango(0, TM, 0, Math.ceil(ymax * 1.1));
+      g2.curva(f, { clase: "c-pen", x0: 0, x1: TM });
+      g2.segmento(t, 0, t, Math.ceil(ymax * 1.1), { clase: "c-hl", dash: "4 4" }); g2.punto(t, d, { r: 5, clase: "c-pen" });
+      if (ts !== null && ts >= 0 && ts <= TM) { g2.punto(ts, dmin, { r: 6, clase: "c-ok" }); g2.texto(ts, dmin, "mínimo", { dx: 8, dy: -8, clase: "ok" }); }
+      var choque = ts !== null && ts >= 0 && dmin < 0.05;
+      lectura.innerHTML = U.lec("Δr₀ = B − A (en t = 0)", txt(dr, 1), "pen") + U.lec("Δv = v<sub>B</sub> − v<sub>A</sub>", txt(dv, 1), "red") +
+        U.lec("Instante de máximo acercamiento", ts === null ? "no hay (la distancia es constante)" : ts >= 0 ? "t* = " + fmt(ts, 2) + " h" : "ya pasó (t* = " + fmt(ts, 2) + " h): se alejan", "ok") +
+        U.lec("Distancia mínima (t ≥ 0)", fmt(ts !== null && ts < 0 ? V.mod(dr) : dmin, 3) + " km", choque ? "red" : "ok") +
+        U.lec("Distancia ahora", fmt(d, 3) + " km") + U.lec("¿Chocan?", choque ? "sí, en t* = " + fmt(ts, 2) + " h" : "no", choque ? "red" : "");
+      pie.innerHTML = "Arrastra las posiciones iniciales y los <b>extremos de las flechas de velocidad</b> (lo que recorre cada móvil en 1 hora). La posición de B respecto de A es Δr(t) = Δr₀ + Δv·t y la distancia es |Δr(t)|; es mínima cuando Δr es <b>perpendicular</b> a Δv, o sea Δr·Δv = 0: <b>t* = −Δr₀·Δv/|Δv|²</b> y d<sub>mín</sub> = |det(Δr₀, Δv)|/|Δv|. Hay choque si d<sub>mín</sub> = 0, es decir, si Δr₀ y Δv son paralelos y apuntan en sentidos opuestos.";
+    }
+    g = new B.Plot(cuerpo.querySelector("[data-g1]"), { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 520, h: 380, etx: "x (km)", ety: "y (km)", etiqueta: "Trayectorias de dos móviles con velocidad constante" });
+    g.rangoIso(0, 0, 5.5);
+    g2 = new B.Plot(cuerpo.querySelector("[data-g2]"), { xmin: 0, xmax: TM, ymin: 0, ymax: 10, w: 520, h: 210, etx: "t (h)", ety: "d (km)", etiqueta: "Distancia entre los móviles según el tiempo" });
+    hA = asa(g, function () { return st.a0; }, function (x, y) { st.a0 = [x, y]; pinta(); }, "c-pen", "Posición inicial de A", 5.5);
+    hB = asa(g, function () { return st.b0; }, function (x, y) { st.b0 = [x, y]; pinta(); }, "c-red", "Posición inicial de B", 5.5);
+    hVA = asa(g, function () { return [st.a0[0] + st.va[0], st.a0[1] + st.va[1]]; }, function (x, y) { st.va = [x - st.a0[0], y - st.a0[1]]; pinta(); }, "c-pen", "Velocidad de A", 5.5, 6);
+    hVB = asa(g, function () { return [st.b0[0] + st.vb[0], st.b0[1] + st.vb[1]]; }, function (x, y) { st.vb = [x - st.b0[0], y - st.b0[1]]; pinta(); }, "c-red", "Velocidad de B", 5.5, 6);
+    var PRE = [["Cruce sin choque", [-4, -2], [2, 1], [4, -3], [-2, 2]], ["Choque", [-4, 0], [2, 0], [2, 3], [-1, -1.5]], ["Se alejan", [-4, 0], [-1, 0], [2, 2], [2, 1]], ["Mismo rumbo", [-4, -3], [1, 1], [3, 2], [1, 1]]];
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE.map(function (p, i) { return { k: String(i), t: p[0] }; }), "0", function (k) { var p = PRE[+k]; st.a0 = p[1].slice(); st.va = p[2].slice(); st.b0 = p[3].slice(); st.vb = p[4].slice(); st.t = 0; sT.set(0); pinta(); });
     pinta();
   };
 })(window);
@@ -37749,11 +38337,11 @@
         w("emparejar", "tecnicas")
     },
     {
-      h: "13. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "18. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "14. Autocomprobación del tema",
+      h: "19. Autocomprobación del tema",
       html: "<p>Diez preguntas de test con explicación y tarjetas para fijar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
@@ -38139,6 +38727,381 @@
       ] }
   ];
 
+
+  // =====================================================================
+  // REFUERZO del tema 6: Euler, transformaciones, polinomios, polígonos y problemas de examen
+  // =====================================================================
+  resumen.push(
+    "La <b>fórmula de Euler</b> e<sup>iθ</sup> = cos θ + i·sen θ da la forma exponencial z = r·e<sup>iθ</sup> (θ en radianes): e<sup>iπ</sup> = −1.",
+    "Con complejos se escriben las <b>transformaciones</b> del plano: z + c (traslación), e<sup>iα</sup>·z (giro), k·z (homotecia), z̄ (simetría) y a·z + b (semejanza)."
+  );
+
+  // Julia, junto a Mandelbrot
+  nuevas[3].html +=
+    "<p>Cada punto c del plano tiene además su propio <b>conjunto de Julia</b>: los números z₀ cuya órbita z → z² + c no se escapa al infinito. La relación con Mandelbrot es asombrosa: si c está <i>dentro</i> del conjunto de Mandelbrot, el conjunto de Julia de c es de una sola pieza; si está <i>fuera</i>, se rompe en «polvo» de infinitos puntos sueltos. Arrastra el punto rojo del Mandelbrot de la izquierda y mira cómo cambia el Julia de la derecha:</p>" +
+    w("julia");
+
+  var nuevas6 = [
+    {
+      h: "13. La fórmula de Euler y la forma exponencial",
+      html:
+        "<p>Hasta ahora has escrito un complejo de tres maneras. La cuarta es la más compacta y la que usan ingenieros y físicos: <b>z = r·e<sup>iθ</sup></b>. Lo curioso es que e<sup>iθ</sup> no es una potencia «de verdad» (¿qué significa multiplicar el número e por sí mismo i·θ veces?): es una <b>definición</b> que Euler (1748) justificó con las series de potencias.</p>" +
+        "<h5>De dónde sale: tres series que encajan</h5>" +
+        "<p>Las funciones e<sup>x</sup>, cos x y sen x se pueden escribir como sumas infinitas de potencias de x (cuantos más términos se suman, mejor es la aproximación):</p>" +
+        H.formula("e<sup>x</sup> = 1 + x + x²/2! + x³/3! + x⁴/4! + x⁵/5! + …") +
+        H.formula("cos x = 1 − x²/2! + x⁴/4! − …          sen x = x − x³/3! + x⁵/5! − …") +
+        "<p>Sustituyamos x = iθ. Como i² = −1, i³ = −i, i⁴ = 1, i⁵ = i, …, las potencias <i>pares</i> de iθ son reales (1, −θ², +θ⁴, …) y las <i>impares</i> son imaginarias puras (iθ, −iθ³, +iθ⁵, …). Separando:</p>" +
+        H.formula("e<sup>iθ</sup> = (1 − θ²/2! + θ⁴/4! − …) + i·(θ − θ³/3! + θ⁵/5! − …) = cos θ + i·sen θ") +
+        "<p>Esa es la <b>fórmula de Euler</b>. En el simulador, cada punto gris es la suma de los primeros términos de la serie para el ángulo elegido: se «enrosca» y acaba cayendo sobre el punto de la circunferencia unidad.</p>" +
+        w("euler") +
+        "<h5>Qué dice, en palabras</h5>" +
+        "<ul><li><b>e<sup>iθ</sup> es el punto de la circunferencia unidad con argumento θ</b> (en radianes): su abscisa es cos θ y su ordenada sen θ. Su módulo es siempre 1.</li>" +
+        "<li>Valores clave: e<sup>i0</sup> = 1, e<sup>iπ/2</sup> = i, e<sup>iπ</sup> = −1, e<sup>i3π/2</sup> = −i, e<sup>i2π</sup> = 1. De ahí la identidad de Euler <b>e<sup>iπ</sup> + 1 = 0</b>.</li>" +
+        "<li>Es periódica de periodo 2π: e<sup>i(θ + 2π)</sup> = e<sup>iθ</sup> (dar una vuelta completa no cambia el punto).</li>" +
+        "<li>Como su módulo es 1, el conjugado y el inverso coinciden: <b>conj(e<sup>iθ</sup>) = 1/e<sup>iθ</sup> = e<sup>−iθ</sup></b>.</li></ul>" +
+        "<h5>La forma exponencial</h5>" +
+        "<p>Escribir z = r·e<sup>iθ</sup> es exactamente lo mismo que la forma polar r<sub>θ</sub>, pero con el ángulo en <b>radianes</b>:</p>" +
+        tabla(["Polar", "Exponencial", "Binómica"], [
+          ["1<sub>0°</sub>", "e<sup>i0</sup>", "1"],
+          ["1<sub>90°</sub>", "e<sup>iπ/2</sup>", "i"],
+          ["1<sub>180°</sub>", "e<sup>iπ</sup>", "−1"],
+          ["1<sub>270°</sub>", "e<sup>i3π/2</sup> = e<sup>−iπ/2</sup>", "−i"],
+          ["2<sub>60°</sub>", "2e<sup>iπ/3</sup>", "1 + √3·i"],
+          ["√2<sub>45°</sub>", "√2·e<sup>iπ/4</sup>", "1 + i"]
+        ]) +
+        "<h5>Por qué los argumentos se suman</h5>" +
+        "<p>La ley de los exponentes e<sup>a</sup>·e<sup>b</sup> = e<sup>a+b</sup> sigue valiendo con exponentes imaginarios. Por eso, sin ninguna fórmula nueva que memorizar:</p>" +
+        H.formula("r·e<sup>iα</sup> · s·e<sup>iβ</sup> = rs·e<sup>i(α+β)</sup>          (r·e<sup>iα</sup>)/(s·e<sup>iβ</sup>) = (r/s)·e<sup>i(α−β)</sup>          (r·e<sup>iθ</sup>)ⁿ = rⁿ·e<sup>inθ</sup>") +
+        "<p>La última es el teorema de De Moivre, que ahora es simplemente la regla «potencia de una potencia». Multiplicar por e<sup>iα</sup> es girar un ángulo α.</p>" +
+        ejemplo("De binómica a exponencial y vuelta", "Escribe z = −1 + i√3 en forma exponencial y pasa 3e<sup>iπ/6</sup> a binómica.", [
+          "Módulo: r = √(1 + 3) = 2. El punto (−1, √3) está en el 2.º cuadrante; el ángulo de referencia es arctan(√3/1) = 60°, así que θ = 180° − 60° = 120° = 2π/3.",
+          "<b>z = 2e<sup>i2π/3</sup></b>.",
+          "3e<sup>iπ/6</sup> = 3(cos 30° + i·sen 30°) = 3(√3/2 + i/2) = <b>(3√3/2) + (3/2)i ≈ 2,598 + 1,5i</b>."
+        ]) +
+        ejemplo("Operar en forma exponencial", "Calcula (2e<sup>iπ/6</sup>)·(3e<sup>iπ/3</sup>), (4e<sup>i5π/6</sup>)/(2e<sup>iπ/3</sup>) y (√2·e<sup>iπ/4</sup>)⁸.", [
+          "Producto: módulos 2·3 = 6 y argumentos π/6 + π/3 = π/2 → <b>6e<sup>iπ/2</sup> = 6i</b>.",
+          "Cociente: módulos 4/2 = 2 y argumentos 5π/6 − π/3 = 5π/6 − 2π/6 = π/2 → <b>2e<sup>iπ/2</sup> = 2i</b>.",
+          "Potencia: (√2)⁸ = 16 y 8·π/4 = 2π → <b>16e<sup>i2π</sup> = 16</b>."
+        ]) +
+        ejemplo("Las fórmulas del seno y del coseno de la suma salen solas", "Deduce cos(a + b) y sen(a + b) a partir de e<sup>i(a+b)</sup> = e<sup>ia</sup>·e<sup>ib</sup>.", [
+          "Aplicando Euler a cada lado: cos(a + b) + i·sen(a + b) = (cos a + i·sen a)(cos b + i·sen b).",
+          "Se desarrolla el producto con i² = −1: (cos a·cos b − sen a·sen b) + i·(sen a·cos b + cos a·sen b).",
+          "Igualando partes reales e imaginarias: <b>cos(a + b) = cos a·cos b − sen a·sen b</b> y <b>sen(a + b) = sen a·cos b + cos a·sen b</b>. Con a = b salen las del ángulo doble: cos 2a = cos²a − sen²a y sen 2a = 2·sen a·cos a."
+        ]) +
+        ejemplo("El coseno y el seno con exponenciales", "Demuestra que cos θ = (e<sup>iθ</sup> + e<sup>−iθ</sup>)/2 y comprueba el caso θ = π/3.", [
+          "e<sup>iθ</sup> = cos θ + i·sen θ y e<sup>−iθ</sup> = cos θ − i·sen θ. Al sumarlas, las partes imaginarias se cancelan: e<sup>iθ</sup> + e<sup>−iθ</sup> = 2cos θ.",
+          "Restándolas se cancelan las reales: e<sup>iθ</sup> − e<sup>−iθ</sup> = 2i·sen θ, es decir sen θ = (e<sup>iθ</sup> − e<sup>−iθ</sup>)/(2i).",
+          "Comprobación con θ = π/3 (60°): e<sup>iπ/3</sup> + e<sup>−iπ/3</sup> = (1/2 + (√3/2)i) + (1/2 − (√3/2)i) = 1, y 1/2 = cos 60° ✓."
+        ]) +
+        ejemplo("Una potencia imposible: iⁱ", "Calcula iⁱ (con la determinación principal).", [
+          "Como i = e<sup>iπ/2</sup>, iⁱ = (e<sup>iπ/2</sup>)<sup>i</sup> = e<sup>i·iπ/2</sup> = e<sup>i²π/2</sup> = e<sup>−π/2</sup>.",
+          "<b>iⁱ = e<sup>−π/2</sup> ≈ 0,2079</b>: ¡un número real! (Hay otros valores, e<sup>−π/2−2πk</sup>, porque el argumento de i también puede ser π/2 + 2πk.)"
+        ]) +
+        "<h5>Para qué sirve: las ondas como números complejos (fasores)</h5>" +
+        "<p>Una onda A·cos(ωt + φ) (la corriente alterna, el sonido, la luz…) queda determinada por su amplitud A y su fase φ, es decir, por el complejo <b>A·e<sup>iφ</sup></b>, que se llama su <i>fasor</i>. <b>Sumar dos ondas de la misma frecuencia equivale a sumar sus fasores</b>: así se evitan las fórmulas trigonométricas.</p>" +
+        ejemplo("Suma de dos ondas", "Suma 3cos(ωt) + 4cos(ωt + 90°).", [
+          "Fasores: 3e<sup>i0°</sup> = 3 y 4e<sup>i90°</sup> = 4i. Suma: 3 + 4i = 5<sub>53,13°</sub> (|3 + 4i| = 5 y arctan(4/3) = 53,13°).",
+          "Por tanto <b>3cos(ωt) + 4cos(ωt + 90°) = 5cos(ωt + 53,13°)</b>. Comprobación en t = 0: 3 + 4cos 90° = 3 y 5cos 53,13° = 3 ✓."
+        ]) +
+        ejemplo("Dos tensiones desfasadas 120°", "Dos fuentes de 230 V de amplitud tienen fases 0° y 120°. ¿Qué amplitud tiene su suma?", [
+          "230 + 230e<sup>i120°</sup> = 230·(1 − 1/2 + (√3/2)i) = 230·(1/2 + (√3/2)i) = 230e<sup>i60°</sup>.",
+          "La amplitud es <b>230 V</b> (con fase 60°): al sumar dos ondas desfasadas 120° no se obtiene el doble sino lo mismo que cada una."
+        ]) +
+        ojo("En la forma exponencial el ángulo va <b>siempre en radianes</b>: e<sup>i·90°</sup> no tiene sentido; hay que escribir e<sup>iπ/2</sup>. Y e<sup>iθ</sup> con θ real tiene módulo 1, no el valor de e ≈ 2,718 multiplicado por nada."),
+    },
+    {
+      h: "14. Transformaciones del plano con complejos",
+      html:
+        "<p>Una función f(z) manda cada punto del plano a otro punto y, por tanto, <b>transforma figuras</b>. Con complejos las transformaciones más importantes (traslaciones, giros, homotecias y simetrías) se escriben en una línea. Prueba cada una sobre la letra F, una figura asimétrica que deja ver si la figura se gira o se «da la vuelta»:</p>" +
+        w("transformaciones") +
+        tabla(["Transformación", "Fórmula", "Distancias", "Orientación"], [
+          ["Traslación de vector c", "z ↦ z + c", "se conservan", "se conserva"],
+          ["Giro de centro 0 y ángulo α", "z ↦ e<sup>iα</sup>·z", "se conservan", "se conserva"],
+          ["Homotecia de centro 0 y razón k", "z ↦ k·z (k real)", "se multiplican por |k|", "se conserva si k &gt; 0"],
+          ["Simetría respecto del eje real", "z ↦ z̄", "se conservan", "se invierte"],
+          ["Simetría respecto del eje imaginario", "z ↦ −z̄", "se conservan", "se invierte"],
+          ["Simetría respecto de la recta y = x", "z ↦ i·z̄", "se conservan", "se invierte"],
+          ["Giro de centro c", "z ↦ c + e<sup>iα</sup>·(z − c)", "se conservan", "se conserva"],
+          ["Semejanza directa", "z ↦ a·z + b (a ≠ 0)", "se multiplican por |a|", "se conserva"]
+        ]) +
+        "<h5>Giro de centro cualquiera</h5>" +
+        "<p>Para girar alrededor de un punto c se lleva c al origen (z − c), se gira (· e<sup>iα</sup>) y se devuelve a su sitio (+ c): z' = c + e<sup>iα</sup>(z − c). Desarrollando queda z' = e<sup>iα</sup>·z + c(1 − e<sup>iα</sup>), que tiene la forma <b>a·z + b</b>. Al revés, toda transformación z ↦ a·z + b con a ≠ 1 deja <b>un punto fijo</b> z₀ = b/(1 − a) y es un giro de ángulo arg a combinado con una homotecia de razón |a| alrededor de ese punto; si a = 1 es una traslación.</p>" +
+        ejemplo("Un giro alrededor de un punto", "Gira el punto P = 4 + i un ángulo de 90° alrededor de c = 1 − 2i.", [
+          "Se lleva c al origen: P − c = (4 + i) − (1 − 2i) = 3 + 3i.",
+          "Se gira 90° (multiplicar por i): i(3 + 3i) = 3i + 3i² = −3 + 3i.",
+          "Se devuelve a su sitio: (−3 + 3i) + (1 − 2i) = <b>−2 + i</b>. Comprobación: |P − c| = 3√2 y |(−2 + i) − c| = |−3 + 3i| = 3√2 ✓ (el giro conserva la distancia al centro)."
+        ]) +
+        "<h5>Simetrías respecto de una recta</h5>" +
+        "<p>Conjugar es reflejar respecto del eje real. Para otras rectas basta combinar giros y traslaciones; las fórmulas útiles son:</p>" +
+        "<ul><li>Recta vertical x = k: <b>z ↦ 2k − z̄</b>. Recta horizontal y = k: <b>z ↦ z̄ + 2ki</b>.</li>" +
+        "<li>Recta que pasa por el origen y forma un ángulo φ con el eje real: <b>z ↦ e<sup>2iφ</sup>·z̄</b> (para φ = 45°, e<sup>i90°</sup> = i y sale i·z̄).</li></ul>" +
+        ejemplo("Tres simetrías de un mismo punto", "Halla el simétrico de z = 3 + 2i respecto de la recta x = 1, respecto de y = x y respecto de y = −1.", [
+          "Respecto de x = 1: 2·1 − z̄ = 2 − (3 − 2i) = <b>−1 + 2i</b>.",
+          "Respecto de y = x: i·z̄ = i(3 − 2i) = 3i − 2i² = <b>2 + 3i</b> (se intercambian las coordenadas).",
+          "Respecto de y = −1: z̄ + 2(−1)i = 3 − 2i − 2i = <b>3 − 4i</b>. Comprobación: el punto (3, 2) está a 3 por encima de y = −1 y (3, −4) a 3 por debajo ✓."
+        ]) +
+        ejemplo("¿Qué semejanza lleva A en A' y B en B'?", "Halla z ↦ a·z + b que lleva A = 1 a A' = 2 + 3i y B = i a B' = −1 + 2i. Indica su razón, su ángulo y su punto fijo.", [
+          "Restando las dos condiciones: A' − B' = a(A − B) → (3 + i) = a(1 − i) → a = (3 + i)/(1 − i) = (3 + i)(1 + i)/2 = (2 + 4i)/2 = <b>1 + 2i</b>.",
+          "b = A' − a·A = (2 + 3i) − (1 + 2i) = <b>1 + i</b>. Comprobación con B: (1 + 2i)·i + 1 + i = i − 2 + 1 + i = −1 + 2i ✓.",
+          "Razón |a| = √5 ≈ 2,236 y ángulo arctan 2 ≈ 63,43°. Punto fijo: z₀ = b/(1 − a) = (1 + i)/(−2i) = <b>−1/2 + i/2</b> (se comprueba que f(z₀) = z₀)."
+        ]) +
+        ejemplo("Dos espejos hacen un giro", "Refleja un punto respecto del eje real y después respecto del eje imaginario. ¿Qué transformación resulta?", [
+          "Primero w = z̄. Después, la simetría respecto del eje imaginario es w ↦ −w̄, y −conj(z̄) = −z.",
+          "<b>z ↦ −z es un giro de 180°</b>, el doble del ángulo (90°) que forman los dos ejes. En general, dos simetrías respecto de rectas que se cortan en un ángulo β componen un giro de ángulo 2β."
+        ]) +
+        "<h5>Más allá de lo lineal: z² y 1/z</h5>" +
+        "<p>No todas las transformaciones conservan la forma. Con z = r<sub>θ</sub>: <b>z ↦ z²</b> lleva a (r²)<sub>2θ</sub> (duplica el argumento y eleva el módulo al cuadrado, así que «abre» la figura al doble de ángulo) y <b>z ↦ 1/z</b> lleva a (1/r)<sub>−θ</sub> (invierte el módulo y cambia el signo del argumento). Por ejemplo, para z = 2<sub>30°</sub>: z² = 4<sub>60°</sub> y 1/z = (1/2)<sub>−30°</sub>. Estas transformaciones son la base de los «mapas de colores» del análisis complejo que verás en la universidad.</p>"
+    },
+    {
+      h: "15. Polinomios con raíces complejas",
+      html:
+        "<p>El teorema fundamental del álgebra dice que un polinomio de grado n se descompone en n factores de primer grado <b>sobre ℂ</b>: P(x) = a(x − r₁)(x − r₂)…(x − rₙ). Cuando los coeficientes son reales, las raíces no reales vienen por parejas conjugadas a ± bi, y cada pareja forma un factor de segundo grado <b>con coeficientes reales</b>:</p>" +
+        H.formula("(x − (a + bi))(x − (a − bi)) = x² − 2a·x + (a² + b²)") +
+        "<p>Por eso, <b>sobre los reales, todo polinomio se factoriza en factores de grado 1 y grado 2</b> (los de grado 2 con Δ &lt; 0). Además, un polinomio real de grado impar tiene siempre <b>al menos una raíz real</b>, porque las no reales no pueden quedarse sin pareja. Y las raíces cumplen las <b>relaciones de Cardano–Vieta</b>: en x² + bx + c la suma de raíces es −b y el producto c; en x³ + px² + qx + r la suma es −p, la suma de productos de dos en dos es q y el producto es −r.</p>" +
+        ejemplo("Construir un polinomio con raíces dadas", "Halla un polinomio real de grado 3 con raíces 2 y 1 − 3i.", [
+          "Como los coeficientes son reales, 1 − 3i obliga a que 1 + 3i también sea raíz: ya tenemos las tres (2, 1 − 3i, 1 + 3i).",
+          "La pareja conjugada da el factor x² − 2·1·x + (1² + 3²) = x² − 2x + 10.",
+          "(x − 2)(x² − 2x + 10) = x³ − 2x² + 10x − 2x² + 4x − 20 = <b>x³ − 4x² + 14x − 20</b>. Comprobación con Vieta: suma de raíces 2 + 2 = 4 ✓ y producto 2·(1 + 9) = 20 = −(−20) ✓."
+        ]) +
+        ejemplo("Conocida una raíz, hallar las demás", "Sabiendo que 1 + 2i es raíz de x³ − 3x² + 7x − 5 = 0, halla las otras dos.", [
+          "Los coeficientes son reales, luego 1 − 2i también es raíz. La suma de las tres raíces vale −(−3) = 3.",
+          "Tercera raíz: 3 − (1 + 2i) − (1 − 2i) = <b>1</b>.",
+          "Comprobación con el producto: (1 + 2i)(1 − 2i)·1 = 5 = −(−5) ✓. El polinomio es (x − 1)(x² − 2x + 5): <b>raíces 1, 1 + 2i y 1 − 2i</b>."
+        ]) +
+        ejemplo("Un clásico: x⁴ + 4", "Factoriza x⁴ + 4 con coeficientes reales.", [
+          "x⁴ = −4 = 4<sub>180°</sub>: las raíces cuartas tienen módulo ⁴√4 = √2 y argumentos (180° + 360°k)/4 = 45°, 135°, 225°, 315°. Son <b>1 + i, −1 + i, −1 − i, 1 − i</b>.",
+          "Se agrupan por parejas conjugadas: (x − (1 + i))(x − (1 − i)) = x² − 2x + 2 y (x + 1 − i)(x + 1 + i) = x² + 2x + 2.",
+          "<b>x⁴ + 4 = (x² + 2x + 2)(x² − 2x + 2)</b>. Comprobación: (x² + 2)² − (2x)² = x⁴ + 4x² + 4 − 4x² = x⁴ + 4 ✓."
+        ]) +
+        ejemplo("¿Cuándo tiene raíces complejas?", "Estudia las raíces de x² − 2x + m = 0 según el valor de m.", [
+          "Δ = 4 − 4m. Si m &lt; 1 hay dos raíces reales distintas; si m = 1, una doble (x = 1); si <b>m &gt; 1</b>, dos raíces complejas conjugadas: x = (2 ± i·2√(m − 1))/2 = 1 ± i√(m − 1).",
+          "En ese caso |x|² = 1 + (m − 1) = m: el producto de las raíces es m = |x|² (siempre z·z̄ = |z|²). Con m = 5: raíces 1 ± 2i y módulo √5."
+        ]) +
+        ojo("Las raíces conjugadas por parejas sólo están garantizadas si <b>los coeficientes son reales</b>. El polinomio x − i tiene una única raíz, i, y su conjugada −i no lo es. Con coeficientes complejos no hay parejas."),
+    },
+    {
+      h: "16. Polígonos regulares y raíces de la unidad",
+      html:
+        "<p>Las <b>raíces n-ésimas de la unidad</b> son las soluciones de zⁿ = 1. En polar son 1<sub>360°k/n</sub>, es decir ω<sup>k</sup> con <b>ω = e<sup>2πi/n</sup></b>, y forman un polígono regular de n lados inscrito en la circunferencia unidad, con un vértice en 1. Tienen propiedades muy útiles:</p>" +
+        "<ul><li><b>Su suma es 0</b> (para n ≥ 2). Por la suma de una progresión geométrica: 1 + ω + … + ω<sup>n−1</sup> = (1 − ωⁿ)/(1 − ω) = 0, porque ωⁿ = 1 y ω ≠ 1. Geométricamente, el centro del polígono es el baricentro de sus vértices.</li>" +
+        "<li><b>Su producto</b> vale (−1)ⁿ⁺¹ (las raíces de zⁿ − 1 = 0 multiplican (−1)ⁿ·(−1)).</li>" +
+        "<li>Los conjugados son también raíces: conj(ω<sup>k</sup>) = ω<sup>−k</sup> = ω<sup>n−k</sup>. El polígono es simétrico respecto del eje real.</li></ul>" +
+        "<h5>Cualquier polígono regular</h5>" +
+        "<p>Si un polígono regular de n lados tiene centro c y un vértice z₀, los demás vértices salen de girar z₀ alrededor de c ángulos múltiplos de 360°/n: <b>z<sub>k</sub> = c + (z₀ − c)·ω<sup>k</sup></b>, k = 0, …, n − 1. Con R = |z₀ − c| el radio, el <b>lado</b> mide 2R·sen(π/n) y el <b>área</b> (n/2)·R²·sen(2π/n).</p>" +
+        ejemplo("Un triángulo equilátero con centro dado", "Un triángulo equilátero tiene centro 1 + i y un vértice en 4 + i. Halla los otros dos vértices y el lado.", [
+          "R = |z₀ − c| = |3| = 3 y ω = e<sup>2πi/3</sup> = −1/2 + (√3/2)i.",
+          "z₁ = c + 3ω = 1 + i + (−3/2 + (3√3/2)i) = <b>−1/2 + (1 + 3√3/2)i ≈ −0,5 + 3,598i</b>.",
+          "z₂ = c + 3ω² = 1 + i + (−3/2 − (3√3/2)i) = <b>−1/2 + (1 − 3√3/2)i ≈ −0,5 − 1,598i</b>.",
+          "Lado = 2·3·sen 60° = 3√3 ≈ 5,196. Comprobación: |z₀ − z₁| = |4,5 − 2,598i| = √(20,25 + 6,75) = √27 = 3√3 ✓."
+        ]) +
+        ejemplo("El hexágono de z⁶ = 64", "Resuelve z⁶ = 64, dibuja el polígono y calcula su lado, su perímetro y su área.", [
+          "64 = 64<sub>0°</sub>: módulo ⁶√64 = 2 y argumentos 60°·k. Las soluciones son <b>2, 1 + √3i, −1 + √3i, −2, −1 − √3i, 1 − √3i</b>: un hexágono regular de radio 2.",
+          "Lado = 2·2·sen 30° = 2 (en el hexágono el lado coincide con el radio). Perímetro = 6·2 = <b>12</b>.",
+          "Área = (6/2)·2²·sen 60° = 12·(√3/2) = <b>6√3 ≈ 10,39</b>."
+        ]) +
+        ejemplo("Un polígono con el centro desplazado", "Resuelve (z − 1)³ = 8.", [
+          "Sea u = z − 1. Entonces u³ = 8, cuyas raíces son 2, 2<sub>120°</sub> = −1 + √3i y 2<sub>240°</sub> = −1 − √3i.",
+          "Se deshace el cambio z = u + 1: <b>z = 3, z = √3i y z = −√3i</b>. Es el triángulo equilátero de centro 1 y radio 2."
+        ]) +
+        "<p>Las raíces de la unidad también explican por qué se puede construir con regla y compás el pentágono regular (cos 72° = (√5 − 1)/4), y están detrás de la transformada de Fourier, que comprime sonido e imagen en tu móvil.</p>"
+    },
+    {
+      h: "17. Problemas de examen resueltos",
+      html:
+        "<p>Cinco problemas del estilo de la prueba de acceso, con el desarrollo que se pide en un examen.</p>" +
+        ejemplo("Problema 1 · Potencias y cocientes", "Calcula (1 + i√3)⁶/(√3 − i)⁴ y expresa el resultado en forma binómica.", [
+          "1 + i√3 = 2<sub>60°</sub> → (1 + i√3)⁶ = 2⁶<sub>360°</sub> = 64<sub>0°</sub> = 64.",
+          "√3 − i está en el 4.º cuadrante: módulo 2 y argumento 330° → (√3 − i)⁴ = 2⁴<sub>1320°</sub> = 16<sub>240°</sub> (1320° = 3·360° + 240°).",
+          "Cociente: módulo 64/16 = 4 y argumento 0° − 240° = −240° ≡ 120°.",
+          "4<sub>120°</sub> = 4(cos 120° + i·sen 120°) = 4(−1/2 + (√3/2)i) = <b>−2 + 2√3 i</b>."
+        ]) +
+        ejemplo("Problema 2 · Un parámetro real", "Halla m real para que (m + 2i)/(1 − i) sea: (a) un número real; (b) imaginario puro; (c) de módulo √10.", [
+          "Se racionaliza: (m + 2i)(1 + i)/[(1 − i)(1 + i)] = (m + mi + 2i + 2i²)/2 = [(m − 2) + (m + 2)i]/2.",
+          "(a) Real: parte imaginaria nula → m + 2 = 0 → <b>m = −2</b> (el número vale −2).",
+          "(b) Imaginario puro: parte real nula → m − 2 = 0 → <b>m = 2</b> (el número vale 2i).",
+          "(c) Módulo al cuadrado: [(m − 2)² + (m + 2)²]/4 = (2m² + 8)/4 = (m² + 4)/2 = 10 → m² = 16 → <b>m = 4 o m = −4</b>. Comprobación: m = 4 da 1 + 3i (módulo √10) y m = −4 da −3 − i (módulo √10) ✓."
+        ]) +
+        ejemplo("Problema 3 · Una ecuación z⁴ = w", "Resuelve z⁴ = −8 + 8√3 i, escribe las soluciones en forma binómica y di qué polígono forman.", [
+          "w = −8 + 8√3 i: módulo √(64 + 192) = 16 y argumento 120° (2.º cuadrante, ángulo de referencia 60°).",
+          "z = ⁴√16 = 2 con argumentos (120° + 360°k)/4 = 30°, 120°, 210°, 300°.",
+          "En binómica: 2<sub>30°</sub> = <b>√3 + i</b>; 2<sub>120°</sub> = <b>−1 + √3 i</b>; 2<sub>210°</sub> = <b>−√3 − i</b>; 2<sub>300°</sub> = <b>1 − √3 i</b>.",
+          "Forman un <b>cuadrado</b> inscrito en la circunferencia de radio 2; su lado mide 2·2·sen 45° = 2√2 ≈ 2,83."
+        ]) +
+        ejemplo("Problema 4 · Un triángulo equilátero", "Dos vértices de un triángulo equilátero son A = 1 + i y B = 3 + i. Halla el tercer vértice (hay dos posibilidades).", [
+          "AB = B − A = 2. El tercer vértice C se obtiene girando B alrededor de A un ángulo de ±60°: C = A + (B − A)·e<sup>±iπ/3</sup>.",
+          "e<sup>±iπ/3</sup> = 1/2 ± (√3/2)i → C = 1 + i + 2(1/2 ± (√3/2)i) = 1 + i + 1 ± √3 i = <b>2 + (1 + √3)i o 2 + (1 − √3)i</b>.",
+          "Comprobación: |C − A| = |1 ± √3 i| = 2 = |AB| ✓ y |C − B| = |−1 ± √3 i| = 2 ✓."
+        ]) +
+        ejemplo("Problema 5 · Una región con área", "Dibuja y calcula el área del conjunto de los z con |z| ≤ 2 y |z − 1| ≤ |z − i|. ¿Y la curva |z + 2| = 2|z − 1|?", [
+          "Con z = x + yi: |z − 1| ≤ |z − i| ⇔ (x − 1)² + y² ≤ x² + (y − 1)² ⇔ −2x + 1 ≤ −2y + 1 ⇔ <b>x ≥ y</b>: el semiplano por debajo de la recta y = x (mediatriz de 1 e i).",
+          "La recta y = x pasa por el centro del círculo |z| ≤ 2, así que la región es <b>medio círculo</b>: área = ½·π·2² = <b>2π ≈ 6,28</b>.",
+          "Segunda curva (círculo de Apolonio): |z + 2|² = 4|z − 1|² → (x + 2)² + y² = 4(x − 1)² + 4y² → 3x² − 12x + 3y² = 0 → x² − 4x + y² = 0 → <b>(x − 2)² + y² = 4</b>: circunferencia de centro 2 y radio 2."
+        ])
+    }
+  ];
+  nuevas.splice(nuevas.length - 2, 0, nuevas6[0], nuevas6[1], nuevas6[2], nuevas6[3], nuevas6[4]);
+
+  // actividades nuevas
+  datos.transf = {
+    titulo: "Transformaciones y fórmulas",
+    consigna: "Une cada transformación del plano con su fórmula compleja.",
+    pares: [
+      ["Giro de 90° alrededor del origen", "z ↦ i·z"],
+      ["Giro de 180° alrededor del origen", "z ↦ −z"],
+      ["Simetría respecto del eje real", "z ↦ z̄"],
+      ["Traslación de vector (2, 1)", "z ↦ z + 2 + i"],
+      ["Homotecia de razón 3", "z ↦ 3z"],
+      ["Simetría respecto de y = x", "z ↦ i·z̄"],
+      ["Simetría respecto de x = 1", "z ↦ 2 − z̄"]
+    ]
+  };
+  datos.ordenPol = {
+    titulo: "Polinomio con coeficientes reales a partir de una raíz compleja",
+    consigna: "Ordena los pasos para completar las raíces y construir el polinomio.",
+    items: [
+      { t: "Escribir la raíz dada a + bi", nota: "Por ejemplo 2 + 3i." },
+      { t: "Añadir su conjugada a − bi como raíz", nota: "Los coeficientes son reales: las raíces no reales van por parejas." },
+      { t: "Formar el factor cuadrático x² − 2a·x + (a² + b²)", nota: "Aquí x² − 4x + 13." },
+      { t: "Multiplicar por los factores (x − r) de las demás raíces" },
+      { t: "Comprobar con Vieta: suma y producto de las raíces", nota: "Suma = −(coef. de xⁿ⁻¹), producto = ±(término independiente)." }
+    ]
+  };
+  nuevas6[1].html += w("emparejar", "transf");
+  nuevas6[2].html += "<p>Practica el orden de un procedimiento muy repetido en los exámenes:</p>" + w("orden", "ordenPol");
+
+  // preguntas nuevas de «¿Qué falla aquí?» y del test
+  datos.errores.preguntas.push(
+    { q: "Un alumno calcula e<sup>iπ/2</sup> = cos(π/2) + sen(π/2) = 0 + 1 = 1. ¿Qué falla?",
+      op: ["Nada: vale 1", "Se ha olvidado la i: e<sup>iθ</sup> = cos θ + <b>i</b>·sen θ, así que e<sup>iπ/2</sup> = i", "El resultado es −1", "e elevado a un número imaginario no se puede calcular"], ok: 1,
+      porque: "La fórmula de Euler es e<sup>iθ</sup> = cos θ + i·sen θ. Con θ = π/2: 0 + i·1 = i." },
+    { q: "Un polinomio con coeficientes reales tiene la raíz 1 + 2i. Un alumno dice que otra raíz es −1 − 2i (la opuesta). ¿Qué falla?",
+      op: ["Nada", "La otra raíz que se garantiza es la <b>conjugada</b>, 1 − 2i, no la opuesta", "La otra raíz es 2 + i", "No hay ninguna otra raíz garantizada"], ok: 1,
+      porque: "Si los coeficientes son reales, las raíces no reales vienen por parejas conjugadas: a + bi y a − bi." },
+    { q: "Un alumno afirma que la simetría respecto del eje imaginario es z ↦ z̄. ¿Qué falla?",
+      op: ["Nada", "z ↦ z̄ es la simetría respecto del eje <b>real</b>; la del eje imaginario es z ↦ −z̄", "Es z ↦ −z", "Es z ↦ i·z"], ok: 1,
+      porque: "Si z = a + bi, z̄ = a − bi (cambia b) y −z̄ = −a + bi (cambia a). Cambiar el signo de la parte real es reflejar respecto del eje imaginario." }
+  );
+  datos.quiz1.preguntas.push(
+    { q: "e<sup>iπ</sup> vale…", op: ["−1", "1", "i", "−i"], ok: 0, porque: "cos π + i·sen π = −1 + 0i. De ahí la identidad e<sup>iπ</sup> + 1 = 0." },
+    { q: "2e<sup>iπ/3</sup> en forma binómica es…", op: ["1 + √3·i", "√3 + i", "2 + 2i", "1/2 + (√3/2)i"], ok: 0, porque: "2(cos 60° + i·sen 60°) = 2(1/2 + (√3/2)i) = 1 + √3·i." },
+    { q: "La transformación z ↦ z̄ es…", op: ["una simetría respecto del eje real", "un giro de 90°", "una simetría respecto del eje imaginario", "una homotecia"], ok: 0, porque: "Conjugar cambia el signo de la parte imaginaria: refleja el punto respecto del eje real." },
+    { q: "Si 3 − i es raíz de un polinomio con coeficientes reales, otra raíz seguro es…", op: ["3 + i", "−3 + i", "−3 − i", "i"], ok: 0, porque: "Las raíces no reales de un polinomio real vienen por parejas conjugadas." },
+    { q: "El conjunto de los z con |z − 1| = |z + 1| es…", op: ["el eje imaginario (la recta Re z = 0)", "la circunferencia de centro 0 y radio 1", "el eje real", "un solo punto"], ok: 0, porque: "Son los puntos que equidistan de 1 y de −1: la mediatriz, la recta x = 0." },
+    { q: "La suma de las cinco raíces quintas de cualquier número complejo vale…", op: ["0", "1", "5", "depende del número"], ok: 0, porque: "Forman un pentágono regular centrado en el origen y su centro es el baricentro de los vértices: la suma es 0." }
+  );
+
+  // ejercicios nuevos (j37–j49)
+  ejercicios.push(
+    // ---------- ★ ----------
+    { id: "j37", nivel: 1,
+      enunciado: "Escribe −1 + i en forma exponencial r·e<sup>iθ</sup>. Da r y θ en radianes (0 ≤ θ &lt; 2π, decimales).",
+      check: [{ tipo: "num", etiqueta: "r =", valor: 1.41421 }, { tipo: "num", etiqueta: "θ =", valor: 2.35619, unidad: "rad" }],
+      pistas: ["r = √(a² + b²). El punto (−1, 1) está en el 2.º cuadrante."],
+      pasos: ["r = √(1 + 1) = √2 ≈ 1,4142.", "Ángulo de referencia arctan(1/1) = 45°; en el 2.º cuadrante θ = 180° − 45° = 135° = 3π/4 ≈ 2,3562 rad.", "−1 + i = √2·e<sup>i3π/4</sup>."],
+      resultado: "√2·e<sup>i3π/4</sup>" },
+    { id: "j38", nivel: 1,
+      enunciado: "Calcula (2e<sup>iπ/6</sup>)·(3e<sup>iπ/3</sup>) y da su módulo y su argumento en grados.",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 6 }, { tipo: "num", etiqueta: "argumento =", valor: 90, unidad: "°" }],
+      pistas: ["Los módulos se multiplican y los argumentos se suman."],
+      pasos: ["Módulo: 2·3 = 6.", "Argumento: π/6 + π/3 = π/2 = 90°.", "El producto es 6e<sup>iπ/2</sup> = 6i."],
+      resultado: "6e<sup>iπ/2</sup> = 6i" },
+    { id: "j39", nivel: 1,
+      enunciado: "Si 2 + 3i es raíz de x² + bx + c = 0 con b y c reales, halla b y c.",
+      check: [{ tipo: "num", etiqueta: "b =", valor: -4 }, { tipo: "num", etiqueta: "c =", valor: 13 }],
+      pistas: ["La otra raíz es la conjugada 2 − 3i. Suma de raíces = −b y producto = c."],
+      pasos: ["Raíces: 2 + 3i y 2 − 3i.", "Suma: 4 = −b → b = −4.", "Producto: (2 + 3i)(2 − 3i) = 4 + 9 = 13 = c."],
+      resultado: "b = −4, c = 13 (x² − 4x + 13 = 0)" },
+    // ---------- ★★ ----------
+    { id: "j40", nivel: 2,
+      enunciado: "Calcula i·z̄ para z = 3 + 2i. Da su parte real y su parte imaginaria.",
+      check: [{ tipo: "num", etiqueta: "Re =", valor: 2 }, { tipo: "num", etiqueta: "Im =", valor: 3 }],
+      pistas: ["Primero el conjugado z̄ = 3 − 2i y después multiplica por i."],
+      pasos: ["z̄ = 3 − 2i.", "i·(3 − 2i) = 3i − 2i² = 3i + 2 = 2 + 3i.", "(Es el simétrico de 3 + 2i respecto de la recta y = x: se han intercambiado las coordenadas.)"],
+      resultado: "2 + 3i" },
+    { id: "j41", nivel: 2,
+      enunciado: "Sabiendo que 1 + 2i es raíz de x³ − 3x² + 7x − 5 = 0, halla la raíz real.",
+      check: { tipo: "num", etiqueta: "raíz real =", valor: 1 },
+      pistas: ["Las raíces no reales vienen por parejas conjugadas. La suma de las tres raíces es −(−3) = 3."],
+      pasos: ["La otra raíz compleja es 1 − 2i.", "Suma de raíces: (1 + 2i) + (1 − 2i) + r = 3 → 2 + r = 3 → r = 1.", "Comprobación: 1 − 3 + 7 − 5 = 0 ✓."],
+      resultado: "x = 1" },
+    { id: "j42", nivel: 2,
+      enunciado: "Un cuadrado tiene centro 1 + i y un vértice en 3 + i. Calcula su área y la parte real del vértice con mayor parte imaginaria.",
+      check: [{ tipo: "num", etiqueta: "área =", valor: 8 }, { tipo: "num", etiqueta: "Re del vértice =", valor: 1 }],
+      pistas: ["Los vértices son c + (z₀ − c)·iᵏ. La diagonal es 2·|z₀ − c|."],
+      pasos: ["z₀ − c = 2. Vértices: 1 + i + 2·iᵏ → 3 + i, 1 + 3i, −1 + i, 1 − i.", "Diagonal = 4 → área = d²/2 = 16/2 = 8.", "El de mayor parte imaginaria es 1 + 3i: parte real 1."],
+      resultado: "área 8; vértice 1 + 3i" },
+    { id: "j43", nivel: 2,
+      enunciado: "Resuelve z³ = −27. De las tres soluciones, ¿cuál tiene parte imaginaria positiva? Da su parte real y su parte imaginaria (decimales).",
+      check: [{ tipo: "num", etiqueta: "Re =", valor: 1.5 }, { tipo: "num", etiqueta: "Im =", valor: 2.59808, tol: 0.002 }],
+      pistas: ["−27 = 27<sub>180°</sub>. Las raíces cúbicas tienen módulo 3 y argumentos (180° + 360°k)/3."],
+      pasos: ["Argumentos 60°, 180° y 300°.", "3<sub>60°</sub> = 3(1/2 + (√3/2)i) = 1,5 + 2,598i (parte imaginaria positiva).", "Las otras: −3 y 1,5 − 2,598i."],
+      resultado: "3/2 + (3√3/2)i ≈ 1,5 + 2,598i" },
+    { id: "j44", nivel: 2,
+      enunciado: "Calcula el área de la región del plano formada por los z que cumplen 1 ≤ |z − 2i| ≤ 3.",
+      check: { tipo: "num", etiqueta: "área =", valor: 25.1327, tol: 0.002 },
+      pistas: ["|z − 2i| = r es la circunferencia de centro 2i y radio r. La región es una corona circular."],
+      pasos: ["Círculo exterior de radio 3: π·3² = 9π. Círculo interior de radio 1: π·1² = π.", "Área de la corona = 9π − π = 8π ≈ 25,13."],
+      resultado: "8π ≈ 25,13" },
+    // ---------- ★★★ ----------
+    { id: "j45", nivel: 3,
+      enunciado: "Calcula iⁱ (valor principal) con la fórmula de Euler. Da el resultado con cuatro decimales.",
+      check: { tipo: "num", etiqueta: "iⁱ =", valor: 0.20788, tol: 0.002 },
+      pistas: ["Escribe i = e<sup>iπ/2</sup> y aplica (e<sup>a</sup>)<sup>b</sup> = e<sup>ab</sup>."],
+      pasos: ["i = e<sup>iπ/2</sup>.", "iⁱ = (e<sup>iπ/2</sup>)<sup>i</sup> = e<sup>i·i·π/2</sup> = e<sup>−π/2</sup>.", "e<sup>−π/2</sup> ≈ 0,2079 (¡un número real!)."],
+      resultado: "e<sup>−π/2</sup> ≈ 0,2079" },
+    { id: "j46", nivel: 3,
+      enunciado: "La semejanza f(z) = a·z + b cumple f(1) = 3 + i y f(i) = 2 + 4i. Halla el factor de ampliación |a|, el ángulo de giro (en grados, entre −180° y 180°) y las coordenadas del punto fijo.",
+      check: [{ tipo: "num", etiqueta: "|a| =", valor: 2.23607 }, { tipo: "num", etiqueta: "ángulo =", valor: -26.565, unidad: "°" }, { tipo: "num", etiqueta: "Re del punto fijo =", valor: 0.5 }, { tipo: "num", etiqueta: "Im del punto fijo =", valor: -1.5 }],
+      pistas: ["Resta las dos condiciones: f(1) − f(i) = a(1 − i). Después b = f(1) − a. El punto fijo es b/(1 − a)."],
+      pasos: ["a = (3 + i − 2 − 4i)/(1 − i) = (1 − 3i)/(1 − i) = (1 − 3i)(1 + i)/2 = (4 − 2i)/2 = 2 − i.", "b = (3 + i) − (2 − i) = 1 + 2i. |a| = √5 ≈ 2,236 y arg a = −arctan(1/2) = −26,565°.", "Punto fijo: z₀ = b/(1 − a) = (1 + 2i)/(−1 + i) = (1 + 2i)(−1 − i)/2 = (1 − 3i)/2 = 0,5 − 1,5i."],
+      resultado: "a = 2 − i; |a| = 2,236; −26,57°; punto fijo 1/2 − 3i/2" },
+    { id: "j47", nivel: 3,
+      enunciado: "Escribe 3cos(ωt) + 4sen(ωt) como A·cos(ωt − φ) con A &gt; 0 y 0° &lt; φ &lt; 90°. Da A y φ (en grados). (Pista: sen(ωt) = cos(ωt − 90°) y usa fasores.)",
+      check: [{ tipo: "num", etiqueta: "A =", valor: 5 }, { tipo: "num", etiqueta: "φ =", valor: 53.13, unidad: "°" }],
+      pistas: ["Fasores: 3cos(ωt) ↔ 3 y 4cos(ωt − 90°) ↔ 4e<sup>−i90°</sup> = −4i. Suma los dos complejos."],
+      pasos: ["Fasor total: 3 + 4e<sup>−iπ/2</sup> = 3 − 4i, con módulo 5 y argumento −arctan(4/3) = −53,13°.", "Así que la suma es 5cos(ωt − 53,13°): A = 5 y φ = 53,13°.", "Comprobación: 5cos φ = 3 y 5 sen φ = 4 (cos φ = 3/5, sen φ = 4/5)."],
+      resultado: "5cos(ωt − 53,13°)" },
+    { id: "j48", nivel: 3,
+      enunciado: "Halla el simétrico de z = 4 + 2i respecto de la recta que pasa por el origen y forma 30° con el eje real. Da su parte real y su parte imaginaria (decimales).",
+      check: [{ tipo: "num", etiqueta: "Re =", valor: 3.73205, tol: 0.002 }, { tipo: "num", etiqueta: "Im =", valor: 2.4641, tol: 0.002 }],
+      pistas: ["La simetría respecto de una recta por el origen de ángulo φ es z ↦ e<sup>2iφ</sup>·z̄."],
+      pasos: ["φ = 30° → e<sup>2iφ</sup> = e<sup>i60°</sup> = 1/2 + (√3/2)i. z̄ = 4 − 2i.", "(1/2 + (√3/2)i)(4 − 2i) = 2 − i + 2√3 i − √3 i² = (2 + √3) + (2√3 − 1)i.", "≈ 3,732 + 2,464i. Comprobación: |z'|² = 13,93 + 6,07 = 20 = |z|² ✓."],
+      resultado: "(2 + √3) + (2√3 − 1)i ≈ 3,732 + 2,464i" },
+    { id: "j49", nivel: 3,
+      enunciado: "Demuestra que la suma de las n raíces n-ésimas de la unidad (n ≥ 2) es 0.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe las raíces como 1, ω, ω², …, ωⁿ⁻¹ con ω = e<sup>2πi/n</sup> ≠ 1", p: 0.5 },
+        { t: "Reconoce una progresión geométrica de razón ω", p: 0.5 },
+        { t: "Aplica la suma: (1 − ωⁿ)/(1 − ω)", p: 0.5 },
+        { t: "Usa ωⁿ = 1 para concluir que el numerador es 0 y la suma vale 0 (el denominador no se anula)", p: 0.5 }
+      ] },
+      pasos: ["Las raíces son ω<sup>k</sup>, k = 0, …, n − 1, con ω = e<sup>2πi/n</sup>, y ω ≠ 1 por ser n ≥ 2.", "S = 1 + ω + … + ωⁿ⁻¹ = (1 − ωⁿ)/(1 − ω) (suma de una progresión geométrica de razón ω).", "ωⁿ = e<sup>2πi</sup> = 1, luego el numerador es 0, y como 1 − ω ≠ 0, S = 0. ∎"],
+      resultado: "S = 0" }
+  );
+  ejercicios.sort(function (a, b) { return a.nivel - b.nivel; });
+
+  // láminas nuevas
+  lamina.push(
+    { titulo: "Fórmula de Euler y forma exponencial",
+      items: [
+        { label: "Fórmula de Euler", formula: "e<sup>iθ</sup> = cos θ + i·sen θ", cuando: "θ siempre en radianes. |e<sup>iθ</sup>| = 1.", ejemplo: "e<sup>iπ</sup> = −1 · e<sup>iπ/2</sup> = i" },
+        { label: "Forma exponencial", formula: "z = r·e<sup>iθ</sup> = r<sub>θ</sub>", ejemplo: "−1 + i = √2·e<sup>i3π/4</sup>" },
+        { label: "Operaciones", formula: "r e<sup>iα</sup>·s e<sup>iβ</sup> = rs e<sup>i(α+β)</sup> · (r e<sup>iθ</sup>)ⁿ = rⁿ e<sup>inθ</sup>", ejemplo: "(√2 e<sup>iπ/4</sup>)⁸ = 16" },
+        { label: "Coseno y seno", formula: "cos θ = (e<sup>iθ</sup> + e<sup>−iθ</sup>)/2 · sen θ = (e<sup>iθ</sup> − e<sup>−iθ</sup>)/(2i)" }
+      ],
+      nota: "e<sup>iπ</sup> + 1 = 0. Fasores: A·cos(ωt + φ) ↔ A·e<sup>iφ</sup>." },
+    { titulo: "Transformaciones y polinomios", ancha: true,
+      tabla: { cab: ["Idea", "Fórmula / regla"], filas: [
+        ["Traslación · giro · homotecia", "z + c · e<sup>iα</sup>·z · k·z"],
+        ["Simetrías", "z̄ (eje real) · −z̄ (eje imaginario) · i·z̄ (y = x) · e<sup>2iφ</sup>·z̄ (recta por 0 a φ)"],
+        ["Giro de centro c", "c + e<sup>iα</sup>(z − c)"],
+        ["Semejanza a·z + b", "razón |a|, ángulo arg a, punto fijo b/(1 − a)"],
+        ["Raíces conjugadas", "con coeficientes reales: a ± bi vienen juntas → factor x² − 2a·x + a² + b²"],
+        ["Polígono regular", "z<sub>k</sub> = c + (z₀ − c)·e<sup>2πik/n</sup> · lado 2R·sen(π/n)"]
+      ] },
+      nota: "La suma de las n raíces n-ésimas de la unidad es 0." }
+  );
+
   B.registrar("mates1", "t6", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
 })(window);
@@ -38370,11 +39333,11 @@
         w("emparejar", "formulas")
     },
     {
-      h: "12. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "18. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "13. Autocomprobación del tema",
+      h: "19. Autocomprobación del tema",
       html: "<p>Diez preguntas de test con explicación y tarjetas con las fórmulas del tema.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
@@ -38767,6 +39730,347 @@
       ] }
   ];
 
+
+  // =====================================================================
+  // REFUERZO del tema 7: bases ortonormales, componentes y plano inclinado, móviles,
+  //                      centro de masas, desigualdades y problemas de examen
+  // =====================================================================
+  resumen.push(
+    "En una <b>base ortonormal</b> las coordenadas de v son v·e₁ y v·e₂. La <b>proyección</b> de v sobre d es (v·d/|d|²)·d y la componente perpendicular, v − proyección, tiene módulo |det(d, v)|/|d|.",
+    "<b>Centro de masas</b>: r = Σmᵢrᵢ/Σmᵢ. Dos móviles se acercan al mínimo cuando Δr ⊥ Δv: t* = −Δr₀·Δv/|Δv|². Siempre |u·v| ≤ |u||v| y |u|²|v|² = (u·v)² + det(u, v)²."
+  );
+
+  var nuevas7 = [
+    {
+      h: "12. Bases ortonormales y cambio de ejes",
+      html:
+        "<p>Para escribir un vector en una base cualquiera {u, v} hay que resolver un sistema de dos ecuaciones. Pero si la base es <b>ortonormal</b> (los dos vectores miden 1 y son perpendiculares: |e₁| = |e₂| = 1 y e₁·e₂ = 0), no hace falta resolver nada: las coordenadas se leen con el producto escalar.</p>" +
+        H.formula("v = a·e₁ + b·e₂   con   a = v·e₁   y   b = v·e₂") +
+        "<p>Por qué: si v = a·e₁ + b·e₂, multiplicando escalarmente por e₁ queda v·e₁ = a(e₁·e₁) + b(e₁·e₂) = a·1 + b·0 = a. Igual con e₂. Además, como la base es ortonormal, <b>|v|² = a² + b²</b> (Pitágoras): las coordenadas cambian al girar los ejes, pero la longitud no. Gira los ejes y arrastra v:</p>" +
+        w("ejesgirados") +
+        "<h5>Girar los ejes un ángulo φ</h5>" +
+        "<p>Si los ejes se giran un ángulo φ en sentido antihorario, la nueva base ortonormal es e₁ = (cos φ, sen φ) y e₂ = (−sen φ, cos φ) (el segundo es el primero girado 90°). Las nuevas coordenadas de un punto (x, y) son:</p>" +
+        H.formula("x' = x·cos φ + y·sen φ          y' = −x·sen φ + y·cos φ") +
+        ejemplo("Coordenadas en una base ortonormal", "Comprueba que e₁ = (3/5, 4/5) y e₂ = (−4/5, 3/5) forman una base ortonormal y halla las coordenadas de v = (7, 1).", [
+          "|e₁| = √(9/25 + 16/25) = 1, |e₂| = √(16/25 + 9/25) = 1 y e₁·e₂ = −12/25 + 12/25 = 0. Es ortonormal.",
+          "a = v·e₁ = 7·3/5 + 1·4/5 = 25/5 = 5 y b = v·e₂ = −28/5 + 3/5 = −5.",
+          "<b>v = 5e₁ − 5e₂</b>. Comprobación: 5(3/5, 4/5) − 5(−4/5, 3/5) = (3 + 4, 4 − 3) = (7, 1) ✓ y |v|² = 49 + 1 = 50 = 5² + (−5)² ✓."
+        ]) +
+        ejemplo("Nuevas coordenadas al girar los ejes", "Los ejes se giran 30°. ¿Qué coordenadas tiene P = (4, 2) en los ejes nuevos?", [
+          "cos 30° = √3/2 y sen 30° = 1/2.",
+          "x' = 4·(√3/2) + 2·(1/2) = 2√3 + 1 ≈ <b>4,464</b>.",
+          "y' = −4·(1/2) + 2·(√3/2) = −2 + √3 ≈ <b>−0,268</b>. Comprobación: x'² + y'² = 19,93 + 0,07 = 20 = 4² + 2² ✓."
+        ]) +
+        "<h5>Fabricar una base ortonormal (ortogonalización)</h5>" +
+        "<p>Dados dos vectores no paralelos u y v, se puede construir una base ortonormal con ellos: (1) e₁ = u/|u|; (2) se quita a v su componente en la dirección de e₁, w = v − (v·e₁)e₁, que ya es perpendicular a e₁; (3) e₂ = w/|w|. Es el método de Gram–Schmidt.</p>" +
+        ejemplo("Gram–Schmidt con dos vectores", "Con u = (3, 4) y v = (1, 3), construye una base ortonormal {e₁, e₂}.", [
+          "e₁ = u/|u| = (3, 4)/5 = (3/5, 4/5).",
+          "v·e₁ = 3/5 + 12/5 = 3, y (v·e₁)e₁ = 3(3/5, 4/5) = (9/5, 12/5). Entonces w = v − (9/5, 12/5) = (−4/5, 3/5).",
+          "|w| = √(16/25 + 9/25) = 1, así que <b>e₂ = (−4/5, 3/5)</b>. Comprobación: e₁·e₂ = −12/25 + 12/25 = 0 ✓."
+        ])
+    },
+    {
+      h: "13. Componentes de un vector: paralela, perpendicular y el plano inclinado",
+      html:
+        "<p>Muchas veces interesa descomponer un vector v en dos trozos respecto de una dirección d: uno <b>paralelo</b> a d y otro <b>perpendicular</b>. Es la proyección ortogonal que ya conoces, con su «resto»:</p>" +
+        H.formula("v<sub>∥</sub> = (v·d / |d|²)·d          v<sub>⊥</sub> = v − v<sub>∥</sub>          |v<sub>∥</sub>| = |v·d|/|d|          |v<sub>⊥</sub>| = |det(d, v)|/|d|") +
+        "<p>Se cumple v = v<sub>∥</sub> + v<sub>⊥</sub>, v<sub>∥</sub>·v<sub>⊥</sub> = 0 y |v|² = |v<sub>∥</sub>|² + |v<sub>⊥</sub>|². La fórmula de |v<sub>⊥</sub>| es la de la <b>distancia del extremo de v a la recta de dirección d</b> (altura del paralelogramo de lados d y v).</p>" +
+        ejemplo("Descomponer un vector", "Descompón v = (8, 1) en una componente paralela y otra perpendicular a d = (3, 4).", [
+          "v·d = 24 + 4 = 28 y |d|² = 25. Componente paralela: v<sub>∥</sub> = (28/25)(3, 4) = <b>(3,36; 4,48)</b>, de módulo 28/5 = 5,6.",
+          "Componente perpendicular: v<sub>⊥</sub> = (8, 1) − (3,36; 4,48) = <b>(4,64; −3,48)</b>.",
+          "Comprobaciones: v<sub>∥</sub>·v<sub>⊥</sub> = 15,59 − 15,59 = 0 ✓; |v<sub>⊥</sub>| = |det(d, v)|/|d| = |3·1 − 4·8|/5 = 29/5 = 5,8 ✓ y 5,6² + 5,8² = 31,36 + 33,64 = 65 = 8² + 1² ✓."
+        ]) +
+        "<h5>El plano inclinado</h5>" +
+        "<p>Un bloque de masa m sobre un plano inclinado un ángulo α sufre su peso P = m·g, vertical y hacia abajo. Respecto del plano interesa descomponerlo en <b>P<sub>∥</sub> = P·sen α</b> (paralela al plano, tira hacia abajo) y <b>P<sub>⊥</sub> = P·cos α</b> (perpendicular, aprieta el bloque contra el plano). Con vectores: la dirección del plano (hacia arriba) es u = (cos α, sen α) y la normal n = (−sen α, cos α); el peso (0, −P) da (0, −P)·u = −P·sen α y (0, −P)·n = −P·cos α. La normal N equilibra P<sub>⊥</sub>: N = P·cos α. El rozamiento máximo es μ·N y el bloque desliza si P·sen α &gt; μ·P·cos α, es decir, si <b>tan α &gt; μ</b>. Cambia el ángulo, la masa y el rozamiento:</p>" +
+        w("descomposicion") +
+        ejemplo("¿Desliza? ¿Con qué aceleración?", "Un bloque de 10 kg está sobre un plano inclinado 30° con μ = 0,4. Calcula P<sub>∥</sub>, N, el rozamiento máximo y la aceleración (g = 9,8 m/s²).", [
+          "P = 10·9,8 = 98 N. P<sub>∥</sub> = 98·sen 30° = <b>49 N</b> y N = P<sub>⊥</sub> = 98·cos 30° = <b>84,87 N</b>.",
+          "Rozamiento máximo: μN = 0,4·84,87 = 33,95 N. Como 49 &gt; 33,95 (también tan 30° = 0,577 &gt; 0,4), <b>el bloque desliza</b>.",
+          "Fuerza neta hacia abajo: 49 − 33,95 = 15,05 N → a = 15,05/10 = <b>1,505 m/s²</b>. (Directamente: a = g(sen α − μ·cos α).)"
+        ]) +
+        ejemplo("Ángulo crítico", "¿Hasta qué inclinación se queda quieto un bloque con μ = 0,4? ¿Y qué μ hace falta para que no deslice en un plano de 35°?", [
+          "En el límite P<sub>∥</sub> = μN → tan α = μ → α = arctan 0,4 = <b>21,8°</b>. Por encima de ese ángulo el bloque desliza.",
+          "Para 35° hace falta μ ≥ tan 35° = <b>0,700</b>."
+        ]) +
+        ejemplo("Subir el bloque a velocidad constante", "Con los mismos datos (10 kg, 30°, μ = 0,4), ¿qué fuerza F paralela al plano hay que hacer para subirlo a velocidad constante?", [
+          "A velocidad constante la fuerza neta es 0. Subiendo, el rozamiento apunta hacia abajo, igual que P<sub>∥</sub>: F = P<sub>∥</sub> + μN.",
+          "F = 49 + 33,95 = <b>82,95 N</b> (casi el doble de lo que hace falta para sostenerlo sin rozamiento)."
+        ])
+    },
+    {
+      h: "14. Dos móviles: velocidad relativa y distancia mínima",
+      html:
+        "<p>Un móvil con velocidad constante v que parte de la posición r₀ está en r(t) = r₀ + v·t. Con dos móviles, A y B, lo que importa es la <b>posición relativa</b> y la <b>velocidad relativa</b>:</p>" +
+        H.formula("Δr(t) = r<sub>B</sub> − r<sub>A</sub> = Δr₀ + Δv·t          Δr₀ = r₀<sub>B</sub> − r₀<sub>A</sub>,   Δv = v<sub>B</sub> − v<sub>A</sub>") +
+        "<p>La distancia es d(t) = |Δr(t)|. Su cuadrado, d² = |Δr₀|² + 2(Δr₀·Δv)·t + |Δv|²·t², es una parábola en t cuyo mínimo está en el vértice. Equivale a decir que la distancia es mínima cuando <b>Δr(t) ⊥ Δv</b> (producto escalar nulo):</p>" +
+        H.formula("t* = − Δr₀·Δv / |Δv|²          d<sub>mín</sub> = |det(Δr₀, Δv)| / |Δv|") +
+        "<p>(Es la componente perpendicular de Δr₀ respecto de Δv, la misma fórmula del apartado anterior.) Si t* &lt; 0, el mínimo ya ocurrió: desde t = 0 los móviles solo se alejan. Hay <b>choque</b> si d<sub>mín</sub> = 0, es decir, si Δr₀ y Δv son paralelos y de sentidos contrarios. Que las trayectorias se corten no basta: tienen que estar en el cruce <i>a la vez</i>. Arrastra las posiciones y las flechas de velocidad:</p>" +
+        w("moviles") +
+        ejemplo("Dos barcos que se cruzan", "Un barco A sale del origen a (6, 0) km/h y otro B sale de (10, 8) km con velocidad (0, −4) km/h. ¿Cuándo están más cerca y cuánto?", [
+          "Δr₀ = (10, 8) y Δv = (0, −4) − (6, 0) = (−6, −4). Δr₀·Δv = −60 − 32 = −92 y |Δv|² = 36 + 16 = 52.",
+          "t* = 92/52 = 23/13 ≈ <b>1,77 h</b> (1 h 46 min).",
+          "d<sub>mín</sub> = |det(Δr₀, Δv)|/|Δv| = |10·(−4) − 8·(−6)|/√52 = 8/7,211 = <b>1,11 km</b>.",
+          "Comprobación con las posiciones: A(t*) = (10,62; 0) y B(t*) = (10; 0,92); distancia = √(0,62² + 0,92²) = 1,11 km ✓."
+        ]) +
+        ejemplo("¿Chocan?", "A parte de (−4, 0) km con (2, 0) km/h y B de (2, 3) km con (−1, −1,5) km/h. ¿Chocan?", [
+          "Δr₀ = (6, 3) y Δv = (−3, −1,5). det(Δr₀, Δv) = 6·(−1,5) − 3·(−3) = −9 + 9 = 0: son paralelos.",
+          "t* = −(6·(−3) + 3·(−1,5))/(9 + 2,25) = 22,5/11,25 = <b>2 h</b> &gt; 0 y Δv = −0,5·Δr₀ tiene sentido contrario, así que <b>sí chocan</b>, en t = 2 h.",
+          "Comprobación: A(2) = (−4 + 4, 0) = (0, 0) y B(2) = (2 − 2, 3 − 3) = (0, 0) ✓."
+        ]) +
+        ejemplo("La lluvia vista desde un tren", "Llueve verticalmente a 10 m/s y un tren avanza a 20 m/s hacia el este. ¿Con qué velocidad ve caer la lluvia un viajero?", [
+          "La velocidad relativa es la de la lluvia menos la del observador: (0, −10) − (20, 0) = (−20, −10).",
+          "Módulo √(400 + 100) = <b>22,4 m/s</b>. Dirección: tan θ = 10/20 → θ = <b>26,6°</b> por debajo de la horizontal (la lluvia parece venir de delante). Por eso las gotas resbalan inclinadas por la ventanilla."
+        ]),
+    },
+    {
+      h: "15. Centro de masas: la media ponderada de posiciones",
+      html:
+        "<p>El baricentro es el punto de equilibrio de tres masas <i>iguales</i>. Con masas distintas se pondera cada posición por su masa: el <b>centro de masas</b> de masas m₁, m₂, … en las posiciones r₁, r₂, … es</p>" +
+        H.formula("r<sub>cm</sub> = (m₁·r₁ + m₂·r₂ + …) / (m₁ + m₂ + …)") +
+        "<p>Es el punto donde se puede apoyar el sistema sin que gire: se cumple Σ mᵢ·(rᵢ − r<sub>cm</sub>) = 0. Con dos masas, el centro de masas está en el segmento que las une, más cerca de la mayor, a distancias inversamente proporcionales a las masas (ley de la palanca: m₁·d₁ = m₂·d₂). Con masas iguales sale el baricentro. Para una lámina compuesta de piezas homogéneas se pondera por las <b>áreas</b> (o los volúmenes) de cada pieza, tomando el centro de cada pieza.</p>" +
+        ejemplo("Tres masas", "Calcula el centro de masas de 2 kg en (0, 0), 3 kg en (5, 0) y 5 kg en (2, 4).", [
+          "Masa total: 2 + 3 + 5 = 10 kg.",
+          "x = (2·0 + 3·5 + 5·2)/10 = 25/10 = 2,5 e y = (2·0 + 3·0 + 5·4)/10 = 20/10 = 2.",
+          "<b>r<sub>cm</sub> = (2,5; 2)</b>. Comprobación: Σ mᵢ(rᵢ − r<sub>cm</sub>) = 2(−2,5; −2) + 3(2,5; −2) + 5(−0,5; 2) = (−5 + 7,5 − 2,5; −4 − 6 + 10) = (0, 0) ✓."
+        ]) +
+        ejemplo("Una lámina en forma de L", "Una lámina homogénea en L está formada por un rectángulo de 6 × 2 (de x = 0 a 6 y de y = 0 a 2) y otro de 2 × 4 encima, en el extremo izquierdo (de x = 0 a 2 y de y = 2 a 6). ¿Dónde está su centro de masas?", [
+          "Rectángulo 1: área 12 y centro (3, 1). Rectángulo 2: área 8 y centro (1, 4). Área total: 20.",
+          "x = (12·3 + 8·1)/20 = 44/20 = 2,2 e y = (12·1 + 8·4)/20 = 44/20 = 2,2.",
+          "<b>r<sub>cm</sub> = (2,2; 2,2)</b>. Cae en el hueco del recodo, a 0,28 del vértice interior (2, 2), <i>fuera</i> de la lámina: el centro de masas no tiene por qué estar dentro del cuerpo."
+        ]) +
+        ejemplo("Una palanca en equilibrio", "Dos niños de 30 kg y 20 kg se sientan en los extremos de un tablón ligero de 5 m. ¿Dónde hay que poner el punto de apoyo?", [
+          "El apoyo debe estar en el centro de masas. Si d₁ es la distancia al niño de 30 kg: 30·d₁ = 20·(5 − d₁) → 50·d₁ = 100 → d₁ = <b>2 m</b> (a 3 m del otro).",
+          "Con coordenadas (niño de 30 kg en x = 0, otro en x = 5): x<sub>cm</sub> = (30·0 + 20·5)/50 = 2 m ✓."
+        ]) +
+        ejemplo("La Tierra y la Luna", "La Tierra (5,97·10²⁴ kg) y la Luna (7,35·10²² kg) distan 384 400 km. ¿A qué distancia del centro de la Tierra está el centro de masas del sistema?", [
+          "Con la Tierra en el origen: x<sub>cm</sub> = m<sub>L</sub>·d/(m<sub>T</sub> + m<sub>L</sub>) = 7,35·10²²·384 400/(5,97·10²⁴ + 7,35·10²²).",
+          "m<sub>L</sub>/(m<sub>T</sub> + m<sub>L</sub>) = 0,01216 → x<sub>cm</sub> ≈ <b>4 675 km</b> del centro de la Tierra. Como el radio terrestre es 6 371 km, el centro de masas del sistema Tierra–Luna ¡está dentro de la Tierra! Los dos cuerpos giran alrededor de ese punto."
+        ])
+    },
+    {
+      h: "16. Desigualdades y tipos de triángulo con el producto escalar",
+      html:
+        "<p>Como |cos α| ≤ 1, se cumple siempre la <b>desigualdad de Cauchy–Schwarz</b>: |u·v| ≤ |u|·|v|, con igualdad solo si u y v son paralelos. En el plano hay una versión exacta, la <b>identidad de Lagrange</b>:</p>" +
+        H.formula("|u|²·|v|² = (u·v)² + det(u, v)²") +
+        "<p>(Desarrollando los dos lados con u = (u₁, u₂) y v = (v₁, v₂) coinciden. Es otra forma de decir sen²α + cos²α = 1.) De ella se deduce la desigualdad y, además, permite pasar del producto escalar al área del paralelogramo, |det(u, v)|, sin calcular ángulos.</p>" +
+        ejemplo("Del producto escalar al área", "Dos vectores miden |u| = 5 y |v| = 4 y cumplen u·v = 12. ¿Qué área tiene el paralelogramo que forman?", [
+          "|det(u, v)|² = |u|²·|v|² − (u·v)² = 400 − 144 = 256.",
+          "Área = |det(u, v)| = <b>16</b>. (Comprobación geométrica: cos α = 12/20 = 0,6 → sen α = 0,8 → área = 5·4·0,8 = 16 ✓.)"
+        ]) +
+        "<h5>La desigualdad triangular</h5>" +
+        "<p>«Un lado de un triángulo es menor que la suma de los otros dos» se escribe |u + v| ≤ |u| + |v|. Prueba: |u + v|² = |u|² + 2u·v + |v|² ≤ |u|² + 2|u||v| + |v|² = (|u| + |v|)², por Cauchy–Schwarz. Igualdad cuando u y v tienen el mismo sentido (triángulo «aplastado»).</p>" +
+        "<h5>Teorema del coseno</h5>" +
+        "<p>Si u y v salen del mismo vértice y forman un ángulo γ, el tercer lado es u − v y |u − v|² = |u|² + |v|² − 2u·v, es decir, <b>c² = a² + b² − 2ab·cos γ</b>. Con γ = 90° se recupera Pitágoras.</p>" +
+        ejemplo("Un lado con el teorema del coseno", "Dos lados de un triángulo miden 7 y 9 y forman un ángulo de 40°. ¿Cuánto mide el tercero?", [
+          "c² = 7² + 9² − 2·7·9·cos 40° = 130 − 126·0,7660 = 130 − 96,52 = 33,48.",
+          "c = √33,48 = <b>5,79</b>."
+        ]) +
+        "<h5>Clasificar un triángulo sin calcular ángulos</h5>" +
+        "<p>En cada vértice, el signo del producto escalar de los dos lados que salen de él dice si el ángulo es agudo (&gt; 0), recto (= 0) u obtuso (&lt; 0). Un triángulo es <b>acutángulo</b> si los tres productos son positivos, <b>rectángulo</b> si uno es 0 y <b>obtusángulo</b> si uno es negativo (nunca puede haber más de uno).</p>" +
+        ejemplo("Acutángulo, rectángulo u obtusángulo", "Clasifica el triángulo A = (0, 0), B = (4, 1), C = (1, 3) y calcula sus ángulos.", [
+          "En A: AB·AC = (4, 1)·(1, 3) = 7. En B: BA·BC = (−4, −1)·(−3, 2) = 12 − 2 = 10. En C: CA·CB = (−1, −3)·(3, −2) = −3 + 6 = 3. Los tres son positivos: <b>acutángulo</b>.",
+          "Ángulos: A = arccos(7/(√17·√10)) = 57,53°; B = arccos(10/(√17·√13)) = 47,73°; C = arccos(3/(√10·√13)) = 74,74°.",
+          "Comprobación: 57,53° + 47,73° + 74,74° = 180° ✓. (En cambio, con C = (−1, 2) el producto en A sería (4, 1)·(−1, 2) = −2 &lt; 0: obtusángulo en A.)"
+        ])
+    },
+    {
+      h: "17. Problemas de examen resueltos",
+      html:
+        "<p>Cinco problemas del estilo de la prueba de acceso, con el desarrollo que se pide en un examen.</p>" +
+        ejemplo("Problema 1 · Un triángulo con todo", "Dado el triángulo A = (1, 2), B = (5, 0), C = (3, 6): (a) demuestra que es rectángulo e isósceles; (b) calcula su área y la altura desde A sobre BC; (c) halla el cuarto vértice D del cuadrado ABDC y la circunferencia circunscrita al triángulo.", [
+          "(a) AB = (4, −2) y AC = (2, 4). AB·AC = 8 − 8 = 0 → ángulo recto en A. |AB| = |AC| = √20: isósceles.",
+          "(b) Área = ½|det(AB, AC)| = ½|4·4 − (−2)·2| = ½·20 = <b>10</b> (= ½·√20·√20 ✓). BC = (−2, 6), |BC| = √40; altura h = 2·área/|BC| = 20/√40 = <b>√10 ≈ 3,16</b>.",
+          "(c) D = B + C − A = (5 + 3 − 1, 0 + 6 − 2) = <b>(7, 4)</b>. En un triángulo rectángulo el circuncentro es el punto medio de la hipotenusa: M = ((5 + 3)/2, (0 + 6)/2) = <b>(4, 3)</b> y el radio es |BC|/2 = √40/2 = <b>√10</b> (|MA| = |(−3, −1)| = √10 ✓)."
+        ]) +
+        ejemplo("Problema 2 · Un parámetro", "Sean u = (k, 3) y v = (2, −1). Halla k para que sean: (a) paralelos; (b) perpendiculares; (c) formen un ángulo de 45°.", [
+          "(a) Paralelos: det = k·(−1) − 3·2 = 0 → <b>k = −6</b>.",
+          "(b) Perpendiculares: u·v = 2k − 3 = 0 → <b>k = 3/2</b>.",
+          "(c) cos 45° = (2k − 3)/(√(k² + 9)·√5) = √2/2. Elevando al cuadrado: 2(2k − 3)² = 5(k² + 9) → 8k² − 24k + 18 = 5k² + 45 → 3k² − 24k − 27 = 0 → k² − 8k − 9 = 0 → k = 9 o k = −1.",
+          "Al elevar al cuadrado se pierde el signo: hay que exigir u·v &gt; 0 (ángulo agudo), es decir 2k − 3 &gt; 0. Vale <b>k = 9</b>; con k = −1 el producto es −5 &lt; 0 y el ángulo es 135°."
+        ]) +
+        ejemplo("Problema 3 · Un baúl arrastrado", "Se arrastra un baúl de 20 kg por un suelo horizontal con una cuerda que forma 30° con el suelo, tirando con 100 N durante 5 m (g = 9,8 m/s²). Calcula el trabajo de la fuerza de tiro, la fuerza normal y, si μ = 0,2, el trabajo del rozamiento y el trabajo neto.", [
+          "Trabajo del tiro: W = F·d = 100·5·cos 30° = <b>433,0 J</b>.",
+          "La componente vertical del tiro es 100·sen 30° = 50 N hacia arriba, así que la normal es N = 20·9,8 − 50 = <b>146 N</b>.",
+          "Rozamiento: μN = 0,2·146 = 29,2 N, en sentido contrario al movimiento: W<sub>roz</sub> = −29,2·5 = <b>−146 J</b>. Trabajo neto = 433,0 − 146 = <b>287,0 J</b>."
+        ]) +
+        ejemplo("Problema 4 · ¿Chocan los barcos?", "Un barco A sale de (0, 0) con velocidad (3, 4) km/h y otro B sale de (30, 0) con velocidad (−3, 4) km/h. ¿Chocan? ¿Y si B saliera de (30, 3)?", [
+          "Δr₀ = (30, 0), Δv = (−3, 4) − (3, 4) = (−6, 0). Son paralelos (det = 30·0 − 0·(−6) = 0) y de sentidos contrarios: t* = −(30·(−6))/36 = <b>5 h</b> y d<sub>mín</sub> = 0. En t = 5: A = (15, 20) = B → <b>chocan</b>.",
+          "Si B sale de (30, 3): Δr₀ = (30, 3), Δv = (−6, 0): t* = 180/36 = 5 h y d<sub>mín</sub> = |30·0 − 3·(−6)|/6 = 18/6 = <b>3 km</b>. No chocan: pasan a 3 km uno de otro."
+        ]) +
+        ejemplo("Problema 5 · Demostración: el cuadrilátero de los puntos medios", "Demuestra que los puntos medios de los lados de un cuadrilátero cualquiera ABCD forman un paralelogramo.", [
+          "Sean M, N, P, Q los puntos medios de AB, BC, CD y DA: M = (A + B)/2, N = (B + C)/2, P = (C + D)/2 y Q = (D + A)/2.",
+          "MN = N − M = (C − A)/2 y QP = P − Q = (C − A)/2. Luego MN = QP: dos lados opuestos son iguales y paralelos ⇒ MNPQ es un <b>paralelogramo</b>. ∎",
+          "Comprobación numérica con A = (0, 0), B = (6, 0), C = (8, 4), D = (2, 6): M = (3, 0), N = (7, 2), P = (5, 5), Q = (1, 3). MN = (4, 2) = QP ✓. (Además su área, 16, es la mitad de la del cuadrilátero, 32.)"
+        ])
+    }
+  ];
+  nuevas.splice(nuevas.length - 2, 0, nuevas7[0], nuevas7[1], nuevas7[2], nuevas7[3], nuevas7[4], nuevas7[5]);
+
+  // actividades nuevas
+  datos.compon = {
+    titulo: "Componentes y proyecciones",
+    consigna: "Une cada magnitud con su fórmula.",
+    pares: [
+      ["Proyección de v sobre d (vector)", "(v·d/|d|²)·d"],
+      ["Módulo de la componente paralela a d", "|v·d|/|d|"],
+      ["Módulo de la componente perpendicular a d", "|det(d, v)|/|d|"],
+      ["Componente del peso paralela a un plano de ángulo α", "P·sen α"],
+      ["Componente del peso perpendicular al plano", "P·cos α"],
+      ["Coordenadas en una base ortonormal", "a = v·e₁, b = v·e₂"],
+      ["Centro de masas", "Σ mᵢ·rᵢ / Σ mᵢ"]
+    ]
+  };
+  datos.ordenMov = {
+    titulo: "Distancia mínima entre dos móviles",
+    consigna: "Ordena los pasos del método.",
+    items: [
+      { t: "Calcular la posición relativa inicial Δr₀ = r₀B − r₀A", nota: "Extremo menos origen, como en AB = B − A." },
+      { t: "Calcular la velocidad relativa Δv = vB − vA" },
+      { t: "Hallar el instante t* = −Δr₀·Δv / |Δv|²", nota: "Si sale negativo, ya se están alejando." },
+      { t: "Calcular la distancia mínima |det(Δr₀, Δv)| / |Δv|", nota: "O bien |Δr₀ + Δv·t*|." },
+      { t: "Comprobar si es 0 (choque) y los sentidos de Δr₀ y Δv" }
+    ]
+  };
+  nuevas7[1].html += w("emparejar", "compon");
+  nuevas7[2].html += "<p>Practica el orden del método:</p>" + w("orden", "ordenMov");
+
+  // preguntas nuevas de «¿Qué falla aquí?» y del test
+  datos.errores.preguntas.push(
+    { q: "Un alumno calcula la proyección de v = (2, 3) sobre d = (4, 1) como (v·d)·d = 11·(4, 1) = (44, 11). ¿Qué falla?",
+      op: ["Nada", "Falta dividir entre |d|²: (v·d/|d|²)·d = (11/17)·(4, 1) ≈ (2,59; 0,65)", "Debía restar", "La proyección es un número, 11"], ok: 1,
+      porque: "La proyección vectorial es (v·d/|d|²)·d: tiene la dirección de d, y su módulo (|v·d|/|d| = 2,67) nunca supera |v| = 3,61. El resultado (44, 11) es enorme." },
+    { q: "En un plano inclinado un ángulo α, un alumno dice que la componente del peso paralela al plano es P·cos α. ¿Qué falla?",
+      op: ["Nada", "La componente paralela es P·sen α; P·cos α es la perpendicular (con α = 0° el plano es horizontal y nada tira hacia abajo del plano)", "Las dos valen P", "Las dos valen P/2"], ok: 1,
+      porque: "Con α = 0° el plano es horizontal: P∥ debe valer 0 = P·sen 0°, y toda la fuerza es perpendicular (P·cos 0° = P)." },
+    { q: "Dos barcos tienen trayectorias rectas que se cortan en un punto. Un alumno concluye que chocan. ¿Qué falla?",
+      op: ["Nada: si las trayectorias se cortan, chocan", "Tienen que estar en el punto de cruce <b>a la vez</b>: hay choque solo si Δr₀ y Δv son paralelos y de sentidos contrarios", "Las trayectorias nunca se cortan", "Chocan solo si van a la misma velocidad"], ok: 1,
+      porque: "Dos trayectorias se cortan casi siempre; el choque exige coincidir en el mismo instante: d<sub>mín</sub> = |det(Δr₀, Δv)|/|Δv| = 0 con t* ≥ 0." }
+  );
+  datos.quiz1.preguntas.push(
+    { q: "En una base ortonormal {e₁, e₂}, la primera coordenada de v es…", op: ["v·e₁", "|v|", "v·v", "e₁·e₂"], ok: 0, porque: "a = v·e₁ (y b = v·e₂): basta el producto escalar, sin resolver ningún sistema." },
+    { q: "Un bloque está sobre un plano inclinado 30°. La componente de su peso P paralela al plano vale…", op: ["P·sen 30° = P/2", "P·cos 30° ≈ 0,87·P", "P", "0"], ok: 0, porque: "P∥ = P·sen α; la perpendicular es P·cos α." },
+    { q: "La distancia entre dos móviles con velocidad constante es mínima cuando…", op: ["la posición relativa es perpendicular a la velocidad relativa", "la velocidad relativa es cero", "las velocidades son iguales", "t = 0"], ok: 0, porque: "d² es una parábola; su vértice cumple Δr·Δv = 0, es decir, Δr ⊥ Δv." },
+    { q: "El centro de masas de 2 kg en x = 0 y 6 kg en x = 8 está en x =…", op: ["6", "4", "5", "3"], ok: 0, porque: "(2·0 + 6·8)/8 = 6: más cerca de la masa mayor." },
+    { q: "Si |u| = 3, |v| = 4 y u·v = 6, el área del paralelogramo que forman es…", op: ["6√3 ≈ 10,39", "12", "6", "√6"], ok: 0, porque: "det² = |u|²|v|² − (u·v)² = 144 − 36 = 108 → área = √108 = 6√3." },
+    { q: "Si en un vértice de un triángulo el producto escalar de los dos lados que salen de él es negativo, el triángulo es…", op: ["obtusángulo", "rectángulo", "acutángulo", "equilátero"], ok: 0, porque: "u·v &lt; 0 ⇔ cos α &lt; 0 ⇔ el ángulo es obtuso." }
+  );
+
+  // ejercicios nuevos (v37–v49)
+  ejercicios.push(
+    // ---------- ★ ----------
+    { id: "v37", nivel: 1,
+      enunciado: "Con la base ortonormal e₁ = (0,6; 0,8) y e₂ = (−0,8; 0,6), halla las coordenadas (a, b) de v = (2, 11).",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 10 }, { tipo: "num", etiqueta: "b =", valor: 5 }],
+      pistas: ["En una base ortonormal, a = v·e₁ y b = v·e₂."],
+      pasos: ["a = 2·0,6 + 11·0,8 = 1,2 + 8,8 = 10.", "b = 2·(−0,8) + 11·0,6 = −1,6 + 6,6 = 5.", "Comprobación: a² + b² = 125 = 2² + 11² ✓."],
+      resultado: "v = 10e₁ + 5e₂" },
+    { id: "v38", nivel: 1,
+      enunciado: "Un bloque de 5 kg está sobre un plano inclinado 30° (g = 9,8 m/s²). Calcula la componente de su peso paralela al plano.",
+      check: { tipo: "num", etiqueta: "P∥ =", valor: 24.5, unidad: "N" },
+      pistas: ["P = m·g y P∥ = P·sen α."],
+      pasos: ["P = 5·9,8 = 49 N.", "P∥ = 49·sen 30° = 49·0,5 = 24,5 N."],
+      resultado: "24,5 N" },
+    { id: "v39", nivel: 1,
+      enunciado: "Calcula el centro de masas de 3 kg situados en (0, 1) y 5 kg situados en (8, 5).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 5 }, { tipo: "num", etiqueta: "y =", valor: 3.5 }],
+      pistas: ["r = (m₁r₁ + m₂r₂)/(m₁ + m₂)."],
+      pasos: ["Masa total 8 kg.", "x = (3·0 + 5·8)/8 = 40/8 = 5.", "y = (3·1 + 5·5)/8 = 28/8 = 3,5."],
+      resultado: "(5; 3,5)" },
+    // ---------- ★★ ----------
+    { id: "v40", nivel: 2,
+      enunciado: "Descompón v = (7, 2) en una componente paralela y otra perpendicular a d = (4, 3). Da el módulo de cada una.",
+      check: [{ tipo: "num", etiqueta: "|v∥| =", valor: 6.8 }, { tipo: "num", etiqueta: "|v⊥| =", valor: 2.6 }],
+      pistas: ["|v∥| = |v·d|/|d| y |v⊥| = |det(d, v)|/|d|."],
+      pasos: ["|d| = 5 y v·d = 28 + 6 = 34 → |v∥| = 34/5 = 6,8.", "det(d, v) = 4·2 − 3·7 = −13 → |v⊥| = 13/5 = 2,6.", "Comprobación: 6,8² + 2,6² = 46,24 + 6,76 = 53 = 7² + 2² ✓."],
+      resultado: "6,8 y 2,6" },
+    { id: "v41", nivel: 2,
+      enunciado: "Una caja queda justo en el límite de deslizar sobre un plano inclinado 25°. ¿Cuánto vale el coeficiente de rozamiento estático μ?",
+      check: { tipo: "num", etiqueta: "μ =", valor: 0.4663, tol: 0.002 },
+      pistas: ["En el límite, P∥ = μ·N, es decir, P·sen α = μ·P·cos α."],
+      pasos: ["P·sen α = μ·P·cos α → μ = tan α.", "μ = tan 25° ≈ 0,4663."],
+      resultado: "μ = tan 25° ≈ 0,466" },
+    { id: "v42", nivel: 2,
+      enunciado: "Un barco A sale de (0, 0) con velocidad (4, 2) km/h y otro B sale de (12, 0) con velocidad (−2, 4) km/h. ¿En qué instante están más cerca y cuál es esa distancia mínima (en km)?",
+      check: [{ tipo: "num", etiqueta: "t* =", valor: 1.8, unidad: "h" }, { tipo: "num", etiqueta: "d mín =", valor: 3.7947, tol: 0.002, unidad: "km" }],
+      pistas: ["Δr₀ = (12, 0), Δv = (−6, 2). t* = −Δr₀·Δv/|Δv|² y d = |det(Δr₀, Δv)|/|Δv|."],
+      pasos: ["Δr₀·Δv = −72 y |Δv|² = 40 → t* = 72/40 = 1,8 h.", "det(Δr₀, Δv) = 12·2 − 0·(−6) = 24 → d = 24/√40 ≈ 3,795 km."],
+      resultado: "t* = 1,8 h; d mín ≈ 3,79 km" },
+    { id: "v43", nivel: 2,
+      enunciado: "Una lámina homogénea en L está formada por un rectángulo de 6 × 2 (de x = 0 a 6, de y = 0 a 2) y otro de 3 × 4 encima (de x = 0 a 3, de y = 2 a 6). Calcula su centro de masas.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 2.25 }, { tipo: "num", etiqueta: "y =", valor: 2.5 }],
+      pistas: ["Pondera los centros de cada rectángulo por su área."],
+      pasos: ["Rectángulo 1: área 12, centro (3, 1). Rectángulo 2: área 12, centro (1,5; 4).", "x = (12·3 + 12·1,5)/24 = 54/24 = 2,25.", "y = (12·1 + 12·4)/24 = 60/24 = 2,5."],
+      resultado: "(2,25; 2,5)" },
+    { id: "v44", nivel: 2,
+      enunciado: "Clasifica el triángulo A = (0, 0), B = (6, 0), C = (4, 1) y calcula su ángulo mayor (en grados).",
+      check: [{ tipo: "opcion", etiqueta: "El triángulo es", opciones: ["obtusángulo (en C)", "acutángulo", "rectángulo en A", "rectángulo en B"], ok: 0 }, { tipo: "num", etiqueta: "ángulo en C =", valor: 139.4, unidad: "°", tol: 0.002 }],
+      pistas: ["Mira el signo de CA·CB y calcula cos C = CA·CB/(|CA||CB|)."],
+      pasos: ["CA = (−4, −1) y CB = (2, −1): CA·CB = −8 + 1 = −7 &lt; 0 → ángulo obtuso en C.", "|CA| = √17 y |CB| = √5 → cos C = −7/√85 = −0,7593 → C = 139,4°."],
+      resultado: "obtusángulo, C ≈ 139,4°" },
+    { id: "v45", nivel: 2,
+      enunciado: "Ortogonaliza u = (2, 1) y v = (1, 3) por el método de Gram–Schmidt. Da las componentes del segundo vector unitario e₂ (decimales).",
+      check: [{ tipo: "num", etiqueta: "e₂ (x) =", valor: -0.4472, tol: 0.002 }, { tipo: "num", etiqueta: "e₂ (y) =", valor: 0.8944, tol: 0.002 }],
+      pistas: ["e₁ = u/|u|; w = v − (v·e₁)e₁; e₂ = w/|w|."],
+      pasos: ["e₁ = (2, 1)/√5. v·e₁ = 5/√5 = √5.", "(v·e₁)e₁ = √5·(2, 1)/√5 = (2, 1) → w = (1, 3) − (2, 1) = (−1, 2).", "|w| = √5 → e₂ = (−1, 2)/√5 = (−0,4472; 0,8944)."],
+      resultado: "e₂ = (−1, 2)/√5" },
+    // ---------- ★★★ ----------
+    { id: "v46", nivel: 3,
+      enunciado: "Un barco A sale de (0, 0) con velocidad (6, 0) km/h y otro B sale de (10, a) con velocidad (−2, −4) km/h. ¿Para qué valor de a chocan y en qué instante?",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 5 }, { tipo: "num", etiqueta: "t =", valor: 1.25, unidad: "h" }],
+      pistas: ["Choque ⇔ Δr₀ y Δv paralelos (det = 0) y de sentidos contrarios. Δr₀ = (10, a), Δv = (−8, −4)."],
+      pasos: ["det(Δr₀, Δv) = 10·(−4) − a·(−8) = 0 → 8a = 40 → a = 5.", "Δr₀ = (10, 5) = −1,25·(−8, −4): sentidos contrarios, y el tiempo es t = 1,25 h.", "Comprobación: A(1,25) = (7,5; 0) y B(1,25) = (10 − 2,5; 5 − 5) = (7,5; 0) ✓."],
+      resultado: "a = 5; t = 1,25 h" },
+    { id: "v47", nivel: 3,
+      enunciado: "Halla k para que u = (k, 3) y v = (2, −1) formen un ángulo de 45° y di qué ángulo forman con el otro valor que sale al resolver la ecuación.",
+      check: [{ tipo: "num", etiqueta: "k =", valor: 9 }, { tipo: "num", etiqueta: "ángulo con la otra solución =", valor: 135, unidad: "°" }],
+      pistas: ["Eleva al cuadrado cos 45° = (2k − 3)/(√(k² + 9)·√5) y descarta la solución con u·v &lt; 0."],
+      pasos: ["2(2k − 3)² = 5(k² + 9) → 3k² − 24k − 27 = 0 → k = 9 o k = −1.", "k = 9: u·v = 15 &gt; 0, ángulo agudo → 45°.", "k = −1: u·v = −5 &lt; 0, cos = −5/(√10·√5) = −0,7071 → 135°."],
+      resultado: "k = 9 (con k = −1 el ángulo es 135°)" },
+    { id: "v48", nivel: 3,
+      enunciado: "Demuestra con vectores que los puntos medios de los lados de un cuadrilátero ABCD forman un paralelogramo.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe los puntos medios M = (A + B)/2, N = (B + C)/2, P = (C + D)/2, Q = (D + A)/2", p: 0.5 },
+        { t: "Calcula MN = (C − A)/2", p: 0.5 },
+        { t: "Calcula QP = (C − A)/2", p: 0.5 },
+        { t: "Concluye: MN = QP, dos lados opuestos iguales y paralelos ⇒ paralelogramo", p: 0.5 }
+      ] },
+      pasos: ["MN = N − M = (B + C)/2 − (A + B)/2 = (C − A)/2.", "QP = P − Q = (C + D)/2 − (D + A)/2 = (C − A)/2.", "MN = QP: MNPQ tiene dos lados opuestos iguales y paralelos, luego es un paralelogramo. ∎"],
+      resultado: "MN = QP = (C − A)/2" },
+    { id: "v49", nivel: 3,
+      enunciado: "Demuestra la desigualdad triangular |u + v| ≤ |u| + |v| a partir de la desigualdad de Cauchy–Schwarz |u·v| ≤ |u||v|.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Desarrolla |u + v|² = |u|² + 2u·v + |v|²", p: 0.5 },
+        { t: "Acota u·v ≤ |u·v| ≤ |u||v| con Cauchy–Schwarz", p: 0.5 },
+        { t: "Obtiene |u + v|² ≤ |u|² + 2|u||v| + |v|² = (|u| + |v|)²", p: 0.5 },
+        { t: "Concluye tomando raíces cuadradas (ambos lados son positivos)", p: 0.5 }
+      ] },
+      pasos: ["|u + v|² = (u + v)·(u + v) = |u|² + 2u·v + |v|².", "Como u·v ≤ |u·v| ≤ |u||v|: |u + v|² ≤ |u|² + 2|u||v| + |v|² = (|u| + |v|)².", "Raíz cuadrada (de números no negativos): |u + v| ≤ |u| + |v|. ∎"],
+      resultado: "|u + v| ≤ |u| + |v|" }
+  );
+  ejercicios.sort(function (a, b) { return a.nivel - b.nivel; });
+
+  // láminas nuevas
+  lamina.push(
+    { titulo: "Descomponer un vector",
+      items: [
+        { label: "Proyección sobre d", formula: "v<sub>∥</sub> = (v·d/|d|²)·d  ·  |v<sub>∥</sub>| = |v·d|/|d|", ejemplo: "v = (8, 1), d = (3, 4) → (3,36; 4,48)" },
+        { label: "Componente perpendicular", formula: "v<sub>⊥</sub> = v − v<sub>∥</sub>  ·  |v<sub>⊥</sub>| = |det(d, v)|/|d|", ejemplo: "|v<sub>⊥</sub>| = 29/5 = 5,8" },
+        { label: "Plano inclinado α", formula: "P∥ = P·sen α  ·  P⊥ = N = P·cos α", cuando: "Desliza si tan α &gt; μ.", ejemplo: "10 kg, 30°: P∥ = 49 N, N = 84,87 N" },
+        { label: "Base ortonormal", formula: "a = v·e₁, b = v·e₂  ·  |v|² = a² + b²", ejemplo: "v = (7, 1) → (5, −5)" }
+      ],
+      nota: "|v|² = |v∥|² + |v⊥|² (Pitágoras)." },
+    { titulo: "Móviles, masas y desigualdades", ancha: true,
+      tabla: { cab: ["Tema", "Fórmula / regla"], filas: [
+        ["Posición y velocidad relativas", "Δr(t) = Δr₀ + Δv·t con Δr₀ = r₀B − r₀A y Δv = vB − vA"],
+        ["Instante de máximo acercamiento", "t* = −Δr₀·Δv/|Δv|² (si t* &lt; 0, se alejan)"],
+        ["Distancia mínima", "|det(Δr₀, Δv)|/|Δv|; choque si es 0 con t* ≥ 0"],
+        ["Centro de masas", "Σ mᵢ·rᵢ / Σ mᵢ (láminas: se pondera por las áreas)"],
+        ["Identidad de Lagrange", "|u|²|v|² = (u·v)² + det(u, v)²"],
+        ["Triángulo por signos", "u·v &gt; 0 agudo · = 0 recto · &lt; 0 obtuso (en cada vértice)"]
+      ] },
+      nota: "Cauchy–Schwarz: |u·v| ≤ |u||v|. Triangular: |u + v| ≤ |u| + |v|." }
+  );
+
   B.registrar("mates1", "t7", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
 })(window);
@@ -38990,11 +40294,11 @@
         w("clasificar", "datos")
     },
     {
-      h: "12. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "18. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "13. Autocomprobación del tema",
+      h: "19. Autocomprobación del tema",
       html: "<p>Diez preguntas de test con explicación y tarjetas con las fórmulas del tema.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
@@ -39385,6 +40689,341 @@
         { mal: "Mediatriz = punto medio", bien: "Mediatriz = recta ⊥ AB por M", por: "Es una recta, no un punto." }
       ] }
   ];
+
+
+  // =====================================================================
+  // REFUERZO del tema 8: forma normal y distancia con signo, haz de rectas, programación lineal,
+  //                      modelos lineales, incentro y recta de Euler, problemas de examen
+  // =====================================================================
+  resumen.push(
+    "La <b>distancia con signo</b> δ = (Ax₀ + By₀ + C)/√(A² + B²) dice a qué lado de la recta está un punto; el <b>haz</b> r + k·s = 0 da todas las rectas por r ∩ s sin calcular el punto.",
+    "En <b>programación lineal</b> el máximo o mínimo de F = ax + by sobre una región poligonal está en un <b>vértice</b>. Las rectas también modelizan costes, tarifas y puntos de equilibrio, y el incentro es el centro de la circunferencia inscrita: I = (aA + bB + cC)/(a + b + c)."
+  );
+
+  var nuevas8 = [
+    {
+      h: "12. Forma normal de Hesse y distancia con signo",
+      html:
+        "<p>Si dividimos la ecuación general Ax + By + C = 0 entre la longitud del vector normal, N = √(A² + B²), los coeficientes de x e y pasan a ser las componentes de un vector <b>unitario</b>: (A/N)x + (B/N)y + C/N = 0. Escogiendo el signo para que C/N sea negativo se obtiene la <b>forma normal de Hesse</b>: x·cos φ + y·sen φ = p, donde φ es el ángulo del vector normal unitario y <b>p ≥ 0 es la distancia de la recta al origen</b>.</p>" +
+        "<p>Lo más útil es lo que ocurre al sustituir un punto cualquiera P = (x₀, y₀) en esa expresión normalizada: se obtiene la <b>distancia con signo</b>:</p>" +
+        H.formula("δ(P) = (A·x₀ + B·y₀ + C) / √(A² + B²)") +
+        "<p>Su valor absoluto |δ| es la distancia de P a la recta (la fórmula que ya conoces); su <b>signo</b> dice en qué lado está P: positivo en el lado hacia el que apunta el vector normal (A, B) y negativo en el contrario; vale 0 sobre la recta. Con esto:</p>" +
+        "<ul><li>Dos puntos están <b>del mismo lado</b> de la recta si δ tiene el mismo signo, y en <b>lados opuestos</b> si los signos son distintos (entonces el segmento que los une corta a la recta).</li>" +
+        "<li>Una recta divide el segmento AB (con A y B en lados opuestos) en la razón <b>AP/PB = |δ(A)|/|δ(B)|</b>: los triángulos de las dos distancias son semejantes. Así se halla el punto de corte sin resolver un sistema.</li></ul>" +
+        ejemplo("Forma normal y distancias con signo", "Pasa 3x + 4y − 10 = 0 a forma normal y calcula δ(O) y δ(P) para el origen O y P = (4, 3).", [
+          "N = √(9 + 16) = 5. Normal: 0,6x + 0,8y − 2 = 0, es decir, <b>0,6x + 0,8y = 2</b>: la recta está a <b>p = 2</b> del origen y el vector normal unitario (0,6; 0,8) forma φ = arctan(4/3) = 53,13° con el eje X.",
+          "δ(O) = (0 + 0 − 10)/5 = <b>−2</b> (distancia 2, lado negativo).",
+          "δ(P) = (12 + 12 − 10)/5 = <b>2,8</b> (distancia 2,8, lado positivo). Los signos son distintos: O y P están en lados opuestos de la recta."
+        ]) +
+        ejemplo("Dónde corta una recta a un segmento", "La recta x + y − 6 = 0 corta al segmento de extremos A = (0, 0) y B = (6, 3). Halla el punto de corte sin resolver ningún sistema.", [
+          "δ(A) = (0 + 0 − 6)/√2 = −6/√2 y δ(B) = (6 + 3 − 6)/√2 = 3/√2. Signos opuestos: la recta sí corta al segmento.",
+          "AP/PB = |δ(A)|/|δ(B)| = 6/3 = 2, es decir, P está a 2/3 del camino de A a B: P = A + (2/3)·AB = (0, 0) + (2/3)(6, 3) = <b>(4, 2)</b>.",
+          "Comprobación: 4 + 2 − 6 = 0 ✓ (P está en la recta)."
+        ]) +
+        ojo("el signo de δ depende de <b>cómo se escribió</b> la ecuación: multiplicar la ecuación por −1 invierte todos los signos. Lo que no cambia es que dos puntos del mismo lado dan el mismo signo y los de lados opuestos, signos distintos."),
+    },
+    {
+      h: "13. Haz de rectas",
+      html:
+        "<p>Un <b>haz de rectas</b> es una familia de rectas que comparten algo. Hay tres tipos, y todos se describen con un parámetro:</p>" +
+        tabla(["Haz", "Ecuación", "Qué comparten"], [
+          ["Central (por un punto P)", "y − y₀ = m·(x − x₀) (y la vertical x = x₀)", "pasan por P; varía la pendiente m"],
+          ["Por la intersección de r y s", "r + k·s = 0, es decir, (A₁ + kA₂)x + (B₁ + kB₂)y + (C₁ + kC₂) = 0", "pasan por P = r ∩ s; varía k"],
+          ["De paralelas", "Ax + By + k = 0", "tienen el mismo vector normal (A, B); varía k"]
+        ]) +
+        "<p>La ecuación r + k·s = 0 pasa por P = r ∩ s porque en P tanto r como s valen 0, así que r(P) + k·s(P) = 0 para <b>cualquier</b> k. Su gran utilidad: obtener rectas que pasan por la intersección de r y s <b>sin calcular ese punto</b>. Elige el tipo de haz, mueve k y arrastra Q:</p>" +
+        w("haz") +
+        ejemplo("La recta del haz que pasa por un punto", "Halla la recta que pasa por la intersección de r: 2x − y − 1 = 0 y s: x + 2y − 8 = 0 y por Q = (1, 0).", [
+          "Haz: (2x − y − 1) + k(x + 2y − 8) = 0. Sustituimos Q: r(Q) = 2 − 0 − 1 = 1 y s(Q) = 1 − 8 = −7, luego 1 − 7k = 0 → <b>k = 1/7</b>.",
+          "(2x − y − 1) + (1/7)(x + 2y − 8) = 0. Multiplicando por 7: 15x − 5y − 15 = 0 → <b>3x − y − 3 = 0</b>.",
+          "Comprobación: las rectas se cortan en P = (2, 3) y 3·2 − 3 − 3 = 0 ✓; y Q: 3·1 − 0 − 3 = 0 ✓."
+        ]) +
+        ejemplo("Una recta del haz con una condición de paralelismo", "De ese mismo haz, ¿cuál es paralela a 3x + y − 7 = 0?", [
+          "La recta del haz es (2 + k)x + (−1 + 2k)y + (−1 − 8k) = 0, con vector normal (2 + k, −1 + 2k).",
+          "Paralela a 3x + y − 7 = 0 ⇔ normales proporcionales: (2 + k)/(−1 + 2k) = 3/1 → 2 + k = −3 + 6k → 5 = 5k → <b>k = 1</b>.",
+          "La recta es 3x + y − 9 = 0. Comprobación: pasa por P = (2, 3): 6 + 3 − 9 = 0 ✓."
+        ]) +
+        ejemplo("Tres rectas concurrentes", "¿Para qué valor de m se cortan en un mismo punto las rectas x + y − 4 = 0, x − y = 0 y mx + y − 6 = 0?", [
+          "Las dos primeras se cortan en P = (2, 2) (de x + y = 4 y x = y). Para que la tercera pase por P: m·2 + 2 − 6 = 0 → <b>m = 2</b>.",
+          "Con el haz: la tercera debe ser proporcional a (x + y − 4) + k(x − y) = (1 + k)x + (1 − k)y − 4. Para pasar el término independiente de −4 a −6 se multiplica por 3/2, y (3/2)(1 − k) = 1 da k = 1/3, con lo que m = (3/2)(1 + 1/3) = 2 ✓."
+        ]) +
+        ejemplo("Un haz de paralelas", "Halla las rectas paralelas a 3x + 4y − 1 = 0 que distan 2 de ella.", [
+          "Las paralelas son 3x + 4y + k = 0. La distancia entre 3x + 4y − 1 = 0 y 3x + 4y + k = 0 es |k − (−1)|/√(9 + 16) = |k + 1|/5.",
+          "|k + 1|/5 = 2 → k + 1 = ±10 → <b>k = 9 o k = −11</b>: las rectas 3x + 4y + 9 = 0 y 3x + 4y − 11 = 0 (una a cada lado de la dada)."
+        ]) +
+        ojo("el haz r + k·s = 0 contiene <b>todas las rectas por P salvo s</b> (para llegar a s habría que hacer k → ∞). Si el problema pide una recta del haz y no sale para ningún k, prueba con s. Por ejemplo, la perpendicular a y = 2x dentro del haz anterior es precisamente s: x + 2y − 8 = 0. Para no perder ninguna se escribe λ·r + μ·s = 0 con (λ, μ) ≠ (0, 0)."),
+    },
+    {
+      h: "14. Programación lineal: optimizar en una región",
+      html:
+        "<p>Muchos problemas de la vida real piden lo mejor posible (máximo beneficio, mínimo coste) con recursos limitados. Si todas las condiciones son <b>lineales</b>, es un problema de <b>programación lineal</b>, y se resuelve con lo que sabes de rectas y semiplanos. Hay cuatro ingredientes:</p>" +
+        "<ul><li><b>Variables</b> x e y (lo que se decide: unidades de cada producto).</li>" +
+        "<li><b>Restricciones</b>: inecuaciones lineales (recursos disponibles, mínimos exigidos y x ≥ 0, y ≥ 0).</li>" +
+        "<li><b>Región factible</b>: la intersección de todos los semiplanos. Es un polígono convexo (puede ser no acotado o vacío).</li>" +
+        "<li><b>Función objetivo</b> F(x, y) = ax + by, lo que se quiere maximizar o minimizar.</li></ul>" +
+        "<p>La clave: las rectas ax + by = k (<b>rectas de nivel</b>) son paralelas entre sí y F crece al desplazarlas en un sentido. Si se mueve la recta de nivel hasta el último punto de la región que toca, ese punto es el óptimo, y <b>siempre está en un vértice</b> (o en todo un lado, si la recta de nivel es paralela a él). Por eso basta calcular F en los vértices. Prueba los cuatro problemas del simulador y mueve el nivel:</p>" +
+        w("proglineal") +
+        "<h5>Método</h5>" +
+        "<ol><li>Definir las variables y escribir la función objetivo.</li><li>Escribir las restricciones (sin olvidar x ≥ 0, y ≥ 0).</li><li>Dibujar la región factible (probando un punto en cada inecuación).</li><li>Hallar los vértices: intersecciones de pares de rectas que cumplen todas las restricciones.</li><li>Evaluar F en cada vértice y quedarse con el mayor (o el menor).</li><li>Responder con el contexto del problema: cuántas unidades y qué valor.</li></ol>" +
+        ejemplo("Un problema de máximo", "Un agricultor dispone de 12 ha para trigo (x) y maíz (y), 18 h de trabajo (2 h por ha de trigo, 1 h por ha de maíz) y debe sembrar al menos 2 ha de trigo. El beneficio es de 400 € por ha de trigo y 300 € por ha de maíz. ¿Cuánto debe sembrar para ganar lo máximo?", [
+          "Restricciones: x + y ≤ 12 (terreno), 2x + y ≤ 18 (horas), x ≥ 2, y ≥ 0. Objetivo: maximizar F = 4x + 3y (en centenas de euros).",
+          "Vértices de la región: (2, 0) [x = 2 con y = 0]; (9, 0) [y = 0 con 2x + y = 18]; (6, 6) [x + y = 12 con 2x + y = 18: restando, x = 6]; (2, 10) [x = 2 con x + y = 12].",
+          "F(2, 0) = 8, F(9, 0) = 36, <b>F(6, 6) = 42</b>, F(2, 10) = 38.",
+          "<b>Máximo en (6, 6)</b>: sembrar 6 ha de trigo y 6 de maíz, con un beneficio de 4 200 €. Comprobación: 6 + 6 = 12 ✓ y 2·6 + 6 = 18 ✓ (usa todo el terreno y todas las horas)."
+        ]) +
+        ejemplo("Un problema de mínimo con región no acotada", "Se mezclan x kg de un pienso A (3 €/kg) y y kg de un pienso B (4 €/kg). La mezcla debe aportar al menos 12 unidades de proteína (A aporta 2 por kg y B, 1) y al menos 9 de fibra (A aporta 1 por kg y B, 2). ¿Cuál es la mezcla más barata?", [
+          "Restricciones: 2x + y ≥ 12, x + 2y ≥ 9, x ≥ 0, y ≥ 0. Objetivo: minimizar F = 3x + 4y.",
+          "La región es <b>no acotada</b> (se extiende hacia arriba y a la derecha), pero F ≥ 0 crece al alejarse, así que el mínimo existe y está en un vértice.",
+          "Vértices: (0, 12) [x = 0 con 2x + y = 12]; (9, 0) [y = 0 con x + 2y = 9]; (5, 2) [2x + y = 12 con x + 2y = 9: x = 5, y = 2]. (En (6, 0) no se cumple la fibra: 6 &lt; 9.)",
+          "F(0, 12) = 48, F(9, 0) = 27, <b>F(5, 2) = 23</b>. <b>Mezcla más barata: 5 kg de A y 2 kg de B, por 23 €.</b>"
+        ]) +
+        ejemplo("Del enunciado al sistema", "Una panadería hace tartas grandes (x) y pequeñas (y). Cada grande necesita 3 kg de harina y 2 h de horno; cada pequeña, 1 kg y 1 h. Hay 30 kg de harina y 22 h de horno. Gana 5 € por grande y 2 € por pequeña. Plantea el problema y resuélvelo.", [
+          "Restricciones: 3x + y ≤ 30 (harina), 2x + y ≤ 22 (horno), x ≥ 0, y ≥ 0. Objetivo: maximizar F = 5x + 2y.",
+          "Vértices: (0, 0); (10, 0) [harina con y = 0]; (0, 22) [horno con x = 0; cumple 22 ≤ 30]; (8, 6) [3x + y = 30 y 2x + y = 22: restando, x = 8, y = 6].",
+          "F(0, 0) = 0, F(10, 0) = 50, F(0, 22) = 44, <b>F(8, 6) = 52</b>.",
+          "<b>Máximo en (8, 6)</b>: 8 tartas grandes y 6 pequeñas, con 52 € de beneficio. (Fíjate: no es el vértice con mayor x ni con mayor y; hay que comparar todos.)"
+        ]) +
+        "<h5>Casos especiales</h5>" +
+        "<ul><li><b>Infinitas soluciones</b>: si las rectas de nivel son paralelas a un lado de la región (F proporcional a una restricción), todos los puntos de ese lado son óptimos. Ocurre en el simulador con F = x + y.</li>" +
+        "<li><b>Sin solución</b>: si las restricciones se contradicen, la región es vacía (por ejemplo x + y ≤ 2 y x + y ≥ 5).</li>" +
+        "<li><b>Sin óptimo</b>: si la región no está acotada y F mejora hacia el infinito (por ejemplo, maximizar x + y con x + y ≥ 3), no hay máximo.</li></ul>" +
+        ojo("el óptimo no está «en el centro» de la región ni se encuentra evaluando F en un punto interior: siempre en un vértice. Y si una región es no acotada, comprueba hacia dónde crece F antes de afirmar que existe un máximo."),
+    },
+    {
+      h: "15. Rectas que modelizan: costes, tarifas y puntos de equilibrio",
+      html:
+        "<p>Una magnitud que cambia a ritmo constante se describe con una recta: <b>y = m·x + n</b>. La pendiente m es lo que aumenta y por cada unidad de x (precio por unidad, velocidad, litros por hora…) y la ordenada n el valor inicial o «cuota fija». Para obtener el modelo basta una recta que pase por dos datos.</p>" +
+        ejemplo("Una recta por dos datos", "Un depósito tiene 300 L a las 2 h y 600 L a las 5 h de empezar a llenarse con un grifo de caudal constante. Halla la función V(t), interpreta m y n, y calcula cuándo llegará a 1 000 L.", [
+          "m = (600 − 300)/(5 − 2) = 100 L/h: el caudal del grifo. V(t) = 100t + n con V(2) = 300 → n = 300 − 200 = 100.",
+          "<b>V(t) = 100t + 100</b>: el depósito ya tenía 100 L (la ordenada en el origen) y entran 100 L cada hora.",
+          "V(t) = 1 000 → 100t = 900 → <b>t = 9 h</b>."
+        ]) +
+        "<p>Cuando se comparan dos opciones lineales, el <b>punto de corte</b> de sus rectas marca el cambio de la mejor. En una empresa, el <b>coste</b> es C(x) = costes fijos + (coste por unidad)·x y el <b>ingreso</b> es I(x) = (precio)·x: el <b>punto de equilibrio</b> es donde C(x) = I(x), y el beneficio es B(x) = I(x) − C(x). Mueve los datos:</p>" +
+        w("equilibrio") +
+        ejemplo("El punto de equilibrio de un taller", "Un taller tiene unos costes fijos de 3 000 € y cada pieza cuesta 12 € de material y se vende a 20 €. ¿A partir de cuántas piezas gana dinero? ¿Y cuánto gana con 500?", [
+          "C(x) = 3 000 + 12x e I(x) = 20x. B(x) = 20x − 3 000 − 12x = 8x − 3 000.",
+          "Equilibrio: 8x = 3 000 → <b>x* = 375 piezas</b> (con ingresos y costes de 7 500 €). Con más de 375 piezas hay beneficio.",
+          "Con x = 500: B = 8·500 − 3 000 = <b>1 000 €</b>. Con x = 300 sería B = −600 € (pérdidas)."
+        ]) +
+        ejemplo("Dos tarifas de móvil", "La tarifa A cobra 8 € al mes más 0,06 €/min y la tarifa B, 3 € al mes más 0,10 €/min. ¿Cuándo compensa cada una?", [
+          "Costes: A(x) = 8 + 0,06x y B(x) = 3 + 0,10x. Se igualan: 8 + 0,06x = 3 + 0,10x → 5 = 0,04x → <b>x = 125 min</b> (a los 125 minutos las dos cuestan 15,50 €).",
+          "Para x &lt; 125, la más barata es la B (su cuota fija es menor y todavía no pesa su mayor precio por minuto); para x &gt; 125, la <b>A</b>, que tiene menor pendiente.",
+          "Regla práctica: la tarifa de menor pendiente gana cuando se usa mucho; la de menor ordenada en el origen, cuando se usa poco."
+        ]) +
+        ojo("un modelo lineal solo vale <b>dentro del rango</b> en que se ha medido. <b>Interpolar</b> (calcular entre los datos) suele ser fiable; <b>extrapolar</b> (salirse de los datos) puede dar disparates: si la estatura de un niño crece 6 cm al año, a los 40 años mediría más de 3 m. Y fíjate en las unidades: m = 100 L/h y n = 100 L no son comparables."),
+    },
+    {
+      h: "16. Incentro, circunferencia inscrita y recta de Euler",
+      html:
+        "<p>El <b>incentro</b> I es el punto donde se cortan las tres bisectrices; equidista de los tres lados y es el centro de la <b>circunferencia inscrita</b>. Se puede calcular sin resolver sistemas. Con a = |BC|, b = |CA| y c = |AB| (cada lado lleva la letra del vértice opuesto):</p>" +
+        H.formula("I = (a·A + b·B + c·C) / (a + b + c)          r = Área / s,  con s = (a + b + c)/2") +
+        "<p>(Es una media ponderada de los vértices, como el centro de masas del tema de vectores, pero con los lados como «masas»: el vértice opuesto al lado más largo pesa más.) El radio r de la circunferencia inscrita es la distancia de I a cada lado y vale Área/s (porque Área = ½·perímetro·r). Solo coincide con el baricentro si el triángulo es equilátero.</p>" +
+        ejemplo("Incentro de un triángulo rectángulo", "Calcula el incentro y el radio de la circunferencia inscrita en el triángulo A = (0, 0), B = (4, 0), C = (0, 3).", [
+          "a = |BC| = 5, b = |CA| = 3, c = |AB| = 4. Perímetro 12.",
+          "I = (5·(0, 0) + 3·(4, 0) + 4·(0, 3))/12 = (12, 12)/12 = <b>(1, 1)</b>.",
+          "Área = ½·4·3 = 6 y s = 6, luego <b>r = 6/6 = 1</b>. Comprobación: la distancia de I a la hipotenusa 3x + 4y − 12 = 0 es |3 + 4 − 12|/5 = 1 ✓ y a los catetos (los ejes) también es 1 ✓. (En un triángulo rectángulo r = (b + c − a)/2 = (3 + 4 − 5)/2 = 1.)"
+        ]) +
+        "<h5>La recta de Euler</h5>" +
+        "<p>En todo triángulo, el circuncentro O, el baricentro G y el ortocentro H están alineados, y G divide al segmento OH en la razón 1 : 2 (OG = ½·GH). Con vectores se comprueba en una línea: G = (A + B + C)/3 y H = A + B + C − 2·O, es decir, <b>H = 3G − 2O</b>. Casos curiosos: en un triángulo equilátero los tres puntos coinciden; en un triángulo rectángulo, H es el vértice del ángulo recto y O el punto medio de la hipotenusa.</p>" +
+        ejemplo("Comprobar la recta de Euler", "En el triángulo A = (0, 0), B = (8, 0), C = (2, 6) halla O, G y H y comprueba que están alineados.", [
+          "<b>G</b> = ((0 + 8 + 2)/3, (0 + 0 + 6)/3) = (10/3, 2).",
+          "<b>O</b>: la mediatriz de AB es x = 4. Con |OA| = |OC|: 16 + y² = (4 − 2)² + (y − 6)² = 4 + y² − 12y + 36 → 12y = 24 → y = 2. <b>O = (4, 2)</b>.",
+          "<b>H</b> = 3G − 2O = (10 − 8, 6 − 4) = <b>(2, 2)</b>. Comprobación: la altura desde C es x = 2 ✓ y la altura desde A (perpendicular a BC = (−6, 6), de pendiente −1) es y = x, que corta a x = 2 en (2, 2) ✓.",
+          "Los tres puntos están en la recta <b>y = 2</b>. Distancias: |OG| = 2/3 y |GH| = 4/3 (GH = 2·OG ✓)."
+        ])
+    },
+    {
+      h: "17. Problemas de examen resueltos",
+      html:
+        "<p>Cinco problemas del estilo de la prueba de acceso, con el desarrollo que se pide en un examen.</p>" +
+        ejemplo("Problema 1 · Un triángulo", "Sea el triángulo de vértices A = (−2, 0), B = (4, 0) y C = (0, 4). (a) Halla las ecuaciones generales de sus lados. (b) Calcula el área. (c) Halla la altura desde A (recta y longitud). (d) Halla la mediatriz del lado BC.", [
+          "(a) AB: y = 0. BC: pasa por (4, 0) y (0, 4): x + y − 4 = 0. AC: pasa por (−2, 0) y (0, 4), pendiente 2: 2x − y + 4 = 0.",
+          "(b) Base AB = 6 y altura (la de C) = 4: área = ½·6·4 = <b>12</b>.",
+          "(c) La altura desde A es perpendicular a BC (normal (1, 1)), luego tiene dirección (1, 1): y = x + 2. Corta a BC en x + (x + 2) = 4 → x = 1: pie D = (1, 3). Longitud = |AD| = |(3, 3)| = 3√2 ≈ <b>4,24</b> (también: 2·área/|BC| = 24/(4√2) = 3√2 ✓).",
+          "(d) Punto medio de BC: M = (2, 2). La mediatriz es perpendicular a BC, luego tiene la dirección de su normal (1, 1) y pasa por M: y − 2 = x − 2 → <b>x − y = 0</b>."
+        ]) +
+        ejemplo("Problema 2 · Una recta a distancia dada", "Halla las rectas que pasan por P = (2, 1) y están a distancia 2 del origen.", [
+          "La recta vertical x = 2 pasa por P y su distancia al origen es 2: <b>es una solución</b> (no se ve con la forma y = mx + n, ¡cuidado!).",
+          "Las demás: y − 1 = m(x − 2) → mx − y + 1 − 2m = 0. Distancia al origen: |1 − 2m|/√(m² + 1) = 2 → (1 − 2m)² = 4(m² + 1) → 1 − 4m + 4m² = 4m² + 4 → −4m = 3 → m = −3/4.",
+          "y − 1 = −(3/4)(x − 2) → 3x + 4y − 10 = 0: <b>segunda solución</b>. Comprobación: |−10|/5 = 2 ✓ y 3·2 + 4·1 − 10 = 0 ✓."
+        ]) +
+        ejemplo("Problema 3 · Rectas tangentes (avance de circunferencias)", "Halla los valores de k para que la recta 3x + 4y + k = 0 sea tangente a la circunferencia de centro (1, 2) y radio 3.", [
+          "Una recta es tangente a una circunferencia cuando la distancia del centro a la recta es igual al radio.",
+          "d = |3·1 + 4·2 + k|/√(9 + 16) = |11 + k|/5 = 3 → |11 + k| = 15.",
+          "11 + k = 15 → <b>k = 4</b>; 11 + k = −15 → <b>k = −26</b>. Hay dos tangentes (paralelas, una a cada lado del centro)."
+        ]) +
+        ejemplo("Problema 4 · Programación lineal", "Un taller fabrica sillas y mesas. Cada silla necesita 2 h de carpintería y 1 h de pintura y deja 30 € de beneficio; cada mesa, 3 h de carpintería y 2 h de pintura y deja 50 €. Se dispone al mes de 120 h de carpintería y 70 h de pintura. (a) Plantea el sistema y dibuja la región. (b) ¿Cuántas sillas y mesas conviene fabricar?", [
+          "(a) x sillas, y mesas: 2x + 3y ≤ 120 (carpintería), x + 2y ≤ 70 (pintura), x ≥ 0, y ≥ 0. La región es un cuadrilátero con vértices (0, 0), (60, 0), (30, 20) y (0, 35) [(30, 20) sale de 2x + 3y = 120 y x + 2y = 70: x = 70 − 2y → 140 − 4y + 3y = 120 → y = 20, x = 30].",
+          "(b) F = 30x + 50y: F(0, 0) = 0; F(60, 0) = 1 800; <b>F(30, 20) = 1 900</b>; F(0, 35) = 1 750.",
+          "Conviene fabricar <b>30 sillas y 20 mesas</b>, con un beneficio de 1 900 € al mes."
+        ]) +
+        ejemplo("Problema 5 · Bisectrices de rectas perpendiculares", "Halla las bisectrices de los ángulos que forman r: 3x − 4y + 1 = 0 y s: 4x + 3y − 2 = 0.", [
+          "Las rectas son perpendiculares (3·4 + (−4)·3 = 0) y se cortan en P = (1/5, 2/5). Las bisectrices son los puntos que equidistan de r y de s: |3x − 4y + 1|/5 = |4x + 3y − 2|/5.",
+          "Con signo +: 3x − 4y + 1 = 4x + 3y − 2 → <b>x + 7y − 3 = 0</b>. Con signo −: 3x − 4y + 1 = −4x − 3y + 2 → <b>7x − y − 1 = 0</b>.",
+          "Comprobación: P cumple ambas (1/5 + 14/5 − 3 = 0 y 7/5 − 2/5 − 1 = 0) y las bisectrices son perpendiculares entre sí: (1, 7)·(7, −1) = 0 ✓. Como siempre, las dos bisectrices son perpendiculares."
+        ])
+    }
+  ];
+  nuevas.splice(nuevas.length - 2, 0, nuevas8[0], nuevas8[1], nuevas8[2], nuevas8[3], nuevas8[4], nuevas8[5]);
+
+  // actividades nuevas
+  datos.tipoHaz = {
+    titulo: "¿Qué tipo de haz es?",
+    consigna: "Clasifica cada familia de rectas.",
+    categorias: ["Central (pasan por un punto)", "Por la intersección de r y s", "De paralelas"],
+    items: [
+      { t: "y − 3 = m(x − 1), con m variable", c: 0 }, { t: "2x + 3y + k = 0", c: 2 }, { t: "(x + y − 2) + k(x − y) = 0", c: 1 },
+      { t: "Todas las rectas que pasan por (0, 0)", c: 0 }, { t: "Todas las rectas de pendiente 3", c: 2 }, { t: "Rectas por el punto de corte de dos rectas dadas", c: 1 }
+    ]
+  };
+  datos.ordenPL = {
+    titulo: "Resolver un problema de programación lineal",
+    consigna: "Ordena los pasos del método.",
+    items: [
+      { t: "Definir las variables y la función objetivo", nota: "F = ax + by: lo que se quiere maximizar o minimizar." },
+      { t: "Escribir las restricciones como inecuaciones", nota: "Sin olvidar x ≥ 0 e y ≥ 0." },
+      { t: "Dibujar la región factible", nota: "Se prueba un punto en cada semiplano." },
+      { t: "Calcular los vértices de la región", nota: "Intersección de pares de rectas que cumplan todas las restricciones." },
+      { t: "Evaluar F en cada vértice y elegir el mayor o el menor" },
+      { t: "Interpretar el resultado en el contexto del problema", nota: "Cuántas unidades y qué beneficio (o coste)." }
+    ]
+  };
+  nuevas8[1].html += w("clasificar", "tipoHaz");
+  nuevas8[2].html += "<p>Practica el orden del método:</p>" + w("orden", "ordenPL");
+
+  // preguntas nuevas de «¿Qué falla aquí?» y del test
+  datos.errores.preguntas.push(
+    { q: "En un problema de programación lineal, un alumno evalúa F = 4x + 3y en el centro de la región, (4, 3), y dice que ahí está el máximo. ¿Qué falla?",
+      op: ["Nada: el centro es el mejor punto", "El máximo (si existe) está siempre en un <b>vértice</b>: hay que calcular F en todos los vértices y comparar", "El máximo está siempre en el origen", "Hay que evaluar solo el vértice con mayor x"], ok: 1,
+      porque: "F es lineal: sobre un segmento crece o decrece de forma constante, así que no puede tener un máximo en el interior; se alcanza en un vértice (o en un lado entero)." },
+    { q: "Para la recta del haz (x + y − 4) + k(x − y) = 0 que pasa por Q = (1, 0), un alumno escribe: r(Q) = −3, luego k = −3. ¿Qué falla?",
+      op: ["Nada", "Hay que resolver −3 + k·s(Q) = 0 con s(Q) = 1: k = <b>3</b>, no −3", "k debe ser 0", "No existe tal recta"], ok: 1,
+      porque: "Al sustituir Q: r(Q) + k·s(Q) = 0 → k = −r(Q)/s(Q) = −(−3)/1 = 3. Se había olvidado pasar r(Q) al otro lado." },
+    { q: "Un alumno dice que el incentro de cualquier triángulo es el baricentro, porque ambos son «el centro» del triángulo. ¿Qué falla?",
+      op: ["Nada", "Solo coinciden en un triángulo equilátero: el incentro es I = (aA + bB + cC)/(a + b + c), con los lados como pesos", "El incentro es el ortocentro", "El baricentro es el punto de las mediatrices"], ok: 1,
+      porque: "Con A = (0, 0), B = (4, 0), C = (0, 3): incentro (1, 1), baricentro (4/3, 1). Son puntos distintos." }
+  );
+  datos.quiz1.preguntas.push(
+    { q: "Los puntos P y Q dan δ(P) = 3 y δ(Q) = −2 al sustituir en la ecuación normalizada de una recta. Entonces…", op: ["están en lados opuestos de la recta", "están en el mismo lado", "P está sobre la recta", "la recta es paralela a PQ"], ok: 0, porque: "Los signos distintos indican lados opuestos: el segmento PQ corta a la recta." },
+    { q: "La ecuación r + k·s = 0 (con r y s secantes) representa…", op: ["las rectas que pasan por el punto r ∩ s (salvo s)", "las rectas paralelas a r", "las rectas perpendiculares a s", "la bisectriz de r y s"], ok: 0, porque: "En el punto de corte r = s = 0, así que r + k·s = 0 para todo k: es el haz de rectas por ese punto." },
+    { q: "En un problema de programación lineal con región acotada, el máximo de F = ax + by se alcanza…", op: ["en un vértice de la región", "siempre en el origen", "en el centro de la región", "en un punto cualquiera del interior"], ok: 0, porque: "Las rectas de nivel de F son paralelas y el último punto de la región que tocan es un vértice (o un lado entero)." },
+    { q: "Con C(x) = 3 000 + 12x e I(x) = 20x, el punto de equilibrio es…", op: ["x = 375", "x = 150", "x = 250", "x = 3 000"], ok: 0, porque: "20x = 3 000 + 12x → 8x = 3 000 → x = 375." },
+    { q: "El incentro de un triángulo es la intersección de…", op: ["las bisectrices", "las mediatrices", "las alturas", "las medianas"], ok: 0, porque: "Equidista de los tres lados: es el centro de la circunferencia inscrita." },
+    { q: "La recta de Euler de un triángulo contiene…", op: ["el circuncentro, el baricentro y el ortocentro", "el incentro y el baricentro", "los tres vértices", "los puntos medios de los lados"], ok: 0, porque: "O, G y H están alineados y G divide a OH en razón 1 : 2." }
+  );
+
+  // ejercicios nuevos (r37–r49)
+  ejercicios.push(
+    // ---------- ★ ----------
+    { id: "r37", nivel: 1,
+      enunciado: "Para la recta 5x − 12y − 39 = 0, calcula la distancia del origen a la recta y la distancia con signo δ del punto P = (8, 0) (usa δ = (Ax₀ + By₀ + C)/√(A² + B²); da el valor con signo, en decimales).",
+      check: [{ tipo: "num", etiqueta: "distancia al origen =", valor: 3 }, { tipo: "num", etiqueta: "δ(P) =", valor: 0.07692, tol: 0.002 }],
+      pistas: ["√(A² + B²) = 13. La distancia del origen es |C|/13."],
+      pasos: ["N = √(25 + 144) = 13. Distancia del origen: |−39|/13 = 3.", "δ(P) = (5·8 − 12·0 − 39)/13 = 1/13 ≈ 0,0769 (positivo: P está en el lado hacia el que apunta (5, −12))."],
+      resultado: "p = 3; δ(P) = 1/13 ≈ 0,077" },
+    { id: "r38", nivel: 1,
+      enunciado: "La temperatura en °F es función lineal de la temperatura en °C, con F = 32 para C = 0 y F = 212 para C = 100. ¿Cuántos °F son 37 °C?",
+      check: { tipo: "num", etiqueta: "F =", valor: 98.6, unidad: "°F" },
+      pistas: ["Pendiente = (212 − 32)/(100 − 0)."],
+      pasos: ["m = 180/100 = 1,8 y n = 32: F = 1,8·C + 32.", "F(37) = 1,8·37 + 32 = 66,6 + 32 = 98,6 °F."],
+      resultado: "98,6 °F" },
+    { id: "r39", nivel: 1,
+      enunciado: "Para la recta 2x − y + 3 = 0, ¿cómo están situados los puntos P = (1, 1) y Q = (−2, 1)?",
+      check: { tipo: "opcion", etiqueta: "P y Q están", opciones: ["en lados opuestos de la recta", "en el mismo lado (el positivo)", "en el mismo lado (el negativo)", "uno de ellos está sobre la recta"], ok: 0 },
+      pistas: ["Calcula 2x − y + 3 en cada punto y compara los signos."],
+      pasos: ["P: 2·1 − 1 + 3 = 4 &gt; 0. Q: 2·(−2) − 1 + 3 = −2 &lt; 0.", "Los signos son distintos: lados opuestos."],
+      resultado: "en lados opuestos" },
+    // ---------- ★★ ----------
+    { id: "r40", nivel: 2,
+      enunciado: "Halla la recta que pasa por la intersección de r: x + y − 3 = 0 y s: 2x − y = 0 y por el punto Q = (0, 5). Da A, B y C con A &gt; 0 y sin factor común.",
+      check: [{ tipo: "num", etiqueta: "A =", valor: 3 }, { tipo: "num", etiqueta: "B =", valor: 1 }, { tipo: "num", etiqueta: "C =", valor: -5 }],
+      pistas: ["Haz: (x + y − 3) + k(2x − y) = 0 y sustituye Q."],
+      pasos: ["Con Q: (0 + 5 − 3) + k(0 − 5) = 0 → 2 − 5k = 0 → k = 2/5.", "(x + y − 3) + (2/5)(2x − y) = 0 → 5x + 5y − 15 + 4x − 2y = 0 → 9x + 3y − 15 = 0 → 3x + y − 5 = 0.", "Comprobación: r ∩ s = (1, 2) y 3 + 2 − 5 = 0 ✓."],
+      resultado: "3x + y − 5 = 0" },
+    { id: "r41", nivel: 2,
+      enunciado: "Calcula el incentro (x, y) y el radio r de la circunferencia inscrita en el triángulo A = (−3, 0), B = (3, 0), C = (0, 4).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 0 }, { tipo: "num", etiqueta: "y =", valor: 1.5 }, { tipo: "num", etiqueta: "r =", valor: 1.5 }],
+      pistas: ["Lados: a = |BC|, b = |CA|, c = |AB|. I = (aA + bB + cC)/(a + b + c) y r = Área/s."],
+      pasos: ["a = 5, b = 5, c = 6; perímetro 16.", "I = (5·A + 5·B + 6·C)/16 = ((−15 + 15 + 0), (0 + 0 + 24))/16 = (0; 1,5).", "Área = ½·6·4 = 12 y s = 8 → r = 12/8 = 1,5."],
+      resultado: "I = (0; 1,5), r = 1,5" },
+    { id: "r42", nivel: 2,
+      enunciado: "La recta 2x − y − 4 = 0 corta al segmento de extremos A = (0, 0) y B = (6, 2). Halla el punto de corte usando distancias con signo.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 2.4 }, { tipo: "num", etiqueta: "y =", valor: 0.8 }],
+      pistas: ["δ(A) ∝ 2·0 − 0 − 4 y δ(B) ∝ 2·6 − 2 − 4. AP/PB = |δ(A)|/|δ(B)|."],
+      pasos: ["Valores sin normalizar: A: −4; B: 12 − 2 − 4 = 6. Signos opuestos.", "AP/PB = 4/6 = 2/3 → AP = (2/5)·AB.", "P = (2/5)(6, 2) = (2,4; 0,8). Comprobación: 4,8 − 0,8 − 4 = 0 ✓."],
+      resultado: "P = (2,4; 0,8)" },
+    { id: "r43", nivel: 2,
+      enunciado: "Una compañía A cobra 12 € fijos más 0,05 €/min y otra B, 5 € fijos más 0,10 €/min. ¿A partir de cuántos minutos compensa más la A? ¿Cuánto cuesta entonces cada una?",
+      check: [{ tipo: "num", etiqueta: "minutos =", valor: 140 }, { tipo: "num", etiqueta: "coste =", valor: 19, unidad: "€" }],
+      pistas: ["Iguala 12 + 0,05x = 5 + 0,10x."],
+      pasos: ["12 + 0,05x = 5 + 0,10x → 7 = 0,05x → x = 140 min.", "Coste: 12 + 0,05·140 = 19 € (y 5 + 0,10·140 = 19 €).", "Para más de 140 min es más barata la A (menor pendiente)."],
+      resultado: "140 min; 19 €" },
+    { id: "r44", nivel: 2,
+      enunciado: "¿Para qué valor de m se cortan en un mismo punto las rectas x − 2y + 3 = 0, 2x + y − 4 = 0 y 3x + my − 5 = 0?",
+      check: { tipo: "num", etiqueta: "m =", valor: 1 },
+      pistas: ["Halla el punto de corte de las dos primeras y exige que la tercera pase por él."],
+      pasos: ["x − 2y = −3 y 2x + y = 4 → y = 4 − 2x → x − 8 + 4x = −3 → x = 1, y = 2.", "Tercera: 3·1 + 2m − 5 = 0 → 2m = 2 → m = 1."],
+      resultado: "m = 1" },
+    // ---------- ★★★ ----------
+    { id: "r45", nivel: 3,
+      enunciado: "Halla la recta simétrica de r: 2x − y + 1 = 0 respecto de s: x + y − 2 = 0. Da A, B y C con A &gt; 0 y sin factor común.",
+      check: [{ tipo: "num", etiqueta: "A =", valor: 1 }, { tipo: "num", etiqueta: "B =", valor: -2 }, { tipo: "num", etiqueta: "C =", valor: 3 }],
+      pistas: ["La simetría respecto de x + y = 2 lleva (x, y) en (2 − y, 2 − x). La recta simétrica es el conjunto de las imágenes."],
+      pasos: ["Un punto (x', y') de la simétrica viene de (x, y) = (2 − y', 2 − x') de r: 2(2 − y') − (2 − x') + 1 = 0.", "4 − 2y' − 2 + x' + 1 = 0 → x' − 2y' + 3 = 0.", "Comprobación: r ∩ s = (1/3, 5/3) está en la simétrica: 1/3 − 10/3 + 3 = 0 ✓."],
+      resultado: "x − 2y + 3 = 0" },
+    { id: "r46", nivel: 3,
+      enunciado: "Un taller fabrica x mesas e y sillas. Cada mesa necesita 4 h de carpintería y 2 h de barnizado; cada silla, 2 h y 3 h. Hay 40 h de carpintería y 36 h de barnizado. Gana 60 € por mesa y 40 € por silla. Halla cuántas de cada fabricar para el máximo beneficio y cuál es éste.",
+      check: [{ tipo: "num", etiqueta: "mesas x =", valor: 6 }, { tipo: "num", etiqueta: "sillas y =", valor: 8 }, { tipo: "num", etiqueta: "beneficio =", valor: 680, unidad: "€" }],
+      pistas: ["Restricciones 4x + 2y ≤ 40, 2x + 3y ≤ 36, x, y ≥ 0. F = 60x + 40y. Calcula F en los vértices."],
+      pasos: ["Vértices: (0, 0), (10, 0), (0, 12) y (6, 8) [de 4x + 2y = 40 y 2x + 3y = 36: y = 20 − 2x → 2x + 60 − 6x = 36 → x = 6].", "F = 0, 600, 480 y 60·6 + 40·8 = 680.", "Máximo en (6, 8): 6 mesas y 8 sillas, 680 €."],
+      resultado: "6 mesas, 8 sillas, 680 €" },
+    { id: "r47", nivel: 3,
+      enunciado: "Minimiza F = 2x + 3y sujeto a x + y ≥ 6, x + 3y ≥ 10, x ≥ 0, y ≥ 0. Da el punto óptimo y el valor mínimo.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 4 }, { tipo: "num", etiqueta: "y =", valor: 2 }, { tipo: "num", etiqueta: "F mín =", valor: 14 }],
+      pistas: ["La región no está acotada, pero F ≥ 0 crece al alejarse. Calcula los vértices: (10, 0), (0, 6) y la intersección de las dos rectas."],
+      pasos: ["Vértices: (10, 0) [y = 0 con x + 3y = 10], (0, 6) [x = 0 con x + y = 6] y (4, 2) [x + y = 6 con x + 3y = 10 → 2y = 4].", "F(10, 0) = 20; F(0, 6) = 18; F(4, 2) = 8 + 6 = 14.", "Mínimo en (4, 2): F = 14."],
+      resultado: "(4, 2), F = 14" },
+    { id: "r48", nivel: 3,
+      enunciado: "Halla los valores de k para que la recta y = x + k sea tangente a la circunferencia de centro (0, 0) y radio 3 (la distancia del centro a la recta debe valer el radio). Da los dos valores en decimales.",
+      check: { tipo: "lista", etiqueta: "k =", valores: [4.2426, -4.2426], tol: 0.002, ph: "dos valores" },
+      pistas: ["La recta es x − y + k = 0. Distancia del origen: |k|/√2."],
+      pasos: ["|k|/√2 = 3 → |k| = 3√2 ≈ 4,2426.", "k = 3√2 o k = −3√2."],
+      resultado: "k = ±3√2 ≈ ±4,243" },
+    { id: "r49", nivel: 3,
+      enunciado: "Demuestra que, en un triángulo con el circuncentro O en el origen, el punto H = A + B + C es el ortocentro, y que O, G y H están alineados (recta de Euler).",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 7, items: [
+        { t: "Usa |A| = |B| = |C| (O es el circuncentro y está en el origen)", p: 0.5 },
+        { t: "Calcula (H − A)·(B − C) = (B + C)·(B − C) = |B|² − |C|² = 0 (la recta AH es perpendicular a BC)", p: 0.5 },
+        { t: "Razona igual con otro vértice y concluye que H es el ortocentro", p: 0.5 },
+        { t: "Escribe el baricentro G = (A + B + C)/3 = H/3 y concluye que O, G y H están alineados con OH = 3·OG", p: 0.5 }
+      ] },
+      pasos: ["Con O = (0, 0): |A| = |B| = |C| = R. Sea H = A + B + C.", "(H − A)·(B − C) = (B + C)·(B − C) = |B|² − |C|² = R² − R² = 0 → AH ⊥ BC. Análogamente BH ⊥ CA, luego H es el ortocentro.", "G = (A + B + C)/3 = H/3: G está en la recta OH, con OG = OH/3 (GH = 2·OG). ∎"],
+      resultado: "H = A + B + C = 3G" }
+  );
+  ejercicios.sort(function (a, b) { return a.nivel - b.nivel; });
+
+  // láminas nuevas
+  lamina.push(
+    { titulo: "Distancia con signo y haz de rectas",
+      items: [
+        { label: "Forma normal", formula: "(Ax + By + C)/√(A² + B²) = 0 → x cos φ + y sen φ = p", ejemplo: "3x + 4y − 10 = 0 → 0,6x + 0,8y = 2 (p = 2)" },
+        { label: "Distancia con signo", formula: "δ(P) = (Ax₀ + By₀ + C)/√(A² + B²)", cuando: "Signos distintos: P y Q en lados opuestos. AP/PB = |δ(A)|/|δ(B)|." },
+        { label: "Haz por r ∩ s", formula: "r + k·s = 0", cuando: "Todas las rectas por el punto de corte (salvo s). Por Q: k = −r(Q)/s(Q).", ojo: "No incluye s: para ella k → ∞." },
+        { label: "Haz de paralelas", formula: "Ax + By + k = 0", cuando: "Distancia entre k₁ y k₂: |k₁ − k₂|/√(A² + B²)." }
+      ],
+      nota: "Tres rectas concurrentes: la tercera pasa por el corte de las otras dos." },
+    { titulo: "Programación lineal y modelos", ancha: true,
+      tabla: { cab: ["Idea", "Qué hacer"], filas: [
+        ["Región factible", "intersección de semiplanos (polígono convexo; puede ser no acotado o vacío)"],
+        ["Función objetivo F = ax + by", "rectas de nivel ax + by = k, paralelas; F crece al desplazarlas"],
+        ["Óptimo", "en un vértice (o en todo un lado si la recta de nivel es paralela a él)"],
+        ["Método", "variables → restricciones → región → vértices → evaluar F → interpretar"],
+        ["Punto de equilibrio", "C(x) = I(x); C = fijos + c·x, I = p·x; x* = fijos/(p − c)"],
+        ["Incentro", "I = (aA + bB + cC)/(a + b + c); r = Área/s"],
+        ["Recta de Euler", "O, G, H alineados; H = 3G − 2O"]
+      ] },
+      nota: "Interpolar es fiable; extrapolar con un modelo lineal puede dar disparates." }
+  );
 
   B.registrar("mates1", "t8", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 

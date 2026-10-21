@@ -48,7 +48,7 @@ El progreso de las actividades se guarda en `localStorage` (por dispositivo).
 
 | Asignatura | Temas | Palabras añadidas* | Ejercicios nuevos (total) | Actividades y simuladores* | Láminas nuevas | Simulacros nuevos (total) |
 |---|---|---|---|---|---|---|
-| **Matemáticas I** | 1–13 (todos) | ≈ 81.000 | 548 (600) | ≈ 200 | 119 | 13 (20) |
+| **Matemáticas I** | 1–13 (todos) | ≈ 100.000 | 611 (663) | ≈ 220 | 129 | 13 (20) |
 | **Física y Química I** | 1–13 (todos) | ≈ 117.000 | 622 (674) | ≈ 240 | 115 | 4 (11) |
 | Química II (piloto) | 6 | — | 10 | simulador de Le Chatelier, tabla ICE | 1 | — |
 | Historia de España (piloto) | 7 | — | 7 | línea del tiempo, diagramas, comentario guiado | 1 | — |
@@ -90,4 +90,4 @@ Con Playwright y Chromium (`herramientas/pruebas/`; ver `GUIA_TEMA.md`):
 
 ## Continuar el trabajo
 
-Quedan por ampliar con este mismo método: Matemáticas II, Física II, Química II (completar), Biología II, Lengua, Historia de España (completar) e Historia de la Filosofía; y, si se quiere más profundidad, los temas 4–8 de Matemáticas I (hoy con menos recursos que el resto). `herramientas/GUIA_TEMA.md` explica el flujo paso a paso.
+Quedan por ampliar con este mismo método: Matemáticas II, Física II, Química II (completar), Biología II, Lengua, Historia de España (completar) e Historia de la Filosofía. `herramientas/GUIA_TEMA.md` explica el flujo paso a paso.
