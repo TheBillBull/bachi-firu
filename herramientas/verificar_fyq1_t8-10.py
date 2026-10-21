@@ -222,6 +222,148 @@ comprobar('t9 errores: números de los enunciados', cerca(300 * 0.20 * 3.6, 216,
 comprobar('t9 clasificar y emparejar existen', len(datos['ampl']['fyq1']['t9']['datos']['clas1']['items']) == 9 and len(datos['ampl']['fyq1']['t9']['datos']['emp1']['pares']) == 8)
 comprobar('t9 mínimos de contenido', len(E) >= 36 and len(datos['ampl']['fyq1']['t9']['lamina']) >= 7 and len(datos['ampl']['fyq1']['t9']['nuevas']) >= 6)
 
+# ----------------------------------------------------------------------------------------------
+# TEMA 10 · DINÁMICA (las leyes de Newton)
+# Las respuestas se obtienen aquí planteando y resolviendo con sympy las ecuaciones de Newton de cada
+# problema (no con las fórmulas cerradas que usa la web), y se comparan con lo que acepta cada ejercicio.
+# ----------------------------------------------------------------------------------------------
+E10 = tema('t10')
+rad = math.radians
+A_, T_, N_, F_ = sp.symbols('A T N F')
+
+
+def sol(eqs, *incog):
+    s = sp.solve(eqs, incog, dict=True)[0]
+    return [float(s[v]) for v in incog]
+
+
+def op10(id_, correcta):
+    c = chk(E10, id_)
+    comprobar(f'{id_} opción correcta «{c["opciones"][c["ok"]]}»', c['tipo'] == 'opcion' and c['opciones'][c['ok']].startswith(correcta))
+
+
+def rub10(id_, n):
+    c = chk(E10, id_)
+    comprobar(f'{id_} es una rúbrica con {n} criterios', c['tipo'] == 'rubrica' and len(c['items']) == n and abs(sum(i['p'] for i in c['items']) - 0.5 * n) < 1e-9)
+
+
+# --- ★ básico
+vals(E10, 'd1', [math.hypot(12, 5)])
+vals(E10, 'd2', [sol([6 * A_ - 24], A_)[0]])
+vals(E10, 'd3', [1200 * 2.5])
+vals(E10, 'd4', [8 * 9.8, 8 * 3.71])
+vals(E10, 'd5', [0.4 * 30 * 9.8])
+op10('d6', '80 N'); op10('d7', 'sigue')
+vals(E10, 'd8', [sol([2 * A_ - (10 - 4)], A_)[0]])
+vals(E10, 'd9', [sol([0.5 * A_ - 2], A_)[0]])
+vals(E10, 'd10', [10 * 9.8])
+a_ = sol([20 * A_ - 40], A_)[0]; vals(E10, 'd11', [a_ * 5])
+vals(E10, 'd12', [35 * 9.8])
+# --- ★★ medio
+Fx, Fy = 40 * math.cos(rad(60)), 40 * math.sin(rad(60)); vals(E10, 'd13', [Fx / 5, 5 * 9.8 - Fy])
+v1, v2 = sp.Matrix([30, 0]), sp.Matrix([40 * math.cos(rad(60)), 40 * math.sin(rad(60))]); vals(E10, 'd14', [float((v1 + v2).norm())])
+v1, v2 = sp.Matrix([20, 0]), sp.Matrix([20 * math.cos(rad(120)), 20 * math.sin(rad(120))]); vals(E10, 'd15', [float((v1 + v2).norm())])
+a16 = sol([20**2 - 2 * A_ * 40], A_)[0]; vals(E10, 'd16', [1000 * a16, 20 / a16])
+a17 = sol([1 * 9.8 * math.sin(rad(30)) - 1 * A_], A_)[0]; vals(E10, 'd17', [a17, math.sqrt(2 * a17 * 3)])
+a18, N18 = sol([N_ - 9.8 * math.cos(rad(25)), 9.8 * math.sin(rad(25)) - 0.2 * N_ - A_], N_, A_)[::-1][0], 0; vals(E10, 'd18', [a18])
+vals(E10, 'd19', [sol([N_ - 70 * 9.8 - 70 * 1.2], N_)[0], sol([N_ - 70 * 9.8 - 70 * (-1.2)], N_)[0]])
+a20, T20 = sol([3 * 9.8 - T_ - 3 * A_, T_ - 2 * 9.8 - 2 * A_], A_, T_); vals(E10, 'd20', [a20, T20])
+a21, T21 = sol([1 * 9.8 - T_ - 1 * A_, T_ - 4 * A_], A_, T_); vals(E10, 'd21', [a21, T21])
+vals(E10, 'd22', [sol([2 * T_ * math.sin(rad(30)) - 6 * 9.8], T_)[0]])
+a23, F23 = sol([30 - F_ - 4 * A_, F_ - 2 * A_], A_, F_); vals(E10, 'd23', [a23, F23])
+I24 = 0.4 * (-15 - 10); vals(E10, 'd24', [abs(I24), abs(I24) / 0.02])
+vals(E10, 'd25', [abs(sol([3 * 6 + 60 * A_], A_)[0])])
+v26 = sol([2000 * 3 - 3000 * A_], A_)[0]; vals(E10, 'd26', [v26, 0.5 * 2000 * 9 - 0.5 * 3000 * v26**2])
+v27 = max(sp.solve(A_**2 - 0.5 * 9.8 * 50, A_), key=float); vals(E10, 'd27', [float(v27) * 3.6])
+a28 = 0.7 * 9.8; vals(E10, 'd28', [25**2 / (2 * a28)])
+F29 = 0.6 * 50 * 9.8; vals(E10, 'd29', [F29, (F29 - 0.4 * 50 * 9.8) / 50])
+vals(E10, 'd30', [600 / 80 - 9.8])
+# --- ★★★ avanzado
+N31 = 10 * 9.8 - 50 * math.sin(rad(30)); vals(E10, 'd31', [N31, sol([50 * math.cos(rad(30)) - 0.2 * N31 - 10 * A_], A_)[0]])
+vals(E10, 'd32', [math.degrees(math.atan(0.45))])
+vals(E10, 'd33', [sol([F_ - 98 * math.sin(rad(37)) - 0.25 * 98 * math.cos(rad(37))], F_)[0]])
+a34, T34 = sol([T_ - 0.3 * 5 * 9.8 - 5 * A_, 3 * 9.8 - T_ - 3 * A_], A_, T_); vals(E10, 'd34', [a34, T34])
+a35, T35 = sol([T_ - 6 * 9.8 * math.sin(rad(30)) - 6 * A_, 4 * 9.8 - T_ - 4 * A_], A_, T_); vals(E10, 'd35', [a35, T35])
+a36 = sol([2.5 * 9.8 - T_ - 2.5 * A_, T_ - 1.5 * 9.8 - 1.5 * A_], A_, T_)[0]; t36 = math.sqrt(2 * 2 / a36); vals(E10, 'd36', [t36, a36 * t36])
+vals(E10, 'd37', [sol([500 - A_ * 9.8 - A_ * 2], A_)[0]])
+vals(E10, 'd38', [math.degrees(math.atan(20**2 / (80 * 9.8)))])
+th39 = rad(10); sN = sp.symbols('V'); n_, f_ = sp.symbols('n f')
+# curva peraltada con rozamiento (a punto de deslizar hacia fuera): n·cosθ − μ n·senθ = m g ; n·senθ + μ n·cosθ = m v²/r
+s39 = sp.solve([n_ * math.cos(th39) - 0.5 * n_ * math.sin(th39) - 1 * 9.8, n_ * math.sin(th39) + 0.5 * n_ * math.cos(th39) - sN**2 / 100], [n_, sN], dict=True)
+v39 = max(float(s[sN]) for s in s39); vals(E10, 'd39', [v39 * 3.6])
+v1p, v2p = sol([3 * 4 - 3 * sp.symbols('x') - 1 * sp.symbols('y'), sp.symbols('y') - sp.symbols('x') - 4], sp.symbols('x'), sp.symbols('y')); vals(E10, 'd40', [v1p, v2p])
+v41 = sol([0.02 * 300 - 4 * A_], A_)[0]; vals(E10, 'd41', [v41, v41**2 / (2 * 9.8) * 100])
+v42 = abs(sol([8 * 250 + 800 * A_], A_)[0]); vals(E10, 'd42', [v42, v42**2 / (2 * 0.4 * 9.8)])
+k43 = sol([80 * 9.8 - F_ * 50**2], F_)[0]; vals(E10, 'd43', [k43, (80 * 9.8 - k43 * 25**2) / 80])
+T1_, T2_ = sol([-T_ * math.cos(rad(30)) + F_ * math.cos(rad(60)), T_ * math.sin(rad(30)) + F_ * math.sin(rad(60)) - 98], T_, F_); vals(E10, 'd44', [T1_, T2_])
+vals(E10, 'd45', [sol([36 - 3 * 9.8 - 3 * A_], A_)[0]])
+rub10('d46', 4); rub10('d47', 4); rub10('d48', 4)
+# la máquina de Atwood general (d46), el plano liso (d47) y el ángulo crítico con sympy simbólico
+m1s, m2s, gs, ths, mus = sp.symbols('m1 m2 g theta mu', positive=True)
+sat = sp.solve([m2s * gs - T_ - m2s * A_, T_ - m1s * gs - m1s * A_], [A_, T_], dict=True)[0]
+comprobar('d46 a = (m2 − m1)g/(m1 + m2)', sp.simplify(sat[A_] - (m2s - m1s) * gs / (m1s + m2s)) == 0)
+comprobar('Atwood T = 2 m1 m2 g/(m1 + m2)', sp.simplify(sat[T_] - 2 * m1s * m2s * gs / (m1s + m2s)) == 0)
+spl = sp.solve(sp.Eq(m1s * gs * sp.sin(ths), m1s * A_), A_)[0]
+comprobar('d47 a = g sen θ sin masa', sp.simplify(spl - gs * sp.sin(ths)) == 0)
+smu = sp.solve(sp.Eq(m1s * gs * sp.sin(ths) - mus * m1s * gs * sp.cos(ths), 0), mus)[0]
+comprobar('ángulo crítico tan θ = μ', sp.simplify(smu - sp.tan(ths)) == 0)
+comprobar('mínimos t10: ≥ 40 ejercicios y niveles', len(E10) >= 40 and sum(1 for e in E10.values() if e['nivel'] == 1) >= 10 and sum(1 for e in E10.values() if e['nivel'] == 3) >= 10 and all(e.get('pasos') for e in E10.values()))
+
+# --- teoría del tema 10 (cada cifra de los ejemplos resueltos y de las tablas)
+Rx, Ry = 40 - 20, 30; comprobar('t10 ej. tres fuerzas: 36,06 N y 56,3°', cerca(math.hypot(Rx, Ry), 36.06, 1e-3) and cerca(math.degrees(math.atan2(Ry, Rx)), 56.3, 1e-3))
+R2 = math.sqrt(49 + 64 + 2 * 7 * 8 * math.cos(rad(60))); comprobar('t10 ej. teorema del coseno: 13 N y 32,2°', cerca(R2, 13) and cerca(math.degrees(math.atan2(8 * math.sin(rad(60)), 7 + 8 * math.cos(rad(60)))), 32.2, 1e-2))
+comprobar('t10 ej. descomponer: 51,96 y 30', cerca(60 * math.cos(rad(30)), 51.96, 1e-3) and cerca(60 * math.sin(rad(30)), 30) and cerca(math.hypot(51.96, 30), 60, 1e-3))
+comprobar('t10 teoría: 1 kgf, 100 g, 20 kg', cerca(0.1 * 9.8, 0.98) and cerca(20 * 9.8, 196))
+Tcu = 49 / (2 * math.sin(rad(20))); comprobar('t10 ej. cuadro colgado: 71,6 N y 24,5 N', cerca(Tcu, 71.6, 1e-3) and cerca(49 / 2, 24.5) and cerca(2 * 0.3420, 0.6840, 1e-3) and cerca(5 * 9.8, 49))
+comprobar('t10 ej. trineo: 1,8 m/s²', cerca((60 - 15) / 25, 1.8))
+af = -20 / 8; comprobar('t10 ej. frenado: −2,5, −2500 N, 80 m', cerca(72 / 3.6, 20) and cerca(af, -2.5) and cerca(1000 * af, -2500) and cerca(20 * 8 + 0.5 * af * 64, 80))
+comprobar('t10 ej. fuerza oblicua: 17,32, 3,46 y 39 N', cerca(20 * math.cos(rad(30)), 17.32, 1e-3) and cerca(20 * math.cos(rad(30)) / 5, 3.46, 3e-3) and cerca(5 * 9.8 - 10, 39))
+a_c = 24 / 8; comprobar('t10 ej. dos bloques en contacto: 3 m/s², 9 N, 15 N', cerca(a_c, 3) and cerca(3 * a_c, 9) and cerca(24 - 9, 15) and cerca(5 * a_c, 15))
+comprobar('t10 tabla g: pesos 97,2 · 222,6 · 588 · 1488 y kgf', cerca(60 * 1.62, 97.2) and cerca(60 * 3.71, 222.6) and cerca(60 * 9.8, 588) and cerca(60 * 24.8, 1488) and cerca(97.2 / 9.8, 10, 2e-2) and cerca(222.6 / 9.8, 23, 2e-2) and cerca(1488 / 9.8, 152, 2e-3) and cerca(1.62 / 9.8, 1 / 6, 1e-1) and cerca(3.71 / 9.8, 0.38, 1e-2) and cerca(24.8 / 9.8, 2.5, 2e-2))
+comprobar('t10 ej. ascensor: 588, 648, 528 N, 0 y «kilos»', cerca(60 * 9.8, 588) and cerca(60 * 10.8, 648) and cerca(60 * 8.8, 528) and cerca(648 / 9.8, 66.1, 1e-3) and cerca(528 / 9.8, 53.9, 1e-3) and cerca(97.2 / 9.8, 9.9, 1e-2))
+comprobar('t10 ISS: el peso es el 88 % (a 420 km)', cerca((6.371e6 / (6.371e6 + 4.2e5))**2, 0.88, 1.5e-2))
+NN = 40 * 9.8; a5a = (250 - 0.35 * NN) / 40
+comprobar('t10 ej. estático/cinético: 392, 196, 137,2, 2,82', cerca(NN, 392) and cerca(0.5 * NN, 196) and cerca(0.35 * NN, 137.2) and cerca(a5a, 2.82, 1e-3) and 180 < 196 < 250)
+N_t, N_e = 196 - 40, 196 + 40
+comprobar('t10 ej. tirar o empujar: 69,28 · 156/31,2/1,90 · 236/47,2/1,10', cerca(80 * math.cos(rad(30)), 69.28, 1e-3) and cerca(0.2 * N_t, 31.2) and cerca((69.28 - 31.2) / 20, 1.90, 1e-2) and cerca(0.2 * N_e, 47.2) and cerca((69.28 - 47.2) / 20, 1.10, 1e-2))
+comprobar('t10 ej. distancia de frenado: 6,86; 65,6 m; 0,98; 459 m; ×7', cerca(0.7 * 9.8, 6.86) and cerca(900 / (2 * 6.86), 65.6, 1e-3) and cerca(0.1 * 9.8, 0.98) and cerca(900 / (2 * 0.98), 459, 1e-3) and cerca(459 / 65.6, 7, 1e-2) and cerca(108 / 3.6, 30))
+am = (19.6 - 9.8) / 6; comprobar('t10 método: 39,2; 9,8; 1,63; 16,33', cerca(4 * 9.8, 39.2) and cerca(0.25 * 39.2, 9.8) and cerca(am, 1.63, 1e-2) and cerca(19.6 - 2 * am, 16.33, 1e-3) and cerca(9.8 + 4 * am, 16.33, 1e-3) and cerca(2 * 9.8, 19.6))
+ap = 9.8 * math.sin(rad(30)); comprobar('t10 plano liso: 84,87; 4,9; 1,56 s; 7,67 m/s', cerca(98 * math.cos(rad(30)), 84.87, 1e-3) and cerca(ap, 4.9) and cerca(math.sqrt(12 / 4.9), 1.56, 1e-2) and cerca(4.9 * math.sqrt(12 / 4.9), 7.67, 1e-3) and cerca(math.sqrt(2 * 4.9 * 6), 7.67, 1e-3))
+comprobar('t10 plano con rozamiento: 21,2 N; 27,8; 2,78', cerca(0.25 * 84.87, 21.2, 1e-2) and cerca(49 - 21.2, 27.8, 1e-2) and cerca(27.8 / 10, 2.78, 1e-2) and cerca(9.8 * (0.5 - 0.25 * math.cos(rad(30))), 2.78, 1e-3))
+Pp = 196 * math.sin(rad(20)); Nn = 196 * math.cos(rad(20)); Fr = 0.15 * Nn
+comprobar('t10 rampa: 67,04; 184,18; 27,63; 94,7 N; 104,7 N', cerca(Pp, 67.04, 1e-3) and cerca(Nn, 184.18, 1e-3) and cerca(Fr, 27.63, 1e-3) and cerca(Pp + Fr, 94.7, 1e-3) and cerca(Pp + Fr + 10, 104.7, 1e-3))
+comprobar('t10 ángulo crítico: tan 31° = 0,60', cerca(math.tan(rad(31)), 0.60, 1e-2))
+comprobar('t10 tabla del plano: cos 30°, sen 45°', cerca(math.cos(rad(30)), 0.866, 1e-3) and cerca(math.sin(rad(45)), 0.707, 1e-3))
+comprobar('t10 Atwood 3 y 5 kg: 2,45; 36,75; 29,4; 49; 29,4 < T < 49', cerca(2 * 9.8 / 8, 2.45) and cerca(29.4 + 3 * 2.45, 36.75) and cerca(49 - 5 * 2.45, 36.75) and cerca(2 * 15 * 9.8 / 8, 36.75) and 29.4 < 36.75 < 49)
+a_m = (19.6 - 11.76) / 8; comprobar('t10 mesa y colgante: 11,76; 19,6; 0,98; 17,64', cerca(0.2 * 58.8, 11.76) and cerca(a_m, 0.98) and cerca(19.6 - 2 * a_m, 17.64) and 19.6 > 11.76)
+a_t = 60000 / 70000; comprobar('t10 tren: 0,857; 25 714; 8571; 34 286', cerca(a_t, 0.857, 1e-3) and cerca(30000 * a_t, 25714, 1e-3) and cerca(10000 * a_t, 8571, 1e-3) and cerca(60000 - 25714, 34286, 1e-3) and cerca(40000 * a_t, 34286, 1e-3))
+comprobar('t10 piedra en horizontal: 10 N y 40 N', cerca(0.5 * 16 / 0.8, 10) and cerca(0.5 * 32**0 * 64 / 0.8, 40))
+comprobar('t10 curva plana: 17,1 m/s; 61,7 km/h; hielo 7 m/s, 25 km/h', cerca(math.sqrt(0.6 * 9.8 * 50), 17.1, 1e-2) and cerca(math.sqrt(0.6 * 9.8 * 50) * 3.6, 61.7, 1e-3) and cerca(math.sqrt(0.1 * 9.8 * 50), 7, 1e-2) and cerca(7 * 3.6, 25, 1e-2))
+comprobar('t10 peralte 100 m, 72 km/h: 0,408 y 22,2°', cerca(400 / 980, 0.408, 1e-2) and cerca(math.degrees(math.atan(400 / 980)), 22.2, 1e-2))
+comprobar('t10 puente y valle: 7300, 12 300, 19,8 m/s', cerca(1000 * (9.8 - 2.5), 7300) and cerca(1000 * (9.8 + 2.5), 12300) and cerca(math.sqrt(9.8 * 40), 19.8, 1e-2) and cerca(10**2 / 40, 2.5))
+comprobar('t10 pelota: −6 N·s, 600 N, ×400 el peso', cerca(0.15 * (-20 - 20), -6) and cerca(6 / 0.01, 600) and cerca(600 / (0.15 * 9.8), 408, 1e-2))
+comprobar('t10 retroceso del astronauta: −0,2 m/s', cerca(-3 * 6 / 90, -0.2))
+vf = (1000 * 20 + 4000 * 10) / 5000; comprobar('t10 choque coche-camión: 12 m/s y 40 000 J', cerca(vf, 12) and cerca(0.5 * 1000 * 400 + 0.5 * 4000 * 100, 400000) and cerca(0.5 * 5000 * vf**2, 360000) and cerca(400000 - 360000, 40000))
+comprobar('t10 choque elástico 2 kg y 3 kg: −1 y 4 m/s; 25 J', cerca((2 - 3) * 5 / 5, -1) and cerca(2 * 2 * 5 / 5, 4) and cerca(2 * 5, 10) and cerca(2 * -1 + 3 * 4, 10) and cerca(0.5 * 2 * 25, 25) and cerca(0.5 * 2 * 1 + 0.5 * 3 * 16, 25))
+kk = 80 * 9.8 / 55**2; comprobar('t10 paracaidista: k 0,259; 21,8; ×84; 162 N; 7,8 m/s²', cerca(kk, 0.259, 1e-2) and cerca(784 / 36, 21.8, 1e-2) and cerca(784 / 36 / kk, 84, 1e-2) and cerca(kk * 625, 162, 1e-2) and cerca((784 - kk * 625) / 80, 7.8, 1e-2))
+comprobar('t10 gota: 200 m/s sin aire desde 2 km', cerca(math.sqrt(2 * 9.8 * 2000), 198, 3e-3))
+# problemas tipo PAU
+a1 = 9.8 * (0.5 + 0.2 * math.cos(rad(30))); d1_ = 64 / (2 * a1); a1b = 9.8 * (0.5 - 0.2 * math.cos(rad(30)))
+comprobar('t10 PAU 1: 6,60; 4,85 m; 3,20; 5,57 m/s; tan 30° > μ', cerca(a1, 6.60, 1e-2) and cerca(d1_, 4.85, 1e-2) and cerca(a1b, 3.20, 1e-2) and cerca(math.sqrt(2 * a1b * d1_), 5.57, 1e-2) and math.tan(rad(30)) > 0.2 and cerca(0.5 + 0.2 * math.cos(rad(30)), 0.6732, 1e-3) and cerca(0.5 - 0.1732, 0.3268, 1e-3))
+s37, c37 = math.sin(rad(37)), math.cos(rad(37)); Pp2 = 8 * 9.8 * s37; Fr2 = 0.3 * 8 * 9.8 * c37
+a2_, T2b = sol([98 - T_ - 10 * A_, T_ - Pp2 - Fr2 - 8 * A_], A_, T_)
+comprobar('t10 PAU 2: 47,18; 18,79; 65,97 N; m₂ > 6,73 kg; 1,78 m/s²; 80,2 N', cerca(s37, 0.6018, 1e-3) and cerca(c37, 0.7986, 1e-3) and cerca(Pp2, 47.18, 1e-3) and cerca(Fr2, 18.79, 1e-3) and cerca(Pp2 + Fr2, 65.97, 1e-3) and cerca((Pp2 + Fr2) / 9.8, 6.73, 1e-3) and cerca(a2_, 1.78, 1e-2) and cerca(T2b, 80.2, 1e-3))
+comprobar('t10 PAU 3: 7910 N; 791 N; 80,7 kg; 2 s; 3 m; 6860 N', cerca(700 * 11.3, 7910) and cerca(70 * 11.3, 791) and cerca(791 / 9.8, 80.7, 1e-3) and cerca(3 / 1.5, 2) and cerca(0.5 * 1.5 * 4, 3) and cerca(700 * 9.8, 6860))
+comprobar('t10 PAU 4: 123 km/h; 23,0°; 5000 N; 9408 N; 53 %', cerca(math.sqrt(0.8 * 9.8 * 150), 34.29, 1e-3) and cerca(math.sqrt(0.8 * 9.8 * 150) * 3.6, 123, 1e-2) and cerca(math.degrees(math.atan(625 / (150 * 9.8))), 23.0, 2e-3) and cerca(1200 * 625 / 150, 5000) and cerca(0.8 * 1200 * 9.8, 9408) and cerca(5000 / 9408, 0.53, 1e-2) and cerca(90 / 3.6, 25))
+vv = 12 / 6; comprobar('t10 PAU 5: 2 m/s; 24 J; 0,816 m; 12 J', cerca(vv, 2) and cerca(0.5 * 2 * 36 - 0.5 * 6 * 4, 24) and cerca(24 / 36, 2 / 3, 1e-2) and cerca(vv**2 / (2 * 0.25 * 9.8), 0.816, 1e-2) and cerca(0.25 * 6 * 9.8 * 0.816, 12, 1e-2))
+a6_ = (60 - 0.2 * 8 * 9.8) / 8; comprobar('t10 PAU 6: 15,68 N; 5,54 m/s²; 22,5 N; 27,7 N', cerca(0.2 * 49, 9.8) and cerca(0.2 * 29.4, 5.88) and cerca(15.68, 9.8 + 5.88) and cerca(a6_, 5.54, 1e-3) and cerca(3 * a6_ + 5.88, 22.5, 1e-2) and cerca(60 - 22.5 - 9.8, 27.7, 1e-2) and cerca(5 * a6_, 27.7, 1e-2))
+# actividades y errores
+comprobar('t10 errores: números de los enunciados', cerca(98 * math.cos(rad(30)), 84.9, 1e-3) and cerca(2 * 3 * 5 * 9.8 / 8, 36.75) and cerca(3 * 3, 9) and cerca(24 / 8, 3))
+comprobar('t10 test: 113 N, 10 N, 15 N', cerca(70 * 1.62, 113.4, 1e-2) and cerca(math.hypot(6, 8), 10) and cerca(0.3 * 5 * 10, 15) and cerca((2 * 1)**2, 4))
+dd = datos['ampl']['fyq1']['t10']
+comprobar('t10 actividades: errores, test, tarjetas, parejas, clasificaciones, orden', len(dd['datos']['errores']['preguntas']) >= 10 and len(dd['datos']['quiz1']['preguntas']) >= 12 and len(dd['datos']['tj1']['cartas']) >= 14 and len(dd['datos']['emp1']['pares']) >= 7 and len(dd['datos']['cla1']['items']) >= 9 and len(dd['datos']['orden1']['items']) >= 6)
+comprobar('t10 mínimos: lámina ≥ 8 y secciones nuevas ≥ 9', len(dd['lamina']) >= 8 and len(dd['nuevas']) >= 9)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)

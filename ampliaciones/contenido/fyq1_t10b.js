@@ -94,7 +94,7 @@
       ["Acero sobre hielo", "0,1", "0,03"],
       ["Teflón sobre acero", "0,04", "0,04"]
     ]) +
-    "<p>Estos valores son orientativos (dependen mucho del estado de las superficies). Lo importante es la comparación: el hielo es resbaladizo porque su μ es unas veinte veces menor que el del asfalto seco.</p>" +
+    "<p>Estos valores son orientativos (dependen mucho del estado de las superficies). Lo importante es la comparación: el hielo es resbaladizo porque su μ es entre diez y treinta veces menor que el del asfalto seco.</p>" +
     w("f10_rozamiento") +
     ejemplo("¿Se mueve o no? Estático frente a cinético", "Una caja de 40 kg reposa en el suelo (μ<sub>e</sub> = 0,5; μ<sub>c</sub> = 0,35). a) ¿Qué ocurre si se empuja con 180 N? b) ¿Y con 250 N? (g = 9,8 m/s²)", [
       "Normal: N = m·g = 40·9,8 = 392 N. Rozamiento estático máximo: μ<sub>e</sub>·N = 0,5·392 = 196 N. Rozamiento cinético: μ<sub>c</sub>·N = 0,35·392 = 137,2 N.",
