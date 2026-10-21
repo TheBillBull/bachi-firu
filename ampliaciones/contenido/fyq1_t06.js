@@ -454,7 +454,7 @@
         ejemplo("Descomposición de la caliza", "Para CaCO₃(s) ⟶ CaO(s) + CO₂(g): ΔH = +178,3 kJ y ΔS = +160,5 J/K. ¿A partir de qué temperatura es espontánea?", [
           "ΔH &gt; 0 y ΔS &gt; 0: espontánea sólo a temperatura alta. El límite es ΔG = 0 ⟹ T = ΔH/ΔS.",
           "Unidades: ΔH = 178 300 J. T = 178 300/160,5 = <b>1 111 K ≈ 838 °C</b>.",
-          "A 298 K: ΔG = 178,3 − 298·0,1605 = +130,5 kJ (no espontánea). A 1 300 K: 178,3 − 1 300·0,1605 = −30,4 kJ (espontánea). Por eso la cal se fabrica en hornos muy calientes."
+          "A 298 K: ΔG = 178,3 − 298·0,1605 = +130,5 kJ (no espontánea). A 1 300 K: 178,3 − 1 300·0,1605 ≈ −30 kJ (espontánea). Por eso la cal se fabrica en hornos muy calientes."
         ]) +
         ejemplo("Síntesis del amoniaco", "N₂ + 3 H₂ ⟶ 2 NH₃: ΔH = −92,2 kJ, ΔS = −198,7 J/K. Calcula ΔG a 298 K y la temperatura de equilibrio.", [
           "ΔG<sub>298</sub> = −92,2 − 298·(−0,1987) = −92,2 + 59,2 = <b>−33,0 kJ</b> (espontánea a temperatura ambiente).",

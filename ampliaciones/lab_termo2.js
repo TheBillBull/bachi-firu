@@ -94,7 +94,7 @@
     var cuerpo = B.caja(host, "Pruébalo", "Entalpía de reacción con entalpías de formación");
     cuerpo.innerHTML = '<div data-pre class="chips"></div><p class="q6-obj"></p><div class="ac-tabla q6-tab"></div><div class="lectura anch"></div><div data-ctl></div><div class="lectura anch q6-lec2"></div><p class="w-pie"></p>';
     var st = { i: 0, g: 10 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), obj = cuerpo.querySelector(".q6-obj"), tab = cuerpo.querySelector(".q6-tab"), lec = cuerpo.querySelector(".lectura"), lec2 = cuerpo.querySelector(".q6-lec2"), pie = cuerpo.querySelector(".w-pie");
-    U.slider(ctl, { et: "Masa de la primera sustancia (g)", min: 1, max: 200, step: 1, val: st.g, on: function (v) { st.g = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " g"; } });
+    U.slider(ctl, { et: "Masa (g)", min: 1, max: 200, step: 1, val: st.g, on: function (v) { st.g = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " g"; } });
     function pinta() {
       var P = FP[st.i], e = P.eq, sp = 0, sr = 0;
       obj.innerHTML = "<b>Reacción:</b> " + T.eqTxt(e);
@@ -167,7 +167,7 @@
     var cuerpo = B.caja(host, "Pruébalo", "¿Es espontánea? ΔG = ΔH − T·ΔS");
     cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><div class="ac-tabla q6-tab"></div><p class="w-pie"></p>';
     var st = { i: 0, T: 298 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lec = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector(".q6-tab"), pie = cuerpo.querySelector(".w-pie");
-    var sT = U.slider(ctl, { et: "Temperatura (K)", min: 1, max: 2000, step: 1, val: st.T, on: function (v) { st.T = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " K (" + fmt(v - 273.15, 0) + " °C)"; } });
+    var sT = U.slider(ctl, { et: "T (K)", min: 1, max: 2000, step: 1, val: st.T, on: function (v) { st.T = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " K"; } });
     function pinta() {
       var P = GP[st.i], dG = P.dH - st.T * P.dS / 1000, Teq = P.dS !== 0 ? P.dH * 1000 / P.dS : null, Tmax = 2000;
       var y0 = P.dH - 0 * P.dS, y1 = P.dH - Tmax * P.dS / 1000, ymin = Math.min(y0, y1, -20), ymax = Math.max(y0, y1, 20), pad = (ymax - ymin) * 0.1;
@@ -179,7 +179,7 @@
       g.segmento(st.T, g.c.ymin, st.T, g.c.ymax, { clase: "c-faint", dash: "4 4" }); g.punto(st.T, dG, { r: 7, clase: "c-ok" });
       var caso = P.dH < 0 && P.dS > 0 ? "ΔH &lt; 0 y ΔS &gt; 0 → espontánea siempre" : P.dH > 0 && P.dS < 0 ? "ΔH &gt; 0 y ΔS &lt; 0 → nunca espontánea" : P.dH < 0 && P.dS < 0 ? "ΔH &lt; 0 y ΔS &lt; 0 → espontánea a baja temperatura" : "ΔH &gt; 0 y ΔS &gt; 0 → espontánea a alta temperatura";
       lec.innerHTML = fil("Datos", "ΔH = " + signo(P.dH, 1) + " kJ · ΔS = " + signo(P.dS, 1) + " J/K", "ancho") + fil("Caso", caso, "pen ancho") +
-        fil("ΔG a " + fmt(st.T, 0) + " K", signo(dG, 1) + " kJ · " + (dG < 0 ? "<b>espontánea</b>" : dG > 0 ? "no espontánea" : "equilibrio"), (dG < 0 ? "ok" : "red") + " ancho") +
+        fil("ΔG a " + fmt(st.T, 0) + " K (" + fmt(st.T - 273.15, 0) + " °C)", signo(dG, 1) + " kJ · " + (dG < 0 ? "<b>espontánea</b>" : dG > 0 ? "no espontánea" : "equilibrio"), (dG < 0 ? "ok" : "red") + " ancho") +
         fil("Temperatura de equilibrio (ΔG = 0)", Teq && Teq > 0 ? "T = ΔH/ΔS = " + fmt(Teq, 0) + " K = " + fmt(Teq - 273.15, 0) + " °C" : "no existe (ΔG no cambia de signo para T &gt; 0)", "ancho");
       var tr = [[-1, 1, "Espontánea siempre", "p. ej. combustiones con aumento de gas"], [1, -1, "No espontánea nunca", "p. ej. 3 O₂ → 2 O₃"], [-1, -1, "Espontánea a T baja", "p. ej. síntesis del NH₃"], [1, 1, "Espontánea a T alta", "p. ej. descomposición del CaCO₃"]];
       tab.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>ΔH</th><th>ΔS</th><th>Resultado</th></tr></thead><tbody>" + tr.map(function (x) { var cur = Math.sign(P.dH) === x[0] && Math.sign(P.dS) === x[1]; return "<tr class='" + (cur ? "q6-cur" : "") + "'><td>" + (x[0] < 0 ? "−" : "+") + "</td><td>" + (x[1] < 0 ? "−" : "+") + "</td><td style='text-align:left'>" + x[2] + " <small>" + x[3] + "</small></td></tr>"; }).join("") + "</tbody></table>";
@@ -196,7 +196,7 @@
   var CB = [
     { n: "Hidrógeno", f: "H₂", M: 2.016, h: 285.8, nc: 0 }, { n: "Metano", f: "CH₄", M: 16.04, h: 890.3, nc: 1 }, { n: "Propano", f: "C₃H₈", M: 44.10, h: 2220, nc: 3 },
     { n: "Butano", f: "C₄H₁₀", M: 58.12, h: 2877, nc: 4 }, { n: "Octano (gasolina)", f: "C₈H₁₈", M: 114.23, h: 5470, nc: 8 }, { n: "Etanol", f: "C₂H₅OH", M: 46.07, h: 1367, nc: 2 },
-    { n: "Carbón (C)", f: "C", M: 12.01, h: 393.5, nc: 1 }, { n: "Glucosa", f: "C₆H₁₂O₆", M: 180.16, h: 2803, nc: 6 }
+    { n: "Carbón", f: "C", M: 12.01, h: 393.5, nc: 1 }, { n: "Glucosa", f: "C₆H₁₂O₆", M: 180.16, h: 2803, nc: 6 }
   ];
   CB.forEach(function (c) { c.kjg = c.h / c.M; c.co2 = c.nc * 44.01 / c.h * 1000; });   // kJ/g y g de CO₂ por MJ
   B.lab.termo.COMB = CB;
@@ -204,9 +204,9 @@
     var cuerpo = B.caja(host, "Problema", "Combustibles: energía y CO₂");
     cuerpo.innerHTML = '<div data-sel class="chips"></div><div class="w-plot"></div><div class="ac-tabla q6-tab"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { k: 1, V: 20, dT: 50, eta: 70 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lec = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector(".q6-tab"), pie = cuerpo.querySelector(".w-pie");
-    U.slider(ctl, { et: "Agua a calentar (L)", min: 1, max: 200, step: 1, val: st.V, on: function (v) { st.V = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " L"; } });
-    U.slider(ctl, { et: "Aumento de temperatura (K)", min: 5, max: 80, step: 5, val: st.dT, on: function (v) { st.dT = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " K"; } });
-    U.slider(ctl, { et: "Rendimiento de la caldera", min: 30, max: 100, step: 5, val: st.eta, on: function (v) { st.eta = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
+    U.slider(ctl, { et: "Agua (L)", min: 1, max: 200, step: 1, val: st.V, on: function (v) { st.V = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " L"; } });
+    U.slider(ctl, { et: "Subida (K)", min: 5, max: 80, step: 5, val: st.dT, on: function (v) { st.dT = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " K"; } });
+    U.slider(ctl, { et: "Rendimiento", min: 30, max: 100, step: 5, val: st.eta, on: function (v) { st.eta = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
     function pinta() {
       var C = CB[st.k], Q = st.V * 1000 * T.CE.agua.c * st.dT / 1000, Qc = Q / (st.eta / 100), n = Qc / C.h, m = n * C.M, co2 = n * C.nc * 44.01;
       var max = Math.max.apply(null, CB.map(function (c) { return c.kjg; })); g.limpiar();
@@ -216,7 +216,7 @@
         fil("Calor que hay que producir (rendimiento " + fmt(st.eta, 0) + " %)", fmt(Qc, 0) + " kJ", "ancho") + fil("Cantidad de " + C.n.toLowerCase(), fmt(n, 2) + " mol = " + fmt(m, 1) + " g", "red") + fil("CO₂ emitido", fmt(co2 / 1000, 2) + " kg", st.k === 0 ? "ok" : "red");
       pie.innerHTML = "<b>−ΔH<sub>c</sub></b> es la energía que desprende la combustión completa de 1 mol (con agua líquida). Dividiendo entre la masa molar sale la <b>energía por gramo</b>; el hidrógeno es el que más da por gramo y no emite CO₂, pero es el más difícil de almacenar. Entre los combustibles de carbono, cuanto más hidrógeno tiene la molécula (metano), menos CO₂ por energía obtenida.";
     }
-    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 160, ymin: 0.4, ymax: CB.length + 0.8, w: 600, h: 280, sinY: true, etx: "kJ/g", etiqueta: "Energía por gramo de combustible" });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 200, ymin: 0.4, ymax: CB.length + 0.8, w: 600, h: 280, sinY: true, etx: "kJ/g", etiqueta: "Energía por gramo de combustible" });
     U.fichas(cuerpo.querySelector("[data-sel]"), CB.map(function (c, i) { return { k: String(i), t: c.n }; }), "1", function (k) { st.k = +k; pinta(); });
     pinta();
   };

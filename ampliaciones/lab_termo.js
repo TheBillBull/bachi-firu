@@ -134,8 +134,8 @@
     var sQ = U.slider(ctl, { et: "Calor <i>Q</i> (J)", min: -100, max: 100, step: 5, val: st.Q, on: function (v) { st.Q = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
     var sW = U.slider(ctl, { et: "Trabajo <i>W</i> (J)", min: -100, max: 100, step: 5, val: st.W, on: function (v) { st.W = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
     U.slider(ctl2, { et: "Presión (atm)", min: 0.5, max: 5, step: 0.5, val: st.p, on: function (v) { st.p = v; pinta2(); }, fmt: function (v) { return fmt(v, 1); } });
-    var sV1 = U.slider(ctl2, { et: "Volumen inicial (L)", min: 1, max: 10, step: 0.5, val: st.v1, on: function (v) { st.v1 = v; pinta2(); }, fmt: function (v) { return fmt(v, 1); } });
-    U.slider(ctl2, { et: "Volumen final (L)", min: 1, max: 10, step: 0.5, val: st.v2, on: function (v) { st.v2 = v; pinta2(); }, fmt: function (v) { return fmt(v, 1); } });
+    var sV1 = U.slider(ctl2, { et: "V inicial (L)", min: 1, max: 10, step: 0.5, val: st.v1, on: function (v) { st.v1 = v; pinta2(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl2, { et: "V final (L)", min: 1, max: 10, step: 0.5, val: st.v2, on: function (v) { st.v2 = v; pinta2(); }, fmt: function (v) { return fmt(v, 1); } });
     function barra(y, v, clase, rot) {
       g.rect(Math.min(0, v), y - 0.28, Math.max(0, v), y + 0.28, { clase: clase });
       g.texto(v >= 0 ? v : v, y, rot + " = " + (v > 0 ? "+" : "") + fmt(v, 0) + " J", { dx: v >= 0 ? 8 : -8, dy: 5, ancla: v >= 0 ? "start" : "end", clase: "pen" });
@@ -171,7 +171,7 @@
     ];
     var st = { dH: -120, Ea: 70, cat: false }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lec = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), bola, an;
     var sD = U.slider(ctl, { et: "ΔH (kJ/mol)", min: -250, max: 250, step: 10, val: st.dH, on: function (v) { st.dH = v; pinta(); }, fmt: function (v) { return (v > 0 ? "+" : "") + fmt(v, 0); } });
-    var sE = U.slider(ctl, { et: "Energía de activación (kJ/mol)", min: 20, max: 300, step: 10, val: st.Ea, on: function (v) { st.Ea = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    var sE = U.slider(ctl, { et: "Eₐ (kJ/mol)", min: 20, max: 300, step: 10, val: st.Ea, on: function (v) { st.Ea = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
     function perfil(dH, Ea, x) {      // altura (kJ/mol) del perfil con los reactivos en 0
       var s = x * x * (3 - 2 * x), pico = 0.4, sp = pico * pico * (3 - 2 * pico);
       return dH * s + (Ea - dH * sp) * Math.exp(-Math.pow((x - pico) / 0.16, 2));
@@ -215,8 +215,8 @@
     cuerpo.innerHTML = '<div data-sus class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { s: "agua", m: 200, t1: 20, t2: 60 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lec = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
     U.slider(ctl, { et: "Masa (g)", min: 10, max: 1000, step: 10, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
-    U.slider(ctl, { et: "Temperatura inicial (°C)", min: 0, max: 100, step: 5, val: st.t1, on: function (v) { st.t1 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
-    U.slider(ctl, { et: "Temperatura final (°C)", min: 0, max: 100, step: 5, val: st.t2, on: function (v) { st.t2 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    U.slider(ctl, { et: "T inicial (°C)", min: 0, max: 100, step: 5, val: st.t1, on: function (v) { st.t1 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    U.slider(ctl, { et: "T final (°C)", min: 0, max: 100, step: 5, val: st.t2, on: function (v) { st.t2 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
     function pinta() {
       var S = T.CE[st.s], m = st.m, dT = st.t2 - st.t1, Q = m * S.c * dT, Qagua = m * T.CE.agua.c * dT;
       var qmax = Math.max(1, Math.abs(Q), Math.abs(Qagua)) / 1000 * 1.1; g.rango(0, qmax, 0, 100); g.limpiar();
@@ -272,8 +272,8 @@
     var cuerpo = B.caja(host, "Pruébalo", "Curva de calentamiento del agua: de hielo a vapor");
     cuerpo.innerHTML = '<div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><div class="ac-tabla q6-tab"></div><p class="w-pie"></p>';
     var st = { m: 100, f: 0.5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lec = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector(".q6-tab"), pie = cuerpo.querySelector(".w-pie");
-    U.slider(ctl, { et: "Masa de agua (g)", min: 10, max: 500, step: 10, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
-    U.slider(ctl, { et: "Energía aportada (% del total)", min: 0, max: 100, step: 1, val: 50, on: function (v) { st.f = v / 100; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
+    U.slider(ctl, { et: "Masa (g)", min: 10, max: 500, step: 10, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    U.slider(ctl, { et: "Energía (%)", min: 0, max: 100, step: 1, val: 50, on: function (v) { st.f = v / 100; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
     var ESTADO = ["hielo (sólido)", "hielo + agua (fusión, 0 °C)", "agua líquida", "agua + vapor (ebullición, 100 °C)", "vapor de agua"];
     function pinta() {
       var tr = T.tramos(st.m), total = tr.reduce(function (a, x) { return a + x.Q; }, 0), Q = st.f * total, r = T.tempDeQ(tr, Q);
