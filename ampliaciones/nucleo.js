@@ -280,7 +280,7 @@
       var r = Mate.compilar(raw);
       if (!r.ok) return { ok: false, msg: r.error };
       var esperado = Mate.compilar(c.expr);
-      return { ok: Mate.equivalente(r.f, esperado.f, c.dom), msg: "He leído: " + r.texto };
+      return { ok: Mate.equivalente(r.f, esperado.f, c.dom, c.enteros), msg: "He leído: " + r.texto };
     }
     if (c.tipo === "lista") {
       var esp = c.valores.slice().sort(function (a, b) { return a - b; });

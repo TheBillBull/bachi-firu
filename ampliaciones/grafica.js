@@ -410,11 +410,11 @@
   };
 
   // ¿Dan lo mismo las dos funciones? Compara en puntos "feos" del dominio.
-  Mate.equivalente = function (f, g, dom) {
+  Mate.equivalente = function (f, g, dom, enteros) {
     dom = dom || [-3, 3];
     var N = 19, ok = 0;
     for (var i = 0; i < N; i++) {
-      var x = dom[0] + (dom[1] - dom[0]) * (i + 0.37) / N, a = f(x), b = g(x);
+      var x = enteros ? i + 1 : dom[0] + (dom[1] - dom[0]) * (i + 0.37) / N, a = f(x), b = g(x);
       if (!isFinite(a) && !isFinite(b)) continue;
       if (!isFinite(a) || !isFinite(b)) return false;
       if (Math.abs(a - b) > 1e-6 * Math.max(1, Math.abs(a), Math.abs(b))) return false;

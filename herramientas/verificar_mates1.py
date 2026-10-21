@@ -281,6 +281,156 @@ comprobar('t2 quiz: a₁₀=−11, r=1/3, S₅₀=1275, S∞=9, 16^(1/4)=2, 2000
 comprobar('t2 errores: aₙ=1/n decreciente', sp.simplify((1/(n_ + 1) - 1/n_) + 1/(n_*(n_ + 1))) == 0)
 comprobar('t2 pelota con simulación (suma de alturas)', abs(10 + 2*sum(10*0.6**k for k in range(1, 200)) - 10*(1.6)/(0.4)) < 1e-9)
 
+# ---------------------------------------------------------------------
+# Tema 2 · ampliación: recurrencias, series, dinero, e, Koch, problemas
+# ---------------------------------------------------------------------
+import math as _m
+def recur(f, a1, N):
+    v = [a1]
+    for _ in range(N - 1): v.append(f(v[-1]))
+    return v
+# s23 término general con signo alterno
+comprobar('t2 s23', termsf((-1)**(n_ + 1)*2*n_, 5) == [2, -4, 6, -8, 10] and E2['s23']['check']['enteros'] is True)
+# s24 + teoría: aₙ = 2ⁿ + 1
+rv = recur(lambda t: 2*t - 1, 3, 6)
+comprobar('t2 s24: a₅ = 33 = 2⁵+1', rv[4] == 33 == v2('s24')['valor'] and all(rv[i] == 2**(i + 1) + 1 for i in range(6)))
+# s25: punto fijo y convergencia
+Ls = sp.solve(sp.Eq(sp.Symbol('L'), (sp.Symbol('L') + 2)/2), sp.Symbol('L'))
+rv25 = recur(lambda t: (t + 2)/2, 10, 60)
+comprobar('t2 s25: L = 2', Ls == [2] and abs(rv25[-1] - 2) < 1e-12 and v2('s25')['valor'] == 2 and recur(lambda t: Q(t + 2, 2), Q(10), 6) == [10, 6, 4, 3, Q(5, 2), Q(9, 4)] and all((rv25[i] - 2) == 8/2**i for i in range(10)))
+# s26, s27
+comprobar('t2 s26: d = 4', Q(18 - 2, 3 + 1) == 4 == v2('s26')['valor'] and [2 + 4*k for k in range(5)] == [2, 6, 10, 14, 18])
+comprobar('t2 s27: r = 2', (Q(24, 3))**Q(1, 3) == 2 == v2('s27')['valor'] and [3*2**k for k in range(4)] == [3, 6, 12, 24])
+# s28, s29
+comprobar('t2 s28: 12+4+4/3… = 18', Q(12)/(1 - Q(1, 3)) == 18 == v2('s28')['valor'] and Q(4, 12) == Q(1, 3) and abs(sum(12*(1/3)**k for k in range(80)) - 18) < 1e-9)
+comprobar('t2 s29: 0,(18) = 2/11', Q(18, 100)/(1 - Q(1, 100)) == Q(2, 11) and abs(v2('s29')['valor'] - 2/11) < 1e-12 and abs(2/11 - 0.181818181818) < 1e-9)
+# s30, s32 y teoría de Sₙ → aₙ
+Sn1 = lambda k: k**2 + 2*k
+comprobar('t2 s30: a₁₀ = S₁₀ − S₉ = 21', Sn1(10) - Sn1(9) == 21 == v2('s30')['valor'] and sp.expand((n_**2 + 2*n_) - ((n_ - 1)**2 + 2*(n_ - 1)) - (2*n_ + 1)) == 0 and Sn1(1) == 3 == 2*1 + 1)
+Sn32 = 3*n_**2 - 2*n_
+an32 = sp.expand(Sn32 - Sn32.subs(n_, n_ - 1))
+comprobar('t2 s32: aₙ = 6n − 5 (vale también en n = 1)', sp.expand(an32 - (6*n_ - 5)) == 0 and Sn32.subs(n_, 1) == 1 == (6*1 - 5) and igual(P('6n-5').subs(x, x), P(E2['s32']['check']['expr'])))
+Sn2b = n_**2 + 1
+comprobar('t2 teoría: Sₙ = n²+1 → a₁ = 2, aₙ = 2n−1 (n ≥ 2), a₁ ≠ 2·1−1', Sn2b.subs(n_, 1) == 2 and sp.expand(Sn2b - Sn2b.subs(n_, n_ - 1) - (2*n_ - 1)) == 0 and [Sn2b.subs(n_, k) - Sn2b.subs(n_, k - 1) for k in (2, 3, 4)] == [3, 5, 7])
+A_, B_ = sp.symbols('A B')
+Sap = lambda a1, d: n_*(2*a1 + (n_ - 1)*d)/2
+comprobar('t2 teoría: Sₙ aritmética = (d/2)n² + (a₁ − d/2)n', sp.expand(Sap(a1_, d_) - (d_/2*n_**2 + (a1_ - d_/2)*n_)) == 0)
+# s31
+r31 = sp.symbols('r31')
+sol31 = [s_ for s_ in sp.solve(6*r31**3 - 162, r31) if s_.is_real]
+comprobar('t2 s31: r = 3, a₁ = 2, a₈ = 4374', sol31 == [3] and 6/3 == 2 and 2*3**7 == 4374 and [v2('s31', k)['valor'] for k in range(3)] == [3, 2, 4374])
+# s33
+comprobar('t2 s33: a₁ = 4, S = 12 → r = 2/3', sp.solve(sp.Eq(4/(1 - sp.Symbol('rr')), 12), sp.Symbol('rr')) == [Q(2, 3)] and abs(v2('s33')['valor'] - 2/3) < 1e-12)
+# s34
+cand = [k for k in range(1, 100) if k*(2*k + 1) > 1000][0]
+comprobar('t2 s34: n = 23', cand == 23 == v2('s34')['valor'] and 22*45 == 990 and 23*47 == 1081 and abs(float((-1 + sqrt(8001))/4) - 22.1) < 0.05)
+# s35, s36
+comprobar('t2 s35: 680 asientos', 15 + 19*2 == 53 and 20*(15 + 53)//2 == 680 == v2('s35')['valor'] and sum(15 + 2*k for k in range(20)) == 680)
+semana = [k for k in range(1, 100) if sum(5 + 2*j for j in range(k)) > 500][0]
+comprobar('t2 s36: semana 21', semana == 21 == v2('s36')['valor'] and sum(5 + 2*j for j in range(20)) == 480 and sum(5 + 2*j for j in range(21)) == 525 and sp.expand(Sap(5, 2) - (n_**2 + 4*n_)) == 0 and abs(float(-2 + sqrt(504)) - 20.45) < 0.01)
+# s37: folio
+dob = [k for k in range(1, 100) if 0.1*2**k/1e6 > 384400][0]
+comprobar('t2 s37: 42 dobleces', dob == 42 == v2('s37')['valor'] and round(0.1*2**41/1e6) == 219902 and round(0.1*2**42/1e6) == 439805 and abs(_m.log2(3.844e12) - 41.8) < 0.1)
+# s38 y teoría de desintegración
+comprobar('t2 s38: 500·0,9⁶ = 265,72', round(500*0.9**6, 2) == 265.72 == v2('s38')['valor'] and [k for k in range(1, 60) if 500*0.9**k < 100][0] == 16 and round(500*0.9**15, 2) == 102.95 and round(500*0.9**16, 2) == 92.65 and abs(_m.log(0.2)/_m.log(0.9) - 15.28) < 0.01)
+comprobar('t2 teoría: bacterias 1000·2⁹ = 512000', 1000*2**9 == 512000 and 180//20 == 9)
+comprobar('t2 teoría: tablero de ajedrez 2⁶⁴−1', sum(2**k for k in range(64)) == 2**64 - 1 == 18446744073709551615)
+# s39
+comprobar('t2 s39: Aquiles 100/9', Q(10)/(1 - Q(1, 10)) == Q(100, 9) and sp.solve(sp.Eq(10*sp.Symbol('t'), 100 + sp.Symbol('t')), sp.Symbol('t')) == [Q(100, 9)] and abs(v2('s39')['valor'] - 100/9) < 1e-12)
+comprobar('t2 teoría: 0,999… = 1 y Σ(1/2)ᵏ desde 3 = 1/4', Q(9, 10)/(1 - Q(1, 10)) == 1 and (Q(1, 8))/(1 - Q(1, 2)) == Q(1, 4) == 1 - (Q(1, 2) + Q(1, 4)) and v2('s51')['valor'] == 0.25 and sp.summation(Q(1, 2)**sp.Symbol('k', integer=True), (sp.Symbol('k', integer=True), 3, sp.oo)) == Q(1, 4))
+# s40: monotonía de n/(n²+1)
+num40 = sp.expand((n_ + 1)*(n_**2 + 1) - n_*((n_ + 1)**2 + 1))
+comprobar('t2 s40: numerador −n²−n+1 < 0, decreciente, 0 < aₙ ≤ 1/2', num40 == -n_**2 - n_ + 1 and all(num40.subs(n_, k) < 0 for k in range(1, 200)) and termsf(n_/(n_**2 + 1), 4) == [Q(1, 2), Q(2, 5), Q(3, 10), Q(4, 17)] and E2['s40']['check']['ok'] == 0 and sp.limit(n_/(n_**2 + 1), n_, sp.oo) == 0)
+# s41: n² − 6n
+t41 = [k**2 - 6*k for k in range(1, 10)]
+comprobar('t2 s41: mínimo a₃ = −9', t41 == [-5, -8, -9, -8, -5, 0, 7, 16, 27] and min(t41) == -9 and t41.index(-9) + 1 == 3 and sp.expand(((n_ + 1)**2 - 6*(n_ + 1)) - (n_**2 - 6*n_) - (2*n_ - 5)) == 0 and [v2('s41', 0)['valor'], v2('s41', 1)['valor']] == [3, -9])
+# 2ⁿ/n!
+comprobar('t2 teoría: 2ⁿ/n! cociente 2/(n+1), decreciente desde n = 1', sp.simplify(sp.factorial(n_)*2**(n_ + 1)/(sp.factorial(n_ + 1)*2**n_) - 2/(n_ + 1)) == 0 and [Q(2)**k/sp.factorial(k) for k in range(1, 5)] == [2, 2, Q(4, 3), Q(2, 3)] and sp.limit(2**n_/sp.factorial(n_), n_, sp.oo) == 0)
+# límites s42, s43 y tabla
+comprobar('t2 s42: (3n²−2n+1)/(n²+5) → 3', sp.limit((3*n_**2 - 2*n_ + 1)/(n_**2 + 5), n_, sp.oo) == 3 == v2('s42')['valor'])
+comprobar('t2 s43: solo (n²+1)/n³ → 0', sp.limit((n_**2 + 1)/n_**3, n_, sp.oo) == 0 and sp.limit((n_**2 + 1)/n_**2, n_, sp.oo) == 1 and sp.limit((n_**3 + 1)/n_**2, n_, sp.oo) == sp.oo and E2['s43']['check']['ok'] == 0)
+comprobar('t2 teoría: límites (5n−1)/(2n+3)=5/2, (n²+1)/n³=0, (2n³+n)/(n+1)=∞, (−3n²+1)/(n²+4n)=−3', sp.limit((5*n_ - 1)/(2*n_ + 3), n_, sp.oo) == Q(5, 2) and sp.limit((2*n_**3 + n_)/(n_ + 1), n_, sp.oo) == sp.oo and sp.limit((-3*n_**2 + 1)/(n_**2 + 4*n_), n_, sp.oo) == -3 and sp.limit((3*n_**2 - 2*n_ + 1)/(n_**2 + 5), n_, sp.oo) == 3)
+# s44: PA + PG
+dd_ = sp.symbols('dd_')
+sol44 = sp.solve(sp.Eq((6 - dd_)*(14 + dd_), 36), dd_)
+tri = {tuple([5 - s_, 5, 5 + s_]) for s_ in sol44}
+comprobar('t2 s44: d = 4 ó −12; (1,5,9) y (17,5,−7)', sorted(sol44) == [-12, 4] and tri == {(1, 5, 9), (17, 5, -7)} and (2, 6, 18) == (1 + 1, 5 + 1, 9 + 9) and (18, 6, 2) == (17 + 1, 5 + 1, -7 + 9) and sorted(E2['s44']['check']['valores']) == [1, 5, 9] and 6**2 == 2*18 == 36)
+# s45, s46: dinero
+i45 = Q(3, 1200); cap45 = 200*((1 + i45)**120 - 1)/i45
+comprobar('t2 s45: ahorro 27 948,28 €', abs(float(cap45) - 27948.28) < 0.01 and v2('s45')['valor'] == 27948.28 and abs(float(sum(200*(1 + i45)**k for k in range(120))) - float(cap45)) < 1e-6 and abs(float((1 + i45)**120) - 1.349354) < 1e-6 and abs(float(cap45) - 24000 - 3948.28) < 0.01)
+i46 = Q(6, 1200); c46 = 10000*i46/(1 - (1 + i46)**(-60))
+comprobar('t2 s46: cuota 193,33 €', abs(float(c46) - 193.33) < 0.005 and v2('s46')['valor'] == 193.33 and abs(float(sum(c46/(1 + i46)**k for k in range(1, 61))) - 10000) < 1e-6 and abs(float(c46*60) - 11599.68) < 0.02 and abs(float(c46*60 - 10000) - 1599.68) < 0.02 and abs(float((1 + i46)**(-60)) - 0.741372) < 1e-6)
+# simulación del préstamo: deuda final 0
+deuda = 10000.0
+for _ in range(60): deuda = deuda*(1 + 0.005) - float(c46)
+comprobar('t2 préstamo: la deuda llega a 0 con la cuota calculada', abs(deuda) < 1e-6)
+# s47 Koch
+lados = lambda k: 3*4**k
+perim = lambda k: Q(3)*Q(4, 3)**k
+A0 = sqrt(3)/4
+area = lambda k: A0 + sum(3*4**(j - 1)*A0/9**j for j in range(1, k + 1))
+comprobar('t2 s47: P₃ = 64/9, lados(4) = 768', perim(3) == Q(64, 9) and abs(v2('s47', 0)['valor'] - 64/9) < 1e-12 and lados(4) == 768 == v2('s47', 1)['valor'] and [lados(k) for k in range(4)] == [3, 12, 48, 192] and perim(2) == Q(16, 3))
+comprobar('t2 Koch: área A₂ = 40/27·A₀, A∞ = 8/5·A₀ = 2√3/5', sp.simplify(area(2) - Q(40, 27)*A0) == 0 and sp.simplify(sp.summation(3*4**(sp.Symbol('j', integer=True) - 1)*A0/9**sp.Symbol('j', integer=True), (sp.Symbol('j', integer=True), 1, sp.oo)) + A0 - 2*sqrt(3)/5) == 0 and abs(float(2*sqrt(3)/5) - 0.69282) < 1e-5 and abs(float(area(2)) - 0.6415) < 1e-4 and abs(float(A0) - 0.43301) < 1e-5 and Q(4, 9)/(1 - Q(4, 9)) == Q(4, 5))
+# s48 TAE
+comprobar('t2 s48: TAE 6,168 %', abs(float((1 + Q(6, 1200))**12 - 1)*100 - 6.1678) < 1e-3 and abs(v2('s48')['valor'] - 6.1678) < 1e-9 and abs(float(sp.log(2)/sp.log(Q(106, 100))) - 11.9) < 0.02)
+# s49 Herón, s54 φ, s50 Fibonacci
+her = recur(lambda t: Q(1, 2)*(t + 2/t), Q(1), 4)
+comprobar('t2 s49: Herón a₂=3/2, a₃=17/12, a₄=577/408', her == [1, Q(3, 2), Q(17, 12), Q(577, 408)] and abs(float(her[3]) - 1.41422) < 1e-5 and abs(float(her[3]) - float(sqrt(2))) < 1e-5 and abs(v2('s49')['valor'] - 1.41422) < 1e-9 and sp.solve(sp.Eq(sp.Symbol('L', positive=True), (sp.Symbol('L', positive=True) + 2/sp.Symbol('L', positive=True))/2), sp.Symbol('L', positive=True)) == [sqrt(2)])
+fibs = [1, 1]
+for _ in range(20): fibs.append(fibs[-1] + fibs[-2])
+comprobar('t2 s50: a₂₀ = 6765', fibs[19] == 6765 == v2('s50')['valor'] and fibs[9] == 55)
+ph = recur(lambda t: 1 + 1/t, 1.0, 40)
+comprobar('t2 s54: 1 + 1/aₙ → φ = 1,618', abs(ph[-1] - (1 + 5**0.5)/2) < 1e-12 and abs(v2('s54')['valor'] - 1.618) < 1e-9 and recur(lambda t: 1 + 1/t, Q(1), 6) == [1, 2, Q(3, 2), Q(5, 3), Q(8, 5), Q(13, 8)])
+# s52 continua
+comprobar('t2 s52: 1000·e^0,5 = 1648,72; mensual 1647,01; anual 1628,89', round(1000*_m.exp(0.5), 2) == 1648.72 == v2('s52')['valor'] and round(1000*(1 + 0.05/12)**120, 2) == 1647.01 and round(1000*1.05**10, 2) == 1628.89 and round(1648.72 - 1647.01, 2) == 1.71)
+# s53: series
+comprobar('t2 s53: armónica diverge, geométrica 0,9 suma 10', sp.summation(Q(9, 10)**sp.Symbol('k', integer=True), (sp.Symbol('k', integer=True), 0, sp.oo)) == 10 and E2['s53']['check']['ok'] == 1 and sum(1/k for k in range(1, 12368)) > 10 > sum(1/k for k in range(1, 12367)))
+# s55 y teoría 3+6+12
+n55 = [k for k in range(1, 40) if 3*(2**k - 1) > 1000][0]
+comprobar('t2 s55: n = 9', n55 == 9 == v2('s55')['valor'] and 3*(2**8 - 1) == 765 and 3*(2**9 - 1) == 1533)
+# s56
+tot56 = sum(14400*Q(103, 100)**k for k in range(10))
+comprobar('t2 s56: 165 079,86 €', abs(float(tot56) - 165079.86) < 0.01 and v2('s56')['valor'] == 165079.86 and abs(float(14400*(Q(103, 100)**10 - 1)/Q(3, 100)) - float(tot56)) < 1e-6)
+# teoría: problemas de examen
+sol_pa = sp.solve([sp.Eq(3*sp.Symbol('aa'), 21), sp.Eq((7 - dd_)*7*(7 + dd_), 280)], [sp.Symbol('aa'), dd_])
+comprobar('t2 teoría: tres en PA suman 21 y producto 280 → 4, 7, 10', sorted(sp.solve(sp.Eq(7*(49 - dd_**2), 280), dd_)) == [-3, 3] and 4 + 7 + 10 == 21 and 4*7*10 == 280)
+comprobar('t2 teoría: S₁₀ = 120, a₁₀ = 21 → a₁ = 3, d = 2', sp.solve(sp.Eq(5*(a1_ + 21), 120), a1_) == [3] and (21 - 3)/9 == 2 and 10*(3 + 21)/2 == 120)
+# teoría: sumas
+comprobar('t2 teoría: suma de impares y pares', all(sum(2*k - 1 for k in range(1, m + 1)) == m**2 and sum(2*k for k in range(1, m + 1)) == m*(m + 1) for m in range(1, 60)) and sum(2*k - 1 for k in range(1, 31)) == 900 and sum(2*k for k in range(1, 101)) == 10100 and sp.simplify(sp.summation(sp.Symbol('k', integer=True)**2, (sp.Symbol('k', integer=True), 1, n_)) - n_*(n_ + 1)*(2*n_ + 1)/6) == 0)
+# teoría: términos generales y diferencias
+comprobar('t2 teoría: 3,8,15,24,35 = n²+2n y números figurados', termsf(n_**2 + 2*n_, 5) == [3, 8, 15, 24, 35] and termsf(n_*(n_ + 1)/2, 5) == [1, 3, 6, 10, 15] and termsf(n_*(3*n_ - 1)/2, 5) == [1, 5, 12, 22, 35] and termsf(n_*(n_ + 1), 5) == [2, 6, 12, 20, 30] and termsf(sp.factorial(n_), 5) == [1, 2, 6, 24, 120] and termsf((-1)**(n_ + 1)*2*n_, 5) == [2, -4, 6, -8, 10] and termsf((-Q(1, 2))**n_, 2) == [-Q(1, 2), Q(1, 4)])
+dif1 = [b - a for a, b in zip([3, 8, 15, 24, 35], [3, 8, 15, 24, 35][1:])]
+comprobar('t2 teoría: diferencias 5,7,9,11 y segundas 2,2,2; restar n² deja 2n', dif1 == [5, 7, 9, 11] and [b - a for a, b in zip(dif1, dif1[1:])] == [2, 2, 2] and [t - k**2 for k, t in zip(range(1, 5), [3, 8, 15, 24])] == [2, 4, 6, 8])
+comprobar('t2 teoría: 1,2,4,7,11 con aₙ₊₁ = aₙ + n', ([1, 2, 4, 7, 11, 16] == [1 + sum(range(1, k)) for k in range(1, 7)]))
+# teoría: n/(n²+1) etc.
+comprobar('t2 teoría: (n²−6n) diferencia 2n−5', sp.expand(((n_ + 1)**2 - 6*(n_ + 1)) - (n_**2 - 6*n_)) == 2*n_ - 5)
+# recurrencia lineal: bₙ = aₙ − L
+pp, qq = sp.symbols('p q')
+Lg = sp.solve(sp.Eq(sp.Symbol('L'), pp*sp.Symbol('L') + qq), sp.Symbol('L'))[0]
+comprobar('t2 teoría: aₙ₊₁ = p·aₙ + q → L = q/(1−p) y bₙ geométrica', sp.simplify(Lg - qq/(1 - pp)) == 0 and sp.simplify((pp*sp.Symbol('A') + qq - Lg) - pp*(sp.Symbol('A') - Lg)) == 0)
+# Koch y caos: simulación numérica del caos (3,9) no converge, 2,8 converge
+c28 = recur(lambda t: 2.8*t*(1 - t), 0.2, 400); c39 = recur(lambda t: 3.9*t*(1 - t), 0.2, 400)
+comprobar('t2 widget recurrencia: 2,8 converge a 1 − 1/2,8; 3,9 no se estabiliza', abs(c28[-1] - (1 - 1/2.8)) < 1e-9 and max(c39[-50:]) - min(c39[-50:]) > 0.3)
+# número e
+comprobar('t2 e: tabla (1+1/k)^k', [round(float((1 + Q(1, k))**k), 4) for k in (1, 2, 10)] == [2.0, 2.25, 2.5937] and round((1 + 1/100)**100, 4) == 2.7048 and round((1 + 1/1000)**1000, 4) == 2.7169 and round((1 + 1/10**6)**(10**6), 5) == 2.71828 and sp.limit((1 + 1/n_)**n_, n_, sp.oo) == sp.E)
+comprobar('t2 e: capitalización k → e^(rt)', abs(1000*(1 + 0.05/10**6)**(10**6*10) - 1000*_m.exp(0.5)) < 1e-2)
+# regla del 72 y ε–N
+comprobar('t2 ε–N: (2n+1)/(n+1), ε = 0,1 → N = 10', min(k for k in range(1, 100) if all(abs((2*j + 1)/(j + 1) - 2) < 0.1 for j in range(k, 400))) == 10)
+# quiz 2
+comprobar('t2 quiz2: a₃ = 29; L = 3; S = 8; ahorro 1268,25', recur(lambda t: 3*t - 4, 5, 3)[2] == 29 and sp.solve(sp.Eq(sp.Symbol('L'), (sp.Symbol('L') + 6)/3), sp.Symbol('L')) == [3] and Q(4)/(1 - Q(1, 2)) == 8 and round(100*((1.01)**12 - 1)/0.01, 2) == 1268.25 and sp.limit((3*n_**2 + 1)/(n_**2 - n_), n_, sp.oo) == 3)
+Q2 = datos['ampl']['mates1']['t2']['datos']['quiz2']['preguntas']
+comprobar('t2 quiz2: la respuesta correcta es la primera opción en las 4 comprobadas numéricamente', Q2[0]['ok'] == 0 and Q2[1]['ok'] == 0 and Q2[5]['ok'] == 0 and Q2[9]['ok'] == 0 and Q2[2]['ok'] == 1 and Q2[3]['ok'] == 2 and Q2[4]['ok'] == 3 and Q2[6]['ok'] == 1 and Q2[7]['ok'] == 0 and Q2[8]['ok'] == 0)
+comprobar('t2 rúbricas s57–s59 con 4 criterios cada una', all(len(E2[k]['check']['items']) == 4 for k in ('s57', 's58', 's59')))
+comprobar('t2 s57–s58: Σ impares = n² por la fórmula aritmética', sp.simplify(n_*(1 + (2*n_ - 1))/2 - n_**2) == 0)
+# clasificación de sucesiones
+Cl = {'7, 4, 1, −2, −5, …': 0, '−3, 0, 3, 6, 9, …': 0, 'aₙ = 4n − 1': 0, '0,5; 1; 1,5; 2; …': 0, '2, 6, 18, 54, …': 1, '100, 50, 25, 12,5, …': 1, 'aₙ = 3·2ⁿ': 1, 'aₙ = 5·(−1)ⁿ': 1, '1, 4, 9, 16, 25, …': 2, '1, 1, 2, 3, 5, 8, …': 2, 'aₙ = n² + n': 2, '1, 1/2, 1/3, 1/4, …': 2}
+def tipo_seq(v):
+    d = [v[i + 1] - v[i] for i in range(len(v) - 1)]; q = [Q(v[i + 1])/v[i] if v[i] != 0 else None for i in range(len(v) - 1)]
+    return 0 if len(set(d)) == 1 else 1 if (None not in q and len(set(q)) == 1) else 2
+Sq = {'7, 4, 1, −2, −5, …': [7, 4, 1, -2, -5], '−3, 0, 3, 6, 9, …': [-3, 0, 3, 6, 9], 'aₙ = 4n − 1': [4*k - 1 for k in range(1, 7)], '0,5; 1; 1,5; 2; …': [Q(1, 2), 1, Q(3, 2), 2], '2, 6, 18, 54, …': [2, 6, 18, 54], '100, 50, 25, 12,5, …': [100, 50, 25, Q(25, 2)], 'aₙ = 3·2ⁿ': [3*2**k for k in range(1, 6)], 'aₙ = 5·(−1)ⁿ': [5*(-1)**k for k in range(1, 6)], '1, 4, 9, 16, 25, …': [1, 4, 9, 16, 25], '1, 1, 2, 3, 5, 8, …': [1, 1, 2, 3, 5, 8], 'aₙ = n² + n': [k**2 + k for k in range(1, 6)], '1, 1/2, 1/3, 1/4, …': [1, Q(1, 2), Q(1, 3), Q(1, 4)]}
+cl_dat = {it['t']: it['c'] for it in datos['ampl']['mates1']['t2']['datos']['clasuc']['items']}
+comprobar('t2 clasificar sucesiones: los tipos coinciden con el cálculo', all(tipo_seq(Sq[k]) == Cl[k] == cl_dat[k] for k in Cl) and set(cl_dat) == set(Cl), str([k for k in Cl if tipo_seq(Sq[k]) != cl_dat.get(k)]))
+
 
 # =====================================================================
 # TEMA 3 · Álgebra

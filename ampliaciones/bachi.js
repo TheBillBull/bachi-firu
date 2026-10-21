@@ -410,11 +410,11 @@
   };
 
   // ¿Dan lo mismo las dos funciones? Compara en puntos "feos" del dominio.
-  Mate.equivalente = function (f, g, dom) {
+  Mate.equivalente = function (f, g, dom, enteros) {
     dom = dom || [-3, 3];
     var N = 19, ok = 0;
     for (var i = 0; i < N; i++) {
-      var x = dom[0] + (dom[1] - dom[0]) * (i + 0.37) / N, a = f(x), b = g(x);
+      var x = enteros ? i + 1 : dom[0] + (dom[1] - dom[0]) * (i + 0.37) / N, a = f(x), b = g(x);
       if (!isFinite(a) && !isFinite(b)) continue;
       if (!isFinite(a) || !isFinite(b)) return false;
       if (Math.abs(a - b) > 1e-6 * Math.max(1, Math.abs(a), Math.abs(b))) return false;
@@ -710,7 +710,7 @@
       var r = Mate.compilar(raw);
       if (!r.ok) return { ok: false, msg: r.error };
       var esperado = Mate.compilar(c.expr);
-      return { ok: Mate.equivalente(r.f, esperado.f, c.dom), msg: "He leído: " + r.texto };
+      return { ok: Mate.equivalente(r.f, esperado.f, c.dom, c.enteros), msg: "He leído: " + r.texto };
     }
     if (c.tipo === "lista") {
       var esp = c.valores.slice().sort(function (a, b) { return a - b; });
@@ -6149,6 +6149,246 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de sucesiones II (Matemáticas I, tema 2)
+   recurrencia · serie · anualidad · koch
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, F = B.lab.fun;
+  B.lab = B.lab || {};
+  var S2 = B.lab.suc2 = {};
+  var fil = F.fil, pto = F.pto, campo = F.campo;
+
+  function lista(f, a1, n) { var v = [a1], i; for (i = 1; i < n; i++) v.push(f(v[i - 1])); return v; }
+  S2.lista = lista;
+  // Clasificación numérica de una sucesión generada
+  S2.clasifica = function (v) {
+    var n = v.length, d = [], q = [], i;
+    for (i = 1; i < n; i++) { d.push(v[i] - v[i - 1]); q.push(v[i - 1] !== 0 ? v[i] / v[i - 1] : NaN); }
+    var tol = function (x, y) { return Math.abs(x - y) < 1e-9 * Math.max(1, Math.abs(x), Math.abs(y)); };
+    if (d.every(function (x) { return tol(x, d[0]); })) return { tipo: "aritmética", d: d[0] };
+    if (q.every(function (x) { return !isNaN(x) && tol(x, q[0]); })) return { tipo: "geométrica", r: q[0] };
+    return { tipo: "otra" };
+  };
+  // Límite por iteración: 400 pasos y comprobación de estabilidad
+  S2.limite = function (f, a1) {
+    var x = a1, i, ant;
+    for (i = 0; i < 2000; i++) { ant = x; x = f(x); if (!isFinite(x) || Math.abs(x) > 1e12) return { tipo: "diverge" }; }
+    if (Math.abs(x - ant) < 1e-9) return { tipo: "converge", L: x };
+    var a = x, b = f(a), c = f(b), e = f(c);
+    if (Math.abs(a - c) < 1e-7 && Math.abs(b - e) < 1e-7) return { tipo: "periodica", per: [a, b] };
+    return { tipo: "oscila" };
+  };
+
+  // ============================================================
+  // RECURRENCIA: a₍ₙ₊₁₎ = f(aₙ)
+  // ============================================================
+  var PR = [
+    { f: "x+3", a: 2, t: "aₙ + 3 (a₁ = 2)" }, { f: "2x", a: 1, t: "2·aₙ (a₁ = 1)" }, { f: "(x+2)/2", a: 10, t: "(aₙ + 2)/2 (a₁ = 10)" },
+    { f: "(x+2/x)/2", a: 1, t: "Herón: (aₙ + 2/aₙ)/2 (a₁ = 1)" }, { f: "2x-1", a: 3, t: "2aₙ − 1 (a₁ = 3)" }, { f: "-x", a: 3, t: "−aₙ (a₁ = 3)" },
+    { f: "1+1/x", a: 1, t: "1 + 1/aₙ (a₁ = 1)" }, { f: "2.8x(1-x)", a: 0.2, t: "2,8·aₙ(1 − aₙ) (a₁ = 0,2)" }, { f: "3.9x(1-x)", a: 0.2, t: "3,9·aₙ(1 − aₙ) (a₁ = 0,2)" }
+  ];
+  B.w.recurrencia = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Sucesiones recurrentes: a₍ₙ₊₁₎ = f(aₙ)");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="ac-tabla"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { f: PR[2].f, a: PR[2].a, n: 20 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), tabla = cuerpo.querySelector(".ac-tabla");
+    var iF = campo(ctl, "aₙ₊₁ =", st.f, 190), iA = campo(ctl, "a₁ =", String(st.a), 70);
+    U.slider(ctl, { et: "Términos", min: 6, max: 40, step: 1, val: st.n, on: function (v) { st.n = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    function pinta() {
+      var r = F.leer(st.f), a1 = B.Mate.numero(st.a); g.limpiar();
+      if (!r.ok) { lectura.innerHTML = fil("Revisa lo que has escrito", r.error + " (escribe aₙ como x)", "red"); tabla.innerHTML = ""; return; }
+      if (isNaN(a1)) { lectura.innerHTML = fil("Revisa a₁", "escribe un número", "red"); tabla.innerHTML = ""; return; }
+      var f = r.g, v = lista(f, a1, st.n), cl = S2.clasifica(v.slice(0, 12)), L = S2.limite(f, a1);
+      var fin = v.filter(function (z) { return isFinite(z); }), lo = Math.min.apply(null, fin), hi = Math.max.apply(null, fin), pad = (hi - lo) * 0.15 || 1;
+      g.rango(0, st.n + 1, Math.max(lo - pad, -1e6), Math.min(hi + pad, 1e6)); g.limpiar();
+      if (L.tipo === "converge") g.horizontal(L.L, { clase: "c-ok", dash: "6 5" });
+      g.polilinea(v.map(function (z, i) { return [i + 1, isFinite(z) ? Math.max(-1e6, Math.min(1e6, z)) : 0]; }), { clase: "c-pen" });
+      v.forEach(function (z, i) { if (isFinite(z)) pto(g, i + 1, z, "c-pen", false, 4); });
+      var filas = v.slice(0, 12).map(function (z, i) { return "<td>" + fmt(z, 5) + "</td>"; }).join("");
+      tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>n</th>" + v.slice(0, 12).map(function (_, i) { return "<th>" + (i + 1) + "</th>"; }).join("") + "</tr></thead><tbody><tr><th>aₙ</th>" + filas + "</tr></tbody></table>";
+      var tipo = cl.tipo === "aritmética" ? "aritmética con d = " + fmt(cl.d, 4) : cl.tipo === "geométrica" ? "geométrica con r = " + fmt(cl.r, 4) : "ni aritmética ni geométrica";
+      var comp = L.tipo === "converge" ? "se acerca a <b>" + fmt(L.L, 6) + "</b>: es el valor que cumple L = f(L) (punto fijo)" : L.tipo === "diverge" ? "<b>diverge</b> (crece sin límite)" : L.tipo === "periodica" ? "se repite en ciclo entre " + fmt(L.per[0], 4) + " y " + fmt(L.per[1], 4) : "no se estabiliza (oscila de forma irregular)";
+      lectura.innerHTML = fil("Primeros términos", v.slice(0, 6).map(function (z) { return fmt(z, 4); }).join(", ") + ", …", "pen ancho") + fil("Tipo", tipo, "") + fil("Comportamiento a largo plazo", comp, "ok ancho");
+      pie.innerHTML = "En una sucesión <b>recurrente</b> cada término se obtiene del anterior con una regla f. Si la sucesión converge a L, ese L tiene que cumplir <b>L = f(L)</b> (el «punto fijo»): por ejemplo, con (aₙ + 2)/2 se resuelve L = (L + 2)/2 y sale L = 2. Con la regla de Herón (aₙ + 2/aₙ)/2 la sucesión se acerca a √2: es un método antiguo para calcular raíces.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 21, ymin: 0, ymax: 12, w: 600, h: 300, etx: "n", ety: "aₙ", etiqueta: "Términos de la sucesión" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PR.map(function (p, i) { return { k: String(i), t: p.t }; }), "2", function (k) { var P = PR[+k]; st.f = P.f; st.a = P.a; iF.value = P.f; iA.value = String(P.a); pinta(); });
+    iF.addEventListener("input", function () { st.f = iF.value; pinta(); }); iA.addEventListener("input", function () { st.a = iA.value; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // SERIE: sumas parciales de una progresión geométrica
+  // ============================================================
+  B.w.serie = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Sumar infinitos términos: sumas parciales de una serie geométrica");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { a: 1, r: 0.5, n: 12 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sa, sr, sn;
+    sa = U.slider(ctl, { et: "Primer término <i>a</i>", min: -4, max: 4, step: 0.5, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    sr = U.slider(ctl, { et: "Razón <i>r</i>", min: -1.5, max: 1.5, step: 0.05, val: st.r, on: function (v) { st.r = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    sn = U.slider(ctl, { et: "Términos <i>n</i>", min: 1, max: 30, step: 1, val: st.n, on: function (v) { st.n = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    var PS = [{ t: "Zenón: 1/2 + 1/4 + 1/8 + …", a: 0.5, r: 0.5 }, { t: "0,(9) = 0,9 + 0,09 + …", a: 0.9, r: 0.1 }, { t: "1 − 1 + 1 − …", a: 1, r: -1 }, { t: "2 + 4 + 8 + …", a: 2, r: 2 }, { t: "1 − 1/2 + 1/4 − …", a: 1, r: -0.5 }];
+    function pinta() {
+      var a = st.a, r = st.r, n = st.n, i, s = 0, ps = [];
+      for (i = 1; i <= n; i++) { s += a * Math.pow(r, i - 1); ps.push([i, s]); }
+      var conv = Math.abs(r) < 1, Lm = conv ? a / (1 - r) : null, vals = ps.map(function (p) { return p[1]; }).concat(conv ? [Lm] : []);
+      var lo = Math.min.apply(null, vals.concat([0])), hi = Math.max.apply(null, vals.concat([0])), pad = (hi - lo) * 0.15 || 1; g.rango(0, n + 1, lo - pad, hi + pad); g.limpiar();
+      if (conv) g.horizontal(Lm, { clase: "c-ok", dash: "6 5" });
+      g.polilinea([[0, 0]].concat(ps), { clase: "c-pen" }); ps.forEach(function (p) { pto(g, p[0], p[1], "c-pen", false, 4); });
+      var cierre = Math.abs(r - 1) < 1e-9 ? "S = a·n" : fmt(a * (1 - Math.pow(r, n)) / (1 - r), 6);
+      lectura.innerHTML = fil("Suma de los " + n + " primeros", "Sₙ = a(1 − rⁿ)/(1 − r) = " + fmt(s, 6), "pen") + fil("Suma de todos (n → ∞)", conv ? "S = a/(1 − r) = " + fmt(Lm, 6) : "no existe: |r| ≥ 1 y las sumas no se estabilizan", conv ? "ok" : "red") +
+        fil("¿Cuánto falta?", conv ? fmt(Lm - s, 6) + "  (cada término extra reduce lo que falta en un factor r)" : "—", "");
+      pie.innerHTML = "Una <b>serie geométrica</b> de razón r suma a + ar + ar² + …: si <b>|r| &lt; 1</b>, los términos son cada vez más pequeños y las sumas parciales se acercan a <b>S = a/(1 − r)</b>; si |r| ≥ 1, no. Así 0,999… = 0,9/(1 − 0,1) = 1, y se resuelve la paradoja de Zenón (1/2 + 1/4 + 1/8 + … = 1).";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 13, ymin: -1, ymax: 3, w: 600, h: 300, etx: "n", ety: "Sₙ", etiqueta: "Sumas parciales" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PS.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { var P = PS[+k]; st.a = P.a; st.r = P.r; sa.set(P.a); sr.set(P.r); pinta(); });
+    st.a = 0.5; st.r = 0.5; sa.set(0.5); sr.set(0.5);
+    pinta();
+  };
+
+  // ============================================================
+  // ANUALIDAD: ahorro periódico y préstamo
+  // ============================================================
+  B.w.anualidad = function (host) {
+    var cuerpo = B.caja(host, "Problema", "Interés compuesto con pagos periódicos: ahorro y préstamo");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { modo: "ah", c: 200, r: 3, a: 10, C: 10000 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), S = {};
+    S.c = U.slider(ctl, { et: "Aportación mensual (€)", min: 25, max: 1000, step: 25, val: st.c, on: function (v) { st.c = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " €"; } });
+    S.C = U.slider(ctl, { et: "Capital prestado (€)", min: 1000, max: 100000, step: 1000, val: st.C, on: function (v) { st.C = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " €"; } });
+    S.r = U.slider(ctl, { et: "Tipo anual (%)", min: 0.5, max: 12, step: 0.5, val: st.r, on: function (v) { st.r = v; pinta(); }, fmt: function (v) { return fmt(v, 1) + " %"; } });
+    S.a = U.slider(ctl, { et: "Años", min: 1, max: 30, step: 1, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    function pinta() {
+      var ah = st.modo === "ah", i = st.r / 1200, n = st.a * 12, f = Math.pow(1 + i, n);
+      S.c.el.style.display = ah ? "" : "none"; S.C.el.style.display = ah ? "none" : "";
+      g.limpiar();
+      if (ah) {
+        var cap = st.c * (f - 1) / i, aport = st.c * n, pts = [], k;
+        for (k = 0; k <= n; k++) pts.push([k / 12, st.c * (Math.pow(1 + i, k) - 1) / i]);
+        g.rango(0, st.a, 0, cap * 1.1); g.limpiar(); g.polilinea(pts, { clase: "c-pen" }).setAttribute("stroke-width", 3);
+        g.polilinea([[0, 0], [st.a, aport]], { clase: "c-faint", dash: "6 5" });
+        lectura.innerHTML = fil("Capital final", "C = c·((1 + i)ⁿ − 1)/i = " + fmt(cap, 2) + " €", "ok") + fil("Aportado", fmt(aport, 0) + " €", "") + fil("Intereses ganados", fmt(cap - aport, 2) + " €", "pen") + fil("Datos", "i = " + fmt(i * 100, 4) + " % mensual · n = " + n + " pagos", "");
+        pie.innerHTML = "Cada aportación mensual c (al final de cada mes) genera interés compuesto durante el tiempo que queda: el capital es la suma de una <b>progresión geométrica</b> de razón (1 + i): c(1 + i)ⁿ⁻¹ + … + c(1 + i) + c, es decir, <b>c·((1 + i)ⁿ − 1)/i</b>. La recta de trazos son los ahorros sin intereses.";
+      } else {
+        var cuota = i > 0 ? st.C * i / (1 - Math.pow(1 + i, -n)) : st.C / n, tot = cuota * n, sal = [], s = st.C, k2;
+        for (k2 = 0; k2 <= n; k2++) { sal.push([k2 / 12, Math.max(0, s)]); s = s * (1 + i) - cuota; }
+        g.rango(0, st.a, 0, st.C * 1.05); g.limpiar(); g.polilinea(sal, { clase: "c-red" }).setAttribute("stroke-width", 3);
+        lectura.innerHTML = fil("Cuota mensual", "a = C·i/(1 − (1 + i)⁻ⁿ) = " + fmt(cuota, 2) + " €", "ok") + fil("Total pagado", fmt(tot, 2) + " €", "") + fil("Intereses pagados", fmt(tot - st.C, 2) + " €", "red") + fil("Datos", "i = " + fmt(i * 100, 4) + " % mensual · n = " + n + " cuotas", "");
+        pie.innerHTML = "En un préstamo, el valor actual de todas las cuotas debe igualar el capital: C = a/(1 + i) + a/(1 + i)² + … + a/(1 + i)ⁿ, otra progresión geométrica de la que se despeja la <b>cuota a = C·i/(1 − (1 + i)⁻ⁿ)</b>. La curva muestra la deuda pendiente: baja despacio al principio (se pagan sobre todo intereses).";
+      }
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 10, ymin: 0, ymax: 30000, w: 600, h: 300, etx: "años", ety: "€", etiqueta: "Evolución del capital" });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "ah", t: "Ahorro mensual" }, { k: "pr", t: "Préstamo (cuota mensual)" }], "ah", function (k) { st.modo = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // KOCH: copo de nieve y sucesiones de perímetros y áreas
+  // ============================================================
+  function koch(pts) {
+    var out = [], i;
+    for (i = 0; i < pts.length - 1; i++) {
+      var a = pts[i], b = pts[i + 1], dx = (b[0] - a[0]) / 3, dy = (b[1] - a[1]) / 3, p1 = [a[0] + dx, a[1] + dy], p3 = [a[0] + 2 * dx, a[1] + 2 * dy];
+      var p2 = [p1[0] + dx * 0.5 - dy * Math.sqrt(3) / 2, p1[1] + dy * 0.5 + dx * Math.sqrt(3) / 2];
+      out.push(a, p1, p2, p3);
+    }
+    out.push(pts[pts.length - 1]); return out;
+  }
+  B.w.koch = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El copo de nieve de Koch: perímetro infinito, área finita");
+    cuerpo.innerHTML = '<div class="w-plot rd-circ"></div><div data-ctl></div><div class="ac-tabla"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { n: 3 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), tabla = cuerpo.querySelector(".ac-tabla");
+    U.slider(ctl, { et: "Iteración <i>n</i>", min: 0, max: 5, step: 1, val: st.n, on: function (v) { st.n = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    function pinta() {
+      var n = st.n, h = Math.sqrt(3) / 2, p = [[0, 0], [1, 0], [0.5, h], [0, 0]], k;
+      // el triángulo se recorre en sentido horario para que las puntas salgan hacia fuera
+      p = [[0, 0], [0.5, h], [1, 0], [0, 0]];
+      for (k = 0; k < n; k++) p = koch(p);
+      g.limpiar(); g.polilinea(p, { clase: "c-pen" }).setAttribute("stroke-width", n > 3 ? 1.4 : 2.2);
+      var A0 = Math.sqrt(3) / 4, A = A0, i;
+      for (i = 1; i <= n; i++) A += 3 * Math.pow(4, i - 1) * A0 / Math.pow(9, i);
+      var filas = [0, 1, 2, 3, 4, 5].map(function (j) { var Aj = A0, q; for (q = 1; q <= j; q++) Aj += 3 * Math.pow(4, q - 1) * A0 / Math.pow(9, q); return "<tr" + (j === n ? " class='izq'" : "") + "><th>" + j + "</th><td>" + (3 * Math.pow(4, j)) + "</td><td>" + fmt(Math.pow(1 / 3, j), 5) + "</td><td>" + fmt(3 * Math.pow(4 / 3, j), 4) + "</td><td>" + fmt(Aj, 5) + "</td></tr>"; }).join("");
+      tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>n</th><th>lados</th><th>longitud de cada lado</th><th>perímetro</th><th>área</th></tr></thead><tbody>" + filas + "</tbody></table>";
+      lectura.innerHTML = fil("Lados", "3·4ⁿ = " + (3 * Math.pow(4, n)), "pen") + fil("Perímetro", "3·(4/3)ⁿ = " + fmt(3 * Math.pow(4 / 3, n), 4) + "  → +∞", "red") + fil("Área", fmt(A, 5) + "  → 2√3/5 ≈ " + fmt(2 * Math.sqrt(3) / 5, 5), "ok");
+      pie.innerHTML = "Cada paso sustituye el tercio central de cada lado por dos lados iguales: el número de lados se multiplica por 4 (<b>progresión geométrica de razón 4</b>) y la longitud de cada uno se divide entre 3 (razón 1/3), así que el perímetro se multiplica por 4/3 (<b>razón 4/3 &gt; 1: crece sin límite</b>). El área añadida en cada paso forma una serie geométrica de razón 4/9 &lt; 1, que <b>suma un valor finito</b> (8/5 del triángulo inicial).";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -0.2, xmax: 1.2, ymin: -0.2, ymax: 1.2, w: 520, h: 420, sinEjes: true, limpio: true, etiqueta: "Copo de Koch" });
+    g.rangoIso(0.5, 0.29, 0.68);
+    pinta();
+  };
+
+  // ============================================================
+  // ε–N: definición de límite de una sucesión
+  // ============================================================
+  var PE = [
+    { f: "1/n", L: 0, t: "1/n → 0" }, { f: "(2n+1)/(n+1)", L: 2, t: "(2n + 1)/(n + 1) → 2" }, { f: "(-1)^n/n", L: 0, t: "(−1)ⁿ/n → 0" },
+    { f: "n/(n^2+1)", L: 0, t: "n/(n² + 1) → 0" }, { f: "0.9^n", L: 0, t: "0,9ⁿ → 0" }, { f: "(1+1/n)^n", L: Math.E, t: "(1 + 1/n)ⁿ → e (lenta)" }
+  ];
+  B.w.epsn = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Definición de límite: elige ε y encuentra N");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { f: PE[1].f, L: PE[1].L, k: 10 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var iF = campo(ctl, "aₙ =", st.f, 190);
+    U.slider(ctl, { et: "Tolerancia ε", min: 0, max: 30, step: 1, val: st.k, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { return fmt(Math.pow(10, -v / 10), 4); } });
+    function valor(f, n) { return f(n); }
+    function pinta() {
+      var r = F.leer(st.f); g.limpiar();
+      if (!r.ok) { lectura.innerHTML = fil("Revisa lo que has escrito", r.error + " (usa la letra n)", "red"); return; }
+      var f = r.g, eps = Math.pow(10, -st.k / 10), L = st.L, i, TOPE = 200000, N = 1, fuera = 0;
+      if (L === null) { var u = f(1e6), w = f(2e6); L = Math.abs(u - w) < 1e-4 ? w : NaN; }
+      if (isNaN(L)) { lectura.innerHTML = fil("Sin límite claro", "esta sucesión no parece acercarse a un único valor", "red"); return; }
+      for (i = 1; i <= TOPE; i++) { var z = valor(f, i); if (!isFinite(z) || Math.abs(z - L) >= eps) fuera = i; }
+      N = fuera + 1;
+      var xmax = Math.max(10, Math.min(N + Math.ceil(N * 0.25) + 2, 120)), pts = [], hi = L + eps, lo = L - eps, ymin = lo, ymax = hi;
+      for (i = 1; i <= xmax; i++) { var q = valor(f, i); pts.push([i, q]); if (isFinite(q)) { ymin = Math.min(ymin, q); ymax = Math.max(ymax, q); } }
+      var pad = (ymax - ymin) * 0.12 || 1; g.rango(0, xmax, ymin - pad, ymax + pad); g.limpiar();
+      g.rect(0, lo, xmax, hi, { clase: "z-ok" });
+      g.horizontal(L, { clase: "c-ok", dash: "6 5" });
+      if (N <= 120) { g.segmento(N - 0.5, ymin - pad, N - 0.5, ymax + pad, { clase: "c-red", dash: "4 4" }); }
+      g.polilinea(pts, { clase: "c-faint" });
+      pts.forEach(function (p) { if (isFinite(p[1])) pto(g, p[0], p[1], p[0] >= N ? "c-ok" : "c-red", false, xmax > 60 ? 2.5 : 4); });
+      lectura.innerHTML = fil("Límite", "L = " + fmt(L, 5), "ok") + fil("Banda", "L − ε &lt; aₙ &lt; L + ε → (" + fmt(lo, 5) + "; " + fmt(hi, 5) + ")", "") +
+        fil("A partir de qué término", N > TOPE ? "más allá de n = " + TOPE : "N = " + N + ": desde n ≥ " + N + " todos los términos entran en la banda (los rojos están fuera)", "pen ancho");
+      pie.innerHTML = "<b>an → L</b> significa: <b>para cualquier ε &gt; 0, por pequeña que sea, existe un N tal que a partir de él (n ≥ N) todos los términos cumplen |aₙ − L| &lt; ε</b>. Es la idea del entorno (Tema 1) aplicada a una sucesión: al achicar ε hay que ir más lejos (N crece), pero siempre se encuentra. En una sucesión que no converge (como (−1)ⁿ) esto no se cumple para ε pequeños.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 20, ymin: 0, ymax: 3, w: 600, h: 300, etx: "n", ety: "aₙ", etiqueta: "Términos y banda de tolerancia" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PE.map(function (p, i) { return { k: String(i), t: p.t }; }), "1", function (k) { var P = PE[+k]; st.f = P.f; st.L = P.L; iF.value = P.f; pinta(); });
+    iF.addEventListener("input", function () { st.f = iF.value; st.L = null; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // CAPITALIZACIÓN: de los periodos al número e
+  // ============================================================
+  B.w.capitaliza = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Capitalizar más a menudo: del interés anual al número e");
+    cuerpo.innerHTML = '<div data-ctl></div><div class="w-plot"></div><div class="ac-tabla"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { C: 1000, r: 5, t: 10 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), tabla = cuerpo.querySelector(".ac-tabla");
+    U.slider(ctl, { et: "Capital (€)", min: 100, max: 10000, step: 100, val: st.C, on: function (v) { st.C = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " €"; } });
+    U.slider(ctl, { et: "Tipo anual (%)", min: 1, max: 100, step: 1, val: st.r, on: function (v) { st.r = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
+    U.slider(ctl, { et: "Años", min: 1, max: 30, step: 1, val: st.t, on: function (v) { st.t = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    var MODOS = [["anual", 1], ["semestral", 2], ["trimestral", 4], ["mensual", 12], ["diaria", 365]];
+    function pinta() {
+      var C = st.C, r = st.r / 100, t = st.t, cont = C * Math.exp(r * t), k;
+      var filas = MODOS.map(function (m) { var v = C * Math.pow(1 + r / m[1], m[1] * t); return "<tr><th>" + m[0] + " (" + m[1] + " al año)</th><td>(1 + " + fmt(r, 3) + "/" + m[1] + ")<sup>" + (m[1] * t) + "</sup></td><td>" + fmt(v, 2) + " €</td></tr>"; }).join("") +
+        "<tr class='izq'><th>continua (k tan grande como se quiera)</th><td>e<sup>" + fmt(r * t, 3) + "</sup></td><td>" + fmt(cont, 2) + " €</td></tr>";
+      tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th>Capitalización</th><th>factor</th><th>capital final</th></tr></thead><tbody>" + filas + "</tbody></table>";
+      var base = C * Math.pow(1 + r, t), pts = [], j;
+      g.rango(0, 31, base - (cont - base) * 0.15, cont + (cont - base) * 0.2); g.limpiar();
+      g.horizontal(cont, { clase: "c-ok", dash: "6 5" });
+      for (j = 1; j <= 30; j++) pts.push([j, C * Math.pow(1 + r / j, j * t)]);
+      g.polilinea(pts, { clase: "c-pen" }); pts.forEach(function (q) { pto(g, q[0], q[1], "c-pen", false, 3.5); });
+      g.texto(30.5, cont, "límite " + fmt(cont, 2) + " €", { ancla: "end", dy: -8, clase: "t-ok" });
+      var e1 = Math.pow(1 + 1 / 1000000, 1000000);
+      lectura.innerHTML = fil("Anual → continua", fmt(C * Math.pow(1 + r, t), 2) + " € → " + fmt(cont, 2) + " €", "pen") + fil("Con r = 100 %, t = 1 año", "el capital se multiplica por (1 + 1/k)ᵏ → e ≈ " + fmt(Math.E, 5), "ok") + fil("Comprobación", "(1 + 1/10⁶)^(10⁶) = " + fmt(e1, 6), "");
+      pie.innerHTML = "Si el tipo anual r se reparte en k abonos al año, el factor de un año es (1 + r/k)ᵏ. Cuanto más a menudo se capitaliza, más sube, pero <b>no sin límite</b>: se acerca a e<sup>r</sup>. Con r = 100 % sale (1 + 1/k)ᵏ → <b>e</b> (Jakob Bernoulli, 1683). En la gráfica, cada punto es el capital final con k abonos al año; la línea verde es el límite e<sup>rt</sup>.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 10, ymin: 1000, ymax: 1700, w: 600, h: 280, etx: "k (abonos al año)", ety: "€", etiqueta: "Capital final según los abonos al año" });
+    pinta();
+  };
+
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de trigonometría (Matemáticas I, temas 4 y 5)
    motor B.lab.trig + rectangulo · goniometrica · radianes · reductor
    ambiguo · triangulo
@@ -8763,6 +9003,695 @@
         { mal: "Toda sucesión acotada converge", bien: "Monótona y acotada converge", por: "(−1)ⁿ está acotada y oscila." }
       ] }
   ];
+
+
+  // ============================================================
+  // Ampliación del tema 2 (secciones 8–13, ejercicios s23–s59, láminas y actividades)
+  // ============================================================
+  resumen.push(
+    "Una <b>recurrencia</b> aₙ₊₁ = f(aₙ) se estudia con su <b>punto fijo</b>: si converge, el límite L cumple L = f(L). Si aₙ₊₁ = p·aₙ + q, el cambio bₙ = aₙ − L la convierte en geométrica.",
+    "Para pasar de la suma al término: <b>aₙ = Sₙ − Sₙ₋₁</b> (n ≥ 2) y a₁ = S₁. Si Sₙ es un polinomio de 2.º grado sin término independiente, la sucesión es aritmética.",
+    "Una <b>serie</b> es la suma de infinitos términos: converge si las sumas parciales Sₙ se acercan a un número. La armónica 1 + 1/2 + 1/3 + … <b>diverge</b> aunque sus términos tiendan a 0.",
+    "Dinero: ahorro mensual <b>C = c·((1 + i)ⁿ − 1)/i</b>; cuota de un préstamo <b>c = C·i/(1 − (1 + i)⁻ⁿ)</b> con i = r/12. Y (1 + 1/n)ⁿ → <b>e</b> (capitalización continua: C·e<sup>rt</sup>)."
+  );
+
+  // ---------------- secciones originales: más desarrollo ----------------
+  secciones[0] +=
+    "<h5>La sucesión como función</h5>" +
+    "<p>Una sucesión es una <b>función</b> cuyo dominio son los naturales positivos: a cada posición n = 1, 2, 3, … le asigna un número aₙ. Por eso su gráfica no es una línea continua sino una <b>nube de puntos aislados</b> (n, aₙ): no tiene sentido hablar de a₂,₅. Y por eso el <b>orden</b> y las <b>repeticiones</b> importan: la sucesión (−1)ⁿ = −1, 1, −1, 1, … no es lo mismo que el conjunto {−1, 1}.</p>" +
+    "<h5>Buscar el término general a partir de las diferencias</h5>" +
+    "<p>Si la sucesión no es aritmética ni geométrica, calcula las <b>diferencias primeras</b> (aₙ₊₁ − aₙ) y, si hace falta, las <b>segundas</b> (las diferencias de las diferencias):</p>" +
+    "<ul><li>Primeras diferencias constantes (= d) → lineal: aₙ = d·n + c.</li>" +
+    "<li>Segundas diferencias constantes (= k) → polinomio de segundo grado: aₙ = (k/2)·n² + b·n + c. Se resta (k/2)·n² a los términos y lo que queda es lineal.</li></ul>" +
+    ejemplo("Un polinomio de segundo grado", "Halla el término general de 3, 8, 15, 24, 35, …", [
+      "Diferencias primeras: 5, 7, 9, 11. Diferencias segundas: 2, 2, 2 (constantes). Con k = 2, el coeficiente de n² es k/2 = 1.",
+      "Restamos n² a cada término: 3 − 1 = 2, 8 − 4 = 4, 15 − 9 = 6, 24 − 16 = 8. Queda 2, 4, 6, 8, … = 2n.",
+      "Por tanto <b>aₙ = n² + 2n = n(n + 2)</b>. Comprobación: a₅ = 5·7 = 35 ✓."
+    ]) +
+    "<table class='lamina-table'><tbody>" +
+    "<tr><td>1, 3, 6, 10, 15, …</td><td><b>números triangulares</b>: aₙ = n(n + 1)/2 (son 1, 1 + 2, 1 + 2 + 3, …)</td></tr>" +
+    "<tr><td>1, 4, 9, 16, 25, …</td><td>cuadrados: aₙ = n²</td></tr>" +
+    "<tr><td>1, 5, 12, 22, 35, …</td><td>pentagonales: aₙ = n(3n − 1)/2</td></tr>" +
+    "<tr><td>2, 6, 12, 20, 30, …</td><td>oblongos: aₙ = n(n + 1) (el doble de los triangulares)</td></tr>" +
+    "<tr><td>1, 2, 6, 24, 120, …</td><td>factoriales: aₙ = n! = 1·2·3·…·n</td></tr>" +
+    "</tbody></table>" +
+    ejemplo("Con signos alternados", "Halla el término general de 2, −4, 6, −8, 10, …", [
+      "Sin signos, los valores son 2, 4, 6, 8, 10: es 2n.",
+      "El primer término es positivo y los signos alternan: hace falta (−1)ⁿ⁺¹ (vale +1 cuando n es impar).",
+      "<b>aₙ = (−1)ⁿ⁺¹·2n</b>. Comprobación: a₂ = (−1)³·4 = −4 ✓."
+    ]) +
+    ojo("los primeros términos <b>no determinan</b> la sucesión. 1, 2, 4, … puede seguir con 8 (potencias de 2, aₙ = 2ⁿ⁻¹) o con 7 (cada vez se suma una unidad más: aₙ₊₁ = aₙ + n, que da 1, 2, 4, 7, 11, 16…). Por eso los enunciados dan la fórmula o la regla, o preguntan por «el término general más sencillo».");
+
+  secciones[1] +=
+    "<h5>Más ejemplos de estudio de la monotonía</h5>" +
+    ejemplo("Cuando el numerador y el denominador crecen", "Estudia la monotonía y la acotación de aₙ = n/(n² + 1).", [
+      "aₙ₊₁ − aₙ = (n+1)/((n+1)² + 1) − n/(n² + 1). Con denominador común, el numerador es (n+1)(n² + 1) − n(n² + 2n + 2) = (n³ + n² + n + 1) − (n³ + 2n² + 2n) = <b>−n² − n + 1</b>.",
+      "Para n ≥ 1 ese numerador es ≤ −1 &lt; 0 y el denominador es positivo: aₙ₊₁ − aₙ &lt; 0, la sucesión es <b>estrictamente decreciente</b> (1/2, 2/5, 3/10, 4/17, …).",
+      "Acotación: 0 &lt; aₙ ≤ a₁ = 1/2. Al ser decreciente y positiva, converge (a 0: el denominador es de mayor grado)."
+    ]) +
+    ejemplo("Una sucesión que baja y luego sube", "Estudia aₙ = n² − 6n.", [
+      "aₙ₊₁ − aₙ = [(n+1)² − 6(n+1)] − [n² − 6n] = 2n − 5.",
+      "Es negativa si n ≤ 2 (n = 1: −3, n = 2: −1) y positiva desde n = 3. Los términos son −5, −8, −9, −8, −5, 0, 7, …",
+      "Decrece hasta a₃ = −9 y <b>crece a partir de n = 3</b>. No es monótona, pero sí «eventualmente creciente». Su mínimo es a₃ = −9 (cota inferior), y no tiene cota superior."
+    ]) +
+    ejemplo("Con factoriales: el cociente es lo cómodo", "Estudia aₙ = 2ⁿ/n!.", [
+      "Todos los términos son positivos: aₙ₊₁/aₙ = [2ⁿ⁺¹/(n+1)!]·[n!/2ⁿ] = 2/(n + 1).",
+      "2/(n + 1) ≤ 1 cuando n ≥ 1: la sucesión es decreciente (a₁ = 2, a₂ = 2, a₃ = 4/3, a₄ = 2/3, …).",
+      "Está acotada: 0 &lt; aₙ ≤ 2. Al ser monótona y acotada, converge: de hecho tiende a 0 (el factorial «le gana» a la potencia)."
+    ]) +
+    "<h5>Cuándo «se aquieta» una sucesión: la idea de límite</h5>" +
+    "<p>Decimos que aₙ <b>converge a L</b> (aₙ → L) si los términos se acercan a L tanto como queramos y se quedan cerca. Con más precisión: <b>para cualquier tolerancia ε &gt; 0 existe un lugar N tal que, a partir de él (n ≥ N), todos los términos cumplen |aₙ − L| &lt; ε</b>. Es el entorno de L del Tema 1, E(L, ε), y la sucesión acaba entrando y ya no sale. Elige tú la tolerancia y mira a partir de qué término se cumple:</p>" +
+    w("epsn") +
+    "<p>Cuando no hay ningún L que sirva, la sucesión <b>no converge</b>: o bien crece (o decrece) sin límite (<b>diverge</b>, como n²), o bien oscila sin acercarse a nada (como (−1)ⁿ).</p>" +
+    "<h5>Cómo calcular límites de sucesiones sencillas</h5>" +
+    "<ul><li><b>Propiedades</b>: si aₙ → a y bₙ → b, entonces aₙ ± bₙ → a ± b, aₙ·bₙ → a·b, k·aₙ → k·a y aₙ/bₙ → a/b (si b ≠ 0).</li>" +
+    "<li><b>Se conocen de memoria</b>: 1/n → 0, 1/n² → 0, c/nᵏ → 0 (k &gt; 0), rⁿ → 0 si |r| &lt; 1.</li>" +
+    "<li><b>Cociente de polinomios en n</b>: se divide numerador y denominador entre la mayor potencia de n y se aplican las reglas anteriores.</li></ul>" +
+    "<table class='lamina-table'><tbody>" +
+    "<tr><td>grado del numerador &lt; grado del denominador</td><td>el límite es <b>0</b>: (n² + 1)/n³ → 0</td></tr>" +
+    "<tr><td>los dos grados iguales</td><td>el límite es el <b>cociente de los coeficientes principales</b>: (5n − 1)/(2n + 3) → 5/2</td></tr>" +
+    "<tr><td>grado del numerador &gt; grado del denominador</td><td>el límite es <b>±∞</b> (diverge): (2n³ + n)/(n + 1) → +∞</td></tr>" +
+    "</tbody></table>" +
+    ejemplo("Dividir entre la mayor potencia", "Calcula el límite de aₙ = (3n² − 2n + 1)/(n² + 5).", [
+      "La mayor potencia es n². Dividimos todos los términos entre n²: (3 − 2/n + 1/n²)/(1 + 5/n²).",
+      "Cuando n → ∞, 2/n → 0, 1/n² → 0 y 5/n² → 0. Queda (3 − 0 + 0)/(1 + 0) = <b>3</b>."
+    ]) +
+    ojo("«∞/∞» <b>no vale 1</b>: es una indeterminación. n²/n = n → ∞, n/n² = 1/n → 0 y (3n)/n = 3. Cada caso se resuelve dividiendo por la mayor potencia. En el Tema 10 verás los límites con más detalle.");
+
+  secciones[2] +=
+    "<h5>De la suma al término: aₙ = Sₙ − Sₙ₋₁</h5>" +
+    "<p>Si conoces la fórmula de la suma Sₙ = a₁ + a₂ + … + aₙ, el término se obtiene <b>restando dos sumas consecutivas</b>: Sₙ − Sₙ₋₁ = aₙ. La resta solo tiene sentido para n ≥ 2 (S₀ no existe), así que el primer término se calcula aparte: <b>a₁ = S₁</b>. Y hay que comprobar si la fórmula que sale vale también para n = 1.</p>" +
+    "<p>Una consecuencia: si Sₙ es un polinomio de <b>segundo grado sin término independiente</b>, Sₙ = A·n² + B·n, la sucesión es aritmética con d = 2A y a₁ = A + B. Es la forma que tiene la suma de una progresión aritmética: Sₙ = (d/2)·n² + (a₁ − d/2)·n.</p>" +
+    ejemplo("Sacar el término general", "La suma de los n primeros términos de una sucesión es Sₙ = 3n² − 2n. Halla aₙ.", [
+      "a₁ = S₁ = 3 − 2 = 1.",
+      "Para n ≥ 2: aₙ = Sₙ − Sₙ₋₁ = (3n² − 2n) − (3(n−1)² − 2(n−1)) = 3n² − 2n − 3n² + 6n − 3 + 2n − 2 = 6n − 5.",
+      "Para n = 1 la fórmula da 6 − 5 = 1 = a₁ ✓: sirve para todo n. <b>aₙ = 6n − 5</b>, una progresión aritmética con a₁ = 1 y d = 6."
+    ]) +
+    ejemplo("Cuando la fórmula no vale para n = 1", "Sₙ = n² + 1. Halla a₁, a₂, a₃ y el término general.", [
+      "a₁ = S₁ = 2.",
+      "Para n ≥ 2: aₙ = (n² + 1) − ((n−1)² + 1) = n² − (n−1)² = 2n − 1. Así a₂ = 3, a₃ = 5…",
+      "La fórmula 2n − 1 daría 1 para n = 1, pero a₁ = 2. Hay que dar el término general <b>por trozos</b>: a₁ = 2 y aₙ = 2n − 1 si n ≥ 2. La sucesión 2, 3, 5, 7, … <b>no</b> es aritmética: el término independiente 1 de Sₙ lo estropea."
+    ]) +
+    "<h5>Sumas que conviene saberse</h5>" +
+    "<table class='lamina-table'><tbody>" +
+    "<tr><td>1 + 2 + 3 + … + n</td><td>n(n + 1)/2</td></tr>" +
+    "<tr><td>1 + 3 + 5 + … + (2n − 1) (los n primeros impares)</td><td><b>n²</b></td></tr>" +
+    "<tr><td>2 + 4 + 6 + … + 2n (los n primeros pares)</td><td>n(n + 1)</td></tr>" +
+    "<tr><td>1² + 2² + 3² + … + n²</td><td>n(n + 1)(2n + 1)/6 (no es aritmética; se demuestra por inducción en 2.º)</td></tr>" +
+    "</tbody></table>" +
+    ejemplo("Un anfiteatro", "Un anfiteatro tiene 20 filas. La primera tiene 15 asientos y cada fila tiene 2 más que la anterior. ¿Cuántos asientos hay en total?", [
+      "Progresión aritmética con a₁ = 15 y d = 2. La fila 20 tiene a₂₀ = 15 + 19·2 = 53 asientos.",
+      "Total: S₂₀ = 20·(15 + 53)/2 = 10·68 = <b>680 asientos</b>."
+    ]) +
+    ejemplo("Cuándo se supera una meta", "Una persona ahorra 5 € la primera semana y cada semana ahorra 2 € más que la anterior. ¿En qué semana habrá superado los 500 € acumulados?", [
+      "Ahorros semanales: 5, 7, 9, … (a₁ = 5, d = 2). Acumulado: Sₙ = n·(2·5 + (n − 1)·2)/2 = n² + 4n.",
+      "Imponemos n² + 4n &gt; 500 → n² + 4n − 500 &gt; 0 → n &gt; −2 + √504 ≈ 20,45.",
+      "Comprobación: S₂₀ = 400 + 80 = 480 (no llega) y S₂₁ = 441 + 84 = 525. La meta se supera en la <b>semana 21</b>."
+    ]);
+
+  secciones[3] +=
+    "<h5>La razón manda: seis comportamientos</h5>" +
+    "<p>El comportamiento de aₙ = a₁·rⁿ⁻¹ depende solo de <b>dónde está la razón r</b> (con a₁ &gt; 0):</p>" +
+    "<table class='lamina-table'><tbody>" +
+    "<tr><td>r &gt; 1</td><td>crece sin límite (diverge a +∞): 3, 6, 12, 24, …</td></tr>" +
+    "<tr><td>r = 1</td><td>constante: 5, 5, 5, …</td></tr>" +
+    "<tr><td>0 &lt; r &lt; 1</td><td>decrece hacia 0: 80, 40, 20, 10, …</td></tr>" +
+    "<tr><td>−1 &lt; r &lt; 0</td><td>alterna de signo y se acerca a 0: 8, −4, 2, −1, …</td></tr>" +
+    "<tr><td>r = −1</td><td>oscila entre a₁ y −a₁: 3, −3, 3, −3, …</td></tr>" +
+    "<tr><td>r &lt; −1</td><td>alterna de signo y su valor absoluto crece sin límite: 1, −2, 4, −8, …</td></tr>" +
+    "</tbody></table>" +
+    "<h5>Crecimiento lineal frente a crecimiento exponencial</h5>" +
+    "<p>Una progresión aritmética <b>suma</b> lo mismo en cada paso (crecimiento lineal); una geométrica con r &gt; 1 <b>multiplica</b> por lo mismo (crecimiento exponencial). Al principio parece que no hay mucha diferencia, pero al final <b>siempre</b> gana la geométrica, y por una distancia enorme.</p>" +
+    ejemplo("El folio que llega a la Luna", "Un folio de 0,1 mm de grosor se dobla por la mitad una y otra vez. ¿Cuántos dobleces harían falta para superar la distancia a la Luna (384.400 km)? (Es un experimento mental: en la práctica no se puede doblar tantas veces.)", [
+      "Cada doblez duplica el grosor: tras n dobleces el grosor es 0,1·2ⁿ mm. Es una progresión geométrica de razón 2.",
+      "384.400 km = 3,844·10¹¹ mm. Hay que resolver 0,1·2ⁿ &gt; 3,844·10¹¹ → 2ⁿ &gt; 3,844·10¹² → n &gt; log₂(3,844·10¹²) ≈ 41,8.",
+      "Con 41 dobleces: 0,1·2⁴¹ mm ≈ 219.902 km (no llega). Con <b>42 dobleces</b>: 0,1·2⁴² mm ≈ 439.805 km (más que la distancia a la Luna)."
+    ]) +
+    ejemplo("El tablero de ajedrez", "Se ponen en las 64 casillas de un tablero 1, 2, 4, 8, … granos de trigo (el doble en cada casilla). ¿Cuántos granos hay en total?", [
+      "Progresión geométrica con a₁ = 1, r = 2 y 64 términos.",
+      "S₆₄ = 1·(2⁶⁴ − 1)/(2 − 1) = 2⁶⁴ − 1 = <b>18.446.744.073.709.551.615</b> granos, unos 1,8·10¹⁹. Es muchísimo más que toda la producción mundial de trigo."
+    ]) +
+    ejemplo("Una sustancia que se desintegra", "Una muestra de 500 g pierde el 10 % de su masa cada hora. ¿Cuántos gramos quedan a las 6 horas? ¿Cuántas horas deben pasar para que queden menos de 100 g?", [
+      "Perder el 10 % es multiplicar por 0,9: mₙ = 500·0,9ⁿ. A las 6 horas: 500·0,9⁶ = 500·0,531441 = <b>265,72 g</b>.",
+      "Queremos 500·0,9ⁿ &lt; 100 → 0,9ⁿ &lt; 0,2 → n &gt; log 0,2/log 0,9 ≈ 15,28.",
+      "Comprobación: tras 15 h quedan 102,95 g y tras 16 h, 92,65 g. Hacen falta <b>16 horas</b>."
+    ]) +
+    ejemplo("Bacterias", "Un cultivo de 1.000 bacterias duplica su número cada 20 minutos. ¿Cuántas habrá en 3 horas?", [
+      "3 horas = 180 minutos = 9 periodos de 20 minutos. El número se multiplica por 2 nueve veces.",
+      "1.000·2⁹ = 1.000·512 = <b>512.000 bacterias</b>."
+    ]);
+
+  // ---------------- secciones nuevas (8–13), antes de «¿Qué falla aquí?» ----------------
+  nuevas.splice(3, 0,
+    {
+      h: "8. Sucesiones recurrentes: cada término depende del anterior",
+      html:
+        "<p>Una sucesión <b>recurrente</b> da el primer término y una regla para obtener cada término a partir del anterior: aₙ₊₁ = f(aₙ). Las progresiones son casos particulares (f(x) = x + d y f(x) = r·x), pero hay muchas más, y algunas tienen comportamientos sorprendentes. Experimenta con las reglas de ejemplo y con las tuyas (escribe la regla con la letra x en lugar de aₙ):</p>" +
+        w("recurrencia") +
+        "<h5>¿A dónde va? El punto fijo</h5>" +
+        "<p>Si una sucesión recurrente <b>converge</b> a L, al pasar al límite en aₙ₊₁ = f(aₙ) queda <b>L = f(L)</b>. Resolver esa ecuación da los <em>candidatos</em> a límite. (Se llaman «puntos fijos» de f porque f los deja quietos.)</p>" +
+        ejemplo("Límite de una recurrencia", "Calcula el límite de a₁ = 10, aₙ₊₁ = (aₙ + 2)/2, suponiendo que converge.", [
+          "Los primeros términos: 10, 6, 4, 3, 2,5, 2,25, … bajan y se acercan a algo.",
+          "Si el límite es L: L = (L + 2)/2 → 2L = L + 2 → <b>L = 2</b>.",
+          "Comprobación: aₙ − 2 = 8/2ⁿ⁻¹ (8, 4, 2, 1, 0,5, …), que tiende a 0 ✓."
+        ]) +
+        ejemplo("El método de Herón para √2", "La sucesión a₁ = 1, aₙ₊₁ = (aₙ + 2/aₙ)/2 aproxima √2. Calcula a₂, a₃, a₄ y demuestra que, si converge, lo hace a √2.", [
+          "a₂ = (1 + 2)/2 = 3/2 = 1,5. a₃ = (1,5 + 2/1,5)/2 = 17/12 ≈ 1,416667. a₄ = (17/12 + 24/17)/2 = 577/408 ≈ <b>1,414216</b>.",
+          "Si converge a L: L = (L + 2/L)/2 → 2L = L + 2/L → L = 2/L → L² = 2. Como todos los términos son positivos, <b>L = √2</b> ≈ 1,414214.",
+          "Con solo 4 términos ya coinciden las 5 primeras cifras decimales. Es un método babilonio, y es el que usan las calculadoras (el método de Newton para x² − 2 = 0)."
+        ]) +
+        "<h5>Una recurrencia lineal es una geométrica disfrazada</h5>" +
+        "<p>Si aₙ₊₁ = p·aₙ + q con p ≠ 1, se resta el punto fijo L = q/(1 − p): <b>bₙ = aₙ − L</b> cumple bₙ₊₁ = p·bₙ, que es una progresión geométrica de razón p. Entonces aₙ = L + b₁·pⁿ⁻¹.</p>" +
+        ejemplo("Término general de una recurrencia", "Halla el término general de a₁ = 3, aₙ₊₁ = 2aₙ − 1 y calcula a₅.", [
+          "Punto fijo: L = 2L − 1 → L = 1. Definimos bₙ = aₙ − 1.",
+          "bₙ₊₁ = aₙ₊₁ − 1 = 2aₙ − 2 = 2(aₙ − 1) = 2bₙ, con b₁ = 3 − 1 = 2: geométrica de razón 2, así que bₙ = 2·2ⁿ⁻¹ = 2ⁿ.",
+          "<b>aₙ = 2ⁿ + 1</b>. Comprobación: a₁ = 3 ✓, a₂ = 5 = 2·3 − 1 ✓. Y a₅ = 2⁵ + 1 = <b>33</b> (3, 5, 9, 17, 33)."
+        ]) +
+        ojo("<b>L = f(L) no garantiza que la sucesión llegue a L</b>. En el ejemplo anterior el punto fijo es 1, pero la sucesión 3, 5, 9, 17, 33, … se aleja de él. El punto fijo solo dice cuál sería el límite <em>si</em> converge; la convergencia hay que comprobarla (monotonía y acotación, o |p| &lt; 1 en el caso lineal). Prueba también la regla 3,9·x(1 − x) en el simulador: ni converge ni se repite. Es un ejemplo de <b>caos</b>.") +
+        "<p>Otro punto fijo famoso: aₙ₊₁ = 1 + 1/aₙ con a₁ = 1 da 1, 2, 3/2, 5/3, 8/5, … (cocientes de Fibonacci). Su límite cumple L = 1 + 1/L → L² = L + 1 → <b>L = (1 + √5)/2 ≈ 1,618</b>, el número áureo.</p>"
+    },
+    {
+      h: "9. Series: sumar infinitos términos",
+      html:
+        "<p>Sumar infinitos números puede dar un número finito. Una <b>serie</b> es la suma de los infinitos términos de una sucesión: a₁ + a₂ + a₃ + … Para darle sentido se mira la sucesión de <b>sumas parciales</b> Sₙ = a₁ + … + aₙ: si Sₙ <b>se acerca a un número S</b>, se dice que la serie <b>converge</b> y vale S; si no, <b>diverge</b>.</p>" +
+        w("serie") +
+        "<h5>La serie geométrica</h5>" +
+        "<p>Para a + ar + ar² + …, las sumas parciales son Sₙ = a(1 − rⁿ)/(1 − r). Si <b>|r| &lt; 1</b>, rⁿ → 0 y las sumas se acercan a <b>S = a/(1 − r)</b>. Si |r| ≥ 1, los términos no tienden a 0 y la serie diverge. Regla práctica: <b>S = (primer término que sumas)/(1 − r)</b>.</p>" +
+        ejemplo("Aquiles y la tortuga (la paradoja de Zenón)", "Aquiles corre a 10 m/s y una tortuga a 1 m/s, con 100 m de ventaja. Aquiles llega donde estaba la tortuga (10 s), pero ella ha avanzado 10 m; recorre esos 10 m (1 s) y ella ha avanzado 1 m, … ¿Cuándo la alcanza?", [
+          "Los tiempos de cada etapa son 10 + 1 + 0,1 + 0,01 + … Es una serie geométrica con a = 10 y r = 0,1.",
+          "S = 10/(1 − 0,1) = 10/0,9 = 100/9 ≈ <b>11,11 s</b>: infinitas etapas pueden sumar un tiempo finito.",
+          "Comprobación con una ecuación: 10t = 100 + t → 9t = 100 → t = 100/9 ✓."
+        ]) +
+        ejemplo("0,999… = 1", "Demuestra con series que 0,999… vale exactamente 1.", [
+          "0,999… = 0,9 + 0,09 + 0,009 + …: geométrica con a = 0,9 y r = 0,1.",
+          "S = 0,9/(1 − 0,1) = 0,9/0,9 = <b>1</b>. No es «casi» 1: es 1, porque el límite de las sumas parciales 0,9, 0,99, 0,999… es 1."
+        ]) +
+        ejemplo("Una serie que empieza más tarde", "Calcula 1/8 + 1/16 + 1/32 + … (es la suma de (1/2)ᵏ desde k = 3).", [
+          "El primer término que sumas es 1/8 y la razón es 1/2.",
+          "S = (1/8)/(1 − 1/2) = (1/8)/(1/2) = <b>1/4</b>. Comprobación: 1 − (1/2 + 1/4) = 1/4 ✓ (toda la serie 1/2 + 1/4 + … suma 1)."
+        ]) +
+        "<h5>Una advertencia: que los términos tiendan a 0 no basta</h5>" +
+        "<p>Si una serie converge, sus términos tienen que tender a 0. Pero <b>al revés es falso</b>: la serie armónica 1 + 1/2 + 1/3 + 1/4 + … tiene términos que tienden a 0 y sin embargo <b>diverge</b>. La razón: se agrupa así</p>" +
+        "<div class='formula-wrap'><div class='formula'>1 + 1/2 + (1/3 + 1/4) + (1/5 + … + 1/8) + (1/9 + … + 1/16) + …</div></div>" +
+        "<p>Cada paréntesis suma más de 1/2 (1/3 + 1/4 &gt; 1/4 + 1/4 = 1/2; 1/5 + … + 1/8 &gt; 4·(1/8) = 1/2; y así siempre). Hay infinitos paréntesis, así que la suma supera cualquier número, aunque crece <em>muy</em> despacio: hacen falta 12.367 términos para pasar de 10.</p>" +
+        "<table class='lamina-table'><tbody>" +
+        "<tr><td>a + ar + ar² + … con |r| &lt; 1</td><td>converge: a/(1 − r)</td></tr>" +
+        "<tr><td>a + ar + ar² + … con |r| ≥ 1</td><td>diverge</td></tr>" +
+        "<tr><td>1 + 1/2 + 1/3 + 1/4 + … (armónica)</td><td>diverge (lentamente)</td></tr>" +
+        "<tr><td>1 + 1/4 + 1/9 + 1/16 + … (1/n²)</td><td>converge, a π²/6 ≈ 1,645 (Euler); no es geométrica y su suma es mucho más difícil</td></tr>" +
+        "<tr><td>cuando aₙ no tiende a 0</td><td>la serie diverge seguro</td></tr>" +
+        "</tbody></table>"
+    },
+    {
+      h: "10. Dinero con pagos periódicos: ahorro, préstamos y TAE",
+      html:
+        "<p>Las cuentas de ahorro y las hipotecas son progresiones geométricas. Con pagos <b>mensuales</b> el tipo anual r se reparte en doce: el tipo mensual es <b>i = r/12</b> y el factor mensual es <b>1 + i</b>. (Error típico: usar 0,03 como si fuera mensual cuando es anual.) Comprueba las dos fórmulas con tus propios datos:</p>" +
+        w("anualidad") +
+        "<h5>Ahorro: el capital acumulado</h5>" +
+        "<p>Si se ingresa <b>c</b> al final de cada mes durante n meses, el último ingreso no gana intereses, el penúltimo gana uno, … y el primero gana n − 1. El capital es la suma de una progresión geométrica de razón (1 + i):</p>" +
+        "<div class='formula-wrap'><div class='formula'>C = c + c(1 + i) + c(1 + i)² + … + c(1 + i)ⁿ⁻¹ = " + fr("c·((1 + i)ⁿ − 1)", "i") + "</div></div>" +
+        ejemplo("Un plan de ahorro", "Se ahorran 200 € al final de cada mes durante 10 años en una cuenta al 3 % anual (interés compuesto mensual). ¿Qué capital se acumula?", [
+          "i = 0,03/12 = 0,0025 y n = 10·12 = 120 pagos.",
+          "(1,0025)¹²⁰ ≈ 1,349354.",
+          "C = 200·(1,349354 − 1)/0,0025 = 200·139,7414 ≈ <b>27.948,28 €</b>. Has aportado 24.000 € y los intereses son 3.948,28 €."
+        ]) +
+        "<h5>Préstamo: la cuota</h5>" +
+        "<p>Un préstamo de capital C a n meses se devuelve con cuotas iguales de importe c. El valor actual de todas las cuotas debe ser el capital prestado: C = c/(1 + i) + c/(1 + i)² + … + c/(1 + i)ⁿ, una progresión geométrica de razón 1/(1 + i). Sumándola y despejando:</p>" +
+        "<div class='formula-wrap'><div class='formula'>c = " + fr("C·i", "1 − (1 + i)⁻ⁿ") + "</div></div>" +
+        ejemplo("Cuota de un préstamo", "Se piden 10.000 € al 6 % anual a devolver en 5 años con cuotas mensuales. Calcula la cuota y los intereses totales.", [
+          "i = 0,06/12 = 0,005 y n = 60 cuotas. (1,005)⁻⁶⁰ ≈ 0,741372.",
+          "c = 10.000·0,005/(1 − 0,741372) = 50/0,258628 ≈ <b>193,33 €</b> al mes.",
+          "Se pagan 193,33·60 ≈ 11.599,68 €, es decir, <b>1.599,68 €</b> de intereses."
+        ]) +
+        "<h5>Tipo nominal y TAE</h5>" +
+        "<p>Un banco que anuncia «6 % nominal con abonos mensuales» te da en realidad más del 6 %, porque cada mes los intereses ya generan intereses. La rentabilidad real de un año es la <b>TAE</b> (Tasa Anual Equivalente): TAE = (1 + r/k)ᵏ − 1, con k abonos al año. Con r = 6 % y k = 12: (1,005)¹² − 1 = 0,061678 → <b>TAE = 6,168 %</b>.</p>" +
+        "<p><b>Regla del 72</b>: a un tipo anual de r %, un capital se duplica en unos 72/r años (a un 6 %, unos 12 años; exacto: log 2/log 1,06 = 11,9 años). Sale de log 2 ≈ 0,693 y de que log(1 + r/100) ≈ r/100 para r pequeño.</p>"
+    },
+    {
+      h: "11. El número e como límite",
+      html:
+        "<p>En 1683 Jakob Bernoulli se preguntó: si un banco paga el 100 % anual, ¿qué pasa si en vez de pagar una vez al año se paga la mitad cada seis meses, o la cuarta parte cada trimestre, …? Con k abonos al año, 1 € se convierte en (1 + 1/k)ᵏ. Mira qué ocurre cuando k crece:</p>" +
+        "<table class='lamina-table'><tbody>" +
+        "<tr><td>k = 1</td><td>(1 + 1)¹ = 2</td></tr>" +
+        "<tr><td>k = 2</td><td>(1,5)² = 2,25</td></tr>" +
+        "<tr><td>k = 10</td><td>(1,1)¹⁰ = 2,5937</td></tr>" +
+        "<tr><td>k = 100</td><td>(1,01)¹⁰⁰ = 2,7048</td></tr>" +
+        "<tr><td>k = 1.000</td><td>2,7169</td></tr>" +
+        "<tr><td>k = 1.000.000</td><td>2,71828</td></tr>" +
+        "</tbody></table>" +
+        "<p>La sucesión aₙ = (1 + 1/n)ⁿ es <b>creciente y está acotada por 3</b>, así que (por el teorema de la sección 2) <b>converge</b>. Su límite es el número <b>e = 2,718281828…</b>, un irracional que aparece en todas partes (crecimiento de poblaciones, desintegración radiactiva, probabilidad, la función exponencial del Tema 9…). Experimenta con el capital, el tipo y el número de abonos:</p>" +
+        w("capitaliza") +
+        ejemplo("Capitalización continua", "Se invierten 1.000 € al 5 % anual durante 10 años. Compara el capital final con abonos anuales, mensuales y continuos.", [
+          "Anual: 1.000·1,05¹⁰ = <b>1.628,89 €</b>.",
+          "Mensual: 1.000·(1 + 0,05/12)¹²⁰ = <b>1.647,01 €</b>.",
+          "Continua (k → ∞): el factor anual (1 + r/k)ᵏ tiende a eʳ, así que el capital es C·e<sup>rt</sup> = 1.000·e⁰·⁵ = <b>1.648,72 €</b>.",
+          "Capitalizar con más frecuencia ayuda, pero con un tope: de mensual a continua solo se ganan 1,71 €."
+        ]) +
+        ojo("(1 + 1/n)ⁿ <b>no</b> tiende a 1 aunque 1 + 1/n → 1. Es la indeterminación «1 elevado a ∞»: la base se acerca a 1 pero el exponente crece sin parar, y el resultado intermedio es e.")
+    },
+    {
+      h: "12. El copo de nieve de Koch: perímetro infinito, área finita",
+      html:
+        "<p>Parte de un triángulo equilátero de lado 1. En cada paso, a cada lado se le quita el tercio central y se pone en su lugar un triángulo equilátero «hacia fuera» sin base, es decir, dos lados nuevos de longitud 1/3 del original. Repitiendo el proceso sale una curva llamada <b>copo de nieve de Koch</b>. Es un ejemplo de <b>fractal</b> y se estudia con tres sucesiones:</p>" +
+        w("koch") +
+        "<table class='lamina-table'><tbody>" +
+        "<tr><td>Número de lados</td><td>cada lado se convierte en 4: 3, 12, 48, … → <b>3·4ⁿ</b> (geométrica de razón 4)</td></tr>" +
+        "<tr><td>Longitud de cada lado</td><td>cada lado se divide entre 3: (1/3)ⁿ</td></tr>" +
+        "<tr><td>Perímetro</td><td>Pₙ = 3·4ⁿ·(1/3)ⁿ = <b>3·(4/3)ⁿ</b>: razón 4/3 &gt; 1, <b>tiende a +∞</b></td></tr>" +
+        "<tr><td>Área añadida en el paso k</td><td>se añaden 3·4ᵏ⁻¹ triángulos de área A₀/9ᵏ (A₀ = √3/4 es el área inicial): una serie geométrica de razón 4/9 &lt; 1</td></tr>" +
+        "</tbody></table>" +
+        ejemplo("Área del copo", "Calcula el área del copo de Koch tras n pasos y el área de la figura «completa» (n → ∞), con lado inicial 1.", [
+          "A₀ = √3/4 ≈ 0,4330. En el paso k se añaden 3·4ᵏ⁻¹ triángulos de área A₀/9ᵏ, es decir, A₀·(3/4)·(4/9)ᵏ.",
+          "Aₙ = A₀·[1 + (3/4)·((4/9) + (4/9)² + … + (4/9)ⁿ)]. Por ejemplo A₂ = A₀·(1 + 1/3 + 4/27) = (40/27)·A₀ ≈ 0,6415.",
+          "Para n → ∞, la serie geométrica de razón 4/9 vale (4/9)/(1 − 4/9) = 4/5, así que A = A₀·(1 + (3/4)·(4/5)) = A₀·(8/5) = <b>2√3/5 ≈ 0,6928</b>.",
+          "Conclusión: la curva mide <b>infinito</b> pero encierra una superficie <b>finita</b> (8/5 del triángulo inicial)."
+        ])
+    },
+    {
+      h: "13. Problemas de examen resueltos",
+      html:
+        "<p>Los problemas de sucesiones suelen mezclar varias ideas. Mira cómo se plantea cada uno antes de operar.</p>" +
+        ejemplo("Tres números en progresión aritmética", "Tres números en progresión aritmética suman 21 y su producto es 280. Hállalos.", [
+          "Los llamamos a − d, a, a + d: al sumarlos desaparece d. 3a = 21 → a = 7.",
+          "Producto: (7 − d)·7·(7 + d) = 7(49 − d²) = 280 → 49 − d² = 40 → d² = 9 → d = ±3.",
+          "Los números son <b>4, 7, 10</b> (o 10, 7, 4). Comprobación: 4 + 7 + 10 = 21 y 4·7·10 = 280 ✓."
+        ]) +
+        ejemplo("Cuántos términos para superar una cantidad", "¿Cuántos términos de 3 + 6 + 12 + … hay que sumar para superar 1.000?", [
+          "Geométrica con a₁ = 3 y r = 2: Sₙ = 3(2ⁿ − 1).",
+          "3(2ⁿ − 1) &gt; 1.000 → 2ⁿ &gt; 334,3 → n &gt; log₂ 334,3 ≈ 8,4.",
+          "S₈ = 3·255 = 765 (no llega) y S₉ = 3·511 = 1.533. Hacen falta <b>9 términos</b>."
+        ]) +
+        ejemplo("Una progresión aritmética y una geométrica a la vez", "Tres números en progresión aritmética suman 15. Si se les suman 1, 1 y 9 respectivamente, resultan tres números en progresión geométrica. Hállalos.", [
+          "Los llamamos 5 − d, 5, 5 + d (3a = 15 → a = 5). Después de sumar: 6 − d, 6, 14 + d.",
+          "Son una geométrica si el cuadrado del central es el producto de los extremos: 6² = (6 − d)(14 + d) → 36 = 84 − 8d − d² → d² + 8d − 48 = 0.",
+          "d = (−8 ± √(64 + 192))/2 = (−8 ± 16)/2 → d = 4 ó d = −12.",
+          "<b>Hay dos soluciones</b>: con d = 4, los números son 1, 5, 9 (y se convierten en 2, 6, 18, de razón 3); con d = −12, son 17, 5, −7 (y se convierten en 18, 6, 2, de razón 1/3)."
+        ]) +
+        ejemplo("Combinar suma y término", "En una progresión aritmética, S₁₀ = 120 y a₁₀ = 21. Calcula a₁ y d.", [
+          "S₁₀ = 10(a₁ + a₁₀)/2 = 5(a₁ + 21) = 120 → a₁ + 21 = 24 → <b>a₁ = 3</b>.",
+          "a₁₀ = a₁ + 9d → 21 = 3 + 9d → <b>d = 2</b>.",
+          "Coincide con la sucesión aₙ = 2n + 1 del ejemplo de Sₙ = n² + 2n."
+        ]) +
+        ejemplo("Una inversión con aportaciones crecientes", "Un trabajador cobra 1.200 € al mes y cada año le suben el sueldo un 3 %. ¿Cuánto cobra en total en 10 años?", [
+          "El primer año cobra 12·1.200 = 14.400 €. Cada año multiplica por 1,03: progresión geométrica con a₁ = 14.400 y r = 1,03.",
+          "S₁₀ = 14.400·(1,03¹⁰ − 1)/(1,03 − 1) = 14.400·0,343916/0,03 = 14.400·11,46388…",
+          "Total ≈ <b>165.079,86 €</b>."
+        ]) +
+        "<p>Ahora ordena los pasos de una resolución tipo y clasifica listas de números:</p>" +
+        w("orden", "proc") + w("clasificar", "clasuc") + w("emparejar", "herr")
+    }
+  );
+  nuevas[nuevas.length - 2].h = "14. ¿Qué falla aquí? Los errores que más puntos cuestan";
+  nuevas[nuevas.length - 1].h = "15. Autocomprobación del tema";
+  nuevas[nuevas.length - 1].html += "<p>Segunda tanda: diez preguntas sobre recurrencias, series, dinero y límites, y más tarjetas de fórmulas.</p>" + w("quiz", "quiz2") + w("tarjetas", "tj2");
+
+  // ---------------- datos de las actividades ----------------
+  datos.errores.preguntas.push(
+    { q: "Dada a₁ = 3 y aₙ₊₁ = 2aₙ − 1, un alumno resuelve L = 2L − 1 → L = 1 y concluye que la sucesión converge a 1. ¿Qué falla?",
+      op: ["Nada: el punto fijo siempre es el límite", "El punto fijo solo es el límite <em>si</em> la sucesión converge; aquí los términos 3, 5, 9, 17, … se alejan de 1", "Debía resolver L = 2", "Debía resolver aₙ = 0"], ok: 1,
+      porque: "L = f(L) da los <em>candidatos</em> a límite. Hay que comprobar además que la sucesión converge (aquí diverge, con razón 2 en bₙ = aₙ − 1)." },
+    { q: "«La serie 1 + 1/2 + 1/3 + 1/4 + … converge porque sus términos tienden a 0.»",
+      op: ["Es correcto", "Falso: la serie armónica diverge; que los términos tiendan a 0 es necesario pero no suficiente", "Falso: no es una serie", "Es correcto solo si se suman 1.000 términos"], ok: 1,
+      porque: "Agrupando (1/3 + 1/4), (1/5 + … + 1/8), … cada bloque supera 1/2, y hay infinitos: la suma no está acotada." },
+    { q: "Sabiendo que Sₙ = n² + 1, un alumno calcula aₙ = Sₙ − Sₙ₋₁ = 2n − 1 y escribe a₁ = 1. ¿Qué falla?",
+      op: ["Nada", "El primer término es a₁ = S₁ = 2; la resta Sₙ − Sₙ₋₁ solo vale para n ≥ 2", "Debía restar Sₙ₊₁", "Debía dividir entre 2"], ok: 1,
+      porque: "S₀ no existe, así que a₁ = S₁ = 2 se calcula aparte. La fórmula 2n − 1 vale solo desde n = 2." },
+    { q: "Para ahorrar 100 € al mes al 3 % anual, un alumno usa i = 0,03 en C = c·((1 + i)ⁿ − 1)/i con n = 12 meses. ¿Qué falla?",
+      op: ["Nada", "El tipo 3 % es anual; el mensual es i = 0,03/12 = 0,0025", "Debía usar n = 1", "Debía multiplicar por 12"], ok: 1,
+      porque: "Con pagos mensuales todo debe estar en meses: n = 12 pagos y tipo mensual i = r/12." },
+    { q: "Un alumno afirma: «como 1 + 1/n tiende a 1, (1 + 1/n)ⁿ tiende a 1ⁿ = 1». ¿Qué falla?",
+      op: ["Nada", "1^∞ es una indeterminación: la base se acerca a 1 pero el exponente crece, y el límite es e ≈ 2,718", "Debe valer 0", "Debe valer ∞"], ok: 1,
+      porque: "Los valores son 2, 2,25, 2,37, … 2,718…: crecen y se acercan a e." }
+  );
+
+  datos.quiz2 = {
+    titulo: "Test del tema (2): recurrencias, series y dinero",
+    preguntas: [
+      { q: "Dada a₁ = 5 y aₙ₊₁ = 3aₙ − 4, ¿cuánto vale a₃?",
+        op: ["29", "23", "17", "31"], ok: 0,
+        porque: "a₂ = 3·5 − 4 = 11 y a₃ = 3·11 − 4 = 29." },
+      { q: "Si la sucesión aₙ₊₁ = (aₙ + 6)/3 converge, su límite es…",
+        op: ["3", "2", "6", "no tiene límite"], ok: 0,
+        porque: "L = (L + 6)/3 → 3L = L + 6 → L = 3." },
+      { q: "¿Cuánto vale 4 + 2 + 1 + 1/2 + 1/4 + …?",
+        op: ["6", "8", "7,5", "no existe"], ok: 1,
+        porque: "a = 4 y r = 1/2: S = 4/(1 − 1/2) = 8." },
+      { q: "La serie 1 + 1/2 + 1/3 + 1/4 + … (armónica)…",
+        op: ["converge a 2", "converge a e", "diverge, aunque los términos tienden a 0", "es geométrica de razón 1/2"], ok: 2,
+        porque: "Cada bloque (1/3 + 1/4), (1/5 + … + 1/8), … suma más de 1/2: no está acotada." },
+      { q: "¿Cuánto vale 1 + 1,2 + 1,44 + 1,728 + … si se suman infinitos términos?",
+        op: ["6", "5", "1,2", "no existe (diverge)"], ok: 3,
+        porque: "La razón es r = 1,2 &gt; 1: los términos crecen y la suma no se estabiliza." },
+      { q: "Se ahorran 100 € al final de cada mes durante 12 meses con un tipo mensual del 1 %. El capital final es…",
+        op: ["1.268,25 €", "1.200,00 €", "1.126,83 €", "1.282,60 €"], ok: 0,
+        porque: "C = 100·(1,01¹² − 1)/0,01 = 100·12,6825 = 1.268,25 €." },
+      { q: "El límite de (1 + 1/n)ⁿ cuando n crece es…",
+        op: ["1", "e ≈ 2,718", "+∞", "0"], ok: 1,
+        porque: "Es la definición del número e: 1^∞ es una indeterminación y los valores 2, 2,25, 2,37, … se acercan a 2,718…" },
+      { q: "En el copo de Koch con lado inicial 1, el perímetro tras n pasos es…",
+        op: ["3·(4/3)ⁿ", "3·4ⁿ", "3·(1/3)ⁿ", "3 + 4n"], ok: 0,
+        porque: "Hay 3·4ⁿ lados de longitud (1/3)ⁿ: 3·4ⁿ/3ⁿ = 3·(4/3)ⁿ → +∞." },
+      { q: "Si Sₙ = n² + 1, ¿cómo es la sucesión aₙ?",
+        op: ["No es aritmética: a₁ = 2 y aₙ = 2n − 1 si n ≥ 2", "Aritmética con d = 2", "Geométrica de razón 2", "aₙ = n² + 1"], ok: 0,
+        porque: "a₁ = S₁ = 2, pero para n ≥ 2 aₙ = Sₙ − Sₙ₋₁ = 2n − 1, que daría 1 en n = 1: 2, 3, 5, 7… no es aritmética." },
+      { q: "El límite de (3n² + 1)/(n² − n) es…",
+        op: ["3", "0", "+∞", "1/3"], ok: 0,
+        porque: "Mismo grado: cociente de los coeficientes principales, 3/1 = 3." }
+    ]
+  };
+
+  datos.tj2 = {
+    titulo: "Más fórmulas de sucesiones",
+    cartas: [
+      { a: "Recurrencia aₙ₊₁ = f(aₙ): ¿cómo se calcula el posible límite?", b: "Resolviendo L = f(L) (punto fijo). Solo vale si la sucesión realmente converge." },
+      { a: "aₙ₊₁ = p·aₙ + q con p ≠ 1: ¿cómo se resuelve?", b: "Con L = q/(1 − p), bₙ = aₙ − L es geométrica de razón p: aₙ = L + (a₁ − L)·pⁿ⁻¹." },
+      { a: "Hallar aₙ conociendo la suma Sₙ", b: "a₁ = S₁ y aₙ = Sₙ − Sₙ₋₁ para n ≥ 2. Comprueba si la fórmula vale en n = 1." },
+      { a: "Suma de los n primeros impares", b: "1 + 3 + 5 + … + (2n − 1) = n²" },
+      { a: "Una serie converge cuando…", b: "las sumas parciales Sₙ se acercan a un número. Necesario: aₙ → 0 (pero no es suficiente)." },
+      { a: "Serie armónica 1 + 1/2 + 1/3 + …", b: "Diverge, aunque aₙ → 0." },
+      { a: "Ahorro: c al final de cada mes", b: "C = c·((1 + i)ⁿ − 1)/i, con i = r/12 y n = meses." },
+      { a: "Préstamo: cuota mensual", b: "c = C·i/(1 − (1 + i)⁻ⁿ), con i = r/12 y n = meses." },
+      { a: "TAE", b: "TAE = (1 + r/k)ᵏ − 1, con k abonos al año. Es mayor que el nominal r." },
+      { a: "El número e", b: "e = lím (1 + 1/n)ⁿ = 2,71828… Capitalización continua: C·eʳᵗ." },
+      { a: "Copo de Koch (lado inicial 1)", b: "Lados 3·4ⁿ; perímetro 3·(4/3)ⁿ → ∞; área → 2√3/5 ≈ 0,693 (finita)." },
+      { a: "Límite de un cociente de polinomios en n", b: "Grado menor: 0. Mismo grado: cociente de coeficientes principales. Grado mayor: ±∞." },
+      { a: "Definición de aₙ → L", b: "Para cada ε &gt; 0 existe N tal que |aₙ − L| &lt; ε si n ≥ N." }
+    ]
+  };
+
+  datos.clasuc = {
+    titulo: "¿Qué tipo de sucesión es?",
+    consigna: "Toca una sucesión y después el tipo al que pertenece.",
+    categorias: ["Aritmética (diferencia constante)", "Geométrica (cociente constante)", "Ninguna de las dos"],
+    items: [
+      { t: "7, 4, 1, −2, −5, …", c: 0 }, { t: "−3, 0, 3, 6, 9, …", c: 0 }, { t: "aₙ = 4n − 1", c: 0 }, { t: "0,5; 1; 1,5; 2; …", c: 0 },
+      { t: "2, 6, 18, 54, …", c: 1 }, { t: "100, 50, 25, 12,5, …", c: 1 }, { t: "aₙ = 3·2ⁿ", c: 1 }, { t: "aₙ = 5·(−1)ⁿ", c: 1 },
+      { t: "1, 4, 9, 16, 25, …", c: 2 }, { t: "1, 1, 2, 3, 5, 8, …", c: 2 }, { t: "aₙ = n² + n", c: 2 }, { t: "1, 1/2, 1/3, 1/4, …", c: 2 }
+    ]
+  };
+
+  datos.herr = {
+    titulo: "Cada problema con su herramienta",
+    consigna: "Une cada situación con la fórmula o el método que la resuelve.",
+    pares: [
+      ["Sumar los múltiplos de 7 entre 100 y 500", "Progresión aritmética: Sₙ = n(a₁ + aₙ)/2"],
+      ["Capital con interés compuesto anual", "Progresión geométrica: C·(1 + r/100)ⁿ"],
+      ["Distancia total de una pelota que rebota", "Serie geométrica: a/(1 − r)"],
+      ["Ahorrar una cantidad fija cada mes", "Suma geométrica: c((1 + i)ⁿ − 1)/i"],
+      ["Cuota de un préstamo", "c = C·i/(1 − (1 + i)⁻ⁿ)"],
+      ["Aproximar √2 paso a paso", "Recurrencia de Herón: (aₙ + 2/aₙ)/2"],
+      ["Hallar aₙ conociendo Sₙ", "aₙ = Sₙ − Sₙ₋₁ (n ≥ 2) y a₁ = S₁"]
+    ]
+  };
+
+  datos.proc = {
+    titulo: "Resolver: tres números en progresión aritmética suman 21 y su producto es 280",
+    consigna: "Ordena los pasos de la resolución.",
+    items: [
+      { t: "Llamar a − d, a y a + d a los tres números", nota: "Con esta elección, al sumar desaparece d." },
+      { t: "Sumar: 3a = 21 → a = 7" },
+      { t: "Multiplicar: (7 − d)·7·(7 + d) = 280 → 7(49 − d²) = 280", nota: "Suma por diferencia: (7 − d)(7 + d) = 49 − d²." },
+      { t: "Despejar: 49 − d² = 40 → d² = 9 → d = ±3" },
+      { t: "Escribir los números: 4, 7 y 10 (o 10, 7 y 4)" },
+      { t: "Comprobar: 4 + 7 + 10 = 21 y 4·7·10 = 280", nota: "Una comprobación rápida detecta errores de signo." }
+    ]
+  };
+
+  // ---------------- ejercicios nuevos (s23–s59) ----------------
+  ejercicios.push(
+    // ---------- ★ ----------
+    { id: "s23", nivel: 1,
+      enunciado: "Halla el término general de la sucesión 2, −4, 6, −8, 10, …",
+      check: { tipo: "expr", etiqueta: "aₙ =", expr: "(-1)^(n+1)*2*n", enteros: true, ph: "usa la letra n, por ejemplo 3n-1" },
+      pistas: ["Sin signos, los valores 2, 4, 6, 8, … son 2n.", "El primero es positivo y luego alternan: (−1)ⁿ⁺¹."],
+      pasos: ["Valores absolutos: 2n.", "Signo: + − + − …, que es (−1)ⁿ⁺¹ (+1 si n es impar).", "aₙ = (−1)ⁿ⁺¹·2n. Comprobación: a₃ = (+1)·6 = 6 ✓."],
+      resultado: "aₙ = (−1)ⁿ⁺¹·2n" },
+    { id: "s24", nivel: 1,
+      enunciado: "Se define a₁ = 3 y aₙ₊₁ = 2aₙ − 1. Calcula a₅.",
+      check: { tipo: "num", etiqueta: "a₅ =", valor: 33 },
+      pistas: ["Calcula los términos uno a uno."],
+      pasos: ["a₂ = 2·3 − 1 = 5.", "a₃ = 2·5 − 1 = 9.", "a₄ = 2·9 − 1 = 17.", "a₅ = 2·17 − 1 = 33 (que coincide con aₙ = 2ⁿ + 1)."],
+      resultado: "a₅ = 33" },
+    { id: "s25", nivel: 1,
+      enunciado: "Se define a₁ = 10 y aₙ₊₁ = (aₙ + 2)/2, y la sucesión converge. ¿Cuál es su límite?",
+      check: { tipo: "num", etiqueta: "L =", valor: 2 },
+      pistas: ["El límite L cumple L = f(L)."],
+      pasos: ["L = (L + 2)/2 → 2L = L + 2 → L = 2.", "Los términos 10, 6, 4, 3, 2,5, … se acercan a 2."],
+      resultado: "L = 2" },
+    { id: "s26", nivel: 1,
+      enunciado: "Se intercalan 3 números entre 2 y 18 para que los 5 formen una progresión aritmética. Calcula la diferencia d.",
+      check: { tipo: "num", etiqueta: "d =", valor: 4 },
+      pistas: ["d = (b − a)/(k + 1) con k = 3."],
+      pasos: ["d = (18 − 2)/(3 + 1) = 16/4 = 4.", "La progresión es 2, 6, 10, 14, 18."],
+      resultado: "d = 4" },
+    { id: "s27", nivel: 1,
+      enunciado: "Se intercalan 2 números entre 3 y 24 para que los 4 formen una progresión geométrica. Calcula la razón r.",
+      check: { tipo: "num", etiqueta: "r =", valor: 2 },
+      pistas: ["r = (b/a)<sup>1/(k+1)</sup> con k = 2."],
+      pasos: ["r = (24/3)<sup>1/3</sup> = 8<sup>1/3</sup> = 2.", "La progresión es 3, 6, 12, 24."],
+      resultado: "r = 2" },
+    { id: "s28", nivel: 1,
+      enunciado: "Calcula la suma infinita 12 + 4 + 4/3 + 4/9 + …",
+      check: { tipo: "num", etiqueta: "S =", valor: 18 },
+      pistas: ["Es una serie geométrica: calcula primero la razón."],
+      pasos: ["r = 4/12 = 1/3 (|r| &lt; 1).", "S = 12/(1 − 1/3) = 12/(2/3) = 18."],
+      resultado: "S = 18" },
+    { id: "s29", nivel: 1,
+      enunciado: "Escribe 0,181818… (el 18 se repite) como suma de una serie geométrica y da su valor como fracción irreducible.",
+      check: { tipo: "num", etiqueta: "Valor =", valor: 2 / 11, tol: 0.001, ph: "p/q" },
+      pistas: ["0,1818… = 0,18 + 0,0018 + 0,000018 + …", "a = 0,18 y r = 0,01."],
+      pasos: ["a = 0,18 y r = 0,01.", "S = 0,18/(1 − 0,01) = 0,18/0,99 = 18/99 = 2/11."],
+      resultado: "2/11" },
+    // ---------- ★★ ----------
+    { id: "s30", nivel: 2,
+      enunciado: "La suma de los n primeros términos de una sucesión es Sₙ = n² + 2n. Calcula a₁₀.",
+      check: { tipo: "num", etiqueta: "a₁₀ =", valor: 21 },
+      pistas: ["aₙ = Sₙ − Sₙ₋₁."],
+      pasos: ["S₁₀ = 100 + 20 = 120 y S₉ = 81 + 18 = 99.", "a₁₀ = S₁₀ − S₉ = 21.", "En general aₙ = 2n + 1."],
+      resultado: "a₁₀ = 21" },
+    { id: "s31", nivel: 2,
+      enunciado: "En una progresión geométrica a₂ = 6 y a₅ = 162. Calcula la razón, el primer término y a₈.",
+      check: [{ tipo: "num", etiqueta: "r =", valor: 3 }, { tipo: "num", etiqueta: "a₁ =", valor: 2 }, { tipo: "num", etiqueta: "a₈ =", valor: 4374 }],
+      pistas: ["De a₂ a a₅ hay 3 pasos: a₅ = a₂·r³."],
+      pasos: ["162 = 6·r³ → r³ = 27 → r = 3.", "a₂ = a₁·r → 6 = 3a₁ → a₁ = 2.", "a₈ = 2·3⁷ = 2·2187 = 4374."],
+      resultado: "r = 3, a₁ = 2, a₈ = 4374" },
+    { id: "s32", nivel: 2,
+      enunciado: "La suma de los n primeros términos de una sucesión es Sₙ = 3n² − 2n. Halla su término general aₙ.",
+      check: { tipo: "expr", etiqueta: "aₙ =", expr: "6n-5", ph: "usa la letra n" },
+      pistas: ["a₁ = S₁ y aₙ = Sₙ − Sₙ₋₁. Comprueba si vale también para n = 1."],
+      pasos: ["a₁ = S₁ = 1.", "aₙ = 3n² − 2n − [3(n−1)² − 2(n−1)] = 6n − 5.", "Con n = 1 da 1 = a₁ ✓: vale para todo n."],
+      resultado: "aₙ = 6n − 5" },
+    { id: "s33", nivel: 2,
+      enunciado: "Una progresión geométrica tiene a₁ = 4 y la suma de todos sus términos es 12. Calcula la razón.",
+      check: { tipo: "num", etiqueta: "r =", valor: 2 / 3, tol: 0.001, ph: "p/q" },
+      pistas: ["S = a₁/(1 − r)."],
+      pasos: ["12 = 4/(1 − r) → 1 − r = 4/12 = 1/3.", "r = 2/3 (y |r| &lt; 1: la suma existe)."],
+      resultado: "r = 2/3" },
+    { id: "s34", nivel: 2,
+      enunciado: "La suma de los n primeros términos de una progresión aritmética es Sₙ = n(2n + 1). ¿Cuál es el menor valor de n para el que Sₙ supera 1.000?",
+      check: { tipo: "num", etiqueta: "n =", valor: 23 },
+      pistas: ["Resuelve 2n² + n &gt; 1000 y prueba con enteros cercanos."],
+      pasos: ["2n² + n − 1000 &gt; 0 → n &gt; (−1 + √8001)/4 ≈ 22,1.", "S₂₂ = 22·45 = 990 (no llega) y S₂₃ = 23·47 = 1.081 (supera).", "n = 23."],
+      resultado: "n = 23" },
+    { id: "s35", nivel: 2,
+      enunciado: "Un anfiteatro tiene 20 filas: la primera tiene 15 asientos y cada fila tiene 2 más que la anterior. ¿Cuántos asientos hay en total?",
+      check: { tipo: "num", etiqueta: "Asientos =", valor: 680 },
+      pistas: ["Progresión aritmética con a₁ = 15, d = 2."],
+      pasos: ["a₂₀ = 15 + 19·2 = 53.", "S₂₀ = 20·(15 + 53)/2 = 680."],
+      resultado: "680 asientos" },
+    { id: "s36", nivel: 2,
+      enunciado: "Alguien ahorra 5 € la primera semana y cada semana 2 € más que la anterior. ¿En qué semana supera por primera vez los 500 € acumulados?",
+      check: { tipo: "num", etiqueta: "Semana =", valor: 21 },
+      pistas: ["Sₙ = n(2·5 + (n − 1)·2)/2 = n² + 4n."],
+      pasos: ["n² + 4n &gt; 500 → n &gt; −2 + √504 ≈ 20,45.", "S₂₀ = 480 y S₂₁ = 525.", "Semana 21."],
+      resultado: "semana 21" },
+    { id: "s37", nivel: 2,
+      enunciado: "Un folio de 0,1 mm de grosor se dobla por la mitad una y otra vez. ¿Cuántos dobleces hacen falta para superar la distancia de la Tierra a la Luna, 384.400 km? (Experimento mental.)",
+      check: { tipo: "num", etiqueta: "Dobleces =", valor: 42 },
+      pistas: ["Grosor tras n dobleces: 0,1·2ⁿ mm. 1 km = 10⁶ mm."],
+      pasos: ["Hay que lograr 0,1·2ⁿ &gt; 3,844·10¹¹ mm → 2ⁿ &gt; 3,844·10¹².", "log₂(3,844·10¹²) ≈ 41,8.", "Con 41 dobleces: 219.902 km. Con 42: 439.805 km. Hacen falta 42."],
+      resultado: "42 dobleces" },
+    { id: "s38", nivel: 2,
+      enunciado: "Una muestra de 500 g de una sustancia pierde el 10 % de su masa cada hora. ¿Cuántos gramos quedan después de 6 horas?",
+      check: { tipo: "num", etiqueta: "Masa =", valor: 265.72, unidad: "g", tol: 0.0005 },
+      pistas: ["Perder el 10 % es multiplicar por 0,9."],
+      pasos: ["m₆ = 500·0,9⁶ = 500·0,531441 = 265,72 g."],
+      resultado: "≈ 265,72 g" },
+    { id: "s39", nivel: 2,
+      enunciado: "Aquiles corre a 10 m/s y una tortuga a 1 m/s, con 100 m de ventaja. Suma la serie de los tiempos de las etapas (10 + 1 + 0,1 + …) y da el instante, en segundos, en que Aquiles alcanza a la tortuga.",
+      check: { tipo: "num", etiqueta: "t =", valor: 100 / 9, unidad: "s", tol: 0.001 },
+      pistas: ["Serie geométrica con a = 10 y r = 0,1."],
+      pasos: ["S = 10/(1 − 0,1) = 100/9 ≈ 11,11 s.", "Comprobación: 10t = 100 + t → t = 100/9."],
+      resultado: "≈ 11,11 s" },
+    { id: "s40", nivel: 2,
+      enunciado: "Estudia la sucesión aₙ = n/(n² + 1).",
+      check: { tipo: "opcion", etiqueta: "Es", opciones: ["decreciente y acotada: 0 < aₙ ≤ 1/2", "creciente y acotada", "decreciente y no acotada", "no monótona"], ok: 0 },
+      pistas: ["Calcula aₙ₊₁ − aₙ: el numerador sale −n² − n + 1."],
+      pasos: ["aₙ₊₁ − aₙ = (−n² − n + 1)/(((n+1)² + 1)(n² + 1)) &lt; 0 para n ≥ 1.", "Decreciente: 1/2, 2/5, 3/10, … y positiva: 0 &lt; aₙ ≤ a₁ = 1/2."],
+      resultado: "decreciente y acotada" },
+    { id: "s41", nivel: 2,
+      enunciado: "Estudia aₙ = n² − 6n: ¿para qué valor de n alcanza su mínimo y cuánto vale ese mínimo?",
+      check: [{ tipo: "num", etiqueta: "n =", valor: 3 }, { tipo: "num", etiqueta: "mínimo =", valor: -9 }],
+      pistas: ["aₙ₊₁ − aₙ = 2n − 5: mira dónde cambia de signo."],
+      pasos: ["Es negativa para n = 1, 2 y positiva desde n = 3.", "Los términos son −5, −8, −9, −8, −5, …: el mínimo es a₃ = 9 − 18 = −9."],
+      resultado: "n = 3, mínimo −9" },
+    { id: "s42", nivel: 2,
+      enunciado: "Calcula el límite de la sucesión aₙ = (3n² − 2n + 1)/(n² + 5).",
+      check: { tipo: "num", etiqueta: "límite =", valor: 3 },
+      pistas: ["Divide numerador y denominador entre n²."],
+      pasos: ["(3 − 2/n + 1/n²)/(1 + 5/n²) → 3/1 = 3."],
+      resultado: "3" },
+    { id: "s43", nivel: 2,
+      enunciado: "¿Cuál de estas sucesiones converge a 0?",
+      check: { tipo: "opcion", etiqueta: "Converge a 0", opciones: ["(n² + 1)/n³", "(n² + 1)/n²", "(n³ + 1)/n²", "(−1)ⁿ"], ok: 0 },
+      pistas: ["Compara los grados del numerador y del denominador."],
+      pasos: ["(n² + 1)/n³: grado 2 &lt; 3 → tiende a 0.", "(n² + 1)/n² → 1; (n³ + 1)/n² → +∞; (−1)ⁿ oscila entre −1 y 1."],
+      resultado: "(n² + 1)/n³" },
+    // ---------- ★★★ ----------
+    { id: "s44", nivel: 3,
+      enunciado: "Tres números en progresión aritmética suman 15. Si se les suman 1, 1 y 9 respectivamente, resultan tres números en progresión geométrica. Halla los tres números originales de la solución con diferencia positiva.",
+      check: { tipo: "lista", etiqueta: "números =", valores: [1, 5, 9], ph: "tres valores separados por comas" },
+      pistas: ["Llámalos 5 − d, 5, 5 + d.", "Tras sumar: 6 − d, 6, 14 + d. Impón 6² = (6 − d)(14 + d)."],
+      pasos: ["a = 5. Los transformados son 6 − d, 6, 14 + d.", "36 = (6 − d)(14 + d) = 84 − 8d − d² → d² + 8d − 48 = 0 → d = 4 ó d = −12.", "Con d = 4: 1, 5, 9 (→ 2, 6, 18, razón 3). Con d = −12: 17, 5, −7 (→ 18, 6, 2, razón 1/3)."],
+      resultado: "1, 5 y 9 (la otra solución es 17, 5, −7)" },
+    { id: "s45", nivel: 3,
+      enunciado: "Se ahorran 200 € al final de cada mes durante 10 años en una cuenta al 3 % anual con interés compuesto mensual. ¿Qué capital se acumula?",
+      check: { tipo: "num", etiqueta: "Capital =", valor: 27948.28, unidad: "€", tol: 0.0005 },
+      pistas: ["i = 0,03/12 = 0,0025 y n = 120.", "C = c·((1 + i)ⁿ − 1)/i."],
+      pasos: ["(1,0025)¹²⁰ ≈ 1,349354.", "C = 200·0,349354/0,0025 ≈ 27.948,28 €."],
+      resultado: "≈ 27.948,28 €" },
+    { id: "s46", nivel: 3,
+      enunciado: "Se piden 10.000 € al 6 % anual para devolverlos en 5 años con cuotas mensuales iguales. ¿Cuánto vale cada cuota?",
+      check: { tipo: "num", etiqueta: "Cuota =", valor: 193.33, unidad: "€", tol: 0.0005 },
+      pistas: ["i = 0,06/12 = 0,005 y n = 60.", "c = C·i/(1 − (1 + i)⁻ⁿ)."],
+      pasos: ["(1,005)⁻⁶⁰ ≈ 0,741372.", "c = 10.000·0,005/(1 − 0,741372) = 50/0,258628 ≈ 193,33 €."],
+      resultado: "≈ 193,33 €" },
+    { id: "s47", nivel: 3,
+      enunciado: "En el copo de Koch con lado inicial 1, calcula el perímetro tras 3 pasos y el número de lados tras 4 pasos.",
+      check: [{ tipo: "num", etiqueta: "perímetro (n = 3) =", valor: 64 / 9, tol: 0.001 }, { tipo: "num", etiqueta: "lados (n = 4) =", valor: 768 }],
+      pistas: ["Lados: 3·4ⁿ. Perímetro: 3·(4/3)ⁿ."],
+      pasos: ["P₃ = 3·(4/3)³ = 3·64/27 = 64/9 ≈ 7,111.", "Lados con n = 4: 3·4⁴ = 3·256 = 768."],
+      resultado: "P₃ = 64/9 ≈ 7,111 · 768 lados" },
+    { id: "s48", nivel: 3,
+      enunciado: "Un banco ofrece un 6 % nominal anual con abonos mensuales. Calcula la TAE, en %, con dos decimales.",
+      check: { tipo: "num", etiqueta: "TAE =", valor: 6.1678, unidad: "%", tol: 0.002 },
+      pistas: ["TAE = (1 + r/k)ᵏ − 1 con k = 12."],
+      pasos: ["(1 + 0,06/12)¹² = 1,005¹² = 1,061678.", "TAE = 0,061678 = 6,17 %."],
+      resultado: "TAE ≈ 6,17 %" },
+    { id: "s49", nivel: 3,
+      enunciado: "Aplica el método de Herón a₁ = 1, aₙ₊₁ = (aₙ + 2/aₙ)/2 y calcula a₄ con 5 decimales.",
+      check: { tipo: "num", etiqueta: "a₄ =", valor: 1.41422, tol: 0.0001 },
+      pistas: ["a₂ = 1,5; a₃ = 17/12."],
+      pasos: ["a₂ = (1 + 2)/2 = 1,5.", "a₃ = (1,5 + 2/1,5)/2 = 17/12 ≈ 1,416667.", "a₄ = (17/12 + 24/17)/2 = 577/408 ≈ 1,41422 (√2 ≈ 1,41421)."],
+      resultado: "a₄ = 577/408 ≈ 1,41422" },
+    { id: "s50", nivel: 3,
+      enunciado: "La sucesión de Fibonacci empieza con 1, 1, 2, 3, 5, … (cada término es la suma de los dos anteriores). Calcula a₂₀.",
+      check: { tipo: "num", etiqueta: "a₂₀ =", valor: 6765 },
+      pistas: ["Sigue la lista: …, 34, 55, 89, 144, …"],
+      pasos: ["1, 1, 2, 3, 5, 8, 13, 21, 34, 55 (a₁₀), 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765 (a₂₀)."],
+      resultado: "a₂₀ = 6765" },
+    { id: "s51", nivel: 3,
+      enunciado: "Calcula la suma de la serie 1/8 + 1/16 + 1/32 + 1/64 + … (los términos son (1/2)ᵏ desde k = 3).",
+      check: { tipo: "num", etiqueta: "S =", valor: 0.25, ph: "p/q o decimal" },
+      pistas: ["El primer término que sumas es a = 1/8 y la razón es 1/2."],
+      pasos: ["S = (1/8)/(1 − 1/2) = (1/8)/(1/2) = 1/4."],
+      resultado: "S = 1/4" },
+    { id: "s52", nivel: 3,
+      enunciado: "Se invierten 1.000 € al 5 % anual con capitalización continua durante 10 años. ¿Qué capital se obtiene? (Usa C·e<sup>rt</sup>.)",
+      check: { tipo: "num", etiqueta: "Capital =", valor: 1648.72, unidad: "€", tol: 0.0005 },
+      pistas: ["C·e<sup>rt</sup> con r = 0,05 y t = 10."],
+      pasos: ["1.000·e⁰·⁵ = 1.000·1,648721 = 1.648,72 €.", "(Frente a 1.628,89 € con abonos anuales y 1.647,01 € con abonos mensuales.)"],
+      resultado: "≈ 1.648,72 €" },
+    { id: "s53", nivel: 3,
+      enunciado: "¿Cuál de estas series converge?",
+      check: { tipo: "opcion", etiqueta: "Converge", opciones: ["1 + 1/2 + 1/3 + 1/4 + …", "1 + 0,9 + 0,81 + 0,729 + …", "1 + 1 + 1 + 1 + …", "1 − 2 + 4 − 8 + …"], ok: 1 },
+      pistas: ["Mira la razón de las geométricas y recuerda la armónica."],
+      pasos: ["La primera es la armónica: diverge. La segunda es geométrica con r = 0,9 &lt; 1: suma 1/(1 − 0,9) = 10.", "La tercera tiene r = 1 y la cuarta r = −2: ambas divergen."],
+      resultado: "1 + 0,9 + 0,81 + … (suma 10)" },
+    { id: "s54", nivel: 3,
+      enunciado: "La sucesión a₁ = 1, aₙ₊₁ = 1 + 1/aₙ converge. Calcula su límite con 3 decimales.",
+      check: { tipo: "num", etiqueta: "L =", valor: 1.618, tol: 0.001 },
+      pistas: ["L = 1 + 1/L → L² = L + 1 (y L &gt; 0)."],
+      pasos: ["L² − L − 1 = 0 → L = (1 ± √5)/2.", "Los términos son positivos: L = (1 + √5)/2 ≈ 1,618 (el número áureo)."],
+      resultado: "L = (1 + √5)/2 ≈ 1,618" },
+    { id: "s55", nivel: 3,
+      enunciado: "¿Cuántos términos de la progresión 3 + 6 + 12 + … hay que sumar como mínimo para superar 1.000?",
+      check: { tipo: "num", etiqueta: "n =", valor: 9 },
+      pistas: ["Sₙ = 3(2ⁿ − 1)."],
+      pasos: ["3(2ⁿ − 1) &gt; 1000 → 2ⁿ &gt; 334,3 → n ≥ 9.", "S₈ = 765 y S₉ = 1.533."],
+      resultado: "n = 9" },
+    { id: "s56", nivel: 3,
+      enunciado: "Un trabajador cobra 1.200 € al mes y cada año le suben el sueldo un 3 %. ¿Cuánto cobra en total en 10 años? (Redondea a euros.)",
+      check: { tipo: "num", etiqueta: "Total =", valor: 165079.86, unidad: "€", tol: 0.0005 },
+      pistas: ["El primer año cobra 14.400 € y cada año multiplica por 1,03."],
+      pasos: ["Geométrica con a₁ = 14.400, r = 1,03 y n = 10.", "S₁₀ = 14.400·(1,03¹⁰ − 1)/0,03 = 14.400·11,46388 ≈ 165.079,86 €."],
+      resultado: "≈ 165.080 €" },
+    { id: "s57", nivel: 3,
+      enunciado: "Demuestra la fórmula Sₙ = n·(a₁ + aₙ)/2 de la suma de los n primeros términos de una progresión aritmética (el truco de Gauss).",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 7, items: [
+        { t: "Escribe Sₙ = a₁ + a₂ + … + aₙ y, debajo, la misma suma en orden inverso: Sₙ = aₙ + aₙ₋₁ + … + a₁", p: 0.5 },
+        { t: "Suma las dos igualdades columna a columna: 2Sₙ = (a₁ + aₙ) + (a₂ + aₙ₋₁) + … + (aₙ + a₁)", p: 0.5 },
+        { t: "Justifica que todas las parejas valen lo mismo: a₁ + aₙ = a₂ + aₙ₋₁ = … (al avanzar un lugar se suma d en un lado y se resta d en el otro)", p: 0.5 },
+        { t: "Hay n parejas iguales: 2Sₙ = n·(a₁ + aₙ), y por tanto Sₙ = n·(a₁ + aₙ)/2", p: 0.5 }
+      ] },
+      pasos: ["Sₙ = a₁ + a₂ + … + aₙ y Sₙ = aₙ + aₙ₋₁ + … + a₁.", "Al sumar, cada columna da a₁ + aₙ, a₂ + aₙ₋₁ = (a₁ + d) + (aₙ − d) = a₁ + aₙ, …: todas iguales.", "Hay n columnas: 2Sₙ = n(a₁ + aₙ) → Sₙ = n(a₁ + aₙ)/2."],
+      resultado: "Sₙ = n(a₁ + aₙ)/2" },
+    { id: "s58", nivel: 3,
+      enunciado: "Demuestra que la suma de los n primeros números impares es n²: 1 + 3 + 5 + … + (2n − 1) = n².",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Reconoce que los impares forman una progresión aritmética con a₁ = 1, d = 2 y aₙ = 2n − 1", p: 0.5 },
+        { t: "Aplica Sₙ = n(a₁ + aₙ)/2 = n(1 + 2n − 1)/2", p: 0.5 },
+        { t: "Simplifica: n·2n/2 = n²", p: 0.5 },
+        { t: "(Opcional) Comprueba con n = 4: 1 + 3 + 5 + 7 = 16 = 4²", p: 0.5 }
+      ] },
+      pasos: ["Los impares: 1, 3, 5, … con a₁ = 1, d = 2, aₙ = 1 + (n − 1)·2 = 2n − 1.", "Sₙ = n(1 + 2n − 1)/2 = n·2n/2 = n².", "Geométricamente: cada impar es una «L» de casillas que completa el cuadrado siguiente."],
+      resultado: "Sₙ = n²" },
+    { id: "s59", nivel: 3,
+      enunciado: "Demuestra que la serie armónica 1 + 1/2 + 1/3 + 1/4 + … diverge (agrupando los términos).",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 7, items: [
+        { t: "Agrupa los términos en bloques: 1 + 1/2 + (1/3 + 1/4) + (1/5 + … + 1/8) + (1/9 + … + 1/16) + …", p: 0.5 },
+        { t: "Acota cada bloque por debajo: 1/3 + 1/4 &gt; 1/4 + 1/4 = 1/2; 1/5 + … + 1/8 &gt; 4·(1/8) = 1/2; y en general el bloque de 2ᵏ términos supera 1/2", p: 0.5 },
+        { t: "Concluye que la suma es mayor que 1 + 1/2 + 1/2 + 1/2 + … (infinitos medios), que supera cualquier número", p: 0.5 },
+        { t: "Por tanto las sumas parciales no están acotadas y la serie diverge, aunque los términos tiendan a 0", p: 0.5 }
+      ] },
+      pasos: ["Se forman bloques de 2, 4, 8, … términos.", "En cada bloque, todos los términos son al menos tan grandes como el último, y por eso el bloque suma más de (número de términos)·(último) = 1/2.", "Con infinitos bloques, S &gt; 1 + 1/2 + 1/2 + … = ∞."],
+      resultado: "la serie armónica diverge" }
+  );
+
+  // ---------------- láminas nuevas ----------------
+  lamina.push(
+    { titulo: "Recurrencias y series",
+      items: [
+        { label: "Punto fijo", formula: "L = f(L)", cuando: "Si aₙ₊₁ = f(aₙ) converge, su límite cumple esta ecuación.", ejemplo: "aₙ₊₁ = (aₙ + 2)/2 → L = 2", ojo: "No garantiza la convergencia: aₙ₊₁ = 2aₙ − 1 se aleja de L = 1." },
+        { label: "Lineal aₙ₊₁ = p·aₙ + q", formula: "bₙ = aₙ − L, L = q/(1 − p)", cuando: "bₙ es geométrica de razón p: aₙ = L + (a₁ − L)·pⁿ⁻¹.", ejemplo: "a₁ = 3, aₙ₊₁ = 2aₙ − 1 → aₙ = 2ⁿ + 1" },
+        { label: "Serie geométrica", formula: "S = " + fr("a", "1 − r"), cuando: "Solo si |r| &lt; 1.", ejemplo: "0,999… = 0,9/(1 − 0,1) = 1" },
+        { label: "Serie armónica", formula: "1 + 1/2 + 1/3 + … = ∞", ojo: "Los términos tienden a 0 y aun así diverge." }
+      ] },
+    { titulo: "De Sₙ a aₙ",
+      pasos: ["a₁ = S₁.", "aₙ = Sₙ − Sₙ₋₁ para n ≥ 2.", "Comprueba si la fórmula obtenida vale para n = 1.", "Sₙ = A·n² + B·n (sin término independiente) → aritmética con d = 2A y a₁ = A + B."],
+      nota: "Ejemplo: Sₙ = 3n² − 2n → aₙ = 6n − 5. Pero Sₙ = n² + 1 da a₁ = 2 y aₙ = 2n − 1 (n ≥ 2): no es aritmética." },
+    { titulo: "Dinero: ahorro, préstamo y TAE", ancha: true,
+      tabla: { cab: ["Situación", "Fórmula", "Datos (pagos mensuales)"], filas: [
+        ["Capital con interés compuesto", "C·(1 + i)ⁿ", "i = r/12, n en meses"],
+        ["Ahorro de c cada mes", "C = c·((1 + i)ⁿ − 1)/i", "200 €/mes, 3 %, 10 años → 27.948,28 €"],
+        ["Cuota de un préstamo", "c = C·i/(1 − (1 + i)⁻ⁿ)", "10.000 €, 6 %, 5 años → 193,33 €"],
+        ["TAE", "(1 + r/k)ᵏ − 1", "6 % nominal mensual → 6,168 %"],
+        ["Capitalización continua", "C·e<sup>rt</sup>", "1.000 €, 5 %, 10 años → 1.648,72 €"]
+      ] },
+      nota: "Regla del 72: a un r % anual el capital se duplica en unos 72/r años." },
+    { titulo: "El número e y el copo de Koch",
+      items: [
+        { label: "Número e", formula: "e = lím (1 + 1/n)ⁿ = 2,71828…", ojo: "1 + 1/n → 1 pero (1 + 1/n)ⁿ → e (indeterminación 1^∞)." },
+        { label: "Copo de Koch (lado 1)", formula: "lados 3·4ⁿ · perímetro 3·(4/3)ⁿ → ∞", ejemplo: "área → 2√3/5 ≈ 0,693 (finita)" }
+      ] },
+    { titulo: "Límite de una sucesión", ancha: true,
+      tabla: { cab: ["Cociente de polinomios en n", "Límite", "Ejemplo"], filas: [
+        ["grado num &lt; grado den", "0", "(n² + 1)/n³ → 0"],
+        ["grado num = grado den", "cociente de coeficientes principales", "(5n − 1)/(2n + 3) → 5/2"],
+        ["grado num &gt; grado den", "±∞ (diverge)", "(2n³ + n)/(n + 1) → +∞"]
+      ] },
+      nota: "aₙ → L significa: para cada ε &gt; 0 hay un N tal que |aₙ − L| &lt; ε si n ≥ N." }
+  );
 
   B.registrar("mates1", "t2", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
