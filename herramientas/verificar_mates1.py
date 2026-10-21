@@ -1337,8 +1337,8 @@ comprobar('t1 errores ampliados', periodico('0', '2', '7') == Rq(5, 18) and Rq(2
 # =====================================================================
 import cmath as _c, math as _mm
 t = sp.symbols('t')
-SIM = {s['id']: s for s in datos['ampl']['mates1']['_simulacros'] if s['id'] in {f'sim{k}' for k in range(12, 21)}}
-comprobar('sim12–20: los nueve simulacros están registrados con sus bloques', sorted(SIM) == [f'sim{k}' for k in range(12, 21)] and all(abs(sum(b['puntos'] for b in s['bloques']) - 10) < 0.02 for s in SIM.values()), str(sorted(SIM)))
+SIM = {s['id']: s for s in datos['ampl']['mates1']['_simulacros'] if s['id'] in {f'sim{k}' for k in range(9, 21)}}
+comprobar('sim9–20: los doce simulacros están registrados con sus bloques', sorted(SIM, key=lambda k_: int(k_[3:])) == [f'sim{k}' for k in range(9, 21)] and all(abs(sum(b['puntos'] for b in s['bloques']) - 10) < 0.02 for s in SIM.values()), str(sorted(SIM)))
 # sim12
 comprobar('sim12 B1: radicales', sp.simplify(sqrt(50) + sqrt(18) - sqrt(8) - 6*sqrt(2)) == 0 and sp.simplify(12/(sqrt(6) + sqrt(2)) - (3*sqrt(6) - 3*sqrt(2))) == 0 and abs(float(3*sqrt(6) - 3*sqrt(2)) - 3.106) < 1e-3)
 comprobar('sim12 B2: valor absoluto', sp.solve_univariate_inequality(Abs(2*x - 3) <= 5, x, relational=False) == Interval(-1, 4) and sp.solve_univariate_inequality(Abs(x - 2) >= 3, x, relational=False) == Union(Interval(-oo, -1), Interval(5, oo)) and Interval(-1, 4).intersect(Union(Interval(-oo, -1), Interval(5, oo))) == sp.FiniteSet(-1))
@@ -1417,6 +1417,59 @@ f20 = (x**2 - 1)/(x**2 - 4)
 comprobar('sim20 B5: dominio, cortes y asíntotas', sp.solve(x**2 - 4, x) == [-2, 2] and sp.solve(x**2 - 1, x) == [-1, 1] and f20.subs(x, 0) == Q(1, 4) and sp.limit(f20, x, oo) == 1 and sp.limit(f20, x, 2, '+') == oo)
 g20 = x**2*sp.exp(-x); fp20 = x*sp.log(x)
 comprobar('sim20 B6: derivadas', sp.diff(fp20, x).subs(x, sp.E) == 2 and fp20.subs(x, sp.E) == sp.E and sp.simplify(sp.diff(g20, x) - x*(2 - x)*sp.exp(-x)) == 0 and sorted(sp.solve(sp.diff(g20, x), x)) == [0, 2] and sp.simplify(g20.subs(x, 2) - 4*sp.exp(-2)) == 0 and abs(float(4*sp.exp(-2)) - 0.541) < 1e-3)
+
+
+# ---------------------------------------------------------------------
+# sim9 · estadística bidimensional
+# ---------------------------------------------------------------------
+def estad(pares):
+    n = len(pares); X = [Q(p[0]) for p in pares]; Y = [Q(p[1]) for p in pares]
+    mx, my = sum(X)/n, sum(Y)/n
+    vx = sum(a*a for a in X)/n - mx**2; vy = sum(b*b for b in Y)/n - my**2
+    cxy = sum(a*b for a, b in zip(X, Y))/n - mx*my
+    return mx, my, vx, vy, cxy
+mx, my, vx, vy, cxy = estad([(1, 2), (2, 3), (3, 5), (4, 4), (5, 6)])
+comprobar('sim9 B1: medias, varianzas y covarianza', (mx, my, vx, vy, cxy) == (3, 4, 2, 2, Q(9, 5)) and 55 == sum(k*k for k in range(1, 6)) and 90 == 4 + 9 + 25 + 16 + 36 and 69 == 2 + 6 + 15 + 16 + 30)
+rr_ = cxy/sp.sqrt(vx*vy)
+comprobar('sim9 B2: r = 0,9 y r² = 0,81', rr_ == Q(9, 10) and rr_**2 == Q(81, 100))
+a_r = cxy/vx; b_r = my - a_r*mx
+comprobar('sim9 B3: recta y = 0,9x + 1,3 y predicciones', (a_r, b_r) == (Q(9, 10), Q(13, 10)) and a_r*6 + b_r == Q(67, 10) and a_r*20 + b_r == Q(193, 10))
+tab = {'sa': 40, 'ss': 10, 'na': 15, 'ns': 35}
+comprobar('sim9 B4: tabla de doble entrada', sum(tab.values()) == 100 and tab['sa'] + tab['ss'] == 50 and tab['na'] + tab['ns'] == 50 and tab['sa'] + tab['na'] == 55 and tab['ss'] + tab['ns'] == 45 and Q(40, 50) == Q(4, 5) and Q(15, 50) == Q(3, 10))
+xs, ys = sp.symbols('xs ys')
+sol_c = sp.solve([sp.Eq(ys, Q(9, 10)*xs + Q(13, 10)), sp.Eq(xs, Q(9, 10)*ys - Q(6, 10))], [xs, ys])
+comprobar('sim9 B5: centro de gravedad (3, 4) y r = 0,9', sol_c == {xs: 3, ys: 4} and Q(9, 10)*Q(9, 10) == Q(81, 100) and cxy/vy == Q(9, 10) and my - (cxy/vy)*my*0 == 4 and mx - (cxy/vy)*my == Q(-6, 10))
+# ---------------------------------------------------------------------
+# sim10 · probabilidad
+# ---------------------------------------------------------------------
+dados = [(a, b) for a in range(1, 7) for b in range(1, 7)]
+comprobar('sim10 B1: dos dados', Q(len([d for d in dados if sum(d) == 8]), 36) == Q(5, 36) and Q(len([d for d in dados if sum(d) >= 10]), 36) == Q(1, 6) and Q(len([d for d in dados if d[0]*d[1] % 2 == 0]), 36) == Q(3, 4) and 1 - Q(9, 36) == Q(3, 4))
+PA, PB, PAB = Q(1, 2), Q(2, 5), Q(1, 5)
+comprobar('sim10 B2: unión, condicionada e independencia', PA + PB - PAB == Q(7, 10) and 1 - Q(7, 10) == Q(3, 10) and PAB/PB == Q(1, 2) == PA and PA*PB == PAB)
+import itertools as _it
+bolas = ['B']*5 + ['N']*3
+pares = list(_it.permutations(range(8), 2))
+pBB = Q(len([p for p in pares if bolas[p[0]] == 'B' and bolas[p[1]] == 'B']), len(pares))
+pdist = Q(len([p for p in pares if bolas[p[0]] != bolas[p[1]]]), len(pares))
+pseg = Q(len([p for p in pares if bolas[p[1]] == 'B']), len(pares))
+comprobar('sim10 B3: extracciones sin reemplazamiento', (pBB, pdist, pseg) == (Q(5, 14), Q(15, 28), Q(5, 8)) and Q(5, 8)*Q(4, 7) == Q(5, 14) and 2*Q(5, 8)*Q(3, 7) == Q(15, 28))
+PD = Q(6, 10)*Q(2, 100) + Q(4, 10)*Q(5, 100)
+comprobar('sim10 B4: probabilidad total y Bayes', PD == Q(32, 1000) and Q(6, 10)*Q(2, 100)/PD == Q(3, 8))
+comprobar('sim10 B5: tabla de contingencia', (90 + 40, 120 - 90, 80 - 40) == (130, 30, 40) and Q(130, 200) == Q(13, 20) and Q(40, 70) == Q(4, 7) and Q(120, 200)*Q(130, 200) == Q(39, 100) and Q(90, 200) == Q(9, 20) and Q(39, 100) != Q(9, 20))
+# ---------------------------------------------------------------------
+# sim11 · global
+# ---------------------------------------------------------------------
+comprobar('sim11 B1: álgebra', sp.solve(2**(x + 1) + 2**x - 24, x) == [3] and sorted(sp.solve(x**4 - 13*x**2 + 36, x)) == [-3, -2, 2, 3])
+sa1, sd1 = sp.symbols('sa1 sd1')
+sol11 = sp.solve([sa1 + 3*sd1 - 10, 8*(2*sa1 + 7*sd1)/2 - 76], [sa1, sd1])
+comprobar('sim11 B2: PA a₄ = 10, S₈ = 76', sol11 == {sa1: 13, sd1: -1} and 13 + 9*(-1) == 4 and 13 - 7 == 6 and 8*(13 + 6)//2 == 76)
+comprobar('sim11 B3: trigonometría', sp.simplify((sp.sin(x) + sp.cos(x))**2 - sp.sin(2*x) - 1) == 0 and all(abs(_m.sin(_m.radians(a)) - _m.cos(_m.radians(a))) < 1e-12 for a in (45, 225)) and all(abs(_m.sin(_m.radians(a)) - _m.cos(_m.radians(a))) > 1e-6 for a in (135, 315, 90, 270, 0, 180)))
+mx2, my2, vx2, vy2, cxy2 = estad([(1, 3), (2, 5), (3, 6), (4, 8)])
+comprobar('sim11 B4: regresión', (mx2, my2, vx2, vy2, cxy2) == (Q(5, 2), Q(11, 2), Q(5, 4), Q(13, 4), 2) and abs(float(cxy2/sp.sqrt(vx2*vy2)) - 0.992) < 1e-3 and cxy2/vx2 == Q(8, 5) and my2 - Q(8, 5)*mx2 == Q(3, 2) and Q(8, 5)*5 + Q(3, 2) == Q(19, 2) and 134 == 9 + 25 + 36 + 64 and 30 == 1 + 4 + 9 + 16 and 63 == 3 + 10 + 18 + 32)
+Pf = Q(55, 100)*Q(10, 100) + Q(45, 100)*Q(20, 100)
+comprobar('sim11 B5: Bayes del instituto', Pf == Q(145, 1000) and Q(55, 100)*Q(10, 100)/Pf == Q(11, 29) and abs(float(Q(11, 29)) - 0.379) < 1e-3)
+g11 = x*sp.exp(-x)
+comprobar('sim11 B6: x·e⁻ˣ', sp.simplify(sp.diff(g11, x) - (1 - x)*sp.exp(-x)) == 0 and sp.solve(sp.diff(g11, x), x) == [1] and sp.simplify(g11.subs(x, 1) - sp.exp(-1)) == 0 and abs(float(sp.exp(-1)) - 0.368) < 1e-3 and sp.limit(g11, x, oo) == 0 and sp.limit(g11, x, -oo) == -oo)
 
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)

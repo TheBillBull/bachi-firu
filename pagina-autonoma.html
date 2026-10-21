@@ -35476,6 +35476,71 @@
   "use strict";
   var B = global.BACHI;
 
+  // ------------------------------------------------------------------ sim9–sim11 (estadística, probabilidad y global)
+  B.registrarSimulacros("mates1", [
+
+    { id: "sim9", titulo: "Simulacro 9 · Estadística bidimensional", tipo: "ciencias",
+      bloques: [
+        { titulo: "Medias, varianzas y covarianza", puntos: 2,
+          enunciado: "La tabla recoge las horas de estudio (x) y la nota (y) de cinco alumnos: (1, 2), (2, 3), (3, 5), (4, 4), (5, 6). Calcula las medias, las varianzas y la covarianza.",
+          solucion: "n = 5. x̄ = (1 + 2 + 3 + 4 + 5)/5 = <b>3</b> y ȳ = (2 + 3 + 5 + 4 + 6)/5 = <b>4</b>. Σx² = 55 → σₓ² = 55/5 − 3² = <b>2</b>. Σy² = 4 + 9 + 25 + 16 + 36 = 90 → σᵧ² = 90/5 − 4² = <b>2</b>. Σxy = 2 + 6 + 15 + 16 + 30 = 69 → σₓᵧ = 69/5 − 3·4 = 13,8 − 12 = <b>1,8</b>." },
+        { titulo: "Coeficiente de correlación", puntos: 2,
+          enunciado: "Con los datos anteriores, calcula el coeficiente de correlación lineal r e interprétalo.",
+          solucion: "r = σₓᵧ/(σₓ·σᵧ) = 1,8/(√2·√2) = 1,8/2 = <b>0,9</b>. Es positivo y cercano a 1: <b>correlación lineal positiva y fuerte</b> (a más horas de estudio, mejor nota). El coeficiente de determinación es r² = 0,81: la recta explica el 81 % de la variación de las notas." },
+        { titulo: "Recta de regresión y predicción", puntos: 2,
+          enunciado: "Halla la recta de regresión de y sobre x y úsala para predecir la nota de un alumno que estudia 6 horas. ¿Qué fiabilidad tiene predecir para 20 horas?",
+          solucion: "Pendiente: m = σₓᵧ/σₓ² = 1,8/2 = 0,9. Pasa por (x̄, ȳ) = (3, 4): y − 4 = 0,9(x − 3) → <b>y = 0,9x + 1,3</b>. Para x = 6: y = 0,9·6 + 1,3 = <b>6,7</b> (está dentro del rango de los datos, y r = 0,9 es alto: predicción bastante fiable). Para x = 20 daría 19,3, pero está <b>muy fuera del rango observado</b> (1 a 5 horas): es una extrapolación poco fiable (y además superaría la nota máxima)." },
+        { titulo: "Tabla de doble entrada", puntos: 2,
+          enunciado: "De 100 alumnos, 50 estudian a diario y 50 no. Entre los que estudian, aprueban 40; entre los que no estudian, aprueban 15. Construye la tabla de doble entrada y calcula la proporción de aprobados en cada grupo.",
+          solucion: "Tabla (filas: estudia sí/no; columnas: aprueba sí/no): estudia y aprueba 40, estudia y suspende 10 (total 50); no estudia y aprueba 15, no estudia y suspende 35 (total 50). Total de aprobados: 55; de suspensos: 45. Proporción de aprobados entre quienes estudian: 40/50 = <b>0,8 (80 %)</b>; entre quienes no estudian: 15/50 = <b>0,3 (30 %)</b>. Hay una asociación clara entre estudiar y aprobar." },
+        { titulo: "Dos rectas de regresión", puntos: 2,
+          enunciado: "Las rectas de regresión de una distribución son y = 0,9x + 1,3 (de y sobre x) y x = 0,9y − 0,6 (de x sobre y). Calcula el centro de gravedad (x̄, ȳ) y el coeficiente de correlación.",
+          solucion: "Las dos rectas se cortan en (x̄, ȳ). Sustituyendo la primera en la segunda: x = 0,9(0,9x + 1,3) − 0,6 = 0,81x + 1,17 − 0,6 → 0,19x = 0,57 → <b>x̄ = 3</b> e <b>ȳ = 0,9·3 + 1,3 = 4</b>. Además, el producto de las pendientes es r²: 0,9·0,9 = 0,81 → r = ±0,9, y como las pendientes son positivas, <b>r = 0,9</b>." }
+      ] },
+
+    { id: "sim10", titulo: "Simulacro 10 · Probabilidad", tipo: "ciencias",
+      bloques: [
+        { titulo: "Regla de Laplace con dos dados", puntos: 2,
+          enunciado: "Se lanzan dos dados. Calcula la probabilidad de que a) la suma sea 8, b) la suma sea al menos 10, c) el producto sea par.",
+          solucion: "Hay 36 resultados equiprobables. a) Suma 8: (2,6), (3,5), (4,4), (5,3), (6,2) → <b>5/36</b>. b) Suma ≥ 10: suma 10 (3 casos), 11 (2) y 12 (1) → 6/36 = <b>1/6</b>. c) El producto es impar solo si los dos números son impares (3·3 = 9 casos), así que P(par) = 1 − 9/36 = 27/36 = <b>3/4</b>." },
+        { titulo: "Unión, intersección e independencia", puntos: 2,
+          enunciado: "Sean A y B dos sucesos con P(A) = 0,5, P(B) = 0,4 y P(A ∩ B) = 0,2. Calcula P(A ∪ B), P(ningún suceso) y P(A | B), y decide si son independientes.",
+          solucion: "P(A ∪ B) = P(A) + P(B) − P(A ∩ B) = 0,5 + 0,4 − 0,2 = <b>0,7</b>. P(ni A ni B) = 1 − 0,7 = <b>0,3</b>. P(A | B) = P(A ∩ B)/P(B) = 0,2/0,4 = <b>0,5</b>. Como P(A | B) = P(A) (o equivalentemente P(A)·P(B) = 0,2 = P(A ∩ B)), <b>son independientes</b>." },
+        { titulo: "Extracciones sin reemplazamiento", puntos: 2,
+          enunciado: "Una urna tiene 5 bolas blancas y 3 negras. Se extraen dos bolas sin reemplazamiento. Calcula la probabilidad de que a) las dos sean blancas, b) sean de distinto color, c) la segunda sea blanca.",
+          solucion: "Con un diagrama de árbol: a) P(B,B) = 5/8·4/7 = 20/56 = <b>5/14</b>. b) P(B,N) + P(N,B) = 5/8·3/7 + 3/8·5/7 = 15/56 + 15/56 = 30/56 = <b>15/28</b>. c) P(segunda blanca) = P(B,B) + P(N,B) = 20/56 + 15/56 = 35/56 = <b>5/8</b> (igual que la probabilidad de que la primera sea blanca, por simetría)." },
+        { titulo: "Probabilidad total y teorema de Bayes", puntos: 2,
+          enunciado: "Una fábrica tiene dos máquinas: A produce el 60 % de las piezas y B el 40 %. El 2 % de las piezas de A y el 5 % de las de B son defectuosas. Se elige una pieza al azar. Calcula la probabilidad de que sea defectuosa y, sabiendo que lo es, la de que proceda de A.",
+          solucion: "Probabilidad total: P(D) = P(A)·P(D|A) + P(B)·P(D|B) = 0,6·0,02 + 0,4·0,05 = 0,012 + 0,020 = <b>0,032</b>. Bayes: P(A | D) = P(A)·P(D|A)/P(D) = 0,012/0,032 = <b>0,375 = 3/8</b>. Aunque A produce más piezas, cada pieza defectuosa tiene más probabilidad (62,5 %) de venir de B, que falla más." },
+        { titulo: "Tabla de contingencia", puntos: 2,
+          enunciado: "En un grupo de 200 alumnos hay 120 chicos y 80 chicas. Practican deporte 90 chicos y 40 chicas. Calcula P(deporte), P(chica | no practica deporte) y estudia si «ser chico» y «practicar deporte» son independientes.",
+          solucion: "Practican deporte 90 + 40 = 130; no practican 70 (30 chicos y 40 chicas). P(deporte) = 130/200 = <b>0,65</b>. P(chica | no deporte) = 40/70 = <b>4/7 ≈ 0,571</b>. Independencia: P(chico)·P(deporte) = 0,6·0,65 = 0,39, pero P(chico ∩ deporte) = 90/200 = 0,45. Como son distintos, <b>no son independientes</b> (hay más deportistas entre los chicos)." }
+      ] },
+
+    { id: "sim11", titulo: "Simulacro 11", tipo: "ciencias",
+      bloques: [
+        { titulo: "Álgebra", puntos: 1.67,
+          enunciado: "Resuelve a) 2^(x+1) + 2^x = 24  b) x⁴ − 13x² + 36 = 0.",
+          solucion: "a) 2^(x+1) = 2·2^x, así que 2·2^x + 2^x = 3·2^x = 24 → 2^x = 8 → <b>x = 3</b>. b) Con t = x²: t² − 13t + 36 = 0 → t = 4 ó t = 9 → <b>x = ±2 y x = ±3</b>." },
+        { titulo: "Sucesiones", puntos: 1.67,
+          enunciado: "En una progresión aritmética a₄ = 10 y la suma de los 8 primeros términos es 76. Calcula a₁, la diferencia y a₁₀.",
+          solucion: "a₄ = a₁ + 3d = 10. S₈ = 8·(2a₁ + 7d)/2 = 4(2a₁ + 7d) = 76 → 2a₁ + 7d = 19. De la primera, a₁ = 10 − 3d: 20 − 6d + 7d = 19 → <b>d = −1</b> y <b>a₁ = 13</b>. a₁₀ = 13 + 9·(−1) = <b>4</b>. (Comprobación: a₈ = 6 y S₈ = 8·(13 + 6)/2 = 76 ✓.)" },
+        { titulo: "Trigonometría", puntos: 1.67,
+          enunciado: "a) Simplifica (sen x + cos x)² − sen 2x.  b) Resuelve sen x = cos x en [0°, 360°).",
+          solucion: "a) (sen x + cos x)² = sen²x + 2·sen x·cos x + cos²x = 1 + sen 2x. Restando sen 2x queda <b>1</b>. b) Si cos x ≠ 0, dividimos: tan x = 1 → x = 45° ó x = 225° (en cos x = 0 no hay solución, porque sen x valdría ±1). <b>x = 45° y x = 225°</b>." },
+        { titulo: "Estadística bidimensional", puntos: 1.67,
+          enunciado: "Se dispone de los pares (1, 3), (2, 5), (3, 6), (4, 8). Calcula el coeficiente de correlación, la recta de regresión de y sobre x y la predicción para x = 5.",
+          solucion: "x̄ = 2,5; ȳ = 5,5; Σxy = 3 + 10 + 18 + 32 = 63 → σₓᵧ = 63/4 − 2,5·5,5 = 15,75 − 13,75 = 2. σₓ² = 30/4 − 6,25 = 1,25 y σᵧ² = 134/4 − 30,25 = 3,25. r = 2/√(1,25·3,25) ≈ <b>0,992</b> (correlación positiva casi perfecta). Pendiente: 2/1,25 = 1,6 → y − 5,5 = 1,6(x − 2,5) → <b>y = 1,6x + 1,5</b>. Para x = 5: <b>y = 9,5</b>." },
+        { titulo: "Probabilidad", puntos: 1.67,
+          enunciado: "En un instituto el 55 % del alumnado son chicas. Fuman el 10 % de las chicas y el 20 % de los chicos. Se elige un alumno al azar: calcula la probabilidad de que fume y, si fuma, la de que sea chica.",
+          solucion: "P(fuma) = 0,55·0,10 + 0,45·0,20 = 0,055 + 0,09 = <b>0,145</b>. Bayes: P(chica | fuma) = 0,055/0,145 = 11/29 ≈ <b>0,379</b>." },
+        { titulo: "Funciones y derivadas", puntos: 1.65,
+          enunciado: "Para f(x) = x·e⁻ˣ calcula la derivada, los extremos relativos y la asíntota horizontal en +∞.",
+          solucion: "f'(x) = e⁻ˣ − x·e⁻ˣ = (1 − x)e⁻ˣ. Se anula en x = 1; f' &gt; 0 si x &lt; 1 y f' &lt; 0 si x &gt; 1, luego hay un <b>máximo relativo en (1, 1/e) ≈ (1; 0,368)</b>. Límite en +∞: x·e⁻ˣ = x/eˣ → 0 (la exponencial crece mucho más deprisa), así que <b>y = 0 es asíntota horizontal</b> (en −∞ la función tiende a −∞)." }
+      ] }
+
+  ]);
+
   B.registrarSimulacros("mates1", [
 
     // ------------------------------------------------------------------ sim12
