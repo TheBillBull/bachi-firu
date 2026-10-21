@@ -5,7 +5,7 @@ global.window = global;
 const noop = () => {};
 global.document = { addEventListener: noop, createElementNS: () => ({ setAttribute: noop, appendChild: noop }) };
 const raiz = path.join(__dirname, '..', 'ampliaciones');
-['grafica', 'nucleo', 'ui', 'lab_atomo', 'lab_enlace', 'lab_formulacion'].forEach(f => { const p = path.join(raiz, f + '.js'); if (fs.existsSync(p)) require(p); });
+['grafica', 'nucleo', 'ui', 'lab_atomo', 'lab_enlace', 'lab_formulacion', 'lab_qmol_0motor', 'lab_qmol_4est1', 'lab_qmol_5est2', 'lab_organica', 'lab_orgreacciones'].forEach(f => { const p = path.join(raiz, f + '.js'); if (fs.existsSync(p)) require(p); });
 const L = global.BACHI.lab, salida = {};
 if (L.quim) {
   const Q = L.quim, cfg = {}, cfgAb = {}, ion = {};
@@ -17,4 +17,16 @@ if (L.quim) {
 }
 if (L.enlace && L.enlace.volcar) salida.enlace = L.enlace.volcar();
 if (L.formulacion && L.formulacion.volcar) salida.formulacion = L.formulacion.volcar();
+// Temas 4-5: banco de reacciones, ajustes y muestras de los generadores de problemas del entrenador
+if (L.qmol && L.qmol.GENERADORES) {
+  const Q = L.qmol;
+  salida.qmol = {
+    reacciones: Q.reacciones.map(r => ({ id: r.id, t: r.t, s: r.s })),
+    ajustes: Q.AJUSTES.map(t => { const E = Q.ecuacion(t), A = Q.ajustar(E.reactivos, E.productos); return { txt: t, coefs: A.ok ? A.coefs : null }; }),
+    tabla: Q.tabla, rendimientos: Q.RENDIMIENTOS, combustibles: Q.COMBUSTIBLES,
+    generadores: Q.GENERADORES.map(g => Array.from({ length: 60 }, () => { const p = g(); return { d: p.d, r: p.r, u: p.u }; }))
+  };
+}
+// Tema 7: motor de química orgánica (si existe su volcado)
+if (L.org && L.org.volcar) salida.org = L.org.volcar();
 process.stdout.write(JSON.stringify(salida));
