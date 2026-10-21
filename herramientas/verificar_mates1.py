@@ -1330,6 +1330,94 @@ comprobar('t1 teoría: entornos y problemas', (-2.5, -1.5) == (-2 - 0.5, -2 + 0.
 comprobar('t1 teoría: espiral', all(sp.sqrt(k)**2 == k for k in range(1, 18)))
 comprobar('t1 errores ampliados', periodico('0', '2', '7') == Rq(5, 18) and Rq(27, 90) != Rq(5, 18) and abs(float(sp.sqrt(2) + sp.sqrt(3)) - 3.146) < 1e-3 and sp.expand((3 + sp.sqrt(2))*(3 - sp.sqrt(2))) == 7)
 
+
+
+# =====================================================================
+# SIMULACROS 12–20 (ampliaciones/contenido/mates1_t99_simulacros.js)
+# =====================================================================
+import cmath as _c, math as _mm
+t = sp.symbols('t')
+SIM = {s['id']: s for s in datos['ampl']['mates1']['_simulacros'] if s['id'] in {f'sim{k}' for k in range(12, 21)}}
+comprobar('sim12–20: los nueve simulacros están registrados con sus bloques', sorted(SIM) == [f'sim{k}' for k in range(12, 21)] and all(abs(sum(b['puntos'] for b in s['bloques']) - 10) < 0.02 for s in SIM.values()), str(sorted(SIM)))
+# sim12
+comprobar('sim12 B1: radicales', sp.simplify(sqrt(50) + sqrt(18) - sqrt(8) - 6*sqrt(2)) == 0 and sp.simplify(12/(sqrt(6) + sqrt(2)) - (3*sqrt(6) - 3*sqrt(2))) == 0 and abs(float(3*sqrt(6) - 3*sqrt(2)) - 3.106) < 1e-3)
+comprobar('sim12 B2: valor absoluto', sp.solve_univariate_inequality(Abs(2*x - 3) <= 5, x, relational=False) == Interval(-1, 4) and sp.solve_univariate_inequality(Abs(x - 2) >= 3, x, relational=False) == Union(Interval(-oo, -1), Interval(5, oo)) and Interval(-1, 4).intersect(Union(Interval(-oo, -1), Interval(5, oo))) == sp.FiniteSet(-1))
+gen = Q(2345 - 23, 990)
+comprobar('sim12 B3: 2,3(45) = 129/55 y notación científica', gen == Q(129, 55) and abs(float(Q(129, 55)) - 2.345454545) < 1e-8 and abs(3.2e5*5e-8/8e-2 - 0.2) < 1e-12)
+comprobar('sim12 B4: progresiones', (39 - 11)/7 == 4 and 11 - 2*4 == 3 and 20*(3 + 79)//2 == 820 == sum(3 + 4*k for k in range(20)) and 5*(3**6 - 1)//2 == 1820 == sum(5*3**k for k in range(6)))
+comprobar('sim12 B5: serie e interés', Q(18)/(1 - Q(1, 3)) == 27 and round(5000*1.04**8, 2) == 6842.85)
+# sim13
+P13 = 2*x**3 - 3*x**2 - 2*x + 3
+cq, rr = sp.div(P13, x - 1, x)
+comprobar('sim13 B1: Ruffini y factorización', cq == 2*x**2 - x - 3 and rr == 0 and sp.expand((x - 1)*(x + 1)*(2*x - 3) - P13) == 0)
+comprobar('sim13 B2: bicuadrada e irracional', sorted(sp.solve(x**4 - 5*x**2 + 4, x)) == [-2, -1, 1, 2] and sorted(sp.solve(x**2 - 7*x + 6, x)) == [1, 6] and sp.sqrt(6 + 3) == 6 - 3 and sp.sqrt(1 + 3) != 1 - 3)
+y = sp.symbols('y')
+comprobar('sim13 B3: sistemas', sorted(sp.solve([x + y - 5, x**2 + y**2 - 13], [x, y])) == [(2, 3), (3, 2)] and sp.solve([2*x - y - 1, 3*x + 2*y - 19], [x, y]) == {x: 3, y: 5})
+comprobar('sim13 B4: inecuaciones', sp.solve_univariate_inequality(x**2 - 3*x - 4 >= 0, x, relational=False) == Union(Interval(-oo, -1), Interval(4, oo)) and sp.solve_univariate_inequality((x - 1)/(x + 2) < 0, x, relational=False) == Interval.open(-2, 1))
+comprobar('sim13 B5: rectángulo 12 × 5', sorted(sp.solve(t**2 - 17*t + 60, t)) == [5, 12] and 2*(12 + 5) == 34 and 12**2 + 5**2 == 13**2)
+# sim14
+ca, sa = Q(-12, 13), Q(5, 13)
+comprobar('sim14 B1: razones y ángulo doble', ca**2 + sa**2 == 1 and sa/ca == Q(-5, 12) and 2*sa*ca == Q(-120, 169))
+d2r = lambda a: sp.rad(a)
+comprobar('sim14 B2: valores exactos', sp.simplify(sp.sin(d2r(75)) - (sqrt(6) + sqrt(2))/4) == 0 and sp.simplify(sp.cos(d2r(105)) - (sqrt(2) - sqrt(6))/4) == 0 and sp.simplify(sp.tan(d2r(15)) - (2 - sqrt(3))) == 0)
+Cc = _m.radians(180 - 40 - 65)
+comprobar('sim14 B3: teorema del seno', abs(10*_m.sin(_m.radians(65))/_m.sin(_m.radians(40)) - 14.10) < 0.005 and abs(10*_m.sin(_m.radians(75))/_m.sin(_m.radians(40)) - 15.03) < 0.005)
+comprobar('sim14 B4: lados 7, 8, 9', Q(49 + 64 - 81, 2*7*8) == Q(2, 7) and abs(_m.degrees(_m.acos(2/7)) - 73.40) < 0.005 and sp.simplify(sp.sqrt(12*5*4*3) - 12*sqrt(5)) == 0 and abs(float(12*sqrt(5)) - 26.83) < 0.005 and sp.simplify(Q(1, 2)*7*8*sp.sqrt(1 - Q(4, 49)) - 12*sqrt(5)) == 0)
+comprobar('sim14 B5: cos 2x = cos x e identidad', sorted(s_ for s_ in [0, 120, 240] if abs(_m.cos(_m.radians(2*s_)) - _m.cos(_m.radians(s_))) < 1e-9) == [0, 120, 240] and all(abs(_m.cos(_m.radians(2*s_)) - _m.cos(_m.radians(s_))) > 1e-6 for s_ in (60, 180, 300, 30)) and sp.simplify(sp.sin(2*x)/(1 + sp.cos(2*x)) - sp.tan(x)) == 0)
+# sim15
+z = (3 + 2j)*(1 - 1j) - (2 - 1j)**2
+comprobar('sim15 B1: binómica', abs(z - (2 + 3j)) < 1e-12 and abs((5 - 5j)/(1 + 2j) - (-1 - 3j)) < 1e-12)
+w = complex(-1, _mm.sqrt(3))
+comprobar('sim15 B2: polar y z⁶', abs(abs(w) - 2) < 1e-12 and abs(_c.phase(w)*180/_mm.pi - 120) < 1e-9 and abs(w**6 - 64) < 1e-9)
+comprobar('sim15 B3: ecuación en ℂ', sorted(sp.solve(x**2 - 4*x + 13, x), key=lambda s_: sp.im(s_)) == [2 - 3*sp.I, 2 + 3*sp.I] and sp.expand((2 + 3*sp.I)*(2 - 3*sp.I)) == 13)
+u_, v_ = sp.Matrix([3, -1]), sp.Matrix([2, 4])
+comprobar('sim15 B4: vectores', list(2*u_ - v_) == [4, -6] and u_.dot(v_) == 2 and sp.simplify(u_.norm() - sqrt(10)) == 0 and abs(float(u_.dot(v_)/(u_.norm()*v_.norm())) - 0.1414) < 1e-4 and abs(_m.degrees(_m.acos(float(sqrt(2)/10))) - 81.87) < 0.005)
+comprobar('sim15 B5: perpendicular y punto medio', sp.solve(2*sp.Symbol('k') - 12, sp.Symbol('k')) == [6] and (Q(-2 + 6, 2), Q(5 + 1, 2)) == (2, 3))
+# sim16
+comprobar('sim16 B1: recta por A(1,2) y B(4,−1)', (1 + 3 + (2 - 3) - 3 == 0) and sp.simplify(sp.expand((x - 1) + (y - 2))) == x + y - 3 and 4 + (-1) - 3 == 0 and 1 + 2 - 3 == 0)
+comprobar('sim16 B2: paralela y perpendicular', 2*4 - 3*1 - 5 == 0 and 3*4 + 2*1 - 14 == 0 and 2*3 + (-3)*2 == 0)
+comprobar('sim16 B3: paralelas y distancia', Q(1, 2) == Q(2, 4) != Q(-4, 1) and abs(9/_m.sqrt(20) - 2.01) < 0.005 and sp.simplify(Q(9)/sqrt(20) - 9*sqrt(5)/10) == 0 and 4 + 2*0 - 4 == 0)
+comprobar('sim16 B4: distancia punto-recta y área', Q(abs(12 + 6 + 5), 5) == Q(23, 5) and Q(1, 2)*abs(sp.Matrix([[4, 0], [1, 3]]).det()) == 6)
+M16 = (3, 2); mA = Q(3 - 1, 5 - 1)
+comprobar('sim16 B5: mediatriz', (1 + 5)//2 == 3 and (1 + 3)//2 == 2 and mA == Q(1, 2) and 2*3 + 2 - 8 == 0 and (4 - 1)**2 + (0 - 1)**2 == (4 - 5)**2 + (0 - 3)**2 and 2*4 + 0 - 8 == 0)
+# sim17
+fdom = sp.Interval(2, oo) - sp.FiniteSet(3)
+comprobar('sim17 B1: dominios', fdom == Union(Interval.Ropen(2, 3), Interval.open(3, oo)) and sp.solve_univariate_inequality(5 - x > 0, x, relational=False) == Interval.open(-oo, 5))
+comprobar('sim17 B2: función afín', Q(-3 - 5, 3 + 1) == -2 and (-2)*(-1) + 3 == 5 and (-2)*3 + 3 == -3 and sp.solve(-2*x + 3, x) == [Q(3, 2)])
+comprobar('sim17 B3: cuadrática', sp.solve(x**2 - 4*x + 3, x) == [1, 3] and (x**2 - 4*x + 3).subs(x, 2) == -1 and (x**2 - 4*x + 3).subs(x, 0) == 3)
+fa = lambda v: v + 2 if v < 1 else v**2
+comprobar('sim17 B4: a trozos', (fa(-3), fa(1), fa(2)) == (-1, 1, 4) and 1 + 2 == 3 and 1**2 == 1 and 3 != 1)
+comprobar('sim17 B5: exponencial y logaritmos', 2**(4 + 1) == 32 and 3**2 == 9 and 7 + 2 == 9 and sorted(sp.solve(x**2 - x - 6, x)) == [-2, 3] and abs(_m.log(3) + _m.log(2) - _m.log(6)) < 1e-12)
+# sim18
+comprobar('sim18 B1: 0/0', sp.limit((x**2 - 4)/(x - 2), x, 2) == 4 and sp.limit((x**2 - 9)/(x**2 - 5*x + 6), x, 3) == 6)
+comprobar('sim18 B2: en el infinito', sp.limit((3*x**2 + 1)/(x**2 - 4*x), x, oo) == 3 and sp.limit((2*x**3 - x)/(x**2 + 5), x, oo) == oo)
+comprobar('sim18 B3: laterales y asíntotas', sp.limit(1/(x - 2), x, 2, '-') == -oo and sp.limit(1/(x - 2), x, 2, '+') == oo and sp.simplify((x + 1)/(x**2 - 1) - 1/(x - 1)) == 0 and sp.limit((x + 1)/(x**2 - 1), x, -1) == Q(-1, 2) and sp.limit((x + 1)/(x**2 - 1), x, 1, '+') == oo)
+f18 = (2*x**2 + 1)/(x - 1)
+comprobar('sim18 B4: asíntotas', sp.simplify(f18 - (2*x + 2 + 3/(x - 1))) == 0 and sp.limit(f18 - (2*x + 2), x, oo) == 0 and sp.limit(f18, x, oo) == oo and (2*1 + 1) == 3)
+comprobar('sim18 B5: continuidad y Bolzano', sp.solve(sp.Eq(1 + sp.Symbol('a'), 2), sp.Symbol('a')) == [1] and (0**3 + 0 - 1, 1**3 + 1 - 1) == (-1, 1) and any((s_ > 0 and s_ < 1) for s_ in sp.Poly(x**3 + x - 1, x).nroots() if abs(sp.im(s_)) < 1e-12))
+# sim19
+comprobar('sim19 B1: sistema', sorted(sp.solve([x - y - 1, x**2 + y**2 - 25], [x, y])) == [(-3, -4), (4, 3)])
+comprobar('sim19 B2: PG', sp.solve(6*t**3 - 48, t)[0] == 2 and 6/2 == 3 and 3*(2**8 - 1) == 765)
+c19 = _m.sqrt(144 + 81 - 2*12*9*_m.cos(_m.radians(50))); A19 = _m.degrees(_m.acos((81 + c19**2 - 144)/(2*9*c19))); B19 = 180 - 50 - A19
+comprobar('sim19 B3: triángulo a = 12, b = 9, C = 50°', abs(c19 - 9.28) < 0.005 and abs(A19 - 82.03) < 0.005 and abs(9/_m.sin(_m.radians(B19)) - 12/_m.sin(_m.radians(A19))) < 1e-9)
+comprobar('sim19 B4: complejos', abs((1 + 1j)**8 - 16) < 1e-9 and abs((2 - 1j)/(1 + 3j) - (-0.1 - 0.7j)) < 1e-12)
+AB, AC = (4, 2), (2, 4)
+comprobar('sim19 B5: triángulo isósceles', AB[0]**2 + AB[1]**2 == 20 == AC[0]**2 + AC[1]**2 and 2**2 + 2**2 == 8 and Q(1, 2)*abs(AB[0]*AC[1] - AB[1]*AC[0]) == 6)
+f19 = x**3 - 3*x
+comprobar('sim19 B6: x³ − 3x', sp.solve(sp.diff(f19, x), x) == [-1, 1] and f19.subs(x, -1) == 2 and f19.subs(x, 1) == -2 and sp.diff(f19, x, 2).subs(x, 0) == 0 and f19.subs(x, 0) == 0)
+# sim20
+comprobar('sim20 B1: racionalizar', sp.simplify((3 + sqrt(2))/(3 - sqrt(2)) - (11 + 6*sqrt(2))/7) == 0 and abs(float((11 + 6*sqrt(2))/7) - 2.78) < 0.005)
+comprobar('sim20 B2: ahorro mensual', abs(300*((1.002)**60 - 1)/0.002 - 19104.26) < 0.01 and abs(1.002**60 - 1.12736) < 1e-5)
+ca20 = Q(-4, 5); sa20 = Q(3, 4)*ca20
+comprobar('sim20 B3: tan a = 3/4, 3.er cuadrante', 1 + Q(3, 4)**2 == 1/ca20**2 and sa20 == Q(-3, 5) and 2*sa20*ca20 == Q(24, 25) and sp.simplify(-sqrt((1 + ca20)/2) + sqrt(10)/10) == 0 and abs(float(-sqrt(10)/10) + 0.316) < 1e-3)
+n20 = sp.Matrix([1, -2]); P20 = sp.Matrix([5, 1]); val20 = 5 - 2 + 1
+pie = P20 - Q(val20, 5)*n20
+comprobar('sim20 B4: proyección ortogonal', list(pie) == [Q(21, 5), Q(13, 5)] and pie[0] - 2*pie[1] + 1 == 0 and sp.simplify(Q(4)/sqrt(5) - 4*sqrt(5)/5) == 0)
+f20 = (x**2 - 1)/(x**2 - 4)
+comprobar('sim20 B5: dominio, cortes y asíntotas', sp.solve(x**2 - 4, x) == [-2, 2] and sp.solve(x**2 - 1, x) == [-1, 1] and f20.subs(x, 0) == Q(1, 4) and sp.limit(f20, x, oo) == 1 and sp.limit(f20, x, 2, '+') == oo)
+g20 = x**2*sp.exp(-x); fp20 = x*sp.log(x)
+comprobar('sim20 B6: derivadas', sp.diff(fp20, x).subs(x, sp.E) == 2 and fp20.subs(x, sp.E) == sp.E and sp.simplify(sp.diff(g20, x) - x*(2 - x)*sp.exp(-x)) == 0 and sorted(sp.solve(sp.diff(g20, x), x)) == [0, 2] and sp.simplify(g20.subs(x, 2) - 4*sp.exp(-2)) == 0 and abs(float(4*sp.exp(-2)) - 0.541) < 1e-3)
+
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f_ in fallos: print('  FALLO:', f_)
 sys.exit(1 if fallos else 0)
