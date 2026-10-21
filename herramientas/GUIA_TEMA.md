@@ -6,7 +6,8 @@ Regla de oro del proyecto: **solo AÑADIR**. Nunca cambiar ni quitar lo original
 - `ampliaciones/contenido/<asig>_tNN.js` → el contenido del tema (uno o varios archivos por tema; se cargan por orden alfabético).
 - `ampliaciones/lab_<nombre>.js` → motores y simuladores (`B.w.<nombre> = function (host) {…}`), uno por familia de temas.
 - `sh build.sh` regenera `ampliaciones/bachi.js`, `index.html` y `pagina-autonoma.html`. **No edites esos tres a mano ni los commitees en tu rama de trabajo.**
-- Orden de carga: `grafica nucleo ui actividades`, `lab_*.js`, `contenido/*.js`.
+- Orden de carga: `grafica nucleo ui actividades`, `lab_*.js`, `contenido/*.js`. Si un laboratorio se reparte en varios archivos, numera los nombres (`lab_tema_0motor.js`, `lab_tema_1…js`): así el orden no depende de cómo ordene el `sh` los nombres con punto o con dígito.
+- **Fórmulas químicas en la teoría**: la página tiñe de azul trozos como «O₃» de Fe₂O₃ (resaltador de variables, clase `mv`). Envuelve el HTML de cada sección en `<div class="mv q3f">…</div>` (`.mv.q3f` en `estilos.css` anula el color); y para tablas con fórmulas en la primera columna usa la clase `q3t` en `H.tabla(cab, filas, "q3t")` (evita que `.lam-tabla th` ponga en mayúsculas «Co» → «CO»).
 
 ## Registrar un tema (`B.registrar(asig, "tN", {…})`, sobrescribe por tema)
 ```js
@@ -27,6 +28,7 @@ Si el tema ya tiene archivo, **amplíalo** (`secciones[i] +=`, `nuevas.splice(k,
 
 ## Comprobaciones de ejercicio (`check`, objeto o lista de objetos)
 `{tipo:"num", etiqueta, valor, tol?, unidad?, ph?}` (tolerancia relativa 0,5 % por defecto) · `{tipo:"expr", etiqueta, expr:"2n+1", dom?, enteros?}` (equivalencia algebraica; `enteros:true` si hay (−1)ⁿ) · `{tipo:"lista", etiqueta, valores:[…]}` (orden indiferente) · `{tipo:"opcion", etiqueta, opciones:[…], ok:índice}` (se barajan solas) · `{tipo:"rubrica", etiqueta, filas, items:[{t,p}]}` (demostraciones).
+- **Respuestas escritas (fórmulas o nombres)**: `{tipo:"texto", etiqueta, valores:["Fe2(SO4)3"], formula?:true, otras?:["…"], ph?}`. Se compara tras normalizar subíndices y superíndices Unicode (H₂SO₄ = H2SO4, Fe³⁺ = Fe3+ = Fe+3), espacios, tildes y mayúsculas; con `formula:true` las mayúsculas SÍ importan (CO ≠ Co). `valores` = respuestas aceptadas (basta una por equivalencia); `otras` = respuestas correctas pero de otro tipo (p. ej. de otra nomenclatura), para avisar en vez de dar un simple «mal». El normalizador es `B.normTexto(texto, esFormula)` en `nucleo.js` (se puede reutilizar en simuladores). `e2e_ejercicios.js` rellena el último de `valores`.
 
 ## Datos de actividades (clave en `datos`, se usa con `w("tipo", "clave")`)
 - `quiz`: `{titulo, preguntas:[{q, op:[…], ok, porque}]}` (se barajan).

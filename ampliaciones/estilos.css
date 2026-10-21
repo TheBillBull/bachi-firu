@@ -795,3 +795,106 @@
   .w[data-w^="f10_"] .ctl .sl-et, .w[data-w^="f12_"] .ctl .sl-et, .w[data-w^="f13_"] .ctl .sl-et { flex: 1 1 100%; }
 }
 .w[data-w^="f10_"] .chip-btn, .w[data-w^="f12_"] .chip-btn, .w[data-w^="f13_"] .chip-btn { white-space: normal; text-align: left; max-width: 100%; }
+
+/* ---- FyQ I · tema 3 · formulación y nomenclatura inorgánica (q3-) ---- */
+.q3-ctr { display: grid; gap: 8px; margin: 6px 0 8px; }
+.q3-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.q3-fila .chips { margin: 0; }
+.q3-lab { font: 600 13px var(--body); color: var(--ink-soft); min-width: 5.2em; }
+.q3-lista { max-height: 118px; overflow-y: auto; }
+.w[data-w^="q3_"] .chip-btn { white-space: normal; text-align: left; max-width: 100%; }
+.q3-big { font: 700 21px/1.3 var(--math); color: var(--ink); overflow-wrap: anywhere; }
+.lec b .q3-big { font-size: 20px; }
+.q3-enun { font-size: 16px; line-height: 1.6; margin: 8px 0 6px; }
+.q3-mal { color: var(--red); }
+.q3-prob { min-height: 3.2em; }
+.q3-eq { display: block; font: 500 19px/1.6 var(--math); color: var(--ink); margin: 8px 0 4px; overflow-wrap: anywhere; }
+.q3-eq b { color: var(--ok); }
+.q3-sol { margin: 8px 0 0; }
+.q3-pasos, .q3-expl { margin: 10px 0 0; }
+.q3-pasos .steps, .q3-expl .steps, .q3-sol .steps { margin: 4px 0 0; }
+.q3-t { width: 100%; font-size: 14px; }
+.q3-t th, .q3-t td { text-align: left; padding: 4px 8px; overflow-wrap: anywhere; vertical-align: top; }
+.q3-t tr.sel th, .q3-t tr.sel td { background: color-mix(in srgb, var(--pen) 12%, var(--sheet)); font-weight: 600; }
+.q3-serie, .q3-det { overflow-x: auto; }
+.q3-det h5 { margin: 12px 0 4px; font-size: 16px; }
+.q3-det h5 small { font-weight: 400; color: var(--ink-faint); }
+/* tabla periódica */
+.q3-tp { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); grid-auto-rows: minmax(26px, auto); gap: 2px; margin: 8px 0; }
+.q3-el { font: 700 11px/1 var(--body); padding: 6px 0; border-radius: 5px; border: 1.5px solid var(--line); background: var(--sheet-2); color: var(--ink); cursor: pointer; min-width: 0; }
+.q3-el.m { background: color-mix(in srgb, var(--pen) 16%, var(--sheet)); }
+.q3-el.n { background: color-mix(in srgb, var(--ok) 20%, var(--sheet)); }
+.q3-el.g { background: color-mix(in srgb, var(--ink-faint) 18%, var(--sheet)); color: var(--ink-soft); }
+.q3-el.x { background: var(--sheet); color: var(--ink-faint); }
+.q3-el.on { outline: 2.5px solid var(--red); outline-offset: 0; border-color: var(--red); position: relative; z-index: 1; }
+.q3-el:focus-visible { outline: 2.5px solid var(--pen); }
+.q3-leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-soft); margin: 2px 0 6px; }
+.q3-k::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; border: 1px solid var(--line); background: var(--sheet-2); }
+.q3-k.m::before { background: color-mix(in srgb, var(--pen) 30%, var(--sheet)); } .q3-k.n::before { background: color-mix(in srgb, var(--ok) 32%, var(--sheet)); }
+.q3-k.g::before { background: color-mix(in srgb, var(--ink-faint) 30%, var(--sheet)); } .q3-k.x::before { background: var(--sheet); }
+@media (max-width: 560px) { .q3-el { font-size: 9.5px; padding: 5px 0; border-width: 1px; border-radius: 3px; } .q3-tp { gap: 1px; grid-auto-rows: minmax(22px, auto); } }
+/* cruce de valencias */
+.q3-svg { display: block; width: 100%; max-width: 440px; height: auto; margin: 8px auto 0; }
+.q3-svg text { font-family: var(--math); }
+.q3-svg .q3-t1 { font-size: 26px; font-weight: 700; fill: var(--ink); }
+.q3-svg .q3-t2 { font-size: 24px; font-weight: 700; fill: var(--ink); }
+.q3-svg .q3-c { stroke-width: 1.8; } .q3-svg .q3-c.cat { fill: color-mix(in srgb, var(--red) 14%, var(--sheet)); stroke: var(--red); } .q3-svg .q3-c.an { fill: color-mix(in srgb, var(--pen) 14%, var(--sheet)); stroke: var(--pen); }
+.q3-svg .q3-n { font-size: 18px; font-weight: 700; } .q3-svg .q3-n.cat, .q3-svg .q3-s.cat { fill: var(--red); } .q3-svg .q3-n.an, .q3-svg .q3-s.an { fill: var(--pen); }
+.q3-svg .q3-s { font-size: 17px; font-weight: 700; }
+.q3-svg .q3-x { stroke-width: 2.2; stroke-dasharray: 5 4; } .q3-svg .q3-x.cat { stroke: var(--red); } .q3-svg .q3-x.an { stroke: var(--pen); }
+.q3-svg .q3-ok { font: 600 13px var(--body); fill: var(--ok); }
+/* iones */
+.q3-aj { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin: 6px 0; }
+.q3-ajl { background: var(--sheet-2); border-radius: 10px; padding: 8px 12px 10px; min-width: 0; }
+.q3-ajl .ctl { margin: 6px 0 0; } .q3-ajl .ctl b { min-width: 1.6em; text-align: center; font: 700 18px var(--math); }
+.q3-pila { display: flex; flex-wrap: wrap; gap: 4px; min-height: 36px; margin: 6px 0 0; }
+.q3-ion { font: 700 15px/1 var(--math); padding: 6px 8px; border-radius: 999px; border: 1.5px solid; white-space: nowrap; }
+.q3-ion.cat { color: var(--red); border-color: var(--red); background: color-mix(in srgb, var(--red) 10%, var(--sheet)); }
+.q3-ion.an { color: var(--pen); border-color: var(--pen); background: color-mix(in srgb, var(--pen) 10%, var(--sheet)); }
+@media (max-width: 560px) { .q3-aj { grid-template-columns: 1fr; } }
+/* comparador */
+.q3-tres { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin: 10px 0 0; }
+.q3-form { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.q3-form small { color: var(--ink-faint); font-size: 12.5px; }
+.q3-tj { background: var(--sheet-2); border-radius: 10px; padding: 8px 12px 10px; border-top: 3px solid var(--line); min-width: 0; }
+.q3-tj small { display: block; font-size: 11.5px; color: var(--ink-faint); }
+.q3-tj b { font: 600 17px/1.35 var(--math); overflow-wrap: anywhere; }
+.q3-tj.pen { border-top-color: var(--pen); } .q3-tj.ok { border-top-color: var(--ok); } .q3-tj.red { border-top-color: var(--red); }
+.q3-tj.pen b { color: var(--pen); } .q3-tj.ok b { color: var(--ok); } .q3-tj.red b { color: var(--red); }
+.q3-alt { display: block; font-size: 12.5px; color: var(--ink-faint); margin-top: 3px; overflow-wrap: anywhere; }
+/* opciones (error, familia) */
+.q3-ops { display: grid; gap: 6px; margin: 8px 0; }
+.q3-ops2 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.q3-op { text-align: left; font: 500 14.5px/1.4 var(--body); padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--sheet); color: var(--ink); cursor: pointer; }
+.q3-op:hover:not(:disabled) { border-color: var(--pen); }
+.q3-op.ok { border-color: var(--ok); background: var(--ok-soft); } .q3-op.mal { border-color: var(--red); background: var(--red-soft); }
+.q3-op:disabled { cursor: default; opacity: .92; }
+.q3-fallos { margin: 6px 0 0 18px; padding: 0; font-size: 14px; line-height: 1.5; }
+/* parejas */
+.q3-pr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.q3-col { display: grid; gap: 6px; align-content: start; }
+.q3-pc { font: 600 17px/1.3 var(--math); padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--sheet); color: var(--ink); cursor: pointer; text-align: center; overflow-wrap: anywhere; min-width: 0; }
+.q3-pc.nombre { font: 500 14px/1.3 var(--body); }
+.q3-pc.on { border-color: var(--pen); background: color-mix(in srgb, var(--pen) 14%, var(--sheet)); }
+.q3-pc.hecho { border-color: var(--ok); background: var(--ok-soft); opacity: .85; } .q3-pc.mal { border-color: var(--red); background: var(--red-soft); }
+.q3-pc:disabled { cursor: default; }
+/* árbol de decisión */
+.q3-ruta { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 8px 0 0; }
+.q3-mig { font-size: 12px; color: var(--ink-soft); background: var(--sheet-2); border-radius: 999px; padding: 2px 10px; }
+.q3-mig b { color: var(--pen); }
+/* tablas del tema 3: la primera columna lleva fórmulas, así que no se pasa a mayúsculas (Co ≠ CO) */
+.lam-tabla.q3t tbody th, .lam-tabla.q3-t tbody th { text-transform: none; letter-spacing: 0; font: 600 15px/1.4 var(--math); color: var(--ink); }
+.lam-tabla.q3t td { font-size: 14px; }
+.lam-tabla.q3t td, .lam-tabla.q3t th { overflow-wrap: anywhere; }
+.mv.q3f { font-family: inherit; color: inherit; font-size: inherit; }
+.bx-campo.bx-texto { flex: 1 1 100%; } .bx-form .bx-texto input[type=text] { flex: 1 1 200px; width: auto; max-width: 440px; }
+@media (max-width: 560px) { .bx-campo.bx-texto { flex-wrap: wrap; } .bx-texto .bx-et { flex: 1 0 100%; font-size: 15px; } .bx-form .bx-texto input[type=text] { flex: 1 1 100%; max-width: 100%; } .bx-texto .bx-mk { display: none; } }
+/* historia (q3_historia) */
+.q3-hleyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-soft); margin: 0 0 8px; }
+.q3-hk i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+.q3-hist { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 8px; margin: 4px 0 10px; }
+.q3-h { text-align: left; border: 1.5px solid var(--line); border-top: 4px solid var(--c, var(--pen)); border-radius: 10px; background: var(--sheet); color: var(--ink); padding: 6px 10px 8px; cursor: pointer; font: 500 13px/1.35 var(--body); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.q3-h b { font: 700 16px var(--math); color: var(--c, var(--pen)); }
+.q3-h:hover { border-color: var(--c, var(--pen)); } .q3-h.sel { background: color-mix(in srgb, var(--c, var(--pen)) 12%, var(--sheet)); border-color: var(--c, var(--pen)); }
+.q3-hdet { background: var(--sheet-2); border-radius: 10px; padding: 8px 14px 12px; min-height: 64px; }
+.q3-hdet h5 { margin: 6px 0 4px; font-size: 16px; } .q3-hano { font: 700 17px var(--math); color: var(--pen); margin-right: 6px; }

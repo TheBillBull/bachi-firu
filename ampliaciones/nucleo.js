@@ -197,6 +197,28 @@
       '<span class="hand-note">cada lámina cabe en una hoja: llévatela de chuleta de estudio</span></div>';
   };
 
+
+  // ============================================================
+  // Normalización de texto escrito (fórmulas y nombres)
+  //   B.normTexto("H₂SO₄", true) === B.normTexto("h2so4 ", true)?  → false (las mayúsculas importan en fórmulas)
+  //   B.normTexto("Óxido de Hierro (III)") === "oxido de hierro(iii)"
+  // ============================================================
+  var SUP = { "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9", "⁺": "+", "⁻": "-" };
+  B.normTexto = function (s, esFormula) {
+    s = String(s == null ? "" : s)
+      .replace(/[₀-₉]/g, function (c) { return String(c.charCodeAt(0) - 0x2080); })
+      .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]/g, function (c) { return SUP[c]; })
+      .replace(/[−–—‐]/g, "-");
+    if (esFormula) {
+      s = s.replace(/\((aq|g|s|l)\)/gi, "").replace(/[\s_^{}·]/g, "").replace(/\((\d*[+-])\)$/, "$1");
+      var m = /^(.*?)([+-])(\d+)$/.exec(s);                       // «Fe+3» = «Fe3+»
+      return m ? m[1] + m[3] + m[2] : s;
+    }
+    s = s.toLowerCase();
+    if (s.normalize) s = s.normalize("NFD").replace(/[̀-ͯ]/g, "");
+    return s.replace(/\s*\(\s*/g, "(").replace(/\s*\)\s*/g, ") ").replace(/\s+/g, " ").replace(/[.,;:]+$/, "").replace(/\)\s*$/, ")").trim();
+  };
+
   // ============================================================
   // Ejercicios con niveles y comprobación automática
   //   nivel: 1 básico · 2 medio · 3 nivel PAU
@@ -206,6 +228,10 @@
   //     { tipo: "lista",  etiqueta, valores: [0, 2] }
   //     { tipo: "opcion", etiqueta, opciones: [...], ok: índice }
   //     { tipo: "rubrica", etiqueta, items: [{ t, p }] }  (respuesta larga con autoevaluación)
+  //     { tipo: "texto",  etiqueta, valores: ["H2SO4", "H₂SO₄"], formula?: true, otras?: [...], ph? }
+  //        (respuesta escrita: nombres o fórmulas. Compara tras normalizar subíndices, superíndices, espacios,
+  //         tildes y —salvo formula:true, donde las mayúsculas importan: CO ≠ Co— mayúsculas; `otras` = respuestas
+  //         correctas pero de otro sistema de nomenclatura, para avisar en lugar de dar un simple «mal»)
   // ============================================================
   var NIVELES = { 1: ["★", "Básico"], 2: ["★★", "Medio"], 3: ["★★★", "Nivel PAU"] };
 
@@ -220,7 +246,7 @@
       return '<label class="bx-campo bx-largo">' + et + '<textarea data-k="' + k + '" rows="' + (c.filas || 6) + '" placeholder="' + (c.ph || "Escribe aquí tu respuesta…") + '"></textarea></label>' +
         '<p class="wc" data-bx-wc>0 palabras</p>';
     }
-    return '<label class="bx-campo">' + et + '<input type="text" data-k="' + k + '" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + (c.ph || "") + '">' +
+    return '<label class="bx-campo' + (c.tipo === "texto" ? " bx-texto" : "") + '">' + et + '<input type="text" data-k="' + k + '" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + (c.ph || "") + '">' +
       (c.unidad ? '<span class="bx-un">' + c.unidad + "</span>" : "") + '<span class="bx-mk" aria-hidden="true"></span></label>';
   }
 
@@ -281,6 +307,13 @@
       if (!r.ok) return { ok: false, msg: r.error };
       var esperado = Mate.compilar(c.expr);
       return { ok: Mate.equivalente(r.f, esperado.f, c.dom, c.enteros), msg: "He leído: " + r.texto };
+    }
+    if (c.tipo === "texto") {
+      var n = B.normTexto(raw, c.formula), i;
+      for (i = 0; i < c.valores.length; i++) if (B.normTexto(c.valores[i], c.formula) === n) return { ok: true };
+      for (i = 0; c.otras && i < c.otras.length; i++) if (B.normTexto(c.otras[i], c.formula) === n) return { ok: false, msg: "Eso también es correcto, pero de otra nomenclatura: fíjate en cuál te piden." };
+      if (c.formula && c.valores.some(function (v) { return B.normTexto(v, true).toLowerCase() === n.toLowerCase(); })) return { ok: false, msg: "Casi: revisa las mayúsculas y minúsculas de los símbolos (CO no es Co)." };
+      return { ok: false };
     }
     if (c.tipo === "lista") {
       var esp = c.valores.slice().sort(function (a, b) { return a - b; });
