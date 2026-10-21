@@ -766,3 +766,11 @@
 .f9-disco svg, .f9-graf svg { display: block; width: 100%; height: auto; }
 .f9-disco { min-width: 0; } .f9-graf { min-width: 0; }
 @media (max-width: 700px) { .f9-dos { grid-template-columns: 1fr; } .f9-disco { max-width: 340px; margin: 0 auto; width: 100%; } }
+/* ---- Física: líneas de cálculo largas se parten en móvil ---- */
+.ampl .math-line, .ampl .ejemplo p { overflow-wrap: anywhere; }
+
+/* ---- Física I · tema 12 (energía) ---- */
+.ampl .f12-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; }
+.ampl .f12-duo > .w-plot { min-width: 0; margin: 0; }
+.ampl .f12-duo > .w-plot + .w-plot { border-top: 0; margin-top: 0; }
+@media (max-width: 760px) { .ampl .f12-duo { grid-template-columns: 1fr; } }
