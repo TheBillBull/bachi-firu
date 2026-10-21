@@ -93,7 +93,8 @@
       if (triples.length) partes.push({ locs: triples, r: (triples.length > 1 ? MULT[triples.length] : "") + "in" });
     }
     if (hayMult && partes[0].locs.length > 1) stem += "a";
-    var omitirUnsat = !g && !nsus && n <= 3 && dobles.length + triples.length === 1;
+    var unaIns = dobles.length + triples.length === 1;
+    var omitirUnsat = !g && unaIns && (n === 2 || (!nsus && n <= 3));
     txt = stem;
     partes.forEach(function (p) { txt += (p.locs && !omitirUnsat ? "-" + p.locs.join(",") + "-" : "") + p.r; });
     var locG = num.grupo[0], omitirG = !nsus && !hayMult && ((g === "ol" || g === "amina") && n <= 2 || (g === "ona" && n <= 4));
@@ -102,7 +103,9 @@
     // sustituyentes por orden alfabético con prefijos multiplicadores
     var por = {};
     num.susObj.forEach(function (q) { (por[q.t] = por[q.t] || []).push(q.l); });
-    var pref = Object.keys(por).sort().map(function (t) { var l = por[t].sort(function (a, b) { return a - b; }); return l.join(",") + "-" + MULT[l.length] + t; }).join("-");
+    // metano, etano y eteno con un solo sustituyente no necesitan localizador (todas las posiciones son equivalentes)
+    var sinLoc = n === 1 || (n === 2 && !g && nsus === 1);
+    var pref = Object.keys(por).sort().map(function (t) { var l = por[t].sort(function (a, b) { return a - b; }); return (sinLoc ? "" : l.join(",") + "-") + MULT[l.length] + t; }).join("-");
     var nombre = pref + txt;
     if (g === "oico") nombre = "ácido " + nombre;
     return nombre;
@@ -157,75 +160,199 @@
       out.push(txt);
       if (i < m.n) out.push(SIM[m.enl[i - 1]]);
     }
+    // el grupo terminal se escribe a la derecha: CH₃−CH₂−CHO, CH₃−COOH, CH₃−CH₂−CH₂OH
+    var soloX = !g && m.n > 1 && (m.sus || []).length > 0 && (m.sus || []).every(function (q) { return q.p === 1 && SUST[q.t].x; });
+    if ((g && pos === 1 && m.n > 1 && g !== "ona") || soloX) out.reverse();
     return out.join("");
   };
 
   // ------------------------------------------------------------
-  // Dibujo esquelético (zigzag) en un B.Plot
+  // Grafo molecular y dibujo esquelético (zigzag) en un B.Plot
+  //   átomos {e, h}, enlaces {i, j, o}; sirve para cadenas con sustituyentes
+  //   (grafoDeSpec) y para cualquier molécula acíclica escrita como SMILES simplificado
   // ------------------------------------------------------------
-  var LB = 1.1547, DZ = 0.5774;
-  function posC(i) { return [i - 1, i % 2 === 0 ? DZ : 0]; }
-  function ang(a) { var r = a * Math.PI / 180; return [Math.cos(r), Math.sin(r)]; }
-  function lineas(g, p, q, orden, clase) {
-    var dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L, offs = orden === 1 ? [0] : orden === 2 ? [-0.055, 0.055] : [-0.09, 0, 0.09];
-    offs.forEach(function (o) { g.segmento(p[0] + nx * o, p[1] + ny * o, q[0] + nx * o, q[1] + ny * o, { clase: clase || "c-ink" }).setAttribute("stroke-width", 2.4); });
+  var VAL = { C: 4, N: 3, O: 2, F: 1, Cl: 1, Br: 1, I: 1 };
+  function hidrogenos(G) {
+    G.a.forEach(function (x) { x.suma = 0; });
+    G.b.forEach(function (e) { G.a[e.i].suma += e.o; G.a[e.j].suma += e.o; });
+    G.a.forEach(function (x) { x.h = Math.max(0, VAL[x.e] - x.suma); });
   }
-  O.rango = function (g, n) {
-    var c = g.c, pw = c.w - c.izq - c.der, ph = c.h - c.arr - c.abj, W = (n - 1) + 4.6, semi = Math.max(2.1, W / 2 * ph / pw);
-    g.rangoIso((n - 1) / 2, 0.3, semi);
+  // SMILES simplificado: átomos C N O F Cl Br I; enlaces - = #; ramas entre paréntesis; ~ = enlace simple que deja el siguiente grupo del mismo lado (cis)
+  O.grafoDeSmiles = function (s) {
+    var G = { a: [], b: [], main: null, num: {} }, i = 0, pila = [], prev = -1, ord = 1, cis = false;
+    while (i < s.length) {
+      var c = s.charAt(i), e;
+      if (c === "(") { pila.push(prev); i++; continue; }
+      if (c === ")") { prev = pila.pop(); i++; continue; }
+      if (c === "-") { ord = 1; i++; continue; }
+      if (c === "=") { ord = 2; i++; continue; }
+      if (c === "#") { ord = 3; i++; continue; }
+      if (c === "~") { ord = 1; cis = true; i++; continue; }
+      e = c;
+      if ((c === "C" && s.charAt(i + 1) === "l") || (c === "B" && s.charAt(i + 1) === "r")) { e = s.substr(i, 2); i++; }
+      i++;
+      G.a.push({ e: e });
+      var k = G.a.length - 1;
+      if (prev >= 0) G.b.push({ i: prev, j: k, o: ord, cis: cis });
+      ord = 1; cis = false; prev = k;
+    }
+    hidrogenos(G);
+    return G;
   };
-  O.dibuja = function (g, m, mostrarNum) {
-    var A = O.analiza(m), g0 = m.grupo || "", pos = m.pos || 1, n = m.n, i;
-    g.limpiar();
-    if (A.errores.length && A.errores.some(function (e) { return /más de 4/.test(e); })) { /* se dibuja igualmente */ }
-    var P = []; for (i = 1; i <= n; i++) P[i] = posC(i);
-    for (i = 1; i < n; i++) lineas(g, P[i], P[i + 1], m.enl[i - 1]);
-    if (n === 1) g.punto(P[1][0], P[1][1], { r: 3, clase: "c-ink" });
-    // elementos que salen de cada carbono
-    for (i = 1; i <= n; i++) {
-      var items = [];
-      if (g0 && pos === i) {
-        if (g0 === "ol") items.push({ t: "OH", o: 1, lab: true }); else if (g0 === "amina") items.push({ t: "NH₂", o: 1, lab: true });
-        else if (g0 === "ona") items.push({ t: "O", o: 2, lab: true, vert: true });
-        else if (g0 === "al") items.push({ t: "O", o: 2, lab: true });
-        else if (g0 === "oico") { items.push({ t: "OH", o: 1, lab: true }); items.push({ t: "O", o: 2, lab: true, vert: true }); }
-      }
-      (m.sus || []).forEach(function (q) { if (q.p === i) { var s = SUST[q.t]; items.push(s.c ? { t: q.t, o: 1, alq: s.c } : { t: s.x, o: 1, lab: true }); } });
-      if (!items.length) continue;
-      var alto = i % 2 === 0, away = alto ? 90 : 270, term = i === 1 || i === n, cont = i === 1 ? 150 : (n % 2 === 1 ? 30 : 330), angs = [];
-      if (n === 1) angs = [150, 30, 270, 90].slice(0, items.length);
-      else if (term) { angs = items.length === 1 ? [items[0].vert ? away : cont] : items.length === 2 ? [cont, away] : [cont, away, cont + (alto ? -60 : 60)]; if (items.length === 2 && items[0].vert) angs = [away, cont]; }
-      else angs = items.length === 1 ? [away] : items.length === 2 ? [away - 32, away + 32] : [away - 45, away, away + 45];
-      items.forEach(function (it, k) {
-        var a = angs[k] !== undefined ? angs[k] : away, v = ang(a), q = [P[i][0] + LB * v[0], P[i][1] + LB * v[1]];
-        if (it.alq) {
-          lineas(g, P[i], q, 1);
-          if (it.alq === 2) { var a2 = a + (Math.sin(a * Math.PI / 180) >= 0 ? -60 : 60), v2 = ang(a2); lineas(g, q, [q[0] + LB * v2[0], q[1] + LB * v2[1]], 1); }
-        } else {
-          var corto = [P[i][0] + (LB - 0.32) * v[0], P[i][1] + (LB - 0.32) * v[1]];
-          lineas(g, P[i], corto, it.o);
-          g.texto(q[0], q[1], it.t, { ancla: "middle", dy: 5, clase: it.t === "O" || it.t === "OH" ? "red" : "pen" });
-        }
+  O.grafoDeSpec = function (m) {
+    var G = { a: [], b: [], main: [], num: {} }, n = m.n, g = m.grupo || "", pos = m.pos || 1, i;
+    function add(e) { G.a.push({ e: e }); return G.a.length - 1; }
+    function enlace(i1, j1, o) { G.b.push({ i: i1, j: j1, o: o }); }
+    for (i = 1; i <= n; i++) { G.main.push(add("C")); if (i > 1) enlace(i - 2, i - 1, m.enl[i - 2]); }
+    if (g) {
+      var c = pos - 1;
+      if (g === "ol") enlace(c, add("O"), 1);
+      else if (g === "amina") enlace(c, add("N"), 1);
+      else if (g === "ona" || g === "al") enlace(c, add("O"), 2);
+      else if (g === "oico") { enlace(c, add("O"), 2); enlace(c, add("O"), 1); }
+    }
+    (m.sus || []).forEach(function (q) {
+      var s = SUST[q.t], c = q.p - 1;
+      if (s.c) { var k = add("C"); enlace(c, k, 1); if (s.c === 2) enlace(k, add("C"), 1); } else enlace(c, add(s.x), 1);
+    });
+    hidrogenos(G);
+    return G;
+  };
+  O.cuentaGrafo = function (G) {
+    var c = { C: 0, H: 0, O: 0, N: 0, F: 0, Cl: 0, Br: 0, I: 0 };
+    G.a.forEach(function (x) { c[x.e]++; c.H += x.h; });
+    return c;
+  };
+
+  var LB = 1.1547;
+  function rad(a) { return a * Math.PI / 180; }
+  function difAng(a, b) { return Math.abs((((a - b) % 360) + 540) % 360 - 180); }     // distancia angular, 0..180
+  function adyac(G) { var A = G.a.map(function () { return []; }); G.b.forEach(function (e, k) { A[e.i].push({ v: e.j, k: k }); A[e.j].push({ v: e.i, k: k }); }); return A; }
+  function camino(G, A) {                           // el camino más largo del árbol (diámetro)
+    function bfs(s) {
+      var dist = {}, prev = {}, q = [s], last = s; dist[s] = 0;
+      while (q.length) { var u = q.shift(); last = u; A[u].forEach(function (x) { if (dist[x.v] === undefined) { dist[x.v] = dist[u] + 1; prev[x.v] = u; q.push(x.v); } }); }
+      return { last: last, prev: prev };
+    }
+    var r1 = bfs(0), r2 = bfs(r1.last), path = [], u = r2.last;
+    while (u !== undefined) { path.push(u); u = r2.prev[u]; }
+    return path.reverse();
+  }
+  // Coloca los átomos: el camino principal en zigzag (los enlaces triples y los alenos, rectos) y las ramas en el hueco más libre
+  O.coloca = function (G) {
+    var A = adyac(G), main = G.main && G.main.length ? G.main : camino(G, A), i;
+    function orden(u, v) { var r = 1; A[u].forEach(function (x) { if (x.v === v) r = G.b[x.k].o; }); return r; }
+    function esCis(u, v) { var r = false; A[u].forEach(function (x) { if (x.v === v && G.b[x.k].cis) r = true; }); return r; }
+    var giros = [], signo = 1, hay = false;
+    for (i = 1; i < main.length - 1; i++) {
+      var o0 = orden(main[i - 1], main[i]), o1 = orden(main[i], main[i + 1]);
+      if (o0 === 3 || o1 === 3 || (o0 === 2 && o1 === 2)) giros[i] = 0;
+      else { if (!esCis(main[i], main[i + 1])) signo = -signo; giros[i] = signo * 60; hay = true; }
+    }
+    G.a.forEach(function (x) { x.dir = []; x.puesto = false; });
+    var d = hay ? 30 : 0, x = 0, y = 0;
+    G.a[main[0]].x = 0; G.a[main[0]].y = 0; G.a[main[0]].puesto = true;
+    for (i = 0; i < main.length - 1; i++) {
+      if (i > 0) d += giros[i];
+      var u = main[i], v = main[i + 1];
+      x += LB * Math.cos(rad(d)); y += LB * Math.sin(rad(d));
+      G.a[v].x = x; G.a[v].y = y; G.a[v].puesto = true;
+      G.a[u].dir.push(d); G.a[v].dir.push(d + 180);
+    }
+    function tam(u, padre) { var s = 1; A[u].forEach(function (z) { if (z.v !== padre) s += tam(z.v, u); }); return s; }
+    function esSp(u) { var t = 0, dd = 0; A[u].forEach(function (z) { var o = G.b[z.k].o; if (o === 3) t++; else if (o === 2) dd++; }); return t > 0 || dd > 1; }
+    var cola = main.slice();
+    while (cola.length) {
+      var p = cola.shift(), ap = G.a[p];
+      var hijos = A[p].filter(function (z) { return !G.a[z.v].puesto; });
+      hijos.sort(function (a1, b1) { return tam(b1.v, p) - tam(a1.v, p); });
+      hijos.forEach(function (z) {
+        var ex = ap.dir, cand = [], a;
+        if (ex.length === 1 && esSp(p)) cand = [ex[0] + 180];
+        else if (ex.length === 1) cand = [ex[0] + 120, ex[0] - 120];
+        else for (a = 0; a < 360; a += 30) { if (ex.every(function (e) { return difAng(a, e) >= 55; })) cand.push(a); }
+        if (!cand.length) for (a = 0; a < 360; a += 30) cand.push(a);
+        var mejorA = null, mejorS = -1;
+        cand.forEach(function (c1) {
+          var qx = ap.x + LB * Math.cos(rad(c1)), qy = ap.y + LB * Math.sin(rad(c1)), sc = 1e9;
+          G.a.forEach(function (o, k) { if (o.puesto && k !== p) sc = Math.min(sc, Math.hypot(o.x - qx, o.y - qy)); });
+          sc = Math.round(sc * 100) / 100 + (ex.length ? Math.min.apply(null, ex.map(function (e) { return difAng(c1, e); })) / 1000 : 0);
+          if (sc > mejorS + 1e-9) { mejorS = sc; mejorA = c1; }
+        });
+        var ch = G.a[z.v];
+        ch.x = ap.x + LB * Math.cos(rad(mejorA)); ch.y = ap.y + LB * Math.sin(rad(mejorA)); ch.puesto = true; ch.dir.push(mejorA + 180); ap.dir.push(mejorA);
+        cola.push(z.v);
       });
     }
-    if (mostrarNum) {
-      var num = mejor(m), loc = function (k) { return num.d === 0 ? k : n + 1 - k; };
-      for (i = 1; i <= n; i++) g.texto(P[i][0], P[i][1] + (i % 2 === 0 ? -0.34 : 0.34), String(loc(i)), { ancla: "middle", dy: 4, clase: "faint" });
+    return G;
+  };
+
+  var COL = { O: "red", N: "pen", F: "ok", Cl: "ok", Br: "ok", I: "ok" };
+  function etiqueta(at) {
+    if (at.e === "C") return "";
+    var t = at.e;
+    if ((at.e === "O" || at.e === "N") && at.h > 0) t += "H" + (at.h > 1 ? sub(at.h) : "");
+    return t;
+  }
+  // Dibuja el grafo en el B.Plot g. o.num = { índiceDeÁtomo: "texto" } para numerar la cadena
+  O.dibujaGrafo = function (g, G, o) {
+    o = o || {};
+    O.coloca(G);
+    var xs = G.a.map(function (t) { return t.x; }), ys = G.a.map(function (t) { return t.y; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var c = g.c, pw = c.w - c.izq - c.der, ph = c.h - c.arr - c.abj;
+    var hw = (x1 - x0) / 2 + 0.95, hh = (y1 - y0) / 2 + 0.95, semi = Math.max(hh, hw * ph / pw, o.min || 1.75), ppu = ph / (2 * semi);
+    g.limpiar(); g.rangoIso((x0 + x1) / 2, (y0 + y1) / 2, semi);
+    if (G.a.length === 1) { g.texto(0, 0, G.a[0].e === "C" ? "CH" + (G.a[0].h > 1 ? sub(G.a[0].h) : "") : G.a[0].e, { ancla: "middle", dy: 6, clase: "pen" }); return; }
+    G.b.forEach(function (e) {
+      var p = G.a[e.i], q = G.a[e.j], dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+      function corte(at, signo) {
+        var t = etiqueta(at); if (!t) return 0;
+        var len = t.replace(/[₀-₉]/g, "x").length;
+        return (5 + Math.abs(ux) * len * 4.8 + Math.abs(uy) * 7) / ppu;
+      }
+      var s1 = corte(p, 1), s2 = corte(q, -1), ax = p.x + ux * s1, ay = p.y + uy * s1, bx = q.x - ux * s2, by = q.y - uy * s2;
+      var offs = e.o === 1 ? [0] : e.o === 2 ? [-3.2 / ppu, 3.2 / ppu] : [-5.5 / ppu, 0, 5.5 / ppu];
+      offs.forEach(function (of) { g.segmento(ax - uy * of, ay + ux * of, bx - uy * of, by + ux * of, { clase: "c-ink" }).setAttribute("stroke-width", 2.4); });
+    });
+    G.a.forEach(function (at) { var t = etiqueta(at); if (t) g.texto(at.x, at.y, t, { ancla: "middle", dy: 5, clase: COL[at.e] || "" }); });
+    if (o.num) {
+      var puestos = [], r = 17 / ppu;
+      Object.keys(o.num).forEach(function (k) {
+        var at = G.a[k], best = null, bs = -1, a;
+        for (a = 0; a < 360; a += 30) {
+          var lib = Math.min.apply(null, at.dir.map(function (e) { return difAng(a, e); }).concat([180]));
+          if (lib < 45) continue;
+          var px = at.x + r * Math.cos(rad(a)), py = at.y + r * Math.sin(rad(a)), sc = 1e9;
+          G.a.forEach(function (z, j) { if (String(j) !== k) sc = Math.min(sc, Math.hypot(z.x - px, z.y - py) * 0.8); });
+          puestos.forEach(function (z) { sc = Math.min(sc, Math.hypot(z[0] - px, z[1] - py)); });
+          sc += lib / 1000;
+          if (sc > bs) { bs = sc; best = [px, py]; }
+        }
+        if (!best) best = [at.x + r, at.y + r];
+        puestos.push(best);
+        g.texto(best[0], best[1], String(o.num[k]), { ancla: "middle", dy: 4, clase: "faint" });
+      });
     }
+  };
+  O.dibuja = function (g, m, mostrarNum) {
+    var G = O.grafoDeSpec(m), num = null;
+    if (mostrarNum && !O.analiza(m).errores.length) { var nu = mejor(m); num = {}; for (var i = 1; i <= m.n; i++) num[i - 1] = nu.d === 0 ? i : m.n + 1 - i; }
+    O.dibujaGrafo(g, G, { num: num });
   };
 
   // ------------------------------------------------------------
   // Interfaz del constructor (se reutiliza en el reto)
   // ------------------------------------------------------------
-  var BONDS = ["—", "=", "≡"];
+  var BONDS = ["−", "=", "≡"];
   function constructor(host, opts) {
     opts = opts || {};
     var st = { m: { n: 5, enl: [1, 1, 1, 1], grupo: "", pos: 1, sus: [] }, num: true, tipo: "metil" };
-    host.innerHTML = '<div class="q7-pre chips" data-pre></div><div class="q7-ctr"><div class="q7-fila"><label class="q7-lab">Carbonos de la cadena principal <b data-nv></b></label><input type="range" min="1" max="10" step="1" value="5" aria-label="Número de carbonos de la cadena principal"></div>' +
+    host.innerHTML = '<div class="q7-pre chips" data-pre></div><div class="w-plot"></div><div class="lectura anch" data-lec></div><div class="q7-aviso" data-aviso></div>' +
+      '<div class="q7-ctr"><div class="q7-fila"><label class="q7-lab">Carbonos de la cadena principal <b data-nv></b></label><input type="range" min="1" max="10" step="1" value="5" aria-label="Número de carbonos de la cadena principal"></div>' +
       '<div class="q7-fila"><span class="q7-lab">Enlaces entre carbonos <small>(toca para cambiar: simple, doble, triple)</small></span><div class="q7-bonds" data-bonds></div></div>' +
       '<div class="q7-fila"><span class="q7-lab">Grupo funcional principal</span><div class="chips" data-grp></div><label class="q7-sel">en el carbono <select data-gpos></select></label></div>' +
-      '<div class="q7-fila"><span class="q7-lab">Sustituyentes</span><div class="chips" data-tsus></div><label class="q7-sel">en el carbono <select data-spos></select></label><button type="button" class="chip-btn" data-add>＋ Añadir</button><div class="q7-lista" data-lista></div></div></div>' +
-      '<div class="w-plot"></div><div class="lectura anch" data-lec></div><div class="q7-aviso" data-aviso></div>';
+      '<div class="q7-fila"><span class="q7-lab">Sustituyentes</span><div class="chips" data-tsus></div><label class="q7-sel">en el carbono <select data-spos></select></label><button type="button" class="chip-btn" data-add>＋ Añadir</button><div class="q7-lista" data-lista></div></div></div>';
     var pre = host.querySelector("[data-pre]"), rg = host.querySelector("input[type=range]"), nv = host.querySelector("[data-nv]"), bonds = host.querySelector("[data-bonds]"), grp = host.querySelector("[data-grp]"), gpos = host.querySelector("[data-gpos]"),
       tsus = host.querySelector("[data-tsus]"), spos = host.querySelector("[data-spos]"), lista = host.querySelector("[data-lista]"), lec = host.querySelector("[data-lec]"), aviso = host.querySelector("[data-aviso]"), g;
     g = new B.Plot(host.querySelector(".w-plot"), { xmin: -2, xmax: 6, ymin: -2.2, ymax: 2.6, w: 620, h: 250, limpio: true, etiqueta: "Fórmula esquelética de la molécula" });
@@ -246,7 +373,7 @@
       Array.prototype.forEach.call(tsus.querySelectorAll(".chip-btn"), function (c) { var on = c.getAttribute("data-k") === st.tipo; c.classList.toggle("on", on); c.setAttribute("aria-pressed", on); });
     }
     function pinta() {
-      var m = st.m, A = O.analiza(m); O.rango(g, m.n); O.dibuja(g, m, st.num && !A.errores.length);
+      var m = st.m, A = O.analiza(m); O.dibuja(g, m, st.num && !A.errores.length);
       if (A.errores.length) { lec.innerHTML = U.lec("Esta molécula no es posible", A.errores.join(" "), "red ancho"); aviso.textContent = ""; if (opts.alCambiar) opts.alCambiar(null, st); return; }
       var c = O.cuenta(m), nombre = O.nombrar(m), comun = O.COMUN[nombre];
       lec.innerHTML = U.lec("Nombre IUPAC", "<span class='q7-nombre'>" + nombre + "</span>" + (comun ? " <small class='q7-comun'>(" + comun + ")</small>" : ""), "ok ancho") +
@@ -278,8 +405,8 @@
   // ============================================================
   B.w.q7_constructor = function (host, args, d) {
     var cuerpo = B.caja(host, "Pruébalo", "Constructor de moléculas orgánicas con nomenclatura IUPAC");
-    cuerpo.innerHTML = '<div class="q7-cont"></div><p class="w-pie">Cambia la longitud de la cadena, los enlaces, el grupo funcional y los sustituyentes: el nombre se calcula con las reglas IUPAC (cadena principal, grupo principal con el localizador más bajo, enlaces múltiples, sustituyentes en orden alfabético). Con «Numeración» verás el sentido en que se numera la cadena. Si la molécula es imposible (más de 4 enlaces en un carbono) te lo dice.</p>';
-    var presets = d && d.moleculas ? d.moleculas.slice(0, 14).map(function (x) { return { etq: x.nombre, spec: x }; }) : null;
+    cuerpo.innerHTML = '<div class="q7-cont"></div><p class="w-pie">Cambia la longitud de la cadena, los enlaces, el grupo funcional y los sustituyentes: el nombre se calcula con las reglas IUPAC (cadena principal, grupo principal con el localizador más bajo, enlaces múltiples, sustituyentes en orden alfabético). Los números grises del dibujo muestran el sentido en que se numera la cadena. Si la molécula es imposible (más de 4 enlaces en un carbono) te lo dice.</p>';
+    var presets = d ? d.slice(0, 14).map(function (x) { return { etq: x.nombre, spec: x }; }) : null;
     constructor(cuerpo.querySelector(".q7-cont"), { presets: presets });
   };
 
@@ -288,7 +415,7 @@
   // ============================================================
   B.w.q7_reto = function (host, args, d) {
     var cuerpo = B.caja(host, "Reto", "Construye la molécula con este nombre");
-    var lista = (d && d.retos) || [];
+    var lista = d || [];
     cuerpo.innerHTML = '<div class="q7-objetivo"><span class="q7-lab">Construye:</span> <b class="q7-nombre" data-obj></b></div><div class="q7-cont"></div><div class="ctl q7-acc"></div><p class="q7-res" aria-live="polite"></p>';
     var st = { i: 0, ok: 0 }, obj = cuerpo.querySelector("[data-obj]"), res = cuerpo.querySelector(".q7-res"), cur = null, nombreAct = null;
     var api = constructor(cuerpo.querySelector(".q7-cont"), { alCambiar: function (nombre) { nombreAct = nombre; res.className = "q7-res"; res.textContent = ""; } });
@@ -329,14 +456,14 @@
   function tarjetaNombrar(host, d, titulo, modo) {
     var cuerpo = B.caja(host, "Entrénate", titulo);
     cuerpo.innerHTML = '<div class="w-plot"></div><div class="q7-cond lectura anch"></div><div class="q7-ops" data-ops></div><p class="q7-res" aria-live="polite"></p><div class="ctl q7-acc"></div><p class="w-pie q7-marc"></p>';
-    var banco = (d && d.moleculas) || [], g, st = { m: null, aciertos: 0, total: 0, hecho: false }, ops = cuerpo.querySelector("[data-ops]"), res = cuerpo.querySelector(".q7-res"), cond = cuerpo.querySelector(".q7-cond"), marc = cuerpo.querySelector(".q7-marc");
+    var banco = d || [], g, st = { m: null, aciertos: 0, total: 0, hecho: false }, ops = cuerpo.querySelector("[data-ops]"), res = cuerpo.querySelector(".q7-res"), cond = cuerpo.querySelector(".q7-cond"), marc = cuerpo.querySelector(".q7-marc");
     g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -2, xmax: 6, ymin: -2.2, ymax: 2.6, w: 620, h: 230, limpio: true, etiqueta: "Molécula" });
     var FAMS = ["alcano", "alqueno", "alquino", "alcohol", "aldehído", "cetona", "ácido carboxílico", "amina", "derivado halogenado"];
     function famSimple(m) { var f = O.familia(m); if (/halogenado/.test(f)) return "derivado halogenado"; if (/alcohol/.test(f)) return "alcohol"; if (/aldehído/.test(f)) return "aldehído"; if (/cetona/.test(f)) return "cetona"; if (/ácido/.test(f)) return "ácido carboxílico"; if (/amina/.test(f)) return "amina"; if (/alquino|diino/.test(f)) return "alquino"; if (/eno|dieno/.test(f) && !/alcano/.test(f)) return "alqueno"; return "alcano"; }
     function nuevo() {
       var pool = modo === "grupos" ? banco.filter(function (x) { return true; }) : banco;
       var x = azar(pool); st.m = O.copia(x); st.m.nombre = x.nombre; st.hecho = false; res.className = "q7-res"; res.textContent = "";
-      O.rango(g, st.m.n); O.dibuja(g, st.m, false);
+      O.dibuja(g, st.m, false);
       cond.innerHTML = U.lec("Fórmula semidesarrollada", O.condensada(st.m), "pen ancho");
       var correcta, lista;
       if (modo === "grupos") {
