@@ -217,11 +217,11 @@
         w("clasificar", "datos")
     },
     {
-      h: "12. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "18. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "13. Autocomprobación del tema",
+      h: "19. Autocomprobación del tema",
       html: "<p>Diez preguntas de test con explicación y tarjetas con las fórmulas del tema.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
@@ -612,6 +612,341 @@
         { mal: "Mediatriz = punto medio", bien: "Mediatriz = recta ⊥ AB por M", por: "Es una recta, no un punto." }
       ] }
   ];
+
+
+  // =====================================================================
+  // REFUERZO del tema 8: forma normal y distancia con signo, haz de rectas, programación lineal,
+  //                      modelos lineales, incentro y recta de Euler, problemas de examen
+  // =====================================================================
+  resumen.push(
+    "La <b>distancia con signo</b> δ = (Ax₀ + By₀ + C)/√(A² + B²) dice a qué lado de la recta está un punto; el <b>haz</b> r + k·s = 0 da todas las rectas por r ∩ s sin calcular el punto.",
+    "En <b>programación lineal</b> el máximo o mínimo de F = ax + by sobre una región poligonal está en un <b>vértice</b>. Las rectas también modelizan costes, tarifas y puntos de equilibrio, y el incentro es el centro de la circunferencia inscrita: I = (aA + bB + cC)/(a + b + c)."
+  );
+
+  var nuevas8 = [
+    {
+      h: "12. Forma normal de Hesse y distancia con signo",
+      html:
+        "<p>Si dividimos la ecuación general Ax + By + C = 0 entre la longitud del vector normal, N = √(A² + B²), los coeficientes de x e y pasan a ser las componentes de un vector <b>unitario</b>: (A/N)x + (B/N)y + C/N = 0. Escogiendo el signo para que C/N sea negativo se obtiene la <b>forma normal de Hesse</b>: x·cos φ + y·sen φ = p, donde φ es el ángulo del vector normal unitario y <b>p ≥ 0 es la distancia de la recta al origen</b>.</p>" +
+        "<p>Lo más útil es lo que ocurre al sustituir un punto cualquiera P = (x₀, y₀) en esa expresión normalizada: se obtiene la <b>distancia con signo</b>:</p>" +
+        H.formula("δ(P) = (A·x₀ + B·y₀ + C) / √(A² + B²)") +
+        "<p>Su valor absoluto |δ| es la distancia de P a la recta (la fórmula que ya conoces); su <b>signo</b> dice en qué lado está P: positivo en el lado hacia el que apunta el vector normal (A, B) y negativo en el contrario; vale 0 sobre la recta. Con esto:</p>" +
+        "<ul><li>Dos puntos están <b>del mismo lado</b> de la recta si δ tiene el mismo signo, y en <b>lados opuestos</b> si los signos son distintos (entonces el segmento que los une corta a la recta).</li>" +
+        "<li>Una recta divide el segmento AB (con A y B en lados opuestos) en la razón <b>AP/PB = |δ(A)|/|δ(B)|</b>: los triángulos de las dos distancias son semejantes. Así se halla el punto de corte sin resolver un sistema.</li></ul>" +
+        ejemplo("Forma normal y distancias con signo", "Pasa 3x + 4y − 10 = 0 a forma normal y calcula δ(O) y δ(P) para el origen O y P = (4, 3).", [
+          "N = √(9 + 16) = 5. Normal: 0,6x + 0,8y − 2 = 0, es decir, <b>0,6x + 0,8y = 2</b>: la recta está a <b>p = 2</b> del origen y el vector normal unitario (0,6; 0,8) forma φ = arctan(4/3) = 53,13° con el eje X.",
+          "δ(O) = (0 + 0 − 10)/5 = <b>−2</b> (distancia 2, lado negativo).",
+          "δ(P) = (12 + 12 − 10)/5 = <b>2,8</b> (distancia 2,8, lado positivo). Los signos son distintos: O y P están en lados opuestos de la recta."
+        ]) +
+        ejemplo("Dónde corta una recta a un segmento", "La recta x + y − 6 = 0 corta al segmento de extremos A = (0, 0) y B = (6, 3). Halla el punto de corte sin resolver ningún sistema.", [
+          "δ(A) = (0 + 0 − 6)/√2 = −6/√2 y δ(B) = (6 + 3 − 6)/√2 = 3/√2. Signos opuestos: la recta sí corta al segmento.",
+          "AP/PB = |δ(A)|/|δ(B)| = 6/3 = 2, es decir, P está a 2/3 del camino de A a B: P = A + (2/3)·AB = (0, 0) + (2/3)(6, 3) = <b>(4, 2)</b>.",
+          "Comprobación: 4 + 2 − 6 = 0 ✓ (P está en la recta)."
+        ]) +
+        ojo("el signo de δ depende de <b>cómo se escribió</b> la ecuación: multiplicar la ecuación por −1 invierte todos los signos. Lo que no cambia es que dos puntos del mismo lado dan el mismo signo y los de lados opuestos, signos distintos."),
+    },
+    {
+      h: "13. Haz de rectas",
+      html:
+        "<p>Un <b>haz de rectas</b> es una familia de rectas que comparten algo. Hay tres tipos, y todos se describen con un parámetro:</p>" +
+        tabla(["Haz", "Ecuación", "Qué comparten"], [
+          ["Central (por un punto P)", "y − y₀ = m·(x − x₀) (y la vertical x = x₀)", "pasan por P; varía la pendiente m"],
+          ["Por la intersección de r y s", "r + k·s = 0, es decir, (A₁ + kA₂)x + (B₁ + kB₂)y + (C₁ + kC₂) = 0", "pasan por P = r ∩ s; varía k"],
+          ["De paralelas", "Ax + By + k = 0", "tienen el mismo vector normal (A, B); varía k"]
+        ]) +
+        "<p>La ecuación r + k·s = 0 pasa por P = r ∩ s porque en P tanto r como s valen 0, así que r(P) + k·s(P) = 0 para <b>cualquier</b> k. Su gran utilidad: obtener rectas que pasan por la intersección de r y s <b>sin calcular ese punto</b>. Elige el tipo de haz, mueve k y arrastra Q:</p>" +
+        w("haz") +
+        ejemplo("La recta del haz que pasa por un punto", "Halla la recta que pasa por la intersección de r: 2x − y − 1 = 0 y s: x + 2y − 8 = 0 y por Q = (1, 0).", [
+          "Haz: (2x − y − 1) + k(x + 2y − 8) = 0. Sustituimos Q: r(Q) = 2 − 0 − 1 = 1 y s(Q) = 1 − 8 = −7, luego 1 − 7k = 0 → <b>k = 1/7</b>.",
+          "(2x − y − 1) + (1/7)(x + 2y − 8) = 0. Multiplicando por 7: 15x − 5y − 15 = 0 → <b>3x − y − 3 = 0</b>.",
+          "Comprobación: las rectas se cortan en P = (2, 3) y 3·2 − 3 − 3 = 0 ✓; y Q: 3·1 − 0 − 3 = 0 ✓."
+        ]) +
+        ejemplo("Una recta del haz con una condición de paralelismo", "De ese mismo haz, ¿cuál es paralela a 3x + y − 7 = 0?", [
+          "La recta del haz es (2 + k)x + (−1 + 2k)y + (−1 − 8k) = 0, con vector normal (2 + k, −1 + 2k).",
+          "Paralela a 3x + y − 7 = 0 ⇔ normales proporcionales: (2 + k)/(−1 + 2k) = 3/1 → 2 + k = −3 + 6k → 5 = 5k → <b>k = 1</b>.",
+          "La recta es 3x + y − 9 = 0. Comprobación: pasa por P = (2, 3): 6 + 3 − 9 = 0 ✓."
+        ]) +
+        ejemplo("Tres rectas concurrentes", "¿Para qué valor de m se cortan en un mismo punto las rectas x + y − 4 = 0, x − y = 0 y mx + y − 6 = 0?", [
+          "Las dos primeras se cortan en P = (2, 2) (de x + y = 4 y x = y). Para que la tercera pase por P: m·2 + 2 − 6 = 0 → <b>m = 2</b>.",
+          "Con el haz: la tercera debe ser proporcional a (x + y − 4) + k(x − y) = (1 + k)x + (1 − k)y − 4. Para pasar el término independiente de −4 a −6 se multiplica por 3/2, y (3/2)(1 − k) = 1 da k = 1/3, con lo que m = (3/2)(1 + 1/3) = 2 ✓."
+        ]) +
+        ejemplo("Un haz de paralelas", "Halla las rectas paralelas a 3x + 4y − 1 = 0 que distan 2 de ella.", [
+          "Las paralelas son 3x + 4y + k = 0. La distancia entre 3x + 4y − 1 = 0 y 3x + 4y + k = 0 es |k − (−1)|/√(9 + 16) = |k + 1|/5.",
+          "|k + 1|/5 = 2 → k + 1 = ±10 → <b>k = 9 o k = −11</b>: las rectas 3x + 4y + 9 = 0 y 3x + 4y − 11 = 0 (una a cada lado de la dada)."
+        ]) +
+        ojo("el haz r + k·s = 0 contiene <b>todas las rectas por P salvo s</b> (para llegar a s habría que hacer k → ∞). Si el problema pide una recta del haz y no sale para ningún k, prueba con s. Por ejemplo, la perpendicular a y = 2x dentro del haz anterior es precisamente s: x + 2y − 8 = 0. Para no perder ninguna se escribe λ·r + μ·s = 0 con (λ, μ) ≠ (0, 0)."),
+    },
+    {
+      h: "14. Programación lineal: optimizar en una región",
+      html:
+        "<p>Muchos problemas de la vida real piden lo mejor posible (máximo beneficio, mínimo coste) con recursos limitados. Si todas las condiciones son <b>lineales</b>, es un problema de <b>programación lineal</b>, y se resuelve con lo que sabes de rectas y semiplanos. Hay cuatro ingredientes:</p>" +
+        "<ul><li><b>Variables</b> x e y (lo que se decide: unidades de cada producto).</li>" +
+        "<li><b>Restricciones</b>: inecuaciones lineales (recursos disponibles, mínimos exigidos y x ≥ 0, y ≥ 0).</li>" +
+        "<li><b>Región factible</b>: la intersección de todos los semiplanos. Es un polígono convexo (puede ser no acotado o vacío).</li>" +
+        "<li><b>Función objetivo</b> F(x, y) = ax + by, lo que se quiere maximizar o minimizar.</li></ul>" +
+        "<p>La clave: las rectas ax + by = k (<b>rectas de nivel</b>) son paralelas entre sí y F crece al desplazarlas en un sentido. Si se mueve la recta de nivel hasta el último punto de la región que toca, ese punto es el óptimo, y <b>siempre está en un vértice</b> (o en todo un lado, si la recta de nivel es paralela a él). Por eso basta calcular F en los vértices. Prueba los cuatro problemas del simulador y mueve el nivel:</p>" +
+        w("proglineal") +
+        "<h5>Método</h5>" +
+        "<ol><li>Definir las variables y escribir la función objetivo.</li><li>Escribir las restricciones (sin olvidar x ≥ 0, y ≥ 0).</li><li>Dibujar la región factible (probando un punto en cada inecuación).</li><li>Hallar los vértices: intersecciones de pares de rectas que cumplen todas las restricciones.</li><li>Evaluar F en cada vértice y quedarse con el mayor (o el menor).</li><li>Responder con el contexto del problema: cuántas unidades y qué valor.</li></ol>" +
+        ejemplo("Un problema de máximo", "Un agricultor dispone de 12 ha para trigo (x) y maíz (y), 18 h de trabajo (2 h por ha de trigo, 1 h por ha de maíz) y debe sembrar al menos 2 ha de trigo. El beneficio es de 400 € por ha de trigo y 300 € por ha de maíz. ¿Cuánto debe sembrar para ganar lo máximo?", [
+          "Restricciones: x + y ≤ 12 (terreno), 2x + y ≤ 18 (horas), x ≥ 2, y ≥ 0. Objetivo: maximizar F = 4x + 3y (en centenas de euros).",
+          "Vértices de la región: (2, 0) [x = 2 con y = 0]; (9, 0) [y = 0 con 2x + y = 18]; (6, 6) [x + y = 12 con 2x + y = 18: restando, x = 6]; (2, 10) [x = 2 con x + y = 12].",
+          "F(2, 0) = 8, F(9, 0) = 36, <b>F(6, 6) = 42</b>, F(2, 10) = 38.",
+          "<b>Máximo en (6, 6)</b>: sembrar 6 ha de trigo y 6 de maíz, con un beneficio de 4 200 €. Comprobación: 6 + 6 = 12 ✓ y 2·6 + 6 = 18 ✓ (usa todo el terreno y todas las horas)."
+        ]) +
+        ejemplo("Un problema de mínimo con región no acotada", "Se mezclan x kg de un pienso A (3 €/kg) y y kg de un pienso B (4 €/kg). La mezcla debe aportar al menos 12 unidades de proteína (A aporta 2 por kg y B, 1) y al menos 9 de fibra (A aporta 1 por kg y B, 2). ¿Cuál es la mezcla más barata?", [
+          "Restricciones: 2x + y ≥ 12, x + 2y ≥ 9, x ≥ 0, y ≥ 0. Objetivo: minimizar F = 3x + 4y.",
+          "La región es <b>no acotada</b> (se extiende hacia arriba y a la derecha), pero F ≥ 0 crece al alejarse, así que el mínimo existe y está en un vértice.",
+          "Vértices: (0, 12) [x = 0 con 2x + y = 12]; (9, 0) [y = 0 con x + 2y = 9]; (5, 2) [2x + y = 12 con x + 2y = 9: x = 5, y = 2]. (En (6, 0) no se cumple la fibra: 6 &lt; 9.)",
+          "F(0, 12) = 48, F(9, 0) = 27, <b>F(5, 2) = 23</b>. <b>Mezcla más barata: 5 kg de A y 2 kg de B, por 23 €.</b>"
+        ]) +
+        ejemplo("Del enunciado al sistema", "Una panadería hace tartas grandes (x) y pequeñas (y). Cada grande necesita 3 kg de harina y 2 h de horno; cada pequeña, 1 kg y 1 h. Hay 30 kg de harina y 22 h de horno. Gana 5 € por grande y 2 € por pequeña. Plantea el problema y resuélvelo.", [
+          "Restricciones: 3x + y ≤ 30 (harina), 2x + y ≤ 22 (horno), x ≥ 0, y ≥ 0. Objetivo: maximizar F = 5x + 2y.",
+          "Vértices: (0, 0); (10, 0) [harina con y = 0]; (0, 22) [horno con x = 0; cumple 22 ≤ 30]; (8, 6) [3x + y = 30 y 2x + y = 22: restando, x = 8, y = 6].",
+          "F(0, 0) = 0, F(10, 0) = 50, F(0, 22) = 44, <b>F(8, 6) = 52</b>.",
+          "<b>Máximo en (8, 6)</b>: 8 tartas grandes y 6 pequeñas, con 52 € de beneficio. (Fíjate: no es el vértice con mayor x ni con mayor y; hay que comparar todos.)"
+        ]) +
+        "<h5>Casos especiales</h5>" +
+        "<ul><li><b>Infinitas soluciones</b>: si las rectas de nivel son paralelas a un lado de la región (F proporcional a una restricción), todos los puntos de ese lado son óptimos. Ocurre en el simulador con F = x + y.</li>" +
+        "<li><b>Sin solución</b>: si las restricciones se contradicen, la región es vacía (por ejemplo x + y ≤ 2 y x + y ≥ 5).</li>" +
+        "<li><b>Sin óptimo</b>: si la región no está acotada y F mejora hacia el infinito (por ejemplo, maximizar x + y con x + y ≥ 3), no hay máximo.</li></ul>" +
+        ojo("el óptimo no está «en el centro» de la región ni se encuentra evaluando F en un punto interior: siempre en un vértice. Y si una región es no acotada, comprueba hacia dónde crece F antes de afirmar que existe un máximo."),
+    },
+    {
+      h: "15. Rectas que modelizan: costes, tarifas y puntos de equilibrio",
+      html:
+        "<p>Una magnitud que cambia a ritmo constante se describe con una recta: <b>y = m·x + n</b>. La pendiente m es lo que aumenta y por cada unidad de x (precio por unidad, velocidad, litros por hora…) y la ordenada n el valor inicial o «cuota fija». Para obtener el modelo basta una recta que pase por dos datos.</p>" +
+        ejemplo("Una recta por dos datos", "Un depósito tiene 300 L a las 2 h y 600 L a las 5 h de empezar a llenarse con un grifo de caudal constante. Halla la función V(t), interpreta m y n, y calcula cuándo llegará a 1 000 L.", [
+          "m = (600 − 300)/(5 − 2) = 100 L/h: el caudal del grifo. V(t) = 100t + n con V(2) = 300 → n = 300 − 200 = 100.",
+          "<b>V(t) = 100t + 100</b>: el depósito ya tenía 100 L (la ordenada en el origen) y entran 100 L cada hora.",
+          "V(t) = 1 000 → 100t = 900 → <b>t = 9 h</b>."
+        ]) +
+        "<p>Cuando se comparan dos opciones lineales, el <b>punto de corte</b> de sus rectas marca el cambio de la mejor. En una empresa, el <b>coste</b> es C(x) = costes fijos + (coste por unidad)·x y el <b>ingreso</b> es I(x) = (precio)·x: el <b>punto de equilibrio</b> es donde C(x) = I(x), y el beneficio es B(x) = I(x) − C(x). Mueve los datos:</p>" +
+        w("equilibrio") +
+        ejemplo("El punto de equilibrio de un taller", "Un taller tiene unos costes fijos de 3 000 € y cada pieza cuesta 12 € de material y se vende a 20 €. ¿A partir de cuántas piezas gana dinero? ¿Y cuánto gana con 500?", [
+          "C(x) = 3 000 + 12x e I(x) = 20x. B(x) = 20x − 3 000 − 12x = 8x − 3 000.",
+          "Equilibrio: 8x = 3 000 → <b>x* = 375 piezas</b> (con ingresos y costes de 7 500 €). Con más de 375 piezas hay beneficio.",
+          "Con x = 500: B = 8·500 − 3 000 = <b>1 000 €</b>. Con x = 300 sería B = −600 € (pérdidas)."
+        ]) +
+        ejemplo("Dos tarifas de móvil", "La tarifa A cobra 8 € al mes más 0,06 €/min y la tarifa B, 3 € al mes más 0,10 €/min. ¿Cuándo compensa cada una?", [
+          "Costes: A(x) = 8 + 0,06x y B(x) = 3 + 0,10x. Se igualan: 8 + 0,06x = 3 + 0,10x → 5 = 0,04x → <b>x = 125 min</b> (a los 125 minutos las dos cuestan 15,50 €).",
+          "Para x &lt; 125, la más barata es la B (su cuota fija es menor y todavía no pesa su mayor precio por minuto); para x &gt; 125, la <b>A</b>, que tiene menor pendiente.",
+          "Regla práctica: la tarifa de menor pendiente gana cuando se usa mucho; la de menor ordenada en el origen, cuando se usa poco."
+        ]) +
+        ojo("un modelo lineal solo vale <b>dentro del rango</b> en que se ha medido. <b>Interpolar</b> (calcular entre los datos) suele ser fiable; <b>extrapolar</b> (salirse de los datos) puede dar disparates: si la estatura de un niño crece 6 cm al año, a los 40 años mediría más de 3 m. Y fíjate en las unidades: m = 100 L/h y n = 100 L no son comparables."),
+    },
+    {
+      h: "16. Incentro, circunferencia inscrita y recta de Euler",
+      html:
+        "<p>El <b>incentro</b> I es el punto donde se cortan las tres bisectrices; equidista de los tres lados y es el centro de la <b>circunferencia inscrita</b>. Se puede calcular sin resolver sistemas. Con a = |BC|, b = |CA| y c = |AB| (cada lado lleva la letra del vértice opuesto):</p>" +
+        H.formula("I = (a·A + b·B + c·C) / (a + b + c)          r = Área / s,  con s = (a + b + c)/2") +
+        "<p>(Es una media ponderada de los vértices, como el centro de masas del tema de vectores, pero con los lados como «masas»: el vértice opuesto al lado más largo pesa más.) El radio r de la circunferencia inscrita es la distancia de I a cada lado y vale Área/s (porque Área = ½·perímetro·r). Solo coincide con el baricentro si el triángulo es equilátero.</p>" +
+        ejemplo("Incentro de un triángulo rectángulo", "Calcula el incentro y el radio de la circunferencia inscrita en el triángulo A = (0, 0), B = (4, 0), C = (0, 3).", [
+          "a = |BC| = 5, b = |CA| = 3, c = |AB| = 4. Perímetro 12.",
+          "I = (5·(0, 0) + 3·(4, 0) + 4·(0, 3))/12 = (12, 12)/12 = <b>(1, 1)</b>.",
+          "Área = ½·4·3 = 6 y s = 6, luego <b>r = 6/6 = 1</b>. Comprobación: la distancia de I a la hipotenusa 3x + 4y − 12 = 0 es |3 + 4 − 12|/5 = 1 ✓ y a los catetos (los ejes) también es 1 ✓. (En un triángulo rectángulo r = (b + c − a)/2 = (3 + 4 − 5)/2 = 1.)"
+        ]) +
+        "<h5>La recta de Euler</h5>" +
+        "<p>En todo triángulo, el circuncentro O, el baricentro G y el ortocentro H están alineados, y G divide al segmento OH en la razón 1 : 2 (OG = ½·GH). Con vectores se comprueba en una línea: G = (A + B + C)/3 y H = A + B + C − 2·O, es decir, <b>H = 3G − 2O</b>. Casos curiosos: en un triángulo equilátero los tres puntos coinciden; en un triángulo rectángulo, H es el vértice del ángulo recto y O el punto medio de la hipotenusa.</p>" +
+        ejemplo("Comprobar la recta de Euler", "En el triángulo A = (0, 0), B = (8, 0), C = (2, 6) halla O, G y H y comprueba que están alineados.", [
+          "<b>G</b> = ((0 + 8 + 2)/3, (0 + 0 + 6)/3) = (10/3, 2).",
+          "<b>O</b>: la mediatriz de AB es x = 4. Con |OA| = |OC|: 16 + y² = (4 − 2)² + (y − 6)² = 4 + y² − 12y + 36 → 12y = 24 → y = 2. <b>O = (4, 2)</b>.",
+          "<b>H</b> = 3G − 2O = (10 − 8, 6 − 4) = <b>(2, 2)</b>. Comprobación: la altura desde C es x = 2 ✓ y la altura desde A (perpendicular a BC = (−6, 6), de pendiente −1) es y = x, que corta a x = 2 en (2, 2) ✓.",
+          "Los tres puntos están en la recta <b>y = 2</b>. Distancias: |OG| = 2/3 y |GH| = 4/3 (GH = 2·OG ✓)."
+        ])
+    },
+    {
+      h: "17. Problemas de examen resueltos",
+      html:
+        "<p>Cinco problemas del estilo de la prueba de acceso, con el desarrollo que se pide en un examen.</p>" +
+        ejemplo("Problema 1 · Un triángulo", "Sea el triángulo de vértices A = (−2, 0), B = (4, 0) y C = (0, 4). (a) Halla las ecuaciones generales de sus lados. (b) Calcula el área. (c) Halla la altura desde A (recta y longitud). (d) Halla la mediatriz del lado BC.", [
+          "(a) AB: y = 0. BC: pasa por (4, 0) y (0, 4): x + y − 4 = 0. AC: pasa por (−2, 0) y (0, 4), pendiente 2: 2x − y + 4 = 0.",
+          "(b) Base AB = 6 y altura (la de C) = 4: área = ½·6·4 = <b>12</b>.",
+          "(c) La altura desde A es perpendicular a BC (normal (1, 1)), luego tiene dirección (1, 1): y = x + 2. Corta a BC en x + (x + 2) = 4 → x = 1: pie D = (1, 3). Longitud = |AD| = |(3, 3)| = 3√2 ≈ <b>4,24</b> (también: 2·área/|BC| = 24/(4√2) = 3√2 ✓).",
+          "(d) Punto medio de BC: M = (2, 2). La mediatriz es perpendicular a BC, luego tiene la dirección de su normal (1, 1) y pasa por M: y − 2 = x − 2 → <b>x − y = 0</b>."
+        ]) +
+        ejemplo("Problema 2 · Una recta a distancia dada", "Halla las rectas que pasan por P = (2, 1) y están a distancia 2 del origen.", [
+          "La recta vertical x = 2 pasa por P y su distancia al origen es 2: <b>es una solución</b> (no se ve con la forma y = mx + n, ¡cuidado!).",
+          "Las demás: y − 1 = m(x − 2) → mx − y + 1 − 2m = 0. Distancia al origen: |1 − 2m|/√(m² + 1) = 2 → (1 − 2m)² = 4(m² + 1) → 1 − 4m + 4m² = 4m² + 4 → −4m = 3 → m = −3/4.",
+          "y − 1 = −(3/4)(x − 2) → 3x + 4y − 10 = 0: <b>segunda solución</b>. Comprobación: |−10|/5 = 2 ✓ y 3·2 + 4·1 − 10 = 0 ✓."
+        ]) +
+        ejemplo("Problema 3 · Rectas tangentes (avance de circunferencias)", "Halla los valores de k para que la recta 3x + 4y + k = 0 sea tangente a la circunferencia de centro (1, 2) y radio 3.", [
+          "Una recta es tangente a una circunferencia cuando la distancia del centro a la recta es igual al radio.",
+          "d = |3·1 + 4·2 + k|/√(9 + 16) = |11 + k|/5 = 3 → |11 + k| = 15.",
+          "11 + k = 15 → <b>k = 4</b>; 11 + k = −15 → <b>k = −26</b>. Hay dos tangentes (paralelas, una a cada lado del centro)."
+        ]) +
+        ejemplo("Problema 4 · Programación lineal", "Un taller fabrica sillas y mesas. Cada silla necesita 2 h de carpintería y 1 h de pintura y deja 30 € de beneficio; cada mesa, 3 h de carpintería y 2 h de pintura y deja 50 €. Se dispone al mes de 120 h de carpintería y 70 h de pintura. (a) Plantea el sistema y dibuja la región. (b) ¿Cuántas sillas y mesas conviene fabricar?", [
+          "(a) x sillas, y mesas: 2x + 3y ≤ 120 (carpintería), x + 2y ≤ 70 (pintura), x ≥ 0, y ≥ 0. La región es un cuadrilátero con vértices (0, 0), (60, 0), (30, 20) y (0, 35) [(30, 20) sale de 2x + 3y = 120 y x + 2y = 70: x = 70 − 2y → 140 − 4y + 3y = 120 → y = 20, x = 30].",
+          "(b) F = 30x + 50y: F(0, 0) = 0; F(60, 0) = 1 800; <b>F(30, 20) = 1 900</b>; F(0, 35) = 1 750.",
+          "Conviene fabricar <b>30 sillas y 20 mesas</b>, con un beneficio de 1 900 € al mes."
+        ]) +
+        ejemplo("Problema 5 · Bisectrices de rectas perpendiculares", "Halla las bisectrices de los ángulos que forman r: 3x − 4y + 1 = 0 y s: 4x + 3y − 2 = 0.", [
+          "Las rectas son perpendiculares (3·4 + (−4)·3 = 0) y se cortan en P = (1/5, 2/5). Las bisectrices son los puntos que equidistan de r y de s: |3x − 4y + 1|/5 = |4x + 3y − 2|/5.",
+          "Con signo +: 3x − 4y + 1 = 4x + 3y − 2 → <b>x + 7y − 3 = 0</b>. Con signo −: 3x − 4y + 1 = −4x − 3y + 2 → <b>7x − y − 1 = 0</b>.",
+          "Comprobación: P cumple ambas (1/5 + 14/5 − 3 = 0 y 7/5 − 2/5 − 1 = 0) y las bisectrices son perpendiculares entre sí: (1, 7)·(7, −1) = 0 ✓. Como siempre, las dos bisectrices son perpendiculares."
+        ])
+    }
+  ];
+  nuevas.splice(nuevas.length - 2, 0, nuevas8[0], nuevas8[1], nuevas8[2], nuevas8[3], nuevas8[4], nuevas8[5]);
+
+  // actividades nuevas
+  datos.tipoHaz = {
+    titulo: "¿Qué tipo de haz es?",
+    consigna: "Clasifica cada familia de rectas.",
+    categorias: ["Central (pasan por un punto)", "Por la intersección de r y s", "De paralelas"],
+    items: [
+      { t: "y − 3 = m(x − 1), con m variable", c: 0 }, { t: "2x + 3y + k = 0", c: 2 }, { t: "(x + y − 2) + k(x − y) = 0", c: 1 },
+      { t: "Todas las rectas que pasan por (0, 0)", c: 0 }, { t: "Todas las rectas de pendiente 3", c: 2 }, { t: "Rectas por el punto de corte de dos rectas dadas", c: 1 }
+    ]
+  };
+  datos.ordenPL = {
+    titulo: "Resolver un problema de programación lineal",
+    consigna: "Ordena los pasos del método.",
+    items: [
+      { t: "Definir las variables y la función objetivo", nota: "F = ax + by: lo que se quiere maximizar o minimizar." },
+      { t: "Escribir las restricciones como inecuaciones", nota: "Sin olvidar x ≥ 0 e y ≥ 0." },
+      { t: "Dibujar la región factible", nota: "Se prueba un punto en cada semiplano." },
+      { t: "Calcular los vértices de la región", nota: "Intersección de pares de rectas que cumplan todas las restricciones." },
+      { t: "Evaluar F en cada vértice y elegir el mayor o el menor" },
+      { t: "Interpretar el resultado en el contexto del problema", nota: "Cuántas unidades y qué beneficio (o coste)." }
+    ]
+  };
+  nuevas8[1].html += w("clasificar", "tipoHaz");
+  nuevas8[2].html += "<p>Practica el orden del método:</p>" + w("orden", "ordenPL");
+
+  // preguntas nuevas de «¿Qué falla aquí?» y del test
+  datos.errores.preguntas.push(
+    { q: "En un problema de programación lineal, un alumno evalúa F = 4x + 3y en el centro de la región, (4, 3), y dice que ahí está el máximo. ¿Qué falla?",
+      op: ["Nada: el centro es el mejor punto", "El máximo (si existe) está siempre en un <b>vértice</b>: hay que calcular F en todos los vértices y comparar", "El máximo está siempre en el origen", "Hay que evaluar solo el vértice con mayor x"], ok: 1,
+      porque: "F es lineal: sobre un segmento crece o decrece de forma constante, así que no puede tener un máximo en el interior; se alcanza en un vértice (o en un lado entero)." },
+    { q: "Para la recta del haz (x + y − 4) + k(x − y) = 0 que pasa por Q = (1, 0), un alumno escribe: r(Q) = −3, luego k = −3. ¿Qué falla?",
+      op: ["Nada", "Hay que resolver −3 + k·s(Q) = 0 con s(Q) = 1: k = <b>3</b>, no −3", "k debe ser 0", "No existe tal recta"], ok: 1,
+      porque: "Al sustituir Q: r(Q) + k·s(Q) = 0 → k = −r(Q)/s(Q) = −(−3)/1 = 3. Se había olvidado pasar r(Q) al otro lado." },
+    { q: "Un alumno dice que el incentro de cualquier triángulo es el baricentro, porque ambos son «el centro» del triángulo. ¿Qué falla?",
+      op: ["Nada", "Solo coinciden en un triángulo equilátero: el incentro es I = (aA + bB + cC)/(a + b + c), con los lados como pesos", "El incentro es el ortocentro", "El baricentro es el punto de las mediatrices"], ok: 1,
+      porque: "Con A = (0, 0), B = (4, 0), C = (0, 3): incentro (1, 1), baricentro (4/3, 1). Son puntos distintos." }
+  );
+  datos.quiz1.preguntas.push(
+    { q: "Los puntos P y Q dan δ(P) = 3 y δ(Q) = −2 al sustituir en la ecuación normalizada de una recta. Entonces…", op: ["están en lados opuestos de la recta", "están en el mismo lado", "P está sobre la recta", "la recta es paralela a PQ"], ok: 0, porque: "Los signos distintos indican lados opuestos: el segmento PQ corta a la recta." },
+    { q: "La ecuación r + k·s = 0 (con r y s secantes) representa…", op: ["las rectas que pasan por el punto r ∩ s (salvo s)", "las rectas paralelas a r", "las rectas perpendiculares a s", "la bisectriz de r y s"], ok: 0, porque: "En el punto de corte r = s = 0, así que r + k·s = 0 para todo k: es el haz de rectas por ese punto." },
+    { q: "En un problema de programación lineal con región acotada, el máximo de F = ax + by se alcanza…", op: ["en un vértice de la región", "siempre en el origen", "en el centro de la región", "en un punto cualquiera del interior"], ok: 0, porque: "Las rectas de nivel de F son paralelas y el último punto de la región que tocan es un vértice (o un lado entero)." },
+    { q: "Con C(x) = 3 000 + 12x e I(x) = 20x, el punto de equilibrio es…", op: ["x = 375", "x = 150", "x = 250", "x = 3 000"], ok: 0, porque: "20x = 3 000 + 12x → 8x = 3 000 → x = 375." },
+    { q: "El incentro de un triángulo es la intersección de…", op: ["las bisectrices", "las mediatrices", "las alturas", "las medianas"], ok: 0, porque: "Equidista de los tres lados: es el centro de la circunferencia inscrita." },
+    { q: "La recta de Euler de un triángulo contiene…", op: ["el circuncentro, el baricentro y el ortocentro", "el incentro y el baricentro", "los tres vértices", "los puntos medios de los lados"], ok: 0, porque: "O, G y H están alineados y G divide a OH en razón 1 : 2." }
+  );
+
+  // ejercicios nuevos (r37–r49)
+  ejercicios.push(
+    // ---------- ★ ----------
+    { id: "r37", nivel: 1,
+      enunciado: "Para la recta 5x − 12y − 39 = 0, calcula la distancia del origen a la recta y la distancia con signo δ del punto P = (8, 0) (usa δ = (Ax₀ + By₀ + C)/√(A² + B²); da el valor con signo, en decimales).",
+      check: [{ tipo: "num", etiqueta: "distancia al origen =", valor: 3 }, { tipo: "num", etiqueta: "δ(P) =", valor: 0.07692, tol: 0.002 }],
+      pistas: ["√(A² + B²) = 13. La distancia del origen es |C|/13."],
+      pasos: ["N = √(25 + 144) = 13. Distancia del origen: |−39|/13 = 3.", "δ(P) = (5·8 − 12·0 − 39)/13 = 1/13 ≈ 0,0769 (positivo: P está en el lado hacia el que apunta (5, −12))."],
+      resultado: "p = 3; δ(P) = 1/13 ≈ 0,077" },
+    { id: "r38", nivel: 1,
+      enunciado: "La temperatura en °F es función lineal de la temperatura en °C, con F = 32 para C = 0 y F = 212 para C = 100. ¿Cuántos °F son 37 °C?",
+      check: { tipo: "num", etiqueta: "F =", valor: 98.6, unidad: "°F" },
+      pistas: ["Pendiente = (212 − 32)/(100 − 0)."],
+      pasos: ["m = 180/100 = 1,8 y n = 32: F = 1,8·C + 32.", "F(37) = 1,8·37 + 32 = 66,6 + 32 = 98,6 °F."],
+      resultado: "98,6 °F" },
+    { id: "r39", nivel: 1,
+      enunciado: "Para la recta 2x − y + 3 = 0, ¿cómo están situados los puntos P = (1, 1) y Q = (−2, 1)?",
+      check: { tipo: "opcion", etiqueta: "P y Q están", opciones: ["en lados opuestos de la recta", "en el mismo lado (el positivo)", "en el mismo lado (el negativo)", "uno de ellos está sobre la recta"], ok: 0 },
+      pistas: ["Calcula 2x − y + 3 en cada punto y compara los signos."],
+      pasos: ["P: 2·1 − 1 + 3 = 4 &gt; 0. Q: 2·(−2) − 1 + 3 = −2 &lt; 0.", "Los signos son distintos: lados opuestos."],
+      resultado: "en lados opuestos" },
+    // ---------- ★★ ----------
+    { id: "r40", nivel: 2,
+      enunciado: "Halla la recta que pasa por la intersección de r: x + y − 3 = 0 y s: 2x − y = 0 y por el punto Q = (0, 5). Da A, B y C con A &gt; 0 y sin factor común.",
+      check: [{ tipo: "num", etiqueta: "A =", valor: 3 }, { tipo: "num", etiqueta: "B =", valor: 1 }, { tipo: "num", etiqueta: "C =", valor: -5 }],
+      pistas: ["Haz: (x + y − 3) + k(2x − y) = 0 y sustituye Q."],
+      pasos: ["Con Q: (0 + 5 − 3) + k(0 − 5) = 0 → 2 − 5k = 0 → k = 2/5.", "(x + y − 3) + (2/5)(2x − y) = 0 → 5x + 5y − 15 + 4x − 2y = 0 → 9x + 3y − 15 = 0 → 3x + y − 5 = 0.", "Comprobación: r ∩ s = (1, 2) y 3 + 2 − 5 = 0 ✓."],
+      resultado: "3x + y − 5 = 0" },
+    { id: "r41", nivel: 2,
+      enunciado: "Calcula el incentro (x, y) y el radio r de la circunferencia inscrita en el triángulo A = (−3, 0), B = (3, 0), C = (0, 4).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 0 }, { tipo: "num", etiqueta: "y =", valor: 1.5 }, { tipo: "num", etiqueta: "r =", valor: 1.5 }],
+      pistas: ["Lados: a = |BC|, b = |CA|, c = |AB|. I = (aA + bB + cC)/(a + b + c) y r = Área/s."],
+      pasos: ["a = 5, b = 5, c = 6; perímetro 16.", "I = (5·A + 5·B + 6·C)/16 = ((−15 + 15 + 0), (0 + 0 + 24))/16 = (0; 1,5).", "Área = ½·6·4 = 12 y s = 8 → r = 12/8 = 1,5."],
+      resultado: "I = (0; 1,5), r = 1,5" },
+    { id: "r42", nivel: 2,
+      enunciado: "La recta 2x − y − 4 = 0 corta al segmento de extremos A = (0, 0) y B = (6, 2). Halla el punto de corte usando distancias con signo.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 2.4 }, { tipo: "num", etiqueta: "y =", valor: 0.8 }],
+      pistas: ["δ(A) ∝ 2·0 − 0 − 4 y δ(B) ∝ 2·6 − 2 − 4. AP/PB = |δ(A)|/|δ(B)|."],
+      pasos: ["Valores sin normalizar: A: −4; B: 12 − 2 − 4 = 6. Signos opuestos.", "AP/PB = 4/6 = 2/3 → AP = (2/5)·AB.", "P = (2/5)(6, 2) = (2,4; 0,8). Comprobación: 4,8 − 0,8 − 4 = 0 ✓."],
+      resultado: "P = (2,4; 0,8)" },
+    { id: "r43", nivel: 2,
+      enunciado: "Una compañía A cobra 12 € fijos más 0,05 €/min y otra B, 5 € fijos más 0,10 €/min. ¿A partir de cuántos minutos compensa más la A? ¿Cuánto cuesta entonces cada una?",
+      check: [{ tipo: "num", etiqueta: "minutos =", valor: 140 }, { tipo: "num", etiqueta: "coste =", valor: 19, unidad: "€" }],
+      pistas: ["Iguala 12 + 0,05x = 5 + 0,10x."],
+      pasos: ["12 + 0,05x = 5 + 0,10x → 7 = 0,05x → x = 140 min.", "Coste: 12 + 0,05·140 = 19 € (y 5 + 0,10·140 = 19 €).", "Para más de 140 min es más barata la A (menor pendiente)."],
+      resultado: "140 min; 19 €" },
+    { id: "r44", nivel: 2,
+      enunciado: "¿Para qué valor de m se cortan en un mismo punto las rectas x − 2y + 3 = 0, 2x + y − 4 = 0 y 3x + my − 5 = 0?",
+      check: { tipo: "num", etiqueta: "m =", valor: 1 },
+      pistas: ["Halla el punto de corte de las dos primeras y exige que la tercera pase por él."],
+      pasos: ["x − 2y = −3 y 2x + y = 4 → y = 4 − 2x → x − 8 + 4x = −3 → x = 1, y = 2.", "Tercera: 3·1 + 2m − 5 = 0 → 2m = 2 → m = 1."],
+      resultado: "m = 1" },
+    // ---------- ★★★ ----------
+    { id: "r45", nivel: 3,
+      enunciado: "Halla la recta simétrica de r: 2x − y + 1 = 0 respecto de s: x + y − 2 = 0. Da A, B y C con A &gt; 0 y sin factor común.",
+      check: [{ tipo: "num", etiqueta: "A =", valor: 1 }, { tipo: "num", etiqueta: "B =", valor: -2 }, { tipo: "num", etiqueta: "C =", valor: 3 }],
+      pistas: ["La simetría respecto de x + y = 2 lleva (x, y) en (2 − y, 2 − x). La recta simétrica es el conjunto de las imágenes."],
+      pasos: ["Un punto (x', y') de la simétrica viene de (x, y) = (2 − y', 2 − x') de r: 2(2 − y') − (2 − x') + 1 = 0.", "4 − 2y' − 2 + x' + 1 = 0 → x' − 2y' + 3 = 0.", "Comprobación: r ∩ s = (1/3, 5/3) está en la simétrica: 1/3 − 10/3 + 3 = 0 ✓."],
+      resultado: "x − 2y + 3 = 0" },
+    { id: "r46", nivel: 3,
+      enunciado: "Un taller fabrica x mesas e y sillas. Cada mesa necesita 4 h de carpintería y 2 h de barnizado; cada silla, 2 h y 3 h. Hay 40 h de carpintería y 36 h de barnizado. Gana 60 € por mesa y 40 € por silla. Halla cuántas de cada fabricar para el máximo beneficio y cuál es éste.",
+      check: [{ tipo: "num", etiqueta: "mesas x =", valor: 6 }, { tipo: "num", etiqueta: "sillas y =", valor: 8 }, { tipo: "num", etiqueta: "beneficio =", valor: 680, unidad: "€" }],
+      pistas: ["Restricciones 4x + 2y ≤ 40, 2x + 3y ≤ 36, x, y ≥ 0. F = 60x + 40y. Calcula F en los vértices."],
+      pasos: ["Vértices: (0, 0), (10, 0), (0, 12) y (6, 8) [de 4x + 2y = 40 y 2x + 3y = 36: y = 20 − 2x → 2x + 60 − 6x = 36 → x = 6].", "F = 0, 600, 480 y 60·6 + 40·8 = 680.", "Máximo en (6, 8): 6 mesas y 8 sillas, 680 €."],
+      resultado: "6 mesas, 8 sillas, 680 €" },
+    { id: "r47", nivel: 3,
+      enunciado: "Minimiza F = 2x + 3y sujeto a x + y ≥ 6, x + 3y ≥ 10, x ≥ 0, y ≥ 0. Da el punto óptimo y el valor mínimo.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 4 }, { tipo: "num", etiqueta: "y =", valor: 2 }, { tipo: "num", etiqueta: "F mín =", valor: 14 }],
+      pistas: ["La región no está acotada, pero F ≥ 0 crece al alejarse. Calcula los vértices: (10, 0), (0, 6) y la intersección de las dos rectas."],
+      pasos: ["Vértices: (10, 0) [y = 0 con x + 3y = 10], (0, 6) [x = 0 con x + y = 6] y (4, 2) [x + y = 6 con x + 3y = 10 → 2y = 4].", "F(10, 0) = 20; F(0, 6) = 18; F(4, 2) = 8 + 6 = 14.", "Mínimo en (4, 2): F = 14."],
+      resultado: "(4, 2), F = 14" },
+    { id: "r48", nivel: 3,
+      enunciado: "Halla los valores de k para que la recta y = x + k sea tangente a la circunferencia de centro (0, 0) y radio 3 (la distancia del centro a la recta debe valer el radio). Da los dos valores en decimales.",
+      check: { tipo: "lista", etiqueta: "k =", valores: [4.2426, -4.2426], tol: 0.002, ph: "dos valores" },
+      pistas: ["La recta es x − y + k = 0. Distancia del origen: |k|/√2."],
+      pasos: ["|k|/√2 = 3 → |k| = 3√2 ≈ 4,2426.", "k = 3√2 o k = −3√2."],
+      resultado: "k = ±3√2 ≈ ±4,243" },
+    { id: "r49", nivel: 3,
+      enunciado: "Demuestra que, en un triángulo con el circuncentro O en el origen, el punto H = A + B + C es el ortocentro, y que O, G y H están alineados (recta de Euler).",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 7, items: [
+        { t: "Usa |A| = |B| = |C| (O es el circuncentro y está en el origen)", p: 0.5 },
+        { t: "Calcula (H − A)·(B − C) = (B + C)·(B − C) = |B|² − |C|² = 0 (la recta AH es perpendicular a BC)", p: 0.5 },
+        { t: "Razona igual con otro vértice y concluye que H es el ortocentro", p: 0.5 },
+        { t: "Escribe el baricentro G = (A + B + C)/3 = H/3 y concluye que O, G y H están alineados con OH = 3·OG", p: 0.5 }
+      ] },
+      pasos: ["Con O = (0, 0): |A| = |B| = |C| = R. Sea H = A + B + C.", "(H − A)·(B − C) = (B + C)·(B − C) = |B|² − |C|² = R² − R² = 0 → AH ⊥ BC. Análogamente BH ⊥ CA, luego H es el ortocentro.", "G = (A + B + C)/3 = H/3: G está en la recta OH, con OG = OH/3 (GH = 2·OG). ∎"],
+      resultado: "H = A + B + C = 3G" }
+  );
+  ejercicios.sort(function (a, b) { return a.nivel - b.nivel; });
+
+  // láminas nuevas
+  lamina.push(
+    { titulo: "Distancia con signo y haz de rectas",
+      items: [
+        { label: "Forma normal", formula: "(Ax + By + C)/√(A² + B²) = 0 → x cos φ + y sen φ = p", ejemplo: "3x + 4y − 10 = 0 → 0,6x + 0,8y = 2 (p = 2)" },
+        { label: "Distancia con signo", formula: "δ(P) = (Ax₀ + By₀ + C)/√(A² + B²)", cuando: "Signos distintos: P y Q en lados opuestos. AP/PB = |δ(A)|/|δ(B)|." },
+        { label: "Haz por r ∩ s", formula: "r + k·s = 0", cuando: "Todas las rectas por el punto de corte (salvo s). Por Q: k = −r(Q)/s(Q).", ojo: "No incluye s: para ella k → ∞." },
+        { label: "Haz de paralelas", formula: "Ax + By + k = 0", cuando: "Distancia entre k₁ y k₂: |k₁ − k₂|/√(A² + B²)." }
+      ],
+      nota: "Tres rectas concurrentes: la tercera pasa por el corte de las otras dos." },
+    { titulo: "Programación lineal y modelos", ancha: true,
+      tabla: { cab: ["Idea", "Qué hacer"], filas: [
+        ["Región factible", "intersección de semiplanos (polígono convexo; puede ser no acotado o vacío)"],
+        ["Función objetivo F = ax + by", "rectas de nivel ax + by = k, paralelas; F crece al desplazarlas"],
+        ["Óptimo", "en un vértice (o en todo un lado si la recta de nivel es paralela a él)"],
+        ["Método", "variables → restricciones → región → vértices → evaluar F → interpretar"],
+        ["Punto de equilibrio", "C(x) = I(x); C = fijos + c·x, I = p·x; x* = fijos/(p − c)"],
+        ["Incentro", "I = (aA + bB + cC)/(a + b + c); r = Área/s"],
+        ["Recta de Euler", "O, G, H alineados; H = 3G − 2O"]
+      ] },
+      nota: "Interpolar es fiable; extrapolar con un modelo lineal puede dar disparates." }
+  );
 
   B.registrar("mates1", "t8", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
