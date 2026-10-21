@@ -547,3 +547,86 @@
   [data-w^="m13_"] .ctl label .sl-et { white-space: normal; flex: 1 1 100%; }
   [data-w^="m13_"] .ctl label input[type=range] { flex: 1 1 60%; }
 }
+/* ---- FyQ I · tema 1: átomo ---- */
+.q1-tp-wrap { overflow-x: auto; padding: 2px; }
+.q1-tp { display: grid; grid-template-columns: repeat(18, minmax(26px, 1fr)); grid-template-rows: repeat(5, auto); gap: 2px; min-width: 520px; margin: 6px 0; }
+.q1-el { position: relative; border: 1.5px solid transparent; border-radius: 6px; padding: 8px 0 6px; font: 700 14px/1 var(--body); cursor: pointer; text-align: center; transition: transform .08s; }
+.q1-el i { position: absolute; top: 2px; left: 3px; font: 500 8.5px/1 var(--body); font-style: normal; opacity: .8; }
+.q1-el b { font-weight: 800; }
+.q1-el:hover { transform: scale(1.12); z-index: 2; }
+.q1-el.sel { border-color: var(--ink); box-shadow: 0 0 0 2px var(--sheet), 0 0 0 4px var(--ink); z-index: 3; }
+.q1-el:focus-visible { outline: 3px solid var(--ink); outline-offset: 1px; z-index: 3; }
+.q1-leyenda { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 13px; color: var(--ink-soft); margin: 4px 0 8px; }
+.q1-leyenda i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 4px; }
+.q1-grad i { width: 160px; height: 12px; border-radius: 6px; }
+.q1-fila { display: grid; grid-template-columns: minmax(0, 300px) 1fr; gap: 14px; align-items: start; }
+.q1-lienzo { max-width: 320px; margin: 0 auto; width: 100%; }
+.q1-atomo, .q1-forma { width: 100%; height: auto; display: block; }
+.q1-niveles { max-width: 380px; }
+.q1-orbitales { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 10px 0; }
+.q1-sub { display: inline-flex; align-items: center; gap: 3px; background: var(--sheet-2); border-radius: 8px; padding: 4px 8px; }
+.q1-sub b { font: 700 13px var(--body); color: var(--pen); margin-right: 4px; }
+.q1-orb { display: inline-block; min-width: 24px; height: 24px; line-height: 22px; text-align: center; border: 1.5px solid var(--ink-faint); border-radius: 4px; font: 700 15px var(--body); color: var(--ink); letter-spacing: -2px; }
+.q1-juego { margin-top: 12px; padding: 10px 14px; border: 1.5px dashed var(--ink-faint); border-radius: 12px; }
+.q1-juego p { margin: 4px 0; }
+.q1-tq { margin-top: 10px; }
+@media (max-width: 700px) { .q1-fila { grid-template-columns: 1fr; } .q1-tp { min-width: 470px; } }
+
+/* ---- FyQ I · tema 2: enlace químico ---- */
+.q2-fila { display: grid; grid-template-columns: minmax(0, 320px) 1fr; gap: 14px; align-items: start; margin: 6px 0; }
+.q2-lienzo { max-width: 340px; width: 100%; margin: 0 auto; }
+.q2-svg, .q2-lewis { width: 100%; height: auto; display: block; }
+.q2-sim { font: 800 15px var(--body); fill: var(--ink); }
+.q2-simc, .q2-simx { font: 800 14px var(--body); fill: var(--ink); }
+.q2-pie { font: 600 10.5px var(--body); fill: var(--ink-faint); }
+.q2-enl { stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; }
+.q2-at { fill: var(--sheet); stroke: none; }
+.q2-lp { fill: var(--pen); }
+.q2-ue { fill: var(--red); }
+.q2-fc circle { stroke-width: 1.5; }
+.q2-fc.pos circle { fill: var(--red-soft, #FBE9EC); stroke: var(--red); } .q2-fc.pos text { fill: var(--red); }
+.q2-fc.neg circle { fill: var(--pen-soft, #E8EDFF); stroke: var(--pen); } .q2-fc.neg text { fill: var(--pen); }
+.q2-fc text { font: 800 11px var(--body); }
+.q2-nube.a { fill: var(--pen); fill-opacity: .22; stroke: var(--pen); stroke-width: 1.5; }
+.q2-nube.b { fill: var(--red); fill-opacity: .22; stroke: var(--red); stroke-width: 1.5; }
+.q2-par { fill: var(--ok); fill-opacity: .18; stroke: var(--ok); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.q2-flecha { stroke: var(--red); stroke-width: 3; stroke-dasharray: 5 4; }
+.q2-carga { font: 800 16px var(--body); fill: var(--red); }
+.q2-escala { margin: 8px 0 2px; }
+.q2-barra { position: relative; display: flex; height: 16px; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--ink-faint); }
+.q2-barra .z1 { background: #6FA8E8; } .q2-barra .z2 { background: #F0C24A; } .q2-barra .z3 { background: #E07085; }
+.q2-marca { position: absolute; top: -3px; width: 4px; height: 22px; margin-left: -2px; background: var(--ink); border-radius: 2px; box-shadow: 0 0 0 2px var(--sheet); }
+.q2-rot { position: relative; height: 18px; font: 600 12px var(--body); color: var(--ink-soft); }
+.q2-rot span { position: absolute; top: 3px; white-space: nowrap; }
+.q2-juego { margin-top: 12px; padding: 10px 14px; border: 1.5px dashed var(--ink-faint); border-radius: 12px; }
+.q2-juego p { margin: 4px 0; }
+.q2-reto { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: end; margin: 6px 0; }
+.q2-reto label { display: flex; flex-direction: column; gap: 3px; font: 600 12.5px var(--body); color: var(--ink-soft); }
+.q2-reto input { width: 110px; padding: 6px 8px; border: 1.5px solid var(--ink-faint); border-radius: 8px; background: var(--sheet); color: var(--ink); font: 600 15px var(--body); }
+.q2-msg { min-height: 1.4em; }
+.q2-central { fill: var(--pen); fill-opacity: .9; }
+.q2-sobre { fill: #fff; }
+.q2-mt, .q2-hb { max-width: 520px; }
+.q2-lig { fill: var(--sheet-2); stroke: var(--ink); stroke-width: 1.6; }
+.q2-dip { stroke: var(--pen); fill: var(--pen); } .q2-res { stroke: var(--red); fill: var(--red); }
+.q2-dip.punta, .q2-res.punta { stroke-width: 1; }
+.q2-leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-soft); margin: 2px 0 6px; }
+.q2-leyenda i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 4px; }
+.q2-lista { margin: 8px 0; padding-left: 22px; } .q2-lista li { margin: 4px 0; }
+.q2-pasos, .q2-razon { margin: 6px 0; }
+.q2-sw { display: grid; gap: 6px; margin: 8px 0; }
+.q2-opc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; } .q2-opc > span:first-child { flex: 1 1 240px; }
+.q2-fila-b { display: grid; grid-template-columns: minmax(130px, 1.4fr) 2fr auto; gap: 10px; align-items: center; margin: 5px 0; font-size: 14px; }
+.q2-b { display: block; height: 12px; background: var(--sheet-2); border-radius: 6px; overflow: hidden; } .q2-b i { display: block; height: 100%; background: var(--pen); border-radius: 6px; }
+.q2-cat { fill: var(--red); fill-opacity: .25; stroke: var(--red); stroke-width: 1.5; }
+.q2-ani { fill: var(--pen); fill-opacity: .22; stroke: var(--pen); stroke-width: 1.5; }
+.q2-sup { font: 800 12px var(--body); fill: var(--ink); }
+.q2-mar { fill: var(--pen); fill-opacity: .06; stroke: var(--pen); stroke-width: 1; stroke-dasharray: 5 4; rx: 12; }
+.q2-e { fill: var(--pen); }
+.q2-rep { stroke: var(--red); stroke-width: 3; stroke-dasharray: 3 3; }
+.q2-orbfila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; } .q2-orbfila b { flex: 0 0 210px; font: 700 13px var(--body); color: var(--pen); }
+.q2-orbfila .q1-orb { min-width: 58px; letter-spacing: 0; font-size: 13px; padding: 0 4px; }
+.q2-lob { fill: var(--red); fill-opacity: .35; stroke: var(--red); stroke-width: 1.4; }
+.q2-lobp { fill: none; stroke: var(--pen); stroke-width: 1.6; stroke-dasharray: 4 3; }
+.q2-sp { overflow-x: auto; }
+@media (max-width: 700px) { .q2-fila { grid-template-columns: 1fr; } .q2-orbfila b { flex-basis: 100%; } .q2-fila-b { grid-template-columns: 1fr; gap: 2px; } }
