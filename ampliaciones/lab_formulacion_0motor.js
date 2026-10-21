@@ -236,7 +236,7 @@
   ["F", "Cl", "Br", "I", "S", "Se", "Te"].forEach(function (s) {
     var e = NM[s], n = e.neg;
     add({ fam: "hidracido", f: "H" + (n > 1 ? n : "") + s, cat: s, nh: n, niv: NM[s].niv || 1, oxs: [["H", n, 1], [s, 1, -n]],
-      sist: [e.an + " de " + pr(n) + "hidrógeno"], stock: [e.an + " de hidrógeno"], trad: ["ácido " + e.hidr] });
+      sist: uniq([e.an + " de " + pr(n) + "hidrógeno", e.an + " de hidrógeno"]), stock: [e.an + " de hidrógeno"], trad: ["ácido " + e.hidr] });
   });
 
   // Sales binarias de metal y no metal
@@ -286,7 +286,7 @@
     var h = o[0], f = (h > 1 ? "H" + h : "H") + formAn(o);
     var oo = (o[3] === 1 ? "" : PR[o[3]]) + "oxo" + pr(o[2]) + ESTIRP[o[1]] + "ico(" + ROM[o[4]] + ")";
     add({ fam: "oxoacido", f: f, cat: o[1], ox: o[4], nh: h, nx: o[2], no: o[3], niv: o[7], oxs: [["H", h, 1], [o[1], o[2], o[4]], ["O", o[3], -2]],
-      sist: [oxAn(o) + " de " + pr(h) + "hidrógeno"],
+      sist: [oxAn(o) + " de " + pr(h) + "hidrógeno", pr(h) + "hidrogeno(" + oxAn(o) + ")"],
       stock: [oxAn(o) + "(" + ROM[o[4]] + ") de hidrógeno", "ácido " + oo],
       trad: ["ácido " + o[5]] });
   });
@@ -311,7 +311,7 @@
     r.trad = base;
     if (adj) r.trad.push(r.stock[0]);
     (nameParts.tradExtra || []).forEach(function (t) { r.trad.push(t + (adj ? " " + adj : " de " + m.n)); });
-    if (nameParts.sistExtra) r.sist = r.sist.concat(nameParts.sistExtra.map(function (t) { return grp(t) + " de " + metal; }));
+    if (nameParts.sistExtra && na === 1) r.sist = r.sist.concat(nameParts.sistExtra.map(function (t) { return t + " de " + metal; }));
     r.oxs = nameParts.oxs(nm, na, c);
     return r;
   }
@@ -332,7 +332,7 @@
       else if (h === 1 && o[0] === 3) tradEx.push(o[6] + " monoácido");
       else if (h === 2 && o[0] === 3) tradEx.push(o[6] + " diácido");
       CATS.forEach(function (c) {
-        var r = sal(c, anA, carga, "salAcida", { sist: hp + oxAn(o), trad: hp + o[6], stock2: null, niv: Math.max(2, o[7]), tradExtra: tradEx,
+        var r = sal(c, anA, carga, "salAcida", { sist: hp + oxAn(o), sistExtra: [hp + "(" + oxAn(o) + ")"], trad: hp + o[6], stock2: null, niv: Math.max(2, o[7]), tradExtra: tradEx,
           oxs: function (nm, na, cc) { return [[cc.s, nm, cc.v], ["H", h * na, 1], [X, o[2] * na, o[4]], ["O", o[3] * na, -2]]; } });
         r.h = h;
         add(r);

@@ -224,7 +224,7 @@
     var st = { p: PARES[0], c: 1, a: 1 }, lectura = cuerpo.querySelector(".lectura");
     function ficha(s, q, cls) { return '<span class="q3-ion ' + cls + '">' + F.pintarIon(s, q) + "</span>"; }
     function pinta() {
-      var p = st.p, v = p[1], a = p[3], nc = st.c, na = st.a, tot = nc * v - na * a, g = F.gcd(nc, na), minimo = nc * a === na * v && F.gcd(nc, na) === 1;
+      var p = st.p, v = p[1], a = p[3], nc = st.c, na = st.a, tot = nc * v - na * a, g = F.gcd(nc, na), minimo = nc * v === na * a && F.gcd(nc, na) === 1;
       cuerpo.querySelector("[data-nc]").innerHTML = "Catión " + F.pintarIon(p[0], v);
       cuerpo.querySelector("[data-na]").innerHTML = "Anión " + F.pintarIon(p[2], -a);
       cuerpo.querySelector("[data-pc]").innerHTML = new Array(nc + 1).join(ficha(p[0], v, "cat"));

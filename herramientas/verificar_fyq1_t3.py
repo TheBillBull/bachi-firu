@@ -175,7 +175,7 @@ def interpretar(f, q=0):
         if n == NOMET[x][2]:
             nm, an, _, hid, _, _ = NOMET[x]
             res.append(dict(fam='hidracido', oxs={('H', n, 1), (x, 1, -n)},
-                            sist=[an + ' de ' + pref(n) + 'hidrógeno'], stock=[an + ' de hidrógeno'], trad=['ácido ' + hid]))
+                            sist=[an + ' de ' + pref(n) + 'hidrógeno'] + ([an + ' de hidrógeno'] if n > 1 else []), stock=[an + ' de hidrógeno'], trad=['ácido ' + hid]))
         return res
     if f == 'H2O':
         return [dict(fam='oxido', oxs={('H', 2, 1), ('O', 1, -2)}, sist=['óxido de dihidrógeno', 'monóxido de dihidrógeno', 'agua'], stock=['óxido de hidrógeno'], trad=['agua'])]
@@ -186,7 +186,7 @@ def interpretar(f, q=0):
         a = ACIDOS[f]
         raiz = OXOEL[a['x']][0]
         res.append(dict(fam='oxoacido', oxs={('H', a['nh'], 1), (a['x'], a['nx'], a['ox']), ('O', a['no'], -2)},
-                        sist=[anion_sist(a) + ' de ' + pref(a['nh']) + 'hidrógeno'],
+                        sist=[anion_sist(a) + ' de ' + pref(a['nh']) + 'hidrógeno', pref(a['nh']) + 'hidrogeno(' + anion_sist(a) + ')'],
                         stock=[anion_sist(a) + '(' + ROM[a['ox']] + ') de hidrógeno',
                                'ácido ' + (pref(a['no']) if a['no'] > 1 else '') + 'oxo' + pref(a['nx']) + OXOEL[a['x']][1] + 'ico(' + ROM[a['ox']] + ')'],
                         trad=['ácido ' + adjetivo_acido(a)]))
@@ -322,6 +322,7 @@ def sal_ionica(cat, nc, v, clase, dat, na, carga, texto):
         base_sist = (pref(h) + 'hidrogeno' if h else '') + anion_sist(ac)
         base_trad = (pref(h) + 'hidrogeno' if h else '') + anion_trad(ac)
         sist = [grupo(base_sist) + ' de ' + metal_sist]
+        if h and na == 1: sist.append(pref(h) + 'hidrogeno(' + anion_sist(ac) + ') de ' + metal_sist)
         stock = stockn(base_trad)
         if not h: stock.append(anion_sist(ac) + '(' + ROM[ac['ox']] + ') de ' + nm + roman)
         trad = tradicional(base_trad)

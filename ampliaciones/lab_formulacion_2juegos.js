@@ -325,7 +325,7 @@
   var ARBOL = {
     ini: { q: "¿El compuesto contiene algún <b>metal</b> (o el ion amonio NH₄⁺)?", si: "met", no: "nom" },
     met: { q: "¿Contiene <b>oxígeno</b>?", si: "metO", no: "metSinO" },
-    metO: { q: "¿Contiene también <b>hidrógeno</b>?", si: "metOH", no: "metOsolo" },
+    metO: { q: "¿Contiene también <b>hidrógeno</b> (sin contar el del ion NH₄⁺)?", si: "metOH", no: "metOsolo" },
     metOH: { q: "¿El hidrógeno forma parte del grupo <b>OH</b> (hidroxilo), sin más oxígeno ni otro elemento?", si: R("hidroxido"), no: R("salAcida") },
     metOsolo: { q: "¿Hay <b>solo metal y oxígeno</b>?", si: "metO2", no: R("oxisal") },
     metO2: { q: "¿El oxígeno forma el grupo <b>O₂</b> (peróxido: subíndice par que no se simplifica, como Na₂O₂)?", si: R("peroxido"), no: R("oxido") },
@@ -333,7 +333,8 @@
     metH: { q: "¿El hidrógeno está unido <b>solo al metal</b> (MHₙ)?", si: R("hidruroM"), no: R("salAcida") },
     nom: { q: "¿Contiene <b>oxígeno</b>?", si: "nomO", no: "nomSinO" },
     nomO: { q: "¿Contiene también <b>hidrógeno</b>?", si: "nomOH", no: R("oxido") },
-    nomOH: { q: "¿Es H₂O o H₂O₂ (solo H y O)?", si: R("oxido"), no: R("oxoacido") },
+    nomOH: { q: "¿Es H₂O o H₂O₂ (solo H y O)?", si: "nomHO", no: R("oxoacido") },
+    nomHO: { q: "¿Tiene <b>dos</b> átomos de oxígeno (H₂O₂)?", si: R("peroxido"), no: R("oxido") },
     nomSinO: { q: "¿Contiene <b>hidrógeno</b>?", si: "nomH", no: R("salBin") },
     nomH: { q: "¿El otro elemento es <b>F, Cl, Br, I, S, Se o Te</b> (grupos 16 y 17)?", si: R("hidracido"), no: R("hidruroN") }
   };
@@ -342,7 +343,7 @@
     cuerpo.innerHTML = '<p class="w-intro">Contesta sí o no a lo que ves en la fórmula y llegarás a la familia y a la regla para nombrarla. Puedes pedir un compuesto de prueba.</p><div class="q3-prob"></div><div class="ctl" data-botones></div><div class="q3-ruta"></div><div class="lectura anch"></div><div class="ctl"><button type="button" class="chip-btn" data-prueba>Compuesto de prueba</button><button type="button" class="chip-btn" data-reinicio>Empezar de nuevo</button></div>';
     var st = { n: "ini", ruta: [], r: null }, prob = cuerpo.querySelector(".q3-prob"), bot = cuerpo.querySelector("[data-botones]"), ruta = cuerpo.querySelector(".q3-ruta"), lectura = cuerpo.querySelector(".lectura");
     function pinta() {
-      var nodo = ARBOL[st.n];
+      var nodo = typeof st.n === "string" ? ARBOL[st.n] : st.n;
       ruta.innerHTML = st.ruta.map(function (p) { return "<span class='q3-mig'>" + p.q.replace(/<[^>]+>/g, "") + " <b>" + (p.v ? "Sí" : "No") + "</b></span>"; }).join("");
       var pre = st.r ? "<p class='q3-enun'>Compuesto de prueba: <b class='q3-big'>" + F.html(st.r) + "</b></p>" : "";
       if (nodo.q) {
@@ -355,7 +356,7 @@
       }
     }
     cuerpo.querySelector("[data-reinicio]").onclick = function () { st.n = "ini"; st.ruta = []; pinta(); };
-    cuerpo.querySelector("[data-prueba]").onclick = function () { st.r = azar(F.muestra(FAMS.filter(function (f) { return f !== "ion" && f !== "hidruroN" || Math.random() < 0.3; }), 1)); st.n = "ini"; st.ruta = []; pinta(); };
+    cuerpo.querySelector("[data-prueba]").onclick = function () { st.r = azar(F.muestra(FAMS.filter(function (f) { return f !== "ion" && (f !== "hidruroN" || Math.random() < 0.3); }), 1)); st.n = "ini"; st.ruta = []; pinta(); };
     pinta();
   };
 })(window);
