@@ -512,7 +512,8 @@
 .q4-hilo { stroke: var(--ink-faint); stroke-width: 1.5; }
 .q4-plato { fill: color-mix(in srgb, var(--pen) 16%, var(--sheet)); stroke: var(--ink-soft); stroke-width: 1.5; }
 .q4-lbl { font: 600 12px var(--body); fill: var(--ink-soft); } .q4-val { font: 700 15px var(--math); }
-.q4-apilada { display: flex; width: 100%; min-height: 40px; border-radius: 10px; overflow: hidden; margin: 8px 0 2px; font: 600 13px var(--body); color: #fff; }
+.q4-apilada { display: flex; width: 100%; min-height: 40px; border-radius: 10px; overflow: hidden; margin: 8px 0 2px; font: 600 13px var(--body); color: var(--on-pen); }
+.q4-apilada span:nth-child(n+4) { color: #1B1E36; }
 .q4-apilada span { display: flex; align-items: center; justify-content: center; padding: 0 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
 .q4-barras { margin: 8px 0 0; }
 .q4-fila { display: grid; grid-template-columns: 70px 1fr 70px; align-items: center; gap: 8px; margin: 5px 0; font: 600 14px var(--math); }
@@ -528,3 +529,4 @@
 .q4-acc { margin: 8px 0 0; }
 .q4-enun { font: 500 16px/1.5 var(--body); margin: 4px 0 10px; }
 .q4-emp-form .ctl { margin: 8px 0; }
+@media (max-width: 520px) { [data-w^="q4_"] .ctl label { flex-wrap: wrap; } [data-w^="q4_"] .ctl label .sl-et { white-space: normal; } [data-w^="q4_"] .ctl input[type=range] { flex: 1 1 140px; } }

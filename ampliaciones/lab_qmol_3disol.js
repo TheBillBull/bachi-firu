@@ -79,14 +79,14 @@
       while (fondo.firstChild) fondo.removeChild(fondo.firstChild);
       if (m === "dil") {
         var M1 = st.M1, M2 = Math.min(st.M2, M1), V2 = st.V2, V1 = M2 * V2 / M1, Va = V2 - V1, n = M2 * V2 / 1000;
-        vaso(40, V1 / V2 * 0 + 1 * 0.8, M1, "concentrada " + fmt(M1, 1) + " M", 12); vaso(250, 0.85, M2, "final " + fmt(M2, 1) + " M", 12);
+        vaso(40, 0.8, M1, "concentrada " + fmt(M1, 1) + " M", 12); vaso(250, 0.85, M2, "final " + fmt(M2, 1) + " M", 12);
         var fl = svg("path", { d: "M140 90 h90", "class": "q4-flecha" }, fondo); var tt = svg("text", { x: 185, y: 80, "text-anchor": "middle", "class": "q4-lbl" }, fondo); tt.textContent = "+ agua";
         lectura.innerHTML = fil("Moles de soluto en la final  n = M₂·V₂", fmt(n, 4) + " mol", "pen") + fil("Volumen de concentrada que se toma  V₁ = M₂V₂/M₁", fmt(V1, 2) + " mL", "ok") + fil("Agua que se añade", fmt(Va, 2) + " mL (hasta completar " + fmt(V2, 0) + " mL en el matraz aforado)", "red ancho") +
           fil("Factor de dilución", "× " + fmt(M1 / M2, 2) + " (la concentración se divide entre " + fmt(M1 / M2, 2) + ")", "ancho");
         pie.innerHTML = "<b>M₁·V₁ = M₂·V₂</b>: al diluir, los moles de soluto <b>no cambian</b>; sólo se añade disolvente. Se mide V₁ con una pipeta, se pasa a un matraz aforado y se enrasa con agua hasta V₂. (Con los ácidos fuertes: siempre «el ácido al agua».)";
       } else if (m === "mez") {
         var n1 = st.Mb * st.V1m / 1000, n2 = st.M2m * st.V2m / 1000, Vt = st.V1m + st.V2m, Mf = (n1 + n2) / (Vt / 1000);
-        vaso(30, st.V1m / 500 * 0.9, st.Mb, "A " + fmt(st.Mb, 1) + " M", 4); vaso(160, st.V2m / 500 * 0.9, st.M2m, "B " + fmt(st.M2m, 1) + " M", 4); vaso(300, Vt / 1000 * 0.95 + 0.0, Mf, "mezcla " + fmt(Mf, 2) + " M", 4);
+        vaso(30, st.V1m / 500 * 0.9, st.Mb, "A " + fmt(st.Mb, 1) + " M", 4); vaso(160, st.V2m / 500 * 0.9, st.M2m, "B " + fmt(st.M2m, 1) + " M", 4); vaso(300, Vt / 1000 * 0.95, Mf, "mezcla " + fmt(Mf, 2) + " M", 4);
         lectura.innerHTML = fil("Moles en A", fmt(st.Mb, 1) + " · " + fmt(st.V1m / 1000, 3) + " L = " + fmt(n1, 4) + " mol", "pen") + fil("Moles en B", fmt(st.M2m, 1) + " · " + fmt(st.V2m / 1000, 3) + " L = " + fmt(n2, 4) + " mol", "red") + fil("Volumen final (se suponen volúmenes aditivos)", fmt(Vt, 0) + " mL", "") +
           fil("Molaridad de la mezcla  M = (n₁ + n₂)/(V₁ + V₂)", fmt(Mf, 4) + " mol/L", "ok ancho");
         pie.innerHTML = "Al <b>mezclar</b> dos disoluciones del mismo soluto, <b>se suman los moles y se suman los volúmenes</b> (si son aditivos). La molaridad resultante queda siempre entre las dos de partida, más cerca de la de mayor volumen.";

@@ -154,7 +154,7 @@
         var ns = [st.n1, st.n2, st.n3], nt = ns[0] + ns[1] + ns[2];
         if (nt <= 0) { lectura.innerHTML = fil("Mezcla vacía", "añade moles de algún gas", "red ancho"); barras.innerHTML = ""; return; }
         var P = Q.presion(nt, st.T, st.V), x = ns.map(function (a) { return a / nt; }), pp = x.map(function (a) { return a * P; });
-        barras.innerHTML = "<div class='q4-apilada' role='img' aria-label='presiones parciales'>" + pp.map(function (p, i) { return p > 0 ? "<span style='flex:" + p + ";background:" + Q.color(i) + "'>" + (p / P > 0.1 ? NM[i] + " " + fmt(p, 2) + " atm" : "") + "</span>" : ""; }).join("") + "</div>";
+        barras.innerHTML = "<div class='q4-apilada' role='img' aria-label='presiones parciales'>" + pp.map(function (p, i) { return p > 0 ? "<span style='flex:" + p + ";background:" + Q.color(i) + "'>" + (p / P > 0.35 ? NM[i] + " " + fmt(p, 2) + " atm" : p / P > 0.2 ? NM[i] + " " + fmt(p, 2) : p / P > 0.07 ? NM[i] : "") + "</span>" : ""; }).join("") + "</div>";
         lectura.innerHTML = fil("Presión total  P = n<sub>T</sub>RT/V", fmt(P, 3) + " atm", "pen") + fil("Moles totales", fmt(nt, 2) + " mol", "") + NM.map(function (s, i) { return fil("Gas " + s, "x = " + fmt(x[i], 3) + " · p = x·P = " + fmt(pp[i], 3) + " atm", i === 0 ? "ok ancho" : i === 1 ? "red ancho" : "ancho"); }).join("") +
           fil("Comprobación", "p₁ + p₂ + p₃ = " + fmt(pp[0] + pp[1] + pp[2], 3) + " atm = P total", "ancho");
         pie.innerHTML = "<b>Ley de Dalton:</b> la presión total es la suma de las presiones parciales, y cada una es la que ejercería ese gas si estuviera solo en el recipiente: <b>pᵢ = xᵢ·P = nᵢRT/V</b>, con la fracción molar xᵢ = nᵢ/n<sub>T</sub>. (El aire seco tiene x ≈ 0,78 de N₂, 0,21 de O₂ y 0,01 de Ar.)";
