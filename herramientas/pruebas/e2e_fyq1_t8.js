@@ -1,8 +1,8 @@
 // Comportamiento de los simuladores de fyq1 t8 (cinemática): node herramientas/pruebas/e2e_fyq1_t8.js [movil]
 const { lanzar, abrirTema } = require('./e2e_common.js');
 (async () => {
-  const movil = process.argv[2] === 'movil';
-  const { b, p, errs } = await lanzar({ viewport: movil ? { width: 390, height: 844 } : { width: 1280, height: 900 } });
+  const movil = process.argv.includes('movil'), oscuro = process.argv.includes('oscuro');
+  const { b, p, errs } = await lanzar({ viewport: movil ? { width: 390, height: 844 } : { width: 1280, height: 900 }, scheme: oscuro ? 'dark' : 'light' });
   await abrirTema(p, 'fyq1', 't8');
   let mal = 0, n = 0;
   const W = nm => p.locator(`#detail-t8 [data-w=${nm}]`).first();
@@ -61,6 +61,9 @@ const { lanzar, abrirTema } = require('./e2e_common.js');
   const clic = async (i, j) => { await W('f8_leerxt').locator('.lg-p').nth(i).locator('.chip-btn').nth(j).click(); await p.waitForTimeout(40); return W('f8_leerxt').locator('.lg-p').nth(i).locator('.lg-r').innerText(); };
   chk('leerxt mal', await clic(0, 1), t => /Todavía no/.test(t)); chk('leerxt bien', await clic(0, 0), t => /Correcto/.test(t));
   const ov = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); chk('sin desborde horizontal', ov, v => v <= 1);
-  console.log(mal ? mal + ' FALLOS de ' + n : n + ' comprobaciones de comportamiento de cinemática correctas', '· errores JS:', errs.length ? errs : 'ninguno');
+  const { contraste, esOscuro } = require('./e2e_fyq1_comun.js');
+  if (oscuro) chk('modo oscuro activo', await esOscuro(p), true);
+  const { total, malos } = await contraste(p, '#detail-t8', 3); console.log('contraste: ' + total + ' textos medidos, ' + malos.length + ' por debajo de 3:1', malos.slice(0, 8)); chk('contraste del texto ≥ 3:1', malos.length, v => v === 0);
+  console.log(mal ? mal + ' FALLOS de ' + n : n + ' comprobaciones de comportamiento de cinemática correctas', '· errores JS:', errs.length ? errs : 'ninguno', movil ? '· móvil' : '', oscuro ? '· oscuro' : '');
   await b.close();
 })();

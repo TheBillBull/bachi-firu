@@ -13,7 +13,7 @@
   B.w.f9_honda = function (host) {
     var cuerpo = B.caja(host, "Experimento", "La honda: ¿hacia dónde sale la piedra cuando se suelta la cuerda?");
     cuerpo.innerHTML = '<div class="f9-disco f9-honda"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
-    var SEMI = 6, st = { r: 1.5, w: 3, th: 0, suelta: null, tv: 0 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var SEMI = 5, st = { r: 2, w: 3, th: 0, suelta: null, tv: 0 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
     var g = C.disco(cuerpo.querySelector(".f9-disco"), SEMI, 520, 440), btn;
     U.slider(ctl, { et: "Longitud de la cuerda r (m)", min: 0.5, max: 3, step: 0.1, val: st.r, on: function (v) { if (!st.suelta) { st.r = v; pinta(); } }, fmt: function (v) { return f2(v, 1) + " m"; } });
     U.slider(ctl, { et: "Velocidad angular ω (rad/s)", min: -6, max: 6, step: 0.5, val: st.w, on: function (v) { if (!st.suelta) { st.w = v; pinta(); } }, fmt: function (v) { return f2(v, 1); } });

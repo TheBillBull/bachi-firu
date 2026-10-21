@@ -4,7 +4,8 @@ const { lanzar } = require('./e2e_common.js');
 const fs = require('fs');
 (async () => {
   const movil = process.argv[2] === 'movil';
-  const { b, p, errs } = await lanzar({ viewport: movil ? { width: 390, height: 844 } : { width: 1100, height: 900 } });
+  const oscuro = process.argv.includes('oscuro');
+  const { b, p, errs } = await lanzar({ viewport: movil ? { width: 390, height: 844 } : { width: 1100, height: 900 }, scheme: oscuro ? 'dark' : 'light' });
   fs.mkdirSync('shots', { recursive: true });
   const nombres = (process.argv[3] || '').split(',').filter(Boolean);
   await p.evaluate((n) => {
@@ -16,7 +17,7 @@ const fs = require('fs');
   for (const n of nombres) {
     const r = await p.evaluate((n) => { const e = document.getElementById('w-' + n); return { err: !!e.querySelector('.w-error'), lec: e.querySelectorAll('.lec').length, svg: !!e.querySelector('svg.plot'), ancho: e.scrollWidth - e.clientWidth }; }, n);
     console.log(n.padEnd(16), JSON.stringify(r));
-    const el = p.locator('#w-' + n); await el.scrollIntoViewIfNeeded(); await el.screenshot({ path: `shots/${n}${movil ? '_m' : ''}.png` });
+    const el = p.locator('#w-' + n); await el.scrollIntoViewIfNeeded(); await el.screenshot({ path: `shots/${n}${movil ? '_m' : ''}${oscuro ? '_osc' : ''}.png` });
   }
   console.log('errores JS:', errs.length ? errs : 'ninguno');
   await b.close();
