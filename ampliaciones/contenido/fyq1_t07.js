@@ -1,6 +1,8 @@
 (function (global) {
   var B = global.BACHI;
-  B.registrar("fyq1", "t7", { resumen: ["x"], secciones: {}, nuevas: [], datos: {
+  // Bancos de moléculas y retos de los simuladores del tema 7 (el tema se registra en fyq1_t07c.js)
+  B.parte = B.parte || {};
+  B.parte.t7datos = {
   moleculas: [
     { nombre: "butano", n: 4, enl: [1,1,1] },
     { nombre: "2-metilbutano", n: 4, enl: [1,1,1], sus: [{p:2,t:"metil"}] },
@@ -89,5 +91,5 @@
     { nombre: "1,2-dicloroetano", pista: "Dos carbonos, un cloro en cada uno de ellos." },
     { nombre: "2,3-dimetilbut-2-eno", pista: "Cuatro carbonos con el doble enlace central y un metilo en cada carbono del doble enlace." },
     { nombre: "3-metilbutan-1-ol", pista: "Cuatro carbonos con el −OH en un extremo (carbono 1) y un metilo en el carbono 3." }
-  ] }, ejercicios: [], lamina: [] });
+  ] };
 })(window);
