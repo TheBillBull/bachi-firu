@@ -499,3 +499,6 @@
 .ac-t td.pen { color: var(--pen); } .ac-t td.red { color: var(--red); }
 .ac-t tbody tr + tr td, .ac-t tbody tr + tr th { border-top: 1px solid var(--line); }
 .bz-acc { margin-top: 8px; }
+
+/* ---- Física: líneas de cálculo largas se parten en móvil ---- */
+.ampl .math-line, .ampl .ejemplo p { overflow-wrap: anywhere; }
