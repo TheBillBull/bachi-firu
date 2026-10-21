@@ -285,12 +285,12 @@
         w("clasificar", "notables") + w("tarjetas", "tj1")
     },
     {
-      h: "11. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "17. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "12. Autocomprobación del tema",
-      html: "<p>Diez preguntas de test con explicación para saber si el tema está firme.</p>" + w("quiz", "quiz1")
+      h: "18. Autocomprobación del tema",
+      html: "<p>Dieciséis preguntas de test con explicación para saber si el tema está firme.</p>" + w("quiz", "quiz1")
     }
   ];
 
@@ -705,6 +705,357 @@
         { mal: "sen B = 1,2 → B = 90°", bien: "No existe el triángulo", por: "Un seno vale como mucho 1." }
       ] }
   ];
+
+  // ================================================================
+  // AMPLIACIÓN 2 · refuerzo del tema: funciones inversas, radianes, Herón y radios,
+  // rumbos y navegación, figuras y espacio, problemas de examen
+  // (simuladores nuevos en lab_trigo3.js)
+  // ================================================================
+  resumen.push(
+    "<b>Del valor al ángulo</b>: arcsen devuelve un ángulo de −90° a 90°, arccos de 0° a 180° y arctan de −90° a 90°. Falta siempre el <b>otro</b> ángulo de la vuelta (180° − α, 360° − α o α + 180°). Para hallar un ángulo de un triángulo, usa el coseno.",
+    "<b>Rumbo</b> = ángulo desde el norte en sentido horario. Coordenadas: E = d·sen(rumbo), N = d·cos(rumbo). Al cambiar de rumbo, el ángulo del triángulo es 180° − giro. Áreas y radios: Herón, R = abc/(4S), r = S/s."
+  );
+
+  secciones[5] +=
+    "<h5>Clasificar un triángulo sin calcular ángulos</h5>" +
+    "<p>Si a es el lado mayor, el teorema del coseno dice que cos A tiene el signo de b² + c² − a². Así: si a² &lt; b² + c², el triángulo es <b>acutángulo</b>; si a² = b² + c², es <b>rectángulo</b>; y si a² &gt; b² + c², es <b>obtusángulo</b> (con el ángulo obtuso frente al lado mayor). Por ejemplo, con lados 5, 6 y 7: 49 &lt; 25 + 36 = 61, acutángulo (el mayor ángulo vale 78,46°). Con 4, 5 y 8: 64 &gt; 16 + 25 = 41, obtusángulo (cos C = −0,575, C = 125,10°). Y para que el triángulo exista debe cumplirse la <b>desigualdad triangular</b>: cada lado es menor que la suma de los otros dos (con 3, 4 y 8 no se puede cerrar, porque 3 + 4 &lt; 8).</p>";
+
+  datos.rumbos = {
+    titulo: "Direcciones y rumbos",
+    consigna: "Une cada dirección con su rumbo (ángulo desde el norte, en sentido horario).",
+    pares: [["Noreste", "045°"], ["Sureste", "135°"], ["Suroeste", "225°"], ["Noroeste", "315°"], ["Oeste", "270°"], ["N 30° E", "030°"], ["S 30° O", "210°"]]
+  };
+
+  nuevas.splice(nuevas.length - 2, 0,
+    {
+      h: "11. Del valor al ángulo: arcsen, arccos y arctan",
+      html:
+        "<p>Hasta ahora íbamos del <b>ángulo</b> a la <b>razón</b>: dado α = 30°, sen α = 1/2. En muchos problemas es al revés: conoces la razón (porque has medido dos lados) y quieres el <b>ángulo</b>. Para eso están las funciones inversas <b>arcsen</b>, <b>arccos</b> y <b>arctan</b>, que se leen «el ángulo cuyo seno (coseno, tangente) es…». En la calculadora son las teclas sen⁻¹, cos⁻¹ y tan⁻¹ (la segunda función de cada tecla).</p>" +
+        ojo("sen⁻¹ x <b>no</b> significa 1/sen x. El «−1» indica la función inversa, no un exponente; el inverso 1/sen x es la cosecante.") +
+        "<h5>La calculadora da un solo ángulo</h5>" +
+        "<p>Un mismo seno lo tienen dos ángulos en cada vuelta (el de referencia y su suplementario), así que «¿qué ángulo tiene seno 0,5?» tiene muchas respuestas. Para que arcsen sea una función (una respuesta por pregunta) se acuerda que la calculadora devuelva siempre el ángulo de un trozo concreto de la circunferencia, el <b>rango principal</b>:</p>" +
+        tabla(["Función", "Rango principal", "Cuadrantes", "Ejemplos"], [
+          ["arcsen k  (|k| ≤ 1)", "de −90° a 90°", "1.º y 4.º", "arcsen 0,5 = 30° · arcsen(−0,5) = −30°"],
+          ["arccos k  (|k| ≤ 1)", "de 0° a 180°", "1.º y 2.º", "arccos 0,5 = 60° · arccos(−0,5) = 120°"],
+          ["arctan k  (cualquier k)", "de −90° a 90° (sin los extremos)", "1.º y 4.º", "arctan 1 = 45° · arctan(−1) = −45°"]
+        ]) +
+        "<p>Los rangos no son caprichosos: son los trozos en los que la función no repite valores (el seno sube de −1 a 1 entre −90° y 90°; el coseno baja de 1 a −1 entre 0° y 180°; la tangente sube de −∞ a +∞ entre −90° y 90°). En radianes, arcsen y arctan devuelven valores entre −π/2 y π/2, y arccos entre 0 y π. Mueve el valor <i>k</i> y mira dónde cae la respuesta de la calculadora y cuál es la «otra»:</p>" +
+        w("inversas") +
+        "<h5>De la respuesta de la calculadora a todas las soluciones</h5>" +
+        "<p>Cuando necesitas todos los ángulos de [0°, 360°) con una razón dada, sigue siempre este recorrido: <b>(1)</b> calcula el ángulo que da la calculadora; <b>(2)</b> si sale negativo, súmale 360°; <b>(3)</b> añade el <b>otro</b> ángulo (180° − α para el seno, 360° − α para el coseno, α + 180° para la tangente); <b>(4)</b> si el enunciado dice en qué cuadrante está el ángulo, quédate con el que corresponda.</p>" +
+        ejemplo("Un seno negativo", "Halla α en [0°, 360°) sabiendo que sen α = −0,8 y que α está en el 3.er cuadrante.", [
+          "La calculadora da arcsen(−0,8) = −53,13° (sale negativo: es del 4.º cuadrante).",
+          "El ángulo de referencia es 53,13°. Con seno negativo hay dos posibilidades: 180° + 53,13° (3.er cuadrante) y 360° − 53,13° (4.º).",
+          "En el 3.er cuadrante: α = 180° + 53,13° = <b>233,13°</b>. (La otra solución sería 306,87°.)"
+        ]) +
+        ejemplo("Un ángulo con arccos", "En un triángulo de lados a = 7, b = 9 y c = 12, calcula el ángulo C opuesto a c.", [
+          "Con tres lados usamos el teorema del coseno: cos C = (a² + b² − c²)/(2ab) = (49 + 81 − 144)/(2·7·9) = −14/126 = −1/9 ≈ −0,1111.",
+          "C = arccos(−0,1111) = <b>96,38°</b>. La calculadora lo da bien porque arccos devuelve ángulos entre 0° y 180°, obtusos incluidos.",
+          "Con el teorema del seno habríamos tenido sen C = 0,9938 y arcsen(0,9938) = 83,62°: ¡mal!, el ángulo verdadero es el suplementario, 180° − 83,62° = 96,38°."
+        ]) +
+        ejemplo("Una tangente negativa", "Resuelve tan x = −2 en [0°, 360°).", [
+          "La calculadora da arctan(−2) = −63,43°.",
+          "La tangente se repite cada 180°: x = −63,43° + 180° = 116,57° y x = −63,43° + 360° = 296,57°.",
+          "<b>x = 116,57° y x = 296,57°</b> (2.º y 4.º cuadrante, donde la tangente es negativa)."
+        ]) +
+        ojo("arcsen <b>nunca</b> devuelve un ángulo obtuso. Por eso, si en un triángulo el ángulo buscado puede ser obtuso, hallarlo con el teorema del seno es una trampa (es el origen del caso ambiguo): <b>con tres lados, o con dos lados y el ángulo entre ellos, usa el coseno</b> y la calculadora no se equivocará.")
+    },
+    {
+      h: "12. Radianes con soltura: ángulos coterminales, arcos y segmentos",
+      html:
+        "<h5>Ángulos coterminales</h5>" +
+        "<p>Dos ángulos son <b>coterminales</b> si, dibujados desde el eje horizontal, acaban en el mismo lado: se diferencian en un número entero de vueltas. θ y θ + 360°·k (en radianes, θ + 2π·k, con k entero) tienen el mismo seno, coseno y tangente. De todos ellos, el <b>ángulo principal</b> es el que está en [0°, 360°) (o en [0, 2π)). Para hallarlo se quitan o se ponen vueltas completas. Si el ángulo es un múltiplo de π/n, basta pensar en «n-avos de π»: una vuelta son 2n de ellos.</p>" +
+        ejemplo("Ángulo principal y razones", "Halla el ángulo principal de −750° y de 47π/6 rad, y calcula sen(−750°) y cos(47π/6).", [
+          "−750° + 3·360° = −750° + 1080° = <b>330°</b>. Entonces sen(−750°) = sen 330° = −sen 30° = <b>−1/2</b>.",
+          "47π/6 son 47 «sextos de π»; una vuelta (2π) son 12 sextos. Como 47 = 3·12 + 11, 47π/6 = 3·2π + 11π/6, y el ángulo principal es <b>11π/6</b> (= 330°).",
+          "cos(47π/6) = cos(11π/6) = cos 330° = <b>√3/2</b>."
+        ]) +
+        ejemplo("Una familia de ángulos", "Escribe los ángulos coterminales con 50° y di cuáles están entre −400° y 800°.", [
+          "Todos son de la forma 50° + 360°·k, con k entero (en radianes, 5π/18 + 2πk).",
+          "k = −1 → −310°; k = 0 → 50°; k = 1 → 410°; k = 2 → 770°. (k = −2 da −670° y k = 3 da 1130°: fuera del intervalo.)",
+          "Hay cuatro: <b>−310°, 50°, 410° y 770°</b>."
+        ]) +
+        "<h5>Velocidad angular y velocidad lineal</h5>" +
+        "<p>Si algo gira, el ángulo que recorre por unidad de tiempo es la <b>velocidad angular</b> ω (en rad/s). Un punto a distancia r del centro recorre un arco s = θ·r, así que su <b>velocidad lineal</b> es <b>v = ω·r</b>. Para pasar de revoluciones por minuto (rpm) a rad/s: ω = rpm·2π/60. Es la misma idea de los radianes («arco = ángulo·radio») aplicada al movimiento circular.</p>" +
+        ejemplo("Una rueda de bicicleta", "Una rueda de 35 cm de radio da 120 vueltas por minuto. Calcula su velocidad angular y la velocidad de la bicicleta (sin deslizar).", [
+          "ω = 120·2π/60 = 4π ≈ <b>12,57 rad/s</b>.",
+          "v = ω·r = 12,57·0,35 = <b>4,40 m/s</b> ≈ 15,8 km/h."
+        ]) +
+        "<h5>Arco, sector, cuerda y segmento circular</h5>" +
+        "<p>Para un ángulo central θ (en radianes) en una circunferencia de radio r: el <b>arco</b> mide s = θ·r; el <b>sector</b> tiene área ½·r²·θ; la <b>cuerda</b> que une los extremos del arco mide c = 2·r·sen(θ/2); y el <b>segmento circular</b> (la parte del círculo que corta la cuerda) tiene área igual a la del sector menos la del triángulo de lados r, r y ángulo θ: <b>A = ½·r²·(θ − sen θ)</b>.</p>" +
+        ejemplo("Un segmento circular", "En una circunferencia de radio 6 cm, un ángulo central mide 2 rad. Calcula el arco, la cuerda y el área del segmento.", [
+          "Arco: s = 2·6 = <b>12 cm</b>. Cuerda: 2·6·sen(1 rad) = 12·0,8415 = <b>10,10 cm</b>.",
+          "Sector: ½·36·2 = 36 cm². Triángulo: ½·36·sen 2 = 18·0,9093 = 16,37 cm² (¡calculadora en RAD!).",
+          "Segmento = 36 − 16,37 = <b>19,63 cm²</b>."
+        ]) +
+        ejemplo("La aguja minutera", "La aguja minutera de un reloj de torre mide 1,2 m. ¿Qué ángulo, qué arco y qué área barre su punta en 25 minutos?", [
+          "25 minutos son 25/60 de vuelta: θ = (25/60)·2π = 5π/6 rad (150°).",
+          "Arco: s = θ·r = (5π/6)·1,2 = π ≈ <b>3,14 m</b>.",
+          "Área barrida: ½·r²·θ = ½·1,44·5π/6 = 0,6π ≈ <b>1,88 m²</b>."
+        ]) +
+        ojo("para una fórmula como s = θ·r el ángulo <b>tiene que estar en radianes</b>. Con grados hay que convertir antes (o usar s = 2π·r·θ/360°). Y al calcular un seno de un ángulo en radianes, pon la calculadora en modo RAD.")
+    },
+    {
+      h: "13. Todas las medidas de un triángulo: Herón, radios, alturas y medianas",
+      html:
+        "<p>Con un poco más de trigonometría se obtiene casi todo de un triángulo. Para el triángulo de lados a, b, c llamamos <b>semiperímetro</b> a s = (a + b + c)/2 y S al área:</p>" +
+        tabla(["Medida", "Fórmula", "Qué es"], [
+          ["Área (Herón)", "S = √( s(s − a)(s − b)(s − c) )", "con los tres lados"],
+          ["Altura sobre el lado a", "h<sub>a</sub> = 2S/a = b·sen C", "distancia del vértice A al lado a"],
+          ["Radio circunscrito R", "R = a/(2·sen A) = abc/(4S)", "circunferencia que pasa por los tres vértices"],
+          ["Radio inscrito r", "r = S/s", "circunferencia tangente a los tres lados"],
+          ["Mediana desde A", "m<sub>a</sub> = ½·√(2b² + 2c² − a²)", "segmento de A al punto medio del lado a"]
+        ]) +
+        "<h5>De dónde salen</h5>" +
+        "<p><b>Herón.</b> Partimos de S = ½bc·sen A. Entonces 16S² = 4b²c²·sen²A = 4b²c² − 4b²c²·cos²A = 4b²c² − (b² + c² − a²)², donde hemos usado el teorema del coseno (2bc·cos A = b² + c² − a²). Es una diferencia de cuadrados: = [a² − (b − c)²]·[(b + c)² − a²] = (a − b + c)(a + b − c)(b + c − a)(a + b + c) = 16·s(s − a)(s − b)(s − c), porque cada factor es el doble de s menos un lado. Por tanto, S² = s(s − a)(s − b)(s − c).</p>" +
+        "<p><b>Radio circunscrito.</b> El teorema del seno completo dice a/sen A = 2R. Con S = ½bc·sen A = ½bc·a/(2R) = abc/(4R) se obtiene R = abc/(4S). <b>Radio inscrito.</b> Uniendo el centro de la circunferencia inscrita con los tres vértices, el triángulo se divide en tres, de altura r: S = ½ar + ½br + ½cr = r·s. <b>Mediana.</b> El teorema del coseno en los dos triángulos pequeños que forma la mediana, sumados, da m<sub>a</sub>² = (2b² + 2c² − a²)/4.</p>" +
+        ejemplo("El triángulo 13, 14, 15 al completo", "Calcula del triángulo de lados 13, 14 y 15: el área, las tres alturas, los radios R y r, los ángulos y la mediana sobre el lado 14.", [
+          "s = 21 y S = √(21·8·7·6) = √7056 = <b>84</b>.",
+          "Alturas: h<sub>13</sub> = 2·84/13 = 12,92; h<sub>14</sub> = 2·84/14 = 12; h<sub>15</sub> = 2·84/15 = 11,2. (La altura mayor cae sobre el lado menor.)",
+          "R = 13·14·15/(4·84) = 2730/336 = <b>8,125</b> y r = 84/21 = <b>4</b>.",
+          "Ángulos: sen A = a/(2R) = 13/16,25 = 0,8 → A = 53,13°. Los otros con el coseno: cos B = (13² + 15² − 14²)/(2·13·15) = 0,5077 → B = 59,49°, y C = 180° − 53,13° − 59,49° = 67,38°.",
+          "Mediana sobre el lado 14: m = ½·√(2·13² + 2·15² − 14²) = ½·√592 = <b>12,17</b>."
+        ]) +
+        ejemplo("Un triángulo rectángulo: 8, 15, 17", "Calcula el área y los radios R y r del triángulo de lados 8, 15 y 17.", [
+          "s = 20 y S = √(20·12·5·3) = √3600 = <b>60</b> (que coincide con ½·8·15, como debe).",
+          "R = 8·15·17/(4·60) = 2040/240 = <b>8,5</b> = hipotenusa/2: en un triángulo rectángulo el circuncentro es el punto medio de la hipotenusa.",
+          "r = 60/20 = <b>3</b> = (8 + 15 − 17)/2: en un triángulo rectángulo, r = (cateto + cateto − hipotenusa)/2."
+        ]) +
+        ojo("en Herón hay que usar el <b>semi</b>perímetro s, no el perímetro. Y comprueba que cada factor (s − a), (s − b), (s − c) sale positivo: si alguno sale negativo o cero, los lados no forman un triángulo.")
+    },
+    {
+      h: "14. Rumbos, azimuts y navegación",
+      html:
+        "<p>En navegación y aviación los ángulos no se miden como en la circunferencia goniométrica (desde el eje X, al revés que las agujas del reloj) sino desde el <b>norte</b> y en el <b>sentido de las agujas del reloj</b>. Ese ángulo se llama <b>rumbo</b> (o <b>azimut</b>, cuando es la dirección de un punto visto desde otro) y se escribe con tres cifras: 040°, 135°, 270°.</p>" +
+        tabla(["Dirección", "N", "NE", "E", "SE", "S", "SO", "O", "NO"], [["Rumbo", "000°", "045°", "090°", "135°", "180°", "225°", "270°", "315°"]]) +
+        "<p>También se usa la notación de cuadrante: «N 40° E» es la dirección que se separa 40° del norte hacia el este (rumbo 040°), y «S 30° O» la que se separa 30° del sur hacia el oeste (rumbo 210°). Practica el cambio de notación:</p>" +
+        w("emparejar", "rumbos") +
+        "<h5>Del rumbo a las coordenadas</h5>" +
+        "<p>Tomamos el este como eje horizontal y el norte como eje vertical. Un desplazamiento de d kilómetros con rumbo ρ avanza <b>E = d·sen ρ</b> hacia el este y <b>N = d·cos ρ</b> hacia el norte. Fíjate: seno y coseno están «cambiados» respecto de la circunferencia goniométrica, porque ahora el ángulo se mide desde el norte. Es lo mismo que usar el ángulo matemático 90° − ρ. Con 20 km a rumbo 040°: E = 20·sen 40° = 12,86 km y N = 20·cos 40° = 15,32 km.</p>" +
+        "<h5>Dos tramos y el regreso</h5>" +
+        "<p>El caso típico: un barco hace un tramo, cambia de rumbo y hace otro. Los dos tramos y el regreso forman un triángulo en el que conoces dos lados y el ángulo entre ellos (LAL). Atención al ángulo: si el rumbo pasa de ρ₁ a ρ₂, el barco <b>gira</b> ρ₂ − ρ₁, pero el ángulo interior del triángulo es el suplementario, <b>180° − giro</b>. Cambia los rumbos y las distancias y mira el triángulo:</p>" +
+        w("navegacion") +
+        ejemplo("Dos tramos y el regreso", "Un barco sale de puerto, navega 20 km con rumbo 040° y después 30 km con rumbo 100°. ¿A qué distancia del puerto está y con qué rumbo debe volver?", [
+          "El rumbo cambia de 040° a 100°: giro de 60° a la derecha. El ángulo interior del triángulo (puerto, punto de giro, punto final) es 180° − 60° = 120°.",
+          "Teorema del coseno: d² = 20² + 30² − 2·20·30·cos 120° = 400 + 900 + 600 = 1900 → d = <b>43,59 km</b>.",
+          "Para el rumbo de regreso calculamos el ángulo en el puerto con el teorema del seno: sen θ = 30·sen 120°/43,59 = 0,596 → θ = 36,59°. Desde el puerto, el punto final está en el rumbo 040° + 36,59° = 076,59°; el regreso es el opuesto: 076,59° + 180° = <b>256,59°</b>.",
+          "Comprobación con coordenadas: el punto final es (12,86 + 29,54; 15,32 − 5,21) = (42,40; 10,11), y desde ahí al puerto el rumbo es 256,59° ✓."
+        ]) +
+        ejemplo("Un faro y dos marcaciones", "Un barco navega hacia el norte (rumbo 000°). Desde A ve un faro con rumbo 040° y, tras avanzar 6 km hasta B, con rumbo 070°. ¿A qué distancia está el faro de B y a qué distancia pasa de la ruta?", [
+          "Triángulo ABF: en A, entre la ruta (norte) y la visual al faro, el ángulo es 40°. En B, la dirección hacia A es el sur (180°) y la visual al faro es 070°: el ángulo interior es 180° − 70° = 110°.",
+          "En F: 180° − 40° − 110° = 30°.",
+          "Teorema del seno: BF/sen 40° = AB/sen 30° → BF = 6·sen 40°/sen 30° = <b>7,71 km</b>.",
+          "La distancia del faro a la ruta (hacia el este) es BF·sen 70° = 7,71·0,9397 = <b>7,25 km</b>."
+        ]) +
+        ejemplo("Viento y rumbo: sumar velocidades", "Un avión vuela con velocidad propia de 240 km/h y rumbo 060°. Sopla un viento de 50 km/h hacia el rumbo 120°. ¿Cuál es su velocidad respecto al suelo y su rumbo real?", [
+          "La velocidad respecto al suelo es la suma de los dos vectores. Entre sus direcciones (060° y 120°) hay 60°, así que en el triángulo de velocidades el ángulo entre los dos lados conocidos es 180° − 60° = 120°.",
+          "v² = 240² + 50² − 2·240·50·cos 120° = 57 600 + 2 500 + 12 000 = 72 100 → v = <b>268,5 km/h</b>.",
+          "El rumbo se desvía un ángulo δ hacia el viento: sen δ/50 = sen 120°/268,5 → sen δ = 0,1613 → δ = 9,28°. Rumbo real: 060° + 9,28° = <b>069,3°</b>.",
+          "Comprobación con coordenadas: (240·sen 60° + 50·sen 120°, 240·cos 60° + 50·cos 120°) = (251,15; 95), y atan2(251,15; 95) = 69,3° ✓."
+        ]) +
+        ojo("el fallo más repetido en navegación: usar como ángulo del triángulo la <b>diferencia de rumbos</b>. Es el ángulo que giras, no el ángulo interior; el interior es 180° menos el giro.")
+    },
+    {
+      h: "15. Polígonos, cuadriláteros y problemas en el espacio",
+      html:
+        "<h5>Polígonos regulares</h5>" +
+        "<p>Un polígono regular de n lados (lado ℓ) se descompone en n triángulos isósceles iguales, con vértice en el centro y ángulo central 360°/n. Cada uno se parte por su altura (la <b>apotema</b>) en dos triángulos rectángulos con ángulo 180°/n:</p>" +
+        H.formula("R = " + fr("ℓ", "2·sen(180°/n)") + "      apotema a = " + fr("ℓ", "2·tan(180°/n)") + "      Área = ½·n·R²·sen(360°/n) = ½·perímetro·apotema") +
+        ejemplo("Un octógono regular", "Calcula el radio, la apotema y el área de un octógono regular de lado 5 cm.", [
+          "n = 8: el ángulo central es 45° y el medio, 22,5°.",
+          "R = 5/(2·sen 22,5°) = <b>6,53 cm</b>. Apotema: a = 5/(2·tan 22,5°) = <b>6,04 cm</b>.",
+          "Área = ½·perímetro·apotema = ½·40·6,036 = <b>120,71 cm²</b>. (Con la otra fórmula: ½·8·6,533²·sen 45° = 120,71 ✓.)"
+        ]) +
+        "<h5>Cuadriláteros: se parten en triángulos</h5>" +
+        "<p>Para un terreno de cuatro lados se traza una <b>diagonal</b> que lo divide en dos triángulos; se resuelve uno con los datos de que se dispone (normalmente LAL) y el otro con el lado nuevo (Herón o el coseno).</p>" +
+        ejemplo("Un terreno ABCD", "Un terreno cuadrilátero ABCD tiene AB = 6 m, BC = 8 m, CD = 7 m, DA = 5 m y el ángulo en B mide 70°. Calcula su área.", [
+          "Diagonal AC en el triángulo ABC (LAL): AC² = 36 + 64 − 2·6·8·cos 70° = 100 − 32,83 = 67,17 → AC = 8,195 m.",
+          "Área de ABC = ½·6·8·sen 70° = <b>22,55 m²</b>.",
+          "Triángulo ACD con lados 8,195; 7 y 5: s = 10,0977 y Herón: S = √(10,0977·1,9023·3,0977·5,0977) = <b>17,42 m²</b>.",
+          "Área total ≈ 22,55 + 17,42 = <b>39,97 m²</b>."
+        ]) +
+        "<h5>En el espacio</h5>" +
+        "<p>Un problema en tres dimensiones se resuelve casi siempre buscando <b>triángulos rectángulos</b> dentro de la figura. El ángulo entre una recta y un plano es el que forma la recta con su <b>proyección</b> sobre el plano; el ángulo entre dos planos, el que forman dos rectas perpendiculares a su arista común (una en cada plano).</p>" +
+        ejemplo("La diagonal de un cubo", "En un cubo de arista a, ¿qué ángulo forma la diagonal del cubo con la base?", [
+          "La proyección de la diagonal del cubo sobre la base es la diagonal de la base, que mide a√2 (Pitágoras). La diagonal del cubo mide a√3.",
+          "En el triángulo rectángulo de catetos a (vertical) y a√2 (en la base): tan α = a/(a√2) = 1/√2 → α = <b>35,26°</b>.",
+          "Comprobación: sen α = a/(a√3) = 1/√3 = 0,5774 → 35,26° ✓. No depende de a."
+        ]) +
+        ejemplo("Una pirámide regular", "Una pirámide regular de base cuadrada tiene lado de base 10 m y altura 12 m. Calcula el ángulo de una cara lateral con la base y el de una arista lateral con la base.", [
+          "Cara lateral: el triángulo rectángulo formado por la altura (12), la mitad del lado de la base (5) y la apotema de la cara. tan φ = 12/5 → φ = <b>67,38°</b> (la apotema mide √(144 + 25) = 13).",
+          "Arista lateral: su proyección sobre la base es la mitad de la diagonal, 5√2 = 7,07. tan ψ = 12/7,07 → ψ = <b>59,49°</b>; la arista mide √(144 + 50) = 13,93 m."
+        ]) +
+        ejemplo("Una antena sobre un edificio", "Desde un punto del suelo a 60 m de la base de un edificio se ve el borde del tejado con elevación de 25° y la punta de la antena con 40°. ¿Cuánto mide la antena?", [
+          "Altura del edificio: 60·tan 25° = 27,98 m.",
+          "Altura hasta la punta: 60·tan 40° = 50,35 m.",
+          "Antena = 50,35 − 27,98 = <b>22,37 m</b>."
+        ])
+    },
+    {
+      h: "16. Problemas de examen resueltos paso a paso",
+      html:
+        "<p>Un problema de trigonometría se resuelve casi siempre con la misma receta: <b>(1)</b> dibuja el triángulo y anota los datos; <b>(2)</b> identifica el caso (LLL, LAL, ALA o LLA); <b>(3)</b> elige el teorema (coseno si no tienes una pareja lado-ángulo opuesto; seno si la tienes); <b>(4)</b> calcula con la calculadora en DEG; <b>(5)</b> comprueba (los ángulos suman 180°, el lado mayor está frente al ángulo mayor, el orden de magnitud es razonable); <b>(6)</b> contesta con unidades.</p>" +
+        ejemplo("Problema 1 · Dos lados y el ángulo entre ellos", "En un triángulo ABC, AB = 10 cm, AC = 14 cm y el ángulo en A mide 50°. Calcula BC, los otros dos ángulos, el área y la altura desde C.", [
+          "LAL: teorema del coseno. a² = 10² + 14² − 2·10·14·cos 50° = 296 − 179,99 = 116,01 → a = BC = <b>10,77 cm</b>.",
+          "Ángulo B (opuesto a b = 14): cos B = (a² + c² − b²)/(2ac) = (116,01 + 100 − 196)/(2·10,77·10) = 0,0929 → B = <b>84,67°</b>. (Con el coseno no hay duda entre agudo y obtuso.)",
+          "C = 180° − 50° − 84,67° = <b>45,33°</b>. Comprobación: el lado mayor (14) está frente al ángulo mayor (84,67°) ✓.",
+          "Área = ½·10·14·sen 50° = <b>53,62 cm²</b>. La altura desde C sobre AB: h = 2S/AB = 107,25/10 = <b>10,72 cm</b>."
+        ]) +
+        ejemplo("Problema 2 · Un globo entre dos observadores", "Dos observadores A y B están separados 500 m en terreno llano. Ven un globo G, en el mismo plano vertical y entre ellos, con elevaciones de 62° (desde A) y 48° (desde B). ¿A qué altura vuela?", [
+          "Triángulo ABG: el ángulo en G es 180° − 62° − 48° = 70°.",
+          "Teorema del seno: AG/sen 48° = 500/sen 70° → AG = 500·0,7431/0,9397 = 395,4 m.",
+          "Altura: h = AG·sen 62° = 395,4·0,8829 = <b>349,1 m</b>.",
+          "Comprobación desde B: BG = 500·sen 62°/sen 70° = 469,8 m y BG·sen 48° = 349,1 m ✓."
+        ]) +
+        ejemplo("Problema 3 · Hipotenusa y perímetro", "La hipotenusa de un triángulo rectángulo mide 20 cm y su perímetro 48 cm. Halla los catetos y los ángulos.", [
+          "Catetos x e y: x + y = 48 − 20 = 28 y x² + y² = 400.",
+          "(x + y)² = 784 → 400 + 2xy = 784 → xy = 192.",
+          "x e y son las raíces de t² − 28t + 192 = 0 → t = (28 ± √(784 − 768))/2 = (28 ± 4)/2 = 16 y 12. Catetos <b>12 y 16 cm</b>.",
+          "sen α = 12/20 = 0,6 → α = <b>36,87°</b>; el otro ángulo mide 53,13°."
+        ]) +
+        ejemplo("Problema 4 · ¿Cuántos triángulos hay?", "En un triángulo, a = 9 cm, b = 12 cm y A = 30°. Estudia cuántos triángulos hay y resuélvelos.", [
+          "Caso LLA con A agudo. Altura h = b·sen A = 12·0,5 = 6. Como h = 6 &lt; a = 9 &lt; b = 12, hay <b>dos triángulos</b>.",
+          "sen B = b·sen A/a = 12·0,5/9 = 0,6667 → B₁ = 41,81° o B₂ = 180° − 41,81° = 138,19°.",
+          "Triángulo 1: C₁ = 180° − 30° − 41,81° = 108,19° → c₁ = a·sen C₁/sen A = 9·0,9501/0,5 = <b>17,10 cm</b>.",
+          "Triángulo 2: C₂ = 180° − 30° − 138,19° = 11,81° → c₂ = 9·sen 11,81°/0,5 = <b>3,68 cm</b>. (Cabe, porque A + B₂ = 168,19° &lt; 180°.)"
+        ]) +
+        "<p>Al corregir, los examinadores puntúan sobre todo el <b>planteamiento</b> (el dibujo, el teorema elegido y la sustitución correcta) y luego el resultado: aunque falle una cuenta, un buen planteamiento da la mayor parte de los puntos. Y no redondees los pasos intermedios: guarda los valores en la memoria de la calculadora.</p>"
+    }
+  );
+
+  datos.errores.preguntas.push(
+    { q: "Para el triángulo de lados 4, 5 y 8, un alumno halla el ángulo C (opuesto al lado 8) con el teorema del seno y obtiene 54,9°. Otro usa el teorema del coseno y obtiene 125,1°. ¿Quién tiene razón?",
+      op: ["El primero: el seno nunca falla", "Los dos: son el mismo ángulo", "El segundo: C es obtuso, y arcsen nunca devuelve ángulos obtusos", "Ninguno: el triángulo no existe"], ok: 2,
+      porque: "cos C = (16 + 25 − 64)/40 = −0,575 → C = 125,1° (obtuso). El seno de 125,1° y el de 54,9° son iguales y arcsen devuelve el agudo. Con tres lados, usa siempre el coseno." },
+    { q: "Un barco navega 20 km con rumbo 040° y luego 30 km con rumbo 100°. Un alumno aplica el teorema del coseno con el ángulo 100° − 40° = 60° y obtiene d = 26,5 km. ¿Qué falla?",
+      op: ["Nada: el ángulo es la diferencia de rumbos", "El ángulo del triángulo es 180° − 60° = 120°: d = 43,59 km", "Debía usar el teorema del seno", "Los rumbos se miden desde el este"], ok: 1,
+      porque: "La diferencia de rumbos (60°) es lo que gira el barco. El ángulo interior del triángulo es el suplementario, 120°: d² = 400 + 900 − 2·20·30·cos 120° = 1900." },
+    { q: "Para calcular el arco de un ángulo de 60° en una circunferencia de radio 3 cm, un alumno escribe s = θ·r = 60·3 = 180 cm. ¿Qué falla?",
+      op: ["Nada", "Con θ en grados la fórmula no vale: hay que pasar 60° a π/3 rad y s = π/3·3 = π ≈ 3,14 cm", "Debía dividir entre 3", "Debía multiplicar por 360"], ok: 1,
+      porque: "s = θ·r exige radianes. 60° = π/3 rad, así que el arco mide π ≈ 3,14 cm (la sexta parte de la circunferencia de 6π cm)." }
+  );
+
+  datos.quiz1.preguntas.push(
+    { q: "¿Cuánto vale arccos(−1/2)?",
+      op: ["−60°", "120°", "240°", "60°"], ok: 1,
+      porque: "arccos devuelve ángulos entre 0° y 180°. cos 120° = −1/2, así que arccos(−1/2) = 120° (240° también tiene ese coseno, pero está fuera del rango principal)." },
+    { q: "La calculadora da arcsen(0,6) = 36,87°. ¿Qué otro ángulo de [0°, 360°) tiene ese seno?",
+      op: ["53,13°", "143,13°", "216,87°", "323,13°"], ok: 1,
+      porque: "El otro ángulo con el mismo seno es el suplementario: 180° − 36,87° = 143,13° (2.º cuadrante, donde el seno también es positivo)." },
+    { q: "Un avión vuela 100 km con rumbo 090° y después 100 km con rumbo 180°. ¿A qué distancia está del punto de partida?",
+      op: ["200 km", "100 km", "141,4 km", "70,7 km"], ok: 2,
+      porque: "Va al este y luego al sur: los dos tramos son perpendiculares (giro de 90°, ángulo interior de 90°). d = √(100² + 100²) = 141,4 km." },
+    { q: "¿Qué área tiene un triángulo de lados 5, 12 y 13?",
+      op: ["30", "60", "32,5", "78"], ok: 0,
+      porque: "Herón: s = 15 y S = √(15·10·3·2) = √900 = 30. (Es un triángulo rectángulo: ½·5·12 = 30.)" },
+    { q: "¿Cuánto mide el radio de la circunferencia circunscrita a un triángulo rectángulo de hipotenusa 10?",
+      op: ["10", "5", "20", "√50"], ok: 1,
+      porque: "En un triángulo rectángulo el circuncentro es el punto medio de la hipotenusa: R = hipotenusa/2 = 5. (También sale de R = a/(2·sen A) con A = 90°.)" },
+    { q: "¿En qué cuadrante está un ángulo de 3 radianes?",
+      op: ["1.º", "2.º", "3.º", "4.º"], ok: 1,
+      porque: "3 rad = 3·180°/π ≈ 171,9°, que está entre 90° y 180°: 2.º cuadrante. (π/2 ≈ 1,57 y π ≈ 3,14.)" }
+  );
+
+  ejercicios.push(
+    // ================= ★ básico =================
+    { id: "g37", nivel: 1,
+      enunciado: "Halla el ángulo principal (entre 0 y 2π) de 61π/4 rad y calcula su seno.",
+      check: [{ tipo: "num", etiqueta: "ángulo principal =", valor: 5 * Math.PI / 4, unidad: "rad", tol: 0.002, ph: "decimal (o 5pi/4)" }, { tipo: "num", etiqueta: "seno =", valor: -Math.SQRT1_2, tol: 0.002, ph: "decimal" }],
+      pistas: ["Una vuelta completa son 2π = 8π/4.", "Divide 61 entre 8 y quédate con el resto."],
+      pasos: ["Una vuelta son 2π = 8π/4. Como 61 = 7·8 + 5, 61π/4 = 7·2π + 5π/4.", "El ángulo principal es 5π/4 (= 225°), del 3.er cuadrante.", "sen(5π/4) = −sen(π/4) = −√2/2 ≈ −0,7071."],
+      resultado: "5π/4 rad · sen = −√2/2 ≈ −0,7071" },
+    { id: "g38", nivel: 1,
+      enunciado: "La calculadora da arccos(−0,5) = 120°. ¿Qué otro ángulo de [0°, 360°) tiene ese mismo coseno?",
+      check: { tipo: "num", etiqueta: "el otro ángulo =", valor: 240, unidad: "°" },
+      pistas: ["El coseno es positivo en el 1.er y 4.º cuadrante y negativo en el 2.º y 3.º.", "Para el coseno, la otra solución es 360° − α."],
+      pasos: ["El coseno es negativo en el 2.º y el 3.er cuadrante. 120° está en el 2.º.", "El otro es su simétrico respecto del eje horizontal: 360° − 120° = 240°.", "Comprobación: cos 240° = −cos 60° = −0,5 ✓."],
+      resultado: "240°" },
+    // ================= ★★ intermedio =================
+    { id: "g39", nivel: 2,
+      enunciado: "Un barco sale de puerto, navega 25 km con rumbo 060° y después 40 km con rumbo 160°. ¿A qué distancia del puerto está y con qué rumbo (0 a 360°) debe volver?",
+      check: [{ tipo: "num", etiqueta: "distancia =", valor: 43.33, unidad: "km" }, { tipo: "num", etiqueta: "rumbo de regreso =", valor: 305.38, unidad: "°" }],
+      pistas: ["El barco gira 160° − 60° = 100°; el ángulo interior del triángulo es 180° − 100°.", "Para el rumbo, calcula las coordenadas (E = d·sen ρ, N = d·cos ρ) del punto final."],
+      pasos: ["Ángulo interior = 180° − 100° = 80°. d² = 25² + 40² − 2·25·40·cos 80° = 2225 − 347,30 = 1877,70 → d = 43,33 km.", "Punto final: E = 25·sen 60° + 40·sen 160° = 21,65 + 13,68 = 35,33; N = 25·cos 60° + 40·cos 160° = 12,5 − 37,59 = −25,09.", "Rumbo puerto → punto final: atan2(35,33; −25,09) = 125,4° (hacia el sureste). El regreso es el opuesto: 125,4° + 180° = 305,4°."],
+      resultado: "d ≈ 43,33 km · rumbo de regreso ≈ 305,4°" },
+    { id: "g40", nivel: 2,
+      enunciado: "Los lados de un triángulo miden 9, 10 y 17 cm. Calcula su área, el radio r de la circunferencia inscrita y el radio R de la circunscrita.",
+      check: [{ tipo: "num", etiqueta: "área =", valor: 36, unidad: "cm²" }, { tipo: "num", etiqueta: "r =", valor: 2, unidad: "cm" }, { tipo: "num", etiqueta: "R =", valor: 10.625, unidad: "cm" }],
+      pistas: ["Herón: s = (9 + 10 + 17)/2.", "r = S/s y R = abc/(4S)."],
+      pasos: ["s = 18 y S = √(18·9·8·1) = √1296 = 36 cm².", "r = S/s = 36/18 = 2 cm.", "R = 9·10·17/(4·36) = 1530/144 = 10,625 cm."],
+      resultado: "S = 36 cm² · r = 2 cm · R = 10,625 cm" },
+    { id: "g41", nivel: 2,
+      enunciado: "Desde un punto del suelo a 40 m de la base de un edificio se ve el borde del tejado con elevación de 35° y la punta de una antena situada sobre él con 50°. ¿Cuánto mide la antena?",
+      check: { tipo: "num", etiqueta: "antena =", valor: 19.66, unidad: "m" },
+      pistas: ["Calcula por separado la altura hasta el tejado y hasta la punta de la antena."],
+      pasos: ["Hasta el tejado: 40·tan 35° = 28,01 m.", "Hasta la punta: 40·tan 50° = 47,67 m.", "Antena = 47,67 − 28,01 = 19,66 m."],
+      resultado: "≈ 19,66 m" },
+    { id: "g42", nivel: 2,
+      enunciado: "En una circunferencia de radio 10 cm, un ángulo central mide 80°. Calcula el área del segmento circular que limita su cuerda.",
+      check: { tipo: "num", etiqueta: "área del segmento =", valor: 20.57, unidad: "cm²" },
+      pistas: ["Pasa 80° a radianes.", "Área del segmento = ½·r²·(θ − sen θ)."],
+      pasos: ["θ = 80·π/180 = 1,3963 rad.", "Sector: ½·100·1,3963 = 69,81 cm². Triángulo: ½·100·sen 80° = 49,24 cm².", "Segmento = 69,81 − 49,24 = 20,57 cm²."],
+      resultado: "≈ 20,57 cm²" },
+    { id: "g43", nivel: 2,
+      enunciado: "Un disco de 12 cm de radio gira a 45 revoluciones por minuto. Calcula su velocidad angular (rad/s) y la velocidad lineal (m/s) de un punto de su borde.",
+      check: [{ tipo: "num", etiqueta: "ω =", valor: 4.712, unidad: "rad/s" }, { tipo: "num", etiqueta: "v =", valor: 0.5655, unidad: "m/s" }],
+      pistas: ["ω = rpm·2π/60.", "v = ω·r, con el radio en metros."],
+      pasos: ["ω = 45·2π/60 = 1,5π = 4,712 rad/s.", "v = ω·r = 4,712·0,12 = 0,5655 m/s."],
+      resultado: "ω = 1,5π ≈ 4,712 rad/s · v ≈ 0,5655 m/s" },
+    // ================= ★★★ reto =================
+    { id: "g44", nivel: 3,
+      enunciado: "Una caja (ortoedro) mide 3 × 4 × 12 cm. Calcula la longitud de su diagonal y el ángulo que forma esa diagonal con la base de 3 × 4.",
+      check: [{ tipo: "num", etiqueta: "diagonal =", valor: 13, unidad: "cm" }, { tipo: "num", etiqueta: "ángulo con la base =", valor: 67.38, unidad: "°" }],
+      pistas: ["La diagonal de la base es la proyección de la diagonal de la caja.", "Forma un triángulo rectángulo con la altura (12) y la diagonal de la base."],
+      pasos: ["Diagonal de la base: √(3² + 4²) = 5.", "Diagonal de la caja: √(5² + 12²) = 13 cm.", "tan α = 12/5 → α = 67,38° (o sen α = 12/13)."],
+      resultado: "diagonal 13 cm · ángulo ≈ 67,38°" },
+    { id: "g45", nivel: 3,
+      enunciado: "Un barco navega hacia el norte. Desde A ve un faro con rumbo 030° y, tras avanzar 10 km hasta B, lo ve con rumbo 075°. Calcula la distancia BF del barco al faro desde B y la distancia mínima del faro a la ruta.",
+      check: [{ tipo: "num", etiqueta: "BF =", valor: 7.071, unidad: "km" }, { tipo: "num", etiqueta: "distancia a la ruta =", valor: 6.83, unidad: "km" }],
+      pistas: ["Ángulo en A: 30°. En B, el ángulo interior es 180° − 75°.", "La distancia a la ruta es BF·sen 75°."],
+      pasos: ["En A: 30°. En B: 180° − 75° = 105°. En F: 180° − 30° − 105° = 45°.", "Teorema del seno: BF/sen 30° = 10/sen 45° → BF = 10·0,5/0,7071 = 7,071 km.", "Distancia a la ruta (hacia el este): BF·sen 75° = 7,071·0,9659 = 6,83 km."],
+      resultado: "BF ≈ 7,07 km · distancia a la ruta ≈ 6,83 km" },
+    { id: "g46", nivel: 3,
+      enunciado: "Un terreno ABCD tiene AB = 50 m, BC = 70 m, CD = 60 m, DA = 45 m y el ángulo en B mide 60°. Calcula la diagonal AC y el área total del terreno.",
+      check: [{ tipo: "num", etiqueta: "AC =", valor: 62.45, unidad: "m" }, { tipo: "num", etiqueta: "área =", valor: 2794.8, unidad: "m²" }],
+      pistas: ["Teorema del coseno en ABC para AC.", "El triángulo ACD tiene los tres lados: Herón."],
+      pasos: ["AC² = 50² + 70² − 2·50·70·cos 60° = 7400 − 3500 = 3900 → AC = 62,45 m.", "Área ABC = ½·50·70·sen 60° = 1515,54 m².", "ACD (62,45; 60; 45): s = 83,725 → S = √(83,725·21,275·23,725·38,725) = 1279,27 m².", "Área total = 1515,54 + 1279,27 = 2794,81 m²."],
+      resultado: "AC ≈ 62,45 m · área ≈ 2794,8 m²" },
+    { id: "g47", nivel: 3,
+      enunciado: "Demuestra que el área de un triángulo es S = abc/(4R), siendo R el radio de su circunferencia circunscrita.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Parte de S = ½·b·c·sen A", p: 0.5 },
+        { t: "Usa el teorema del seno ampliado: a/sen A = 2R, es decir, sen A = a/(2R)", p: 0.5 },
+        { t: "Sustituye: S = ½·b·c·a/(2R)", p: 0.5 },
+        { t: "Simplifica y llega a S = abc/(4R)", p: 0.5 }
+      ] },
+      pasos: ["S = ½·b·c·sen A.", "El teorema del seno dice a/sen A = 2R, así que sen A = a/(2R).", "S = ½·b·c·a/(2R) = abc/(4R)."],
+      resultado: "S = abc/(4R)" },
+    { id: "g48", nivel: 3,
+      enunciado: "Un pentágono regular tiene 8 cm de lado. Calcula el radio de la circunferencia circunscrita, la apotema y el área.",
+      check: [{ tipo: "num", etiqueta: "radio =", valor: 6.805, unidad: "cm" }, { tipo: "num", etiqueta: "apotema =", valor: 5.506, unidad: "cm" }, { tipo: "num", etiqueta: "área =", valor: 110.11, unidad: "cm²" }],
+      pistas: ["El ángulo central es 360°/5 = 72°; el triángulo rectángulo tiene ángulo 36° y cateto 4.", "Área = ½·perímetro·apotema."],
+      pasos: ["R = 8/(2·sen 36°) = 4/0,5878 = 6,805 cm.", "Apotema a = 4/tan 36° = 4/0,7265 = 5,506 cm.", "Área = ½·(5·8)·5,506 = 110,11 cm²."],
+      resultado: "R ≈ 6,81 cm · apotema ≈ 5,51 cm · área ≈ 110,11 cm²" }
+  );
+
+  lamina.push(
+    { titulo: "Del valor al ángulo y rumbos",
+      items: [
+        { label: "Funciones inversas", formula: "arcsen k ∈ [−90°, 90°]  ·  arccos k ∈ [0°, 180°]  ·  arctan k ∈ (−90°, 90°)", cuando: "Conoces la razón y buscas el ángulo.", ojo: "Da un solo ángulo: añade el otro (180° − α para sen; 360° − α para cos; α + 180° para tan)." },
+        { label: "Rumbo → coordenadas", formula: "E = d·sen ρ  ·  N = d·cos ρ", cuando: "ρ se mide desde el norte, en sentido horario.", ejemplo: "20 km a 040° → E = 12,86 · N = 15,32" },
+        { label: "Cambio de rumbo", formula: "ángulo del triángulo = 180° − giro", ejemplo: "040° → 100°: giro 60°, ángulo interior 120°" }
+      ],
+      tabla: { cab: ["N", "NE", "E", "SE", "S", "SO", "O", "NO"], filas: [["000°", "045°", "090°", "135°", "180°", "225°", "270°", "315°"]] },
+      nota: "Con tres lados (o dos lados y el ángulo entre ellos) usa el coseno: arccos sí distingue agudos y obtusos." },
+    { titulo: "Medidas del triángulo y de las figuras", ancha: true,
+      items: [
+        { label: "Herón y radios", formula: "S = √(s(s−a)(s−b)(s−c))  ·  R = abc/(4S)  ·  r = S/s", ejemplo: "13, 14, 15 → S = 84 · R = 8,125 · r = 4" },
+        { label: "Altura y mediana", formula: "h<sub>a</sub> = 2S/a  ·  m<sub>a</sub> = ½√(2b² + 2c² − a²)" },
+        { label: "Polígono regular de n lados", formula: "R = ℓ/(2·sen(180°/n))  ·  a = ℓ/(2·tan(180°/n))  ·  S = ½·n·ℓ·a" },
+        { label: "Arco, sector y segmento", formula: "s = θ·r  ·  A<sub>sector</sub> = ½r²θ  ·  A<sub>segmento</sub> = ½r²(θ − sen θ)  ·  cuerda = 2r·sen(θ/2)", cuando: "θ en radianes." }
+      ],
+      nota: "Cuadrilátero: traza una diagonal y resuelve dos triángulos. En el espacio: busca triángulos rectángulos." }
+  );
 
   B.registrar("mates1", "t4", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
