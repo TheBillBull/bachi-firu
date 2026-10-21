@@ -188,8 +188,8 @@
     cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-pl class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { n: "Tierra", s: 28, m: 1000, ang: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl = {}, an;
     function hKm() { return 0.01 * Gr.CUERPOS[st.n].R * Math.pow(6000, st.s / 100) / 1000; }
-    sl.s = U.slider(ctl, { et: "Altura sobre la superficie", min: 0, max: 100, step: 0.5, val: st.s, on: function (v) { st.s = v; pinta(); }, fmt: function (v) { var k = hKm(); return (k < 100 ? fmt(k, 1) : fmt(k, 0)) + " km"; } });
-    sl.m = U.slider(ctl, { et: "Masa del satélite", min: 100, max: 10000, step: 100, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " kg"; } });
+    sl.s = U.slider(ctl, { et: "Altura h", min: 0, max: 100, step: 0.5, val: st.s, on: function (v) { st.s = v; pinta(); }, fmt: function (v) { var k = hKm(); return (k < 100 ? fmt(k, 1) : fmt(k, 0)) + " km"; } });
+    sl.m = U.slider(ctl, { et: "Masa m", min: 100, max: 10000, step: 100, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " kg"; } });
     function pinta() {
       var c = Gr.CUERPOS[st.n], R = c.R, h = hKm() * 1000, r = R + h, GM = G * c.M, v = Math.sqrt(GM / r), T = 2 * PI * r / v, w = v / r;
       g.rangoIso(0, 0, r * 1.2); g.limpiar();
