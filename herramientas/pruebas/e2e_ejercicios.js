@@ -41,6 +41,7 @@ const { lanzar } = require('./e2e_common.js');
           else if (c.tipo === 'num') await el.fill(String(c.valor).replace('.', ','));
           else if (c.tipo === 'expr') await el.fill(c.expr);
           else if (c.tipo === 'lista') await el.fill(c.valores.join(', ').replace(/\./g, ','));
+          else if (c.tipo === 'texto') await el.fill(c.valores[c.valores.length - 1]);
         }
         await a.locator('button[type=submit]').click();
       }
