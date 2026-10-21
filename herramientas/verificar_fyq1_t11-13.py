@@ -150,6 +150,141 @@ comprobar('t11 velocidad ecuador 465', cerca(2 * pi * RT / 86164, 465, 1e-2))
 comprobar('t11 g0/60,3² ≈ aceleración Luna', cerca(g0 / 60.27**2, 2.70e-3, 5e-3) and cerca(1018**2 / dTL, 2.70e-3, 1e-2))
 
 # ----------------------------------------------------------------------------------------------
+# TEMA 13 · MOVIMIENTO ARMÓNICO SIMPLE
+# Cada respuesta se recalcula aquí (sympy / mpmath cuando la identidad es simbólica o hay una integral elíptica)
+# y se compara con lo que acepta el ejercicio; también se comprueban las cifras de la teoría.
+# ----------------------------------------------------------------------------------------------
+import math
+import sympy as sp
+import mpmath as mp
+E13 = ejercicios('t13')
+t_, A_, w_, ph_, k_, m_, x_ = sp.symbols('t A omega phi k m x', positive=True)
+g13 = 9.8
+
+# --- identidades simbólicas de la teoría
+xs = A_ * sp.cos(w_ * t_ + ph_)
+vs = sp.diff(xs, t_); as_ = sp.diff(vs, t_)
+comprobar('t13 v = −Aω·sen(ωt + φ₀)', sp.simplify(vs + A_ * w_ * sp.sin(w_ * t_ + ph_)) == 0)
+comprobar('t13 a = −Aω²·cos(ωt + φ₀) = −ω²·x', sp.simplify(as_ + A_ * w_**2 * sp.cos(w_ * t_ + ph_)) == 0 and sp.simplify(as_ + w_**2 * xs) == 0)
+comprobar('t13 v² = ω²(A² − x²)', sp.simplify(vs**2 - w_**2 * (A_**2 - xs**2)) == 0)
+comprobar('t13 Hooke: x = A cos(√(k/m)·t) cumple m·x″ = −k·x', sp.simplify(m_ * sp.diff(A_ * sp.cos(sp.sqrt(k_ / m_) * t_), t_, 2) + k_ * A_ * sp.cos(sp.sqrt(k_ / m_) * t_)) == 0)
+Ec_ = sp.Rational(1, 2) * m_ * vs**2; Ep_ = sp.Rational(1, 2) * k_ * xs**2
+comprobar('t13 E_c + E_p = ½kA² (con ω² = k/m)', sp.simplify((Ec_ + Ep_).subs(w_, sp.sqrt(k_ / m_)) - sp.Rational(1, 2) * k_ * A_**2) == 0)
+comprobar('t13 Ec = Ep en x = A/√2', sp.simplify(sp.Rational(1, 2) * k_ * (A_ / sp.sqrt(2))**2 - sp.Rational(1, 2) * (sp.Rational(1, 2) * k_ * A_**2)) == 0)
+comprobar('t13 Hooke: W = ∫k·x dx = ½kx²', sp.simplify(sp.integrate(k_ * x_, (x_, 0, x_)) - k_ * x_**2 / 2) == 0)
+# serie y paralelo: se resuelve el equilibrio de dos muelles
+F_, x1, x2 = sp.symbols('F x1 x2', positive=True); k1, k2 = sp.symbols('k1 k2', positive=True)
+ser = sp.solve([x1 - F_ / k1, x2 - F_ / k2], [x1, x2]); keq_s = sp.simplify(F_ / (ser[x1] + ser[x2]))
+comprobar('t13 serie: k = k₁k₂/(k₁ + k₂)', sp.simplify(keq_s - k1 * k2 / (k1 + k2)) == 0)
+xp = sp.symbols('xp', positive=True); par = sp.solve(sp.Eq(k1 * xp + k2 * xp, F_), xp)[0]
+comprobar('t13 paralelo: k = k₁ + k₂', sp.simplify(F_ / par - (k1 + k2)) == 0)
+
+
+def Tpend(l, g, th_deg):          # periodo exacto: T = 4·√(l/g)·K(m = sen²(θ₀/2)) (integral elíptica completa)
+    return float(4 * mp.sqrt(l / g) * mp.ellipk(mp.sin(mp.radians(th_deg) / 2)**2))
+
+
+T0p = lambda l, g: 2 * math.pi * math.sqrt(l / g)
+comprobar('t13 péndulo: T real/T₀ = 1,0019 (10°), 1,0174 (30°), 1,0732 (60°)', cerca(Tpend(1, g13, 10) / T0p(1, g13), 1.0019, 2e-4) and cerca(Tpend(1, g13, 30) / T0p(1, g13), 1.0174, 2e-4) and cerca(Tpend(1, g13, 60) / T0p(1, g13), 1.0732, 2e-4))
+comprobar('t13 péndulo: 1,7 % a 30° y 7,3 % a 60°', cerca((Tpend(1, g13, 30) / T0p(1, g13) - 1) * 100, 1.74, 1e-2) and cerca((Tpend(1, g13, 60) / T0p(1, g13) - 1) * 100, 7.32, 1e-2))
+# comprobación numérica del péndulo (RK4 independiente) frente a la integral elíptica
+def pend_rk4(l, g, th0):
+    th, om, dt, t, vistos = math.radians(th0), 0.0, 1e-4, 0.0, []
+    f = lambda q, w: (w, -g / l * math.sin(q))
+    while len(vistos) < 1:
+        k1 = f(th, om); k2 = f(th + dt / 2 * k1[0], om + dt / 2 * k1[1]); k3 = f(th + dt / 2 * k2[0], om + dt / 2 * k2[1]); k4 = f(th + dt * k3[0], om + dt * k3[1])
+        th0_, om0_ = th, om
+        th += dt / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]); om += dt / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]); t += dt
+        if om0_ < 0 <= om: vistos.append(t)           # primer paso de la velocidad angular por cero hacia positivo = un periodo
+    return 2 * vistos[0]      # la velocidad angular vuelve a anularse (hacia +) a mitad de periodo
+comprobar('t13 péndulo: RK4 independiente ≈ integral elíptica (θ₀ = 60°)', cerca(pend_rk4(1, g13, 60), Tpend(1, g13, 60), 2e-3))
+
+# --- ★ básico
+num(E13, 'm1', 0, 15 / 30); num(E13, 'm1', 1, 30 / 15)
+num(E13, 'm2', 0, 1 / 50 * 1e3); num(E13, 'm2', 1, 2 * math.pi * 50)
+num(E13, 'm3', 0, 2 * math.pi / math.pi); num(E13, 'm4', 0, 2 * math.pi / 4)
+num(E13, 'm5', 0, 150 * 0.08); num(E13, 'm6', 0, 0.5 * 100 * 0.1**2); num(E13, 'm7', 0, math.sqrt(100 / 0.25)); num(E13, 'm8', 0, 0.05 * 10)
+opcion(E13, 'm9', 'en los extremos'); opcion(E13, 'm10', 'la masa y la constante')
+num(E13, 'm11', 0, 0.04 * math.cos(math.pi)); num(E13, 'm12', 0, T0p(1, g13))
+# --- ★★ medio
+num(E13, 'm13', 0, 0.08 * math.cos(math.pi / 3)); num(E13, 'm13', 1, -0.08 * 5 * math.pi * math.sin(math.pi / 3))
+num(E13, 'm14', 0, 0.12 * math.cos(2 * math.pi / 3))
+w15 = 2 * math.pi / 0.5; num(E13, 'm15', 0, 0.1 * w15); num(E13, 'm15', 1, 0.1 * w15**2)
+num(E13, 'm16', 0, 4 * math.sqrt(0.10**2 - 0.06**2))
+k17 = 0.4 * g13 / 0.08; num(E13, 'm17', 0, k17); num(E13, 'm18', 0, 2 * math.pi * math.sqrt(0.4 / k17))
+num(E13, 'm19', 0, 2 * math.pi * math.sqrt(1 / 100))
+Em20 = 0.5 * 100 * 0.1**2; Ec20 = Em20 - 0.5 * 100 * 0.06**2; num(E13, 'm20', 0, Ec20); num(E13, 'm20', 1, math.sqrt(2 * Ec20 / 0.4))
+num(E13, 'm21', 0, float(sp.solve(sp.Rational(1, 2) * x_**2 - sp.Rational(1, 4) * 0.2**2, x_)[0]))
+num(E13, 'm22', 0, float(1 / (sp.Rational(1, 30) + sp.Rational(1, 60)))); num(E13, 'm22', 1, 30 + 60)
+num(E13, 'm23', 0, 2 * math.pi * math.sqrt(0.5 / 20))
+num(E13, 'm24', 0, g13 * 2**2 / (4 * math.pi**2)); num(E13, 'm25', 0, T0p(1, 1.62))
+num(E13, 'm26', 0, 4 * math.pi**2 * 0.75 / (34.8 / 20)**2)
+num(E13, 'm27', 0, 1000 / 440); num(E13, 'm27', 1, 2 * math.pi * 440)
+tt28 = float(sp.asin(sp.Rational(1, 2)) / (2 * sp.pi / sp.Rational(24, 10))); num(E13, 'm28', 0, tt28)
+# m29: cos φ₀ = 1/2 y v₀ = −Aω·sen φ₀ > 0
+cand = [60, -60]; num(E13, 'm29', 0, [c for c in cand if -math.sin(math.radians(c)) > 0][0])
+num(E13, 'm30', 0, math.sqrt(20000 / 250) / (2 * math.pi))
+# --- ★★★ avanzado
+A31 = math.hypot(0.03, 0.4 / 10); ph31 = math.degrees(math.atan2(0.4 / 10 / A31 * 1, 0.03 / A31)); num(E13, 'm31', 0, A31); num(E13, 'm31', 1, ph31)
+comprobar('t13 m31: cumple x₀ y v₀', cerca(A31 * math.cos(math.radians(ph31)), 0.03) and cerca(-A31 * 10 * math.sin(math.radians(ph31)), -0.4))
+num(E13, 'm32', 0, 2 * g13 / 100); num(E13, 'm32', 1, 2 * math.pi * math.sqrt(2 / 100))
+num(E13, 'm33', 0, 2 * 1.62 / 100); num(E13, 'm33', 1, 2 * math.pi * math.sqrt(2 / 100))
+num(E13, 'm34', 0, math.acos(1 / math.sqrt(2)) / 10)
+num(E13, 'm35', 0, math.sqrt(2 * g13 * 1 * (1 - math.cos(math.radians(10)))))
+v36sq = 2 * g13 * 2 * (1 - math.cos(math.radians(6))); num(E13, 'm36', 0, 0.2 * (g13 + v36sq / 2))
+num(E13, 'm37', 0, 86400 * (math.sqrt(9.80 / 9.77) - 1))
+num(E13, 'm38', 0, 2 * math.pi * math.sqrt(2 / (100 * 300 / 400))); num(E13, 'm38', 1, 2 * math.pi * math.sqrt(2 / 400))
+num(E13, 'm39', 0, 0.05 * math.sin(math.pi / 4)); num(E13, 'm39', 1, 0.05 * 8 * math.pi * math.cos(math.pi / 4))
+num(E13, 'm40', 0, 10 / (2 * 0.5)); num(E13, 'm40', 1, math.sqrt(100 - 0.5**2))
+num(E13, 'm41', 0, 1 / 0.5); num(E13, 'm41', 1, math.exp(-2.5) * 100)
+num(E13, 'm42', 0, g13 / (2 * math.pi * 2)**2 * 100)
+num(E13, 'm43', 0, 2 / math.sqrt(200 / 0.5) * 100)
+w44 = 2 * math.pi / 2; num(E13, 'm44', 0, 1 * 0.2 * w44**2); num(E13, 'm44', 1, 0.5 * 1 * 0.2**2 * w44**2)
+num(E13, 'm45', 0, math.acos(0.5) / (2 * math.pi / 1.2))
+for i_ in ('m46', 'm47', 'm48'): comprobar(i_ + ' es rúbrica', campos(E13, i_)[0]['tipo'] == 'rubrica')
+comprobar('t13 mínimos: ≥ 40 ejercicios, ≥ 10 de cada nivel extremo y con pasos', len(E13) >= 40 and sum(1 for e in E13.values() if e['nivel'] == 1) >= 10 and sum(1 for e in E13.values() if e['nivel'] == 3) >= 10 and all(e.get('pasos') for e in E13.values()))
+
+# --- teoría del tema 13
+comprobar('t13 tabla de fenómenos: 20 ms; 2,27 ms; 0,5 Hz; 1,4 Hz', cerca(1e3 / 50, 20) and cerca(1e3 / 440, 2.27, 1e-2) and cerca(1 / 2, 0.5) and cerca(math.sqrt(20000 / 250) / (2 * math.pi), 1.42, 1e-2) and cerca(1 / 3.156e7, 3e-8, 6e-2))
+comprobar('t13 ej. leer gráfica: A = 5 cm, T = 4 s, f = 0,25 Hz, ω = 1,571', cerca((5 + 5) / 2, 5) and cerca(10 / 2.5, 4) and cerca(1 / 4, 0.25) and cerca(2 * math.pi / 4, 1.571, 1e-3))
+comprobar('t13 ej. taladro: 50 Hz, 20 ms, 314,2 rad/s; 4π = 12,57', cerca(3000 / 60, 50) and cerca(1 / 50, 0.02) and cerca(2 * math.pi * 50, 314.2, 1e-3) and cerca(4 * math.pi, 12.57, 1e-3))
+w2 = 5 * math.pi
+comprobar('t13 ej. ecuación 0,08cos(5πt + π/3): ω 15,71; T 0,4; f 2,5; x₀ 0,04; v₀ −1,088; x(0,1) −0,0693', cerca(w2, 15.71, 1e-3) and cerca(2 * math.pi / w2, 0.4) and cerca(w2 / (2 * math.pi), 2.5) and cerca(0.08 * math.cos(math.pi / 3), 0.04) and cerca(-0.08 * w2 * math.sin(math.pi / 3), -1.088, 1e-3) and cerca(0.08 * math.cos(w2 * 0.1 + math.pi / 3), -0.0693, 2e-3))
+comprobar('t13 ej. condiciones iniciales: A 0,05; cos 0,6; sen 0,8; φ₀ 53,13° = 0,927 rad', cerca(A31, 0.05) and cerca(0.03 / A31, 0.6) and cerca(0.4 / (A31 * 10), 0.8) and cerca(ph31, 53.13, 1e-3) and cerca(math.radians(ph31), 0.927, 1e-3))
+comprobar('t13 ej. seno → coseno: 2t + π/6 − π/2 = 2t − π/3', cerca(0.2 * math.sin(2 * 0.7 + math.pi / 6), 0.2 * math.cos(2 * 0.7 - math.pi / 3), 1e-9))
+comprobar('t13 a = −25x → ω = 5; T = 1,257', cerca(math.sqrt(25), 5) and cerca(2 * math.pi / 5, 1.257, 1e-3))
+comprobar('t13 ej. 0,1cos4t: v 0,4; a 1,6; en t = π/8: x 0, v −0,4, a 0', cerca(0.1 * 4, 0.4) and cerca(0.1 * 16, 1.6) and abs(0.1 * math.cos(4 * math.pi / 8)) < 1e-12 and cerca(-0.4 * math.sin(4 * math.pi / 8), -0.4) and abs(-1.6 * math.cos(4 * math.pi / 8)) < 1e-12)
+comprobar('t13 ej. v(x): ±0,32; a −0,96; v² + ω²x² = ω²A² = 0,16', cerca(4 * math.sqrt(0.01 - 0.0036), 0.32) and cerca(-16 * 0.06, -0.96) and cerca(0.32**2 + 16 * 0.06**2, 16 * 0.1**2 * 1.0, 1e-3) and cerca(0.32**2, 0.1024, 1e-3) and cerca(16 * 0.0036, 0.0576, 1e-3))
+comprobar('t13 ej. T = 2,4 s: T/12 = 0,2; T/4 = 0,6; T/6 = 0,4', cerca(2.4 / 12, 0.2) and cerca(2.4 / 4, 0.6) and cerca(0.6 - 0.2, 0.4) and cerca(2.4 / 6, 0.4) and cerca(math.asin(0.5) / (2 * math.pi / 2.4), 0.2))
+comprobar('t13 ej. masa-muelle 0,5 kg, 200 N/m: 20 rad/s; 0,314 s; 3,18 Hz; ×2 con 4m', cerca(math.sqrt(200 / 0.5), 20) and cerca(2 * math.pi / 20, 0.314, 1e-3) and cerca(20 / (2 * math.pi), 3.18, 1e-3) and cerca(2 * math.pi * math.sqrt(2 / 200), 0.628, 1e-3))
+comprobar('t13 ej. medir k: 49 N/m; 0,568 s; con Δℓ', cerca(0.4 * 9.8 / 0.08, 49) and cerca(2 * math.pi * math.sqrt(0.4 / 49), 0.568, 1e-3) and cerca(2 * math.pi * math.sqrt(0.08 / 9.8), 0.568, 1e-3) and cerca(math.sqrt(0.4 / 49), 0.0904, 1e-2))
+comprobar('t13 ej. vertical Tierra/Luna: 0,196; 0,0324; 0,889', cerca(2 * 9.8 / 100, 0.196) and cerca(2 * 1.62 / 100, 0.0324) and cerca(2 * math.pi * math.sqrt(2 / 100), 0.889, 1e-3))
+comprobar('t13 ej. serie/paralelo: 20; 90; 0,993; 0,468; ×4,5 y ×2,1', cerca(1 / (1 / 30 + 1 / 60), 20) and cerca(2 * math.pi * math.sqrt(0.5 / 20), 0.993, 1e-3) and cerca(2 * math.pi * math.sqrt(0.5 / 90), 0.468, 1e-3) and cerca(90 / 20, 4.5) and cerca(math.sqrt(4.5), 2.1, 2e-2))
+comprobar('t13 ej. reparto de energía: 0,5; 1,58; 0,18; 0,32; 1,265', cerca(0.5 * 100 * 0.1**2, 0.5) and cerca(math.sqrt(2 * 0.5 / 0.4), 1.58, 1e-3) and cerca(0.1 * math.sqrt(100 / 0.4), 1.58, 1e-3) and cerca(0.5 * 100 * 0.06**2, 0.18) and cerca(0.5 - 0.18, 0.32) and cerca(math.sqrt(2 * 0.32 / 0.4), 1.265, 1e-3))
+comprobar('t13 ej. se igualan: 0,1414 y 0,1', cerca(0.2 / math.sqrt(2), 0.1414, 1e-3) and cerca(0.2 / 2, 0.1))
+comprobar('t13 método: ω 10; T 0,628; v 0,8; a 8; Em 0,08; x 0,0432; v −0,673; a −4,32; F −1,08', cerca(math.sqrt(25 / 0.25), 10) and cerca(2 * math.pi / 10, 0.628, 1e-3) and cerca(0.08 * 10, 0.8) and cerca(0.08 * 100, 8) and cerca(25 * 0.08, 2) and cerca(0.25 * 8, 2) and cerca(0.5 * 25 * 0.08**2, 0.08) and cerca(0.08 * math.cos(1), 0.0432, 2e-3) and cerca(-0.8 * math.sin(1), -0.673, 2e-3) and cerca(-8 * math.cos(1), -4.32, 2e-3) and cerca(-25 * 0.08 * math.cos(1), -1.08, 3e-3) and cerca(0.25 * -4.32, -1.08, 3e-3))
+comprobar('t13 péndulo: 0,993 m; 2,007 s; Luna 4,94 s (×2,46) y 0,164 m', cerca(9.8 * 4 / (4 * math.pi**2), 0.993, 1e-3) and cerca(T0p(1, 9.8), 2.007, 1e-3) and cerca(T0p(1, 1.62), 4.94, 1e-3) and cerca(math.sqrt(9.8 / 1.62), 2.46, 1e-3) and cerca(1.62 * 4 / (4 * math.pi**2), 0.164, 1e-2))
+comprobar('t13 medir g: T 1,74; g 9,78', cerca(34.8 / 20, 1.74) and cerca(4 * math.pi**2 * 0.75 / 1.74**2, 9.78, 1e-3) and cerca(4 * math.pi**2 * 0.75, 29.61, 1e-3) and cerca(1.74**2, 3.028, 1e-3))
+comprobar('t13 péndulo 10°: h 0,01519; v 0,546; ω·l·θ₀ 0,546', cerca(1 - math.cos(math.radians(10)), 0.01519, 1e-3) and cerca(math.sqrt(2 * 9.8 * 0.01519), 0.546, 2e-3) and cerca(math.sqrt(9.8) * math.radians(10), 0.546, 2e-3) and cerca(math.sqrt(9.8), 3.13, 1e-3))
+comprobar('t13 amortiguado: ωd 9,987; 1/γ = 2 s; e^−2,5 = 0,082; Q = 10', cerca(math.sqrt(100 - 0.25), 9.987, 1e-3) and cerca(1 / 0.5, 2) and cerca(math.exp(-2.5), 0.082, 1e-2) and cerca(10 / (2 * 0.5), 10))
+comprobar('t13 suspensión: 8,94; 1,42 Hz; 0,70 s; 12,3 cm', cerca(math.sqrt(80), 8.94, 1e-3) and cerca(math.sqrt(80) / (2 * math.pi), 1.42, 1e-2) and cerca(2 * math.pi / math.sqrt(80), 0.70, 1e-2) and cerca(250 * 9.8 / 20000 * 100, 12.3, 1e-2))
+wd_ = 2 * math.pi * 440; comprobar('t13 diapasón: 2,27 ms; 2765 rad/s; 2,76 m/s; 7640 m/s²; ×780 g', cerca(1000 / 440, 2.27, 1e-2) and cerca(wd_, 2765, 1e-3) and cerca(0.001 * wd_, 2.76, 2e-3) and cerca(0.001 * wd_**2, 7640, 1e-3) and cerca(0.001 * wd_**2 / 9.8, 780, 1e-2))
+# PAU
+comprobar('t13 PAU 1: 10 rad/s; 0,628 s; 1,59 Hz; 1 m/s; 10 m/s²; 0,25 J; 0,8 m/s; 0,09 J; 0,16 J', cerca(math.sqrt(100), 10) and cerca(2 * math.pi / 10, 0.628, 1e-3) and cerca(10 / (2 * math.pi), 1.59, 1e-2) and cerca(0.1 * 10, 1) and cerca(0.1 * 100, 10) and cerca(0.5 * 50 * 0.01, 0.25) and cerca(10 * math.sqrt(0.01 - 0.0036), 0.8) and cerca(0.5 * 50 * 0.06**2, 0.09) and cerca(0.25 - 0.09, 0.16) and cerca(0.5 * 0.5 * 0.8**2, 0.16))
+w_p2 = 8 * math.pi
+comprobar('t13 PAU 2: 25,13; 4 Hz; 0,25 s; 0,0354; 0,889; en 0,125 s: −0,0354, −0,889, +22,3', cerca(w_p2, 25.13, 1e-3) and cerca(w_p2 / (2 * math.pi), 4) and cerca(2 * math.pi / w_p2, 0.25) and cerca(0.05 * math.sin(math.pi / 4), 0.0354, 2e-3) and cerca(0.05 * w_p2 * math.cos(math.pi / 4), 0.889, 1e-3) and cerca(w_p2 * 0.125 + math.pi / 4, 5 * math.pi / 4) and cerca(0.05 * math.sin(5 * math.pi / 4), -0.0354, 2e-3) and cerca(0.05 * w_p2 * math.cos(5 * math.pi / 4), -0.889, 1e-3) and cerca(-w_p2**2 * 0.05 * math.sin(5 * math.pi / 4), 22.3, 2e-3) and cerca(w_p2**2, 631.7, 1e-3))
+k_p3 = 0.5 * 9.8 / 0.10; w_p3 = math.sqrt(k_p3 / 0.5)
+comprobar('t13 PAU 3: 49 N/m; 9,90 rad/s; 0,635 s; 0,495 m/s; 0,0613 J; 7,35 N', cerca(k_p3, 49) and cerca(w_p3, 9.90, 1e-3) and cerca(2 * math.pi / w_p3, 0.635, 1e-3) and cerca(0.05 * w_p3, 0.495, 1e-3) and cerca(0.5 * 49 * 0.05**2, 0.0613, 1e-3) and cerca(49 * 0.15, 7.35) and cerca(0.5 * 9.8 + 0.5 * 0.05 * w_p3**2, 7.35, 1e-3) and cerca(0.05 * w_p3**2, 4.9, 1e-3))
+comprobar('t13 PAU 4: 75; 1,026; 400; 0,444; ×2,31', cerca(1 / (1 / 100 + 1 / 300), 75) and cerca(2 * math.pi * math.sqrt(2 / 75), 1.026, 1e-3) and cerca(2 * math.pi * math.sqrt(2 / 400), 0.444, 1e-3) and cerca(math.sqrt(400 / 75), 2.31, 1e-3))
+comprobar('t13 PAU 5: 2,46 s; 0,535 m/s; 0,248 m', cerca(T0p(1.5, 9.8), 2.46, 2e-3) and cerca(math.sqrt(1.5 / 9.8), 0.3912, 1e-3) and cerca(math.sqrt(2 * 9.8 * 1.5 * (1 - math.cos(math.radians(8)))), 0.535, 2e-3) and cerca(1 - math.cos(math.radians(8)), 0.009741, 1e-3) and cerca(1.5 * 1.62 / 9.8, 0.248, 1e-3))
+comprobar('t13 PAU 6: 0,1 J; 20 rad/s; 0,8 m/s; 2,5 cm; 0,0785 s', cerca(0.5 * 80 * 0.05**2, 0.1) and cerca(math.sqrt(80 / 0.2), 20) and cerca(20 * math.sqrt(0.05**2 - 0.03**2), 0.8) and cerca(0.05 / 2, 0.025) and cerca(math.pi / (2 * 20), 0.0785, 1e-3))
+dd13 = datos['ampl']['fyq1']['t13']
+comprobar('t13 errores: 0,99985 con grados vs cos 1 rad = 0,5403', cerca(math.cos(math.radians(1)), 0.99985, 1e-5) and cerca(math.cos(1), 0.5403, 1e-3))
+comprobar('t13 test y errores: números', cerca(2 * math.pi / (2 * math.pi), 1) and cerca(1 / 5, 0.2) and cerca(math.sqrt(100 / 1), 10) and cerca(0.2 * 5, 1) and cerca(1 / (1 / 30 + 1 / 60), 20) and cerca(T0p(1, 1.62), 4.9, 1e-2) and cerca(T0p(1, 9.8), 2.0, 1e-2))
+comprobar('t13 actividades: errores, test, tarjetas, parejas, clasificaciones y orden', len(dd13['datos']['errores']['preguntas']) >= 10 and len(dd13['datos']['quiz1']['preguntas']) >= 12 and len(dd13['datos']['tj1']['cartas']) >= 14 and len(dd13['datos']['emp1']['pares']) >= 7 and len(dd13['datos']['cla1']['items']) >= 9 and len(dd13['datos']['orden1']['items']) >= 6)
+comprobar('t13 mínimos: lámina ≥ 8 y secciones nuevas ≥ 8', len(dd13['lamina']) >= 8 and len(dd13['nuevas']) >= 8)
+
+# ----------------------------------------------------------------------------------------------
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f in fallos: print('  FALLO:', f)
 sys.exit(1 if fallos else 0)
