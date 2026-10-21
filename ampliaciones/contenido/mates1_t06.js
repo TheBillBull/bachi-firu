@@ -251,11 +251,11 @@
         w("emparejar", "tecnicas")
     },
     {
-      h: "13. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "18. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "14. Autocomprobación del tema",
+      h: "19. Autocomprobación del tema",
       html: "<p>Diez preguntas de test con explicación y tarjetas para fijar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
@@ -640,6 +640,381 @@
         { mal: "Re(3 − 2i) = −2i", bien: "Re = 3 · Im = −2", por: "La parte imaginaria es −2, sin la i." }
       ] }
   ];
+
+
+  // =====================================================================
+  // REFUERZO del tema 6: Euler, transformaciones, polinomios, polígonos y problemas de examen
+  // =====================================================================
+  resumen.push(
+    "La <b>fórmula de Euler</b> e<sup>iθ</sup> = cos θ + i·sen θ da la forma exponencial z = r·e<sup>iθ</sup> (θ en radianes): e<sup>iπ</sup> = −1.",
+    "Con complejos se escriben las <b>transformaciones</b> del plano: z + c (traslación), e<sup>iα</sup>·z (giro), k·z (homotecia), z̄ (simetría) y a·z + b (semejanza)."
+  );
+
+  // Julia, junto a Mandelbrot
+  nuevas[3].html +=
+    "<p>Cada punto c del plano tiene además su propio <b>conjunto de Julia</b>: los números z₀ cuya órbita z → z² + c no se escapa al infinito. La relación con Mandelbrot es asombrosa: si c está <i>dentro</i> del conjunto de Mandelbrot, el conjunto de Julia de c es de una sola pieza; si está <i>fuera</i>, se rompe en «polvo» de infinitos puntos sueltos. Arrastra el punto rojo del Mandelbrot de la izquierda y mira cómo cambia el Julia de la derecha:</p>" +
+    w("julia");
+
+  var nuevas6 = [
+    {
+      h: "13. La fórmula de Euler y la forma exponencial",
+      html:
+        "<p>Hasta ahora has escrito un complejo de tres maneras. La cuarta es la más compacta y la que usan ingenieros y físicos: <b>z = r·e<sup>iθ</sup></b>. Lo curioso es que e<sup>iθ</sup> no es una potencia «de verdad» (¿qué significa multiplicar el número e por sí mismo i·θ veces?): es una <b>definición</b> que Euler (1748) justificó con las series de potencias.</p>" +
+        "<h5>De dónde sale: tres series que encajan</h5>" +
+        "<p>Las funciones e<sup>x</sup>, cos x y sen x se pueden escribir como sumas infinitas de potencias de x (cuantos más términos se suman, mejor es la aproximación):</p>" +
+        H.formula("e<sup>x</sup> = 1 + x + x²/2! + x³/3! + x⁴/4! + x⁵/5! + …") +
+        H.formula("cos x = 1 − x²/2! + x⁴/4! − …          sen x = x − x³/3! + x⁵/5! − …") +
+        "<p>Sustituyamos x = iθ. Como i² = −1, i³ = −i, i⁴ = 1, i⁵ = i, …, las potencias <i>pares</i> de iθ son reales (1, −θ², +θ⁴, …) y las <i>impares</i> son imaginarias puras (iθ, −iθ³, +iθ⁵, …). Separando:</p>" +
+        H.formula("e<sup>iθ</sup> = (1 − θ²/2! + θ⁴/4! − …) + i·(θ − θ³/3! + θ⁵/5! − …) = cos θ + i·sen θ") +
+        "<p>Esa es la <b>fórmula de Euler</b>. En el simulador, cada punto gris es la suma de los primeros términos de la serie para el ángulo elegido: se «enrosca» y acaba cayendo sobre el punto de la circunferencia unidad.</p>" +
+        w("euler") +
+        "<h5>Qué dice, en palabras</h5>" +
+        "<ul><li><b>e<sup>iθ</sup> es el punto de la circunferencia unidad con argumento θ</b> (en radianes): su abscisa es cos θ y su ordenada sen θ. Su módulo es siempre 1.</li>" +
+        "<li>Valores clave: e<sup>i0</sup> = 1, e<sup>iπ/2</sup> = i, e<sup>iπ</sup> = −1, e<sup>i3π/2</sup> = −i, e<sup>i2π</sup> = 1. De ahí la identidad de Euler <b>e<sup>iπ</sup> + 1 = 0</b>.</li>" +
+        "<li>Es periódica de periodo 2π: e<sup>i(θ + 2π)</sup> = e<sup>iθ</sup> (dar una vuelta completa no cambia el punto).</li>" +
+        "<li>Como su módulo es 1, el conjugado y el inverso coinciden: <b>conj(e<sup>iθ</sup>) = 1/e<sup>iθ</sup> = e<sup>−iθ</sup></b>.</li></ul>" +
+        "<h5>La forma exponencial</h5>" +
+        "<p>Escribir z = r·e<sup>iθ</sup> es exactamente lo mismo que la forma polar r<sub>θ</sub>, pero con el ángulo en <b>radianes</b>:</p>" +
+        tabla(["Polar", "Exponencial", "Binómica"], [
+          ["1<sub>0°</sub>", "e<sup>i0</sup>", "1"],
+          ["1<sub>90°</sub>", "e<sup>iπ/2</sup>", "i"],
+          ["1<sub>180°</sub>", "e<sup>iπ</sup>", "−1"],
+          ["1<sub>270°</sub>", "e<sup>i3π/2</sup> = e<sup>−iπ/2</sup>", "−i"],
+          ["2<sub>60°</sub>", "2e<sup>iπ/3</sup>", "1 + √3·i"],
+          ["√2<sub>45°</sub>", "√2·e<sup>iπ/4</sup>", "1 + i"]
+        ]) +
+        "<h5>Por qué los argumentos se suman</h5>" +
+        "<p>La ley de los exponentes e<sup>a</sup>·e<sup>b</sup> = e<sup>a+b</sup> sigue valiendo con exponentes imaginarios. Por eso, sin ninguna fórmula nueva que memorizar:</p>" +
+        H.formula("r·e<sup>iα</sup> · s·e<sup>iβ</sup> = rs·e<sup>i(α+β)</sup>          (r·e<sup>iα</sup>)/(s·e<sup>iβ</sup>) = (r/s)·e<sup>i(α−β)</sup>          (r·e<sup>iθ</sup>)ⁿ = rⁿ·e<sup>inθ</sup>") +
+        "<p>La última es el teorema de De Moivre, que ahora es simplemente la regla «potencia de una potencia». Multiplicar por e<sup>iα</sup> es girar un ángulo α.</p>" +
+        ejemplo("De binómica a exponencial y vuelta", "Escribe z = −1 + i√3 en forma exponencial y pasa 3e<sup>iπ/6</sup> a binómica.", [
+          "Módulo: r = √(1 + 3) = 2. El punto (−1, √3) está en el 2.º cuadrante; el ángulo de referencia es arctan(√3/1) = 60°, así que θ = 180° − 60° = 120° = 2π/3.",
+          "<b>z = 2e<sup>i2π/3</sup></b>.",
+          "3e<sup>iπ/6</sup> = 3(cos 30° + i·sen 30°) = 3(√3/2 + i/2) = <b>(3√3/2) + (3/2)i ≈ 2,598 + 1,5i</b>."
+        ]) +
+        ejemplo("Operar en forma exponencial", "Calcula (2e<sup>iπ/6</sup>)·(3e<sup>iπ/3</sup>), (4e<sup>i5π/6</sup>)/(2e<sup>iπ/3</sup>) y (√2·e<sup>iπ/4</sup>)⁸.", [
+          "Producto: módulos 2·3 = 6 y argumentos π/6 + π/3 = π/2 → <b>6e<sup>iπ/2</sup> = 6i</b>.",
+          "Cociente: módulos 4/2 = 2 y argumentos 5π/6 − π/3 = 5π/6 − 2π/6 = π/2 → <b>2e<sup>iπ/2</sup> = 2i</b>.",
+          "Potencia: (√2)⁸ = 16 y 8·π/4 = 2π → <b>16e<sup>i2π</sup> = 16</b>."
+        ]) +
+        ejemplo("Las fórmulas del seno y del coseno de la suma salen solas", "Deduce cos(a + b) y sen(a + b) a partir de e<sup>i(a+b)</sup> = e<sup>ia</sup>·e<sup>ib</sup>.", [
+          "Aplicando Euler a cada lado: cos(a + b) + i·sen(a + b) = (cos a + i·sen a)(cos b + i·sen b).",
+          "Se desarrolla el producto con i² = −1: (cos a·cos b − sen a·sen b) + i·(sen a·cos b + cos a·sen b).",
+          "Igualando partes reales e imaginarias: <b>cos(a + b) = cos a·cos b − sen a·sen b</b> y <b>sen(a + b) = sen a·cos b + cos a·sen b</b>. Con a = b salen las del ángulo doble: cos 2a = cos²a − sen²a y sen 2a = 2·sen a·cos a."
+        ]) +
+        ejemplo("El coseno y el seno con exponenciales", "Demuestra que cos θ = (e<sup>iθ</sup> + e<sup>−iθ</sup>)/2 y comprueba el caso θ = π/3.", [
+          "e<sup>iθ</sup> = cos θ + i·sen θ y e<sup>−iθ</sup> = cos θ − i·sen θ. Al sumarlas, las partes imaginarias se cancelan: e<sup>iθ</sup> + e<sup>−iθ</sup> = 2cos θ.",
+          "Restándolas se cancelan las reales: e<sup>iθ</sup> − e<sup>−iθ</sup> = 2i·sen θ, es decir sen θ = (e<sup>iθ</sup> − e<sup>−iθ</sup>)/(2i).",
+          "Comprobación con θ = π/3 (60°): e<sup>iπ/3</sup> + e<sup>−iπ/3</sup> = (1/2 + (√3/2)i) + (1/2 − (√3/2)i) = 1, y 1/2 = cos 60° ✓."
+        ]) +
+        ejemplo("Una potencia imposible: iⁱ", "Calcula iⁱ (con la determinación principal).", [
+          "Como i = e<sup>iπ/2</sup>, iⁱ = (e<sup>iπ/2</sup>)<sup>i</sup> = e<sup>i·iπ/2</sup> = e<sup>i²π/2</sup> = e<sup>−π/2</sup>.",
+          "<b>iⁱ = e<sup>−π/2</sup> ≈ 0,2079</b>: ¡un número real! (Hay otros valores, e<sup>−π/2−2πk</sup>, porque el argumento de i también puede ser π/2 + 2πk.)"
+        ]) +
+        "<h5>Para qué sirve: las ondas como números complejos (fasores)</h5>" +
+        "<p>Una onda A·cos(ωt + φ) (la corriente alterna, el sonido, la luz…) queda determinada por su amplitud A y su fase φ, es decir, por el complejo <b>A·e<sup>iφ</sup></b>, que se llama su <i>fasor</i>. <b>Sumar dos ondas de la misma frecuencia equivale a sumar sus fasores</b>: así se evitan las fórmulas trigonométricas.</p>" +
+        ejemplo("Suma de dos ondas", "Suma 3cos(ωt) + 4cos(ωt + 90°).", [
+          "Fasores: 3e<sup>i0°</sup> = 3 y 4e<sup>i90°</sup> = 4i. Suma: 3 + 4i = 5<sub>53,13°</sub> (|3 + 4i| = 5 y arctan(4/3) = 53,13°).",
+          "Por tanto <b>3cos(ωt) + 4cos(ωt + 90°) = 5cos(ωt + 53,13°)</b>. Comprobación en t = 0: 3 + 4cos 90° = 3 y 5cos 53,13° = 3 ✓."
+        ]) +
+        ejemplo("Dos tensiones desfasadas 120°", "Dos fuentes de 230 V de amplitud tienen fases 0° y 120°. ¿Qué amplitud tiene su suma?", [
+          "230 + 230e<sup>i120°</sup> = 230·(1 − 1/2 + (√3/2)i) = 230·(1/2 + (√3/2)i) = 230e<sup>i60°</sup>.",
+          "La amplitud es <b>230 V</b> (con fase 60°): al sumar dos ondas desfasadas 120° no se obtiene el doble sino lo mismo que cada una."
+        ]) +
+        ojo("En la forma exponencial el ángulo va <b>siempre en radianes</b>: e<sup>i·90°</sup> no tiene sentido; hay que escribir e<sup>iπ/2</sup>. Y e<sup>iθ</sup> con θ real tiene módulo 1, no el valor de e ≈ 2,718 multiplicado por nada."),
+    },
+    {
+      h: "14. Transformaciones del plano con complejos",
+      html:
+        "<p>Una función f(z) manda cada punto del plano a otro punto y, por tanto, <b>transforma figuras</b>. Con complejos las transformaciones más importantes (traslaciones, giros, homotecias y simetrías) se escriben en una línea. Prueba cada una sobre la letra F, una figura asimétrica que deja ver si la figura se gira o se «da la vuelta»:</p>" +
+        w("transformaciones") +
+        tabla(["Transformación", "Fórmula", "Distancias", "Orientación"], [
+          ["Traslación de vector c", "z ↦ z + c", "se conservan", "se conserva"],
+          ["Giro de centro 0 y ángulo α", "z ↦ e<sup>iα</sup>·z", "se conservan", "se conserva"],
+          ["Homotecia de centro 0 y razón k", "z ↦ k·z (k real)", "se multiplican por |k|", "se conserva si k &gt; 0"],
+          ["Simetría respecto del eje real", "z ↦ z̄", "se conservan", "se invierte"],
+          ["Simetría respecto del eje imaginario", "z ↦ −z̄", "se conservan", "se invierte"],
+          ["Simetría respecto de la recta y = x", "z ↦ i·z̄", "se conservan", "se invierte"],
+          ["Giro de centro c", "z ↦ c + e<sup>iα</sup>·(z − c)", "se conservan", "se conserva"],
+          ["Semejanza directa", "z ↦ a·z + b (a ≠ 0)", "se multiplican por |a|", "se conserva"]
+        ]) +
+        "<h5>Giro de centro cualquiera</h5>" +
+        "<p>Para girar alrededor de un punto c se lleva c al origen (z − c), se gira (· e<sup>iα</sup>) y se devuelve a su sitio (+ c): z' = c + e<sup>iα</sup>(z − c). Desarrollando queda z' = e<sup>iα</sup>·z + c(1 − e<sup>iα</sup>), que tiene la forma <b>a·z + b</b>. Al revés, toda transformación z ↦ a·z + b con a ≠ 1 deja <b>un punto fijo</b> z₀ = b/(1 − a) y es un giro de ángulo arg a combinado con una homotecia de razón |a| alrededor de ese punto; si a = 1 es una traslación.</p>" +
+        ejemplo("Un giro alrededor de un punto", "Gira el punto P = 4 + i un ángulo de 90° alrededor de c = 1 − 2i.", [
+          "Se lleva c al origen: P − c = (4 + i) − (1 − 2i) = 3 + 3i.",
+          "Se gira 90° (multiplicar por i): i(3 + 3i) = 3i + 3i² = −3 + 3i.",
+          "Se devuelve a su sitio: (−3 + 3i) + (1 − 2i) = <b>−2 + i</b>. Comprobación: |P − c| = 3√2 y |(−2 + i) − c| = |−3 + 3i| = 3√2 ✓ (el giro conserva la distancia al centro)."
+        ]) +
+        "<h5>Simetrías respecto de una recta</h5>" +
+        "<p>Conjugar es reflejar respecto del eje real. Para otras rectas basta combinar giros y traslaciones; las fórmulas útiles son:</p>" +
+        "<ul><li>Recta vertical x = k: <b>z ↦ 2k − z̄</b>. Recta horizontal y = k: <b>z ↦ z̄ + 2ki</b>.</li>" +
+        "<li>Recta que pasa por el origen y forma un ángulo φ con el eje real: <b>z ↦ e<sup>2iφ</sup>·z̄</b> (para φ = 45°, e<sup>i90°</sup> = i y sale i·z̄).</li></ul>" +
+        ejemplo("Tres simetrías de un mismo punto", "Halla el simétrico de z = 3 + 2i respecto de la recta x = 1, respecto de y = x y respecto de y = −1.", [
+          "Respecto de x = 1: 2·1 − z̄ = 2 − (3 − 2i) = <b>−1 + 2i</b>.",
+          "Respecto de y = x: i·z̄ = i(3 − 2i) = 3i − 2i² = <b>2 + 3i</b> (se intercambian las coordenadas).",
+          "Respecto de y = −1: z̄ + 2(−1)i = 3 − 2i − 2i = <b>3 − 4i</b>. Comprobación: el punto (3, 2) está a 3 por encima de y = −1 y (3, −4) a 3 por debajo ✓."
+        ]) +
+        ejemplo("¿Qué semejanza lleva A en A' y B en B'?", "Halla z ↦ a·z + b que lleva A = 1 a A' = 2 + 3i y B = i a B' = −1 + 2i. Indica su razón, su ángulo y su punto fijo.", [
+          "Restando las dos condiciones: A' − B' = a(A − B) → (3 + i) = a(1 − i) → a = (3 + i)/(1 − i) = (3 + i)(1 + i)/2 = (2 + 4i)/2 = <b>1 + 2i</b>.",
+          "b = A' − a·A = (2 + 3i) − (1 + 2i) = <b>1 + i</b>. Comprobación con B: (1 + 2i)·i + 1 + i = i − 2 + 1 + i = −1 + 2i ✓.",
+          "Razón |a| = √5 ≈ 2,236 y ángulo arctan 2 ≈ 63,43°. Punto fijo: z₀ = b/(1 − a) = (1 + i)/(−2i) = <b>−1/2 + i/2</b> (se comprueba que f(z₀) = z₀)."
+        ]) +
+        ejemplo("Dos espejos hacen un giro", "Refleja un punto respecto del eje real y después respecto del eje imaginario. ¿Qué transformación resulta?", [
+          "Primero w = z̄. Después, la simetría respecto del eje imaginario es w ↦ −w̄, y −conj(z̄) = −z.",
+          "<b>z ↦ −z es un giro de 180°</b>, el doble del ángulo (90°) que forman los dos ejes. En general, dos simetrías respecto de rectas que se cortan en un ángulo β componen un giro de ángulo 2β."
+        ]) +
+        "<h5>Más allá de lo lineal: z² y 1/z</h5>" +
+        "<p>No todas las transformaciones conservan la forma. Con z = r<sub>θ</sub>: <b>z ↦ z²</b> lleva a (r²)<sub>2θ</sub> (duplica el argumento y eleva el módulo al cuadrado, así que «abre» la figura al doble de ángulo) y <b>z ↦ 1/z</b> lleva a (1/r)<sub>−θ</sub> (invierte el módulo y cambia el signo del argumento). Por ejemplo, para z = 2<sub>30°</sub>: z² = 4<sub>60°</sub> y 1/z = (1/2)<sub>−30°</sub>. Estas transformaciones son la base de los «mapas de colores» del análisis complejo que verás en la universidad.</p>"
+    },
+    {
+      h: "15. Polinomios con raíces complejas",
+      html:
+        "<p>El teorema fundamental del álgebra dice que un polinomio de grado n se descompone en n factores de primer grado <b>sobre ℂ</b>: P(x) = a(x − r₁)(x − r₂)…(x − rₙ). Cuando los coeficientes son reales, las raíces no reales vienen por parejas conjugadas a ± bi, y cada pareja forma un factor de segundo grado <b>con coeficientes reales</b>:</p>" +
+        H.formula("(x − (a + bi))(x − (a − bi)) = x² − 2a·x + (a² + b²)") +
+        "<p>Por eso, <b>sobre los reales, todo polinomio se factoriza en factores de grado 1 y grado 2</b> (los de grado 2 con Δ &lt; 0). Además, un polinomio real de grado impar tiene siempre <b>al menos una raíz real</b>, porque las no reales no pueden quedarse sin pareja. Y las raíces cumplen las <b>relaciones de Cardano–Vieta</b>: en x² + bx + c la suma de raíces es −b y el producto c; en x³ + px² + qx + r la suma es −p, la suma de productos de dos en dos es q y el producto es −r.</p>" +
+        ejemplo("Construir un polinomio con raíces dadas", "Halla un polinomio real de grado 3 con raíces 2 y 1 − 3i.", [
+          "Como los coeficientes son reales, 1 − 3i obliga a que 1 + 3i también sea raíz: ya tenemos las tres (2, 1 − 3i, 1 + 3i).",
+          "La pareja conjugada da el factor x² − 2·1·x + (1² + 3²) = x² − 2x + 10.",
+          "(x − 2)(x² − 2x + 10) = x³ − 2x² + 10x − 2x² + 4x − 20 = <b>x³ − 4x² + 14x − 20</b>. Comprobación con Vieta: suma de raíces 2 + 2 = 4 ✓ y producto 2·(1 + 9) = 20 = −(−20) ✓."
+        ]) +
+        ejemplo("Conocida una raíz, hallar las demás", "Sabiendo que 1 + 2i es raíz de x³ − 3x² + 7x − 5 = 0, halla las otras dos.", [
+          "Los coeficientes son reales, luego 1 − 2i también es raíz. La suma de las tres raíces vale −(−3) = 3.",
+          "Tercera raíz: 3 − (1 + 2i) − (1 − 2i) = <b>1</b>.",
+          "Comprobación con el producto: (1 + 2i)(1 − 2i)·1 = 5 = −(−5) ✓. El polinomio es (x − 1)(x² − 2x + 5): <b>raíces 1, 1 + 2i y 1 − 2i</b>."
+        ]) +
+        ejemplo("Un clásico: x⁴ + 4", "Factoriza x⁴ + 4 con coeficientes reales.", [
+          "x⁴ = −4 = 4<sub>180°</sub>: las raíces cuartas tienen módulo ⁴√4 = √2 y argumentos (180° + 360°k)/4 = 45°, 135°, 225°, 315°. Son <b>1 + i, −1 + i, −1 − i, 1 − i</b>.",
+          "Se agrupan por parejas conjugadas: (x − (1 + i))(x − (1 − i)) = x² − 2x + 2 y (x + 1 − i)(x + 1 + i) = x² + 2x + 2.",
+          "<b>x⁴ + 4 = (x² + 2x + 2)(x² − 2x + 2)</b>. Comprobación: (x² + 2)² − (2x)² = x⁴ + 4x² + 4 − 4x² = x⁴ + 4 ✓."
+        ]) +
+        ejemplo("¿Cuándo tiene raíces complejas?", "Estudia las raíces de x² − 2x + m = 0 según el valor de m.", [
+          "Δ = 4 − 4m. Si m &lt; 1 hay dos raíces reales distintas; si m = 1, una doble (x = 1); si <b>m &gt; 1</b>, dos raíces complejas conjugadas: x = (2 ± i·2√(m − 1))/2 = 1 ± i√(m − 1).",
+          "En ese caso |x|² = 1 + (m − 1) = m: el producto de las raíces es m = |x|² (siempre z·z̄ = |z|²). Con m = 5: raíces 1 ± 2i y módulo √5."
+        ]) +
+        ojo("Las raíces conjugadas por parejas sólo están garantizadas si <b>los coeficientes son reales</b>. El polinomio x − i tiene una única raíz, i, y su conjugada −i no lo es. Con coeficientes complejos no hay parejas."),
+    },
+    {
+      h: "16. Polígonos regulares y raíces de la unidad",
+      html:
+        "<p>Las <b>raíces n-ésimas de la unidad</b> son las soluciones de zⁿ = 1. En polar son 1<sub>360°k/n</sub>, es decir ω<sup>k</sup> con <b>ω = e<sup>2πi/n</sup></b>, y forman un polígono regular de n lados inscrito en la circunferencia unidad, con un vértice en 1. Tienen propiedades muy útiles:</p>" +
+        "<ul><li><b>Su suma es 0</b> (para n ≥ 2). Por la suma de una progresión geométrica: 1 + ω + … + ω<sup>n−1</sup> = (1 − ωⁿ)/(1 − ω) = 0, porque ωⁿ = 1 y ω ≠ 1. Geométricamente, el centro del polígono es el baricentro de sus vértices.</li>" +
+        "<li><b>Su producto</b> vale (−1)ⁿ⁺¹ (las raíces de zⁿ − 1 = 0 multiplican (−1)ⁿ·(−1)).</li>" +
+        "<li>Los conjugados son también raíces: conj(ω<sup>k</sup>) = ω<sup>−k</sup> = ω<sup>n−k</sup>. El polígono es simétrico respecto del eje real.</li></ul>" +
+        "<h5>Cualquier polígono regular</h5>" +
+        "<p>Si un polígono regular de n lados tiene centro c y un vértice z₀, los demás vértices salen de girar z₀ alrededor de c ángulos múltiplos de 360°/n: <b>z<sub>k</sub> = c + (z₀ − c)·ω<sup>k</sup></b>, k = 0, …, n − 1. Con R = |z₀ − c| el radio, el <b>lado</b> mide 2R·sen(π/n) y el <b>área</b> (n/2)·R²·sen(2π/n).</p>" +
+        ejemplo("Un triángulo equilátero con centro dado", "Un triángulo equilátero tiene centro 1 + i y un vértice en 4 + i. Halla los otros dos vértices y el lado.", [
+          "R = |z₀ − c| = |3| = 3 y ω = e<sup>2πi/3</sup> = −1/2 + (√3/2)i.",
+          "z₁ = c + 3ω = 1 + i + (−3/2 + (3√3/2)i) = <b>−1/2 + (1 + 3√3/2)i ≈ −0,5 + 3,598i</b>.",
+          "z₂ = c + 3ω² = 1 + i + (−3/2 − (3√3/2)i) = <b>−1/2 + (1 − 3√3/2)i ≈ −0,5 − 1,598i</b>.",
+          "Lado = 2·3·sen 60° = 3√3 ≈ 5,196. Comprobación: |z₀ − z₁| = |4,5 − 2,598i| = √(20,25 + 6,75) = √27 = 3√3 ✓."
+        ]) +
+        ejemplo("El hexágono de z⁶ = 64", "Resuelve z⁶ = 64, dibuja el polígono y calcula su lado, su perímetro y su área.", [
+          "64 = 64<sub>0°</sub>: módulo ⁶√64 = 2 y argumentos 60°·k. Las soluciones son <b>2, 1 + √3i, −1 + √3i, −2, −1 − √3i, 1 − √3i</b>: un hexágono regular de radio 2.",
+          "Lado = 2·2·sen 30° = 2 (en el hexágono el lado coincide con el radio). Perímetro = 6·2 = <b>12</b>.",
+          "Área = (6/2)·2²·sen 60° = 12·(√3/2) = <b>6√3 ≈ 10,39</b>."
+        ]) +
+        ejemplo("Un polígono con el centro desplazado", "Resuelve (z − 1)³ = 8.", [
+          "Sea u = z − 1. Entonces u³ = 8, cuyas raíces son 2, 2<sub>120°</sub> = −1 + √3i y 2<sub>240°</sub> = −1 − √3i.",
+          "Se deshace el cambio z = u + 1: <b>z = 3, z = √3i y z = −√3i</b>. Es el triángulo equilátero de centro 1 y radio 2."
+        ]) +
+        "<p>Las raíces de la unidad también explican por qué se puede construir con regla y compás el pentágono regular (cos 72° = (√5 − 1)/4), y están detrás de la transformada de Fourier, que comprime sonido e imagen en tu móvil.</p>"
+    },
+    {
+      h: "17. Problemas de examen resueltos",
+      html:
+        "<p>Cinco problemas del estilo de la prueba de acceso, con el desarrollo que se pide en un examen.</p>" +
+        ejemplo("Problema 1 · Potencias y cocientes", "Calcula (1 + i√3)⁶/(√3 − i)⁴ y expresa el resultado en forma binómica.", [
+          "1 + i√3 = 2<sub>60°</sub> → (1 + i√3)⁶ = 2⁶<sub>360°</sub> = 64<sub>0°</sub> = 64.",
+          "√3 − i está en el 4.º cuadrante: módulo 2 y argumento 330° → (√3 − i)⁴ = 2⁴<sub>1320°</sub> = 16<sub>240°</sub> (1320° = 3·360° + 240°).",
+          "Cociente: módulo 64/16 = 4 y argumento 0° − 240° = −240° ≡ 120°.",
+          "4<sub>120°</sub> = 4(cos 120° + i·sen 120°) = 4(−1/2 + (√3/2)i) = <b>−2 + 2√3 i</b>."
+        ]) +
+        ejemplo("Problema 2 · Un parámetro real", "Halla m real para que (m + 2i)/(1 − i) sea: (a) un número real; (b) imaginario puro; (c) de módulo √10.", [
+          "Se racionaliza: (m + 2i)(1 + i)/[(1 − i)(1 + i)] = (m + mi + 2i + 2i²)/2 = [(m − 2) + (m + 2)i]/2.",
+          "(a) Real: parte imaginaria nula → m + 2 = 0 → <b>m = −2</b> (el número vale −2).",
+          "(b) Imaginario puro: parte real nula → m − 2 = 0 → <b>m = 2</b> (el número vale 2i).",
+          "(c) Módulo al cuadrado: [(m − 2)² + (m + 2)²]/4 = (2m² + 8)/4 = (m² + 4)/2 = 10 → m² = 16 → <b>m = 4 o m = −4</b>. Comprobación: m = 4 da 1 + 3i (módulo √10) y m = −4 da −3 − i (módulo √10) ✓."
+        ]) +
+        ejemplo("Problema 3 · Una ecuación z⁴ = w", "Resuelve z⁴ = −8 + 8√3 i, escribe las soluciones en forma binómica y di qué polígono forman.", [
+          "w = −8 + 8√3 i: módulo √(64 + 192) = 16 y argumento 120° (2.º cuadrante, ángulo de referencia 60°).",
+          "z = ⁴√16 = 2 con argumentos (120° + 360°k)/4 = 30°, 120°, 210°, 300°.",
+          "En binómica: 2<sub>30°</sub> = <b>√3 + i</b>; 2<sub>120°</sub> = <b>−1 + √3 i</b>; 2<sub>210°</sub> = <b>−√3 − i</b>; 2<sub>300°</sub> = <b>1 − √3 i</b>.",
+          "Forman un <b>cuadrado</b> inscrito en la circunferencia de radio 2; su lado mide 2·2·sen 45° = 2√2 ≈ 2,83."
+        ]) +
+        ejemplo("Problema 4 · Un triángulo equilátero", "Dos vértices de un triángulo equilátero son A = 1 + i y B = 3 + i. Halla el tercer vértice (hay dos posibilidades).", [
+          "AB = B − A = 2. El tercer vértice C se obtiene girando B alrededor de A un ángulo de ±60°: C = A + (B − A)·e<sup>±iπ/3</sup>.",
+          "e<sup>±iπ/3</sup> = 1/2 ± (√3/2)i → C = 1 + i + 2(1/2 ± (√3/2)i) = 1 + i + 1 ± √3 i = <b>2 + (1 + √3)i o 2 + (1 − √3)i</b>.",
+          "Comprobación: |C − A| = |1 ± √3 i| = 2 = |AB| ✓ y |C − B| = |−1 ± √3 i| = 2 ✓."
+        ]) +
+        ejemplo("Problema 5 · Una región con área", "Dibuja y calcula el área del conjunto de los z con |z| ≤ 2 y |z − 1| ≤ |z − i|. ¿Y la curva |z + 2| = 2|z − 1|?", [
+          "Con z = x + yi: |z − 1| ≤ |z − i| ⇔ (x − 1)² + y² ≤ x² + (y − 1)² ⇔ −2x + 1 ≤ −2y + 1 ⇔ <b>x ≥ y</b>: el semiplano por debajo de la recta y = x (mediatriz de 1 e i).",
+          "La recta y = x pasa por el centro del círculo |z| ≤ 2, así que la región es <b>medio círculo</b>: área = ½·π·2² = <b>2π ≈ 6,28</b>.",
+          "Segunda curva (círculo de Apolonio): |z + 2|² = 4|z − 1|² → (x + 2)² + y² = 4(x − 1)² + 4y² → 3x² − 12x + 3y² = 0 → x² − 4x + y² = 0 → <b>(x − 2)² + y² = 4</b>: circunferencia de centro 2 y radio 2."
+        ])
+    }
+  ];
+  nuevas.splice(nuevas.length - 2, 0, nuevas6[0], nuevas6[1], nuevas6[2], nuevas6[3], nuevas6[4]);
+
+  // actividades nuevas
+  datos.transf = {
+    titulo: "Transformaciones y fórmulas",
+    consigna: "Une cada transformación del plano con su fórmula compleja.",
+    pares: [
+      ["Giro de 90° alrededor del origen", "z ↦ i·z"],
+      ["Giro de 180° alrededor del origen", "z ↦ −z"],
+      ["Simetría respecto del eje real", "z ↦ z̄"],
+      ["Traslación de vector (2, 1)", "z ↦ z + 2 + i"],
+      ["Homotecia de razón 3", "z ↦ 3z"],
+      ["Simetría respecto de y = x", "z ↦ i·z̄"],
+      ["Simetría respecto de x = 1", "z ↦ 2 − z̄"]
+    ]
+  };
+  datos.ordenPol = {
+    titulo: "Polinomio con coeficientes reales a partir de una raíz compleja",
+    consigna: "Ordena los pasos para completar las raíces y construir el polinomio.",
+    items: [
+      { t: "Escribir la raíz dada a + bi", nota: "Por ejemplo 2 + 3i." },
+      { t: "Añadir su conjugada a − bi como raíz", nota: "Los coeficientes son reales: las raíces no reales van por parejas." },
+      { t: "Formar el factor cuadrático x² − 2a·x + (a² + b²)", nota: "Aquí x² − 4x + 13." },
+      { t: "Multiplicar por los factores (x − r) de las demás raíces" },
+      { t: "Comprobar con Vieta: suma y producto de las raíces", nota: "Suma = −(coef. de xⁿ⁻¹), producto = ±(término independiente)." }
+    ]
+  };
+  nuevas6[1].html += w("emparejar", "transf");
+  nuevas6[2].html += "<p>Practica el orden de un procedimiento muy repetido en los exámenes:</p>" + w("orden", "ordenPol");
+
+  // preguntas nuevas de «¿Qué falla aquí?» y del test
+  datos.errores.preguntas.push(
+    { q: "Un alumno calcula e<sup>iπ/2</sup> = cos(π/2) + sen(π/2) = 0 + 1 = 1. ¿Qué falla?",
+      op: ["Nada: vale 1", "Se ha olvidado la i: e<sup>iθ</sup> = cos θ + <b>i</b>·sen θ, así que e<sup>iπ/2</sup> = i", "El resultado es −1", "e elevado a un número imaginario no se puede calcular"], ok: 1,
+      porque: "La fórmula de Euler es e<sup>iθ</sup> = cos θ + i·sen θ. Con θ = π/2: 0 + i·1 = i." },
+    { q: "Un polinomio con coeficientes reales tiene la raíz 1 + 2i. Un alumno dice que otra raíz es −1 − 2i (la opuesta). ¿Qué falla?",
+      op: ["Nada", "La otra raíz que se garantiza es la <b>conjugada</b>, 1 − 2i, no la opuesta", "La otra raíz es 2 + i", "No hay ninguna otra raíz garantizada"], ok: 1,
+      porque: "Si los coeficientes son reales, las raíces no reales vienen por parejas conjugadas: a + bi y a − bi." },
+    { q: "Un alumno afirma que la simetría respecto del eje imaginario es z ↦ z̄. ¿Qué falla?",
+      op: ["Nada", "z ↦ z̄ es la simetría respecto del eje <b>real</b>; la del eje imaginario es z ↦ −z̄", "Es z ↦ −z", "Es z ↦ i·z"], ok: 1,
+      porque: "Si z = a + bi, z̄ = a − bi (cambia b) y −z̄ = −a + bi (cambia a). Cambiar el signo de la parte real es reflejar respecto del eje imaginario." }
+  );
+  datos.quiz1.preguntas.push(
+    { q: "e<sup>iπ</sup> vale…", op: ["−1", "1", "i", "−i"], ok: 0, porque: "cos π + i·sen π = −1 + 0i. De ahí la identidad e<sup>iπ</sup> + 1 = 0." },
+    { q: "2e<sup>iπ/3</sup> en forma binómica es…", op: ["1 + √3·i", "√3 + i", "2 + 2i", "1/2 + (√3/2)i"], ok: 0, porque: "2(cos 60° + i·sen 60°) = 2(1/2 + (√3/2)i) = 1 + √3·i." },
+    { q: "La transformación z ↦ z̄ es…", op: ["una simetría respecto del eje real", "un giro de 90°", "una simetría respecto del eje imaginario", "una homotecia"], ok: 0, porque: "Conjugar cambia el signo de la parte imaginaria: refleja el punto respecto del eje real." },
+    { q: "Si 3 − i es raíz de un polinomio con coeficientes reales, otra raíz seguro es…", op: ["3 + i", "−3 + i", "−3 − i", "i"], ok: 0, porque: "Las raíces no reales de un polinomio real vienen por parejas conjugadas." },
+    { q: "El conjunto de los z con |z − 1| = |z + 1| es…", op: ["el eje imaginario (la recta Re z = 0)", "la circunferencia de centro 0 y radio 1", "el eje real", "un solo punto"], ok: 0, porque: "Son los puntos que equidistan de 1 y de −1: la mediatriz, la recta x = 0." },
+    { q: "La suma de las cinco raíces quintas de cualquier número complejo vale…", op: ["0", "1", "5", "depende del número"], ok: 0, porque: "Forman un pentágono regular centrado en el origen y su centro es el baricentro de los vértices: la suma es 0." }
+  );
+
+  // ejercicios nuevos (j37–j49)
+  ejercicios.push(
+    // ---------- ★ ----------
+    { id: "j37", nivel: 1,
+      enunciado: "Escribe −1 + i en forma exponencial r·e<sup>iθ</sup>. Da r y θ en radianes (0 ≤ θ &lt; 2π, decimales).",
+      check: [{ tipo: "num", etiqueta: "r =", valor: 1.41421 }, { tipo: "num", etiqueta: "θ =", valor: 2.35619, unidad: "rad" }],
+      pistas: ["r = √(a² + b²). El punto (−1, 1) está en el 2.º cuadrante."],
+      pasos: ["r = √(1 + 1) = √2 ≈ 1,4142.", "Ángulo de referencia arctan(1/1) = 45°; en el 2.º cuadrante θ = 180° − 45° = 135° = 3π/4 ≈ 2,3562 rad.", "−1 + i = √2·e<sup>i3π/4</sup>."],
+      resultado: "√2·e<sup>i3π/4</sup>" },
+    { id: "j38", nivel: 1,
+      enunciado: "Calcula (2e<sup>iπ/6</sup>)·(3e<sup>iπ/3</sup>) y da su módulo y su argumento en grados.",
+      check: [{ tipo: "num", etiqueta: "módulo =", valor: 6 }, { tipo: "num", etiqueta: "argumento =", valor: 90, unidad: "°" }],
+      pistas: ["Los módulos se multiplican y los argumentos se suman."],
+      pasos: ["Módulo: 2·3 = 6.", "Argumento: π/6 + π/3 = π/2 = 90°.", "El producto es 6e<sup>iπ/2</sup> = 6i."],
+      resultado: "6e<sup>iπ/2</sup> = 6i" },
+    { id: "j39", nivel: 1,
+      enunciado: "Si 2 + 3i es raíz de x² + bx + c = 0 con b y c reales, halla b y c.",
+      check: [{ tipo: "num", etiqueta: "b =", valor: -4 }, { tipo: "num", etiqueta: "c =", valor: 13 }],
+      pistas: ["La otra raíz es la conjugada 2 − 3i. Suma de raíces = −b y producto = c."],
+      pasos: ["Raíces: 2 + 3i y 2 − 3i.", "Suma: 4 = −b → b = −4.", "Producto: (2 + 3i)(2 − 3i) = 4 + 9 = 13 = c."],
+      resultado: "b = −4, c = 13 (x² − 4x + 13 = 0)" },
+    // ---------- ★★ ----------
+    { id: "j40", nivel: 2,
+      enunciado: "Calcula i·z̄ para z = 3 + 2i. Da su parte real y su parte imaginaria.",
+      check: [{ tipo: "num", etiqueta: "Re =", valor: 2 }, { tipo: "num", etiqueta: "Im =", valor: 3 }],
+      pistas: ["Primero el conjugado z̄ = 3 − 2i y después multiplica por i."],
+      pasos: ["z̄ = 3 − 2i.", "i·(3 − 2i) = 3i − 2i² = 3i + 2 = 2 + 3i.", "(Es el simétrico de 3 + 2i respecto de la recta y = x: se han intercambiado las coordenadas.)"],
+      resultado: "2 + 3i" },
+    { id: "j41", nivel: 2,
+      enunciado: "Sabiendo que 1 + 2i es raíz de x³ − 3x² + 7x − 5 = 0, halla la raíz real.",
+      check: { tipo: "num", etiqueta: "raíz real =", valor: 1 },
+      pistas: ["Las raíces no reales vienen por parejas conjugadas. La suma de las tres raíces es −(−3) = 3."],
+      pasos: ["La otra raíz compleja es 1 − 2i.", "Suma de raíces: (1 + 2i) + (1 − 2i) + r = 3 → 2 + r = 3 → r = 1.", "Comprobación: 1 − 3 + 7 − 5 = 0 ✓."],
+      resultado: "x = 1" },
+    { id: "j42", nivel: 2,
+      enunciado: "Un cuadrado tiene centro 1 + i y un vértice en 3 + i. Calcula su área y la parte real del vértice con mayor parte imaginaria.",
+      check: [{ tipo: "num", etiqueta: "área =", valor: 8 }, { tipo: "num", etiqueta: "Re del vértice =", valor: 1 }],
+      pistas: ["Los vértices son c + (z₀ − c)·iᵏ. La diagonal es 2·|z₀ − c|."],
+      pasos: ["z₀ − c = 2. Vértices: 1 + i + 2·iᵏ → 3 + i, 1 + 3i, −1 + i, 1 − i.", "Diagonal = 4 → área = d²/2 = 16/2 = 8.", "El de mayor parte imaginaria es 1 + 3i: parte real 1."],
+      resultado: "área 8; vértice 1 + 3i" },
+    { id: "j43", nivel: 2,
+      enunciado: "Resuelve z³ = −27. De las tres soluciones, ¿cuál tiene parte imaginaria positiva? Da su parte real y su parte imaginaria (decimales).",
+      check: [{ tipo: "num", etiqueta: "Re =", valor: 1.5 }, { tipo: "num", etiqueta: "Im =", valor: 2.59808, tol: 0.002 }],
+      pistas: ["−27 = 27<sub>180°</sub>. Las raíces cúbicas tienen módulo 3 y argumentos (180° + 360°k)/3."],
+      pasos: ["Argumentos 60°, 180° y 300°.", "3<sub>60°</sub> = 3(1/2 + (√3/2)i) = 1,5 + 2,598i (parte imaginaria positiva).", "Las otras: −3 y 1,5 − 2,598i."],
+      resultado: "3/2 + (3√3/2)i ≈ 1,5 + 2,598i" },
+    { id: "j44", nivel: 2,
+      enunciado: "Calcula el área de la región del plano formada por los z que cumplen 1 ≤ |z − 2i| ≤ 3.",
+      check: { tipo: "num", etiqueta: "área =", valor: 25.1327, tol: 0.002 },
+      pistas: ["|z − 2i| = r es la circunferencia de centro 2i y radio r. La región es una corona circular."],
+      pasos: ["Círculo exterior de radio 3: π·3² = 9π. Círculo interior de radio 1: π·1² = π.", "Área de la corona = 9π − π = 8π ≈ 25,13."],
+      resultado: "8π ≈ 25,13" },
+    // ---------- ★★★ ----------
+    { id: "j45", nivel: 3,
+      enunciado: "Calcula iⁱ (valor principal) con la fórmula de Euler. Da el resultado con cuatro decimales.",
+      check: { tipo: "num", etiqueta: "iⁱ =", valor: 0.20788, tol: 0.002 },
+      pistas: ["Escribe i = e<sup>iπ/2</sup> y aplica (e<sup>a</sup>)<sup>b</sup> = e<sup>ab</sup>."],
+      pasos: ["i = e<sup>iπ/2</sup>.", "iⁱ = (e<sup>iπ/2</sup>)<sup>i</sup> = e<sup>i·i·π/2</sup> = e<sup>−π/2</sup>.", "e<sup>−π/2</sup> ≈ 0,2079 (¡un número real!)."],
+      resultado: "e<sup>−π/2</sup> ≈ 0,2079" },
+    { id: "j46", nivel: 3,
+      enunciado: "La semejanza f(z) = a·z + b cumple f(1) = 3 + i y f(i) = 2 + 4i. Halla el factor de ampliación |a|, el ángulo de giro (en grados, entre −180° y 180°) y las coordenadas del punto fijo.",
+      check: [{ tipo: "num", etiqueta: "|a| =", valor: 2.23607 }, { tipo: "num", etiqueta: "ángulo =", valor: -26.565, unidad: "°" }, { tipo: "num", etiqueta: "Re del punto fijo =", valor: 0.5 }, { tipo: "num", etiqueta: "Im del punto fijo =", valor: -1.5 }],
+      pistas: ["Resta las dos condiciones: f(1) − f(i) = a(1 − i). Después b = f(1) − a. El punto fijo es b/(1 − a)."],
+      pasos: ["a = (3 + i − 2 − 4i)/(1 − i) = (1 − 3i)/(1 − i) = (1 − 3i)(1 + i)/2 = (4 − 2i)/2 = 2 − i.", "b = (3 + i) − (2 − i) = 1 + 2i. |a| = √5 ≈ 2,236 y arg a = −arctan(1/2) = −26,565°.", "Punto fijo: z₀ = b/(1 − a) = (1 + 2i)/(−1 + i) = (1 + 2i)(−1 − i)/2 = (1 − 3i)/2 = 0,5 − 1,5i."],
+      resultado: "a = 2 − i; |a| = 2,236; −26,57°; punto fijo 1/2 − 3i/2" },
+    { id: "j47", nivel: 3,
+      enunciado: "Escribe 3cos(ωt) + 4sen(ωt) como A·cos(ωt − φ) con A &gt; 0 y 0° &lt; φ &lt; 90°. Da A y φ (en grados). (Pista: sen(ωt) = cos(ωt − 90°) y usa fasores.)",
+      check: [{ tipo: "num", etiqueta: "A =", valor: 5 }, { tipo: "num", etiqueta: "φ =", valor: 53.13, unidad: "°" }],
+      pistas: ["Fasores: 3cos(ωt) ↔ 3 y 4cos(ωt − 90°) ↔ 4e<sup>−i90°</sup> = −4i. Suma los dos complejos."],
+      pasos: ["Fasor total: 3 + 4e<sup>−iπ/2</sup> = 3 − 4i, con módulo 5 y argumento −arctan(4/3) = −53,13°.", "Así que la suma es 5cos(ωt − 53,13°): A = 5 y φ = 53,13°.", "Comprobación: 5cos φ = 3 y 5 sen φ = 4 (cos φ = 3/5, sen φ = 4/5)."],
+      resultado: "5cos(ωt − 53,13°)" },
+    { id: "j48", nivel: 3,
+      enunciado: "Halla el simétrico de z = 4 + 2i respecto de la recta que pasa por el origen y forma 30° con el eje real. Da su parte real y su parte imaginaria (decimales).",
+      check: [{ tipo: "num", etiqueta: "Re =", valor: 3.73205, tol: 0.002 }, { tipo: "num", etiqueta: "Im =", valor: 2.4641, tol: 0.002 }],
+      pistas: ["La simetría respecto de una recta por el origen de ángulo φ es z ↦ e<sup>2iφ</sup>·z̄."],
+      pasos: ["φ = 30° → e<sup>2iφ</sup> = e<sup>i60°</sup> = 1/2 + (√3/2)i. z̄ = 4 − 2i.", "(1/2 + (√3/2)i)(4 − 2i) = 2 − i + 2√3 i − √3 i² = (2 + √3) + (2√3 − 1)i.", "≈ 3,732 + 2,464i. Comprobación: |z'|² = 13,93 + 6,07 = 20 = |z|² ✓."],
+      resultado: "(2 + √3) + (2√3 − 1)i ≈ 3,732 + 2,464i" },
+    { id: "j49", nivel: 3,
+      enunciado: "Demuestra que la suma de las n raíces n-ésimas de la unidad (n ≥ 2) es 0.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe las raíces como 1, ω, ω², …, ωⁿ⁻¹ con ω = e<sup>2πi/n</sup> ≠ 1", p: 0.5 },
+        { t: "Reconoce una progresión geométrica de razón ω", p: 0.5 },
+        { t: "Aplica la suma: (1 − ωⁿ)/(1 − ω)", p: 0.5 },
+        { t: "Usa ωⁿ = 1 para concluir que el numerador es 0 y la suma vale 0 (el denominador no se anula)", p: 0.5 }
+      ] },
+      pasos: ["Las raíces son ω<sup>k</sup>, k = 0, …, n − 1, con ω = e<sup>2πi/n</sup>, y ω ≠ 1 por ser n ≥ 2.", "S = 1 + ω + … + ωⁿ⁻¹ = (1 − ωⁿ)/(1 − ω) (suma de una progresión geométrica de razón ω).", "ωⁿ = e<sup>2πi</sup> = 1, luego el numerador es 0, y como 1 − ω ≠ 0, S = 0. ∎"],
+      resultado: "S = 0" }
+  );
+  ejercicios.sort(function (a, b) { return a.nivel - b.nivel; });
+
+  // láminas nuevas
+  lamina.push(
+    { titulo: "Fórmula de Euler y forma exponencial",
+      items: [
+        { label: "Fórmula de Euler", formula: "e<sup>iθ</sup> = cos θ + i·sen θ", cuando: "θ siempre en radianes. |e<sup>iθ</sup>| = 1.", ejemplo: "e<sup>iπ</sup> = −1 · e<sup>iπ/2</sup> = i" },
+        { label: "Forma exponencial", formula: "z = r·e<sup>iθ</sup> = r<sub>θ</sub>", ejemplo: "−1 + i = √2·e<sup>i3π/4</sup>" },
+        { label: "Operaciones", formula: "r e<sup>iα</sup>·s e<sup>iβ</sup> = rs e<sup>i(α+β)</sup> · (r e<sup>iθ</sup>)ⁿ = rⁿ e<sup>inθ</sup>", ejemplo: "(√2 e<sup>iπ/4</sup>)⁸ = 16" },
+        { label: "Coseno y seno", formula: "cos θ = (e<sup>iθ</sup> + e<sup>−iθ</sup>)/2 · sen θ = (e<sup>iθ</sup> − e<sup>−iθ</sup>)/(2i)" }
+      ],
+      nota: "e<sup>iπ</sup> + 1 = 0. Fasores: A·cos(ωt + φ) ↔ A·e<sup>iφ</sup>." },
+    { titulo: "Transformaciones y polinomios", ancha: true,
+      tabla: { cab: ["Idea", "Fórmula / regla"], filas: [
+        ["Traslación · giro · homotecia", "z + c · e<sup>iα</sup>·z · k·z"],
+        ["Simetrías", "z̄ (eje real) · −z̄ (eje imaginario) · i·z̄ (y = x) · e<sup>2iφ</sup>·z̄ (recta por 0 a φ)"],
+        ["Giro de centro c", "c + e<sup>iα</sup>(z − c)"],
+        ["Semejanza a·z + b", "razón |a|, ángulo arg a, punto fijo b/(1 − a)"],
+        ["Raíces conjugadas", "con coeficientes reales: a ± bi vienen juntas → factor x² − 2a·x + a² + b²"],
+        ["Polígono regular", "z<sub>k</sub> = c + (z₀ − c)·e<sup>2πik/n</sup> · lado 2R·sen(π/n)"]
+      ] },
+      nota: "La suma de las n raíces n-ésimas de la unidad es 0." }
+  );
 
   B.registrar("mates1", "t6", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
