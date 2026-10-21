@@ -18060,6 +18060,311 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de trigonometría, parte 3 (Matemáticas I, temas 4 y 5)
+   Tema 4: inversas (arcsen, arccos, arctan) · navegacion (rumbos) · observador (alturas)
+   Tema 5: rombo (de suma a producto) · batidos (pulsaciones) · cuadratica (2.º grado en sen/cos)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  var R = Math.PI / 180;
+  function rad(d) { return d * R; }
+  function deg(r) { return r / R; }
+  function sen(d) { return Math.sin(rad(d)); }
+  function cos(d) { return Math.cos(rad(d)); }
+  function mod360(d) { var v = ((d % 360) + 360) % 360; v = Math.round(v * 1e9) / 1e9; return v === 360 ? 0 : v; }
+  function gr(d, n) { return fmt(d, n == null ? 2 : n) + "°"; }
+  function pad3(v) { v = Math.round(v); return (v < 10 ? "00" : v < 100 ? "0" : "") + v; }
+  function signo(v, dec) { return (v < 0 ? "−" : "+") + " " + fmt(Math.abs(v), dec == null ? 1 : dec); }
+
+  // Encaja en el lienzo (misma escala en los dos ejes) el rectángulo [minx, maxx] × [miny, maxy]
+  function encaja(g, minx, maxx, miny, maxy, marg) {
+    var c = g.c, pw = c.w - c.izq - c.der, ph = c.h - c.arr - c.abj, ratio = pw / ph;
+    var semi = Math.max((maxy - miny) / 2, (maxx - minx) / 2 / ratio) * (marg || 1.2);
+    if (!(semi > 1e-9)) semi = 1;
+    g.rangoIso((minx + maxx) / 2, (miny + maxy) / 2, semi);
+    return semi;
+  }
+  function grueso(el, w) { if (el) el.setAttribute("stroke-width", w); return el; }
+  function tenue(el, w, o) { if (el) { el.setAttribute("stroke-width", w); el.setAttribute("stroke-opacity", o); el.setAttribute("stroke-linecap", "round"); } return el; }
+
+  // ============================================================
+  // INVERSAS: del valor al ángulo (arcsen, arccos, arctan) y su «otra» solución
+  // ============================================================
+  B.w.inversas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Del valor al ángulo: arcsen, arccos y arctan");
+    cuerpo.innerHTML = '<div data-chips></div><div data-ctl></div><div class="w-plot"></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { f: "sen", k: 0.5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sl = U.slider(ctl, { et: "Valor <i>k</i>", min: -1, max: 1, step: 0.01, val: st.k, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    var NOM = { sen: "arcsen", cos: "arccos", tan: "arctan" };
+    function sol(f, k) {
+      if (f === "sen") { var a = deg(Math.asin(Math.max(-1, Math.min(1, k)))); return { a: a, otro: 180 - a }; }
+      if (f === "cos") { var b = deg(Math.acos(Math.max(-1, Math.min(1, k)))); return { a: b, otro: -b }; }
+      var c = deg(Math.atan(k)); return { a: c, otro: c + 180 };
+    }
+    function ajusta() {
+      var tan = st.f === "tan";
+      sl.input.min = tan ? -4 : -1; sl.input.max = tan ? 4 : 1; sl.input.step = tan ? 0.1 : 0.01;
+      st.k = Math.max(+sl.input.min, Math.min(+sl.input.max, st.k)); sl.set(st.k);
+    }
+    function etiqueta(ang, texto, clase) {
+      var x = cos(ang), y = sen(ang);
+      g.texto(x * 1.2, y * 1.2, texto, { clase: clase, ancla: x >= -0.05 ? "start" : "end", dy: 4 });
+    }
+    function pinta() {
+      var f = st.f, k = st.k, s = sol(f, k), a = s.a, s1 = mod360(a), s2 = mod360(s.otro), uno = Math.abs(s1 - s2) < 1e-6, nom = NOM[f];
+      g.limpiar();
+      g.segmento(-1.6, 0, 1.6, 0, { clase: "c-faint" }); g.segmento(0, -1.6, 0, 1.6, { clase: "c-faint" });
+      tenue(f === "cos" ? g.arco(0, 0, 1, 0, 180, { clase: "c-pen" }) : g.arco(0, 0, 1, -90, 90, { clase: "c-pen" }), 12, 0.42);
+      g.arco(0, 0, 1, 0, 360, { clase: "c-ink" });
+      if (f === "sen") g.segmento(-1.6, k, 1.6, k, { clase: "c-ok", dash: "5 4" });
+      else if (f === "cos") g.segmento(k, -1.6, k, 1.6, { clase: "c-ok", dash: "5 4" });
+      else { g.segmento(1, -1.6, 1, 1.6, { clase: "c-faint", dash: "3 4" }); g.segmento(-1.6, -1.6 * k, 1.6, 1.6 * k, { clase: "c-ok", dash: "5 4" }); g.punto(1, k, { r: 5, clase: "c-ok" }); }
+      grueso(g.arco(0, 0, 0.3, 0, a, { clase: "c-red" }), 3);
+      if (!uno) grueso(g.arco(0, 0, 0.42, 0, s2, { clase: "c-ok" }), 2.4);
+      g.punto(cos(a), sen(a), { r: 8, clase: "c-red" });
+      etiqueta(a, fmt(a, 1) + "°", "red");
+      if (!uno) { g.punto(cos(s2), sen(s2), { r: 8, clase: "c-ok hueco" }); etiqueta(s2, fmt(s2, 1) + "°", "ok"); }
+      var lista = uno ? gr(s1) : (s1 < s2 ? gr(s1) + " y " + gr(s2) : gr(s2) + " y " + gr(s1));
+      var fam = uno ? "x = " + fmt(s1, 2) + "° + 360°·n" : f === "tan" ? "x = " + fmt(s1, 2) + "° + 180°·n" : "x = " + fmt(s1, 2) + "° + 360°·n  ó  x = " + fmt(s2, 2) + "° + 360°·n";
+      var rango = f === "cos" ? "0° a 180°" : "−90° a 90°";
+      lectura.innerHTML = U.lec(nom + "(" + fmt(k, 2) + "), la calculadora", gr(a) + (a < 0 ? "  (≡ " + gr(mod360(a)) + ")" : ""), "red") +
+        U.lec("Rango de " + nom, rango) +
+        U.lec("Soluciones en [0°, 360°)", lista + (uno ? "  (solución única)" : ""), "ok") +
+        U.lec("Todas las soluciones de " + f + " x = " + fmt(k, 2), fam, "ancho");
+      pie.innerHTML = "La zona <b>gruesa</b> de la circunferencia es el único trozo en el que la calculadora busca (" + rango + "). Pero la ecuación <b>" + f + " x = k</b> tiene " + (f === "tan" ? "un ángulo cada media vuelta" : uno ? "aquí una sola solución" : "<b>dos</b> ángulos por vuelta") + ": el que ves en rojo (el de la calculadora) y el verde, que hay que añadir tú.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1.7, xmax: 1.7, ymin: -1.7, ymax: 1.7, w: 520, h: 330, limpio: true, etiqueta: "Circunferencia con los dos ángulos que tienen el mismo valor" });
+    g.rangoIso(0, 0, 1.55);
+    U.fichas(cuerpo.querySelector("[data-chips]"), [{ k: "sen", t: "sen x = k" }, { k: "cos", t: "cos x = k" }, { k: "tan", t: "tan x = k" }], st.f, function (k) { st.f = k; ajusta(); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // NAVEGACION: dos tramos con rumbos distintos y el regreso (teorema del coseno)
+  // ============================================================
+  B.w.navegacion = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Rumbos: dos tramos y el regreso a puerto");
+    cuerpo.innerHTML = '<div class="w-plot"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { r1: 40, d1: 20, r2: 100, d2: 30 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function rum(v) { return pad3(v) + "°"; }
+    U.slider(ctl, { et: "Rumbo 1.er tramo", min: 0, max: 359, step: 1, val: st.r1, on: function (v) { st.r1 = v; pinta(); }, fmt: rum });
+    U.slider(ctl, { et: "Distancia 1.er tramo", min: 5, max: 50, step: 1, val: st.d1, on: function (v) { st.d1 = v; pinta(); }, fmt: function (v) { return v + " km"; } });
+    U.slider(ctl, { et: "Rumbo 2.º tramo", min: 0, max: 359, step: 1, val: st.r2, on: function (v) { st.r2 = v; pinta(); }, fmt: rum });
+    U.slider(ctl, { et: "Distancia 2.º tramo", min: 5, max: 50, step: 1, val: st.d2, on: function (v) { st.d2 = v; pinta(); }, fmt: function (v) { return v + " km"; } });
+    function arcoRumbo(cx, cy, r, rumbo, clase) {
+      if (rumbo < 1) return;
+      grueso(g.arco(cx, cy, r, 90 - rumbo, 90, { clase: clase }), 2.4);
+    }
+    function pinta() {
+      var x1 = st.d1 * sen(st.r1), y1 = st.d1 * cos(st.r1), x2 = x1 + st.d2 * sen(st.r2), y2 = y1 + st.d2 * cos(st.r2);
+      var semi = encaja(g, Math.min(0, x1, x2), Math.max(0, x1, x2), Math.min(0, y1, y2), Math.max(0, y1, y2), 1.35);
+      g.limpiar();
+      var d = Math.hypot(x2, y2), rr = semi * 0.3, nl = semi * 0.62;
+      // triángulo y norte de referencia
+      if (Math.abs(x1 * y2 - x2 * y1) > 1e-6) g.poligono([[0, 0], [x1, y1], [x2, y2]], { clase: "z-ok" });
+      g.segmento(0, 0, 0, nl, { clase: "c-faint", dash: "4 4" }); g.texto(0, nl, "N", { clase: "faint", ancla: "middle", dy: -4 });
+      g.segmento(x1, y1, x1, y1 + nl, { clase: "c-faint", dash: "4 4" }); g.texto(x1, y1 + nl, "N", { clase: "faint", ancla: "middle", dy: -4 });
+      arcoRumbo(0, 0, rr, st.r1, "c-pen"); arcoRumbo(x1, y1, rr, st.r2, "c-red");
+      grueso(g.segmento(0, 0, x1, y1, { clase: "c-pen" }), 3.4);
+      grueso(g.segmento(x1, y1, x2, y2, { clase: "c-red" }), 3.4);
+      if (d > 1e-6) g.segmento(x2, y2, 0, 0, { clase: "c-ok", dash: "7 5" });
+      g.punto(0, 0, { r: 7, clase: "c-ink" }); g.texto(0, 0, "Puerto", { dy: 18, dx: 8, clase: "" });
+      g.punto(x1, y1, { r: 5, clase: "c-pen" }); g.punto(x2, y2, { r: 7, clase: "c-red" });
+      g.texto(x1 / 2, y1 / 2, st.d1 + " km", { clase: "pen", dx: 6, dy: 14 });
+      g.texto((x1 + x2) / 2, (y1 + y2) / 2, st.d2 + " km", { clase: "red", dx: 6, dy: -6 });
+      if (d > 1e-6) g.texto(x2 / 2, y2 / 2, fmt(d, 1) + " km", { clase: "ok", ancla: "end", dx: -6, dy: 14 });
+      // lecturas
+      var ux = -x1, uy = -y1, vx = x2 - x1, vy = y2 - y1, nu = Math.hypot(ux, uy), nv = Math.hypot(vx, vy);
+      var ang = deg(Math.acos(Math.max(-1, Math.min(1, (ux * vx + uy * vy) / (nu * nv)))));
+      var giro = ((st.r2 - st.r1 + 540) % 360) - 180;
+      var regreso = mod360(deg(Math.atan2(-x2, -y2)));
+      var cosd = Math.sqrt(Math.max(0, st.d1 * st.d1 + st.d2 * st.d2 - 2 * st.d1 * st.d2 * cos(ang)));
+      lectura.innerHTML = U.lec("Cambio de rumbo", giro === 0 ? "ninguno" : Math.abs(giro) + "° a " + (giro > 0 ? "estribor (derecha)" : "babor (izquierda)")) +
+        U.lec("Ángulo del triángulo en el giro", gr(ang) + "  (= 180° − " + Math.abs(giro) + "°)", "pen") +
+        U.lec("d² = d₁² + d₂² − 2·d₁·d₂·cos θ", d < 1e-6 ? "vuelve al puerto" : "d = " + fmt(cosd, 2) + " km", "ok") +
+        U.lec("Rumbo para volver", d < 1e-6 ? "—" : rum(regreso), "red");
+      pie.innerHTML = "El <b>rumbo</b> se mide desde el norte, en el sentido de las agujas del reloj (090° = este, 180° = sur). El triángulo tiene como lados los dos tramos y el regreso; el ángulo entre los dos tramos <b>no es la diferencia de rumbos</b>, sino su suplementario: 180° − (cambio de rumbo).";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -10, xmax: 60, ymin: -10, ymax: 40, w: 600, h: 330, limpio: true, etiqueta: "Mapa con dos tramos de navegación y el regreso" });
+    pinta();
+  };
+
+  // ============================================================
+  // OBSERVADOR: altura de un edificio con dos observaciones desde puntos alineados
+  // ============================================================
+  B.w.observador = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Altura de un edificio con dos observaciones");
+    cuerpo.innerHTML = '<div class="w-plot"></div><div data-ctl></div><div class="lectura"></div><p class="w-pie"></p>';
+    var st = { a: 30, b: 45, d: 50 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sa, sb;
+    sa = U.slider(ctl, { et: "Elevación desde A (lejos) α", min: 10, max: 60, step: 1, val: st.a, on: function (v) { st.a = v; if (st.b < v + 2) { st.b = v + 2; sb.set(st.b); } pinta(); }, fmt: function (v) { return v + "°"; } });
+    sb = U.slider(ctl, { et: "Elevación desde B (cerca) β", min: 12, max: 80, step: 1, val: st.b, on: function (v) { st.b = v; if (st.a > v - 2) { st.a = v - 2; sa.set(st.a); } pinta(); }, fmt: function (v) { return v + "°"; } });
+    U.slider(ctl, { et: "Distancia AB", min: 10, max: 100, step: 5, val: st.d, on: function (v) { st.d = v; pinta(); }, fmt: function (v) { return v + " m"; } });
+    function pinta() {
+      var ta = Math.tan(rad(st.a)), tb = Math.tan(rad(st.b)), h = st.d * ta * tb / (tb - ta), x = h / tb, xa = x + st.d;
+      var semi = encaja(g, -xa, xa * 0.22, -h * 0.12, h * 1.05, 1.18);
+      g.limpiar();
+      var bw = Math.max(xa * 0.07, 0.1 * h), ar = Math.min(xa, h) * 0.22;
+      g.horizontal(0, { clase: "c-ink" });
+      g.poligono([[0, 0], [bw, 0], [bw, h], [0, h]], { clase: "z-pen", borde: "var(--pen)" });
+      g.segmento(-xa, 0, 0, h, { clase: "c-red" }); g.segmento(-x, 0, 0, h, { clase: "c-ok" });
+      g.segmento(0, 0, 0, h, { clase: "c-faint", dash: "4 4" });
+      grueso(g.arco(-xa, 0, ar, 0, st.a, { clase: "c-red" }), 2.6); grueso(g.arco(-x, 0, ar * 0.8, 0, st.b, { clase: "c-ok" }), 2.6);
+      g.punto(-xa, 0, { r: 6, clase: "c-red" }); g.punto(-x, 0, { r: 6, clase: "c-ok" }); g.punto(0, h, { r: 4, clase: "c-ink" });
+      g.texto(-xa, 0, "A", { dy: 20, ancla: "middle", clase: "red" }); g.texto(-x, 0, "B", { dy: 20, ancla: "middle", clase: "ok" });
+      g.texto(-xa + ar * 1.1, ar * 0.25, "α", { clase: "red" }); g.texto(-x + ar * 0.95, ar * 0.45, "β", { clase: "ok", dy: -3 });
+      g.texto(-(x + xa) / 2, 0, "d = " + st.d + " m", { dy: 30, ancla: "middle" });
+      g.texto(0, h / 2, "h", { dx: -14, dy: 4, clase: "pen" });
+      g.texto(-x / 2, 0, "x", { dy: 20, ancla: "middle", clase: "ok" });
+      lectura.innerHTML = U.lec("tan α = h/(x + d)", fmt(ta, 4), "red") + U.lec("tan β = h/x", fmt(tb, 4), "ok") +
+        U.lec("Altura h = d·tan α·tan β/(tan β − tan α)", fmt(h, 2) + " m", "pen") + U.lec("Distancia de B al pie, x = h/tan β", fmt(x, 2) + " m");
+      pie.innerHTML = "Dos incógnitas (<i>h</i> y <i>x</i>) y dos ecuaciones: <b>tan β = h/x</b> y <b>tan α = h/(x + d)</b>. Restando las alturas despejadas, <i>d = h/tan α − h/tan β</i>, de donde sale <i>h</i>. No hace falta conocer la distancia al edificio.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -150, xmax: 50, ymin: -10, ymax: 70, w: 620, h: 310, limpio: true, etiqueta: "Un edificio visto desde dos puntos alineados" });
+    pinta();
+  };
+
+  // ============================================================
+  // ROMBO: sen A + sen B y cos A + cos B como suma de dos vectores unitarios
+  // ============================================================
+  B.w.rombo = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "De suma a producto: el rombo de dos vectores unitarios");
+    cuerpo.innerHTML = '<div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { A: 70, B: 20 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "Ángulo <i>A</i>", min: 0, max: 360, step: 1, val: st.A, on: function (v) { st.A = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    U.slider(ctl, { et: "Ángulo <i>B</i>", min: 0, max: 360, step: 1, val: st.B, on: function (v) { st.B = v; pinta(); }, fmt: function (v) { return v + "°"; } });
+    function pinta() {
+      var A = st.A, Bb = st.B, ax = cos(A), ay = sen(A), bx = cos(Bb), by = sen(Bb), sx = ax + bx, sy = ay + by, m = (A + Bb) / 2, dm = (A - Bb) / 2;
+      g.limpiar();
+      g.segmento(-2.3, 0, 2.3, 0, { clase: "c-faint" }); g.segmento(0, -2.3, 0, 2.3, { clase: "c-faint" });
+      g.arco(0, 0, 1, 0, 360, { clase: "c-faint", dash: "3 4" });
+      g.segmento(-2.2 * cos(m), -2.2 * sen(m), 2.2 * cos(m), 2.2 * sen(m), { clase: "c-ink", dash: "6 4" });
+      g.poligono([[0, 0], [ax, ay], [sx, sy], [bx, by]], { clase: "z-pen", borde: "var(--pen)", grosor: 1.2 });
+      grueso(g.segmento(0, 0, ax, ay, { clase: "c-red" }), 3); grueso(g.segmento(0, 0, bx, by, { clase: "c-pen" }), 3);
+      grueso(g.segmento(0, 0, sx, sy, { clase: "c-ok" }), 4.4);
+      g.segmento(sx, 0, sx, sy, { clase: "c-ok", dash: "2 4" }); g.segmento(0, sy, sx, sy, { clase: "c-ok", dash: "2 4" });
+      grueso(g.arco(0, 0, 0.3, 0, A, { clase: "c-red" }), 2); grueso(g.arco(0, 0, 0.45, 0, Bb, { clase: "c-pen" }), 2);
+      g.punto(ax, ay, { r: 6, clase: "c-red" }); g.punto(bx, by, { r: 6, clase: "c-pen" }); g.punto(sx, sy, { r: 7, clase: "c-ok" });
+      g.texto(ax * 1.12, ay * 1.12, "A", { clase: "red", ancla: ax >= 0 ? "start" : "end" }); g.texto(bx * 1.12, by * 1.12, "B", { clase: "pen", ancla: bx >= 0 ? "start" : "end", dy: 12 });
+      g.texto(sx, sy, "suma", { clase: "ok", dx: sx >= 0 ? 10 : -10, ancla: sx >= 0 ? "start" : "end", dy: -8 });
+      var ps = 2 * sen(m) * cos(dm), pc = 2 * cos(m) * cos(dm);
+      lectura.innerHTML = U.lec("sen A + sen B (altura de la suma)", fmt(sy, 4) + "  =  2·sen((A+B)/2)·cos((A−B)/2) = " + fmt(ps, 4), "ok") +
+        U.lec("cos A + cos B (abscisa de la suma)", fmt(sx, 4) + "  =  2·cos((A+B)/2)·cos((A−B)/2) = " + fmt(pc, 4), "ok") +
+        U.lec("Dirección de la diagonal (A + B)/2", gr(m, 1)) + U.lec("Longitud de la diagonal 2·cos((A − B)/2)", fmt(2 * cos(dm), 4), "red");
+      pie.innerHTML = "Las coordenadas de cada punto son <b>(cos, sen)</b>. Al sumar los dos vectores aparece un <b>rombo</b> (lados iguales a 1): su diagonal va por la bisectriz, en la dirección <b>(A + B)/2</b>, y mide <b>2·cos((A − B)/2)</b>. Sus componentes dan las fórmulas de suma a producto. Con A = B el rombo se aplana: la suma mide 2.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -2.4, xmax: 2.4, ymin: -2.4, ymax: 2.4, w: 520, h: 360, limpio: true, etiqueta: "Suma de dos vectores unitarios: un rombo" });
+    g.rangoIso(0, 0, 2.3);
+    pinta();
+  };
+
+  // ============================================================
+  // BATIDOS: dos ondas de frecuencias casi iguales
+  // ============================================================
+  B.w.batidos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Pulsaciones: sumar dos ondas casi iguales");
+    cuerpo.innerHTML = '<div data-chips></div><div data-ctl></div><div class="w-plot bt-a"></div><div class="w-plot bt-b"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { f1: 10, f2: 11 }, g1, g2, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), s1, s2;
+    function hz(v) { return fmt(v, 1) + " Hz"; }
+    s1 = U.slider(ctl, { et: "Frecuencia <i>f</i>₁", min: 6, max: 16, step: 0.5, val: st.f1, on: function (v) { st.f1 = v; pinta(); }, fmt: hz });
+    s2 = U.slider(ctl, { et: "Frecuencia <i>f</i>₂", min: 6, max: 16, step: 0.5, val: st.f2, on: function (v) { st.f2 = v; pinta(); }, fmt: hz });
+    function pinta() {
+      var f1 = st.f1, f2 = st.f2, df = Math.abs(f1 - f2), fm = (f1 + f2) / 2, T = Math.PI * 2;
+      g1.limpiar(); g2.limpiar();
+      g1.curva(function (t) { return Math.sin(T * f1 * t); }, { clase: "c-pen", n: 900 });
+      g1.curva(function (t) { return Math.sin(T * f2 * t); }, { clase: "c-ok", n: 900 });
+      g2.curva(function (t) { return Math.sin(T * f1 * t) + Math.sin(T * f2 * t); }, { clase: "c-pen", n: 1200 });
+      g2.curva(function (t) { return 2 * Math.cos(Math.PI * (f1 - f2) * t); }, { clase: "c-red", dash: "7 5", n: 400 });
+      g2.curva(function (t) { return -2 * Math.cos(Math.PI * (f1 - f2) * t); }, { clase: "c-red", dash: "7 5", n: 400 });
+      g2.texto(1.99, 2.45, "suma", { clase: "pen", ancla: "end" });
+      lectura.innerHTML = U.lec("Frecuencia media (f₁ + f₂)/2", hz(fm), "pen") +
+        U.lec("Frecuencia del batido |f₁ − f₂|", df < 1e-9 ? "0 (no hay batido)" : hz(df), "red") +
+        U.lec("Periodo del batido", df < 1e-9 ? "—" : fmt(1 / df, 2) + " s") +
+        U.lec("sen(2πf₁t) + sen(2πf₂t)", "2·cos(" + fmt(df / 2, 2) + "·2πt)·sen(" + fmt(fm, 2) + "·2πt)", "ancho");
+      pie.innerHTML = "Arriba, las dos ondas (azul <i>f</i>₁, verde <i>f</i>₂). Abajo, la suma: una onda de frecuencia <b>media</b> cuya amplitud sube y baja siguiendo la <b>envolvente</b> roja 2·cos(π·(f₁ − f₂)·t). Es la fórmula sen A + sen B = 2·sen((A + B)/2)·cos((A − B)/2) con A = 2πf₁t y B = 2πf₂t. Con diapasones de 440 y 444 Hz se oye una «vibración» de 4 pulsaciones por segundo.";
+    }
+    g1 = new B.Plot(cuerpo.querySelector(".bt-a"), { xmin: 0, xmax: 2, ymin: -1.4, ymax: 1.4, w: 640, h: 150, sinY: true, etx: "t (s)", ety: "", etiqueta: "Las dos ondas por separado" });
+    g2 = new B.Plot(cuerpo.querySelector(".bt-b"), { xmin: 0, xmax: 2, ymin: -2.7, ymax: 2.7, w: 640, h: 210, sinY: true, etx: "t (s)", ety: "", etiqueta: "La suma de las dos ondas y su envolvente" });
+    U.fichas(cuerpo.querySelector("[data-chips]"), [{ k: "a", t: "Casi iguales (10 y 11)" }, { k: "b", t: "Más separadas (8 y 14)" }, { k: "c", t: "Iguales (12 y 12)" }], "a", function (k) {
+      var p = { a: [10, 11], b: [8, 14], c: [12, 12] }[k]; st.f1 = p[0]; st.f2 = p[1]; s1.set(p[0]); s2.set(p[1]); pinta();
+    });
+    pinta();
+  };
+
+  // ============================================================
+  // CUADRATICA: a·t² + b·t + c = 0 con t = sen x, cos x o tan x
+  // ============================================================
+  B.w.cuadratica = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Ecuaciones de 2.º grado en seno, coseno o tangente");
+    cuerpo.innerHTML = '<div data-chips="f"></div><div data-chips="p"></div><div data-ctl></div><div class="w-plot cu-a"></div><div class="w-plot cu-b"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { f: "sen", a: 2, b: -1, c: -1 }, g1, g2, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sa, sb, sc;
+    var EXTRA = 1e-9;
+    sa = U.slider(ctl, { et: "<i>a</i> (de <i>t</i>²)", min: 1, max: 4, step: 1, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return String(v); } });
+    sb = U.slider(ctl, { et: "<i>b</i> (de <i>t</i>)", min: -8, max: 8, step: 1, val: st.b, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return v < 0 ? "−" + (-v) : String(v); } });
+    sc = U.slider(ctl, { et: "<i>c</i> (término libre)", min: -8, max: 8, step: 1, val: st.c, on: function (v) { st.c = v; pinta(); }, fmt: function (v) { return v < 0 ? "−" + (-v) : String(v); } });
+    function nom(f) { return f + " x"; }
+    function ecu() {
+      var f = st.f, s = "", a = st.a, b = st.b, c = st.c;
+      s += (a === 1 ? "" : a) + f + "²x";
+      if (b) s += (b < 0 ? " − " : " + ") + (Math.abs(b) === 1 ? "" : Math.abs(b)) + f + " x";
+      if (c) s += (c < 0 ? " − " : " + ") + Math.abs(c);
+      return s + " = 0";
+    }
+    function angulos(f, t) {
+      var o;
+      if (f === "sen") { if (Math.abs(t) > 1 + EXTRA) return []; var a = deg(Math.asin(Math.max(-1, Math.min(1, t)))); o = [mod360(a), mod360(180 - a)]; }
+      else if (f === "cos") { if (Math.abs(t) > 1 + EXTRA) return []; var b = deg(Math.acos(Math.max(-1, Math.min(1, t)))); o = [mod360(b), mod360(-b)]; }
+      else { var c = deg(Math.atan(t)); o = [mod360(c), mod360(c + 180)]; }
+      o.sort(function (p, q) { return p - q; });
+      return Math.abs(o[0] - o[1]) < 1e-6 ? [o[0]] : o;
+    }
+    function funcion(f) { return f === "sen" ? function (x) { return sen(x); } : f === "cos" ? function (x) { return cos(x); } : function (x) { return Math.tan(rad(x)); }; }
+    function pinta() {
+      var f = st.f, a = st.a, b = st.b, c = st.c, disc = b * b - 4 * a * c, tmax = f === "tan" ? 6 : 3, fn = funcion(f);
+      var raices = disc < -1e-12 ? [] : disc < 1e-12 ? [-b / (2 * a)] : [(-b - Math.sqrt(disc)) / (2 * a), (-b + Math.sqrt(disc)) / (2 * a)];
+      g1.rango(-tmax, tmax, -10, 10); g1.limpiar();
+      if (f !== "tan") g1.rect(-1, -10, 1, 10, { clase: "z-ok" });
+      g1.curva(function (t) { return a * t * t + b * t + c; }, { clase: "c-pen", n: 300 });
+      var todas = [], valida = [];
+      raices.forEach(function (t, i) {
+        var ok = f === "tan" || Math.abs(t) <= 1 + EXTRA; valida.push(ok);
+        g1.punto(t, 0, { r: 7, clase: ok ? "c-ok" : "c-red hueco" });
+        g1.texto(t, 0, "t" + (raices.length === 1 ? "" : (i + 1 === 1 ? "₁" : "₂")), { dy: -12, ancla: "middle", clase: ok ? "ok" : "red" });
+        if (ok) angulos(f, t).forEach(function (x) { todas.push(x); });
+      });
+      todas.sort(function (p, q) { return p - q; });
+      var y0 = Infinity, y1 = -Infinity, k;
+      if (f === "tan") { y0 = -10; y1 = 10; }
+      else { for (k = 0; k <= 360; k += 2) { var sv = fn(k), yv = a * sv * sv + b * sv + c; y0 = Math.min(y0, yv); y1 = Math.max(y1, yv); } y0 = Math.max(-14, Math.min(y0, 0) - 1); y1 = Math.min(14, Math.max(y1, 0) + 1); }
+      g2.rango(0, 360, y0, y1); g2.limpiar();
+      [0, 90, 180, 270, 360].forEach(function (aa) { g2.texto(aa, y0, aa + "°", { dy: -4, dx: aa === 360 ? -14 : aa === 0 ? 14 : 0, ancla: "middle", clase: "faint" }); });
+      g2.curva(function (x) { var s = fn(x); return a * s * s + b * s + c; }, { clase: "c-pen", n: 720 });
+      todas.forEach(function (x) { g2.punto(x, 0, { r: 6, clase: "c-ok" }); g2.segmento(x, y0, x, y1, { clase: "c-ok", dash: "2 4" }); });
+      function txt(t, i) { return "t" + (raices.length === 1 ? "" : i === 0 ? "₁" : "₂") + " = " + fmt(t, 3) + (valida[i] ? "  (vale)" : "  (no vale: |" + f + " x| ≤ 1)"); }
+      lectura.innerHTML = U.lec("Ecuación (con t = " + nom(f) + ")", ecu(), "ancho") +
+        U.lec("Discriminante b² − 4ac", fmt(disc, 0), disc < 0 ? "red" : "pen") +
+        (raices.length ? raices.map(function (t, i) { return U.lec("Raíz en t", txt(t, i), valida[i] ? "ok" : "red"); }).join("") : U.lec("Raíces en t", "no hay (Δ &lt; 0)", "red")) +
+        U.lec("Soluciones x en [0°, 360°)", todas.length ? todas.map(function (x) { return fmt(x, 2) + "°"; }).join(",  ") : "ninguna", "ok");
+      pie.innerHTML = "Arriba, la parábola <i>a·t² + b·t + c</i>: sus cortes con el eje son las raíces en <i>t</i>." + (f === "tan" ? " Con la tangente valen <b>todas</b> las raíces." : " Como un " + f + " está entre −1 y 1, sólo valen las raíces de la <b>franja verde</b>.") + " Abajo, la misma expresión como función de x: sus ceros son las soluciones.";
+    }
+    var presets = [
+      { k: "p1", t: "2sen²x − sen x − 1", f: "sen", a: 2, b: -1, c: -1 },
+      { k: "p2", t: "2sen²x + 3sen x − 2", f: "sen", a: 2, b: 3, c: -2 },
+      { k: "p3", t: "2cos²x − 3cos x + 1", f: "cos", a: 2, b: -3, c: 1 },
+      { k: "p4", t: "tan²x − 4tan x + 3", f: "tan", a: 1, b: -4, c: 3 }
+    ];
+    function aplica(p) { st.f = p.f; st.a = p.a; st.b = p.b; st.c = p.c; sa.set(p.a); sb.set(p.b); sc.set(p.c); fichasF(); pinta(); }
+    var hostF = cuerpo.querySelector('[data-chips="f"]'), hostP = cuerpo.querySelector('[data-chips="p"]');
+    function fichasF() { U.fichas(hostF, [{ k: "sen", t: "t = sen x" }, { k: "cos", t: "t = cos x" }, { k: "tan", t: "t = tan x" }], st.f, function (k) { st.f = k; pinta(); }); }
+    fichasF();
+    U.fichas(hostP, presets.map(function (p) { return { k: p.k, t: p.t }; }), "p1", function (k) { presets.forEach(function (p) { if (p.k === k) aplica(p); }); });
+    g1 = new B.Plot(cuerpo.querySelector(".cu-a"), { xmin: -3, xmax: 3, ymin: -10, ymax: 10, w: 620, h: 220, etx: "t", ety: "", etiqueta: "Parábola a·t² + b·t + c" });
+    g2 = new B.Plot(cuerpo.querySelector(".cu-b"), { xmin: 0, xmax: 360, ymin: -10, ymax: 10, w: 620, h: 220, sinX: true, etx: "x", ety: "", etiqueta: "La misma expresión en función de x" });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de vectores (Matemáticas I, tema 7; también sirve a Física)
    vectores · escalar · combinacion · segmento · baricentro · fuerzas · trabajo
    ============================================================ */
@@ -35393,12 +35698,12 @@
         w("clasificar", "notables") + w("tarjetas", "tj1")
     },
     {
-      h: "11. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "17. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "12. Autocomprobación del tema",
-      html: "<p>Diez preguntas de test con explicación para saber si el tema está firme.</p>" + w("quiz", "quiz1")
+      h: "18. Autocomprobación del tema",
+      html: "<p>Dieciséis preguntas de test con explicación para saber si el tema está firme.</p>" + w("quiz", "quiz1")
     }
   ];
 
@@ -35814,6 +36119,362 @@
       ] }
   ];
 
+  // ================================================================
+  // AMPLIACIÓN 2 · refuerzo del tema: funciones inversas, radianes, Herón y radios,
+  // rumbos y navegación, figuras y espacio, problemas de examen
+  // (simuladores nuevos en lab_trigo3.js)
+  // ================================================================
+  resumen.push(
+    "<b>Del valor al ángulo</b>: arcsen devuelve un ángulo de −90° a 90°, arccos de 0° a 180° y arctan de −90° a 90°. Falta siempre el <b>otro</b> ángulo de la vuelta (180° − α, 360° − α o α + 180°). Para hallar un ángulo de un triángulo, usa el coseno.",
+    "<b>Rumbo</b> = ángulo desde el norte en sentido horario. Coordenadas: E = d·sen(rumbo), N = d·cos(rumbo). Al cambiar de rumbo, el ángulo del triángulo es 180° − giro. Áreas y radios: Herón, R = abc/(4S), r = S/s."
+  );
+
+  secciones[5] +=
+    "<h5>Clasificar un triángulo sin calcular ángulos</h5>" +
+    "<p>Si a es el lado mayor, el teorema del coseno dice que cos A tiene el signo de b² + c² − a². Así: si a² &lt; b² + c², el triángulo es <b>acutángulo</b>; si a² = b² + c², es <b>rectángulo</b>; y si a² &gt; b² + c², es <b>obtusángulo</b> (con el ángulo obtuso frente al lado mayor). Por ejemplo, con lados 5, 6 y 7: 49 &lt; 25 + 36 = 61, acutángulo (el mayor ángulo vale 78,46°). Con 4, 5 y 8: 64 &gt; 16 + 25 = 41, obtusángulo (cos C = −0,575, C = 125,10°). Y para que el triángulo exista debe cumplirse la <b>desigualdad triangular</b>: cada lado es menor que la suma de los otros dos (con 3, 4 y 8 no se puede cerrar, porque 3 + 4 &lt; 8).</p>";
+
+  datos.rumbos = {
+    titulo: "Direcciones y rumbos",
+    consigna: "Une cada dirección con su rumbo (ángulo desde el norte, en sentido horario).",
+    pares: [["Noreste", "045°"], ["Sureste", "135°"], ["Suroeste", "225°"], ["Noroeste", "315°"], ["Oeste", "270°"], ["N 30° E", "030°"], ["S 30° O", "210°"]]
+  };
+
+  nuevas[0].html +=
+    "<h5>Una fórmula general para dos observaciones</h5>" +
+    "<p>El ejemplo de la torre se puede resolver de una vez. Si desde A (lejos) la elevación es α, desde B (más cerca, alineado con A y con el edificio, a distancia d de A) es β, y h es la altura, la diferencia de las dos distancias horizontales es d: h/tan α − h/tan β = d, de donde <b>h = d·tan α·tan β/(tan β − tan α)</b>. Con α = 30°, β = 45° y d = 50 m: h = 50·(1/√3)·1/(1 − 1/√3) = 50/(√3 − 1) = <b>68,30 m</b>, como antes. Cambia los ángulos y la distancia en el simulador y comprueba que <i>d</i> no tiene que ver con la distancia al edificio:</p>" +
+    w("observador");
+
+  nuevas.splice(nuevas.length - 2, 0,
+    {
+      h: "11. Del valor al ángulo: arcsen, arccos y arctan",
+      html:
+        "<p>Hasta ahora íbamos del <b>ángulo</b> a la <b>razón</b>: dado α = 30°, sen α = 1/2. En muchos problemas es al revés: conoces la razón (porque has medido dos lados) y quieres el <b>ángulo</b>. Para eso están las funciones inversas <b>arcsen</b>, <b>arccos</b> y <b>arctan</b>, que se leen «el ángulo cuyo seno (coseno, tangente) es…». En la calculadora son las teclas sen⁻¹, cos⁻¹ y tan⁻¹ (la segunda función de cada tecla).</p>" +
+        ojo("sen⁻¹ x <b>no</b> significa 1/sen x. El «−1» indica la función inversa, no un exponente; el inverso 1/sen x es la cosecante.") +
+        "<h5>La calculadora da un solo ángulo</h5>" +
+        "<p>Un mismo seno lo tienen dos ángulos en cada vuelta (el de referencia y su suplementario), así que «¿qué ángulo tiene seno 0,5?» tiene muchas respuestas. Para que arcsen sea una función (una respuesta por pregunta) se acuerda que la calculadora devuelva siempre el ángulo de un trozo concreto de la circunferencia, el <b>rango principal</b>:</p>" +
+        tabla(["Función", "Rango principal", "Cuadrantes", "Ejemplos"], [
+          ["arcsen k  (|k| ≤ 1)", "de −90° a 90°", "1.º y 4.º", "arcsen 0,5 = 30° · arcsen(−0,5) = −30°"],
+          ["arccos k  (|k| ≤ 1)", "de 0° a 180°", "1.º y 2.º", "arccos 0,5 = 60° · arccos(−0,5) = 120°"],
+          ["arctan k  (cualquier k)", "de −90° a 90° (sin los extremos)", "1.º y 4.º", "arctan 1 = 45° · arctan(−1) = −45°"]
+        ]) +
+        "<p>Los rangos no son caprichosos: son los trozos en los que la función no repite valores (el seno sube de −1 a 1 entre −90° y 90°; el coseno baja de 1 a −1 entre 0° y 180°; la tangente sube de −∞ a +∞ entre −90° y 90°). En radianes, arcsen y arctan devuelven valores entre −π/2 y π/2, y arccos entre 0 y π. Mueve el valor <i>k</i> y mira dónde cae la respuesta de la calculadora y cuál es la «otra»:</p>" +
+        w("inversas") +
+        "<h5>De la respuesta de la calculadora a todas las soluciones</h5>" +
+        "<p>Cuando necesitas todos los ángulos de [0°, 360°) con una razón dada, sigue siempre este recorrido: <b>(1)</b> calcula el ángulo que da la calculadora; <b>(2)</b> si sale negativo, súmale 360°; <b>(3)</b> añade el <b>otro</b> ángulo (180° − α para el seno, 360° − α para el coseno, α + 180° para la tangente); <b>(4)</b> si el enunciado dice en qué cuadrante está el ángulo, quédate con el que corresponda.</p>" +
+        ejemplo("Un seno negativo", "Halla α en [0°, 360°) sabiendo que sen α = −0,8 y que α está en el 3.er cuadrante.", [
+          "La calculadora da arcsen(−0,8) = −53,13° (sale negativo: es del 4.º cuadrante).",
+          "El ángulo de referencia es 53,13°. Con seno negativo hay dos posibilidades: 180° + 53,13° (3.er cuadrante) y 360° − 53,13° (4.º).",
+          "En el 3.er cuadrante: α = 180° + 53,13° = <b>233,13°</b>. (La otra solución sería 306,87°.)"
+        ]) +
+        ejemplo("Un ángulo con arccos", "En un triángulo de lados a = 7, b = 9 y c = 12, calcula el ángulo C opuesto a c.", [
+          "Con tres lados usamos el teorema del coseno: cos C = (a² + b² − c²)/(2ab) = (49 + 81 − 144)/(2·7·9) = −14/126 = −1/9 ≈ −0,1111.",
+          "C = arccos(−0,1111) = <b>96,38°</b>. La calculadora lo da bien porque arccos devuelve ángulos entre 0° y 180°, obtusos incluidos.",
+          "Con el teorema del seno habríamos tenido sen C = 0,9938 y arcsen(0,9938) = 83,62°: ¡mal!, el ángulo verdadero es el suplementario, 180° − 83,62° = 96,38°."
+        ]) +
+        ejemplo("Una tangente negativa", "Resuelve tan x = −2 en [0°, 360°).", [
+          "La calculadora da arctan(−2) = −63,43°.",
+          "La tangente se repite cada 180°: x = −63,43° + 180° = 116,57° y x = −63,43° + 360° = 296,57°.",
+          "<b>x = 116,57° y x = 296,57°</b> (2.º y 4.º cuadrante, donde la tangente es negativa)."
+        ]) +
+        ojo("arcsen <b>nunca</b> devuelve un ángulo obtuso. Por eso, si en un triángulo el ángulo buscado puede ser obtuso, hallarlo con el teorema del seno es una trampa (es el origen del caso ambiguo): <b>con tres lados, o con dos lados y el ángulo entre ellos, usa el coseno</b> y la calculadora no se equivocará.")
+    },
+    {
+      h: "12. Radianes con soltura: ángulos coterminales, arcos y segmentos",
+      html:
+        "<h5>Ángulos coterminales</h5>" +
+        "<p>Dos ángulos son <b>coterminales</b> si, dibujados desde el eje horizontal, acaban en el mismo lado: se diferencian en un número entero de vueltas. θ y θ + 360°·k (en radianes, θ + 2π·k, con k entero) tienen el mismo seno, coseno y tangente. De todos ellos, el <b>ángulo principal</b> es el que está en [0°, 360°) (o en [0, 2π)). Para hallarlo se quitan o se ponen vueltas completas. Si el ángulo es un múltiplo de π/n, basta pensar en «n-avos de π»: una vuelta son 2n de ellos.</p>" +
+        ejemplo("Ángulo principal y razones", "Halla el ángulo principal de −750° y de 47π/6 rad, y calcula sen(−750°) y cos(47π/6).", [
+          "−750° + 3·360° = −750° + 1080° = <b>330°</b>. Entonces sen(−750°) = sen 330° = −sen 30° = <b>−1/2</b>.",
+          "47π/6 son 47 «sextos de π»; una vuelta (2π) son 12 sextos. Como 47 = 3·12 + 11, 47π/6 = 3·2π + 11π/6, y el ángulo principal es <b>11π/6</b> (= 330°).",
+          "cos(47π/6) = cos(11π/6) = cos 330° = <b>√3/2</b>."
+        ]) +
+        ejemplo("Una familia de ángulos", "Escribe los ángulos coterminales con 50° y di cuáles están entre −400° y 800°.", [
+          "Todos son de la forma 50° + 360°·k, con k entero (en radianes, 5π/18 + 2πk).",
+          "k = −1 → −310°; k = 0 → 50°; k = 1 → 410°; k = 2 → 770°. (k = −2 da −670° y k = 3 da 1130°: fuera del intervalo.)",
+          "Hay cuatro: <b>−310°, 50°, 410° y 770°</b>."
+        ]) +
+        "<h5>Velocidad angular y velocidad lineal</h5>" +
+        "<p>Si algo gira, el ángulo que recorre por unidad de tiempo es la <b>velocidad angular</b> ω (en rad/s). Un punto a distancia r del centro recorre un arco s = θ·r, así que su <b>velocidad lineal</b> es <b>v = ω·r</b>. Para pasar de revoluciones por minuto (rpm) a rad/s: ω = rpm·2π/60. Es la misma idea de los radianes («arco = ángulo·radio») aplicada al movimiento circular.</p>" +
+        ejemplo("Una rueda de bicicleta", "Una rueda de 35 cm de radio da 120 vueltas por minuto. Calcula su velocidad angular y la velocidad de la bicicleta (sin deslizar).", [
+          "ω = 120·2π/60 = 4π ≈ <b>12,57 rad/s</b>.",
+          "v = ω·r = 12,57·0,35 = <b>4,40 m/s</b> ≈ 15,8 km/h."
+        ]) +
+        "<h5>Arco, sector, cuerda y segmento circular</h5>" +
+        "<p>Para un ángulo central θ (en radianes) en una circunferencia de radio r: el <b>arco</b> mide s = θ·r; el <b>sector</b> tiene área ½·r²·θ; la <b>cuerda</b> que une los extremos del arco mide c = 2·r·sen(θ/2); y el <b>segmento circular</b> (la parte del círculo que corta la cuerda) tiene área igual a la del sector menos la del triángulo de lados r, r y ángulo θ: <b>A = ½·r²·(θ − sen θ)</b>.</p>" +
+        ejemplo("Un segmento circular", "En una circunferencia de radio 6 cm, un ángulo central mide 2 rad. Calcula el arco, la cuerda y el área del segmento.", [
+          "Arco: s = 2·6 = <b>12 cm</b>. Cuerda: 2·6·sen(1 rad) = 12·0,8415 = <b>10,10 cm</b>.",
+          "Sector: ½·36·2 = 36 cm². Triángulo: ½·36·sen 2 = 18·0,9093 = 16,37 cm² (¡calculadora en RAD!).",
+          "Segmento = 36 − 16,37 = <b>19,63 cm²</b>."
+        ]) +
+        ejemplo("La aguja minutera", "La aguja minutera de un reloj de torre mide 1,2 m. ¿Qué ángulo, qué arco y qué área barre su punta en 25 minutos?", [
+          "25 minutos son 25/60 de vuelta: θ = (25/60)·2π = 5π/6 rad (150°).",
+          "Arco: s = θ·r = (5π/6)·1,2 = π ≈ <b>3,14 m</b>.",
+          "Área barrida: ½·r²·θ = ½·1,44·5π/6 = 0,6π ≈ <b>1,88 m²</b>."
+        ]) +
+        ojo("para una fórmula como s = θ·r el ángulo <b>tiene que estar en radianes</b>. Con grados hay que convertir antes (o usar s = 2π·r·θ/360°). Y al calcular un seno de un ángulo en radianes, pon la calculadora en modo RAD.")
+    },
+    {
+      h: "13. Todas las medidas de un triángulo: Herón, radios, alturas y medianas",
+      html:
+        "<p>Con un poco más de trigonometría se obtiene casi todo de un triángulo. Para el triángulo de lados a, b, c llamamos <b>semiperímetro</b> a s = (a + b + c)/2 y S al área:</p>" +
+        tabla(["Medida", "Fórmula", "Qué es"], [
+          ["Área (Herón)", "S = √( s(s − a)(s − b)(s − c) )", "con los tres lados"],
+          ["Altura sobre el lado a", "h<sub>a</sub> = 2S/a = b·sen C", "distancia del vértice A al lado a"],
+          ["Radio circunscrito R", "R = a/(2·sen A) = abc/(4S)", "circunferencia que pasa por los tres vértices"],
+          ["Radio inscrito r", "r = S/s", "circunferencia tangente a los tres lados"],
+          ["Mediana desde A", "m<sub>a</sub> = ½·√(2b² + 2c² − a²)", "segmento de A al punto medio del lado a"]
+        ]) +
+        "<h5>De dónde salen</h5>" +
+        "<p><b>Herón.</b> Partimos de S = ½bc·sen A. Entonces 16S² = 4b²c²·sen²A = 4b²c² − 4b²c²·cos²A = 4b²c² − (b² + c² − a²)², donde hemos usado el teorema del coseno (2bc·cos A = b² + c² − a²). Es una diferencia de cuadrados: = [a² − (b − c)²]·[(b + c)² − a²] = (a − b + c)(a + b − c)(b + c − a)(a + b + c) = 16·s(s − a)(s − b)(s − c), porque cada factor es el doble de s menos un lado. Por tanto, S² = s(s − a)(s − b)(s − c).</p>" +
+        "<p><b>Radio circunscrito.</b> El teorema del seno completo dice a/sen A = 2R. Con S = ½bc·sen A = ½bc·a/(2R) = abc/(4R) se obtiene R = abc/(4S). <b>Radio inscrito.</b> Uniendo el centro de la circunferencia inscrita con los tres vértices, el triángulo se divide en tres, de altura r: S = ½ar + ½br + ½cr = r·s. <b>Mediana.</b> El teorema del coseno en los dos triángulos pequeños que forma la mediana, sumados, da m<sub>a</sub>² = (2b² + 2c² − a²)/4.</p>" +
+        ejemplo("El triángulo 13, 14, 15 al completo", "Calcula del triángulo de lados 13, 14 y 15: el área, las tres alturas, los radios R y r, los ángulos y la mediana sobre el lado 14.", [
+          "s = 21 y S = √(21·8·7·6) = √7056 = <b>84</b>.",
+          "Alturas: h<sub>13</sub> = 2·84/13 = 12,92; h<sub>14</sub> = 2·84/14 = 12; h<sub>15</sub> = 2·84/15 = 11,2. (La altura mayor cae sobre el lado menor.)",
+          "R = 13·14·15/(4·84) = 2730/336 = <b>8,125</b> y r = 84/21 = <b>4</b>.",
+          "Ángulos: sen A = a/(2R) = 13/16,25 = 0,8 → A = 53,13°. Los otros con el coseno: cos B = (13² + 15² − 14²)/(2·13·15) = 0,5077 → B = 59,49°, y C = 180° − 53,13° − 59,49° = 67,38°.",
+          "Mediana sobre el lado 14: m = ½·√(2·13² + 2·15² − 14²) = ½·√592 = <b>12,17</b>."
+        ]) +
+        ejemplo("Un triángulo rectángulo: 8, 15, 17", "Calcula el área y los radios R y r del triángulo de lados 8, 15 y 17.", [
+          "s = 20 y S = √(20·12·5·3) = √3600 = <b>60</b> (que coincide con ½·8·15, como debe).",
+          "R = 8·15·17/(4·60) = 2040/240 = <b>8,5</b> = hipotenusa/2: en un triángulo rectángulo el circuncentro es el punto medio de la hipotenusa.",
+          "r = 60/20 = <b>3</b> = (8 + 15 − 17)/2: en un triángulo rectángulo, r = (cateto + cateto − hipotenusa)/2."
+        ]) +
+        ojo("en Herón hay que usar el <b>semi</b>perímetro s, no el perímetro. Y comprueba que cada factor (s − a), (s − b), (s − c) sale positivo: si alguno sale negativo o cero, los lados no forman un triángulo.")
+    },
+    {
+      h: "14. Rumbos, azimuts y navegación",
+      html:
+        "<p>En navegación y aviación los ángulos no se miden como en la circunferencia goniométrica (desde el eje X, al revés que las agujas del reloj) sino desde el <b>norte</b> y en el <b>sentido de las agujas del reloj</b>. Ese ángulo se llama <b>rumbo</b> (o <b>azimut</b>, cuando es la dirección de un punto visto desde otro) y se escribe con tres cifras: 040°, 135°, 270°.</p>" +
+        tabla(["Dirección", "N", "NE", "E", "SE", "S", "SO", "O", "NO"], [["Rumbo", "000°", "045°", "090°", "135°", "180°", "225°", "270°", "315°"]]) +
+        "<p>También se usa la notación de cuadrante: «N 40° E» es la dirección que se separa 40° del norte hacia el este (rumbo 040°), y «S 30° O» la que se separa 30° del sur hacia el oeste (rumbo 210°). Practica el cambio de notación:</p>" +
+        w("emparejar", "rumbos") +
+        "<h5>Del rumbo a las coordenadas</h5>" +
+        "<p>Tomamos el este como eje horizontal y el norte como eje vertical. Un desplazamiento de d kilómetros con rumbo ρ avanza <b>E = d·sen ρ</b> hacia el este y <b>N = d·cos ρ</b> hacia el norte. Fíjate: seno y coseno están «cambiados» respecto de la circunferencia goniométrica, porque ahora el ángulo se mide desde el norte. Es lo mismo que usar el ángulo matemático 90° − ρ. Con 20 km a rumbo 040°: E = 20·sen 40° = 12,86 km y N = 20·cos 40° = 15,32 km.</p>" +
+        "<h5>Dos tramos y el regreso</h5>" +
+        "<p>El caso típico: un barco hace un tramo, cambia de rumbo y hace otro. Los dos tramos y el regreso forman un triángulo en el que conoces dos lados y el ángulo entre ellos (LAL). Atención al ángulo: si el rumbo pasa de ρ₁ a ρ₂, el barco <b>gira</b> ρ₂ − ρ₁, pero el ángulo interior del triángulo es el suplementario, <b>180° − giro</b>. Cambia los rumbos y las distancias y mira el triángulo:</p>" +
+        w("navegacion") +
+        ejemplo("Dos tramos y el regreso", "Un barco sale de puerto, navega 20 km con rumbo 040° y después 30 km con rumbo 100°. ¿A qué distancia del puerto está y con qué rumbo debe volver?", [
+          "El rumbo cambia de 040° a 100°: giro de 60° a la derecha. El ángulo interior del triángulo (puerto, punto de giro, punto final) es 180° − 60° = 120°.",
+          "Teorema del coseno: d² = 20² + 30² − 2·20·30·cos 120° = 400 + 900 + 600 = 1900 → d = <b>43,59 km</b>.",
+          "Para el rumbo de regreso calculamos el ángulo en el puerto con el teorema del seno: sen θ = 30·sen 120°/43,59 = 0,596 → θ = 36,59°. Desde el puerto, el punto final está en el rumbo 040° + 36,59° = 076,59°; el regreso es el opuesto: 076,59° + 180° = <b>256,59°</b>.",
+          "Comprobación con coordenadas: el punto final es (12,86 + 29,54; 15,32 − 5,21) = (42,40; 10,11), y desde ahí al puerto el rumbo es 256,59° ✓."
+        ]) +
+        ejemplo("Un faro y dos marcaciones", "Un barco navega hacia el norte (rumbo 000°). Desde A ve un faro con rumbo 040° y, tras avanzar 6 km hasta B, con rumbo 070°. ¿A qué distancia está el faro de B y a qué distancia pasa de la ruta?", [
+          "Triángulo ABF: en A, entre la ruta (norte) y la visual al faro, el ángulo es 40°. En B, la dirección hacia A es el sur (180°) y la visual al faro es 070°: el ángulo interior es 180° − 70° = 110°.",
+          "En F: 180° − 40° − 110° = 30°.",
+          "Teorema del seno: BF/sen 40° = AB/sen 30° → BF = 6·sen 40°/sen 30° = <b>7,71 km</b>.",
+          "La distancia del faro a la ruta (hacia el este) es BF·sen 70° = 7,71·0,9397 = <b>7,25 km</b>."
+        ]) +
+        ejemplo("Viento y rumbo: sumar velocidades", "Un avión vuela con velocidad propia de 240 km/h y rumbo 060°. Sopla un viento de 50 km/h hacia el rumbo 120°. ¿Cuál es su velocidad respecto al suelo y su rumbo real?", [
+          "La velocidad respecto al suelo es la suma de los dos vectores. Entre sus direcciones (060° y 120°) hay 60°, así que en el triángulo de velocidades el ángulo entre los dos lados conocidos es 180° − 60° = 120°.",
+          "v² = 240² + 50² − 2·240·50·cos 120° = 57 600 + 2 500 + 12 000 = 72 100 → v = <b>268,5 km/h</b>.",
+          "El rumbo se desvía un ángulo δ hacia el viento: sen δ/50 = sen 120°/268,5 → sen δ = 0,1613 → δ = 9,28°. Rumbo real: 060° + 9,28° = <b>069,3°</b>.",
+          "Comprobación con coordenadas: (240·sen 60° + 50·sen 120°, 240·cos 60° + 50·cos 120°) = (251,15; 95), y atan2(251,15; 95) = 69,3° ✓."
+        ]) +
+        ojo("el fallo más repetido en navegación: usar como ángulo del triángulo la <b>diferencia de rumbos</b>. Es el ángulo que giras, no el ángulo interior; el interior es 180° menos el giro.")
+    },
+    {
+      h: "15. Polígonos, cuadriláteros y problemas en el espacio",
+      html:
+        "<h5>Polígonos regulares</h5>" +
+        "<p>Un polígono regular de n lados (lado ℓ) se descompone en n triángulos isósceles iguales, con vértice en el centro y ángulo central 360°/n. Cada uno se parte por su altura (la <b>apotema</b>) en dos triángulos rectángulos con ángulo 180°/n:</p>" +
+        H.formula("R = " + fr("ℓ", "2·sen(180°/n)") + "      apotema a = " + fr("ℓ", "2·tan(180°/n)") + "      Área = ½·n·R²·sen(360°/n) = ½·perímetro·apotema") +
+        ejemplo("Un octógono regular", "Calcula el radio, la apotema y el área de un octógono regular de lado 5 cm.", [
+          "n = 8: el ángulo central es 45° y el medio, 22,5°.",
+          "R = 5/(2·sen 22,5°) = <b>6,53 cm</b>. Apotema: a = 5/(2·tan 22,5°) = <b>6,04 cm</b>.",
+          "Área = ½·perímetro·apotema = ½·40·6,036 = <b>120,71 cm²</b>. (Con la otra fórmula: ½·8·6,533²·sen 45° = 120,71 ✓.)"
+        ]) +
+        "<h5>Cuadriláteros: se parten en triángulos</h5>" +
+        "<p>Para un terreno de cuatro lados se traza una <b>diagonal</b> que lo divide en dos triángulos; se resuelve uno con los datos de que se dispone (normalmente LAL) y el otro con el lado nuevo (Herón o el coseno).</p>" +
+        ejemplo("Un terreno ABCD", "Un terreno cuadrilátero ABCD tiene AB = 6 m, BC = 8 m, CD = 7 m, DA = 5 m y el ángulo en B mide 70°. Calcula su área.", [
+          "Diagonal AC en el triángulo ABC (LAL): AC² = 36 + 64 − 2·6·8·cos 70° = 100 − 32,83 = 67,17 → AC = 8,195 m.",
+          "Área de ABC = ½·6·8·sen 70° = <b>22,55 m²</b>.",
+          "Triángulo ACD con lados 8,195; 7 y 5: s = 10,0977 y Herón: S = √(10,0977·1,9023·3,0977·5,0977) = <b>17,42 m²</b>.",
+          "Área total ≈ 22,55 + 17,42 = <b>39,97 m²</b>."
+        ]) +
+        "<h5>En el espacio</h5>" +
+        "<p>Un problema en tres dimensiones se resuelve casi siempre buscando <b>triángulos rectángulos</b> dentro de la figura. El ángulo entre una recta y un plano es el que forma la recta con su <b>proyección</b> sobre el plano; el ángulo entre dos planos, el que forman dos rectas perpendiculares a su arista común (una en cada plano).</p>" +
+        ejemplo("La diagonal de un cubo", "En un cubo de arista a, ¿qué ángulo forma la diagonal del cubo con la base?", [
+          "La proyección de la diagonal del cubo sobre la base es la diagonal de la base, que mide a√2 (Pitágoras). La diagonal del cubo mide a√3.",
+          "En el triángulo rectángulo de catetos a (vertical) y a√2 (en la base): tan α = a/(a√2) = 1/√2 → α = <b>35,26°</b>.",
+          "Comprobación: sen α = a/(a√3) = 1/√3 = 0,5774 → 35,26° ✓. No depende de a."
+        ]) +
+        ejemplo("Una pirámide regular", "Una pirámide regular de base cuadrada tiene lado de base 10 m y altura 12 m. Calcula el ángulo de una cara lateral con la base y el de una arista lateral con la base.", [
+          "Cara lateral: el triángulo rectángulo formado por la altura (12), la mitad del lado de la base (5) y la apotema de la cara. tan φ = 12/5 → φ = <b>67,38°</b> (la apotema mide √(144 + 25) = 13).",
+          "Arista lateral: su proyección sobre la base es la mitad de la diagonal, 5√2 = 7,07. tan ψ = 12/7,07 → ψ = <b>59,49°</b>; la arista mide √(144 + 50) = 13,93 m."
+        ]) +
+        ejemplo("Una antena sobre un edificio", "Desde un punto del suelo a 60 m de la base de un edificio se ve el borde del tejado con elevación de 25° y la punta de la antena con 40°. ¿Cuánto mide la antena?", [
+          "Altura del edificio: 60·tan 25° = 27,98 m.",
+          "Altura hasta la punta: 60·tan 40° = 50,35 m.",
+          "Antena = 50,35 − 27,98 = <b>22,37 m</b>."
+        ])
+    },
+    {
+      h: "16. Problemas de examen resueltos paso a paso",
+      html:
+        "<p>Un problema de trigonometría se resuelve casi siempre con la misma receta: <b>(1)</b> dibuja el triángulo y anota los datos; <b>(2)</b> identifica el caso (LLL, LAL, ALA o LLA); <b>(3)</b> elige el teorema (coseno si no tienes una pareja lado-ángulo opuesto; seno si la tienes); <b>(4)</b> calcula con la calculadora en DEG; <b>(5)</b> comprueba (los ángulos suman 180°, el lado mayor está frente al ángulo mayor, el orden de magnitud es razonable); <b>(6)</b> contesta con unidades.</p>" +
+        ejemplo("Problema 1 · Dos lados y el ángulo entre ellos", "En un triángulo ABC, AB = 10 cm, AC = 14 cm y el ángulo en A mide 50°. Calcula BC, los otros dos ángulos, el área y la altura desde C.", [
+          "LAL: teorema del coseno. a² = 10² + 14² − 2·10·14·cos 50° = 296 − 179,98 = 116,02 → a = BC = <b>10,77 cm</b>.",
+          "Ángulo B (opuesto a b = 14): cos B = (a² + c² − b²)/(2ac) = (116,02 + 100 − 196)/(2·10,77·10) = 0,0929 → B = <b>84,67°</b>. (Con el coseno no hay duda entre agudo y obtuso.)",
+          "C = 180° − 50° − 84,67° = <b>45,33°</b>. Comprobación: el lado mayor (14) está frente al ángulo mayor (84,67°) ✓.",
+          "Área = ½·10·14·sen 50° = <b>53,62 cm²</b>. La altura desde C sobre AB: h = 2S/AB = 107,25/10 = <b>10,72 cm</b>."
+        ]) +
+        ejemplo("Problema 2 · Un globo entre dos observadores", "Dos observadores A y B están separados 500 m en terreno llano. Ven un globo G, en el mismo plano vertical y entre ellos, con elevaciones de 62° (desde A) y 48° (desde B). ¿A qué altura vuela?", [
+          "Triángulo ABG: el ángulo en G es 180° − 62° − 48° = 70°.",
+          "Teorema del seno: AG/sen 48° = 500/sen 70° → AG = 500·0,7431/0,9397 = 395,4 m.",
+          "Altura: h = AG·sen 62° = 395,4·0,8829 = <b>349,1 m</b>.",
+          "Comprobación desde B: BG = 500·sen 62°/sen 70° = 469,8 m y BG·sen 48° = 349,1 m ✓."
+        ]) +
+        ejemplo("Problema 3 · Hipotenusa y perímetro", "La hipotenusa de un triángulo rectángulo mide 20 cm y su perímetro 48 cm. Halla los catetos y los ángulos.", [
+          "Catetos x e y: x + y = 48 − 20 = 28 y x² + y² = 400.",
+          "(x + y)² = 784 → 400 + 2xy = 784 → xy = 192.",
+          "x e y son las raíces de t² − 28t + 192 = 0 → t = (28 ± √(784 − 768))/2 = (28 ± 4)/2 = 16 y 12. Catetos <b>12 y 16 cm</b>.",
+          "sen α = 12/20 = 0,6 → α = <b>36,87°</b>; el otro ángulo mide 53,13°."
+        ]) +
+        ejemplo("Problema 4 · ¿Cuántos triángulos hay?", "En un triángulo, a = 9 cm, b = 12 cm y A = 30°. Estudia cuántos triángulos hay y resuélvelos.", [
+          "Caso LLA con A agudo. Altura h = b·sen A = 12·0,5 = 6. Como h = 6 &lt; a = 9 &lt; b = 12, hay <b>dos triángulos</b>.",
+          "sen B = b·sen A/a = 12·0,5/9 = 0,6667 → B₁ = 41,81° o B₂ = 180° − 41,81° = 138,19°.",
+          "Triángulo 1: C₁ = 180° − 30° − 41,81° = 108,19° → c₁ = a·sen C₁/sen A = 9·0,9501/0,5 = <b>17,10 cm</b>.",
+          "Triángulo 2: C₂ = 180° − 30° − 138,19° = 11,81° → c₂ = 9·sen 11,81°/0,5 = <b>3,68 cm</b>. (Cabe, porque A + B₂ = 168,19° &lt; 180°.)"
+        ]) +
+        "<p>Al corregir, los examinadores puntúan sobre todo el <b>planteamiento</b> (el dibujo, el teorema elegido y la sustitución correcta) y luego el resultado: aunque falle una cuenta, un buen planteamiento da la mayor parte de los puntos. Y no redondees los pasos intermedios: guarda los valores en la memoria de la calculadora.</p>"
+    }
+  );
+
+  datos.errores.preguntas.push(
+    { q: "Para el triángulo de lados 4, 5 y 8, un alumno halla el ángulo C (opuesto al lado 8) con el teorema del seno y obtiene 54,9°. Otro usa el teorema del coseno y obtiene 125,1°. ¿Quién tiene razón?",
+      op: ["El primero: el seno nunca falla", "Los dos: son el mismo ángulo", "El segundo: C es obtuso, y arcsen nunca devuelve ángulos obtusos", "Ninguno: el triángulo no existe"], ok: 2,
+      porque: "cos C = (16 + 25 − 64)/40 = −0,575 → C = 125,1° (obtuso). El seno de 125,1° y el de 54,9° son iguales y arcsen devuelve el agudo. Con tres lados, usa siempre el coseno." },
+    { q: "Un barco navega 20 km con rumbo 040° y luego 30 km con rumbo 100°. Un alumno aplica el teorema del coseno con el ángulo 100° − 40° = 60° y obtiene d = 26,5 km. ¿Qué falla?",
+      op: ["Nada: el ángulo es la diferencia de rumbos", "El ángulo del triángulo es 180° − 60° = 120°: d = 43,59 km", "Debía usar el teorema del seno", "Los rumbos se miden desde el este"], ok: 1,
+      porque: "La diferencia de rumbos (60°) es lo que gira el barco. El ángulo interior del triángulo es el suplementario, 120°: d² = 400 + 900 − 2·20·30·cos 120° = 1900." },
+    { q: "Para calcular el arco de un ángulo de 60° en una circunferencia de radio 3 cm, un alumno escribe s = θ·r = 60·3 = 180 cm. ¿Qué falla?",
+      op: ["Nada", "Con θ en grados la fórmula no vale: hay que pasar 60° a π/3 rad y s = π/3·3 = π ≈ 3,14 cm", "Debía dividir entre 3", "Debía multiplicar por 360"], ok: 1,
+      porque: "s = θ·r exige radianes. 60° = π/3 rad, así que el arco mide π ≈ 3,14 cm (la sexta parte de la circunferencia de 6π cm)." }
+  );
+
+  datos.quiz1.preguntas.push(
+    { q: "¿Cuánto vale arccos(−1/2)?",
+      op: ["−60°", "120°", "240°", "60°"], ok: 1,
+      porque: "arccos devuelve ángulos entre 0° y 180°. cos 120° = −1/2, así que arccos(−1/2) = 120° (240° también tiene ese coseno, pero está fuera del rango principal)." },
+    { q: "La calculadora da arcsen(0,6) = 36,87°. ¿Qué otro ángulo de [0°, 360°) tiene ese seno?",
+      op: ["53,13°", "143,13°", "216,87°", "323,13°"], ok: 1,
+      porque: "El otro ángulo con el mismo seno es el suplementario: 180° − 36,87° = 143,13° (2.º cuadrante, donde el seno también es positivo)." },
+    { q: "Un avión vuela 100 km con rumbo 090° y después 100 km con rumbo 180°. ¿A qué distancia está del punto de partida?",
+      op: ["200 km", "100 km", "141,4 km", "70,7 km"], ok: 2,
+      porque: "Va al este y luego al sur: los dos tramos son perpendiculares (giro de 90°, ángulo interior de 90°). d = √(100² + 100²) = 141,4 km." },
+    { q: "¿Qué área tiene un triángulo de lados 5, 12 y 13?",
+      op: ["30", "60", "32,5", "78"], ok: 0,
+      porque: "Herón: s = 15 y S = √(15·10·3·2) = √900 = 30. (Es un triángulo rectángulo: ½·5·12 = 30.)" },
+    { q: "¿Cuánto mide el radio de la circunferencia circunscrita a un triángulo rectángulo de hipotenusa 10?",
+      op: ["10", "5", "20", "√50"], ok: 1,
+      porque: "En un triángulo rectángulo el circuncentro es el punto medio de la hipotenusa: R = hipotenusa/2 = 5. (También sale de R = a/(2·sen A) con A = 90°.)" },
+    { q: "¿En qué cuadrante está un ángulo de 3 radianes?",
+      op: ["1.º", "2.º", "3.º", "4.º"], ok: 1,
+      porque: "3 rad = 3·180°/π ≈ 171,9°, que está entre 90° y 180°: 2.º cuadrante. (π/2 ≈ 1,57 y π ≈ 3,14.)" }
+  );
+
+  ejercicios.push(
+    // ================= ★ básico =================
+    { id: "g37", nivel: 1,
+      enunciado: "Halla el ángulo principal (entre 0 y 2π) de 61π/4 rad y calcula su seno.",
+      check: [{ tipo: "num", etiqueta: "ángulo principal =", valor: 5 * Math.PI / 4, unidad: "rad", tol: 0.002, ph: "decimal (o 5pi/4)" }, { tipo: "num", etiqueta: "seno =", valor: -Math.SQRT1_2, tol: 0.002, ph: "decimal" }],
+      pistas: ["Una vuelta completa son 2π = 8π/4.", "Divide 61 entre 8 y quédate con el resto."],
+      pasos: ["Una vuelta son 2π = 8π/4. Como 61 = 7·8 + 5, 61π/4 = 7·2π + 5π/4.", "El ángulo principal es 5π/4 (= 225°), del 3.er cuadrante.", "sen(5π/4) = −sen(π/4) = −√2/2 ≈ −0,7071."],
+      resultado: "5π/4 rad · sen = −√2/2 ≈ −0,7071" },
+    { id: "g38", nivel: 1,
+      enunciado: "La calculadora da arccos(−0,5) = 120°. ¿Qué otro ángulo de [0°, 360°) tiene ese mismo coseno?",
+      check: { tipo: "num", etiqueta: "el otro ángulo =", valor: 240, unidad: "°" },
+      pistas: ["El coseno es positivo en el 1.er y 4.º cuadrante y negativo en el 2.º y 3.º.", "Para el coseno, la otra solución es 360° − α."],
+      pasos: ["El coseno es negativo en el 2.º y el 3.er cuadrante. 120° está en el 2.º.", "El otro es su simétrico respecto del eje horizontal: 360° − 120° = 240°.", "Comprobación: cos 240° = −cos 60° = −0,5 ✓."],
+      resultado: "240°" },
+    // ================= ★★ intermedio =================
+    { id: "g39", nivel: 2,
+      enunciado: "Un barco sale de puerto, navega 25 km con rumbo 060° y después 40 km con rumbo 160°. ¿A qué distancia del puerto está y con qué rumbo (0 a 360°) debe volver?",
+      check: [{ tipo: "num", etiqueta: "distancia =", valor: 43.33, unidad: "km" }, { tipo: "num", etiqueta: "rumbo de regreso =", valor: 305.38, unidad: "°" }],
+      pistas: ["El barco gira 160° − 60° = 100°; el ángulo interior del triángulo es 180° − 100°.", "Para el rumbo, calcula las coordenadas (E = d·sen ρ, N = d·cos ρ) del punto final."],
+      pasos: ["Ángulo interior = 180° − 100° = 80°. d² = 25² + 40² − 2·25·40·cos 80° = 2225 − 347,30 = 1877,70 → d = 43,33 km.", "Punto final: E = 25·sen 60° + 40·sen 160° = 21,65 + 13,68 = 35,33; N = 25·cos 60° + 40·cos 160° = 12,5 − 37,59 = −25,09.", "Rumbo puerto → punto final: atan2(35,33; −25,09) = 125,4° (hacia el sureste). El regreso es el opuesto: 125,4° + 180° = 305,4°."],
+      resultado: "d ≈ 43,33 km · rumbo de regreso ≈ 305,4°" },
+    { id: "g40", nivel: 2,
+      enunciado: "Los lados de un triángulo miden 9, 10 y 17 cm. Calcula su área, el radio r de la circunferencia inscrita y el radio R de la circunscrita.",
+      check: [{ tipo: "num", etiqueta: "área =", valor: 36, unidad: "cm²" }, { tipo: "num", etiqueta: "r =", valor: 2, unidad: "cm" }, { tipo: "num", etiqueta: "R =", valor: 10.625, unidad: "cm" }],
+      pistas: ["Herón: s = (9 + 10 + 17)/2.", "r = S/s y R = abc/(4S)."],
+      pasos: ["s = 18 y S = √(18·9·8·1) = √1296 = 36 cm².", "r = S/s = 36/18 = 2 cm.", "R = 9·10·17/(4·36) = 1530/144 = 10,625 cm."],
+      resultado: "S = 36 cm² · r = 2 cm · R = 10,625 cm" },
+    { id: "g41", nivel: 2,
+      enunciado: "Desde un punto del suelo a 40 m de la base de un edificio se ve el borde del tejado con elevación de 35° y la punta de una antena situada sobre él con 50°. ¿Cuánto mide la antena?",
+      check: { tipo: "num", etiqueta: "antena =", valor: 19.66, unidad: "m" },
+      pistas: ["Calcula por separado la altura hasta el tejado y hasta la punta de la antena."],
+      pasos: ["Hasta el tejado: 40·tan 35° = 28,01 m.", "Hasta la punta: 40·tan 50° = 47,67 m.", "Antena = 47,67 − 28,01 = 19,66 m."],
+      resultado: "≈ 19,66 m" },
+    { id: "g42", nivel: 2,
+      enunciado: "En una circunferencia de radio 10 cm, un ángulo central mide 80°. Calcula el área del segmento circular que limita su cuerda.",
+      check: { tipo: "num", etiqueta: "área del segmento =", valor: 20.57, unidad: "cm²" },
+      pistas: ["Pasa 80° a radianes.", "Área del segmento = ½·r²·(θ − sen θ)."],
+      pasos: ["θ = 80·π/180 = 1,3963 rad.", "Sector: ½·100·1,3963 = 69,81 cm². Triángulo: ½·100·sen 80° = 49,24 cm².", "Segmento = 69,81 − 49,24 = 20,57 cm²."],
+      resultado: "≈ 20,57 cm²" },
+    { id: "g43", nivel: 2,
+      enunciado: "Un disco de 12 cm de radio gira a 45 revoluciones por minuto. Calcula su velocidad angular (rad/s) y la velocidad lineal (m/s) de un punto de su borde.",
+      check: [{ tipo: "num", etiqueta: "ω =", valor: 4.712, unidad: "rad/s" }, { tipo: "num", etiqueta: "v =", valor: 0.5655, unidad: "m/s" }],
+      pistas: ["ω = rpm·2π/60.", "v = ω·r, con el radio en metros."],
+      pasos: ["ω = 45·2π/60 = 1,5π = 4,712 rad/s.", "v = ω·r = 4,712·0,12 = 0,5655 m/s."],
+      resultado: "ω = 1,5π ≈ 4,712 rad/s · v ≈ 0,5655 m/s" },
+    // ================= ★★★ reto =================
+    { id: "g44", nivel: 3,
+      enunciado: "Una caja (ortoedro) mide 3 × 4 × 12 cm. Calcula la longitud de su diagonal y el ángulo que forma esa diagonal con la base de 3 × 4.",
+      check: [{ tipo: "num", etiqueta: "diagonal =", valor: 13, unidad: "cm" }, { tipo: "num", etiqueta: "ángulo con la base =", valor: 67.38, unidad: "°" }],
+      pistas: ["La diagonal de la base es la proyección de la diagonal de la caja.", "Forma un triángulo rectángulo con la altura (12) y la diagonal de la base."],
+      pasos: ["Diagonal de la base: √(3² + 4²) = 5.", "Diagonal de la caja: √(5² + 12²) = 13 cm.", "tan α = 12/5 → α = 67,38° (o sen α = 12/13)."],
+      resultado: "diagonal 13 cm · ángulo ≈ 67,38°" },
+    { id: "g45", nivel: 3,
+      enunciado: "Un barco navega hacia el norte. Desde A ve un faro con rumbo 030° y, tras avanzar 10 km hasta B, lo ve con rumbo 075°. Calcula la distancia BF del barco al faro desde B y la distancia mínima del faro a la ruta.",
+      check: [{ tipo: "num", etiqueta: "BF =", valor: 7.071, unidad: "km" }, { tipo: "num", etiqueta: "distancia a la ruta =", valor: 6.83, unidad: "km" }],
+      pistas: ["Ángulo en A: 30°. En B, el ángulo interior es 180° − 75°.", "La distancia a la ruta es BF·sen 75°."],
+      pasos: ["En A: 30°. En B: 180° − 75° = 105°. En F: 180° − 30° − 105° = 45°.", "Teorema del seno: BF/sen 30° = 10/sen 45° → BF = 10·0,5/0,7071 = 7,071 km.", "Distancia a la ruta (hacia el este): BF·sen 75° = 7,071·0,9659 = 6,83 km."],
+      resultado: "BF ≈ 7,07 km · distancia a la ruta ≈ 6,83 km" },
+    { id: "g46", nivel: 3,
+      enunciado: "Un terreno ABCD tiene AB = 50 m, BC = 70 m, CD = 60 m, DA = 45 m y el ángulo en B mide 60°. Calcula la diagonal AC y el área total del terreno.",
+      check: [{ tipo: "num", etiqueta: "AC =", valor: 62.45, unidad: "m" }, { tipo: "num", etiqueta: "área =", valor: 2794.8, unidad: "m²" }],
+      pistas: ["Teorema del coseno en ABC para AC.", "El triángulo ACD tiene los tres lados: Herón."],
+      pasos: ["AC² = 50² + 70² − 2·50·70·cos 60° = 7400 − 3500 = 3900 → AC = 62,45 m.", "Área ABC = ½·50·70·sen 60° = 1515,54 m².", "ACD (62,45; 60; 45): s = 83,725 → S = √(83,725·21,275·23,725·38,725) = 1279,27 m².", "Área total = 1515,54 + 1279,27 = 2794,81 m²."],
+      resultado: "AC ≈ 62,45 m · área ≈ 2794,8 m²" },
+    { id: "g47", nivel: 3,
+      enunciado: "Demuestra que el área de un triángulo es S = abc/(4R), siendo R el radio de su circunferencia circunscrita.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Parte de S = ½·b·c·sen A", p: 0.5 },
+        { t: "Usa el teorema del seno ampliado: a/sen A = 2R, es decir, sen A = a/(2R)", p: 0.5 },
+        { t: "Sustituye: S = ½·b·c·a/(2R)", p: 0.5 },
+        { t: "Simplifica y llega a S = abc/(4R)", p: 0.5 }
+      ] },
+      pasos: ["S = ½·b·c·sen A.", "El teorema del seno dice a/sen A = 2R, así que sen A = a/(2R).", "S = ½·b·c·a/(2R) = abc/(4R)."],
+      resultado: "S = abc/(4R)" },
+    { id: "g48", nivel: 3,
+      enunciado: "Un pentágono regular tiene 8 cm de lado. Calcula el radio de la circunferencia circunscrita, la apotema y el área.",
+      check: [{ tipo: "num", etiqueta: "radio =", valor: 6.805, unidad: "cm" }, { tipo: "num", etiqueta: "apotema =", valor: 5.506, unidad: "cm" }, { tipo: "num", etiqueta: "área =", valor: 110.11, unidad: "cm²" }],
+      pistas: ["El ángulo central es 360°/5 = 72°; el triángulo rectángulo tiene ángulo 36° y cateto 4.", "Área = ½·perímetro·apotema."],
+      pasos: ["R = 8/(2·sen 36°) = 4/0,5878 = 6,805 cm.", "Apotema a = 4/tan 36° = 4/0,7265 = 5,506 cm.", "Área = ½·(5·8)·5,506 = 110,11 cm²."],
+      resultado: "R ≈ 6,81 cm · apotema ≈ 5,51 cm · área ≈ 110,11 cm²" }
+  );
+
+  lamina.push(
+    { titulo: "Del valor al ángulo y rumbos",
+      items: [
+        { label: "Funciones inversas", formula: "arcsen k ∈ [−90°, 90°]  ·  arccos k ∈ [0°, 180°]  ·  arctan k ∈ (−90°, 90°)", cuando: "Conoces la razón y buscas el ángulo.", ojo: "Da un solo ángulo: añade el otro (180° − α para sen; 360° − α para cos; α + 180° para tan)." },
+        { label: "Rumbo → coordenadas", formula: "E = d·sen ρ  ·  N = d·cos ρ", cuando: "ρ se mide desde el norte, en sentido horario.", ejemplo: "20 km a 040° → E = 12,86 · N = 15,32" },
+        { label: "Cambio de rumbo", formula: "ángulo del triángulo = 180° − giro", ejemplo: "040° → 100°: giro 60°, ángulo interior 120°" }
+      ],
+      tabla: { cab: ["N", "NE", "E", "SE", "S", "SO", "O", "NO"], filas: [["000°", "045°", "090°", "135°", "180°", "225°", "270°", "315°"]] },
+      nota: "Con tres lados (o dos lados y el ángulo entre ellos) usa el coseno: arccos sí distingue agudos y obtusos." },
+    { titulo: "Medidas del triángulo y de las figuras", ancha: true,
+      items: [
+        { label: "Herón y radios", formula: "S = √(s(s−a)(s−b)(s−c))  ·  R = abc/(4S)  ·  r = S/s", ejemplo: "13, 14, 15 → S = 84 · R = 8,125 · r = 4" },
+        { label: "Altura y mediana", formula: "h<sub>a</sub> = 2S/a  ·  m<sub>a</sub> = ½√(2b² + 2c² − a²)" },
+        { label: "Polígono regular de n lados", formula: "R = ℓ/(2·sen(180°/n))  ·  a = ℓ/(2·tan(180°/n))  ·  S = ½·n·ℓ·a" },
+        { label: "Arco, sector y segmento", formula: "s = θ·r  ·  A<sub>sector</sub> = ½r²θ  ·  A<sub>segmento</sub> = ½r²(θ − sen θ)  ·  cuerda = 2r·sen(θ/2)", cuando: "θ en radianes." }
+      ],
+      nota: "Cuadrilátero: traza una diagonal y resuelve dos triángulos. En el espacio: busca triángulos rectángulos." }
+  );
+
   B.registrar("mates1", "t4", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
 })(window);
@@ -36045,12 +36706,12 @@
         w("orden", "demo")
     },
     {
-      h: "9. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "16. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "10. Autocomprobación del tema",
-      html: "<p>Diez preguntas de test con explicación y tarjetas para memorizar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
+      h: "17. Autocomprobación del tema",
+      html: "<p>Dieciséis preguntas de test con explicación y tarjetas para memorizar las fórmulas.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
 
@@ -36461,6 +37122,366 @@
         { mal: "Pasar términos para demostrar una identidad", bien: "Transformar un solo lado", por: "Dar por cierta la igualdad es hacer trampa." }
       ] }
   ];
+
+  // ================================================================
+  // AMPLIACIÓN 2 · refuerzo del tema: rombo y pulsaciones, ecuaciones de 2.º grado,
+  // a·sen x + b·cos x = c, sistemas, identidades difíciles, retos y problemas de examen
+  // (simuladores nuevos en lab_trigo3.js)
+  // ================================================================
+  resumen.push(
+    "<b>Suma → producto</b> con el rombo: al sumar los vectores (cos A, sen A) y (cos B, sen B) sale una diagonal de longitud 2·cos((A − B)/2) y dirección (A + B)/2. Con ondas: sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t): <b>pulsaciones</b> de frecuencia |f₁ − f₂|.",
+    "<b>Ecuación de 2.º grado</b> en sen, cos o tan: cambio t = razón, resuelve, <b>descarta |t| &gt; 1</b> (seno y coseno) y deshaz el cambio. <b>a·sen x + b·cos x = c</b> sólo tiene solución si |c| ≤ √(a² + b²). Los <b>sistemas</b> se resuelven buscando ecuaciones para x + y y x − y."
+  );
+
+  nuevas.splice(nuevas.length - 2, 0,
+    {
+      h: "9. Suma y producto en acción: el rombo y las pulsaciones",
+      html:
+        "<p>Las fórmulas de la sección 6 no son sólo un truco algebraico: tienen una lectura geométrica y otra física muy bonitas.</p>" +
+        "<h5>El rombo de dos vectores unitarios</h5>" +
+        "<p>El punto de la circunferencia goniométrica de ángulo A es (cos A, sen A). Si sumas los vectores de dos puntos, A y B, obtienes la diagonal de un <b>rombo</b> (sus cuatro lados miden 1). En un rombo la diagonal es bisectriz: por eso la suma apunta en la dirección (A + B)/2; y como la mitad de la diagonal es el cateto de un triángulo rectángulo de hipotenusa 1 y ángulo (A − B)/2, la diagonal entera mide 2·cos((A − B)/2). Escribiendo sus coordenadas:</p>" +
+        H.formula("cos A + cos B = 2·cos((A + B)/2)·cos((A − B)/2)        sen A + sen B = 2·sen((A + B)/2)·cos((A − B)/2)") +
+        "<p>Son dos de las cuatro fórmulas de la tabla: ahora sabes de dónde salen. Mueve A y B y compara los dos lados de cada igualdad:</p>" +
+        w("rombo") +
+        "<h5>Sonidos que laten: las pulsaciones</h5>" +
+        "<p>Cuando suenan a la vez dos notas de frecuencias casi iguales, el volumen «late»: sube y baja varias veces por segundo. Es el fenómeno de las <b>pulsaciones</b> (o batidos), y se usa para <b>afinar</b> instrumentos: se toca la cuerda junto a un diapasón y se tensa hasta que desaparece el latido. Una nota pura de frecuencia f es sen(2πf·t), y la suma de dos notas es sen A + sen B con A = 2πf₁t y B = 2πf₂t:</p>" +
+        H.formula("sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t)") +
+        "<p>Lo que oyes es una onda de frecuencia <b>media</b> (f₁ + f₂)/2 cuya amplitud, 2·cos(π(f₁ − f₂)t) (la <b>envolvente</b>), sube y baja. El oído percibe la intensidad, no el signo, así que se oye un «golpe» cada vez que la envolvente llega a un máximo en valor absoluto: la frecuencia del batido es <b>|f₁ − f₂|</b>. Experimenta con las frecuencias:</p>" +
+        w("batidos") +
+        ejemplo("Valores exactos con sumas", "Calcula cos 75° + cos 15° y sen 105° − sen 15° sin calculadora.", [
+          "cos 75° + cos 15° = 2·cos 45°·cos 30° = 2·(√2/2)(√3/2) = <b>√6/2 ≈ 1,2247</b>.",
+          "sen 105° − sen 15° = 2·cos((105° + 15°)/2)·sen((105° − 15°)/2) = 2·cos 60°·sen 45° = 2·(1/2)(√2/2) = <b>√2/2 ≈ 0,7071</b>."
+        ]) +
+        ejemplo("Dos diapasones", "Dos diapasones suenan a la vez con 440 Hz y 444 Hz. Escribe la suma como producto y calcula la frecuencia de la nota que se oye y las pulsaciones por segundo.", [
+          "(A + B)/2 = π(440 + 444)t = 884πt y (A − B)/2 = π(440 − 444)t = −4πt. Como el coseno es par: sen(2π·440t) + sen(2π·444t) = <b>2·cos(4πt)·sen(884πt)</b>.",
+          "La nota que se oye es sen(884πt) = sen(2π·442t): <b>442 Hz</b>, la frecuencia media.",
+          "La envolvente 2·|cos(4πt)| llega a su máximo cuando 4πt = kπ, es decir, cada 0,25 s: <b>4 pulsaciones por segundo</b> = |440 − 444|."
+        ]) +
+        ejemplo("Producto a suma", "Calcula sen 75°·cos 15° sin calculadora.", [
+          "Usamos sen A·cos B = ½[sen(A + B) + sen(A − B)] con A = 75° y B = 15°.",
+          "= ½[sen 90° + sen 60°] = ½(1 + √3/2) = <b>(2 + √3)/4 ≈ 0,9330</b>.",
+          "Comprobación: sen 75° = cos 15° = 0,9659 y 0,9659² = 0,9330 ✓."
+        ]) +
+        ejemplo("Una diferencia de cosenos", "Resuelve cos 5x − cos x = 0 en [0°, 360°).", [
+          "cos 5x − cos x = −2·sen((5x + x)/2)·sen((5x − x)/2) = −2·sen 3x·sen 2x = 0.",
+          "sen 3x = 0 → 3x = 0°, 180°, …, 900° → x = 0°, 60°, 120°, 180°, 240°, 300°. sen 2x = 0 → 2x = 0°, 180°, 360°, 540° → x = 0°, 90°, 180°, 270°.",
+          "Reunidas: <b>x = 0°, 60°, 90°, 120°, 180°, 240°, 270° y 300°</b> (ocho; 0° y 180° salen en las dos).",
+          "Comprobación: cos 5x = cos x se cumple si 5x = ±x + 360°·k, es decir, 4x = 360°·k (x = 90°·k) o 6x = 360°·k (x = 60°·k) ✓."
+        ])
+    },
+    {
+      h: "10. Ecuaciones de 2.º grado en seno, coseno o tangente",
+      html:
+        "<p>Muchas ecuaciones trigonométricas acaban siendo una ecuación de segundo grado en una razón. El método tiene cuatro pasos:</p>" +
+        "<ol><li><b>Una sola razón y un solo ángulo.</b> Usa sen²x = 1 − cos²x (o al revés), cos 2x = 2cos²x − 1 = 1 − 2sen²x, tan x = sen x/cos x…</li>" +
+        "<li><b>Cambio de variable.</b> Llama t a la razón (t = sen x, cos x o tan x) y resuelve a·t² + b·t + c = 0 con t = (−b ± √(b² − 4ac))/(2a).</li>" +
+        "<li><b>Filtra las raíces.</b> Como −1 ≤ sen x ≤ 1 y −1 ≤ cos x ≤ 1, toda raíz con |t| &gt; 1 se <b>descarta</b>: no hay ningún ángulo con ese seno o coseno. Con la tangente valen todas.</li>" +
+        "<li><b>Deshaz el cambio.</b> Para cada raíz válida resuelve la ecuación básica, con sus dos ángulos por vuelta.</li></ol>" +
+        "<p>El simulador dibuja la parábola a·t² + b·t + c (los cortes con el eje son las raíces) sobre una franja verde que marca los valores posibles de un seno o un coseno; debajo, la misma expresión como función de x, cuyos ceros son las soluciones. Prueba los cuatro ejemplos y después tus propios coeficientes:</p>" +
+        w("cuadratica") +
+        ejemplo("Una raíz que se descarta", "Resuelve 2sen²x + 3sen x − 2 = 0 en [0°, 360°).", [
+          "Con t = sen x: 2t² + 3t − 2 = 0 → t = (−3 ± √(9 + 16))/4 = (−3 ± 5)/4 → t = 1/2 o t = −2.",
+          "t = −2 no vale: un seno nunca es menor que −1.",
+          "sen x = 1/2 → <b>x = 30° o x = 150°</b>."
+        ]) +
+        ejemplo("Pasar todo a coseno", "Resuelve 2sen²x = 3cos x en [0°, 360°).", [
+          "Sustituimos sen²x = 1 − cos²x: 2 − 2cos²x = 3cos x → 2cos²x + 3cos x − 2 = 0.",
+          "Con t = cos x: t = (−3 ± 5)/4 → t = 1/2 o t = −2 (descartada).",
+          "cos x = 1/2 → <b>x = 60° o x = 300°</b>."
+        ]) +
+        ejemplo("Con el ángulo doble", "Resuelve cos 2x + 5cos x + 3 = 0 en [0°, 360°).", [
+          "cos 2x = 2cos²x − 1: 2cos²x − 1 + 5cos x + 3 = 0 → 2cos²x + 5cos x + 2 = 0.",
+          "t = cos x: t = (−5 ± √(25 − 16))/4 = (−5 ± 3)/4 → t = −1/2 o t = −2 (descartada).",
+          "cos x = −1/2 → <b>x = 120° o x = 240°</b>."
+        ]) +
+        ejemplo("Con la tangente", "Resuelve tan²x − (1 + √3)·tan x + √3 = 0 en [0°, 360°).", [
+          "Con t = tan x, la suma de las raíces es 1 + √3 y su producto √3: son t = 1 y t = √3 (comprobación: 1·√3 = √3 ✓).",
+          "tan x = 1 → x = 45° y 225°. tan x = √3 → x = 60° y 240°.",
+          "<b>x = 45°, 60°, 225° y 240°</b>. Con la tangente no se descarta ninguna raíz."
+        ]) +
+        ejemplo("Raíz doble", "Resuelve 4sen²x − 4sen x + 1 = 0 en [0°, 360°).", [
+          "(2·sen x − 1)² = 0 → sen x = 1/2 (raíz doble: el discriminante es 16 − 16 = 0).",
+          "<b>x = 30° y x = 150°</b>: la raíz doble no añade soluciones, sólo cuenta una vez en t."
+        ]) +
+        ojo("no confundas la <i>razón</i> t con el <i>ángulo</i> x: la ecuación de segundo grado da valores de t; después hay que deshacer el cambio. Y nunca dividas entre una razón (sen x o cos x) para «simplificar»: saca factor común, o perderás soluciones.")
+    },
+    {
+      h: "11. a·sen x + b·cos x = c: tres caminos",
+      html:
+        "<p>En la sección 7 resolvimos sen x − √3·cos x = 1 con un ángulo auxiliar. Veamos el método completo, su condición de existencia y dos alternativas.</p>" +
+        "<h5>Camino 1: el ángulo auxiliar</h5>" +
+        "<p>Se escribe a·sen x + b·cos x = R·sen(x + φ), con R = √(a² + b²), cos φ = a/R y sen φ = b/R. La ecuación queda sen(x + φ) = c/R. Como un seno está entre −1 y 1, <b>hay solución sólo si |c| ≤ R</b>: si |c| = R hay una (el seno vale ±1) y si |c| &lt; R hay dos por vuelta.</p>" +
+        ejemplo("Cuando la recta es tangente", "Resuelve 3·sen x + 4·cos x = 5 en [0°, 360°).", [
+          "R = √(9 + 16) = 5 y φ = arctan(4/3) = 53,13°: 3·sen x + 4·cos x = 5·sen(x + 53,13°).",
+          "5·sen(x + 53,13°) = 5 → sen(x + 53,13°) = 1 → x + 53,13° = 90° → <b>x = 36,87°</b> (solución única: |c| = R)."
+        ]) +
+        ejemplo("Dos soluciones", "Resuelve 3·sen x + 4·cos x = 2 en [0°, 360°).", [
+          "Con R = 5 y φ = 53,13°: sen(x + 53,13°) = 2/5 = 0,4 → x + 53,13° = 23,58° o 156,42° (más 360°·n).",
+          "x = 23,58° − 53,13° = −29,55° ≡ 330,45°, o x = 156,42° − 53,13° = 103,29°.",
+          "<b>x = 103,29° y x = 330,45°</b>. Comprobación: 3·sen 103,29° + 4·cos 103,29° = 2,92 − 0,92 = 2 ✓."
+        ]) +
+        ejemplo("Sin solución", "Resuelve 3·sen x + 4·cos x = 6.", [
+          "R = 5, así que 3·sen x + 4·cos x = 5·sen(x + φ) nunca pasa de 5.",
+          "Como 6 &gt; 5 (|c| &gt; R), <b>la ecuación no tiene solución</b>: sen(x + φ) = 1,2 es imposible."
+        ]) +
+        "<h5>Camino 2: elevar al cuadrado (con comprobación)</h5>" +
+        "<p>Se aísla un término, se eleva al cuadrado y se usa sen²x = 1 − cos²x; sale una ecuación de segundo grado en cos x. Pero al elevar al cuadrado aparecen <b>soluciones falsas</b>, y hay que comprobar todas en la ecuación original.</p>" +
+        ejemplo("La misma ecuación, elevando al cuadrado", "Resuelve 3·sen x + 4·cos x = 2 elevando al cuadrado.", [
+          "3·sen x = 2 − 4·cos x → 9(1 − cos²x) = 4 − 16·cos x + 16·cos²x → 25·cos²x − 16·cos x − 5 = 0.",
+          "cos x = (16 ± √(256 + 500))/50 = (16 ± 27,50)/50 → cos x = 0,8699 o cos x = −0,2299.",
+          "Candidatos: 29,55°, 330,45° (cos = 0,8699) y 103,29°, 256,71° (cos = −0,2299).",
+          "Comprobamos: x = 29,55° da 3·0,4929 + 4·0,8699 = 4,96 ≠ 2 ✗; x = 330,45° da 2 ✓; x = 103,29° da 2 ✓; x = 256,71° da −3,84 ✗.",
+          "<b>x = 103,29° y x = 330,45°</b>, igual que con el ángulo auxiliar (que no genera soluciones falsas)."
+        ]) +
+        "<h5>Camino 3: el cambio t = tan(x/2)</h5>" +
+        "<p>Con t = tan(x/2) todo se expresa con fracciones algebraicas: <b>sen x = 2t/(1 + t²)</b>, <b>cos x = (1 − t²)/(1 + t²)</b> y tan x = 2t/(1 − t²). (Salen de sen x = 2·sen(x/2)·cos(x/2) = 2·tan(x/2)·cos²(x/2), de cos x = cos²(x/2) − sen²(x/2) y de 1/cos²(x/2) = 1 + tan²(x/2).) La ecuación se convierte en una de 2.º grado en t. Pero tan(x/2) no existe para x = 180°: <b>hay que comprobar a mano x = 180°</b>, que este método no puede dar.</p>" +
+        ejemplo("Con t = tan(x/2)", "Resuelve √3·sen x + cos x = 1 en [0°, 360°).", [
+          "Sustituimos: √3·2t/(1 + t²) + (1 − t²)/(1 + t²) = 1. Multiplicamos por 1 + t²: 2√3·t + 1 − t² = 1 + t² → 2t² − 2√3·t = 0 → 2t(t − √3) = 0.",
+          "t = 0 → x/2 = 0° → x = 0°. t = √3 → x/2 = 60° → x = 120°.",
+          "Comprobamos x = 180° aparte: √3·0 + (−1) = −1 ≠ 1, no es solución. <b>x = 0° y x = 120°</b>.",
+          "Con el ángulo auxiliar: R = 2, φ = 30°, 2·sen(x + 30°) = 1 → x + 30° = 30° o 150° → x = 0° o 120° ✓."
+        ])
+    },
+    {
+      h: "12. Sistemas de ecuaciones trigonométricas",
+      html:
+        "<p>Un sistema trigonométrico tiene dos incógnitas (dos ángulos x e y) y dos ecuaciones. No hay un método único, pero casi siempre funciona alguna de estas ideas: <b>(a)</b> despejar una incógnita si una ecuación es lineal en los ángulos (x + y = 120° → y = 120° − x); <b>(b)</b> sumar y restar las ecuaciones para formar sen(x ± y) o cos(x ± y); <b>(c)</b> pasar sumas a productos y dividir las ecuaciones; <b>(d)</b> pasar productos a sumas. El objetivo es llegar a ecuaciones para <b>x + y</b> y <b>x − y</b>, que forman un sistema lineal fácil.</p>" +
+        ejemplo("Suma de ángulos conocida", "Resuelve x + y = 120°, sen x + sen y = 3/2 con x e y entre 0° y 180°.", [
+          "sen x + sen y = 2·sen((x + y)/2)·cos((x − y)/2) = 2·sen 60°·cos((x − y)/2) = √3·cos((x − y)/2).",
+          "√3·cos((x − y)/2) = 3/2 → cos((x − y)/2) = √3/2 → (x − y)/2 = ±30° → x − y = ±60°.",
+          "Con x + y = 120°: si x − y = 60°, x = 90° e y = 30°; si x − y = −60°, x = 30° e y = 90°.",
+          "<b>(x, y) = (90°, 30°) o (30°, 90°)</b>. Comprobación: sen 90° + sen 30° = 1,5 ✓."
+        ]) +
+        ejemplo("Producto y suma de ángulos", "Resuelve x + y = 120°, sen x·sen y = 1/4 con x &gt; y, ambos entre 0° y 180°.", [
+          "Producto a suma: sen x·sen y = ½[cos(x − y) − cos(x + y)] = ½[cos(x − y) − cos 120°] = ½[cos(x − y) + 1/2].",
+          "½[cos(x − y) + 1/2] = 1/4 → cos(x − y) + 1/2 = 1/2 → cos(x − y) = 0 → x − y = 90° (se toma el positivo porque x &gt; y).",
+          "Con x + y = 120°: <b>x = 105° e y = 15°</b>. Comprobación: sen 105°·sen 15° = 0,9659·0,2588 = 0,25 ✓."
+        ]) +
+        ejemplo("Sumar y restar las ecuaciones", "Resuelve sen x·cos y = 3/4, cos x·sen y = 1/4 con x e y entre 0° y 90°.", [
+          "Sumando: sen x·cos y + cos x·sen y = sen(x + y) = 1. Restando: sen x·cos y − cos x·sen y = sen(x − y) = 1/2.",
+          "x + y está entre 0° y 180° y su seno es 1: x + y = 90°. x − y está entre −90° y 90° y su seno es 1/2: x − y = 30°.",
+          "Sistema lineal: <b>x = 60° e y = 30°</b>. Comprobación: sen 60°·cos 30° = (√3/2)(√3/2) = 3/4 ✓ y cos 60°·sen 30° = 1/4 ✓."
+        ]) +
+        ejemplo("Dividir las dos ecuaciones", "Resuelve sen x + sen y = √6/2, cos x + cos y = √6/2 con 0° &lt; y &lt; x &lt; 90°.", [
+          "Sumas a productos: 2·sen((x + y)/2)·cos((x − y)/2) = √6/2 y 2·cos((x + y)/2)·cos((x − y)/2) = √6/2.",
+          "Dividimos la primera entre la segunda (se simplifica cos((x − y)/2) ≠ 0): tan((x + y)/2) = 1 → (x + y)/2 = 45° → x + y = 90°.",
+          "En la primera: 2·sen 45°·cos((x − y)/2) = √6/2 → √2·cos((x − y)/2) = √6/2 → cos((x − y)/2) = √3/2 → x − y = 60°.",
+          "<b>x = 75° e y = 15°</b>."
+        ])
+    },
+    {
+      h: "13. Identidades difíciles: técnicas para los casos duros",
+      html:
+        "<p>Cuando una identidad no cede con «pasar todo a seno y coseno», suelen funcionar estas técnicas:</p>" +
+        "<ul><li><b>Multiplicar por el conjugado</b>: (1 + sen x)(1 − sen x) = 1 − sen²x = cos²x.</li>" +
+        "<li><b>Diferencia de cuadrados</b>: cos⁴x − sen⁴x = (cos²x − sen²x)(cos²x + sen²x).</li>" +
+        "<li><b>Sumas a productos</b> cuando hay ángulos múltiplos (x y 3x, por ejemplo).</li>" +
+        "<li><b>Denominador común</b>, y reconocer sen(a − b) en un numerador del tipo sen a·cos b − cos a·sen b.</li>" +
+        "<li><b>Un solo ángulo</b>: llevar todo al mismo ángulo con las fórmulas del doble y del triple.</li>" +
+        "<li>Como último recurso, <b>t = tan(x/2)</b> (sección 11): convierte cualquier identidad en una igualdad de fracciones algebraicas.</li></ul>" +
+        "<p>Recuerda que una identidad vale para todos los ángulos <i>en los que las dos expresiones están definidas</i> (los denominadores no se anulan); al simplificar, anota qué valores excluyes.</p>" +
+        ejemplo("Con el conjugado", "Demuestra que (1 + sen x)/cos x = cos x/(1 − sen x).", [
+          "Partimos del lado izquierdo y multiplicamos numerador y denominador por (1 − sen x) (que no es 0: excluimos x = 90°).",
+          "(1 + sen x)(1 − sen x)/(cos x·(1 − sen x)) = (1 − sen²x)/(cos x·(1 − sen x)) = cos²x/(cos x·(1 − sen x)).",
+          "Simplificando cos x queda <b>cos x/(1 − sen x)</b>, el lado derecho ∎."
+        ]) +
+        ejemplo("Diferencia de cuadrados", "Demuestra que cos⁴x − sen⁴x = cos 2x.", [
+          "cos⁴x − sen⁴x = (cos²x − sen²x)(cos²x + sen²x).",
+          "El segundo paréntesis vale 1 y el primero es cos 2x ∎."
+        ]) +
+        ejemplo("Sumas a productos", "Demuestra que (sen x + sen 3x)/(cos x + cos 3x) = tan 2x.", [
+          "Numerador: sen x + sen 3x = 2·sen 2x·cos x. Denominador: cos x + cos 3x = 2·cos 2x·cos x.",
+          "Cociente: (2·sen 2x·cos x)/(2·cos 2x·cos x) = sen 2x/cos 2x = tan 2x ∎ (se simplifica cos x ≠ 0)."
+        ]) +
+        ejemplo("Reconocer una resta", "Demuestra que sen 3x/sen x − cos 3x/cos x = 2.", [
+          "Denominador común: (sen 3x·cos x − cos 3x·sen x)/(sen x·cos x).",
+          "El numerador es sen(3x − x) = sen 2x = 2·sen x·cos x.",
+          "Queda 2·sen x·cos x/(sen x·cos x) = 2 ∎ (con sen x·cos x ≠ 0)."
+        ])
+    },
+    {
+      h: "14. Retos: el ángulo entre dos rectas y el valor exacto de sen 18°",
+      html:
+        "<h5>Ángulo entre dos rectas</h5>" +
+        "<p>Una recta de pendiente m forma con el eje X un ángulo α con tan α = m. Si dos rectas tienen pendientes m₁ y m₂ (ángulos α₁ y α₂), el ángulo entre ellas es α₂ − α₁ y, por la fórmula de la tangente de una diferencia:</p>" +
+        H.formula("tan θ = " + fr("m₂ − m₁", "1 + m₁·m₂") + "      (ángulo agudo: con valor absoluto)") +
+        "<p>Si 1 + m₁·m₂ = 0 la tangente no existe y θ = 90°: las rectas son perpendiculares (la condición m₁·m₂ = −1 que ya conoces).</p>" +
+        ejemplo("Dos rectas cualesquiera", "Calcula el ángulo agudo entre y = 3x − 1 e y = −x/2 + 4.", [
+          "Las pendientes son m₁ = 3 y m₂ = −1/2.",
+          "tan θ = |(−1/2 − 3)/(1 + 3·(−1/2))| = |(−7/2)/(−1/2)| = 7.",
+          "θ = arctan 7 = <b>81,87°</b>."
+        ]) +
+        "<h5>Un valor exacto sorprendente: sen 18°</h5>" +
+        "<p>Los valores de 30°, 45° y 60° no son los únicos «exactos». El de 18° (y con él los de 36°, 54° y 72°) está ligado al pentágono regular y al número áureo. Se deduce con las fórmulas del ángulo doble y del triple.</p>" +
+        ejemplo("El valor exacto de sen 18°", "Calcula sen 18° y cos 36° de forma exacta.", [
+          "Sea s = sen 18°. Como 3·18° + 2·18° = 90°, los ángulos 54° y 36° son complementarios: sen 3θ = cos 2θ con θ = 18°.",
+          "sen 3θ = 3s − 4s³ y cos 2θ = 1 − 2s². Igualando: 4s³ − 2s² − 3s + 1 = 0.",
+          "s = 1 es raíz (4 − 2 − 3 + 1 = 0), luego (s − 1)(4s² + 2s − 1) = 0. Como s ≠ 1, 4s² + 2s − 1 = 0.",
+          "s = (−2 ± √(4 + 16))/8 = (−1 ± √5)/4; la raíz positiva da <b>sen 18° = (√5 − 1)/4 ≈ 0,3090</b>.",
+          "Y cos 36° = 1 − 2·sen²18° = 1 − 2·(6 − 2√5)/16 = <b>(1 + √5)/4 ≈ 0,8090</b>: la mitad del número áureo (1 + √5)/2."
+        ])
+    },
+    {
+      h: "15. Problemas de examen resueltos paso a paso",
+      html:
+        "<p>En un examen de fórmulas trigonométricas se puntúa el <b>camino</b>: qué fórmula eliges, cómo la aplicas y si compruebas el resultado. Cuatro problemas típicos, resueltos con el nivel de detalle que conviene escribir:</p>" +
+        ejemplo("Problema 1 · Razones de una suma", "Sabiendo que sen a = 3/5 con a en el 2.º cuadrante y cos b = −5/13 con b en el 3.er cuadrante, calcula sen(a + b), cos(a − b) y tan(a + b), e indica en qué cuadrante está a + b.", [
+          "Completamos con la relación fundamental: cos a = −4/5 (2.º cuadrante: coseno negativo) y sen b = −12/13 (3.er cuadrante: seno negativo).",
+          "sen(a + b) = sen a·cos b + cos a·sen b = (3/5)(−5/13) + (−4/5)(−12/13) = −15/65 + 48/65 = <b>33/65</b>.",
+          "cos(a + b) = cos a·cos b − sen a·sen b = (−4/5)(−5/13) − (3/5)(−12/13) = 20/65 + 36/65 = 56/65, luego tan(a + b) = (33/65)/(56/65) = <b>33/56</b>.",
+          "cos(a − b) = cos a·cos b + sen a·sen b = 20/65 − 36/65 = <b>−16/65</b>.",
+          "Seno y coseno de a + b son positivos: a + b está en el 1.er cuadrante (salvo vueltas). Comprobación: (33/65)² + (56/65)² = (1089 + 3136)/4225 = 1 ✓."
+        ]) +
+        ejemplo("Problema 2 · Una ecuación con tres senos", "Resuelve sen x + sen 2x + sen 3x = 0 en [0°, 360°).", [
+          "Agrupamos los extremos: sen x + sen 3x = 2·sen 2x·cos x.",
+          "La ecuación queda 2·sen 2x·cos x + sen 2x = 0 → sen 2x·(2·cos x + 1) = 0 (factor común: no se divide).",
+          "sen 2x = 0 → 2x = 0°, 180°, 360°, 540° → x = 0°, 90°, 180°, 270°. 2·cos x + 1 = 0 → cos x = −1/2 → x = 120°, 240°.",
+          "<b>x = 0°, 90°, 120°, 180°, 240° y 270°</b>."
+        ]) +
+        ejemplo("Problema 3 · Máximo y mínimo", "Halla el máximo y el mínimo de f(x) = cos 2x − 3·cos x y los ángulos en que se alcanzan.", [
+          "cos 2x = 2cos²x − 1, así que f = 2t² − 3t − 1 con t = cos x ∈ [−1, 1].",
+          "La parábola tiene el vértice en t = 3/4, dentro del intervalo: f(3/4) = 2·9/16 − 9/4 − 1 = −17/8 = −2,125. Es el <b>mínimo</b>, en cos x = 3/4: x = 41,41° o x = 318,59°.",
+          "El máximo está en un extremo: f(−1) = 2 + 3 − 1 = 4 y f(1) = 2 − 3 − 1 = −2. <b>Máximo 4</b>, en cos x = −1: x = 180°."
+        ]) +
+        ejemplo("Problema 4 · Demostrar y aplicar", "Demuestra que tan(x/2) = (1 − cos x)/sen x y úsalo para calcular tan 15°.", [
+          "Con 1 − cos x = 2·sen²(x/2) y sen x = 2·sen(x/2)·cos(x/2): (1 − cos x)/sen x = 2·sen²(x/2)/(2·sen(x/2)·cos(x/2)) = sen(x/2)/cos(x/2) = tan(x/2) ∎.",
+          "Con x = 30°: tan 15° = (1 − cos 30°)/sen 30° = (1 − √3/2)/(1/2) = <b>2 − √3 ≈ 0,2679</b>."
+        ])
+    }
+  );
+
+  datos.errores.preguntas.push(
+    { q: "Un alumno resuelve 2sen²x + 3sen x − 2 = 0 con t = sen x, obtiene t = 1/2 y t = −2, y escribe además la solución x = arcsen(−2). ¿Qué falla?",
+      op: ["Nada: todas las raíces valen", "t = −2 se descarta: un seno no puede ser menor que −1 y arcsen(−2) no existe", "Debía usar cos x en vez de sen x", "t = 1/2 es la que sobra"], ok: 1,
+      porque: "Como −1 ≤ sen x ≤ 1, la raíz t = −2 no corresponde a ningún ángulo. Sólo vale sen x = 1/2: x = 30° y 150°." },
+    { q: "Para resolver sen 3x + sen x = 0, un alumno escribe sen 4x = 0. ¿Qué falla?",
+      op: ["Nada: sen A + sen B = sen(A + B)", "La suma de senos no es el seno de la suma: sen 3x + sen x = 2·sen 2x·cos x", "Debía dar sen 2x = 0", "Debía restar en vez de sumar"], ok: 1,
+      porque: "sen A + sen B ≠ sen(A + B) (con A = B = 30°: 1 ≠ 0,87). La suma a producto es 2·sen((A + B)/2)·cos((A − B)/2) = 2·sen 2x·cos x." },
+    { q: "Al resolver 3sen x + 4cos x = 6 con el ángulo auxiliar, un alumno llega a sen(x + φ) = 1,2 y la calculadora da «Math Error». ¿Qué significa?",
+      op: ["Que la calculadora está mal configurada", "Que la ecuación no tiene solución: 6 es mayor que R = 5, el máximo de 3sen x + 4cos x", "Que hay que usar grados", "Que x = 90°"], ok: 1,
+      porque: "3sen x + 4cos x = 5·sen(x + φ) oscila entre −5 y 5. Sólo hay solución si |c| ≤ R = 5; con c = 6 no existe ningún x." }
+  );
+
+  datos.quiz1.preguntas.push(
+    { q: "¿A qué es igual cos A − cos B?",
+      op: ["2·sen((A + B)/2)·sen((A − B)/2)", "−2·sen((A + B)/2)·sen((A − B)/2)", "2·cos((A + B)/2)·cos((A − B)/2)", "cos(A − B)"], ok: 1,
+      porque: "Restando cos(a + b) y cos(a − b) sale cos(a + b) − cos(a − b) = −2·sen a·sen b; con a = (A + B)/2 y b = (A − B)/2 se obtiene el signo menos." },
+    { q: "Dos diapasones de 256 Hz y 260 Hz suenan a la vez. ¿Cuántas pulsaciones por segundo se perciben?",
+      op: ["2", "4", "258", "516"], ok: 1,
+      porque: "La frecuencia del batido es |f₁ − f₂| = |256 − 260| = 4 pulsaciones por segundo (la nota que se oye tiene la frecuencia media, 258 Hz)." },
+    { q: "¿Cuántas soluciones tiene 2sen²x − sen x − 1 = 0 en [0°, 360°)?",
+      op: ["2", "3", "4", "1"], ok: 1,
+      porque: "Con t = sen x: t = 1 o t = −1/2. sen x = 1 da x = 90° (una) y sen x = −1/2 da 210° y 330°. En total 3 soluciones." },
+    { q: "La ecuación 3sen x + 4cos x = c tiene solución si y sólo si…",
+      op: ["c ≥ 0", "|c| ≤ 5", "|c| ≤ 7", "|c| ≤ 1"], ok: 1,
+      porque: "3sen x + 4cos x = 5·sen(x + φ), que toma todos los valores entre −5 y 5. Por eso hay solución exactamente cuando |c| ≤ 5 (R = √(3² + 4²))." },
+    { q: "El ángulo agudo entre las rectas y = 2x e y = x/3 mide…",
+      op: ["45°", "30°", "60°", "26,57°"], ok: 0,
+      porque: "tan θ = |(m₂ − m₁)/(1 + m₁m₂)| = |(1/3 − 2)/(1 + 2/3)| = (5/3)/(5/3) = 1, luego θ = 45°." },
+    { q: "Al resolver con t = tan(x/2) una ecuación a·sen x + b·cos x = c, ¿qué hay que comprobar aparte?",
+      op: ["x = 0°", "x = 90°", "x = 180°, porque tan(x/2) no existe", "x = 360°"], ok: 2,
+      porque: "Con x = 180°, x/2 = 90° y tan 90° no existe: el cambio no puede dar esa solución. Se comprueba a mano si x = 180° cumple la ecuación." }
+  );
+
+  ejercicios.push(
+    // ================= ★ básico =================
+    { id: "h37", nivel: 1,
+      enunciado: "Calcula cos 75° + cos 15° sin calculadora (da el valor decimal).",
+      check: { tipo: "num", etiqueta: "valor =", valor: 1.2247, tol: 0.002, ph: "decimal" },
+      pistas: ["cos A + cos B = 2·cos((A + B)/2)·cos((A − B)/2)."],
+      pasos: ["(75° + 15°)/2 = 45° y (75° − 15°)/2 = 30°.", "cos 75° + cos 15° = 2·cos 45°·cos 30° = 2·(√2/2)(√3/2) = √6/2 ≈ 1,2247."],
+      resultado: "√6/2 ≈ 1,2247" },
+    { id: "h38", nivel: 1,
+      enunciado: "Calcula el ángulo agudo entre las rectas y = x e y = x/3 + 1 (en grados).",
+      check: { tipo: "num", etiqueta: "θ =", valor: 26.565, unidad: "°" },
+      pistas: ["tan θ = |(m₂ − m₁)/(1 + m₁·m₂)|."],
+      pasos: ["m₁ = 1 y m₂ = 1/3.", "tan θ = (1 − 1/3)/(1 + 1/3) = (2/3)/(4/3) = 1/2.", "θ = arctan(1/2) = 26,565°."],
+      resultado: "≈ 26,57°" },
+    // ================= ★★ intermedio =================
+    { id: "h39", nivel: 2,
+      enunciado: "Resuelve 2sen²x = 3cos x en [0°, 360°). Escribe las dos soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [60, 300], unidad: "°" },
+      pistas: ["Sustituye sen²x = 1 − cos²x y usa t = cos x."],
+      pasos: ["2(1 − cos²x) = 3cos x → 2cos²x + 3cos x − 2 = 0.", "t = (−3 ± 5)/4 → t = 1/2 o t = −2 (descartada).", "cos x = 1/2 → x = 60° o 300°."],
+      resultado: "x = 60° y 300°" },
+    { id: "h40", nivel: 2,
+      enunciado: "Resuelve cos 2x + 5cos x + 3 = 0 en [0°, 360°). Escribe las dos soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [120, 240], unidad: "°" },
+      pistas: ["cos 2x = 2cos²x − 1."],
+      pasos: ["2cos²x − 1 + 5cos x + 3 = 0 → 2cos²x + 5cos x + 2 = 0.", "t = (−5 ± 3)/4 → t = −1/2 o t = −2 (descartada).", "cos x = −1/2 → x = 120° o 240°."],
+      resultado: "x = 120° y 240°" },
+    { id: "h41", nivel: 2,
+      enunciado: "Resuelve tan²x − (1 + √3)·tan x + √3 = 0 en [0°, 360°). Escribe las cuatro soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [45, 60, 225, 240], unidad: "°" },
+      pistas: ["Con t = tan x, busca dos números de suma 1 + √3 y producto √3."],
+      pasos: ["t = 1 y t = √3.", "tan x = 1 → 45° y 225°. tan x = √3 → 60° y 240°."],
+      resultado: "x = 45°, 60°, 225°, 240°" },
+    { id: "h42", nivel: 2,
+      enunciado: "Resuelve cos x + cos 3x = cos 2x en [0°, 360°). Escribe las seis soluciones.",
+      check: { tipo: "lista", etiqueta: "x =", valores: [45, 60, 135, 225, 300, 315], unidad: "°" },
+      pistas: ["cos x + cos 3x = 2·cos 2x·cos x. Pasa todo a un lado y saca factor común cos 2x."],
+      pasos: ["2·cos 2x·cos x − cos 2x = 0 → cos 2x·(2cos x − 1) = 0.", "cos 2x = 0 → 2x = 90°, 270°, 450°, 630° → x = 45°, 135°, 225°, 315°.", "cos x = 1/2 → x = 60°, 300°."],
+      resultado: "x = 45°, 60°, 135°, 225°, 300°, 315°" },
+    { id: "h43", nivel: 2,
+      enunciado: "Dos diapasones suenan a la vez con frecuencias de 440 Hz y 444 Hz. Calcula la frecuencia del batido (pulsaciones por segundo) y la frecuencia de la nota que se oye.",
+      check: [{ tipo: "num", etiqueta: "batido =", valor: 4, unidad: "pulsaciones/s" }, { tipo: "num", etiqueta: "nota que se oye =", valor: 442, unidad: "Hz" }],
+      pistas: ["sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t)."],
+      pasos: ["Batido: |f₁ − f₂| = |440 − 444| = 4 pulsaciones por segundo.", "Nota que se oye: la frecuencia media (440 + 444)/2 = 442 Hz."],
+      resultado: "4 pulsaciones/s · 442 Hz" },
+    // ================= ★★★ reto =================
+    { id: "h44", nivel: 3,
+      enunciado: "Resuelve el sistema sen x·cos y = 3/4, cos x·sen y = 1/4 con x e y entre 0° y 90°. Da x e y en grados.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 60, unidad: "°" }, { tipo: "num", etiqueta: "y =", valor: 30, unidad: "°" }],
+      pistas: ["Suma y resta las dos ecuaciones: aparecen sen(x + y) y sen(x − y)."],
+      pasos: ["Suma: sen(x + y) = 1 → x + y = 90°. Resta: sen(x − y) = 1/2 → x − y = 30°.", "x = 60° e y = 30°. Comprobación: sen 60°·cos 30° = 3/4 ✓."],
+      resultado: "x = 60°, y = 30°" },
+    { id: "h45", nivel: 3,
+      enunciado: "Resuelve x + y = 120°, sen x·sen y = 1/4 con x &gt; y, ambos entre 0° y 180°. Da x e y en grados.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 105, unidad: "°" }, { tipo: "num", etiqueta: "y =", valor: 15, unidad: "°" }],
+      pistas: ["sen x·sen y = ½[cos(x − y) − cos(x + y)]."],
+      pasos: ["½[cos(x − y) − cos 120°] = ½[cos(x − y) + 1/2] = 1/4 → cos(x − y) = 0.", "x − y = 90° (x &gt; y) y x + y = 120° → x = 105°, y = 15°."],
+      resultado: "x = 105°, y = 15°" },
+    { id: "h46", nivel: 3,
+      enunciado: "Resuelve 3sen x + 4cos x = 2 en [0°, 360°). Escribe las dos soluciones (en grados, con decimales).",
+      check: { tipo: "lista", etiqueta: "x =", valores: [103.29, 330.45], unidad: "°" },
+      pistas: ["R = 5 y φ = 53,13°: 3sen x + 4cos x = 5·sen(x + 53,13°)."],
+      pasos: ["sen(x + 53,13°) = 0,4 → x + 53,13° = 23,58° o 156,42°.", "x = −29,55° ≡ 330,45°, o x = 103,29°.", "Comprobación: 3·sen 103,29° + 4·cos 103,29° = 2 ✓."],
+      resultado: "x = 103,29° y 330,45°" },
+    { id: "h47", nivel: 3,
+      enunciado: "Demuestra que sen 3x/sen x − cos 3x/cos x = 2.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Reduce las fracciones a denominador común sen x·cos x", p: 0.5 },
+        { t: "Llega al numerador sen 3x·cos x − cos 3x·sen x", p: 0.5 },
+        { t: "Lo reconoce como sen(3x − x) = sen 2x", p: 0.5 },
+        { t: "Usa sen 2x = 2·sen x·cos x y simplifica hasta 2", p: 0.5 }
+      ] },
+      pasos: ["sen 3x/sen x − cos 3x/cos x = (sen 3x·cos x − cos 3x·sen x)/(sen x·cos x).", "El numerador es sen(3x − x) = sen 2x = 2·sen x·cos x.", "Queda 2·sen x·cos x/(sen x·cos x) = 2."],
+      resultado: "= 2 (con sen x·cos x ≠ 0)" },
+    { id: "h48", nivel: 3,
+      enunciado: "Sabiendo que s = sen 18° cumple sen 3θ = cos 2θ para θ = 18°, deduce la ecuación 4s² + 2s − 1 = 0 y calcula sen 18° y cos 36° (valores decimales).",
+      check: [{ tipo: "num", etiqueta: "sen 18° =", valor: 0.3090, tol: 0.002, ph: "decimal" }, { tipo: "num", etiqueta: "cos 36° =", valor: 0.8090, tol: 0.002, ph: "decimal" }],
+      pistas: ["sen 3θ = 3s − 4s³ y cos 2θ = 1 − 2s². Verás que s = 1 es una raíz.", "cos 36° = 1 − 2sen²18°."],
+      pasos: ["4s³ − 2s² − 3s + 1 = 0 = (s − 1)(4s² + 2s − 1). Como s ≠ 1: 4s² + 2s − 1 = 0.", "s = (−1 + √5)/4 ≈ 0,3090 (la raíz positiva).", "cos 36° = 1 − 2·0,3090² = 0,8090 = (1 + √5)/4."],
+      resultado: "sen 18° = (√5 − 1)/4 ≈ 0,3090 · cos 36° = (1 + √5)/4 ≈ 0,8090" }
+  );
+
+  lamina.push(
+    { titulo: "Ecuaciones de 2.º grado y a·sen x + b·cos x = c", ancha: true,
+      items: [
+        { label: "2.º grado en una razón", formula: "t = sen x, cos x o tan x  →  a·t² + b·t + c = 0", cuando: "Reduce a una razón y un ángulo (sen² = 1 − cos², cos 2x = 2cos² − 1).", ojo: "Descarta las raíces con |t| &gt; 1 (sen y cos). Con tan valen todas." },
+        { label: "Ángulo auxiliar", formula: "a·sen x + b·cos x = R·sen(x + φ),  R = √(a² + b²),  tan φ = b/a", cuando: "Sólo hay solución si |c| ≤ R.", ejemplo: "3sen x + 4cos x = 2 → x = 103,29° y 330,45°" },
+        { label: "Cambio t = tan(x/2)", formula: "sen x = 2t/(1 + t²)  ·  cos x = (1 − t²)/(1 + t²)", ojo: "Comprueba aparte x = 180°." }
+      ],
+      nota: "Elevar al cuadrado crea soluciones falsas: comprueba siempre en la ecuación original." },
+    { titulo: "Sistemas, pulsaciones y retos", ancha: true,
+      items: [
+        { label: "Sistemas", formula: "busca x + y y x − y: sumar y restar (sen(x ± y)), sumas a productos y dividir, productos a sumas", ejemplo: "sen x·cos y = 3/4, cos x·sen y = 1/4 → x = 60°, y = 30°" },
+        { label: "Pulsaciones", formula: "sen(2πf₁t) + sen(2πf₂t) = 2·cos(π(f₁ − f₂)t)·sen(π(f₁ + f₂)t)", cuando: "Batido = |f₁ − f₂|; nota = (f₁ + f₂)/2.", ejemplo: "440 Hz y 444 Hz → 4 pulsaciones/s" },
+        { label: "Ángulo entre rectas", formula: "tan θ = |(m₂ − m₁)/(1 + m₁·m₂)|", ejemplo: "pendientes 2 y 1/3 → 45°" },
+        { label: "Valor exacto de 18°", formula: "sen 18° = (√5 − 1)/4  ·  cos 36° = (1 + √5)/4" }
+      ],
+      nota: "Identidades difíciles: conjugado, diferencia de cuadrados, sumas a productos, denominador común o t = tan(x/2)." }
+  );
 
   B.registrar("mates1", "t5", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
