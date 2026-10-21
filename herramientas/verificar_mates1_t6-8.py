@@ -190,6 +190,139 @@ comprobar('t6 error e^{iπ/2} = i', q and 'i' in q['op'][q['ok']] and igual(exp(
 q = preg('t6', 'errores', 'Un alumno afirma que la simetría respecto del eje imaginario')
 comprobar('t6 error simetría eje imaginario −z̄', q and 'z ↦ −z̄' in q['op'][q['ok']] and igual(-sp.conjugate(3 + 2 * I), -3 + 2 * I))
 
+# =====================================================================
+# TEMA 7 · Vectores
+# =====================================================================
+E7 = ejercicios('t7')
+def dot(a, b): return a[0] * b[0] + a[1] * b[1]
+def det(a, b): return a[0] * b[1] - a[1] * b[0]
+def mod(a): return sp.sqrt(dot(a, a))
+def sub(p, q): return (p[0] - q[0], p[1] - q[1])
+def angd(a, b): return math.degrees(math.acos(float(dot(a, b) / (mod(a) * mod(b)))))
+def prox(v, d): k = Q(dot(v, d)) / dot(d, d); return (k * d[0], k * d[1])
+
+# --- 12. Bases ortonormales
+e1 = (Q(3, 5), Q(4, 5)); e2 = (Q(-4, 5), Q(3, 5))
+comprobar('t7 ortonormal (3/5,4/5),(−4/5,3/5)', mod(e1) == 1 and mod(e2) == 1 and dot(e1, e2) == 0)
+v = (7, 1); a, b = dot(v, e1), dot(v, e2)
+comprobar('t7 ejemplo v=(7,1) → (5,−5)', (a, b) == (5, -5) and (a * e1[0] + b * e2[0], a * e1[1] + b * e2[1]) == (7, 1) and a ** 2 + b ** 2 == 50 == dot(v, v))
+ph = sp.pi / 6; P = (4, 2)
+xp = P[0] * sp.cos(ph) + P[1] * sp.sin(ph); yp = -P[0] * sp.sin(ph) + P[1] * sp.cos(ph)
+comprobar('t7 rotación de ejes 30°', igual(xp, 2 * sqrt(3) + 1) and igual(yp, -2 + sqrt(3)) and abs(float(xp) - 4.464) < 1e-3 and abs(float(yp) + 0.268) < 1e-3 and abs(float(xp ** 2 + yp ** 2) - 20) < 1e-9)
+u, vv = (3, 4), (1, 3)
+f1 = (Q(3, 5), Q(4, 5)); pr = dot(vv, f1); w_ = (vv[0] - pr * f1[0], vv[1] - pr * f1[1])
+comprobar('t7 Gram–Schmidt (3,4),(1,3)', pr == 3 and w_ == (Q(-4, 5), Q(3, 5)) and mod(w_) == 1 and dot(w_, f1) == 0)
+th_ = sp.symbols('th', real=True)
+ea = (sp.cos(th_), sp.sin(th_)); eb = (-sp.sin(th_), sp.cos(th_))
+comprobar('t7 base girada es ortonormal', sp.simplify(dot(ea, ea) - 1) == 0 and sp.simplify(dot(eb, eb) - 1) == 0 and sp.simplify(dot(ea, eb)) == 0)
+
+# --- 13. Componentes y plano inclinado
+v = (8, 1); d = (3, 4); vp = prox(v, d); vperp = sub(v, vp)
+comprobar('t7 descomposición (8,1) sobre (3,4)', vp == (Q(84, 25), Q(112, 25)) and (float(vp[0]), float(vp[1])) == (3.36, 4.48) and abs(float(mod(vp)) - 5.6) < 1e-12 and vperp == (Q(116, 25), Q(-87, 25)) and (float(vperp[0]), float(vperp[1])) == (4.64, -3.48))
+comprobar('t7 descomposición: ortogonales, |v⊥| = |det|/|d| = 5,8 y Pitágoras', dot(vp, vperp) == 0 and Q(abs(det(d, v)), 5) == Q(29, 5) and mod(vperp) == Q(29, 5) and dot(vp, vp) + dot(vperp, vperp) == dot(v, v) == 65)
+al = sp.pi / 6
+Pp = 98 * sp.sin(al); Pn = 98 * sp.cos(al)
+comprobar('t7 plano inclinado 10 kg 30° μ=0,4', Pp == 49 and abs(float(Pn) - 84.87) < 5e-3 and abs(0.4 * float(Pn) - 33.95) < 5e-3 and 49 > 0.4 * float(Pn) and math.tan(math.pi / 6) > 0.4 and abs((49 - 0.4 * float(Pn)) / 10 - 1.505) < 1e-3 and abs(9.8 * (0.5 - 0.4 * math.cos(math.pi / 6)) - 1.505) < 1e-3)
+un = (sp.cos(th_), sp.sin(th_)); nn = (-sp.sin(th_), sp.cos(th_)); peso = (0, -sp.Symbol('P'))
+comprobar('t7 plano inclinado: componentes con vectores', sp.simplify(dot(peso, un) + sp.Symbol('P') * sp.sin(th_)) == 0 and sp.simplify(dot(peso, nn) + sp.Symbol('P') * sp.cos(th_)) == 0)
+comprobar('t7 ángulo crítico arctan 0,4 = 21,8° y tan 35° = 0,700', abs(math.degrees(math.atan(0.4)) - 21.8) < 0.05 and abs(math.tan(math.radians(35)) - 0.700) < 5e-4)
+comprobar('t7 subir el bloque F = P∥ + μN = 82,95', abs(49 + 0.4 * float(Pn) - 82.95) < 5e-3)
+
+# --- 14. Móviles
+def moviles(a0, va, b0, vb):
+    dr = sub(b0, a0); dv = sub(vb, va); dv2 = dot(dv, dv)
+    ts = -Q(dot(dr, dv)) / dv2; dm = abs(det(dr, dv)) / sp.sqrt(dv2)
+    return dr, dv, ts, dm
+dr, dv, ts, dm = moviles((0, 0), (6, 0), (10, 8), (0, -4))
+Ats = (6 * ts, 0); Bts = (10, 8 - 4 * ts)
+comprobar('t7 barcos Δr₀, Δv, t*, d mín', dr == (10, 8) and dv == (-6, -4) and dot(dr, dv) == -92 and dot(dv, dv) == 52 and ts == Q(23, 13) and abs(float(ts) - 1.77) < 5e-3 and abs(float(dm) - 1.11) < 5e-3 and abs(float(dm) - 8 / math.sqrt(52)) < 1e-12)
+comprobar('t7 barcos: comprobación con posiciones', abs(float(Ats[0]) - 10.62) < 5e-3 and abs(float(Bts[1]) - 0.92) < 5e-3 and abs(float(mod(sub(Ats, Bts))) - float(dm)) < 1e-12)
+comprobar('t7 barcos: t* minimiza |Δr(t)|', all(float(mod((dr[0] + dv[0] * t, dr[1] + dv[1] * t))) >= float(dm) - 1e-12 for t in [0, 0.5, 1, 1.5, 2, 2.5, 3, 5]))
+dr, dv, ts, dm = moviles((-4, 0), (2, 0), (2, 3), (-1, Q(-3, 2)))
+comprobar('t7 choque: det=0, t*=2, posiciones coinciden', det(dr, dv) == 0 and ts == 2 and dm == 0 and dr == (6, 3) and dv == (-3, Q(-3, 2)) and dv == (-Q(1, 2) * dr[0], -Q(1, 2) * dr[1]) and (-4 + 2 * 2, 0) == (2 - 1 * 2, 3 - Q(3, 2) * 2) and dot(dr, dv) == Q(-45, 2) and dot(dv, dv) == Q(45, 4))
+comprobar('t7 lluvia en el tren', sub((0, -10), (20, 0)) == (-20, -10) and abs(float(mod((-20, -10))) - 22.4) < 0.05 and abs(math.degrees(math.atan(10 / 20)) - 26.6) < 0.05)
+
+# --- 15. Centro de masas
+def cm(masas, pos): M = sum(masas); return (Q(sum(m * p[0] for m, p in zip(masas, pos))) / M, Q(sum(m * p[1] for m, p in zip(masas, pos))) / M)
+r_ = cm([2, 3, 5], [(0, 0), (5, 0), (2, 4)])
+comprobar('t7 CM de tres masas = (2,5; 2)', r_ == (Q(5, 2), 2) and (2 * (0 - r_[0]) + 3 * (5 - r_[0]) + 5 * (2 - r_[0]), 2 * (0 - r_[1]) + 3 * (0 - r_[1]) + 5 * (4 - r_[1])) == (0, 0))
+comprobar('t7 lámina L', cm([12, 8], [(3, 1), (1, 4)]) == (Q(11, 5), Q(11, 5)) and 6 * 2 == 12 and 2 * 4 == 8 and math.hypot(2.2 - 2, 2.2 - 2) < 0.29)
+comprobar('t7 palanca 30 kg / 20 kg en 5 m', 30 * 2 == 20 * (5 - 2) and cm([30, 20], [(0, 0), (5, 0)]) == (2, 0))
+mT, mL, dTL = 5.97e24, 7.35e22, 384400
+xcm = mL * dTL / (mT + mL)
+comprobar('t7 Tierra–Luna: 4 675 km < radio terrestre 6 371 km', abs(xcm - 4675) < 1 and xcm < 6371 and abs(mL / (mT + mL) - 0.01216) < 5e-6)
+comprobar('t7 CM de masas iguales = baricentro', cm([1, 1], [(0, 0), (4, 6)]) == (2, 3) and cm([1, 1, 1], [(0, 0), (3, 0), (0, 6)]) == (1, 2))
+
+# --- 16. Desigualdades y triángulos
+u1, u2, v1, v2 = sp.symbols('u1 u2 v1 v2', real=True)
+comprobar('t7 identidad de Lagrange', sp.expand((u1 ** 2 + u2 ** 2) * (v1 ** 2 + v2 ** 2) - ((u1 * v1 + u2 * v2) ** 2 + (u1 * v2 - u2 * v1) ** 2)) == 0)
+comprobar('t7 Lagrange: |u|=5, |v|=4, u·v=12 → área 16', math.sqrt(25 * 16 - 144) == 16 and abs(5 * 4 * math.sqrt(1 - 0.6 ** 2) - 16) < 1e-12)
+comprobar('t7 teorema del coseno: lados 7, 9 y 40°', abs(math.sqrt(130 - 126 * math.cos(math.radians(40))) - 5.79) < 5e-3 and abs(130 - 126 * math.cos(math.radians(40)) - 33.48) < 5e-3)
+A_, B_, C_ = (0, 0), (4, 1), (1, 3)
+prods = (dot(sub(B_, A_), sub(C_, A_)), dot(sub(A_, B_), sub(C_, B_)), dot(sub(A_, C_), sub(B_, C_)))
+angs = (angd(sub(B_, A_), sub(C_, A_)), angd(sub(A_, B_), sub(C_, B_)), angd(sub(A_, C_), sub(B_, C_)))
+comprobar('t7 triángulo acutángulo (productos 7, 10, 3) y ángulos', prods == (7, 10, 3) and all(abs(x - y) < 5e-3 for x, y in zip(angs, (57.53, 47.73, 74.74))) and abs(sum(angs) - 180) < 1e-9)
+comprobar('t7 triángulo con C = (−1, 2) obtuso en A', dot((4, 1), (-1, 2)) == -2)
+comprobar('t7 desigualdad triangular y Cauchy–Schwarz (muestras)', all(abs(dot(p, q)) <= float(mod(p) * mod(q)) + 1e-12 and float(mod((p[0] + q[0], p[1] + q[1]))) <= float(mod(p) + mod(q)) + 1e-12 for p, q in [((1, 2), (3, -1)), ((-2, 5), (4, 4)), ((3, 3), (6, 6))]))
+
+# --- 17. Problemas de examen
+A, B, C = (1, 2), (5, 0), (3, 6); AB, AC = sub(B, A), sub(C, A)
+comprobar('t7 P1 (a) rectángulo isósceles', AB == (4, -2) and AC == (2, 4) and dot(AB, AC) == 0 and dot(AB, AB) == dot(AC, AC) == 20)
+BC = sub(C, B)
+comprobar('t7 P1 (b) área 10 y altura √10', abs(det(AB, AC)) / 2 == 10 and sp.simplify(20 / mod(BC) - sp.sqrt(10)) == 0 and abs(20 / float(mod(BC)) - 3.16) < 5e-3)
+D_ = (B[0] + C[0] - A[0], B[1] + C[1] - A[1]); M_ = (Q(B[0] + C[0], 2), Q(B[1] + C[1], 2))
+comprobar('t7 P1 (c) D=(7,4), circuncentro (4,3), R=√10', D_ == (7, 4) and sub(D_, B) == AC and M_ == (4, 3) and sp.simplify(mod(BC) / 2 - sp.sqrt(10)) == 0 and all(sp.simplify(mod(sub(M_, p)) - sp.sqrt(10)) == 0 for p in (A, B, C)))
+k = sp.symbols('k', real=True)
+comprobar('t7 P2 (a)(b)', sp.solve(det((k, 3), (2, -1)), k) == [-6] and sp.solve(dot((k, 3), (2, -1)), k) == [Q(3, 2)])
+sol45 = sp.solve(sp.Eq(2 * (2 * k - 3) ** 2, 5 * (k ** 2 + 9)), k)
+comprobar('t7 P2 (c) k=9 (k=−1 da 135°)', sorted(sol45) == [-1, 9] and abs(angd((9, 3), (2, -1)) - 45) < 1e-9 and abs(angd((-1, 3), (2, -1)) - 135) < 1e-9 and dot((-1, 3), (2, -1)) == -5)
+Wt = 100 * 5 * math.cos(math.radians(30)); Nn = 20 * 9.8 - 100 * math.sin(math.radians(30)); Wr = -0.2 * Nn * 5
+comprobar('t7 P3 baúl', abs(Wt - 433.0) < 0.05 and abs(Nn - 146) < 1e-9 and abs(0.2 * Nn - 29.2) < 1e-9 and abs(Wr + 146) < 1e-9 and abs(Wt + Wr - 287.0) < 0.05)
+dr, dv, ts, dm = moviles((0, 0), (3, 4), (30, 0), (-3, 4))
+comprobar('t7 P4 choque en t=5 en (15,20)', det(dr, dv) == 0 and ts == 5 and dm == 0 and (3 * 5, 4 * 5) == (15, 20) == (30 - 3 * 5, 4 * 5))
+dr, dv, ts, dm = moviles((0, 0), (3, 4), (30, 3), (-3, 4))
+comprobar('t7 P4 B desde (30,3): t*=5, d mín = 3', ts == 5 and dm == 3)
+Aq, Bq, Cq, Dq = (0, 0), (6, 0), (8, 4), (2, 6)
+mp = lambda p, q: ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)
+M1, N1, P1, Q1 = mp(Aq, Bq), mp(Bq, Cq), mp(Cq, Dq), mp(Dq, Aq)
+sh = lambda pts: abs(sum(pts[i][0] * pts[(i + 1) % len(pts)][1] - pts[(i + 1) % len(pts)][0] * pts[i][1] for i in range(len(pts)))) / 2
+comprobar('t7 P5 Varignon (numérico)', (M1, N1, P1, Q1) == ((3, 0), (7, 2), (5, 5), (1, 3)) and sub(N1, M1) == sub(P1, Q1) == (4, 2) and sh([M1, N1, P1, Q1]) == 16 and sh([Aq, Bq, Cq, Dq]) == 32)
+Ax, Ay, Bx, By, Cx, Cy, Dx, Dy = sp.symbols('Ax Ay Bx By Cx Cy Dx Dy', real=True)
+comprobar('t7 P5 Varignon (simbólico)', sp.simplify((Cx - Ax) / 2 - ((Cx + Dx) / 2 - (Dx + Ax) / 2)) == 0 and sp.simplify(((Bx + Cx) / 2 - (Ax + Bx) / 2) - (Cx - Ax) / 2) == 0)
+
+# --- Ejercicios nuevos v37–v49
+comprobar('t7 v37', nums(E7, 'v37') == [10, 5] and (dot((2, 11), (Q(6, 10), Q(8, 10))), dot((2, 11), (Q(-8, 10), Q(6, 10)))) == (10, 5))
+comprobar('t7 v38', nums(E7, 'v38') == [24.5] and abs(5 * 9.8 * 0.5 - 24.5) < 1e-12)
+comprobar('t7 v39', cm([3, 5], [(0, 1), (8, 5)]) == (5, Q(7, 2)) and nums(E7, 'v39') == [5, 3.5])
+v_, d_ = (7, 2), (4, 3)
+comprobar('t7 v40', cerca(abs(dot(v_, d_)) / 5, nums(E7, 'v40')[0]) and cerca(abs(det(d_, v_)) / 5, nums(E7, 'v40')[1]) and nums(E7, 'v40') == [6.8, 2.6] and abs(6.8 ** 2 + 2.6 ** 2 - 53) < 1e-9 and dot(v_, v_) == 53)
+comprobar('t7 v41', cerca(math.tan(math.radians(25)), nums(E7, 'v41')[0], 2e-3))
+dr, dv, ts, dm = moviles((0, 0), (4, 2), (12, 0), (-2, 4))
+comprobar('t7 v42', dr == (12, 0) and dv == (-6, 2) and ts == Q(9, 5) and cerca(float(ts), nums(E7, 'v42')[0]) and cerca(float(dm), nums(E7, 'v42')[1], 2e-3) and abs(float(dm) - 24 / math.sqrt(40)) < 1e-12)
+cmL = cm([12, 12], [(3, 1), (Q(3, 2), 4)])
+comprobar('t7 v43', cmL == (Q(9, 4), Q(5, 2)) and [float(c_) for c_ in cmL] == nums(E7, 'v43'))
+At, Bt, Ct = (0, 0), (6, 0), (4, 1)
+pr3 = (dot(sub(Bt, At), sub(Ct, At)), dot(sub(At, Bt), sub(Ct, Bt)), dot(sub(At, Ct), sub(Bt, Ct)))
+comprobar('t7 v44', pr3[2] == -7 and pr3[0] > 0 and pr3[1] > 0 and opt(E7, 'v44', 0).startswith('obtusángulo') and cerca(angd(sub(At, Ct), sub(Bt, Ct)), check(E7, 'v44', 1)['valor'], 2e-3) and abs(angd(sub(At, Ct), sub(Bt, Ct)) - 139.4) < 0.05)
+ee1 = (2 / sp.sqrt(5), 1 / sp.sqrt(5)); p5 = dot((1, 3), ee1); ww = (1 - p5 * ee1[0], 3 - p5 * ee1[1]); ee2 = (ww[0] / mod(ww), ww[1] / mod(ww))
+comprobar('t7 v45', sp.simplify(ww[0] + 1) == 0 and sp.simplify(ww[1] - 2) == 0 and cerca(ee2[0], nums(E7, 'v45')[0], 2e-3) and cerca(ee2[1], nums(E7, 'v45')[1], 2e-3) and abs(float(dot(ee2, ee1))) < 1e-12)
+a_ = sp.symbols('a')
+dr_ = (10, a_); dv_ = (-8, -4); sa = sp.solve(det(dr_, dv_), a_)
+comprobar('t7 v46', sa == [5] and nums(E7, 'v46') == [5, 1.25] and (6 * 1.25, 0) == (10 - 2 * 1.25, 5 - 4 * 1.25) and dv_ == sub((-2, -4), (6, 0)))
+comprobar('t7 v47', sorted(sol45) == [-1, 9] and nums(E7, 'v47') == [9, 135] and abs(angd((-1, 3), (2, -1)) - 135) < 1e-9)
+comprobar('t7 v48 y v49 (rúbricas)', check(E7, 'v48')['tipo'] == 'rubrica' and check(E7, 'v49')['tipo'] == 'rubrica' and sp.simplify(((Bx + Cx) / 2 - (Ax + Bx) / 2) - ((Cx + Dx) / 2 - (Dx + Ax) / 2)) == 0)
+pasos_y_resultado(E7, [f'v{k_}' for k_ in range(37, 50)], 't7')
+# test y errores nuevos
+q = preg('t7', 'quiz1', 'El centro de masas de 2 kg en x = 0 y 6 kg')
+comprobar('t7 test CM', q and q['op'][q['ok']] == '6' and cm([2, 6], [(0, 0), (8, 0)]) == (6, 0))
+q = preg('t7', 'quiz1', 'Si |u| = 3, |v| = 4 y u·v = 6')
+comprobar('t7 test área 6√3', q and q['op'][q['ok']].startswith('6√3') and abs(math.sqrt(144 - 36) - 6 * math.sqrt(3)) < 1e-12 and abs(6 * math.sqrt(3) - 10.39) < 5e-3)
+q = preg('t7', 'quiz1', 'Un bloque está sobre un plano inclinado 30°')
+comprobar('t7 test P∥', q and q['op'][q['ok']].startswith('P·sen 30°') and abs(math.sin(math.radians(30)) - 0.5) < 1e-12)
+q = preg('t7', 'errores', 'Un alumno calcula la proyección de v = (2, 3)')
+vp2 = prox((2, 3), (4, 1))
+comprobar('t7 error proyección', q is not None and (float(vp2[0]), float(vp2[1])) == (44 / 17, 11 / 17) and abs(44 / 17 - 2.59) < 5e-3 and abs(11 / 17 - 0.65) < 5e-3 and abs(11 / math.sqrt(17) - 2.67) < 5e-3 and abs(math.sqrt(13) - 3.61) < 5e-3)
+
 # ==== FIN DE LOS TEMAS ====
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f in fallos: print('  FALLO:', f)

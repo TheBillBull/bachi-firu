@@ -225,11 +225,11 @@
         w("emparejar", "formulas")
     },
     {
-      h: "12. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      h: "18. ¿Qué falla aquí? Los errores que más puntos cuestan",
       html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
     },
     {
-      h: "13. Autocomprobación del tema",
+      h: "19. Autocomprobación del tema",
       html: "<p>Diez preguntas de test con explicación y tarjetas con las fórmulas del tema.</p>" + w("quiz", "quiz1") + w("tarjetas", "tj1")
     }
   ];
@@ -621,6 +621,347 @@
         { mal: "Paralelos si 2 < 4 y 3 < 5", bien: "Paralelos si son proporcionales", por: "2/4 ≠ 3/5." }
       ] }
   ];
+
+
+  // =====================================================================
+  // REFUERZO del tema 7: bases ortonormales, componentes y plano inclinado, móviles,
+  //                      centro de masas, desigualdades y problemas de examen
+  // =====================================================================
+  resumen.push(
+    "En una <b>base ortonormal</b> las coordenadas de v son v·e₁ y v·e₂. La <b>proyección</b> de v sobre d es (v·d/|d|²)·d y la componente perpendicular, v − proyección, tiene módulo |det(d, v)|/|d|.",
+    "<b>Centro de masas</b>: r = Σmᵢrᵢ/Σmᵢ. Dos móviles se acercan al mínimo cuando Δr ⊥ Δv: t* = −Δr₀·Δv/|Δv|². Siempre |u·v| ≤ |u||v| y |u|²|v|² = (u·v)² + det(u, v)²."
+  );
+
+  var nuevas7 = [
+    {
+      h: "12. Bases ortonormales y cambio de ejes",
+      html:
+        "<p>Para escribir un vector en una base cualquiera {u, v} hay que resolver un sistema de dos ecuaciones. Pero si la base es <b>ortonormal</b> (los dos vectores miden 1 y son perpendiculares: |e₁| = |e₂| = 1 y e₁·e₂ = 0), no hace falta resolver nada: las coordenadas se leen con el producto escalar.</p>" +
+        H.formula("v = a·e₁ + b·e₂   con   a = v·e₁   y   b = v·e₂") +
+        "<p>Por qué: si v = a·e₁ + b·e₂, multiplicando escalarmente por e₁ queda v·e₁ = a(e₁·e₁) + b(e₁·e₂) = a·1 + b·0 = a. Igual con e₂. Además, como la base es ortonormal, <b>|v|² = a² + b²</b> (Pitágoras): las coordenadas cambian al girar los ejes, pero la longitud no. Gira los ejes y arrastra v:</p>" +
+        w("ejesgirados") +
+        "<h5>Girar los ejes un ángulo φ</h5>" +
+        "<p>Si los ejes se giran un ángulo φ en sentido antihorario, la nueva base ortonormal es e₁ = (cos φ, sen φ) y e₂ = (−sen φ, cos φ) (el segundo es el primero girado 90°). Las nuevas coordenadas de un punto (x, y) son:</p>" +
+        H.formula("x' = x·cos φ + y·sen φ          y' = −x·sen φ + y·cos φ") +
+        ejemplo("Coordenadas en una base ortonormal", "Comprueba que e₁ = (3/5, 4/5) y e₂ = (−4/5, 3/5) forman una base ortonormal y halla las coordenadas de v = (7, 1).", [
+          "|e₁| = √(9/25 + 16/25) = 1, |e₂| = √(16/25 + 9/25) = 1 y e₁·e₂ = −12/25 + 12/25 = 0. Es ortonormal.",
+          "a = v·e₁ = 7·3/5 + 1·4/5 = 25/5 = 5 y b = v·e₂ = −28/5 + 3/5 = −5.",
+          "<b>v = 5e₁ − 5e₂</b>. Comprobación: 5(3/5, 4/5) − 5(−4/5, 3/5) = (3 + 4, 4 − 3) = (7, 1) ✓ y |v|² = 49 + 1 = 50 = 5² + (−5)² ✓."
+        ]) +
+        ejemplo("Nuevas coordenadas al girar los ejes", "Los ejes se giran 30°. ¿Qué coordenadas tiene P = (4, 2) en los ejes nuevos?", [
+          "cos 30° = √3/2 y sen 30° = 1/2.",
+          "x' = 4·(√3/2) + 2·(1/2) = 2√3 + 1 ≈ <b>4,464</b>.",
+          "y' = −4·(1/2) + 2·(√3/2) = −2 + √3 ≈ <b>−0,268</b>. Comprobación: x'² + y'² = 19,93 + 0,07 = 20 = 4² + 2² ✓."
+        ]) +
+        "<h5>Fabricar una base ortonormal (ortogonalización)</h5>" +
+        "<p>Dados dos vectores no paralelos u y v, se puede construir una base ortonormal con ellos: (1) e₁ = u/|u|; (2) se quita a v su componente en la dirección de e₁, w = v − (v·e₁)e₁, que ya es perpendicular a e₁; (3) e₂ = w/|w|. Es el método de Gram–Schmidt.</p>" +
+        ejemplo("Gram–Schmidt con dos vectores", "Con u = (3, 4) y v = (1, 3), construye una base ortonormal {e₁, e₂}.", [
+          "e₁ = u/|u| = (3, 4)/5 = (3/5, 4/5).",
+          "v·e₁ = 3/5 + 12/5 = 3, y (v·e₁)e₁ = 3(3/5, 4/5) = (9/5, 12/5). Entonces w = v − (9/5, 12/5) = (−4/5, 3/5).",
+          "|w| = √(16/25 + 9/25) = 1, así que <b>e₂ = (−4/5, 3/5)</b>. Comprobación: e₁·e₂ = −12/25 + 12/25 = 0 ✓."
+        ])
+    },
+    {
+      h: "13. Componentes de un vector: paralela, perpendicular y el plano inclinado",
+      html:
+        "<p>Muchas veces interesa descomponer un vector v en dos trozos respecto de una dirección d: uno <b>paralelo</b> a d y otro <b>perpendicular</b>. Es la proyección ortogonal que ya conoces, con su «resto»:</p>" +
+        H.formula("v<sub>∥</sub> = (v·d / |d|²)·d          v<sub>⊥</sub> = v − v<sub>∥</sub>          |v<sub>∥</sub>| = |v·d|/|d|          |v<sub>⊥</sub>| = |det(d, v)|/|d|") +
+        "<p>Se cumple v = v<sub>∥</sub> + v<sub>⊥</sub>, v<sub>∥</sub>·v<sub>⊥</sub> = 0 y |v|² = |v<sub>∥</sub>|² + |v<sub>⊥</sub>|². La fórmula de |v<sub>⊥</sub>| es la de la <b>distancia del extremo de v a la recta de dirección d</b> (altura del paralelogramo de lados d y v).</p>" +
+        ejemplo("Descomponer un vector", "Descompón v = (8, 1) en una componente paralela y otra perpendicular a d = (3, 4).", [
+          "v·d = 24 + 4 = 28 y |d|² = 25. Componente paralela: v<sub>∥</sub> = (28/25)(3, 4) = <b>(3,36; 4,48)</b>, de módulo 28/5 = 5,6.",
+          "Componente perpendicular: v<sub>⊥</sub> = (8, 1) − (3,36; 4,48) = <b>(4,64; −3,48)</b>.",
+          "Comprobaciones: v<sub>∥</sub>·v<sub>⊥</sub> = 15,59 − 15,59 = 0 ✓; |v<sub>⊥</sub>| = |det(d, v)|/|d| = |3·1 − 4·8|/5 = 29/5 = 5,8 ✓ y 5,6² + 5,8² = 31,36 + 33,64 = 65 = 8² + 1² ✓."
+        ]) +
+        "<h5>El plano inclinado</h5>" +
+        "<p>Un bloque de masa m sobre un plano inclinado un ángulo α sufre su peso P = m·g, vertical y hacia abajo. Respecto del plano interesa descomponerlo en <b>P<sub>∥</sub> = P·sen α</b> (paralela al plano, tira hacia abajo) y <b>P<sub>⊥</sub> = P·cos α</b> (perpendicular, aprieta el bloque contra el plano). Con vectores: la dirección del plano (hacia arriba) es u = (cos α, sen α) y la normal n = (−sen α, cos α); el peso (0, −P) da (0, −P)·u = −P·sen α y (0, −P)·n = −P·cos α. La normal N equilibra P<sub>⊥</sub>: N = P·cos α. El rozamiento máximo es μ·N y el bloque desliza si P·sen α &gt; μ·P·cos α, es decir, si <b>tan α &gt; μ</b>. Cambia el ángulo, la masa y el rozamiento:</p>" +
+        w("descomposicion") +
+        ejemplo("¿Desliza? ¿Con qué aceleración?", "Un bloque de 10 kg está sobre un plano inclinado 30° con μ = 0,4. Calcula P<sub>∥</sub>, N, el rozamiento máximo y la aceleración (g = 9,8 m/s²).", [
+          "P = 10·9,8 = 98 N. P<sub>∥</sub> = 98·sen 30° = <b>49 N</b> y N = P<sub>⊥</sub> = 98·cos 30° = <b>84,87 N</b>.",
+          "Rozamiento máximo: μN = 0,4·84,87 = 33,95 N. Como 49 &gt; 33,95 (también tan 30° = 0,577 &gt; 0,4), <b>el bloque desliza</b>.",
+          "Fuerza neta hacia abajo: 49 − 33,95 = 15,05 N → a = 15,05/10 = <b>1,505 m/s²</b>. (Directamente: a = g(sen α − μ·cos α).)"
+        ]) +
+        ejemplo("Ángulo crítico", "¿Hasta qué inclinación se queda quieto un bloque con μ = 0,4? ¿Y qué μ hace falta para que no deslice en un plano de 35°?", [
+          "En el límite P<sub>∥</sub> = μN → tan α = μ → α = arctan 0,4 = <b>21,8°</b>. Por encima de ese ángulo el bloque desliza.",
+          "Para 35° hace falta μ ≥ tan 35° = <b>0,700</b>."
+        ]) +
+        ejemplo("Subir el bloque a velocidad constante", "Con los mismos datos (10 kg, 30°, μ = 0,4), ¿qué fuerza F paralela al plano hay que hacer para subirlo a velocidad constante?", [
+          "A velocidad constante la fuerza neta es 0. Subiendo, el rozamiento apunta hacia abajo, igual que P<sub>∥</sub>: F = P<sub>∥</sub> + μN.",
+          "F = 49 + 33,95 = <b>82,95 N</b> (casi el doble de lo que hace falta para sostenerlo sin rozamiento)."
+        ])
+    },
+    {
+      h: "14. Dos móviles: velocidad relativa y distancia mínima",
+      html:
+        "<p>Un móvil con velocidad constante v que parte de la posición r₀ está en r(t) = r₀ + v·t. Con dos móviles, A y B, lo que importa es la <b>posición relativa</b> y la <b>velocidad relativa</b>:</p>" +
+        H.formula("Δr(t) = r<sub>B</sub> − r<sub>A</sub> = Δr₀ + Δv·t          Δr₀ = r₀<sub>B</sub> − r₀<sub>A</sub>,   Δv = v<sub>B</sub> − v<sub>A</sub>") +
+        "<p>La distancia es d(t) = |Δr(t)|. Su cuadrado, d² = |Δr₀|² + 2(Δr₀·Δv)·t + |Δv|²·t², es una parábola en t cuyo mínimo está en el vértice. Equivale a decir que la distancia es mínima cuando <b>Δr(t) ⊥ Δv</b> (producto escalar nulo):</p>" +
+        H.formula("t* = − Δr₀·Δv / |Δv|²          d<sub>mín</sub> = |det(Δr₀, Δv)| / |Δv|") +
+        "<p>(Es la componente perpendicular de Δr₀ respecto de Δv, la misma fórmula del apartado anterior.) Si t* &lt; 0, el mínimo ya ocurrió: desde t = 0 los móviles solo se alejan. Hay <b>choque</b> si d<sub>mín</sub> = 0, es decir, si Δr₀ y Δv son paralelos y de sentidos contrarios. Que las trayectorias se corten no basta: tienen que estar en el cruce <i>a la vez</i>. Arrastra las posiciones y las flechas de velocidad:</p>" +
+        w("moviles") +
+        ejemplo("Dos barcos que se cruzan", "Un barco A sale del origen a (6, 0) km/h y otro B sale de (10, 8) km con velocidad (0, −4) km/h. ¿Cuándo están más cerca y cuánto?", [
+          "Δr₀ = (10, 8) y Δv = (0, −4) − (6, 0) = (−6, −4). Δr₀·Δv = −60 − 32 = −92 y |Δv|² = 36 + 16 = 52.",
+          "t* = 92/52 = 23/13 ≈ <b>1,77 h</b> (1 h 46 min).",
+          "d<sub>mín</sub> = |det(Δr₀, Δv)|/|Δv| = |10·(−4) − 8·(−6)|/√52 = 8/7,211 = <b>1,11 km</b>.",
+          "Comprobación con las posiciones: A(t*) = (10,62; 0) y B(t*) = (10; 0,92); distancia = √(0,62² + 0,92²) = 1,11 km ✓."
+        ]) +
+        ejemplo("¿Chocan?", "A parte de (−4, 0) km con (2, 0) km/h y B de (2, 3) km con (−1, −1,5) km/h. ¿Chocan?", [
+          "Δr₀ = (6, 3) y Δv = (−3, −1,5). det(Δr₀, Δv) = 6·(−1,5) − 3·(−3) = −9 + 9 = 0: son paralelos.",
+          "t* = −(6·(−3) + 3·(−1,5))/(9 + 2,25) = 22,5/11,25 = <b>2 h</b> &gt; 0 y Δv = −0,5·Δr₀ tiene sentido contrario, así que <b>sí chocan</b>, en t = 2 h.",
+          "Comprobación: A(2) = (−4 + 4, 0) = (0, 0) y B(2) = (2 − 2, 3 − 3) = (0, 0) ✓."
+        ]) +
+        ejemplo("La lluvia vista desde un tren", "Llueve verticalmente a 10 m/s y un tren avanza a 20 m/s hacia el este. ¿Con qué velocidad ve caer la lluvia un viajero?", [
+          "La velocidad relativa es la de la lluvia menos la del observador: (0, −10) − (20, 0) = (−20, −10).",
+          "Módulo √(400 + 100) = <b>22,4 m/s</b>. Dirección: tan θ = 10/20 → θ = <b>26,6°</b> por debajo de la horizontal (la lluvia parece venir de delante). Por eso las gotas resbalan inclinadas por la ventanilla."
+        ]),
+    },
+    {
+      h: "15. Centro de masas: la media ponderada de posiciones",
+      html:
+        "<p>El baricentro es el punto de equilibrio de tres masas <i>iguales</i>. Con masas distintas se pondera cada posición por su masa: el <b>centro de masas</b> de masas m₁, m₂, … en las posiciones r₁, r₂, … es</p>" +
+        H.formula("r<sub>cm</sub> = (m₁·r₁ + m₂·r₂ + …) / (m₁ + m₂ + …)") +
+        "<p>Es el punto donde se puede apoyar el sistema sin que gire: se cumple Σ mᵢ·(rᵢ − r<sub>cm</sub>) = 0. Con dos masas, el centro de masas está en el segmento que las une, más cerca de la mayor, a distancias inversamente proporcionales a las masas (ley de la palanca: m₁·d₁ = m₂·d₂). Con masas iguales sale el baricentro. Para una lámina compuesta de piezas homogéneas se pondera por las <b>áreas</b> (o los volúmenes) de cada pieza, tomando el centro de cada pieza.</p>" +
+        ejemplo("Tres masas", "Calcula el centro de masas de 2 kg en (0, 0), 3 kg en (5, 0) y 5 kg en (2, 4).", [
+          "Masa total: 2 + 3 + 5 = 10 kg.",
+          "x = (2·0 + 3·5 + 5·2)/10 = 25/10 = 2,5 e y = (2·0 + 3·0 + 5·4)/10 = 20/10 = 2.",
+          "<b>r<sub>cm</sub> = (2,5; 2)</b>. Comprobación: Σ mᵢ(rᵢ − r<sub>cm</sub>) = 2(−2,5; −2) + 3(2,5; −2) + 5(−0,5; 2) = (−5 + 7,5 − 2,5; −4 − 6 + 10) = (0, 0) ✓."
+        ]) +
+        ejemplo("Una lámina en forma de L", "Una lámina homogénea en L está formada por un rectángulo de 6 × 2 (de x = 0 a 6 y de y = 0 a 2) y otro de 2 × 4 encima, en el extremo izquierdo (de x = 0 a 2 y de y = 2 a 6). ¿Dónde está su centro de masas?", [
+          "Rectángulo 1: área 12 y centro (3, 1). Rectángulo 2: área 8 y centro (1, 4). Área total: 20.",
+          "x = (12·3 + 8·1)/20 = 44/20 = 2,2 e y = (12·1 + 8·4)/20 = 44/20 = 2,2.",
+          "<b>r<sub>cm</sub> = (2,2; 2,2)</b>. Cae en el hueco del recodo, a 0,28 del vértice interior (2, 2), <i>fuera</i> de la lámina: el centro de masas no tiene por qué estar dentro del cuerpo."
+        ]) +
+        ejemplo("Una palanca en equilibrio", "Dos niños de 30 kg y 20 kg se sientan en los extremos de un tablón ligero de 5 m. ¿Dónde hay que poner el punto de apoyo?", [
+          "El apoyo debe estar en el centro de masas. Si d₁ es la distancia al niño de 30 kg: 30·d₁ = 20·(5 − d₁) → 50·d₁ = 100 → d₁ = <b>2 m</b> (a 3 m del otro).",
+          "Con coordenadas (niño de 30 kg en x = 0, otro en x = 5): x<sub>cm</sub> = (30·0 + 20·5)/50 = 2 m ✓."
+        ]) +
+        ejemplo("La Tierra y la Luna", "La Tierra (5,97·10²⁴ kg) y la Luna (7,35·10²² kg) distan 384 400 km. ¿A qué distancia del centro de la Tierra está el centro de masas del sistema?", [
+          "Con la Tierra en el origen: x<sub>cm</sub> = m<sub>L</sub>·d/(m<sub>T</sub> + m<sub>L</sub>) = 7,35·10²²·384 400/(5,97·10²⁴ + 7,35·10²²).",
+          "m<sub>L</sub>/(m<sub>T</sub> + m<sub>L</sub>) = 0,01216 → x<sub>cm</sub> ≈ <b>4 675 km</b> del centro de la Tierra. Como el radio terrestre es 6 371 km, el centro de masas del sistema Tierra–Luna ¡está dentro de la Tierra! Los dos cuerpos giran alrededor de ese punto."
+        ])
+    },
+    {
+      h: "16. Desigualdades y tipos de triángulo con el producto escalar",
+      html:
+        "<p>Como |cos α| ≤ 1, se cumple siempre la <b>desigualdad de Cauchy–Schwarz</b>: |u·v| ≤ |u|·|v|, con igualdad solo si u y v son paralelos. En el plano hay una versión exacta, la <b>identidad de Lagrange</b>:</p>" +
+        H.formula("|u|²·|v|² = (u·v)² + det(u, v)²") +
+        "<p>(Desarrollando los dos lados con u = (u₁, u₂) y v = (v₁, v₂) coinciden. Es otra forma de decir sen²α + cos²α = 1.) De ella se deduce la desigualdad y, además, permite pasar del producto escalar al área del paralelogramo, |det(u, v)|, sin calcular ángulos.</p>" +
+        ejemplo("Del producto escalar al área", "Dos vectores miden |u| = 5 y |v| = 4 y cumplen u·v = 12. ¿Qué área tiene el paralelogramo que forman?", [
+          "|det(u, v)|² = |u|²·|v|² − (u·v)² = 400 − 144 = 256.",
+          "Área = |det(u, v)| = <b>16</b>. (Comprobación geométrica: cos α = 12/20 = 0,6 → sen α = 0,8 → área = 5·4·0,8 = 16 ✓.)"
+        ]) +
+        "<h5>La desigualdad triangular</h5>" +
+        "<p>«Un lado de un triángulo es menor que la suma de los otros dos» se escribe |u + v| ≤ |u| + |v|. Prueba: |u + v|² = |u|² + 2u·v + |v|² ≤ |u|² + 2|u||v| + |v|² = (|u| + |v|)², por Cauchy–Schwarz. Igualdad cuando u y v tienen el mismo sentido (triángulo «aplastado»).</p>" +
+        "<h5>Teorema del coseno</h5>" +
+        "<p>Si u y v salen del mismo vértice y forman un ángulo γ, el tercer lado es u − v y |u − v|² = |u|² + |v|² − 2u·v, es decir, <b>c² = a² + b² − 2ab·cos γ</b>. Con γ = 90° se recupera Pitágoras.</p>" +
+        ejemplo("Un lado con el teorema del coseno", "Dos lados de un triángulo miden 7 y 9 y forman un ángulo de 40°. ¿Cuánto mide el tercero?", [
+          "c² = 7² + 9² − 2·7·9·cos 40° = 130 − 126·0,7660 = 130 − 96,52 = 33,48.",
+          "c = √33,48 = <b>5,79</b>."
+        ]) +
+        "<h5>Clasificar un triángulo sin calcular ángulos</h5>" +
+        "<p>En cada vértice, el signo del producto escalar de los dos lados que salen de él dice si el ángulo es agudo (&gt; 0), recto (= 0) u obtuso (&lt; 0). Un triángulo es <b>acutángulo</b> si los tres productos son positivos, <b>rectángulo</b> si uno es 0 y <b>obtusángulo</b> si uno es negativo (nunca puede haber más de uno).</p>" +
+        ejemplo("Acutángulo, rectángulo u obtusángulo", "Clasifica el triángulo A = (0, 0), B = (4, 1), C = (1, 3) y calcula sus ángulos.", [
+          "En A: AB·AC = (4, 1)·(1, 3) = 7. En B: BA·BC = (−4, −1)·(−3, 2) = 12 − 2 = 10. En C: CA·CB = (−1, −3)·(3, −2) = −3 + 6 = 3. Los tres son positivos: <b>acutángulo</b>.",
+          "Ángulos: A = arccos(7/(√17·√10)) = 57,53°; B = arccos(10/(√17·√13)) = 47,73°; C = arccos(3/(√10·√13)) = 74,74°.",
+          "Comprobación: 57,53° + 47,73° + 74,74° = 180° ✓. (En cambio, con C = (−1, 2) el producto en A sería (4, 1)·(−1, 2) = −2 &lt; 0: obtusángulo en A.)"
+        ])
+    },
+    {
+      h: "17. Problemas de examen resueltos",
+      html:
+        "<p>Cinco problemas del estilo de la prueba de acceso, con el desarrollo que se pide en un examen.</p>" +
+        ejemplo("Problema 1 · Un triángulo con todo", "Dado el triángulo A = (1, 2), B = (5, 0), C = (3, 6): (a) demuestra que es rectángulo e isósceles; (b) calcula su área y la altura desde A sobre BC; (c) halla el cuarto vértice D del cuadrado ABDC y la circunferencia circunscrita al triángulo.", [
+          "(a) AB = (4, −2) y AC = (2, 4). AB·AC = 8 − 8 = 0 → ángulo recto en A. |AB| = |AC| = √20: isósceles.",
+          "(b) Área = ½|det(AB, AC)| = ½|4·4 − (−2)·2| = ½·20 = <b>10</b> (= ½·√20·√20 ✓). BC = (−2, 6), |BC| = √40; altura h = 2·área/|BC| = 20/√40 = <b>√10 ≈ 3,16</b>.",
+          "(c) D = B + C − A = (5 + 3 − 1, 0 + 6 − 2) = <b>(7, 4)</b>. En un triángulo rectángulo el circuncentro es el punto medio de la hipotenusa: M = ((5 + 3)/2, (0 + 6)/2) = <b>(4, 3)</b> y el radio es |BC|/2 = √40/2 = <b>√10</b> (|MA| = |(−3, −1)| = √10 ✓)."
+        ]) +
+        ejemplo("Problema 2 · Un parámetro", "Sean u = (k, 3) y v = (2, −1). Halla k para que sean: (a) paralelos; (b) perpendiculares; (c) formen un ángulo de 45°.", [
+          "(a) Paralelos: det = k·(−1) − 3·2 = 0 → <b>k = −6</b>.",
+          "(b) Perpendiculares: u·v = 2k − 3 = 0 → <b>k = 3/2</b>.",
+          "(c) cos 45° = (2k − 3)/(√(k² + 9)·√5) = √2/2. Elevando al cuadrado: 2(2k − 3)² = 5(k² + 9) → 8k² − 24k + 18 = 5k² + 45 → 3k² − 24k − 27 = 0 → k² − 8k − 9 = 0 → k = 9 o k = −1.",
+          "Al elevar al cuadrado se pierde el signo: hay que exigir u·v &gt; 0 (ángulo agudo), es decir 2k − 3 &gt; 0. Vale <b>k = 9</b>; con k = −1 el producto es −5 &lt; 0 y el ángulo es 135°."
+        ]) +
+        ejemplo("Problema 3 · Un baúl arrastrado", "Se arrastra un baúl de 20 kg por un suelo horizontal con una cuerda que forma 30° con el suelo, tirando con 100 N durante 5 m (g = 9,8 m/s²). Calcula el trabajo de la fuerza de tiro, la fuerza normal y, si μ = 0,2, el trabajo del rozamiento y el trabajo neto.", [
+          "Trabajo del tiro: W = F·d = 100·5·cos 30° = <b>433,0 J</b>.",
+          "La componente vertical del tiro es 100·sen 30° = 50 N hacia arriba, así que la normal es N = 20·9,8 − 50 = <b>146 N</b>.",
+          "Rozamiento: μN = 0,2·146 = 29,2 N, en sentido contrario al movimiento: W<sub>roz</sub> = −29,2·5 = <b>−146 J</b>. Trabajo neto = 433,0 − 146 = <b>287,0 J</b>."
+        ]) +
+        ejemplo("Problema 4 · ¿Chocan los barcos?", "Un barco A sale de (0, 0) con velocidad (3, 4) km/h y otro B sale de (30, 0) con velocidad (−3, 4) km/h. ¿Chocan? ¿Y si B saliera de (30, 3)?", [
+          "Δr₀ = (30, 0), Δv = (−3, 4) − (3, 4) = (−6, 0). Son paralelos (det = 30·0 − 0·(−6) = 0) y de sentidos contrarios: t* = −(30·(−6))/36 = <b>5 h</b> y d<sub>mín</sub> = 0. En t = 5: A = (15, 20) = B → <b>chocan</b>.",
+          "Si B sale de (30, 3): Δr₀ = (30, 3), Δv = (−6, 0): t* = 180/36 = 5 h y d<sub>mín</sub> = |30·0 − 3·(−6)|/6 = 18/6 = <b>3 km</b>. No chocan: pasan a 3 km uno de otro."
+        ]) +
+        ejemplo("Problema 5 · Demostración: el cuadrilátero de los puntos medios", "Demuestra que los puntos medios de los lados de un cuadrilátero cualquiera ABCD forman un paralelogramo.", [
+          "Sean M, N, P, Q los puntos medios de AB, BC, CD y DA: M = (A + B)/2, N = (B + C)/2, P = (C + D)/2 y Q = (D + A)/2.",
+          "MN = N − M = (C − A)/2 y QP = P − Q = (C − A)/2. Luego MN = QP: dos lados opuestos son iguales y paralelos ⇒ MNPQ es un <b>paralelogramo</b>. ∎",
+          "Comprobación numérica con A = (0, 0), B = (6, 0), C = (8, 4), D = (2, 6): M = (3, 0), N = (7, 2), P = (5, 5), Q = (1, 3). MN = (4, 2) = QP ✓. (Además su área, 16, es la mitad de la del cuadrilátero, 32.)"
+        ])
+    }
+  ];
+  nuevas.splice(nuevas.length - 2, 0, nuevas7[0], nuevas7[1], nuevas7[2], nuevas7[3], nuevas7[4], nuevas7[5]);
+
+  // actividades nuevas
+  datos.compon = {
+    titulo: "Componentes y proyecciones",
+    consigna: "Une cada magnitud con su fórmula.",
+    pares: [
+      ["Proyección de v sobre d (vector)", "(v·d/|d|²)·d"],
+      ["Módulo de la componente paralela a d", "|v·d|/|d|"],
+      ["Módulo de la componente perpendicular a d", "|det(d, v)|/|d|"],
+      ["Componente del peso paralela a un plano de ángulo α", "P·sen α"],
+      ["Componente del peso perpendicular al plano", "P·cos α"],
+      ["Coordenadas en una base ortonormal", "a = v·e₁, b = v·e₂"],
+      ["Centro de masas", "Σ mᵢ·rᵢ / Σ mᵢ"]
+    ]
+  };
+  datos.ordenMov = {
+    titulo: "Distancia mínima entre dos móviles",
+    consigna: "Ordena los pasos del método.",
+    items: [
+      { t: "Calcular la posición relativa inicial Δr₀ = r₀B − r₀A", nota: "Extremo menos origen, como en AB = B − A." },
+      { t: "Calcular la velocidad relativa Δv = vB − vA" },
+      { t: "Hallar el instante t* = −Δr₀·Δv / |Δv|²", nota: "Si sale negativo, ya se están alejando." },
+      { t: "Calcular la distancia mínima |det(Δr₀, Δv)| / |Δv|", nota: "O bien |Δr₀ + Δv·t*|." },
+      { t: "Comprobar si es 0 (choque) y los sentidos de Δr₀ y Δv" }
+    ]
+  };
+  nuevas7[1].html += w("emparejar", "compon");
+  nuevas7[2].html += "<p>Practica el orden del método:</p>" + w("orden", "ordenMov");
+
+  // preguntas nuevas de «¿Qué falla aquí?» y del test
+  datos.errores.preguntas.push(
+    { q: "Un alumno calcula la proyección de v = (2, 3) sobre d = (4, 1) como (v·d)·d = 11·(4, 1) = (44, 11). ¿Qué falla?",
+      op: ["Nada", "Falta dividir entre |d|²: (v·d/|d|²)·d = (11/17)·(4, 1) ≈ (2,59; 0,65)", "Debía restar", "La proyección es un número, 11"], ok: 1,
+      porque: "La proyección vectorial es (v·d/|d|²)·d: tiene la dirección de d, y su módulo (|v·d|/|d| = 2,67) nunca supera |v| = 3,61. El resultado (44, 11) es enorme." },
+    { q: "En un plano inclinado un ángulo α, un alumno dice que la componente del peso paralela al plano es P·cos α. ¿Qué falla?",
+      op: ["Nada", "La componente paralela es P·sen α; P·cos α es la perpendicular (con α = 0° el plano es horizontal y nada tira hacia abajo del plano)", "Las dos valen P", "Las dos valen P/2"], ok: 1,
+      porque: "Con α = 0° el plano es horizontal: P∥ debe valer 0 = P·sen 0°, y toda la fuerza es perpendicular (P·cos 0° = P)." },
+    { q: "Dos barcos tienen trayectorias rectas que se cortan en un punto. Un alumno concluye que chocan. ¿Qué falla?",
+      op: ["Nada: si las trayectorias se cortan, chocan", "Tienen que estar en el punto de cruce <b>a la vez</b>: hay choque solo si Δr₀ y Δv son paralelos y de sentidos contrarios", "Las trayectorias nunca se cortan", "Chocan solo si van a la misma velocidad"], ok: 1,
+      porque: "Dos trayectorias se cortan casi siempre; el choque exige coincidir en el mismo instante: d<sub>mín</sub> = |det(Δr₀, Δv)|/|Δv| = 0 con t* ≥ 0." }
+  );
+  datos.quiz1.preguntas.push(
+    { q: "En una base ortonormal {e₁, e₂}, la primera coordenada de v es…", op: ["v·e₁", "|v|", "v·v", "e₁·e₂"], ok: 0, porque: "a = v·e₁ (y b = v·e₂): basta el producto escalar, sin resolver ningún sistema." },
+    { q: "Un bloque está sobre un plano inclinado 30°. La componente de su peso P paralela al plano vale…", op: ["P·sen 30° = P/2", "P·cos 30° ≈ 0,87·P", "P", "0"], ok: 0, porque: "P∥ = P·sen α; la perpendicular es P·cos α." },
+    { q: "La distancia entre dos móviles con velocidad constante es mínima cuando…", op: ["la posición relativa es perpendicular a la velocidad relativa", "la velocidad relativa es cero", "las velocidades son iguales", "t = 0"], ok: 0, porque: "d² es una parábola; su vértice cumple Δr·Δv = 0, es decir, Δr ⊥ Δv." },
+    { q: "El centro de masas de 2 kg en x = 0 y 6 kg en x = 8 está en x =…", op: ["6", "4", "5", "3"], ok: 0, porque: "(2·0 + 6·8)/8 = 6: más cerca de la masa mayor." },
+    { q: "Si |u| = 3, |v| = 4 y u·v = 6, el área del paralelogramo que forman es…", op: ["6√3 ≈ 10,39", "12", "6", "√6"], ok: 0, porque: "det² = |u|²|v|² − (u·v)² = 144 − 36 = 108 → área = √108 = 6√3." },
+    { q: "Si en un vértice de un triángulo el producto escalar de los dos lados que salen de él es negativo, el triángulo es…", op: ["obtusángulo", "rectángulo", "acutángulo", "equilátero"], ok: 0, porque: "u·v &lt; 0 ⇔ cos α &lt; 0 ⇔ el ángulo es obtuso." }
+  );
+
+  // ejercicios nuevos (v37–v49)
+  ejercicios.push(
+    // ---------- ★ ----------
+    { id: "v37", nivel: 1,
+      enunciado: "Con la base ortonormal e₁ = (0,6; 0,8) y e₂ = (−0,8; 0,6), halla las coordenadas (a, b) de v = (2, 11).",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 10 }, { tipo: "num", etiqueta: "b =", valor: 5 }],
+      pistas: ["En una base ortonormal, a = v·e₁ y b = v·e₂."],
+      pasos: ["a = 2·0,6 + 11·0,8 = 1,2 + 8,8 = 10.", "b = 2·(−0,8) + 11·0,6 = −1,6 + 6,6 = 5.", "Comprobación: a² + b² = 125 = 2² + 11² ✓."],
+      resultado: "v = 10e₁ + 5e₂" },
+    { id: "v38", nivel: 1,
+      enunciado: "Un bloque de 5 kg está sobre un plano inclinado 30° (g = 9,8 m/s²). Calcula la componente de su peso paralela al plano.",
+      check: { tipo: "num", etiqueta: "P∥ =", valor: 24.5, unidad: "N" },
+      pistas: ["P = m·g y P∥ = P·sen α."],
+      pasos: ["P = 5·9,8 = 49 N.", "P∥ = 49·sen 30° = 49·0,5 = 24,5 N."],
+      resultado: "24,5 N" },
+    { id: "v39", nivel: 1,
+      enunciado: "Calcula el centro de masas de 3 kg situados en (0, 1) y 5 kg situados en (8, 5).",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 5 }, { tipo: "num", etiqueta: "y =", valor: 3.5 }],
+      pistas: ["r = (m₁r₁ + m₂r₂)/(m₁ + m₂)."],
+      pasos: ["Masa total 8 kg.", "x = (3·0 + 5·8)/8 = 40/8 = 5.", "y = (3·1 + 5·5)/8 = 28/8 = 3,5."],
+      resultado: "(5; 3,5)" },
+    // ---------- ★★ ----------
+    { id: "v40", nivel: 2,
+      enunciado: "Descompón v = (7, 2) en una componente paralela y otra perpendicular a d = (4, 3). Da el módulo de cada una.",
+      check: [{ tipo: "num", etiqueta: "|v∥| =", valor: 6.8 }, { tipo: "num", etiqueta: "|v⊥| =", valor: 2.6 }],
+      pistas: ["|v∥| = |v·d|/|d| y |v⊥| = |det(d, v)|/|d|."],
+      pasos: ["|d| = 5 y v·d = 28 + 6 = 34 → |v∥| = 34/5 = 6,8.", "det(d, v) = 4·2 − 3·7 = −13 → |v⊥| = 13/5 = 2,6.", "Comprobación: 6,8² + 2,6² = 46,24 + 6,76 = 53 = 7² + 2² ✓."],
+      resultado: "6,8 y 2,6" },
+    { id: "v41", nivel: 2,
+      enunciado: "Una caja queda justo en el límite de deslizar sobre un plano inclinado 25°. ¿Cuánto vale el coeficiente de rozamiento estático μ?",
+      check: { tipo: "num", etiqueta: "μ =", valor: 0.4663, tol: 0.002 },
+      pistas: ["En el límite, P∥ = μ·N, es decir, P·sen α = μ·P·cos α."],
+      pasos: ["P·sen α = μ·P·cos α → μ = tan α.", "μ = tan 25° ≈ 0,4663."],
+      resultado: "μ = tan 25° ≈ 0,466" },
+    { id: "v42", nivel: 2,
+      enunciado: "Un barco A sale de (0, 0) con velocidad (4, 2) km/h y otro B sale de (12, 0) con velocidad (−2, 4) km/h. ¿En qué instante están más cerca y cuál es esa distancia mínima (en km)?",
+      check: [{ tipo: "num", etiqueta: "t* =", valor: 1.8, unidad: "h" }, { tipo: "num", etiqueta: "d mín =", valor: 3.7947, tol: 0.002, unidad: "km" }],
+      pistas: ["Δr₀ = (12, 0), Δv = (−6, 2). t* = −Δr₀·Δv/|Δv|² y d = |det(Δr₀, Δv)|/|Δv|."],
+      pasos: ["Δr₀·Δv = −72 y |Δv|² = 40 → t* = 72/40 = 1,8 h.", "det(Δr₀, Δv) = 12·2 − 0·(−6) = 24 → d = 24/√40 ≈ 3,795 km."],
+      resultado: "t* = 1,8 h; d mín ≈ 3,79 km" },
+    { id: "v43", nivel: 2,
+      enunciado: "Una lámina homogénea en L está formada por un rectángulo de 6 × 2 (de x = 0 a 6, de y = 0 a 2) y otro de 3 × 4 encima (de x = 0 a 3, de y = 2 a 6). Calcula su centro de masas.",
+      check: [{ tipo: "num", etiqueta: "x =", valor: 2.25 }, { tipo: "num", etiqueta: "y =", valor: 2.5 }],
+      pistas: ["Pondera los centros de cada rectángulo por su área."],
+      pasos: ["Rectángulo 1: área 12, centro (3, 1). Rectángulo 2: área 12, centro (1,5; 4).", "x = (12·3 + 12·1,5)/24 = 54/24 = 2,25.", "y = (12·1 + 12·4)/24 = 60/24 = 2,5."],
+      resultado: "(2,25; 2,5)" },
+    { id: "v44", nivel: 2,
+      enunciado: "Clasifica el triángulo A = (0, 0), B = (6, 0), C = (4, 1) y calcula su ángulo mayor (en grados).",
+      check: [{ tipo: "opcion", etiqueta: "El triángulo es", opciones: ["obtusángulo (en C)", "acutángulo", "rectángulo en A", "rectángulo en B"], ok: 0 }, { tipo: "num", etiqueta: "ángulo en C =", valor: 139.4, unidad: "°", tol: 0.002 }],
+      pistas: ["Mira el signo de CA·CB y calcula cos C = CA·CB/(|CA||CB|)."],
+      pasos: ["CA = (−4, −1) y CB = (2, −1): CA·CB = −8 + 1 = −7 &lt; 0 → ángulo obtuso en C.", "|CA| = √17 y |CB| = √5 → cos C = −7/√85 = −0,7593 → C = 139,4°."],
+      resultado: "obtusángulo, C ≈ 139,4°" },
+    { id: "v45", nivel: 2,
+      enunciado: "Ortogonaliza u = (2, 1) y v = (1, 3) por el método de Gram–Schmidt. Da las componentes del segundo vector unitario e₂ (decimales).",
+      check: [{ tipo: "num", etiqueta: "e₂ (x) =", valor: -0.4472, tol: 0.002 }, { tipo: "num", etiqueta: "e₂ (y) =", valor: 0.8944, tol: 0.002 }],
+      pistas: ["e₁ = u/|u|; w = v − (v·e₁)e₁; e₂ = w/|w|."],
+      pasos: ["e₁ = (2, 1)/√5. v·e₁ = 5/√5 = √5.", "(v·e₁)e₁ = √5·(2, 1)/√5 = (2, 1) → w = (1, 3) − (2, 1) = (−1, 2).", "|w| = √5 → e₂ = (−1, 2)/√5 = (−0,4472; 0,8944)."],
+      resultado: "e₂ = (−1, 2)/√5" },
+    // ---------- ★★★ ----------
+    { id: "v46", nivel: 3,
+      enunciado: "Un barco A sale de (0, 0) con velocidad (6, 0) km/h y otro B sale de (10, a) con velocidad (−2, −4) km/h. ¿Para qué valor de a chocan y en qué instante?",
+      check: [{ tipo: "num", etiqueta: "a =", valor: 5 }, { tipo: "num", etiqueta: "t =", valor: 1.25, unidad: "h" }],
+      pistas: ["Choque ⇔ Δr₀ y Δv paralelos (det = 0) y de sentidos contrarios. Δr₀ = (10, a), Δv = (−8, −4)."],
+      pasos: ["det(Δr₀, Δv) = 10·(−4) − a·(−8) = 0 → 8a = 40 → a = 5.", "Δr₀ = (10, 5) = −1,25·(−8, −4): sentidos contrarios, y el tiempo es t = 1,25 h.", "Comprobación: A(1,25) = (7,5; 0) y B(1,25) = (10 − 2,5; 5 − 5) = (7,5; 0) ✓."],
+      resultado: "a = 5; t = 1,25 h" },
+    { id: "v47", nivel: 3,
+      enunciado: "Halla k para que u = (k, 3) y v = (2, −1) formen un ángulo de 45° y di qué ángulo forman con el otro valor que sale al resolver la ecuación.",
+      check: [{ tipo: "num", etiqueta: "k =", valor: 9 }, { tipo: "num", etiqueta: "ángulo con la otra solución =", valor: 135, unidad: "°" }],
+      pistas: ["Eleva al cuadrado cos 45° = (2k − 3)/(√(k² + 9)·√5) y descarta la solución con u·v &lt; 0."],
+      pasos: ["2(2k − 3)² = 5(k² + 9) → 3k² − 24k − 27 = 0 → k = 9 o k = −1.", "k = 9: u·v = 15 &gt; 0, ángulo agudo → 45°.", "k = −1: u·v = −5 &lt; 0, cos = −5/(√10·√5) = −0,7071 → 135°."],
+      resultado: "k = 9 (con k = −1 el ángulo es 135°)" },
+    { id: "v48", nivel: 3,
+      enunciado: "Demuestra con vectores que los puntos medios de los lados de un cuadrilátero ABCD forman un paralelogramo.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Escribe los puntos medios M = (A + B)/2, N = (B + C)/2, P = (C + D)/2, Q = (D + A)/2", p: 0.5 },
+        { t: "Calcula MN = (C − A)/2", p: 0.5 },
+        { t: "Calcula QP = (C − A)/2", p: 0.5 },
+        { t: "Concluye: MN = QP, dos lados opuestos iguales y paralelos ⇒ paralelogramo", p: 0.5 }
+      ] },
+      pasos: ["MN = N − M = (B + C)/2 − (A + B)/2 = (C − A)/2.", "QP = P − Q = (C + D)/2 − (D + A)/2 = (C − A)/2.", "MN = QP: MNPQ tiene dos lados opuestos iguales y paralelos, luego es un paralelogramo. ∎"],
+      resultado: "MN = QP = (C − A)/2" },
+    { id: "v49", nivel: 3,
+      enunciado: "Demuestra la desigualdad triangular |u + v| ≤ |u| + |v| a partir de la desigualdad de Cauchy–Schwarz |u·v| ≤ |u||v|.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Desarrolla |u + v|² = |u|² + 2u·v + |v|²", p: 0.5 },
+        { t: "Acota u·v ≤ |u·v| ≤ |u||v| con Cauchy–Schwarz", p: 0.5 },
+        { t: "Obtiene |u + v|² ≤ |u|² + 2|u||v| + |v|² = (|u| + |v|)²", p: 0.5 },
+        { t: "Concluye tomando raíces cuadradas (ambos lados son positivos)", p: 0.5 }
+      ] },
+      pasos: ["|u + v|² = (u + v)·(u + v) = |u|² + 2u·v + |v|².", "Como u·v ≤ |u·v| ≤ |u||v|: |u + v|² ≤ |u|² + 2|u||v| + |v|² = (|u| + |v|)².", "Raíz cuadrada (de números no negativos): |u + v| ≤ |u| + |v|. ∎"],
+      resultado: "|u + v| ≤ |u| + |v|" }
+  );
+  ejercicios.sort(function (a, b) { return a.nivel - b.nivel; });
+
+  // láminas nuevas
+  lamina.push(
+    { titulo: "Descomponer un vector",
+      items: [
+        { label: "Proyección sobre d", formula: "v<sub>∥</sub> = (v·d/|d|²)·d  ·  |v<sub>∥</sub>| = |v·d|/|d|", ejemplo: "v = (8, 1), d = (3, 4) → (3,36; 4,48)" },
+        { label: "Componente perpendicular", formula: "v<sub>⊥</sub> = v − v<sub>∥</sub>  ·  |v<sub>⊥</sub>| = |det(d, v)|/|d|", ejemplo: "|v<sub>⊥</sub>| = 29/5 = 5,8" },
+        { label: "Plano inclinado α", formula: "P∥ = P·sen α  ·  P⊥ = N = P·cos α", cuando: "Desliza si tan α &gt; μ.", ejemplo: "10 kg, 30°: P∥ = 49 N, N = 84,87 N" },
+        { label: "Base ortonormal", formula: "a = v·e₁, b = v·e₂  ·  |v|² = a² + b²", ejemplo: "v = (7, 1) → (5, −5)" }
+      ],
+      nota: "|v|² = |v∥|² + |v⊥|² (Pitágoras)." },
+    { titulo: "Móviles, masas y desigualdades", ancha: true,
+      tabla: { cab: ["Tema", "Fórmula / regla"], filas: [
+        ["Posición y velocidad relativas", "Δr(t) = Δr₀ + Δv·t con Δr₀ = r₀B − r₀A y Δv = vB − vA"],
+        ["Instante de máximo acercamiento", "t* = −Δr₀·Δv/|Δv|² (si t* &lt; 0, se alejan)"],
+        ["Distancia mínima", "|det(Δr₀, Δv)|/|Δv|; choque si es 0 con t* ≥ 0"],
+        ["Centro de masas", "Σ mᵢ·rᵢ / Σ mᵢ (láminas: se pondera por las áreas)"],
+        ["Identidad de Lagrange", "|u|²|v|² = (u·v)² + det(u, v)²"],
+        ["Triángulo por signos", "u·v &gt; 0 agudo · = 0 recto · &lt; 0 obtuso (en cada vértice)"]
+      ] },
+      nota: "Cauchy–Schwarz: |u·v| ≤ |u||v|. Triangular: |u + v| ≤ |u| + |v|." }
+  );
 
   B.registrar("mates1", "t7", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
