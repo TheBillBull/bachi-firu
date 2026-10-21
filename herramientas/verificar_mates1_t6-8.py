@@ -323,6 +323,153 @@ q = preg('t7', 'errores', 'Un alumno calcula la proyección de v = (2, 3)')
 vp2 = prox((2, 3), (4, 1))
 comprobar('t7 error proyección', q is not None and (float(vp2[0]), float(vp2[1])) == (44 / 17, 11 / 17) and abs(44 / 17 - 2.59) < 5e-3 and abs(11 / 17 - 0.65) < 5e-3 and abs(11 / math.sqrt(17) - 2.67) < 5e-3 and abs(math.sqrt(13) - 3.61) < 5e-3)
 
+# =====================================================================
+# TEMA 8 · Rectas
+# =====================================================================
+E8 = ejercicios('t8')
+X, Y, kk = sp.symbols('X Y kk', real=True)
+def dist(P, r): return sp.Abs(r[0] * P[0] + r[1] * P[1] + r[2]) / sp.sqrt(r[0] ** 2 + r[1] ** 2)
+def dsig(P, r): return (r[0] * P[0] + r[1] * P[1] + r[2]) / sp.sqrt(r[0] ** 2 + r[1] ** 2)
+def interseccion(r, s):
+    sol = sp.solve([r[0] * X + r[1] * Y + r[2], s[0] * X + s[1] * Y + s[2]], [X, Y]); return (sol[X], sol[Y])
+def vertices(cons, F):
+    """cons = [(a, b, c)] con a·x + b·y ≤ c; devuelve [(vértice, F)] de los vértices factibles"""
+    out = set()
+    for (a1, b1, c1), (a2, b2, c2) in itertools.combinations(cons, 2):
+        D = a1 * b2 - a2 * b1
+        if D == 0: continue
+        x_ = Q(c1 * b2 - c2 * b1, D); y_ = Q(a1 * c2 - a2 * c1, D)
+        if all(a * x_ + b * y_ <= c for a, b, c in cons): out.add((x_, y_))
+    return sorted([(p, F(p)) for p in out])
+
+# --- 12. Forma normal y distancia con signo
+r3 = (3, 4, -10)
+comprobar('t8 Hesse 3x+4y−10: N=5, p=2, φ=53,13°', math.hypot(3, 4) == 5 and abs(-10) / 5 == 2 and abs(math.degrees(math.atan2(4, 3)) - 53.13) < 5e-3 and sp.Rational(3, 5) == Q(6, 10) and Q(4, 5) == Q(8, 10) and Q(10, 5) == 2)
+comprobar('t8 δ(O)=−2, δ(P)=2,8', dsig((0, 0), r3) == -2 and dsig((4, 3), r3) == Q(14, 5) and float(dsig((4, 3), r3)) == 2.8)
+Aa, Bb = (0, 0), (6, 3); r6 = (1, 1, -6)
+dA, dB = dsig(Aa, r6), dsig(Bb, r6)
+Pcorte = (Aa[0] + Q(2, 3) * (Bb[0] - Aa[0]), Aa[1] + Q(2, 3) * (Bb[1] - Aa[1]))
+comprobar('t8 corte con segmento: razón 2 y P=(4,2)', dA < 0 < dB and sp.simplify(abs(dA) / abs(dB) - 2) == 0 and Pcorte == (4, 2) and 4 + 2 - 6 == 0 and sp.simplify(dsig(Pcorte, r6)) == 0)
+# razón general: P = (|δB|·A + |δA|·B)/(|δA|+|δB|)
+comprobar('t8 razón AP/PB = |δA|/|δB| (general)', all(sp.simplify(dsig(((abs(dsig(Bq_, rr)) * Aq_[0] + abs(dsig(Aq_, rr)) * Bq_[0]) / (abs(dsig(Aq_, rr)) + abs(dsig(Bq_, rr))), (abs(dsig(Bq_, rr)) * Aq_[1] + abs(dsig(Aq_, rr)) * Bq_[1]) / (abs(dsig(Aq_, rr)) + abs(dsig(Bq_, rr)))), rr)) == 0 for Aq_, Bq_, rr in [((0, 0), (6, 2), (2, -1, -4)), ((1, 5), (4, -6), (3, 2, -7))]))
+
+# --- 13. Haz de rectas
+rr_, ss_ = (2, -1, -1), (1, 2, -8)
+P_ = interseccion(rr_, ss_)
+f_r = lambda P: rr_[0] * P[0] + rr_[1] * P[1] + rr_[2]; f_s = lambda P: ss_[0] * P[0] + ss_[1] * P[1] + ss_[2]
+kq = -Q(f_r((1, 0)), f_s((1, 0)))
+Lq = sp.expand(7 * (rr_[0] * X + rr_[1] * Y + rr_[2] + kq * (ss_[0] * X + ss_[1] * Y + ss_[2])))
+comprobar('t8 haz: P=(2,3), r(Q)=1, s(Q)=−7, k=1/7, recta 3x−y−3', P_ == (2, 3) and f_r((1, 0)) == 1 and f_s((1, 0)) == -7 and kq == Q(1, 7) and sp.expand(Lq - (15 * X - 5 * Y - 15)) == 0)
+comprobar('t8 haz: 3x−y−3 pasa por P y Q', 3 * 2 - 3 - 3 == 0 and 3 * 1 - 0 - 3 == 0)
+sk = sp.solve(sp.Eq((2 + kk) / (-1 + 2 * kk), 3), kk)
+recta_k1 = sp.expand((2 * X - Y - 1) + 1 * (X + 2 * Y - 8))
+comprobar('t8 haz: paralela a 3x+y−7 → k=1, 3x+y−9', sk == [1] and recta_k1 == 3 * X + Y - 9 and (3 * 2 + 3 - 9) == 0)
+comprobar('t8 haz: la perpendicular a y=2x es s (no está en r+ks)', sp.solve(sp.Eq((2 + kk) / (-1 + 2 * kk), Q(1, 2)), kk) == [] and ss_[0] * 1 + ss_[1] * 2 == 5 and dot((1, 2), (1, 2)) == 5 and ss_[:2] == (1, 2))
+comprobar('t8 concurrentes m=2', interseccion((1, 1, -4), (1, -1, 0)) == (2, 2) and sp.solve(2 * kk + 2 - 6, kk) == [2])
+kh = Q(1, 3)
+comprobar('t8 concurrentes vía haz: k=1/3, factor 3/2, m=2', Q(3, 2) * (1 - kh) == 1 and Q(3, 2) * (1 + kh) == 2 and Q(3, 2) * (-4) == -6)
+comprobar('t8 paralelas a 3x+4y−1 a distancia 2: k=9, −11', sorted(sp.solve(sp.Eq(sp.Abs(kk + 1) / 5, 2), kk)) == [-11, 9] and sp.sqrt(25) == 5)
+
+# --- 14. Programación lineal
+V1 = vertices([(1, 1, 12), (2, 1, 18), (-1, 0, -2), (0, -1, 0)], lambda p: 4 * p[0] + 3 * p[1])
+comprobar('t8 PL cultivos: vértices y F', V1 == [((2, 0), 8), ((2, 10), 38), ((6, 6), 42), ((9, 0), 36)] and max(V1, key=lambda t: t[1])[0] == (6, 6) and 100 * 42 == 4200 and 6 + 6 == 12 and 2 * 6 + 6 == 18)
+V2 = vertices([(-2, -1, -12), (-1, -2, -9), (-1, 0, 0), (0, -1, 0)], lambda p: 3 * p[0] + 4 * p[1])
+comprobar('t8 PL piensos: vértices y mínimo', V2 == [((0, 12), 48), ((5, 2), 23), ((9, 0), 27)] and min(V2, key=lambda t: t[1])[0] == (5, 2) and not (-2 * 6 - 0 <= -12 and -1 * 6 <= -9))
+V3 = vertices([(3, 1, 30), (1, 1, 22), (-1, 0, 0), (0, -1, 0)], lambda p: 5 * p[0] + 2 * p[1]) if False else vertices([(3, 1, 30), (2, 1, 22), (-1, 0, 0), (0, -1, 0)], lambda p: 5 * p[0] + 2 * p[1])
+comprobar('t8 PL panadería: vértices y máximo (8,6)', V3 == [((0, 0), 0), ((0, 22), 44), ((8, 6), 52), ((10, 0), 50)] and max(V3, key=lambda t: t[1])[0] == (8, 6))
+V4 = vertices([(2, 3, 120), (1, 2, 70), (-1, 0, 0), (0, -1, 0)], lambda p: 30 * p[0] + 50 * p[1])
+comprobar('t8 PL P4 taller: máximo (30,20) con 1900', V4 == [((0, 0), 0), ((0, 35), 1750), ((30, 20), 1900), ((60, 0), 1800)] and max(V4, key=lambda t: t[1])[0] == (30, 20))
+V5 = vertices([(1, 1, 12), (2, 1, 18), (-1, 0, -2), (0, -1, 0)], lambda p: p[0] + p[1])
+comprobar('t8 PL infinitas soluciones: F=x+y empata en (6,6) y (2,10)', sorted([t for t in V5 if t[1] == max(u[1] for u in V5)]) == [((2, 10), 12), ((6, 6), 12)])
+comprobar('t8 PL sin solución: x+y≤2 y x+y≥5 → ningún vértice factible', vertices([(1, 1, 2), (-1, -1, -5), (-1, 0, 0), (0, -1, 0)], lambda p: p[0]) == [])
+comprobar('t8 PL no acotado: maximizar x+y con x+y≥3 → crece sin límite', all(t + 0 >= 3 for t in [3, 10, 100]) and vertices([(-1, -1, -3), (-1, 0, 0), (0, -1, 0)], lambda p: p[0] + p[1]) == [((0, 3), 3), ((3, 0), 3)])
+
+# --- 15. Modelos lineales
+mV = Q(600 - 300, 5 - 2); nV = 300 - mV * 2
+comprobar('t8 depósito V(t)=100t+100, 1000 L a las 9 h', mV == 100 and nV == 100 and Q(1000 - nV, mV) == 9)
+comprobar('t8 taller: x*=375, B(500)=1000, B(300)=−600', Q(3000, 8) == 375 and 8 * 375 == 3000 and 20 * 375 == 7500 and 3000 + 12 * 375 == 7500 and 8 * 500 - 3000 == 1000 and 8 * 300 - 3000 == -600)
+xe = Q(5) / Q(4, 100)
+comprobar('t8 tarifas A/B: 125 min y 15,50 €', xe == 125 and 8 + Q(6, 100) * 125 == Q(31, 2) == 3 + Q(10, 100) * 125)
+comprobar('t8 tarifas: A más barata para x>125', all((8 + 0.06 * t < 3 + 0.10 * t) == (t > 125) for t in [10, 100, 124, 126, 300]))
+
+# --- 16. Incentro y recta de Euler
+def lado(p, q): return sp.sqrt((p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2)
+def incentro(A, B, C):
+    a, b, c = lado(B, C), lado(C, A), lado(A, B)
+    I_ = (sp.simplify((a * A[0] + b * B[0] + c * C[0]) / (a + b + c)), sp.simplify((a * A[1] + b * B[1] + c * C[1]) / (a + b + c)))
+    area = sp.Abs((B[0] - A[0]) * (C[1] - A[1]) - (C[0] - A[0]) * (B[1] - A[1])) / 2
+    return I_, sp.simplify(area / ((a + b + c) / 2)), area, (a, b, c)
+I1, r1, ar1, ls1 = incentro((0, 0), (4, 0), (0, 3))
+comprobar('t8 incentro rectángulo: lados 5,3,4; I=(1,1); r=1', ls1 == (5, 3, 4) and I1 == (1, 1) and r1 == 1 and ar1 == 6 and dist(I1, (3, 4, -12)) == 1 and dist(I1, (0, 1, 0)) == 1 and dist(I1, (1, 0, 0)) == 1 and Q(3 + 4 - 5, 2) == 1)
+comprobar('t8 incentro ≠ baricentro (ej.: error)', I1 != (Q(4, 3), 1) and Q(4 + 0 + 0, 3) == Q(4, 3))
+I2, r2, ar2, ls2 = incentro((-3, 0), (3, 0), (0, 4))
+comprobar('t8 incentro isósceles (ejercicio): I=(0;1,5), r=1,5', ls2 == (5, 5, 6) and I2 == (0, Q(3, 2)) and r2 == Q(3, 2) and ar2 == 12 and dist(I2, (4, 3, -12)) == Q(3, 2) and dist(I2, (4, -3, 12)) == Q(3, 2) and dist(I2, (0, 1, 0)) == Q(3, 2))
+A, B, C = (0, 0), (8, 0), (2, 6)
+G = (Q(A[0] + B[0] + C[0], 3), Q(A[1] + B[1] + C[1], 3))
+Ox, Oy = sp.symbols('Ox Oy', real=True)
+solO = sp.solve([(Ox - A[0]) ** 2 + (Oy - A[1]) ** 2 - ((Ox - B[0]) ** 2 + (Oy - B[1]) ** 2), (Ox - A[0]) ** 2 + (Oy - A[1]) ** 2 - ((Ox - C[0]) ** 2 + (Oy - C[1]) ** 2)], [Ox, Oy])
+O_ = (solO[Ox], solO[Oy]); H_ = (3 * G[0] - 2 * O_[0], 3 * G[1] - 2 * O_[1])
+altC = (H_[0] == 2)  # altura desde C: x = 2
+BC = (C[0] - B[0], C[1] - B[1]); AH = (H_[0] - A[0], H_[1] - A[1])
+comprobar('t8 Euler: G=(10/3,2), O=(4,2), H=(2,2)', G == (Q(10, 3), 2) and O_ == (4, 2) and H_ == (2, 2) and altC and AH[0] * BC[0] + AH[1] * BC[1] == 0)
+comprobar('t8 Euler: alineados y distancias OG=2/3, GH=4/3', det((G[0] - O_[0], G[1] - O_[1]), (H_[0] - G[0], H_[1] - G[1])) == 0 and abs(G[0] - O_[0]) == Q(2, 3) and abs(H_[0] - G[0]) == Q(4, 3) and (H_[0] - G[0]) == 2 * (G[0] - O_[0]))
+Ax_, Ay_, Bx_, By_, Cx_, Cy_ = sp.symbols('Ax Ay Bx By Cx Cy', real=True)
+comprobar('t8 Euler (vectores): H = A+B+C con O=0 → (H−A)·(B−C) = |B|²−|C|²', sp.expand(((Bx_ + Cx_) * (Bx_ - Cx_) + (By_ + Cy_) * (By_ - Cy_)) - ((Bx_ ** 2 + By_ ** 2) - (Cx_ ** 2 + Cy_ ** 2))) == 0)
+
+# --- 17. Problemas de examen
+A, B, C = (-2, 0), (4, 0), (0, 4)
+comprobar('t8 P1 lados: BC x+y−4, AC 2x−y+4', all(4 + 0 - 4 == 0 and 0 + 4 - 4 == 0 for _ in [0]) and 2 * (-2) - 0 + 4 == 0 and 2 * 0 - 4 + 4 == 0)
+comprobar('t8 P1 área 12', Q(abs(6 * 4), 2) == 12 and abs(det((B[0] - A[0], B[1] - A[1]), (C[0] - A[0], C[1] - A[1]))) / 2 == 12)
+Dp = interseccion((1, -1, 2), (1, 1, -4))
+comprobar('t8 P1 altura desde A: pie (1,3), longitud 3√2', Dp == (1, 3) and sp.simplify(lado(A, Dp) - 3 * sp.sqrt(2)) == 0 and sp.simplify(24 / lado(B, C) - 3 * sp.sqrt(2)) == 0 and abs(3 * math.sqrt(2) - 4.24) < 5e-3 and dot((Dp[0] - A[0], Dp[1] - A[1]), (C[0] - B[0], C[1] - B[1])) == 0)
+M_ = (Q(B[0] + C[0], 2), Q(B[1] + C[1], 2))
+comprobar('t8 P1 mediatriz de BC: x−y=0', M_ == (2, 2) and all(sp.simplify(lado((t, t), B) - lado((t, t), C)) == 0 for t in [0, 1, 5, -3]) and M_[0] - M_[1] == 0)
+mm = sp.symbols('mm', real=True)
+solm = sp.solve(sp.Eq((1 - 2 * mm) ** 2, 4 * (mm ** 2 + 1)), mm)
+comprobar('t8 P2 distancia 2 desde P=(2,1): x=2 y 3x+4y−10', solm == [Q(-3, 4)] and dist((0, 0), (1, 0, -2)) == 2 and dist((0, 0), (3, 4, -10)) == 2 and 3 * 2 + 4 * 1 - 10 == 0)
+comprobar('t8 P3 tangentes: k=4 y k=−26', sorted(sp.solve(sp.Eq(sp.Abs(11 + kk), 15), kk)) == [-26, 4] and all(dist((1, 2), (3, 4, kv)) == 3 for kv in (4, -26)))
+comprobar('t8 P4 sistema y vértices', 2 * 30 + 3 * 20 == 120 and 30 + 2 * 20 == 70 and 2 * 0 + 3 * 35 <= 120 and 0 + 2 * 35 == 70 and 2 * 60 <= 120 and 60 <= 70)
+r_, s_ = (3, -4, 1), (4, 3, -2)
+Pbis = interseccion(r_, s_)
+b1 = (r_[0] - s_[0], r_[1] - s_[1], r_[2] - s_[2]); b2 = (r_[0] + s_[0], r_[1] + s_[1], r_[2] + s_[2])
+comprobar('t8 P5 bisectrices: x+7y−3 y 7x−y−1', r_[0] * s_[0] + r_[1] * s_[1] == 0 and Pbis == (Q(1, 5), Q(2, 5)) and b1 == (-1, -7, 3) and b2 == (7, -1, -1) and all(a * Pbis[0] + b * Pbis[1] + c == 0 for a, b, c in ((1, 7, -3), (7, -1, -1))) and dot((1, 7), (7, -1)) == 0 and all(sp.simplify(dist(pp, r_) - dist(pp, s_)) == 0 for pp in [(3, 0), (-2, 5 / 7 * 0 + (3 - (-2)) / 7), (0, Q(3, 7))]))
+
+# --- Ejercicios nuevos r37–r49
+comprobar('t8 r37', nums(E8, 'r37')[0] == 3 and cerca(float(dsig((8, 0), (5, -12, -39))), nums(E8, 'r37')[1], 2e-3) and sp.sqrt(5 ** 2 + 12 ** 2) == 13 and Q(39, 13) == 3 and dsig((8, 0), (5, -12, -39)) == Q(1, 13))
+mF, nF = Q(212 - 32, 100), 32
+comprobar('t8 r38', mF == Q(9, 5) and mF * 37 + nF == Q(493, 5) and float(mF * 37 + nF) == nums(E8, 'r38')[0] == 98.6)
+fP, fQ = 2 * 1 - 1 + 3, 2 * (-2) - 1 + 3
+comprobar('t8 r39', fP > 0 > fQ and opt(E8, 'r39') == 'en lados opuestos de la recta')
+kq40 = -Q(0 + 5 - 3, 2 * 0 - 5)
+recta40 = sp.expand(5 * ((X + Y - 3) + kq40 * (2 * X - Y)))
+comprobar('t8 r40', kq40 == Q(2, 5) and sp.expand(recta40 / 3 - (3 * X + Y - 5)) == 0 and nums(E8, 'r40') == [3, 1, -5] and interseccion((1, 1, -3), (2, -1, 0)) == (1, 2) and 3 * 1 + 2 - 5 == 0 and 0 + 5 - 5 == 0)
+comprobar('t8 r41', cerca(float(I2[0]), nums(E8, 'r41')[0], 1e-9) and cerca(float(I2[1]), nums(E8, 'r41')[1]) and cerca(float(r2), nums(E8, 'r41')[2]) and nums(E8, 'r41') == [0, 1.5, 1.5])
+Pr42 = (Q(2, 5) * 6, Q(2, 5) * 2)
+comprobar('t8 r42', Pr42 == (Q(12, 5), Q(4, 5)) and [float(c_) for c_ in Pr42] == nums(E8, 'r42') and 2 * Pr42[0] - Pr42[1] - 4 == 0 and dsig((0, 0), (2, -1, -4)) < 0 < dsig((6, 2), (2, -1, -4)) and Q(4, 6) == Q(2, 3))
+x43 = sp.solve(sp.Eq(12 + Q(5, 100) * kk, 5 + Q(10, 100) * kk), kk)[0]
+comprobar('t8 r43', x43 == 140 and 12 + Q(5, 100) * x43 == 19 and nums(E8, 'r43') == [140, 19])
+comprobar('t8 r44', interseccion((1, -2, 3), (2, 1, -4)) == (1, 2) and sp.solve(3 * 1 + mm * 2 - 5, mm) == [1] and nums(E8, 'r44') == [1])
+# r45: simétrica de 2x−y+1 respecto de x+y−2
+xp, yp = sp.symbols('xp yp', real=True)
+imagen = sp.expand(2 * (2 - yp) - (2 - xp) + 1)
+comprobar('t8 r45', imagen == xp - 2 * yp + 3 and nums(E8, 'r45') == [1, -2, 3] and interseccion((2, -1, 1), (1, 1, -2)) == (Q(1, 3), Q(5, 3)) and (Q(1, 3) - 2 * Q(5, 3) + 3) == 0 and all(sp.simplify(dist(pp, (1, 1, -2)) - dist(((2 - pp[1]), (2 - pp[0])), (1, 1, -2))) == 0 for pp in [(1, 5), (-3, 2)]))
+Vv = vertices([(4, 2, 40), (2, 3, 36), (-1, 0, 0), (0, -1, 0)], lambda p: 60 * p[0] + 40 * p[1])
+comprobar('t8 r46', Vv == [((0, 0), 0), ((0, 12), 480), ((6, 8), 680), ((10, 0), 600)] and nums(E8, 'r46') == [6, 8, 680])
+Vd = vertices([(-1, -1, -6), (-1, -3, -10), (-1, 0, 0), (0, -1, 0)], lambda p: 2 * p[0] + 3 * p[1])
+comprobar('t8 r47', Vd == [((0, 6), 18), ((4, 2), 14), ((10, 0), 20)] and min(Vd, key=lambda t: t[1]) == ((4, 2), 14) and nums(E8, 'r47') == [4, 2, 14])
+comprobar('t8 r48', sorted(check(E8, 'r48')['valores'], reverse=True)[0] > 0 and all(cerca(a_, b_, 2e-3) for a_, b_ in zip(sorted(check(E8, 'r48')['valores']), [-3 * math.sqrt(2), 3 * math.sqrt(2)])) and sorted(sp.solve(sp.Eq(sp.Abs(kk) / sp.sqrt(2), 3), kk), key=float) == [-3 * sp.sqrt(2), 3 * sp.sqrt(2)])
+comprobar('t8 r49 (rúbrica)', check(E8, 'r49')['tipo'] == 'rubrica' and sp.expand(((Bx_ + Cx_) * (Bx_ - Cx_) + (By_ + Cy_) * (By_ - Cy_)) - ((Bx_ ** 2 + By_ ** 2) - (Cx_ ** 2 + Cy_ ** 2))) == 0)
+pasos_y_resultado(E8, [f'r{k_}' for k_ in range(37, 50)], 't8')
+# test y errores nuevos
+q = preg('t8', 'quiz1', 'Con C(x) = 3 000 + 12x e I(x) = 20x')
+comprobar('t8 test equilibrio 375', q and q['op'][q['ok']] == 'x = 375' and Q(3000, 8) == 375)
+q = preg('t8', 'errores', 'Para la recta del haz (x + y − 4) + k(x − y) = 0 que pasa por Q = (1, 0)')
+comprobar('t8 error haz: k=3', q is not None and (1 + 0 - 4) + 3 * (1 - 0) == 0 and (q['op'][q['ok']].find('<b>3</b>') >= 0))
+q = preg('t8', 'errores', 'Un alumno dice que el incentro de cualquier triángulo')
+comprobar('t8 error incentro (1,1) vs baricentro (4/3,1)', q is not None and I1 == (1, 1) and (Q(4, 3), Q(3, 3)) == (Q(4, 3), 1) and I1 != (Q(4, 3), 1))
+q = preg('t8', 'errores', 'En un problema de programación lineal, un alumno evalúa F = 4x + 3y en el centro')
+comprobar('t8 error PL centro: F(4,3)=25 < 42', q is not None and 4 * 4 + 3 * 3 == 25 and 25 < 42 and (4, 3) not in [v[0] for v in V1])
+
 # ==== FIN DE LOS TEMAS ====
 print(f'{ok} comprobaciones correctas, {len(fallos)} fallos')
 for f in fallos: print('  FALLO:', f)
