@@ -92,7 +92,7 @@
     "<h5>Del lenguaje de los alquimistas a las recomendaciones de 2005</h5>" +
     "<p>Hasta finales del siglo XVIII los compuestos se llamaban por su aspecto, su origen o su descubridor: «vitriolo azul», «sal de Glauber», «aceite de vitriolo» (el ácido sulfúrico), «cal viva». No había forma de deducir la composición de un nombre. Antoine Lavoisier y otros tres químicos franceses propusieron en 1787 un lenguaje nuevo, en el que <b>el nombre describe la composición</b>: de ahí vienen las terminaciones -uro («cloruro»), -ato e -ito («sulfato», «sulfito»), -ico y -oso. Es el mismo principio de las tres nomenclaturas de este tema.</p>" +
     "<p>En 1919, Alfred Stock propuso indicar el número de oxidación con números romanos, y ese mismo año se fundó la IUPAC, la unión internacional que fija las reglas. Su «Libro Rojo» (<i>Nomenclature of Inorganic Chemistry</i>) se ha revisado varias veces; la edición de 2005, con la versión en español, es la que da pie a lo que estudias en el instituto: nombres sistemáticos con prefijos, el uso de «oxido» y «hidrogeno» para los oxoácidos y sus sales, y un papel menor para la tradicional.</p>" +
-    w("linea", "historia") +
+    w("q3_historia", "historia") +
     "<p>Estos cambios no son un capricho: cada versión intenta que el nombre sirva para escribir la fórmula sin ambigüedad. Es lo que consiguen los prefijos de la sistemática, y la razón por la que se prefieren cuando hay dudas. Un ejemplo es el «óxido nitroso»: en la nomenclatura tradicional el nombre se prestaba a confusión (¿qué número de oxidación?) y la sistemática lo resuelve: «monóxido de dinitrógeno» solo puede ser N₂O.</p>" });
 
   // ================================================================ 14. Problemas resueltos

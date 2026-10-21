@@ -319,6 +319,24 @@
   };
 
   // ============================================================
+  // Q3_HISTORIA: hitos de la nomenclatura (separados por igual, no a escala: la línea del tiempo genérica sería enorme)
+  //   datos: { titulo, tipos: { clave: [nombre, color] }, eventos: [{ a: año, t: título, tipo, d: texto }] }
+  // ============================================================
+  B.w.q3_historia = function (host, args, d) {
+    var cuerpo = B.caja(host, "Línea del tiempo", d.titulo);
+    cuerpo.innerHTML = '<div class="q3-hleyenda">' + Object.keys(d.tipos).map(function (k) { return '<span class="q3-hk"><i style="background:' + d.tipos[k][1] + '"></i>' + d.tipos[k][0] + "</span>"; }).join("") + '</div>' +
+      '<div class="q3-hist" role="list">' + d.eventos.map(function (e, i) { return '<button type="button" class="q3-h" role="listitem" data-i="' + i + '" style="--c:' + (d.tipos[e.tipo] ? d.tipos[e.tipo][1] : "var(--pen)") + '"><b>' + e.a + "</b><span>" + e.t + "</span></button>"; }).join("") + '</div>' +
+      '<div class="q3-hdet" aria-live="polite"><p class="hand-note">toca un hito para ver qué pasó y por qué importa</p></div>';
+    var det = cuerpo.querySelector(".q3-hdet"), previo = null;
+    cuerpo.querySelector(".q3-hist").addEventListener("click", function (ev) {
+      var b = ev.target.closest(".q3-h"); if (!b) return;
+      if (previo) previo.classList.remove("sel"); b.classList.add("sel"); previo = b;
+      var x = d.eventos[+b.getAttribute("data-i")];
+      det.innerHTML = '<h5><span class="q3-hano">' + x.a + "</span> " + x.t + "</h5><p>" + x.d + "</p>";
+    });
+  };
+
+  // ============================================================
   // Q3_DECISION: árbol de decisión para reconocer la familia
   // ============================================================
   var R = function (f) { return { fam: f }; };

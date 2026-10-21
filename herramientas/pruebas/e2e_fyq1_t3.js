@@ -206,7 +206,9 @@ const { lanzar, abrirTema } = require('./e2e_common.js');
   await W('q3_tabla').locator('.q3-el[data-s="Ne"]').click(); chk('tabla Ne: gas noble', await W('q3_tabla').locator('.q3-det').innerText(), t => /Gas noble/.test(t));
 
   // ---------------------------------------------------------------- 14. línea del tiempo y generales
-  chk('línea del tiempo montada', await W('linea').count(), 1);
+  await ir('q3_historia');
+  chk('historia: 9 hitos', await W('q3_historia').locator('.q3-h').count(), 9);
+  await W('q3_historia').locator('.q3-h').nth(2).click(); chk('historia: hito de Stock', await W('q3_historia').locator('.q3-hdet').innerText(), t => /Stock/.test(t) && /1919/.test(t));
   const ov = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   chk('sin desborde horizontal', ov <= 0, true);
   console.log(`${n} comprobaciones · fallos: ${mal} · errores JS: ${errs.length ? errs : 'ninguno'}`);
