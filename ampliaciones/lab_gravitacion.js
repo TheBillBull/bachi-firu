@@ -56,9 +56,9 @@
     var cuerpo = B.caja(host, "Pruébalo", "La fuerza de atracción gravitatoria entre dos masas");
     cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { a: p10(70), b: p10(70), c: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl = {};
-    sl.a = U.slider(ctl, { et: "Masa 1: log<sub>10</sub>(m₁/kg)", min: 0, max: 31, step: 0.05, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return cient(Math.pow(10, v), 2) + " kg"; } });
-    sl.b = U.slider(ctl, { et: "Masa 2: log<sub>10</sub>(m₂/kg)", min: 0, max: 31, step: 0.05, val: st.b, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return cient(Math.pow(10, v), 2) + " kg"; } });
-    sl.c = U.slider(ctl, { et: "Distancia: log<sub>10</sub>(r/m)", min: -1, max: 12, step: 0.05, val: st.c, on: function (v) { st.c = v; pinta(); }, fmt: function (v) { return cient(Math.pow(10, v), 2) + " m"; } });
+    sl.a = U.slider(ctl, { et: "Masa m₁", min: 0, max: 31, step: 0.05, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return cient(Math.pow(10, v), 2) + " kg"; } });
+    sl.b = U.slider(ctl, { et: "Masa m₂", min: 0, max: 31, step: 0.05, val: st.b, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return cient(Math.pow(10, v), 2) + " kg"; } });
+    sl.c = U.slider(ctl, { et: "Distancia r", min: -1, max: 12, step: 0.05, val: st.c, on: function (v) { st.c = v; pinta(); }, fmt: function (v) { return cient(Math.pow(10, v), 2) + " m"; } });
     function pinta() {
       var m1 = Math.pow(10, st.a), m2 = Math.pow(10, st.b), r = Math.pow(10, st.c), F = G * m1 * m2 / (r * r), peso = F / 9.81;
       g.limpiar();
@@ -86,8 +86,8 @@
     var cuerpo = B.caja(host, "Pruébalo", "La intensidad del campo gravitatorio g y la altura");
     cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { n: "Tierra", h: 0.5, m: 60 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
-    U.slider(ctl, { et: "Altura h sobre la superficie (en radios R)", min: 0, max: 5, step: 0.05, val: st.h, on: function (v) { st.h = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " R"; } });
-    U.slider(ctl, { et: "Masa de la persona (kg)", min: 10, max: 150, step: 5, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " kg"; } });
+    U.slider(ctl, { et: "Altura h (en R)", min: 0, max: 5, step: 0.05, val: st.h, on: function (v) { st.h = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " R"; } });
+    U.slider(ctl, { et: "Masa persona", min: 10, max: 150, step: 5, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " kg"; } });
     function pinta() {
       var c = Gr.CUERPOS[st.n], R = c.R, h = st.h * R, g0 = Gr.g(st.n, 0), gh = Gr.g(st.n, h);
       g.limpiar(); g.rango(0, 5, 0, g0 * 1.1); g.limpiar();
@@ -113,10 +113,10 @@
     var cuerpo = B.caja(host, "Pruébalo", "Órbita elíptica: las leyes de Kepler en acción");
     cuerpo.innerHTML = '<div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { a: 1, e: 0.5, f: 0.12, dt: 0.1, areas: 1 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl = {}, an;
-    sl.a = U.slider(ctl, { et: "Semieje mayor a (UA)", min: 0.4, max: 5, step: 0.1, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 1) + " UA"; } });
+    sl.a = U.slider(ctl, { et: "Semieje a (UA)", min: 0.4, max: 5, step: 0.1, val: st.a, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 1) + " UA"; } });
     sl.e = U.slider(ctl, { et: "Excentricidad e", min: 0, max: 0.9, step: 0.05, val: st.e, on: function (v) { st.e = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
-    sl.f = U.slider(ctl, { et: "Posición (fracción del periodo desde el perihelio)", min: 0, max: 1, step: 0.01, val: st.f, on: function (v) { st.f = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " T"; } });
-    sl.dt = U.slider(ctl, { et: "Intervalo Δt de los sectores (fracción de T)", min: 0.02, max: 0.25, step: 0.01, val: st.dt, on: function (v) { st.dt = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " T"; } });
+    sl.f = U.slider(ctl, { et: "Posición (en T)", min: 0, max: 1, step: 0.01, val: st.f, on: function (v) { st.f = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " T"; } });
+    sl.dt = U.slider(ctl, { et: "Intervalo Δt (en T)", min: 0.02, max: 0.25, step: 0.01, val: st.dt, on: function (v) { st.dt = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " T"; } });
     function pos(Mn, a, e) { var E = Gr.kepler(Mn, e), b = a * Math.sqrt(1 - e * e); return { x: a * (Math.cos(E) - e), y: b * Math.sin(E), r: a * (1 - e * Math.cos(E)), E: E }; }
     function sector(M0, dM, a, e, clase) {
       var pts = [[0, 0]], k, N = 40; for (k = 0; k <= N; k++) { var p = pos(M0 + dM * k / N, a, e); pts.push([p.x, p.y]); }
@@ -153,13 +153,13 @@
   B.w.f11_kepler3 = function (host) {
     var cuerpo = B.caja(host, "Pruébalo", "Tercera ley de Kepler: T² es proporcional a a³");
     cuerpo.innerHTML = '<div data-sel class="chips"></div><div class="w-plot"></div><div class="ac-tabla"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
-    var st = { k: "sol", x: 1 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), tabla = cuerpo.querySelector(".ac-tabla"), slx;
-    slx = U.slider(ctl, { et: "Semieje mayor de un cuerpo imaginario (UA)", min: 0.3, max: 40, step: 0.1, val: st.x, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 1) + " UA"; } });
+    var st = { k: "sol", x: 2.5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), tabla = cuerpo.querySelector(".ac-tabla"), slx;
+    slx = U.slider(ctl, { et: "Semieje a (UA)", min: 0.3, max: 40, step: 0.1, val: st.x, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 1) + " UA"; } });
     function pinta() {
       g.limpiar(); var filas = "";
       if (st.k === "sol") {
         g.rango(-0.6, 1.8, -1, 2.8); g.limpiar();
-        g.segmento(-0.6, -0.9, 1.8, 2.7, { clase: "c-ok", dash: "6 5" }); g.texto(1.3, 1.95, "pendiente 3/2", { clase: "ok", dx: -4, dy: -10 });
+        g.segmento(-0.6, -0.9, 1.8, 2.7, { clase: "c-ok", dash: "6 5" }); g.texto(0.95, 1.425, "pendiente 3/2", { clase: "ok", dx: 8, dy: 22 });
         Gr.PLANETAS.forEach(function (n) { var c = Gr.CUERPOS[n], a = c.a / 1.496e11; g.punto(p10(a), p10(c.T), { r: 5, clase: "c-pen" }); g.texto(p10(a), p10(c.T), n, { dx: 8, dy: -6, clase: "pen" }); filas += "<tr><th>" + n + "</th><td>" + fmt(a, 4) + "</td><td>" + fmt(c.T, 4) + "</td><td class='ok'>" + fmt(c.T * c.T / (a * a * a), 3) + "</td></tr>"; });
         var Tx = Math.pow(st.x, 1.5); g.punto(p10(st.x), p10(Tx), { r: 8, clase: "c-red" });
         tabla.innerHTML = "<table class='fo-t ac-t'><thead><tr><th></th><th>a (UA)</th><th>T (años)</th><th>T²/a³</th></tr></thead><tbody>" + filas + "</tbody></table>";
@@ -188,7 +188,7 @@
     cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-pl class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { n: "Tierra", s: 28, m: 1000, ang: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl = {}, an;
     function hKm() { return 0.01 * Gr.CUERPOS[st.n].R * Math.pow(6000, st.s / 100) / 1000; }
-    sl.s = U.slider(ctl, { et: "Altura sobre la superficie", min: 0, max: 100, step: 0.5, val: st.s, on: function (v) { st.s = v; pinta(); }, fmt: function (v) { return cient(hKm() * 1000, 3) + " m"; } });
+    sl.s = U.slider(ctl, { et: "Altura sobre la superficie", min: 0, max: 100, step: 0.5, val: st.s, on: function (v) { st.s = v; pinta(); }, fmt: function (v) { var k = hKm(); return (k < 100 ? fmt(k, 1) : fmt(k, 0)) + " km"; } });
     sl.m = U.slider(ctl, { et: "Masa del satélite", min: 100, max: 10000, step: 100, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " kg"; } });
     function pinta() {
       var c = Gr.CUERPOS[st.n], R = c.R, h = hKm() * 1000, r = R + h, GM = G * c.M, v = Math.sqrt(GM / r), T = 2 * PI * r / v, w = v / r;
@@ -221,7 +221,7 @@
     var cuerpo = B.caja(host, "Pruébalo", "Pozo de potencial gravitatorio y velocidad de escape");
     cuerpo.innerHTML = '<div data-pl class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { n: "Tierra", p: 80, r: 1 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl = {}, an, sim = { r: 1, v: 0 };
-    sl.p = U.slider(ctl, { et: "Velocidad de lanzamiento vertical (% de la de escape)", min: 10, max: 140, step: 1, val: st.p, on: function (v) { st.p = v; sim.r = 1; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
+    sl.p = U.slider(ctl, { et: "Velocidad (% de v<sub>e</sub>)", min: 10, max: 140, step: 1, val: st.p, on: function (v) { st.p = v; sim.r = 1; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
     function pinta() {
       var c = Gr.CUERPOS[st.n], R = c.R, GM = G * c.M, ve = Math.sqrt(2 * GM / R), v0 = ve * st.p / 100, E = 0.5 * v0 * v0 - GM / R;
       var Vmin = -GM / R * 1.1; g.rango(1, 8, Vmin / 1e6, -Vmin / 1e6 * 0.25); g.limpiar();
@@ -266,7 +266,7 @@
     var cuerpo = B.caja(host, "Pruébalo", "Campo gravitatorio de dos masas: el punto neutro");
     cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { i: 0, x: 0.5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
-    U.slider(ctl, { et: "Posición del punto P entre los dos cuerpos (fracción de la distancia)", min: 0.02, max: 0.98, step: 0.005, val: st.x, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 3); } });
+    U.slider(ctl, { et: "Posición de P (de d)", min: 0.02, max: 0.98, step: 0.005, val: st.x, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 3); } });
     function pinta() {
       var P = PN[st.i], d = P.d, x = st.x * d, g1 = G * P.M1 / (x * x), g2 = G * P.M2 / Math.pow(d - x, 2), xn = d / (1 + Math.sqrt(P.M2 / P.M1));
       g.limpiar();
@@ -292,7 +292,7 @@
     var cuerpo = B.caja(host, "Pruébalo", "Comparador del sistema solar: g, velocidad de escape y más");
     cuerpo.innerHTML = '<div data-mag class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
     var st = { q: "g", m: 60 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
-    U.slider(ctl, { et: "Masa de la persona (kg)", min: 40, max: 120, step: 5, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " kg"; } });
+    U.slider(ctl, { et: "Masa persona", min: 40, max: 120, step: 5, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " kg"; } });
     var MAG = {
       g: { t: "g en la superficie", u: "m/s²", f: function (n) { return Gr.g(n, 0); } },
       peso: { t: "Peso de la persona", u: "N", f: function (n) { return st.m * Gr.g(n, 0); } },
