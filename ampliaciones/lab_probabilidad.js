@@ -343,7 +343,7 @@
       var pts = []; for (var i = 1; i <= 80; i++) pts.push([i, P.cumpleanos(i, 365)]); g.polilinea(pts, { clase: "c-pen" });
       g.vertical(n, { clase: "c-faint", dash: "4 4" }); g.punto(n, p, { r: 7, clase: "c-red" });
       var prod = []; for (var j = 0; j < Math.min(n, 4); j++) prod.push("(" + (365 - j) + "/365)");
-      lectura.innerHTML = fil("Probabilidad de que ALGUNOS coincidan", dec(p) + " = " + pct(p), "red ancho") + fil("Probabilidad de que NINGUNO coincida", prod.join("·") + (n > 4 ? "·…" : "") + " = " + dec(1 - p), "ancho") + fil("Simulación (1 000 grupos)", st.sim == null ? "pulsa el botón" : st.sim + " de 1 000 tienen alguna coincidencia = " + fmt(st.sim / 10, 1) + " %", "pen ancho") +
+      lectura.innerHTML = fil("Probabilidad de que ALGUNOS coincidan", dec(p) + " = " + pct(p), "red ancho") + fil("Probabilidad de que NINGUNO coincida", prod.join(" · ") + (n > 4 ? " · …" : "") + " = " + dec(1 - p), "ancho") + fil("Simulación (1 000 grupos)", st.sim == null ? "pulsa el botón" : st.sim + " de 1 000 tienen alguna coincidencia = " + fmt(st.sim / 10, 1) + " %", "pen ancho") +
         fil("Umbral", "con 23 personas ya hay más del 50 %; con 57, más del 99 %", "ancho");
       pie.innerHTML = "Parece increíble que con sólo 23 personas sea más probable que no que dos cumplan años el mismo día, pero se calcula con el <b>suceso contrario</b>: P(alguna coincidencia) = 1 − P(ninguna) y P(ninguna) = (365/365)·(364/365)·(363/365)·… Hay muchísimos <b>pares</b> posibles de personas (en 23 personas, C(23, 2) = 253), y cada par tiene una pequeña probabilidad de coincidir.";
     }

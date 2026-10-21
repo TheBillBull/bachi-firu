@@ -542,3 +542,8 @@
 .m13-t2 input, .m13-urna input { width: 70px; padding: 4px 6px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--sheet); color: var(--ink); font: 600 14px var(--math); text-align: center; }
 .m13-t2 th, .m13-t2 td { text-align: center; }
 .m13-tot th, .m13-tot td { border-top: 2px solid var(--line); font-weight: 700; }
+@media (max-width: 520px) {
+  [data-w^="m13_"] .ctl label { flex-wrap: wrap; }
+  [data-w^="m13_"] .ctl label .sl-et { white-space: normal; flex: 1 1 100%; }
+  [data-w^="m13_"] .ctl label input[type=range] { flex: 1 1 60%; }
+}
