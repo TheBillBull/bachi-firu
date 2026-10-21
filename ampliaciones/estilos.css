@@ -511,3 +511,7 @@
 .f8-ec-f .chip-btn { flex: 0 0 auto; }
 .f8-ec-f input { flex: 1 1 60px; min-width: 0; width: 100%; font: 600 15px var(--math); padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--sheet); color: var(--ink); }
 @media (max-width: 700px) { .f8-trio, .f8-dos, .f8-vert { grid-template-columns: 1fr; } .f8-torre { max-width: 220px; margin: 0 auto; } }
+.f9-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; margin: 8px 0 0; }
+.f9-disco svg, .f9-graf svg { display: block; width: 100%; height: auto; }
+.f9-disco { min-width: 0; } .f9-graf { min-width: 0; }
+@media (max-width: 700px) { .f9-dos { grid-template-columns: 1fr; } .f9-disco { max-width: 340px; margin: 0 auto; width: 100%; } }
