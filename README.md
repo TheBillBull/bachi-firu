@@ -8,7 +8,7 @@ Los temas vistos y los borradores de los ejercicios se guardan en el navegador d
 
 ## Archivos
 
-- `pagina.html` — el contenido original de la página (sin `<!doctype>` ni `<head>`). **No se modifica**: todo lo nuevo es aditivo.
+- `pagina.html` — el contenido original de la página (sin `<!doctype>` ni `<head>`). Solo se ha tocado lo mínimo para cargar la capa de ampliaciones (14 líneas añadidas y 2 ampliadas); no se ha quitado ni cambiado ningún contenido original, y `herramientas/pruebas/e2e_regresion.js` lo comprueba.
 - `ampliaciones/` — **capa de ampliaciones** (ver más abajo), que se fusiona con el original al cargar.
 - `build.sh` — concatena la capa de ampliaciones y genera `index.html` y `pagina-autonoma.html` (con todo incrustado).
 - `index.html` y `pagina-autonoma.html` — la web (generadas; no se editan a mano). `ampliaciones/bachi.js` también es generado.
