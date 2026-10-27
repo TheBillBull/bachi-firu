@@ -1,4 +1,11 @@
-# Generado por obsidian/generar.js
+# Generado por obsidian/generar.js: se versiona el generador, no su salida
 obsidian/Bachi Firu/
 obsidian/Bachi Firu.zip
 obsidian/.mates.json
+
+# Capturas de las pruebas en navegador
+shots/
+herramientas/pruebas/shots/
+
+# Ajustes locales de Claude Code
+.claude/

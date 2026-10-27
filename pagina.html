@@ -585,6 +585,7 @@
     *, *::before, *::after { transition: none !important; animation: none !important; }
   }
 </style>
+<link rel="stylesheet" href="ampliaciones/estilos.css">
 
 <header class="topbar">
   <div class="topbar-inner">
@@ -712,6 +713,8 @@
 
 </main>
 
+<!-- Ampliaciones: capa aparte que se fusiona con el contenido de abajo sin modificarlo -->
+<script src="ampliaciones/bachi.js"></script>
 <script>
 (function () {
   "use strict";
@@ -15820,6 +15823,9 @@
     historia_fil: { temas: TEMAS_FILOSOFIA, content: TEMA_CONTENT_FILOSOFIA, lamina: TEMA_LAMINA_FILOSOFIA, ejercicios: TEMA_EJERCICIOS_FILOSOFIA, videos: TEMA_VIDEOS_FILOSOFIA, simulacros: SIMULACROS_HISTORIA_FIL }
   };
 
+  // Fusiona las ampliaciones (carpeta ampliaciones/) con los datos de arriba, que no se tocan
+  if (window.BACHI) BACHI.fusionar(ASIGNATURAS_DATA);
+
   var REDACCION_EJERCICIOS = [
     {
       id: "red1",
@@ -16354,6 +16360,7 @@
     var vistos = contarVistos(asignaturaActual), total = d.temas.length;
     var extra = [plural(contarDe(d.ejercicios), "ejercicio resuelto", "ejercicios resueltos")];
     if (d.simulacros && d.simulacros.length) extra.push(plural(d.simulacros.length, "simulacro", "simulacros"));
+    if (window.BACHI && BACHI.resumenAsig(asignaturaActual)) extra.push(BACHI.resumenAsig(asignaturaActual));
     document.getElementById("asigProgress").innerHTML =
       '<span class="dots" aria-hidden="true">' + dotsHtml(asignaturaActual) + '</span>' +
       '<span>' + vistos + ' de ' + total + ' temas vistos</span>' +
@@ -16384,7 +16391,7 @@
       html += '<div class="tema-row' + (vista ? " done" : "") + (abierto ? " open" : "") + (t.ready ? "" : " disabled") + '" data-tema="' + t.id + '">' +
         '<span class="tema-num">' + (i + 1) + '</span>' +
         (t.ready
-          ? '<button type="button" class="tema-open" aria-expanded="' + abierto + '" aria-controls="detail-' + t.id + '"><span>' + t.titulo + '</span><span class="chev" aria-hidden="true">›</span></button>'
+          ? '<button type="button" class="tema-open" aria-expanded="' + abierto + '" aria-controls="detail-' + t.id + '"><span>' + t.titulo + '</span>' + (window.BACHI ? BACHI.insignia(asignaturaActual, t.id) : '') + '<span class="chev" aria-hidden="true">›</span></button>'
           : '<span class="tema-open">' + t.titulo + '<span class="tema-sub">Próximamente</span></span>') +
         '<button type="button" class="tema-check' + (vista ? " done" : "") + '" data-check="' + t.id + '"' + (t.ready ? "" : " disabled") +
           ' aria-pressed="' + vista + '" aria-label="Tema ' + (i + 1) + ' visto" title="' + (vista ? "Quitar la marca de visto" : "Marcar como visto") + '">' + (vista ? "✓" : "") + '</button>' +
@@ -16445,6 +16452,7 @@
       }).join('') + '</nav>';
 
       var html = '<div class="lesson-block">';
+      if (window.BACHI) html += BACHI.cabecera(asignaturaActual, id);
       secciones.forEach(function (s, i) {
         html += "<h3 id='sec-" + id + "-" + i + "'><span class='swipe'>" + s.h + "</span></h3>" + s.html;
       });
@@ -16461,6 +16469,7 @@
 
       detail.innerHTML = toc + html + nav;
       resaltarMatematicas(detail);
+      if (window.BACHI) BACHI.montar(detail);
     }
   }
 
@@ -16487,10 +16496,11 @@
   function renderLaminas() {
     if (!asignaturaActual) return;
     var lamina = ASIGNATURAS_DATA[asignaturaActual].lamina;
-    var html = "";
+    var html = window.BACHI ? BACHI.barraLamina() : "";
     temasListos().forEach(function (t, i) {
       html += '<section class="tema-block">' + temaHead(t, i) + '<div class="lamina">';
       (lamina[t.id] || []).forEach(function (block) {
+        if (block.ampl && window.BACHI) { html += BACHI.tarjetaLamina(block); return; }
         html += '<div class="lamina-card"><h4>' + block.titulo + '</h4>';
         block.items.forEach(function (item) {
           html += '<div class="formula-row">' +
@@ -16515,6 +16525,7 @@
       html += '<section class="tema-block">' + temaHead(t, ti) + '<div class="ex-list">';
       (ejercicios[t.id] || []).forEach(function (ex, i) {
         var solId = "sol-" + t.id + "-" + i;
+        if (ex.ampl && window.BACHI) { html += BACHI.articulo(asignaturaActual, t.id, ex, i, solId); return; }
         html += '<article class="exercise">' +
           '<div class="ex-head"><span class="ex-num">' + (i + 1) + '</span>Ejercicio</div>' +
           '<div class="exercise-statement">' + ex.enunciado + '</div>' +
@@ -16532,6 +16543,7 @@
     var panelEjercicios = document.getElementById("panel-ejercicios");
     panelEjercicios.innerHTML = html;
     panelEjercicios.querySelectorAll(".exercise-statement").forEach(resaltarMatematicas);
+    if (window.BACHI) BACHI.montar(panelEjercicios);
   }
 
   document.getElementById("panel-ejercicios").addEventListener("click", function (e) {

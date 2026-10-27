@@ -1,0 +1,21 @@
+global.window = global; global.document = { addEventListener(){}, createElementNS(){return {setAttribute(){},appendChild(){}}} };
+const R = process.env.BACHI_RAIZ || require('path').join(__dirname, '..', '..');
+for (const f of ['grafica','nucleo','ui','lab_atomo']) require(R + '/ampliaciones/' + f + '.js');
+const Q = BACHI.lab.quim; let mal = 0;
+function chk(n, got, esp){ if(JSON.stringify(got)!==JSON.stringify(esp)){mal++;console.log('FALLO',n,'→',JSON.stringify(got),'esperado',JSON.stringify(esp));} }
+const cfg = (Z,q=0,ab=false)=>Q.cfgTxt(Q.configIon(Z,q),ab);
+chk('Na', cfg(11), '1s² 2s² 2p⁶ 3s¹'); chk('Ca', cfg(20), '1s² 2s² 2p⁶ 3s² 3p⁶ 4s²'); chk('Fe ab', cfg(26,0,true), '[Ar] 4s² 3d⁶'); chk('Fe2+', cfg(26,2,true), '[Ar] 3d⁶'); chk('Fe3+', cfg(26,3,true), '[Ar] 3d⁵');
+chk('Cr', cfg(24,0,true), '[Ar] 4s¹ 3d⁵'); chk('Cu', cfg(29,0,true), '[Ar] 4s¹ 3d¹⁰'); chk('Cu+', cfg(29,1,true), '[Ar] 3d¹⁰'); chk('Cu2+', cfg(29,2,true), '[Ar] 3d⁹'); chk('Cl-', cfg(17,-1,true), '[Ne] 3s² 3p⁶'); chk('Al3+', cfg(13,3,true), '[He] 2s² 2p⁶'); chk('O2-', cfg(8,-2,true), '[He] 2s² 2p⁶');
+chk('Pd', cfg(46,0,true), '[Kr] 4d¹⁰'); chk('Ag', cfg(47,0,true), '[Kr] 5s¹ 4d¹⁰'); chk('Zn2+', cfg(30,2,true), '[Ar] 3d¹⁰');
+console.log('Xe →', cfg(54,0,true), '| Kr →', cfg(36,0,true), '| Ti →', cfg(22,0,true), '| Mn2+ →', cfg(25,2,true), '| Sn2+ →', cfg(50,2,true), '| Fe capas:', Q.cfgPorCapas(Q.configIon(26,0)));
+chk('desap Fe', Q.desapareados(Q.configIon(26,0)), 4); chk('desap Fe3+', Q.desapareados(Q.configIon(26,3)), 5); chk('desap N', Q.desapareados(Q.configIon(7,0)), 3); chk('desap O', Q.desapareados(Q.configIon(8,0)), 2); chk('desap Ne', Q.desapareados(Q.configIon(10,0)), 0); chk('desap Cr', Q.desapareados(Q.configIon(24,0)), 6);
+chk('valencia Cl', Q.electronesValencia(Q.configIon(17,0)), 7); chk('valencia Na', Q.electronesValencia(Q.configIon(11,0)), 1); chk('valencia Fe', Q.electronesValencia(Q.configIon(26,0)), 2);
+chk('bloque Na', Q.bloque(11), 's'); chk('bloque Cl', Q.bloque(17), 'p'); chk('bloque Fe', Q.bloque(26), 'd'); chk('bloque He', Q.bloque(2), 's');
+const pos = s => { const e = Q.porSimbolo(s); return [e.p, e.g]; };
+chk('pos H', pos('H'), [1,1]); chk('pos He', pos('He'), [1,18]); chk('pos Li', pos('Li'), [2,1]); chk('pos B', pos('B'), [2,13]); chk('pos Ne', pos('Ne'), [2,18]); chk('pos Cl', pos('Cl'), [3,17]); chk('pos K', pos('K'), [4,1]); chk('pos Fe', pos('Fe'), [4,8]); chk('pos Ga', pos('Ga'), [4,13]); chk('pos Kr', pos('Kr'), [4,18]); chk('pos Ag', pos('Ag'), [5,11]); chk('pos Xe', pos('Xe'), [5,18]); chk('pos Sn', pos('Sn'), [5,14]);
+const M = k => Q.masaMedia(Q.ISOTOPOS[k].iso);
+console.log('masas medias:', Object.keys(Q.ISOTOPOS).map(k => k + ' ' + M(k).toFixed(3) + ' (tabla ' + Q.porSimbolo(k).m + ')').join(' | '));
+Object.keys(Q.ISOTOPOS).forEach(k => { const t = Q.ISOTOPOS[k].iso.reduce((a,i)=>a+i[2],0); if (Math.abs(t-100)>0.02) {mal++; console.log('FALLO suma abundancias', k, t);} if (Math.abs(M(k) - Q.porSimbolo(k).m) > 0.02) {mal++; console.log('FALLO masa media', k, M(k), Q.porSimbolo(k).m);} });
+const bh = Q.bohr(3,2); chk('Balmer α', Math.round(bh.lambda*10)/10, 656.3); const ly = Q.bohr(2,1);
+console.log('Lyman α', ly.lambda.toFixed(1), 'Ee', ly.Ee.toFixed(2), 'eV; Balmer β', Q.bohr(4,2).lambda.toFixed(1), 'γ', Q.bohr(5,2).lambda.toFixed(1), 'Paschen α', Q.bohr(4,3).lambda.toFixed(1), 'límite Balmer', Q.bohr(1e6,2).lambda.toFixed(1));
+console.log(mal ? mal+' FALLOS' : 'motor del átomo correcto');
