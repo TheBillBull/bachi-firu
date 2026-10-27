@@ -197,6 +197,15 @@ comp('ej aleación nH2', nh, 0.0592, 0.002); comp('ej aleación Zn', s[a], 0.600
 s = sp.solve([a + b - 10, 2 * a + Q(7, 2) * b - 26], [a, b])
 comp('ej gases CH4', s[a], 6); comp('ej gases C2H6', s[b], 4)
 
+# ejemplos añadidos en la revisión «con cariño»
+nHCl, nBa = Q(30, 100) * Q(40, 1000), Q(10, 100) * Q(50, 1000)
+cierto('ej exceso: limita Ba(OH)2', nBa < nHCl / 2)
+sob = nHCl - 2 * nBa; Vf = Q(90, 1000)
+comp('ej exceso HCl', sob / Vf, 0.022, 0.02); comp('ej exceso Cl-', nHCl / Vf, 0.133, 0.003); comp('ej exceso Ba', nBa / Vf, 0.056, 0.02)
+comp('ej exceso carga', sob / Vf + 2 * nBa / Vf, nHCl / Vf, 0.001)
+cierto('ej eteno: O2 sobra', 60 > 15 * 3)
+comp('ej eteno total', 15 * 2 + (60 - 45), 45); comp('ej eteno %CO2', Q(30, 45) * 100, 67, 0.01)
+
 print(f'Cifras verificadas: {ok}; fallos: {len(fallos)}')
 for f in fallos:
     print('  FALLO', f)
