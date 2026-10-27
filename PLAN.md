@@ -96,3 +96,21 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **Si llega un límite de uso (429 / «session limit»):** no reintentar en bucle; programar un aviso (`send_later`) a la hora de reinicio que indique el error y retomar entonces desde el paso que toque.
 **Red de seguridad:** un aviso programado cada ~2 h mientras haya agentes en marcha; si siguen trabajando, no hacer nada, no avisar al usuario y re-armar (máx. 6 avisos seguidos sin novedades).
 **Exposición máxima esta noche:** 4 temas × 700.000 = 2,8 M tokens como tope duro (esperado: 1–2 M).
+
+## 12. Si esta conversación se corta o se retoma en otra (LÉELO PRIMERO en una conversación nueva)
+**Estado exacto al cortar (27-oct-2026, 23:40 UTC):** tanda 1 de Química II (temas 1–4) **EN CURSO, sin ningún tema terminado todavía**. Dos agentes trabajaban en la conversación original (no heredan a la nueva):
+- Agente del **tema 1** (`worktree-agent-adaa9ded3f7e4480b`): hay un commit con `ampliaciones/lab_quim2_t1_mol.js` (simuladores de mol) ya fusionado y subido a la rama de trabajo. Falta todo el contenido del tema (`ampliaciones/contenido/quimica2_t01*.js`), su verificación y pruebas.
+- Agente del **tema 3** (`worktree-agent-adb822b28a862c5da`): **sin nada commiteado**; empezar de cero.
+- Los dos chocaron con el límite de uso de 5 h (reinicio a las 23:30 UTC) y se reanudaron a las 23:30. Coste medido: todavía ninguno (se conoce al terminar cada agente).
+- **Lo que NO está en GitHub** (solo en el contenedor de la conversación original, carpeta `.claude/worktrees/`) puede perderse. La rama `claude/admiring-keller-1be6ou` tiene todo lo demás.
+
+**Pasos en la conversación nueva (el usuario solo dice «continuamos»):**
+1. `git fetch && git checkout claude/admiring-keller-1be6ou && git pull`. Leer `CLAUDE.md` y este `PLAN.md`.
+2. **¿Sigue activa la conversación anterior?** Si el último commit del remoto es de hace menos de ~30 min, otra sesión está trabajando: no lances agentes; avisa al usuario. Si no, sigue.
+3. `git worktree list`: si existen `.claude/worktrees/agent-adaa…` o `…adb8…`, haz en cada una `git add -A` (sin bachi.js/index.html/pagina-autonoma.html), commit WIP y fusiona su rama en la de trabajo (`git merge --no-edit worktree-agent-<id>`; conflictos: `estilos.css` conservar ambos, `e2e_montaje.js` conservar el nuestro); `sh build.sh`; `e2e_regresion.js`; push. Si no existen (contenedor nuevo), parte de lo que haya en la rama.
+4. Ver qué temas de Química II tienen contenido: `node herramientas/pruebas/leer.js quimica2 tN` y `ls ampliaciones/contenido | grep quimica2`. Los que no estén completos se rehacen.
+5. Lanzar **máximo 2 agentes nuevos** (plantilla de la sección 8 + estándar 4b), cada uno **un tema** (t1 y t3 primero; si ya hay lo del t1 en la rama, que lo use y lo complete), con las reglas de la sección 6 y la **puerta de coste de 700.000 tokens por tema** (sección 11). Tras cada tema: fusionar, verificar (`e2e_ejercicios`, `e2e_ruta quimica2:tN`, `e2e_regresion`, verificador del tema), commit, push y **publicar** (sección 3).
+6. Al tener los temas 1–4: `sh herramientas/comprobar_todo.sh` → «TODO CUADRA»; anotar costes (sección 7) y estado (sección 2); publicar y parar. La tanda 2 (t5–t8) solo si el usuario lo dice.
+
+**Avisos programados:** los `send_later` y las notificaciones de agentes pertenecen a la conversación que los creó; **no actúan en una conversación nueva**. No esperes ninguno.
+**Si el límite de uso (429) corta algo:** parar, anotar la hora de reinicio que indique el error y esperar; no reintentar en bucle.
