@@ -87,17 +87,21 @@
       var s = sust(), v = valores(), L = Q.leer(st.f);
       Object.keys(nodos).forEach(function (k) { var ok = permitido(k); nodos[k].disabled = !ok; });
       if (!permitido(st.dato)) { st.dato = "m"; st.v = s.v; }
-      var idx = ["m", "n", "N", "V", "D"];
       if (!L.ok || !v) {
         lectura.innerHTML = fil("Revisa los datos", L.ok ? "escribe una cantidad positiva en la casilla azul" : L.error, "red ancho");
       }
-      idx.forEach(function (k) {
+      idx.forEach(tarjeta);
+      pinta2();
+    }
+    var idx = ["m", "n", "N", "V", "D"];
+    function tarjeta(k) {
+        var v = valores();
         var b = nodos[k], val = b.querySelector(".qm-val"), em = b.querySelector("em"), esDato = k === st.dato;
         b.classList.toggle("dato", esDato); b.setAttribute("aria-pressed", esDato);
         var d = DEF.filter(function (x) { return x.k === k; })[0];
         if (esDato) {
           val.innerHTML = '<input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="' + d.tit + ' (dato)" value="' + st.v + '">';
-          var inp = val.querySelector("input"); inp.addEventListener("input", function () { st.v = inp.value; pinta2(); });
+          var inp = val.querySelector("input"); inp.addEventListener("input", function () { st.v = inp.value; idx.forEach(function (kk) { if (kk !== st.dato) tarjeta(kk); }); pinta2(); });
           inp.addEventListener("keydown", function (e) { e.stopPropagation(); });
           em.textContent = d.u + " · esto es el dato; pulsa otra tarjeta para cambiarlo";
           return;
@@ -107,8 +111,6 @@
         var txt = k === "m" ? fmt(v.m, 4) : k === "n" ? fmt(v.n, 5) : k === "N" ? Q.sci(v.N, 3) : k === "V" ? fmt(v.V, 3) : fmt(v.D, 2);
         val.textContent = txt;
         em.textContent = d.u + (k === "N" ? " (" + Q.sci(v.N * Q.nAtomos(st.f), 3) + " átomos)" : k === "V" ? (st.cond === "cn" ? " en CN" : " a " + fmt(st.P, 1) + " atm y " + fmt(v.TK, 0) + " K") : "");
-      });
-      pinta2();
     }
     function pinta2() {
       var v = valores(), L = Q.leer(st.f);
