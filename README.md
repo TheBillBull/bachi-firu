@@ -59,7 +59,7 @@ Cada tema de Mates I y FyQ I incluye: teoría desarrollada con ejemplos resuelto
 
 ## Verificación del contenido
 
-Todo lo calculable se recalcula con scripts **independientes** de la web (no comparten código con ella). Hay más de 15.000 comprobaciones:
+Todo lo calculable se recalcula con scripts **independientes** de la web (no comparten código con ella). Hay más de 16.700 comprobaciones (se pasan todas con `sh herramientas/comprobar_todo.sh`):
 
 ```sh
 node herramientas/volcar_ampliaciones.js > /tmp/ampl.json

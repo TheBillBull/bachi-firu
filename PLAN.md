@@ -7,6 +7,8 @@
 2. Comprobar que el punto de partida está sano: `git checkout claude/admiring-keller-1be6ou && git pull`, y luego `sh herramientas/comprobar_todo.sh` → debe terminar en **«TODO CUADRA»**. Si no, arreglar eso antes de ampliar nada.
 3. Lanzar la tanda que toca (sección 4) siguiendo las reglas de coste (sección 6).
 
+**Línea base al cerrar la versión 1** (27-oct-2026, `sh herramientas/comprobar_todo.sh`, 11 min 30 s): **TODO CUADRA** — build OK · regresión «todo coincide» · 104/104 botones de la ruta de estudio · ejercicios nuevos que aceptan su respuesta: Mates I 611/611, FyQ I 622/622, Química II 10/10, Historia de España 7/7 · 12 scripts de verificación con **16.706 comprobaciones de cifras y 0 fallos**. Tras ampliar, esos números solo deben subir.
+
 ## 2. Estado por asignatura
 | Asignatura | Estado | Qué tiene |
 |---|---|---|
