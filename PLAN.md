@@ -56,7 +56,8 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 3. Capturas de pantalla **solo de tipos de widget nuevos** y una pasada. Leer archivos con `grep`/`sed -n`, nunca enteros.
 4. **No republicar el artefacto** hasta cerrar la tanda (una publicación por tanda).
 5. Sin motores ni catálogos gigantes: si un tema pide algo grande, preguntar antes.
-6. Al cerrar cada tanda: **anotar el coste medido** (tokens que informa cada agente) en la tabla de abajo y decir al usuario cifras reales, no promesas.
+6. **Sesión principal ligera** (ver `CLAUDE.md`): fusionar con `sh herramientas/fusionar_agente.sh <id>`; conversación nueva tras cada tanda. Medición del 27-oct: la sesión principal fue el 39 % del coste (639 acciones con ≈407.000 tokens de contexto medio) y los 13 agentes el 61 %; los 6 `fork` costaron ≈39 M «unidades» (≈ lo mismo que toda la principal, 45 M) por heredar el contexto.
+7. Al cerrar cada tanda: **anotar el coste medido** (tokens que informa cada agente) en la tabla de abajo y decir al usuario cifras reales, no promesas.
 
 ## 7. Coste medido hasta ahora (tokens de agentes; referencia para estimar)
 | Trabajo | Tokens | Duración |
