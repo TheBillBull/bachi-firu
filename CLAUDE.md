@@ -10,6 +10,9 @@ Web de estudio de Bachillerato (Ciencias, Selectividad Madrid). `pagina.html` es
 - **Obsidian / iPad está descartado**: no trabajar en `obsidian/` ni proponerlo.
 - Comunica claro y breve, con cifras reales; nada de jerga interna (no «piloto»).
 
+## Si hay un piloto automático en marcha
+Sigue el protocolo de `PLAN.md` sección 11 (puertas de coste incluidas) sin esperar al usuario; al llegar a su punto de parada, para y resume con cifras.
+
 ## Cuando el usuario diga «continuamos»
 1. Lee `PLAN.md` y `git status`/`git log -5` (¿hay trabajo sin fusionar en `.claude/worktrees/`?).
 2. Dile en 3–4 líneas qué tanda toca, cuántos agentes usarás y el coste estimado según la tabla de `PLAN.md`; **empieza sin más preguntas** salvo que haya una decisión real pendiente.

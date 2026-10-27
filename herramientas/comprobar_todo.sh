@@ -16,24 +16,29 @@ echo "2/5 Regresión: lo original no ha cambiado…"
 node herramientas/pruebas/e2e_regresion.js >"$TMP/regresion.txt" 2>&1
 if grep -q "todo coincide" "$TMP/regresion.txt" && ! grep -q "^FALLO\|^DIFER" "$TMP/regresion.txt"; then ok "regresión: todo coincide"; else mal "regresión (ver $TMP/regresion.txt)"; fi
 
-echo "3/5 Botones de la ruta de estudio en los 26 temas…"
-node herramientas/pruebas/e2e_ruta.js >"$TMP/ruta.txt" 2>&1
-if tail -1 "$TMP/ruta.txt" | grep -q "104/104"; then ok "ruta de estudio: 104/104 botones"; else mal "ruta de estudio ($(tail -1 "$TMP/ruta.txt"))"; fi
+echo "3/5 Preparando listas de temas ampliados (se detectan solas)…"
+node herramientas/volcar_ampliaciones.js >"$TMP/ampl.json" 2>/dev/null
+node herramientas/volcar_fyq1.js >"$TMP/fyq1_motores.json" 2>/dev/null
+node -e "const d=require(process.argv[1]).ampl;for(const a of Object.keys(d)){const t=Object.keys(d[a]).filter(k=>/^t\\d+\$/.test(k)).sort((x,y)=>x.slice(1)-y.slice(1));if(t.length)console.log(a+' '+t.join(' '))}" "$TMP/ampl.json" >"$TMP/lista.txt"
+NTEMAS=$(awk '{n+=NF-1} END {print n+0}' "$TMP/lista.txt")
+ARGS=$(awk '{s=$1":"$2; for(i=3;i<=NF;i++) s=s","$i; printf "%s ", s}' "$TMP/lista.txt")
+ok "temas ampliados detectados: $NTEMAS ($(awk '{printf "%s %d · ", $1, NF-1}' "$TMP/lista.txt"))"
+
+echo "   Botones de la ruta de estudio…"
+# shellcheck disable=SC2086
+node herramientas/pruebas/e2e_ruta.js $ARGS >"$TMP/ruta.txt" 2>&1
+ESP=$((NTEMAS*4))
+if tail -1 "$TMP/ruta.txt" | grep -q "$ESP/$ESP"; then ok "ruta de estudio: $ESP/$ESP botones"; else mal "ruta de estudio ($(tail -1 "$TMP/ruta.txt"))"; fi
 
 echo "4/5 Ejercicios: cada uno acepta su respuesta correcta…"
-for par in mates1:1,2,3,4,5,6,7,8,9,10,11,12,13 fyq1:1,2,3,4,5,6,7,8,9,10,11,12,13 quimica2:6 historia_esp:7; do
-  asig=${par%%:*}; lista=$(echo "${par#*:}" | tr ',' ' '); temas=""
-  for n in $lista; do temas="$temas t$n"; done
-  # shellcheck disable=SC2086
+while read -r asig temas; do
   node herramientas/pruebas/e2e_ejercicios.js "$asig" $temas >"$TMP/ej_$asig.txt" 2>&1
   malas=$(grep -c "NO ACEPTA\|INCOHERENCIAS\|SIN AMPLIACIÓN" "$TMP/ej_$asig.txt")
   tot=$(grep -o "[0-9]*/[0-9]* ejercicios" "$TMP/ej_$asig.txt" | awk -F'[/ ]' '{a+=$1; b+=$2} END {print a"/"b}')
   if [ "$malas" = 0 ] && grep -q "todo coherente" "$TMP/ej_$asig.txt"; then ok "$asig: $tot ejercicios aceptan su respuesta"; else mal "$asig ejercicios (ver $TMP/ej_$asig.txt)"; fi
-done
+done <"$TMP/lista.txt"
 
 echo "5/5 Verificación independiente de las cifras (sympy/python)…"
-node herramientas/volcar_ampliaciones.js >"$TMP/ampl.json" 2>/dev/null
-node herramientas/volcar_fyq1.js >"$TMP/fyq1_motores.json" 2>/dev/null
 SUMA=0
 for f in herramientas/verificar_*.py; do
   r=$(timeout 3000 python3 "$f" "$TMP/ampl.json" "$TMP/fyq1_motores.json" 2>&1 | tail -3)
@@ -42,14 +47,14 @@ for f in herramientas/verificar_*.py; do
 done
 
 if [ "$1" = "completo" ]; then
-  echo "Extra: móvil (sin desborde ni errores JS) en los 26 temas…"
-  for par in mates1 fyq1; do
-    for n in 1 2 3 4 5 6 7 8 9 10 11 12 13; do
-      r=$(node herramientas/pruebas/e2e_tema.js $par t$n t$n movil 2>&1 | tail -1)
-      case "$r" in *"desborde horizontal: ninguno · errores JS: ninguno"*) ;; *) mal "móvil $par t$n: $r";; esac
+  echo "Extra: móvil (sin desborde ni errores JS) en todos los temas ampliados…"
+  while read -r asig temas; do
+    for t in $temas; do
+      r=$(node herramientas/pruebas/e2e_tema.js "$asig" "$t" "$t" movil 2>&1 | tail -1)
+      case "$r" in *"desborde horizontal: ninguno · errores JS: ninguno"*) ;; *) mal "móvil $asig $t: $r";; esac
     done
-  done
-  [ "$MALOS" = 0 ] && ok "móvil: sin desborde ni errores en los 26 temas"
+  done <"$TMP/lista.txt"
+  [ "$MALOS" = 0 ] && ok "móvil: sin desborde ni errores en los $NTEMAS temas"
 fi
 
 echo

@@ -82,3 +82,17 @@ Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈1
 - `pagina.html` original (con 16 líneas tocadas para cargar la capa) · `ampliaciones/` (núcleo, `lab_*.js` simuladores, `contenido/` por tema, `estilos.css`) · `herramientas/` (`GUIA_TEMA.md`, `comprobar_todo.sh`, `preparar_publicacion.sh`, `verificar_*.py`, `volcar_*.js`, `pruebas/e2e_*.js`).
 - `sh build.sh` regenera la web · `sh herramientas/comprobar_todo.sh` comprueba todo (`completo` añade móvil) · `sh herramientas/preparar_publicacion.sh <ruta>` prepara el archivo a publicar.
 - En otro equipo: `git clone`, `git checkout claude/admiring-keller-1be6ou`, tener `node`, `python3` con `sympy` y Playwright con Chromium (`PLAYWRIGHT_MODULE` y `CHROMIUM_PATH` si hace falta; ver `herramientas/pruebas/e2e_common.js`).
+
+## 11. Piloto automático de Química II, tanda 1 (noche del 27 al 28-oct-2026)
+Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un reinicio sigue este protocolo sin preguntar** (salvo que lo diga una puerta de parada).
+**Punto de partida:** 2 agentes en marcha, cada uno con alcance recortado a UN tema (checkpoint de coste): `adaa9ded…` → tema 1; `adb822b2…` → tema 3. Sus ramas son `worktree-agent-<id>` (ver `git worktree list`).
+**Cuando un agente termine su tema** (notificación de finalización):
+1. Anotar en la tabla de coste (sección 7) los tokens, las llamadas a herramientas y la duración que informa la notificación.
+2. Fusionar su rama (`git merge --no-edit worktree-agent-<id>`; conflictos esperables: `estilos.css` → conservar ambos lados; `e2e_montaje.js` → conservar el nuestro), `sh build.sh`, pasar `e2e_ejercicios.js quimica2 tN`, `e2e_ruta.js quimica2:tN`, `e2e_regresion.js` y el verificador del tema (`herramientas/verificar_quimica2_t*.py`), commit y push. Si algo falla, arreglarlo o devolverlo al agente; no seguir con un tema roto.
+3. **Puerta de coste: si el agente gastó más de 700.000 tokens en un tema, NO lanzar el siguiente.** Anotar el motivo aquí y parar: decide el usuario.
+4. Si pasa la puerta: lanzar **un agente nuevo** (plantilla de la sección 8 + estándar 4b) para el tema siguiente (t2 tras t1; t4 tras t3), diciéndole que use los archivos del tema ya hecho como modelo de estilo (`grep`/`sed -n`, sin leerlos enteros) y que también se limite a ese tema.
+5. Tras cada fusión validada, **publicar el artefacto** (`sh herramientas/preparar_publicacion.sh <ruta>` + herramienta Artifact con `url` de la sección 3, sin `capabilities`) para que el usuario vea el avance.
+**Cuando estén los temas 1–4:** `sh herramientas/comprobar_todo.sh` (detecta solo los temas nuevos) → debe dar «TODO CUADRA»; actualizar las secciones 2 y 7, commit, push, publicar y **PARAR**. No empezar la tanda 2 (t5–t8) sin que el usuario lo diga.
+**Si llega un límite de uso (429 / «session limit»):** no reintentar en bucle; programar un aviso (`send_later`) a la hora de reinicio que indique el error y retomar entonces desde el paso que toque.
+**Red de seguridad:** un aviso programado cada ~2 h mientras haya agentes en marcha; si siguen trabajando, no hacer nada, no avisar al usuario y re-armar (máx. 6 avisos seguidos sin novedades).
+**Exposición máxima esta noche:** 4 temas × 700.000 = 2,8 M tokens como tope duro (esperado: 1–2 M).
