@@ -98,7 +98,7 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **Exposición máxima esta noche:** 4 temas × 700.000 = 2,8 M tokens como tope duro (esperado: 1–2 M).
 
 ## 12. Si esta conversación se corta o se retoma en otra (LÉELO PRIMERO en una conversación nueva)
-**Estado exacto al cortar (27-oct-2026, 23:40 UTC):** tanda 1 de Química II (temas 1–4) **EN CURSO, sin ningún tema terminado todavía**. Dos agentes trabajaban en la conversación original (no heredan a la nueva):
+**Estado exacto al cortar (27-oct-2026, 23:32 UTC):** tanda 1 de Química II (temas 1–4) **EN CURSO, sin ningún tema terminado todavía**. Dos agentes trabajaban en la conversación original (no heredan a la nueva):
 - Agente del **tema 1** (`worktree-agent-adaa9ded3f7e4480b`): hay un commit con `ampliaciones/lab_quim2_t1_mol.js` (simuladores de mol) ya fusionado y subido a la rama de trabajo. Falta todo el contenido del tema (`ampliaciones/contenido/quimica2_t01*.js`), su verificación y pruebas.
 - Agente del **tema 3** (`worktree-agent-adb822b28a862c5da`): **sin nada commiteado**; empezar de cero.
 - Los dos chocaron con el límite de uso de 5 h (reinicio a las 23:30 UTC) y se reanudaron a las 23:30. Coste medido: todavía ninguno (se conoce al terminar cada agente).
