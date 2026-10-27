@@ -1,0 +1,306 @@
+@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@300..700&family=Shantell+Sans:ital,wght,BNCE,INFM@0,300..800,-100..100,0..100&family=STIX+Two+Text:ital,wght@0,400..700;1,400..700&display=swap");
+
+/* ============================================================
+   Bachi Firu: «apuntes bonitos» en Obsidian
+   Un color de subrayador por asignatura (clase en cssclasses),
+   letra a mano en los títulos, pósits y papel cuadriculado.
+   ============================================================ */
+
+body {
+  --bf-hand: "Shantell Sans", "Chalkboard SE", "Segoe Print", "Comic Sans MS", cursive;
+  --bf-body: "Lexend", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --bf-math: "STIX Two Text", "Cambria Math", Cambria, "Times New Roman", serif;
+  --bf-ink: #1B1E36;
+  --bf-ink-soft: #4A4F6E;
+  --bf-grid: #E3E7F2;
+  --bf-sheet: #FFFFFF;
+  --bf-sheet-2: #F0F2F9;
+  --bf-line: #DADEEB;
+  --bf-pen: #2447D5;
+  --bf-red: #D32F47;
+  --bf-hl-a: 78%;
+  --bf-hl-w: 30%;
+  --bf-tape: rgba(255, 255, 255, .6);
+  --bf-tape-edge: rgba(27, 30, 54, .08);
+  --bf-shadow: 0 1px 2px rgba(27, 30, 54, .06), 0 6px 18px -6px rgba(27, 30, 54, .14);
+  --hl: #FFE03D;
+  --font-text-theme: var(--bf-body);
+}
+.theme-dark {
+  --bf-ink: #ECEEFB;
+  --bf-ink-soft: #B3B7D8;
+  --bf-grid: #1F2342;
+  --bf-sheet: #181B36;
+  --bf-sheet-2: #20244A;
+  --bf-line: #2E3359;
+  --bf-pen: #94A7FF;
+  --bf-red: #FF8696;
+  --bf-hl-a: 40%;
+  --bf-hl-w: 16%;
+  --bf-tape: rgba(255, 255, 255, .13);
+  --bf-tape-edge: rgba(255, 255, 255, .08);
+  --bf-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 22px -8px rgba(0, 0, 0, .55);
+}
+
+/* Colores de cada asignatura (los genera generar.js desde pagina.html) */
+/* @COLORES@ */
+
+/* Cualquier elemento que cambie --hl recalcula sus mezclas */
+.apuntes, .inicio a.internal-link {
+  --hl-mark: color-mix(in srgb, var(--hl) var(--bf-hl-a), transparent);
+  --hl-wash: color-mix(in srgb, var(--hl) var(--bf-hl-w), var(--background-primary));
+}
+
+/* ---- Papel cuadriculado ---- */
+.apuntes.markdown-preview-view,
+.apuntes.markdown-source-view .cm-scroller {
+  background-image:
+    linear-gradient(var(--bf-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bf-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-attachment: local;
+}
+
+.apuntes { font-family: var(--bf-body); }
+.apuntes ::selection { background: var(--hl-mark); }
+
+/* ---- Subrayador: ==texto== ---- */
+.apuntes mark,
+.apuntes .cm-highlight {
+  color: inherit;
+  background-color: transparent;
+  background-image: linear-gradient(100deg, transparent 0 .6%, var(--hl-mark) 1.6% 97.4%, transparent 99.4%);
+  background-repeat: no-repeat;
+  background-size: 100% 78%;
+  background-position: 0 70%;
+  padding: 0 .12em;
+  margin: 0 -.12em;
+  border-radius: .2em .5em .3em .6em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* ---- Títulos: letra a mano, y una pasada de subrayador ---- */
+.apuntes .inline-title,
+.apuntes h2, .apuntes h3, .apuntes h4,
+.apuntes .cm-header-2, .apuntes .cm-header-3, .apuntes .cm-header-4 {
+  font-family: var(--bf-hand);
+  font-variation-settings: "INFM" 55, "BNCE" 12;
+  font-weight: 700;
+  color: var(--bf-ink);
+}
+.apuntes .inline-title,
+.apuntes h3,
+.apuntes .cm-header-3 {
+  width: fit-content;
+  max-width: 100%;
+  background-image: linear-gradient(100deg, transparent 0 .5%, var(--hl-mark) 1.5% 97.5%, transparent 99.5%);
+  background-repeat: no-repeat;
+  background-size: 100% 46%;
+  background-position: 0 92%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.apuntes h2 {
+  margin-top: 2.2em;
+  padding-bottom: .15em;
+  border-bottom: 3px solid var(--hl);
+}
+
+/* ---- Pósits ---- */
+.apuntes .callout[data-callout="postit"],
+.apuntes .callout[data-callout="truco"],
+.apuntes .callout[data-callout="ejemplo"],
+.apuntes .callout[data-callout="ojo"] {
+  --callout-icon: lucide-sticky-note;
+  position: relative;
+  overflow: visible;
+  mix-blend-mode: normal;
+  background: var(--hl-wash);
+  color: var(--bf-ink);
+  border: none;
+  border-radius: 3px 3px 18px 3px;
+  padding: 22px 22px 16px;
+  margin: 28px 0;
+  box-shadow: 0 1px 1px rgba(27, 30, 54, .05), 0 10px 20px -12px rgba(27, 30, 54, .35);
+}
+.apuntes .callout[data-callout="truco"] { --callout-icon: lucide-lightbulb; }
+.apuntes .callout[data-callout="ejemplo"] { --callout-icon: lucide-pencil; }
+.apuntes .callout[data-callout="ojo"] { --callout-icon: lucide-triangle-alert; }
+.apuntes .callout[data-callout="postit"]::before,
+.apuntes .callout[data-callout="truco"]::before,
+.apuntes .callout[data-callout="ejemplo"]::before,
+.apuntes .callout[data-callout="ojo"]::before {
+  content: "";
+  position: absolute;
+  top: -10px; left: 50%;
+  width: 84px; height: 20px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: var(--bf-tape);
+  border: 1px solid var(--bf-tape-edge);
+  border-radius: 2px;
+}
+.apuntes .callout[data-callout="postit"] .callout-title,
+.apuntes .callout[data-callout="truco"] .callout-title,
+.apuntes .callout[data-callout="ejemplo"] .callout-title,
+.apuntes .callout[data-callout="ojo"] .callout-title {
+  color: var(--bf-ink);
+  font-family: var(--bf-hand);
+  font-variation-settings: "INFM" 55, "BNCE" 12;
+  font-weight: 700;
+  font-size: 1.05em;
+}
+.apuntes .callout[data-callout="ojo"] .callout-icon { color: var(--bf-red); }
+.apuntes .callout[data-callout="postit"] .callout-icon,
+.apuntes .callout[data-callout="truco"] .callout-icon,
+.apuntes .callout[data-callout="ejemplo"] .callout-icon { color: var(--bf-ink); }
+
+/* ---- Láminas: fichas de cartulina con cabecera de color ---- */
+.apuntes .callout[data-callout="lamina"] {
+  --callout-icon: lucide-layers;
+  mix-blend-mode: normal;
+  background: var(--bf-sheet);
+  border: 1px solid var(--bf-line);
+  border-radius: 12px;
+  box-shadow: var(--bf-shadow);
+  padding: 0;
+  overflow: hidden;
+}
+.apuntes .callout[data-callout="lamina"] .callout-title {
+  padding: 10px 16px 8px;
+  background: var(--hl-wash);
+  border-bottom: 2px solid var(--hl);
+  color: var(--bf-ink);
+  font-family: var(--bf-hand);
+  font-variation-settings: "INFM" 55, "BNCE" 12;
+  font-weight: 700;
+}
+.apuntes .callout[data-callout="lamina"] .callout-icon { color: var(--bf-ink); }
+.apuntes .callout[data-callout="lamina"] .callout-content { padding: 4px 16px 12px; }
+.apuntes .callout[data-callout="lamina"] td:first-child {
+  font-family: var(--bf-body);
+  font-weight: 400;
+  font-size: .86em;
+  color: var(--bf-ink-soft);
+  width: 38%;
+}
+.apuntes .callout[data-callout="lamina"] td:last-child {
+  font-family: var(--bf-math);
+  font-size: 1.08em;
+  color: var(--bf-ink);
+}
+.apuntes .callout[data-callout="lamina"] td:last-child em {
+  font-family: var(--bf-hand);
+  font-style: normal;
+  font-size: .82em;
+  color: var(--bf-pen);
+}
+
+/* ---- Soluciones plegadas ---- */
+.apuntes .callout[data-callout="solucion"] {
+  --callout-icon: lucide-eye;
+  mix-blend-mode: normal;
+  background: var(--bf-sheet);
+  border: 1.5px dashed var(--bf-line);
+  border-radius: 12px;
+}
+.apuntes .callout[data-callout="solucion"] .callout-title {
+  color: var(--bf-pen);
+  font-family: var(--bf-hand);
+  font-variation-settings: "INFM" 55, "BNCE" 12;
+  font-weight: 700;
+}
+.apuntes .callout[data-callout="solucion"] .callout-content strong {
+  background-image: linear-gradient(100deg, transparent 0 .5%, var(--hl-mark) 1.5% 97.5%, transparent 99.5%);
+  background-repeat: no-repeat;
+  background-size: 100% 46%;
+  background-position: 0 92%;
+}
+
+/* ---- Textos de comentario e inglés, puntuación y Claude ---- */
+.apuntes .callout[data-callout="texto"] {
+  --callout-icon: lucide-file-text;
+  mix-blend-mode: normal;
+  background: var(--bf-sheet);
+  border: 1px solid var(--bf-line);
+  border-left: 5px solid var(--hl);
+  border-radius: 6px;
+  font-family: var(--bf-math);
+  font-size: 1.06em;
+  line-height: 1.7;
+}
+.apuntes .callout[data-callout="texto"] .callout-title,
+.apuntes .callout[data-callout="puntos"] .callout-title {
+  color: var(--bf-ink);
+  font-family: var(--bf-hand);
+  font-variation-settings: "INFM" 55, "BNCE" 12;
+  font-weight: 700;
+}
+.apuntes .callout[data-callout="texto"] .callout-icon,
+.apuntes .callout[data-callout="puntos"] .callout-icon { color: var(--bf-ink); }
+.apuntes .callout[data-callout="puntos"] {
+  --callout-icon: lucide-target;
+  mix-blend-mode: normal;
+  background: var(--hl-wash);
+  border: none;
+  border-radius: 10px;
+}
+.apuntes .callout[data-callout="claude"] {
+  --callout-icon: lucide-bot;
+  --callout-color: 126, 131, 158;
+  font-size: .88em;
+}
+
+/* ---- Fórmulas ---- */
+.apuntes .math-block {
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 10px 0 22px;
+  padding: 10px 22px;
+  border: 1px solid var(--bf-line);
+  border-radius: 12px;
+  background-color: var(--bf-sheet);
+  background-image: linear-gradient(var(--bf-grid) 1px, transparent 1px), linear-gradient(90deg, var(--bf-grid) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.apuntes .callout .math-block { background-image: none; }
+
+/* ---- Tablas de los apuntes (sin cabecera) ---- */
+.apuntes table { border-collapse: collapse; }
+.apuntes table thead:not(:has(th:not(:empty))) { display: none; }
+.apuntes table td, .apuntes table th {
+  border: none;
+  border-bottom: 1px dashed var(--bf-line);
+  background: transparent;
+  vertical-align: top;
+  padding: 8px 12px 8px 0;
+}
+.apuntes table tr:last-child td { border-bottom: none; }
+.apuntes table td:first-child {
+  font-family: var(--bf-math);
+  font-weight: 600;
+  font-size: 1.06em;
+  color: var(--bf-pen);
+}
+
+/* ---- Enlaces y vídeos ---- */
+.apuntes a.internal-link { color: var(--bf-pen); text-decoration-color: var(--hl); }
+
+/* ---- Inicio: cada asignatura con su subrayador ---- */
+.inicio ul { list-style: none; padding-inline-start: 0; }
+.inicio li { margin: .35em 0; }
+.inicio a.internal-link {
+  color: var(--bf-ink);
+  text-decoration: none;
+  font-family: var(--bf-hand);
+  font-variation-settings: "INFM" 55, "BNCE" 12;
+  font-weight: 700;
+  font-size: 1.12em;
+  background-image: linear-gradient(100deg, transparent 0 .6%, var(--hl-mark) 1.6% 97.4%, transparent 99.4%);
+  background-repeat: no-repeat;
+  background-size: 100% 60%;
+  background-position: 0 85%;
+  padding: 0 .15em;
+}
+.inicio .inline-title { --hl: #FFE03D; }
