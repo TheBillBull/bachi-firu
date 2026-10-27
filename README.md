@@ -95,11 +95,6 @@ Con Playwright y Chromium (`herramientas/pruebas/`; ver `GUIA_TEMA.md`):
 - **`sh herramientas/preparar_publicacion.sh <ruta.html>`** genera el archivo que se publica como artefacto de claude.ai.
 - `herramientas/GUIA_TEMA.md` explica el flujo paso a paso para ampliar un tema.
 
-## Versión Obsidian (iPad)
+## Versión Obsidian (iPad) — descartada
 
-El mismo contenido como vault de Obsidian: una carpeta por asignatura, una nota por tema (apuntes, lámina, ejercicios con la solución plegada y vídeos), simulacros con sitio para responder, comentario de texto, inglés y una tabla de progreso (`Progreso.base`). El snippet `bachi-firu.css` pone el subrayador del color de cada asignatura.
-
-1. `node obsidian/generar.js` — crea `obsidian/Bachi Firu/` a partir de `pagina.html`.
-2. `python obsidian/zip.py` — lo empaqueta en `obsidian/Bachi Firu.zip` para pasarlo al iPad.
-
-Al regenerar se pisan todas las notas: en el iPad, sustituir el vault por uno nuevo borraría lo que Firu haya escrito o subrayado.
+Se probó un generador de vault de Obsidian (`obsidian/`), pero se descartó el 27-oct-2026 (no encaja con quien estudia con la web). Queda solo como histórico, sin mantenimiento ni la capa de ampliaciones; la web de uso es la página de claude.ai (ver `PLAN.md`).

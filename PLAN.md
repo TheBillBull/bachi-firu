@@ -75,9 +75,8 @@ Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈1
 - ¿Actualizar la dirección antigua (≈450.000 tokens de lectura) o dejarla como copia?
 - ¿Abrir una PR hacia `main` para publicar en GitHub Pages?
 - ~~¿Química II es la siguiente asignatura?~~ **Decidido (27-oct-2026): sí, y es la prioritaria** (ver 4b).
-- ¿Llevar al vault de Obsidian del iPad la parte estática de lo ampliado? (ver sección 3)
 
-- **Versión Obsidian (iPad)**: el usuario añadió `obsidian/` (generador del vault desde `pagina.html`; ver README). **Ese generador lee `pagina.html` sin la capa `ampliaciones/`**, así que las ampliaciones (teoría nueva, ejercicios, láminas, simulacros) **no aparecen en el vault**; los simuladores interactivos no caben en notas de Obsidian. Si se quiere llevar la parte estática de lo ampliado (texto, ejercicios con solución, láminas, simulacros) al iPad, hay que adaptar `obsidian/datos.js` para leer los datos ya fusionados con `BACHI.fusionar` y decidir qué hacer con los `data-w`. **Pregunta pendiente al usuario.** Además, al regenerar el vault se pisan las notas: no sustituir el vault del iPad si Firu ha escrito en él.
+- **Obsidian / iPad: DESCARTADO** (decisión del usuario, 27-oct-2026: a su hija no le gusta Obsidian). No se mantiene ni se adapta; la carpeta `obsidian/` (generador que escribió el usuario, lee `pagina.html` sin la capa de ampliaciones) queda solo como histórico y puede borrarse cuando el usuario quiera. La web de uso es únicamente la página de claude.ai (sección 3).
 
 ## 10. Mapa rápido del repositorio y comandos
 - `pagina.html` original (con 16 líneas tocadas para cargar la capa) · `ampliaciones/` (núcleo, `lab_*.js` simuladores, `contenido/` por tema, `estilos.css`) · `herramientas/` (`GUIA_TEMA.md`, `comprobar_todo.sh`, `preparar_publicacion.sh`, `verificar_*.py`, `volcar_*.js`, `pruebas/e2e_*.js`).
