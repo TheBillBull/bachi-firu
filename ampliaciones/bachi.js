@@ -14713,17 +14713,21 @@
       var s = sust(), v = valores(), L = Q.leer(st.f);
       Object.keys(nodos).forEach(function (k) { var ok = permitido(k); nodos[k].disabled = !ok; });
       if (!permitido(st.dato)) { st.dato = "m"; st.v = s.v; }
-      var idx = ["m", "n", "N", "V", "D"];
       if (!L.ok || !v) {
         lectura.innerHTML = fil("Revisa los datos", L.ok ? "escribe una cantidad positiva en la casilla azul" : L.error, "red ancho");
       }
-      idx.forEach(function (k) {
+      idx.forEach(tarjeta);
+      pinta2();
+    }
+    var idx = ["m", "n", "N", "V", "D"];
+    function tarjeta(k) {
+        var v = valores();
         var b = nodos[k], val = b.querySelector(".qm-val"), em = b.querySelector("em"), esDato = k === st.dato;
         b.classList.toggle("dato", esDato); b.setAttribute("aria-pressed", esDato);
         var d = DEF.filter(function (x) { return x.k === k; })[0];
         if (esDato) {
           val.innerHTML = '<input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="' + d.tit + ' (dato)" value="' + st.v + '">';
-          var inp = val.querySelector("input"); inp.addEventListener("input", function () { st.v = inp.value; pinta2(); });
+          var inp = val.querySelector("input"); inp.addEventListener("input", function () { st.v = inp.value; idx.forEach(function (kk) { if (kk !== st.dato) tarjeta(kk); }); pinta2(); });
           inp.addEventListener("keydown", function (e) { e.stopPropagation(); });
           em.textContent = d.u + " · esto es el dato; pulsa otra tarjeta para cambiarlo";
           return;
@@ -14733,8 +14737,6 @@
         var txt = k === "m" ? fmt(v.m, 4) : k === "n" ? fmt(v.n, 5) : k === "N" ? Q.sci(v.N, 3) : k === "V" ? fmt(v.V, 3) : fmt(v.D, 2);
         val.textContent = txt;
         em.textContent = d.u + (k === "N" ? " (" + Q.sci(v.N * Q.nAtomos(st.f), 3) + " átomos)" : k === "V" ? (st.cond === "cn" ? " en CN" : " a " + fmt(st.P, 1) + " atm y " + fmt(v.TK, 0) + " K") : "");
-      });
-      pinta2();
     }
     function pinta2() {
       var v = valores(), L = Q.leer(st.f);
@@ -45466,12 +45468,24 @@
       "P = 740 / 760 = 0,974 atm; T = 293 K.",
       "V = " + fr("0,050 · 0,082 · 293", "0,974") + " = <b>1,23 L</b>."
     ]) +
+    ejemplo("Ejemplo resuelto: ¿qué queda en la disolución final?", "Se mezclan 40 mL de HCl 0,30 M con 50 mL de Ba(OH)₂ 0,10 M: 2 HCl + Ba(OH)₂ → BaCl₂ + 2 H₂O. Calcula la concentración de cada ion que queda en la disolución final (volúmenes aditivos; ignora los iones H⁺ y OH⁻ del agua).", [
+      "Moles: n(HCl) = 0,30 · 0,040 = 0,012 mol. n(Ba(OH)₂) = 0,10 · 0,050 = 0,0050 mol.",
+      "Cociente moles ÷ coeficiente: HCl → 0,012 / 2 = 0,0060; Ba(OH)₂ → 0,0050 / 1 = 0,0050. El limitante es el Ba(OH)₂; el HCl está en exceso.",
+      "El Ba(OH)₂ gasta 2 · 0,0050 = 0,0100 mol de HCl. Sobran 0,012 − 0,0100 = 0,0020 mol de HCl.",
+      "Volumen final: 40 + 50 = 90 mL = 0,090 L. [HCl] sobrante = 0,0020 / 0,090 = <b>0,022 M</b> (en realidad, H⁺ y Cl⁻ en disolución).",
+      "Iones espectadores: n(Cl⁻) = 0,012 mol (todos los del HCl) → [Cl⁻] = 0,012 / 0,090 = <b>0,133 M</b>. n(Ba²⁺) = 0,0050 mol → [Ba²⁺] = 0,0050 / 0,090 = <b>0,056 M</b>. Comprobación de carga: 0,022 + 2 · 0,056 = 0,133 ✓."
+    ]) +
     "<h5>Gas con gas: volúmenes de combinación</h5>" +
     "<p>Si todos los gases están a la <b>misma presión y temperatura</b>, el volumen es proporcional a los moles (Avogadro), así que los <b>coeficientes de la ecuación sirven directamente como proporción de volúmenes</b>, sin pasar por los moles. Es la ley de Gay-Lussac de los volúmenes de combinación.</p>" +
     ejemplo("Ejemplo resuelto: combustión de un gas", "Se queman 10 L de propano: C₃H₈ + 5 O₂ → 3 CO₂ + 4 H₂O(l). ¿Qué volumen de O₂ hace falta y qué volumen de CO₂ se forma, a igual P y T?", [
       "Proporción en volumen: 1 C₃H₈ : 5 O₂ : 3 CO₂.",
       "V(O₂) = 10 · 5 = <b>50 L</b>. V(CO₂) = 10 · 3 = <b>30 L</b>.",
       "El agua es líquida: no cuenta como gas. Si saliera como vapor, también contaría (4 · 10 = 40 L)."
+    ]) +
+    ejemplo("Ejemplo resuelto: volumen total de gases al final", "Se mezclan 15 mL de eteno (C₂H₄) con 60 mL de O₂ y se queman: C₂H₄ + 3 O₂ → 2 CO₂ + 2 H₂O(l). Calcula la composición y el volumen total de la mezcla gaseosa final, medida en las condiciones iniciales.", [
+      "Proporción en volumen: 1 C₂H₄ : 3 O₂ : 2 CO₂. Para 15 mL de eteno hacen falta 15 · 3 = 45 mL de O₂: hay 60, así que el O₂ está en exceso y limita el eteno.",
+      "Se forman 15 · 2 = 30 mL de CO₂. Sobran 60 − 45 = 15 mL de O₂. El eteno se consume por completo y el agua (líquida) no es gas.",
+      "Mezcla final: 30 mL de CO₂ + 15 mL de O₂ = <b>45 mL</b> en total (el 67 % de CO₂). Los 75 mL iniciales se han contraído, porque el agua líquida «se lleva» volumen."
     ]) +
     w("q5_gases") +
     ojo("Los coeficientes ajustan <b>moles</b> (y volúmenes de gas a igual P y T), <b>nunca gramos</b>. «2 H₂ + O₂ → 2 H₂O» no significa que 2 g de H₂ reaccionen con 1 g de O₂: son 2 mol de H₂ (4 g) con 1 mol de O₂ (32 g).")
