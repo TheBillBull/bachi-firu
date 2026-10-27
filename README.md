@@ -90,4 +90,7 @@ Con Playwright y Chromium (`herramientas/pruebas/`; ver `GUIA_TEMA.md`):
 
 ## Continuar el trabajo
 
-Quedan por ampliar con este mismo método: Matemáticas II, Física II, Química II (completar), Biología II, Lengua, Historia de España (completar) e Historia de la Filosofía. `herramientas/GUIA_TEMA.md` explica el flujo paso a paso.
+- **`PLAN.md`** es el punto de partida: estado exacto de cada asignatura, pendientes, siguiente tanda (Química II), estándar de calidad, reglas de coste y plantilla de encargo. `CLAUDE.md` recoge las reglas del proyecto y el protocolo para retomar.
+- **`sh herramientas/comprobar_todo.sh`** comprueba todo de una vez (build, regresión, botones, ejercicios y todas las verificaciones) y termina en «TODO CUADRA» o lista los fallos (`completo` añade la prueba de móvil de los 26 temas).
+- **`sh herramientas/preparar_publicacion.sh <ruta.html>`** genera el archivo que se publica como artefacto de claude.ai.
+- `herramientas/GUIA_TEMA.md` explica el flujo paso a paso para ampliar un tema.
