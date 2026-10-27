@@ -113,3 +113,5 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 
 **Avisos programados:** los `send_later` y las notificaciones de agentes pertenecen a la conversación que los creó; **no actúan en una conversación nueva**. No esperes ninguno.
 **Si el límite de uso (429) corta algo:** parar, anotar la hora de reinicio que indique el error y esperar; no reintentar en bucle.
+
+**Reanudado el 27-oct-2026 23:50 UTC (sesión `session_01N58emLFiFmstrFRv9SzEpD`):** el tema 3 no tenía nada fusionado (se rehace). Agentes nuevos en marcha: `a77c66b0d845a7604` → terminar tema 1 (verificador `verificar_quimica2_t1.py`, revisión §4b, pruebas); `a9d6434391062fc80` → tema 3. Ramas `worktree-agent-<id>`; fusionar con `sh herramientas/fusionar_agente.sh <id>`. Después: t2 tras t1 y t4 tras t3.
