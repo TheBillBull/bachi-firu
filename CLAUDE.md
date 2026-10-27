@@ -6,6 +6,7 @@ Web de estudio de Bachillerato (Ciencias, Selectividad Madrid). `pagina.html` es
 - **Ampliar, no recortar**: la teoría original se desarrolla más; no se quita nada salvo errores conceptuales reales. Se puede tocar `pagina.html` si es lo más simple, con tal de no perder contenido; `herramientas/pruebas/e2e_regresion.js` debe seguir dando «todo coincide».
 - **Rigor**: toda cifra de ejemplos, ejercicios y simulacros se verifica con un script independiente (sympy/python). Toda función nueva de la interfaz se prueba pulsándola en el navegador (no solo montar el widget).
 - **Coste**: el usuario paga por uso. Sigue las «Reglas de coste» de `PLAN.md` (máx. 2 agentes, encargos cortos, una tanda por ventana de uso, sin gigantismos).
+- **Química II es la asignatura prioritaria** (decisión del usuario): se amplía con más cuidado que el resto; ver «4b» de `PLAN.md`. Calidad y claridad por encima de cantidad; gráficos e interactivos solo si aportan.
 - Comunica claro y breve, con cifras reales; nada de jerga interna (no «piloto»).
 
 ## Cuando el usuario diga «continuamos»

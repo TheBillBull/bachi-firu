@@ -14,7 +14,7 @@
 |---|---|---|
 | Matemáticas I (13 temas) | **Cerrada** | ≈100.000 palabras añadidas · 663 ejercicios (611 nuevos) · 20 simulacros (13 nuevos) · ≈220 actividades · 129 láminas nuevas |
 | Física y Química I (13 temas) | **Cerrada** | ≈117.000 palabras añadidas · 674 ejercicios (622 nuevos) · 11 simulacros (4 nuevos) · ≈240 actividades · 115 láminas nuevas |
-| Química II (11 temas) | **A medias a propósito**: solo el tema 6 (Equilibrio) está ampliado, con el estándar antiguo (10 ejercicios, simulador de Le Chatelier, tabla ICE, 1 lámina) | **Es lo siguiente** (sección 4) |
+| Química II (11 temas) | **EN CURSO (prioridad)** desde el 27-oct-2026: tanda 1 en marcha. Antes de ella, solo el tema 6 (Equilibrio) está ampliado, con el estándar antiguo (10 ejercicios, simulador de Le Chatelier, tabla ICE, 1 lámina) | **Es lo siguiente** (sección 4) |
 | Historia de España (15 temas) | **A medias a propósito**: solo el tema 7 (Restauración) con el estándar antiguo (7 ejercicios, línea del tiempo, diagramas, comentario guiado) | Después de Química II, si el usuario lo decide |
 | Matemáticas II (14), Física II (12), Biología II (16), Lengua (22), Historia de la Filosofía (16) | Sin empezar (solo el contenido original) | — |
 
@@ -36,6 +36,16 @@ Los originales tienen 500–760 palabras y 4 ejercicios por tema. Hay que **reut
 2. **Tanda 2 (t5–t8)**: Cinética química · Equilibrio químico (**reforzar el t6 existente**, sin duplicar lo que ya hay) · Ácidos y bases · Oxidación-reducción.
 3. **Tanda 3 (t9–t11 + simulacros)**: Compuestos del carbono · Reactividad · Polímeros; y 3 simulacros nuevos tipo EvAU de Madrid con solución desarrollada (`ampliaciones/contenido/quimica2_t99_simulacros.js`, ids `sim6`, `sim7`, `sim8`; hoy hay 5).
 Enfoque: nivel y problemas **EvAU/Selectividad de Madrid** (pH, Kc/Kp, pilas y electrólisis, formulación orgánica…). Ficheros: `ampliaciones/contenido/quimica2_tNN*.js`, verificación en `herramientas/verificar_quimica2.py` (ampliar) o archivos nuevos por tanda.
+
+## 4b. Química II — estándar «con cariño» (decisión del usuario, 27-oct-2026)
+Química II es la **asignatura prioritaria**: la hija del usuario es quien más la usará y le encantaron los gráficos de Mates I. Para Química II **no se aplica el estándar ligero** de la sección 5:
+- **Calidad y claridad por encima de cantidad.** No se mete nada «por meter»: cada gráfico o parte interactiva debe ayudar a entender o a aprender con fluidez; si no aporta, no se hace.
+- **Antes de programar, por tema**: listar 6–10 ideas que cuestan en la EvAU de Madrid y decidir para cada una si un gráfico o simulador ayuda; construir solo esos.
+- **Gráficos primero**: curvas (velocidad, valoración, Maxwell–Boltzmann, perfiles de energía, distribución de especies vs pH), diagramas (orbitales, pilas, moléculas), tablas coloreadas; siempre legibles en modo claro, oscuro y móvil.
+- **Teoría más desarrollada**, con ejemplos resueltos paso a paso al estilo EvAU Madrid.
+- **Ejercicios por niveles** con problemas tipo EvAU; los mínimos de la sección 5 son un suelo, no un techo (pero tampoco se rellena).
+- **Cada agente explica en su informe, en una línea, qué aporta cada interactivo** (para poder descartar los que no).
+- Coste mayor: estimación (mía, no medida) de **250.000–500.000 tokens por tema**.
 
 ## 5. Estándar «ligero» por tema (suficiente; no pulir sin fin)
 ≈5.000–7.000 palabras añadidas con ejemplos resueltos · ≥40 ejercicios (★/★★/★★★ con pasos, varios tipo EvAU) · 6–8 simuladores o actividades nuevos (reutilizando motores) · 2–3 láminas · test, tarjetas y «encuentra el error» · verificación independiente (sympy) **solo de las cifras nuevas** · pruebas: `e2e_ejercicios`, `e2e_tema` (escritorio y móvil), `e2e_ruta`, `e2e_regresion`, y al final `sh herramientas/comprobar_todo.sh`. Convenciones y API: `herramientas/GUIA_TEMA.md`.
@@ -64,7 +74,10 @@ Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈1
 ## 9. Decisiones pendientes del usuario
 - ¿Actualizar la dirección antigua (≈450.000 tokens de lectura) o dejarla como copia?
 - ¿Abrir una PR hacia `main` para publicar en GitHub Pages?
-- ¿Química II es la siguiente asignatura o prefiere otra (Matemáticas II, Física II…)?
+- ~~¿Química II es la siguiente asignatura?~~ **Decidido (27-oct-2026): sí, y es la prioritaria** (ver 4b).
+- ¿Llevar al vault de Obsidian del iPad la parte estática de lo ampliado? (ver sección 3)
+
+- **Versión Obsidian (iPad)**: el usuario añadió `obsidian/` (generador del vault desde `pagina.html`; ver README). **Ese generador lee `pagina.html` sin la capa `ampliaciones/`**, así que las ampliaciones (teoría nueva, ejercicios, láminas, simulacros) **no aparecen en el vault**; los simuladores interactivos no caben en notas de Obsidian. Si se quiere llevar la parte estática de lo ampliado (texto, ejercicios con solución, láminas, simulacros) al iPad, hay que adaptar `obsidian/datos.js` para leer los datos ya fusionados con `BACHI.fusionar` y decidir qué hacer con los `data-w`. **Pregunta pendiente al usuario.** Además, al regenerar el vault se pisan las notas: no sustituir el vault del iPad si Firu ha escrito en él.
 
 ## 10. Mapa rápido del repositorio y comandos
 - `pagina.html` original (con 16 líneas tocadas para cargar la capa) · `ampliaciones/` (núcleo, `lab_*.js` simuladores, `contenido/` por tema, `estilos.css`) · `herramientas/` (`GUIA_TEMA.md`, `comprobar_todo.sh`, `preparar_publicacion.sh`, `verificar_*.py`, `volcar_*.js`, `pruebas/e2e_*.js`).
