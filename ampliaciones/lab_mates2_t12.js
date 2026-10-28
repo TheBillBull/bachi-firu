@@ -38,10 +38,11 @@
     return s * h / 3;
   }
   function ceros(h, a, b) {
-    var N = 800, out = [], x0 = a, v0 = h(a), i, x1, v1, lo, hi, vl, m, k;
+    var N = 797, out = [], x0 = a, v0 = h(a), i, x1, v1, lo, hi, vl, m, k;
     for (i = 1; i <= N; i++) {
       x1 = a + (b - a) * i / N; v1 = h(x1);
-      if (v0 * v1 < 0) {
+      if (v1 === 0 && i < N) { out.push(x1); }
+      else if (v0 * v1 < 0) {
         lo = x0; hi = x1; vl = v0;
         for (k = 0; k < 60; k++) { m = (lo + hi) / 2; if (h(m) * vl > 0) lo = m; else hi = m; }
         out.push((lo + hi) / 2);
