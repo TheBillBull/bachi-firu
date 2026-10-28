@@ -17278,6 +17278,362 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 7: Ácidos y bases
+   Seis simuladores: q7_escala (pH, pOH y Kw) · q7_calc (calculadora de pH guiada, paso a paso)
+   q7_distrib (distribución de especies frente al pH) · q7_sal (hidrólisis de sales)
+   q7_regul (disolución reguladora) · q7_valora (curva de valoración e indicador)
+   Todos usan el mismo motor: el balance de cargas se resuelve exactamente (sin aproximar) por bisección.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  function fil(r, v, c) { return U.lec(r, v, c); }
+  var KW = 1e-14;
+  function p2(x) { return (Math.round(x * 100) / 100).toFixed(2).replace(".", ",").replace("-", "−"); }
+  // notación científica a partir de 0,1: 0,1 → «0,1»; 0,0316 → «3,16·10⁻²»
+  function cs(x, d) {
+    if (x === 0 || !isFinite(x)) return fmt(x, 2);
+    var e = Math.floor(Math.log10(Math.abs(x)));
+    if (e >= -1 && e <= 3) return fmt(x, Math.max(0, (d == null ? 3 : d + 1) - 1 - e));
+    return fmt(x / Math.pow(10, e), d == null ? 2 : d) + "·10" + U.sup(e);
+  }
+  function pK(k) { return -Math.log10(k); }
+
+  // ------------------------------------------------------------
+  // Motor: p = { na, cl, w: [{ c, ka, z }] }
+  //   na = [catión fuerte] (Na⁺…), cl = [anión fuerte] (Cl⁻…) en mol/L;
+  //   cada especie débil, de concentración total c, con la constante de acidez ka de su par HA/A:
+  //   z = 1 si HA es un catión (NH₄⁺), z = 0 si es neutro (CH₃COOH).
+  //   Balance de cargas: [H⁺] + na + Σ z·c·H/(H+ka) = [OH⁻] + cl + Σ (1−z)·c·ka/(ka+H)
+  // ------------------------------------------------------------
+  function phDe(p) {
+    function f(pH) {
+      var H = Math.pow(10, -pH), pos = H + (p.na || 0), neg = KW / H + (p.cl || 0);
+      (p.w || []).forEach(function (s) { pos += s.z * s.c * H / (H + s.ka); neg += (1 - s.z) * s.c * s.ka / (s.ka + H); });
+      return pos - neg;
+    }
+    var lo = -2, hi = 16, m, i;
+    for (i = 0; i < 90; i++) { m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; }
+    return (lo + hi) / 2;
+  }
+  function cuad(K, c) { return (-K + Math.sqrt(K * K + 4 * K * c)) / 2; }   // x² + Kx − Kc = 0
+
+  // ============================================================
+  // Q7_ESCALA: pH, pOH y Kw
+  // ============================================================
+  var SUST = [
+    { k: "0", t: "Jugo gástrico", ph: 1.5 }, { k: "1", t: "Limón", ph: 2.3 }, { k: "2", t: "Vinagre", ph: 2.9 },
+    { k: "3", t: "Lluvia", ph: 5.6 }, { k: "4", t: "Agua pura", ph: 7 }, { k: "5", t: "Sangre", ph: 7.4 },
+    { k: "6", t: "Amoníaco", ph: 11.5 }, { k: "7", t: "Lejía", ph: 12.5 }
+  ];
+  B.w.q7_escala = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "La escala de pH: [H⁺], [OH⁻] y Kw");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { ph: 7 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl;
+    sl = U.slider(ctl, { et: "pH", min: 0, max: 14, step: 0.1, val: 7, on: function (v) { st.ph = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var ph = st.ph, poh = 14 - ph, h = Math.pow(10, -ph), oh = Math.pow(10, -poh);
+      g.limpiar();
+      g.rect(0, -15, 7, 1, { clase: "z-red" }); g.rect(7, -15, 14, 1, { clase: "z-pen" });
+      g.texto(3.5, -13.6, "ácida", { ancla: "middle", clase: "faint" }); g.texto(10.5, -13.6, "básica", { ancla: "middle", clase: "faint" });
+      g.curva(function (x) { return -x; }, { clase: "c-red", x0: 0, x1: 14 });
+      g.curva(function (x) { return x - 14; }, { clase: "c-pen", x0: 0, x1: 14 });
+      g.texto(12, -12, "[H⁺]", { ancla: "middle", clase: "faint", dy: -8 }); g.texto(2, -12, "[OH⁻]", { ancla: "middle", clase: "faint", dy: -8 });
+      g.segmento(ph, -15, ph, 1, { clase: "c-faint", dash: "4 4" });
+      g.punto(ph, -ph, { r: 6, clase: "c-red" }); g.punto(ph, ph - 14, { r: 6, clase: "c-pen" });
+      var neutra = Math.abs(ph - 7) < 0.05;
+      lectura.innerHTML = fil("pH", fmt(ph, 1), "pen") + fil("pOH = 14 − pH", fmt(poh, 1)) +
+        fil("[H⁺]", cs(h) + " mol/L", "red") + fil("[OH⁻]", cs(oh) + " mol/L", "pen") +
+        fil("[H⁺]·[OH⁻]", "siempre 1,0·10⁻¹⁴ = Kw", "ancho") +
+        fil("Carácter", neutra ? "neutra" : (ph < 7 ? "ácida" : "básica") + ": [H⁺] es " + cs(h / 1e-7, 2) + " veces la del agua pura", "ancho");
+      pie.innerHTML = "Cada unidad de pH es un factor <b>10</b> en [H⁺] (y al revés en [OH⁻]). Las dos rectas se cruzan en pH 7, donde [H⁺] = [OH⁻] = 10⁻⁷ mol/L. Su suma en escala logarítmica vale siempre −14 porque [H⁺]·[OH⁻] = K<sub>w</sub> (a 25 °C). Los valores de las sustancias son orientativos.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 14, ymin: -15, ymax: 1, w: 620, h: 280, etx: "pH", ety: "log [ion]", etiqueta: "Concentraciones de H+ y OH- frente al pH" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), SUST.map(function (s) { return { k: s.k, t: s.t }; }), "4", function (k) { st.ph = SUST[+k].ph; sl.set(st.ph); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q7_CALC: calculadora de pH guiada (enseña los pasos y compara «aproximado» con «exacto»)
+  // ============================================================
+  var ACIDOS = [{ t: "CH₃COOH", K: 1.8e-5 }, { t: "HF", K: 6.8e-4 }, { t: "HNO₂", K: 4.5e-4 }, { t: "HCN", K: 4.9e-10 }];
+  var BASES = [{ t: "NH₃", K: 1.8e-5 }, { t: "CH₃NH₂", K: 4.4e-4 }];
+  B.w.q7_calc = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Calculadora de pH guiada: ¿aproximo o resuelvo la ecuación?");
+    cuerpo.innerHTML = '<div data-tipo class="chips"></div><div data-sus class="chips"></div><div data-ctl></div><div class="lectura anch"></div><div class="w-pasos"></div><div data-gr class="chips"></div><div class="w-plot"></div><p class="w-pie"></p>';
+    var st = { tipo: "af", sus: 0, lc: -1, K: 1.8e-5, gr: "ph" }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")),
+        lectura = cuerpo.querySelector(".lectura"), pasos = cuerpo.querySelector(".w-pasos"), pie = cuerpo.querySelector(".w-pie"), slk;
+    var elTipo = cuerpo.querySelector("[data-tipo]"), elSus = cuerpo.querySelector("[data-sus]");
+    U.slider(ctl, { et: "Concentración c", min: -3.5, max: 0, step: 0.05, val: st.lc, on: function (v) { st.lc = v; pinta(); }, fmt: function (v) { return cs(Math.pow(10, v), 2) + " mol/L"; } });
+    slk = U.slider(ctl, { et: "pK", min: 2, max: 9, step: 0.01, val: pK(st.K), on: function (v) { st.K = Math.pow(10, -v); pinta(); }, fmt: function (v) { return p2(v) + " (K = " + cs(Math.pow(10, -v), 2) + ")"; } });
+    function acido() { return st.tipo === "af" || st.tipo === "ad"; }
+    function fuerte() { return st.tipo === "af" || st.tipo === "bf"; }
+    function lista() { return acido() ? ACIDOS : BASES; }
+    function eligeSus() {
+      elSus.style.display = fuerte() ? "none" : ""; slk.el.style.display = fuerte() ? "none" : "";
+      if (!fuerte()) U.fichas(elSus, lista().map(function (s, i) { return { k: String(i), t: s.t }; }), String(st.sus), function (k) { st.sus = +k; st.K = lista()[st.sus].K; slk.set(pK(st.K)); pinta(); });
+    }
+    function phDeC(l, ac, K) { return phDe({ w: [{ c: Math.pow(10, l), ka: ac ? K : KW / K, z: ac ? 0 : 1 }] }); }
+    function phFuerte(l, ac) { var c = Math.pow(10, l), x = (c + Math.sqrt(c * c + 4 * KW)) / 2; return ac ? -Math.log10(x) : 14 + Math.log10(x); }
+    function pinta() {
+      var ac = acido(), c = Math.pow(10, st.lc), K = st.K, f = fmt, html, ion = ac ? "H⁺" : "OH⁻";
+      if (fuerte()) {
+        var x = (c + Math.sqrt(c * c + 4 * KW)) / 2, ph = phFuerte(st.lc, ac);
+        html = "<ol><li><b>Disociación total</b>: " + (ac ? "HA + H₂O → A⁻ + H₃O⁺" : "BOH → B⁺ + OH⁻") + " (una sola flecha).</li>" +
+          "<li>Por tanto [" + ion + "] = c = <b>" + cs(c) + " mol/L</b>" + (c < 1e-6 ? ". Con c tan baja el agua aporta casi tanto como el " + (ac ? "ácido" : "la base") + " y hay que contarla: [" + ion + "] = " + cs(x) : "") + ".</li>" +
+          "<li>" + (ac ? "pH = −log[H⁺] = <b>" + p2(ph) + "</b>" : "pOH = −log[OH⁻] = " + p2(14 - ph) + ", pH = 14 − pOH = <b>" + p2(ph) + "</b>") + ".</li></ol>";
+        lectura.innerHTML = fil("pH", p2(ph), "pen") + fil("[" + ion + "]", cs(x) + " mol/L") + fil("α", "100 % (total)", "ok") + fil("Tipo", (ac ? "ácido" : "base") + " fuerte");
+      } else {
+        var K0 = ac ? "K<sub>a</sub>" : "K<sub>b</sub>", xa = Math.sqrt(K * c), xq = cuad(K, c), aA = xa / c, aQ = xq / c, vale = aA < 0.05,
+            xf = vale ? xa : xq, pEx = phDeC(st.lc, ac, K), pAp = ac ? -Math.log10(xa) : 14 + Math.log10(xa), pFin = ac ? -Math.log10(xf) : 14 + Math.log10(xf);
+        html = "<ol><li>Equilibrio: " + (ac ? "HA + H₂O ⇌ A⁻ + H₃O⁺" : "B + H₂O ⇌ BH⁺ + OH⁻") + ".</li>" +
+          "<li>Tabla (tema 6): inicial <b>c</b>, <b>0</b>, <b>0</b> · cambio <b>−x</b>, <b>+x</b>, <b>+x</b> · equilibrio <b>c − x</b>, <b>x</b>, <b>x</b>, con x = [" + ion + "].</li>" +
+          "<li>" + K0 + " = x² / (c − x) = <b>" + cs(K) + "</b> (p" + K0 + " = " + p2(pK(K)) + ").</li>" +
+          "<li>Si α es pequeño, c − x ≈ c y x ≈ √(" + K0 + "·c) = √(" + cs(K) + " · " + cs(c) + ") = <b>" + cs(xa) + " mol/L</b>.</li>" +
+          "<li>Comprobación: α ≈ x/c = <b>" + f(aA * 100, 2) + " %</b> → " + (vale ? "menor que el 5 %: <b>la aproximación vale</b>." : "mayor o igual que el 5 %: <b>no vale</b>. Se resuelve x² + " + K0 + "·x − " + K0 + "·c = 0 y sale x = <b>" + cs(xq) + " mol/L</b>.") + "</li>" +
+          "<li>" + (ac ? "pH = −log x = <b>" + p2(pFin) + "</b>" : "pOH = −log x = " + p2(-Math.log10(xf)) + ", pH = 14 − pOH = <b>" + p2(pFin) + "</b>") + ".</li></ol>";
+        if (Math.abs(pEx - pFin) > 0.03) html += "<p><small>Con una constante muy pequeña o una disolución muy diluida el agua aporta iones comparables a los de " + (ac ? "ese ácido" : "esa base") + " y este método se queda corto; el pH «exacto» de arriba ya los incluye.</small></p>";
+        lectura.innerHTML = fil("pH (exacto)", p2(pEx), "pen") + fil("pH aproximado", p2(pAp), vale ? "ok" : "red") + fil("α exacto", f(aQ * 100, 2) + " %") + fil("α aproximado", f(aA * 100, 2) + " %", vale ? "ok" : "red") +
+          fil("¿Vale la aproximación?", vale ? "sí, α &lt; 5 %" : "no, α ≥ 5 %: resuelve la ecuación de 2.º grado", "ancho " + (vale ? "ok" : "red"));
+      }
+      pasos.innerHTML = html;
+      dibuja(ac, K, c, K0);
+    }
+    function dibuja(ac, K, c) {
+      var cl = ac ? "c-red" : "c-pen";
+      if (st.gr === "ph") {
+        g.rango(-3.5, 0, 0, 14); g.limpiar();
+        g.curva(function (l) { return phFuerte(l, ac); }, { clase: "c-faint", dash: "5 4", x0: -3.5, x1: 0 });
+        if (!fuerte()) g.curva(function (l) { return phDeC(l, ac, K); }, { clase: cl, x0: -3.5, x1: 0 });
+        g.punto(st.lc, fuerte() ? phFuerte(st.lc, ac) : phDeC(st.lc, ac, K), { r: 6, clase: cl });
+        g.texto(-3.4, ac ? 13 : 1.2, "pH", { clase: "faint" });
+        pie.innerHTML = "Eje horizontal: log c (de 0,0003 a 1 mol/L). La curva discontinua es la de un " + (ac ? "ácido" : "una base") + " <b>fuerte</b> de la misma c" + (fuerte() ? ": pH = −log c (ácido) o 14 + log c (base), una recta." : "; el " + (ac ? "ácido" : "la base") + " débil queda lejos de ella.");
+      } else {
+        g.rango(-3.5, 0, 0, 100); g.limpiar();
+        g.rect(-3.5, 0, 0, 5, { clase: "z-ok" });
+        if (fuerte()) g.curva(function () { return 100; }, { clase: "c-ok", x0: -3.5, x1: 0 });
+        else {
+          g.curva(function (l) { return Math.min(100, 100 * Math.sqrt(K / Math.pow(10, l))); }, { clase: "c-faint", dash: "5 4", x0: -3.5, x1: 0 });
+          g.curva(function (l) { var cc = Math.pow(10, l); return 100 * cuad(K, cc) / cc; }, { clase: cl, x0: -3.5, x1: 0 });
+        }
+        g.punto(st.lc, fuerte() ? 100 : 100 * cuad(K, c) / c, { r: 6, clase: cl });
+        g.texto(-3.4, 92, "α (%)", { clase: "faint" });
+        pie.innerHTML = "Franja verde: α &lt; 5 %, donde la aproximación vale. Curva continua: α exacto; discontinua: α aproximado √(K/c). Al <b>diluir</b> (ir a la izquierda) α sube y la aproximación deja de valer.";
+      }
+    }
+    U.fichas(elTipo, [{ k: "af", t: "Ácido fuerte" }, { k: "ad", t: "Ácido débil" }, { k: "bf", t: "Base fuerte" }, { k: "bd", t: "Base débil" }], st.tipo, function (k) {
+      st.tipo = k; st.sus = 0; if (!fuerte()) { st.K = lista()[0].K; slk.set(pK(st.K)); } eligeSus(); pinta();
+    });
+    U.fichas(cuerpo.querySelector("[data-gr]"), [{ k: "ph", t: "Gráfico: pH según c" }, { k: "al", t: "Gráfico: α según c" }], "ph", function (k) { st.gr = k; pinta(); });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -3.5, xmax: 0, ymin: 0, ymax: 14, w: 620, h: 270, etx: "log c", ety: "", etiqueta: "pH o grado de disociación frente a la concentración" });
+    eligeSus(); pinta();
+  };
+
+  // ============================================================
+  // Q7_DISTRIB: fracción de cada especie de un ácido frente al pH
+  // ============================================================
+  var DIS = {
+    ac: { t: "CH₃COOH", esp: ["CH₃COOH", "CH₃COO⁻"], K: [1.8e-5] },
+    hf: { t: "HF", esp: ["HF", "F⁻"], K: [6.8e-4] },
+    nh4: { t: "NH₄⁺", esp: ["NH₄⁺", "NH₃"], K: [KW / 1.8e-5] },
+    hclo: { t: "HClO", esp: ["HClO", "ClO⁻"], K: [3.0e-8] },
+    co2: { t: "H₂CO₃", esp: ["H₂CO₃", "HCO₃⁻", "CO₃²⁻"], K: [4.5e-7, 4.7e-11] }
+  };
+  function fracs(Ks, ph) {
+    var n = Ks.length, H = Math.pow(10, -ph), t = [Math.pow(H, n)], P = 1, i, s;
+    for (i = 1; i <= n; i++) { P *= Ks[i - 1]; t.push(P * Math.pow(H, n - i)); }
+    s = t.reduce(function (a, b) { return a + b; }, 0);
+    return t.map(function (x) { return x / s; });
+  }
+  B.w.q7_distrib = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "¿Qué especie predomina a cada pH?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { k: "ac", ph: 4.74 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl;
+    sl = U.slider(ctl, { et: "pH", min: 0, max: 14, step: 0.05, val: st.ph, on: function (v) { st.ph = v; pinta(); }, fmt: function (v) { return p2(v); } });
+    var CL = ["c-red", "c-ok", "c-pen"], TX = ["red", "ok", "pen"];
+    function pinta() {
+      var S = DIS[st.k], n = S.K.length, fr = fracs(S.K, st.ph), mejor = 0;
+      g.limpiar();
+      S.esp.forEach(function (e, i) { g.curva(function (x) { return 100 * fracs(S.K, x)[i]; }, { clase: CL[i], x0: 0, x1: 14 }); g.punto(st.ph, 100 * fr[i], { r: 6, clase: CL[i] }); if (fr[i] > fr[mejor]) mejor = i; });
+      S.K.forEach(function (K, i) { g.segmento(pK(K), 0, pK(K), 100, { clase: "c-faint", dash: "4 4" }); g.texto(pK(K), 100, "pK" + (n > 1 ? (i + 1) : "") + " = " + p2(pK(K)), { ancla: "middle", dy: 12, clase: "faint" }); });
+      g.segmento(st.ph, 0, st.ph, 100, { clase: "c-ink" });
+      lectura.innerHTML = S.esp.map(function (e, i) { return fil(e, fmt(100 * fr[i], 1) + " %", TX[i] + (i === mejor ? " ancho" : "")); }).join("") +
+        fil("Predomina", S.esp[mejor], "ancho") +
+        fil("[" + S.esp[1] + "]/[" + S.esp[0] + "]", "10<sup>pH − pK" + (n > 1 ? "<sub>a1</sub>" : "<sub>a</sub>") + "</sup> = " + cs(Math.pow(10, st.ph - pK(S.K[0])), 2), "ancho");
+      pie.innerHTML = "Regla: si pH &lt; pK<sub>a</sub> predomina la forma <b>ácida</b>; si pH &gt; pK<sub>a</sub>, la <b>básica</b>; si pH = pK<sub>a</sub>, están al 50 % (Henderson–Hasselbalch). Cerca de ese punto (±1 unidad de pH) conviven las dos formas: es la zona de las disoluciones reguladoras.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 14, ymin: 0, ymax: 105, w: 620, h: 280, etx: "pH", ety: "%", etiqueta: "Distribución de especies frente al pH" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(DIS).map(function (k) { return { k: k, t: DIS[k].t }; }), st.k, function (k) {
+      st.k = k; st.ph = Math.round(pK(DIS[k].K[0]) * 20) / 20; sl.set(st.ph); pinta();
+    });
+    pinta();
+  };
+
+  // ============================================================
+  // Q7_SAL: hidrólisis de sales, paso a paso
+  // ============================================================
+  var NaP = { f: "Na⁺", d: "NaOH (base fuerte)" }, ClP = { f: "Cl⁻", d: "HCl (ácido fuerte)" };
+  var NH4P = { f: "NH₄⁺", d: "NH₃ (base débil, K<sub>b</sub> = 1,8·10⁻⁵)", Kb: 1.8e-5, base: "NH₃" };
+  function anion(f, h, Ka) { return { f: f, d: h + " (ácido débil, K<sub>a</sub> = " + cs(Ka, 1) + ")", Ka: Ka, ac: h }; }
+  var SAL = [
+    { k: "nacl", t: "NaCl", c: NaP, a: ClP },
+    { k: "nh4cl", t: "NH₄Cl", c: NH4P, a: ClP },
+    { k: "naac", t: "CH₃COONa", c: NaP, a: anion("CH₃COO⁻", "CH₃COOH", 1.8e-5) },
+    { k: "nacn", t: "NaCN", c: NaP, a: anion("CN⁻", "HCN", 4.9e-10) },
+    { k: "naf", t: "NaF", c: NaP, a: anion("F⁻", "HF", 6.8e-4) },
+    { k: "nh4ac", t: "CH₃COONH₄", c: NH4P, a: anion("CH₃COO⁻", "CH₃COOH", 1.8e-5) },
+    { k: "nh4cn", t: "NH₄CN", c: NH4P, a: anion("CN⁻", "HCN", 4.9e-10) }
+  ];
+  B.w.q7_sal = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Hidrólisis: ¿qué pH tiene una disolución de sal?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="lectura anch"></div><div class="w-pasos"></div><p class="w-pie"></p>';
+    var st = { k: "naac", lc: -1 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pasos = cuerpo.querySelector(".w-pasos"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "Concentración c", min: -3, max: 0, step: 0.05, val: st.lc, on: function (v) { st.lc = v; pinta(); }, fmt: function (v) { return cs(Math.pow(10, v), 2) + " mol/L"; } });
+    function pinta() {
+      var S = SAL.filter(function (s) { return s.k === st.k; })[0], c = Math.pow(10, st.lc), f = fmt, w = [], na = 0, cl = 0, h = [], html, ph, tipo, Kh, x;
+      if (S.c.Kb) w.push({ c: c, ka: KW / S.c.Kb, z: 1 }); else na = c;
+      if (S.a.Ka) w.push({ c: c, ka: S.a.Ka, z: 0 }); else cl = c;
+      ph = phDe({ na: na, cl: cl, w: w });
+      html = "<ol><li><b>Disociación</b> (100 %): " + S.t + " → " + S.c.f + " + " + S.a.f + ", cada ion a " + cs(c) + " mol/L.</li>" +
+        "<li><b>Catión</b> " + S.c.f + ": viene de " + S.c.d + (S.c.Kb ? ", así que es un <b>ácido débil</b> con K<sub>a</sub> = K<sub>w</sub>/K<sub>b</sub> = " + cs(KW / S.c.Kb) : "; no reacciona con el agua") + ".</li>" +
+        "<li><b>Anión</b> " + S.a.f + ": viene de " + S.a.d + (S.a.Ka ? ", así que es una <b>base débil</b> con K<sub>b</sub> = K<sub>w</sub>/K<sub>a</sub> = " + cs(KW / S.a.Ka) : "; no reacciona con el agua") + ".</li>";
+      if (!S.c.Kb && !S.a.Ka) { tipo = "neutra"; html += "<li>Ningún ion se hidroliza: el pH es el del agua, <b>7,00</b>.</li></ol>"; }
+      else if (S.c.Kb && !S.a.Ka) {
+        Kh = KW / S.c.Kb; x = Math.sqrt(Kh * c); tipo = "ácida";
+        html += "<li><b>Hidrólisis</b>: NH₄⁺ + H₂O ⇌ NH₃ + H₃O⁺ ; x = √(K<sub>a</sub>·c) = √(" + cs(Kh) + " · " + cs(c) + ") = " + cs(x) + " mol/L = [H⁺].</li><li>pH = −log x = <b>" + p2(-Math.log10(x)) + "</b> → disolución <b>ácida</b>.</li></ol>";
+      } else if (!S.c.Kb && S.a.Ka) {
+        Kh = KW / S.a.Ka; x = Math.sqrt(Kh * c); tipo = "básica";
+        html += "<li><b>Hidrólisis</b>: " + S.a.f + " + H₂O ⇌ " + S.a.ac + " + OH⁻ ; x = √(K<sub>b</sub>·c) = √(" + cs(Kh) + " · " + cs(c) + ") = " + cs(x) + " mol/L = [OH⁻].</li><li>pOH = " + p2(-Math.log10(x)) + " → pH = 14 − pOH = <b>" + p2(14 + Math.log10(x)) + "</b> → disolución <b>básica</b>.</li></ol>";
+      } else {
+        var Ka1 = KW / S.c.Kb, Kb1 = KW / S.a.Ka, pa = pK(S.a.Ka), pb = pK(S.c.Kb);
+        tipo = Math.abs(ph - 7) < 0.1 ? "casi neutra" : ph < 7 ? "ácida" : "básica";
+        html += "<li>Se hidrolizan <b>los dos</b>: compara K<sub>a</sub>(" + S.c.f + ") = " + cs(Ka1) + " con K<sub>b</sub>(" + S.a.f + ") = " + cs(Kb1) + ". " + (Ka1 > Kb1 * 1.2 ? "Gana el ácido: pH &lt; 7." : Kb1 > Ka1 * 1.2 ? "Gana la base: pH &gt; 7." : "Son casi iguales: pH ≈ 7.") + "</li>" +
+          "<li>Resultado (independiente de c): pH = 7 + ½(pK<sub>a</sub> − pK<sub>b</sub>) = 7 + ½(" + p2(pa) + " − " + p2(pb) + ") = <b>" + p2(7 + 0.5 * (pa - pb)) + "</b>.</li></ol>";
+      }
+      pasos.innerHTML = html;
+      lectura.innerHTML = fil("pH (exacto)", p2(ph), "pen") + fil("Carácter", tipo, ph < 6.9 ? "red" : ph > 7.1 ? "pen" : "ok") + fil("[H⁺]", cs(Math.pow(10, -ph)) + " mol/L");
+      pie.innerHTML = "Regla: el ion que viene del ácido o la base <b>fuerte</b> no hace nada; el que viene del <b>débil</b> se hidroliza y manda. «El más fuerte gana»: por eso NH₄Cl es ácida y CH₃COONa básica. Cuando hay dos iones débiles se comparan sus constantes.";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), SAL.map(function (s) { return { k: s.k, t: s.t }; }), st.k, function (k) { st.k = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q7_REGUL: disolución reguladora (tampón) frente a agua pura al añadir ácido o base fuertes
+  // ============================================================
+  var PARES = {
+    ac: { t: "CH₃COOH / CH₃COO⁻", K: 1.8e-5, z: 0 }, nh4: { t: "NH₄⁺ / NH₃", K: KW / 1.8e-5, z: 1 },
+    co2: { t: "H₂CO₃ / HCO₃⁻", K: 4.5e-7, z: 0 }, hclo: { t: "HClO / ClO⁻", K: 3.0e-8, z: 0 }
+  };
+  function phRegul(k, ct, r, x) {   // 100 mL de tampón de concentración total ct y cociente base/ácido r; x mmol de NaOH (+) o de HCl (−)
+    var P = PARES[k], nHA = ct * 100 / (1 + r), nA = ct * 100 * r / (1 + r);
+    return phDe({ na: ((P.z === 0 ? nA : 0) + Math.max(x, 0)) / 100, cl: ((P.z === 1 ? nHA : 0) + Math.max(-x, 0)) / 100, w: [{ c: ct, ka: P.K, z: P.z }] });
+  }
+  B.w.q7_regul = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Disolución reguladora: ¿cuánto resiste?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { k: "ac", lc: -1, lr: 0, x: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "Concentración total", min: -2, max: 0, step: 0.05, val: st.lc, on: function (v) { st.lc = v; pinta(); }, fmt: function (v) { return cs(Math.pow(10, v), 2) + " mol/L"; } });
+    U.slider(ctl, { et: "[base]/[ácido]", min: -1, max: 1, step: 0.05, val: 0, on: function (v) { st.lr = v; pinta(); }, fmt: function (v) { return fmt(Math.pow(10, v), 2); } });
+    U.slider(ctl, { et: "Añado (100 mL)", min: -20, max: 20, step: 0.5, val: 0, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return v === 0 ? "nada" : fmt(Math.abs(v), 1) + " mmol de " + (v < 0 ? "HCl" : "NaOH"); } });
+    function modelo() {
+      var P = PARES[st.k], ct = Math.pow(10, st.lc), r = Math.pow(10, st.lr), nHA = ct * 100 / (1 + r), nA = ct * 100 * r / (1 + r);
+      return { P: P, ct: ct, r: r, nHA: nHA, nA: nA, buf: function (x) { return phRegul(st.k, ct, r, x); }, agua: function (x) { return phDe({ na: Math.max(x, 0) / 100, cl: Math.max(-x, 0) / 100 }); } };
+    }
+    function pinta() {
+      var M = modelo(), p0 = M.buf(0), p1 = M.buf(st.x), a1 = M.agua(st.x), pka = pK(M.P.K);
+      g.limpiar();
+      g.rect(-20, pka - 1, 20, pka + 1, { clase: "z-ok" });
+      g.texto(19.5, pka + 1, "pK ± 1", { ancla: "end", dy: -4, clase: "faint" });
+      g.curva(function (x) { return M.agua(x); }, { clase: "c-faint", dash: "5 4", x0: -20, x1: 20, n: 400 });
+      g.curva(function (x) { return M.buf(x); }, { clase: "c-ok", x0: -20, x1: 20, n: 400 });
+      g.segmento(st.x, 0, st.x, 14, { clase: "c-faint", dash: "3 4" });
+      g.punto(st.x, a1, { r: 5, clase: "c-faint" }); g.punto(st.x, p1, { r: 6, clase: "c-ok" });
+      var agota = st.x > 0 ? st.x > M.nHA - 1e-9 : -st.x > M.nA - 1e-9;
+      var nb = M.nA + st.x, na = M.nHA - st.x, hh = nb > 0 && na > 0 ? p2(pka + Math.log10(nb / na)) : "—";
+      lectura.innerHTML = fil("pH inicial (exacto)", p2(p0), "ok") + fil("pH tras añadir (exacto)", p2(p1), "ok") + fil("Variación ΔpH", p2(p1 - p0), "ok") +
+        fil("Agua pura tras añadir lo mismo", p2(a1), "faint") +
+        fil("Henderson–Hasselbalch", hh + " = pK + log(" + fmt(Math.max(nb, 0), 1) + " / " + fmt(Math.max(na, 0), 1) + ")", "ancho") +
+        fil("Composición inicial (mmol)", "ácido " + fmt(M.nHA, 1) + " · base " + fmt(M.nA, 1), "ancho") +
+        fil("Estado", st.x === 0 ? "equilibrado: solo cuenta el cociente base/ácido" : (agota ? "tampón agotado: añadiste más que lo que tenía para neutralizar" : "resiste: solo cambia la proporción base/ácido"), "ancho");
+      pie.innerHTML = "Curva verde: el tampón. Discontinua: 100 mL de agua pura con lo mismo. Con poca cantidad añadida el tampón casi no se mueve, y el agua salta varias unidades. Más concentración total (más mmol) = <b>más capacidad</b>; la relación base/ácido fija el <b>pH</b> inicial. Ir fuera de pK ± 1 reduce la capacidad. La ecuación de Henderson–Hasselbalch es una aproximación: coincide con el cálculo exacto hasta la centésima o dos.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -20, xmax: 20, ymin: 0, ymax: 14, w: 620, h: 280, etx: "mmol añadidos (− HCl · + NaOH)", ety: "pH", etiqueta: "pH frente a ácido o base añadidos" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(PARES).map(function (k) { return { k: k, t: PARES[k].t }; }), st.k, function (k) { st.k = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q7_VALORA: curva de valoración, punto de equivalencia e indicador
+  // ============================================================
+  var TIPOS = {
+    ss: { t: "HCl con NaOH", sub: "fuerte + fuerte", an: "HCl", ti: "NaOH", dir: 1 },
+    ds: { t: "CH₃COOH con NaOH", sub: "débil + fuerte", an: "CH₃COOH", ti: "NaOH", dir: 1, Ka: 1.8e-5 },
+    bd: { t: "NH₃ con HCl", sub: "base débil", an: "NH₃", ti: "HCl", dir: -1, Kb: 1.8e-5 },
+    bs: { t: "NaOH con HCl", sub: "base fuerte", an: "NaOH", ti: "HCl", dir: -1 }
+  };
+  var IND = [
+    { k: "nm", t: "Naranja de metilo", lo: 3.1, hi: 4.4, ca: "rojo", cb: "amarillo" },
+    { k: "rm", t: "Rojo de metilo", lo: 4.2, hi: 6.3, ca: "rojo", cb: "amarillo" },
+    { k: "bt", t: "Azul de bromotimol", lo: 6.0, hi: 7.6, ca: "amarillo", cb: "azul" },
+    { k: "ff", t: "Fenolftaleína", lo: 8.2, hi: 10.0, ca: "incoloro", cb: "rosa" },
+    { k: "no", t: "Sin indicador" }
+  ];
+  function phValora(k, c0, ct, V0, V) {
+    var T = TIPOS[k], Vt = V0 + V, n0 = c0 * V0, nt = ct * V, p;
+    if (k === "ss") p = { cl: n0 / Vt, na: nt / Vt };
+    else if (k === "ds") p = { na: nt / Vt, w: [{ c: n0 / Vt, ka: T.Ka, z: 0 }] };
+    else if (k === "bd") p = { cl: nt / Vt, w: [{ c: n0 / Vt, ka: KW / T.Kb, z: 1 }] };
+    else p = { na: n0 / Vt, cl: nt / Vt };
+    return phDe(p);
+  }
+  B.w.q7_valora = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Valoración: curva de pH, punto de equivalencia e indicador");
+    cuerpo.innerHTML = '<div data-tipo class="chips"></div><div data-ind class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { k: "ss", ind: "ff", c0: 0.1, ct: 0.1, f: 0.5 }, V0 = 25, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "[muestra]", min: 0.05, max: 0.5, step: 0.01, val: st.c0, on: function (v) { st.c0 = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " mol/L (25 mL)"; } });
+    U.slider(ctl, { et: "[bureta]", min: 0.05, max: 0.5, step: 0.01, val: st.ct, on: function (v) { st.ct = v; pinta(); }, fmt: function (v) { return fmt(v, 2) + " mol/L"; } });
+    U.slider(ctl, { et: "Volumen añadido", min: 0, max: 2, step: 0.005, val: st.f, on: function (v) { st.f = v; pinta(); }, fmt: function (v) { return fmt(v * Veq(), 1) + " mL"; } });
+    function Veq() { return st.c0 * V0 / st.ct; }
+    function phAt(V) { return phValora(st.k, st.c0, st.ct, V0, V); }
+    function pinta() {
+      var T = TIPOS[st.k], ve = Veq(), V = st.f * ve, ph = phAt(V), peq = phAt(ve), j1 = phAt(0.999 * ve), j2 = phAt(1.001 * ve), jlo = Math.min(j1, j2), jhi = Math.max(j1, j2);
+      var I = IND.filter(function (x) { return x.k === st.ind; })[0], veredicto, clz = "z-red";
+      g.rango(0, 2 * ve, 0, 14); g.limpiar();
+      if (I.lo != null) {
+        var ideal = I.lo <= peq && peq <= I.hi, mid = (I.lo + I.hi) / 2, vale = mid >= jlo && mid <= jhi;
+        clz = ideal ? "z-ok" : vale ? "z-pen" : "z-red";
+        g.rect(0, I.lo, 2 * ve, I.hi, { clase: clz });
+        g.texto(1.98 * ve, I.hi, I.t, { ancla: "end", dy: -4, clase: "faint" });
+        veredicto = ideal ? "Ideal: su zona de viraje contiene el pH del punto de equivalencia." : vale ? "Sirve: vira dentro del salto, con un error de menos del 0,1 %, aunque no contiene el pH de equivalencia." : "No sirve: vira fuera del salto de pH y el color cambiaría antes o después del punto de equivalencia.";
+      } else veredicto = "Elige un indicador para ver su zona de viraje.";
+      g.curva(function (v) { return phAt(v); }, { clase: "c-pen", x0: 0, x1: 2 * ve, n: 400 });
+      g.segmento(ve, 0, ve, 14, { clase: "c-faint", dash: "5 4" });
+      g.texto(ve, 0.4, "equivalencia", { ancla: "middle", clase: "faint" });
+      g.punto(ve, peq, { r: 5, clase: "c-ok" });
+      if (st.k === "ds" || st.k === "bd") { var pka = st.k === "ds" ? pK(T.Ka) : 14 - pK(T.Kb); g.punto(ve / 2, phAt(ve / 2), { r: 4, clase: "c-red" }); g.texto(ve / 2, phAt(ve / 2), "pH = pK", { ancla: "middle", dy: st.k === "ds" ? 16 : -8, clase: "faint" }); }
+      g.punto(V, ph, { r: 6.5, clase: "c-red" });
+      var estado, f = st.f;
+      if (f === 0) estado = "solo " + T.an;
+      else if (Math.abs(f - 1) < 0.003) estado = "punto de equivalencia: solo la sal";
+      else if (f < 1) estado = st.k === "ss" || st.k === "bs" ? "queda " + T.an + " sin neutralizar (exceso)" : st.k === "ds" ? "mezcla reguladora CH₃COOH / CH₃COO⁻" : "mezcla reguladora NH₃ / NH₄⁺";
+      else estado = "exceso de " + T.ti + " (la sal no cuenta)";
+      var col = I.lo == null ? "—" : ph < I.lo ? I.ca : ph > I.hi ? I.cb : "viraje (mezcla de colores)";
+      lectura.innerHTML = fil("Volumen de equivalencia", fmt(ve, 2) + " mL (C·V = C·V)", "ok") + fil("pH en la equivalencia", p2(peq), "ok") + fil("Salto (±0,1 %)", fmt(jlo, 1) + " a " + fmt(jhi, 1)) +
+        fil("Ahora: V, pH", fmt(V, 1) + " mL · " + p2(ph), "red") + fil("En el matraz", estado, "ancho") + fil("Color del indicador", col, "ancho") + fil("Indicador elegido", veredicto, "ancho " + (clz === "z-ok" ? "ok" : clz === "z-pen" ? "pen" : "red"));
+      pie.innerHTML = "La curva sube (o baja) de forma brusca alrededor de la equivalencia. En fuerte–fuerte el punto vale <b>pH 7</b>; en débil–fuerte la sal formada se hidroliza y el pH de equivalencia es <b>&gt; 7</b> (ácido débil) o <b>&lt; 7</b> (base débil). Banda: zona de viraje del indicador (verde = ideal; azul = sirve; roja = no sirve).";
+    }
+    U.fichas(cuerpo.querySelector("[data-tipo]"), Object.keys(TIPOS).map(function (k) { return { k: k, t: TIPOS[k].t }; }), st.k, function (k) { st.k = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-ind]"), IND.map(function (i) { return { k: i.k, t: i.t }; }), st.ind, function (k) { st.ind = k; pinta(); });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 50, ymin: 0, ymax: 14, w: 620, h: 300, etx: "mL añadidos", ety: "pH", etiqueta: "Curva de valoración" });
+    pinta();
+  };
+
+  B.lab = B.lab || {};
+  B.lab.q7 = { phDe: phDe, cuad: cuad, fracs: fracs, DIS: DIS, SAL: SAL, TIPOS: TIPOS, PARES: PARES, ACIDOS: ACIDOS, BASES: BASES, IND: IND, SUST: SUST, phValora: phValora, phRegul: phRegul };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de rectas (Matemáticas I, tema 8)
    motor B.lab.recta + recta2p · ecgeneral · posiciones · distpunto
    mediatriz · ptosnotables · region
@@ -51612,6 +51968,753 @@
 
   B.registrar("quimica2", "t6", { secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 7: Ácidos y bases
+   (parte A: se añade al final de las secciones originales 1 a 4)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t7/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Teorías ácido-base
+  secciones[0] = env(
+    "<h5>Por qué hizo falta una segunda teoría</h5>" +
+    "<p>La teoría de Arrhenius (1887) funciona bien con HCl y NaOH, pero tiene dos límites: <b>exige agua</b> como disolvente y <b>exige un OH⁻ en la fórmula</b> de la base. No explica por qué el NH₃ (sin OH⁻) vuelve rosa la fenolftaleína, ni por qué una disolución de acetato de sodio es básica. La teoría de Brønsted y Lowry (1923) lo resuelve cambiando la pregunta: ya no importa qué <i>contiene</i> la sustancia, sino qué <b>hace con los protones</b>.</p>" +
+    tabla(["", "Arrhenius", "Brønsted–Lowry"], [
+      ["Ácido", "libera H⁺ en agua", "<b>cede</b> un protón (H⁺)"],
+      ["Base", "libera OH⁻ en agua", "<b>acepta</b> un protón"],
+      ["Reacción ácido-base", "H⁺ + OH⁻ → H₂O", "transferencia de un protón entre dos especies"],
+      ["Limitaciones", "solo en agua; la base debe tener OH⁻", "ninguna en agua; el disolvente también participa"]
+    ]) +
+    "<h5>Pares ácido-base conjugados</h5>" +
+    "<p>Si un ácido cede un protón, lo que queda puede volver a aceptarlo: es su <b>base conjugada</b>. Al revés, una base que acepta un protón se convierte en su <b>ácido conjugado</b>. Toda reacción ácido-base de Brønsted tiene <b>dos pares conjugados</b>:</p>" +
+    "<div class='formula-wrap'><div class='formula'>ácido₁ + base₂ ⇌ base₁ + ácido₂</div></div>" +
+    ejemplo("Ejemplo resuelto: identificar los pares conjugados", "Indica los pares ácido-base conjugados en (a) NH₃ + H₂O ⇌ NH₄⁺ + OH⁻ y (b) HNO₃ + H₂O → NO₃⁻ + H₃O⁺.", [
+      "<b>(a)</b> El NH₃ <b>acepta</b> un H⁺: es la base, y su ácido conjugado es NH₄⁺ (par NH₄⁺/NH₃). El H₂O <b>cede</b> un H⁺: es el ácido, y su base conjugada es OH⁻ (par H₂O/OH⁻).",
+      "<b>(b)</b> El HNO₃ cede el H⁺: es el ácido y su base conjugada es NO₃⁻ (par HNO₃/NO₃⁻). El H₂O lo acepta: es la base, y su ácido conjugado es H₃O⁺ (par H₃O⁺/H₂O).",
+      "Fíjate en que <b>el agua hace de base en (b) y de ácido en (a)</b>: se llama <b>anfótera</b> o anfiprótica."
+    ]) +
+    "<p>Una receta para no equivocarte: para el conjugado de un <b>ácido</b>, <b>quita</b> un H⁺ (y baja la carga en 1); para el de una <b>base</b>, <b>añade</b> un H⁺ (y sube la carga en 1).</p>" +
+    tabla(["Ácido", "Base conjugada", "Base", "Ácido conjugado"], [
+      ["HCl", "Cl⁻", "NH₃", "NH₄⁺"],
+      ["CH₃COOH", "CH₃COO⁻", "CH₃COO⁻", "CH₃COOH"],
+      ["H₂O", "OH⁻", "OH⁻", "H₂O"],
+      ["H₃O⁺", "H₂O", "H₂O", "H₃O⁺"],
+      ["H₂CO₃", "HCO₃⁻", "CO₃²⁻", "HCO₃⁻"],
+      ["NH₄⁺", "NH₃", "F⁻", "HF"]
+    ], "q3t") +
+    "<h5>Sustancias anfóteras</h5>" +
+    "<p>Algunas especies pueden comportarse como ácido o como base según con quién se encuentren. El agua es la más conocida, pero también lo son los iones con un H que aún puede soltarse y un par que aún puede aceptar otro: <b>HCO₃⁻</b> (cede un H⁺ y da CO₃²⁻; o acepta uno y da H₂CO₃), <b>HSO₄⁻</b> y <b>H₂PO₄⁻</b>.</p>" +
+    ojo("Una sustancia <b>no es ácida ni básica «en sí»</b>: lo es respecto a otra. El agua es base frente al HCl y ácido frente al NH₃. Y no confundas «anfótero» con «neutro»: un anfótero reacciona con ambos.") +
+    "<h5>Un vistazo a la teoría de Lewis</h5>" +
+    "<p>Existe una definición todavía más amplia: <b>ácido</b> es lo que <b>acepta un par de electrones</b> y <b>base</b> lo que lo <b>aporta</b> (BF₃ + :NH₃ → F₃B←NH₃, un enlace covalente coordinado como el del tema 4). No se pide cálculo con ella, pero explica por qué el BF₃ o el Al³⁺ se comportan como ácidos sin tener ningún H."
+  );
+
+  // ---------------------------------------------------------------- 2. El pH
+  secciones[1] = env(
+    "<h5>El agua también se ioniza: Kw</h5>" +
+    "<p>Hasta el agua más pura conduce un poquito la electricidad: unas pocas moléculas reaccionan entre sí (una hace de ácido y otra de base):</p>" +
+    "<div class='formula-wrap'><div class='formula'>2 H₂O ⇌ H₃O⁺ + OH⁻ &nbsp;&nbsp;&nbsp; K<sub>w</sub> = [H₃O⁺]·[OH⁻] = 1,0·10⁻¹⁴ (a 25 °C)</div></div>" +
+    "<p>En agua pura salen iones iguales: [H⁺] = [OH⁻] = √K<sub>w</sub> = 10⁻⁷ mol/L, es decir, pH = 7. Pero <b>K<sub>w</sub> es una constante de equilibrio</b> y, como todas, <b>depende de la temperatura</b>: la autoionización absorbe calor, así que al calentar K<sub>w</sub> aumenta. A 50 °C vale ≈ 5,5·10⁻¹⁴ y el agua pura tiene [H⁺] = √(5,5·10⁻¹⁴) = 2,3·10⁻⁷ mol/L, o sea <b>pH = 6,63</b>. Sigue siendo neutra (porque [H⁺] = [OH⁻]), aunque su pH no sea 7. En los problemas, salvo que se diga otra cosa, se trabaja a 25 °C.</p>" +
+    "<p>La relación K<sub>w</sub> = [H⁺][OH⁻] vale <b>en cualquier disolución acuosa</b>, ácida, básica o neutra: si sube [H⁺], baja [OH⁻] y al revés. Por eso en una disolución ácida sigue habiendo OH⁻ (muy pocos), y en una básica sigue habiendo H⁺.</p>" +
+    w("q7_escala") +
+    ejemplo("Ejemplo resuelto: pasar de pH a concentraciones", "El pH de la sangre es 7,4. Calcula [H⁺], pOH y [OH⁻].", [
+      "[H⁺] = 10<sup>−pH</sup> = 10<sup>−7,4</sup> = <b>3,98·10⁻⁸ mol/L</b>.",
+      "pOH = 14 − pH = 14 − 7,4 = <b>6,6</b>.",
+      "[OH⁻] = 10<sup>−6,6</sup> = <b>2,51·10⁻⁷ mol/L</b> (comprueba: 3,98·10⁻⁸ · 2,51·10⁻⁷ = 1,0·10⁻¹⁴).",
+      "La sangre es <b>ligeramente básica</b>: [OH⁻] &gt; [H⁺]. Un cambio de solo 0,3 unidades de pH ya es peligroso, porque supone multiplicar o dividir [H⁺] por 2."
+    ]) +
+    ejemplo("Ejemplo resuelto: ácido y base fuertes", "Calcula el pH de (a) HNO₃ 0,02 mol/L y (b) Ba(OH)₂ 0,001 mol/L.", [
+      "<b>(a)</b> Ácido fuerte monoprótico: [H⁺] = 0,02 mol/L → pH = −log 0,02 = <b>1,70</b>.",
+      "<b>(b)</b> El Ba(OH)₂ es una base fuerte que libera <b>dos</b> OH⁻ por fórmula: Ba(OH)₂ → Ba²⁺ + 2 OH⁻. [OH⁻] = 2 · 0,001 = 2·10⁻³ mol/L.",
+      "pOH = −log(2·10⁻³) = 2,70, así que pH = 14 − 2,70 = <b>11,30</b>.",
+      "El fallo típico es olvidar el factor 2 (daría pH 11,00)."
+    ]) +
+    ejemplo("Ejemplo resuelto: diluir un ácido fuerte", "Se toman 25 mL de HCl 0,2 mol/L y se llevan con agua hasta 500 mL. ¿Qué pH tiene la disolución final?", [
+      "Los moles no cambian al diluir: n = 0,025 L · 0,2 mol/L = 5·10⁻³ mol.",
+      "Concentración final: 5·10⁻³ mol / 0,5 L = 0,01 mol/L → pH = <b>2,00</b>.",
+      "Diluir 20 veces (de 0,2 a 0,01) subió el pH de 0,70 a 2,00. Cada dilución ×10 de un ácido fuerte sube el pH una unidad."
+    ]) +
+    "<h5>Un caso engañoso: el ácido fuerte muy diluido</h5>" +
+    "<p>Si disuelves HCl 10⁻⁸ mol/L, no puede salir pH = 8 (¡un ácido no vuelve básica el agua!). El motivo es que a esa concentración el agua aporta <b>más</b> H⁺ (10⁻⁷ mol/L) que el ácido. Contando los dos orígenes se resuelve [H⁺] = 10⁻⁸ + [OH⁻] con [H⁺][OH⁻] = 10⁻¹⁴ y sale [H⁺] = 1,05·10⁻⁷ mol/L, o sea <b>pH = 6,98</b>: casi neutro. Regla práctica: la aproximación [H⁺] = c solo vale si c ≳ 10⁻⁶ mol/L.</p>" +
+    ojo("El pH es una escala <b>logarítmica</b>: pasar de pH 3 a pH 5 no es «un poco menos ácido», es 100 veces menos [H⁺]. Y al calcular, no confundas −log[H⁺] con log[H⁺] (el pH de un ácido concentrado sería negativo y sale positivo solo con el signo menos)."
+  ));
+
+  // ---------------------------------------------------------------- 3. Fuertes y débiles
+  secciones[2] = env(
+    "<h5>La fuerza de un ácido es una constante de equilibrio</h5>" +
+    "<p>«Fuerte» y «débil» describen <b>cuánto se disocia</b> en agua, no cuánto corroe ni qué concentración tiene. Un ácido débil, HA, alcanza un equilibrio (tema 6) con constante <b>K<sub>a</sub></b>; una base débil, B, con constante <b>K<sub>b</sub></b>:</p>" +
+    "<div class='formula-wrap'><div class='formula'>HA + H₂O ⇌ A⁻ + H₃O⁺ &nbsp;&nbsp; K<sub>a</sub> = [A⁻][H₃O⁺] / [HA] &nbsp;&nbsp;&nbsp;&nbsp; B + H₂O ⇌ BH⁺ + OH⁻ &nbsp;&nbsp; K<sub>b</sub> = [BH⁺][OH⁻] / [B]</div></div>" +
+    "<p>El agua no aparece en la constante: es el disolvente y su concentración es prácticamente constante. A mayor K<sub>a</sub> (o menor pK<sub>a</sub> = −log K<sub>a</sub>), más fuerte es el ácido. Se usan además dos medidas de «cuánto se disocia»:</p>" +
+    "<ul><li><b>Grado de disociación α</b> = (mol disociados)/(mol iniciales) = x/c. Se da en tanto por uno o por ciento. Un ácido fuerte tiene α ≈ 1.</li>" +
+    "<li><b>pK<sub>a</sub></b> = −log K<sub>a</sub>: cuanto menor, más fuerte. Ácido acético: K<sub>a</sub> = 1,8·10⁻⁵ → pK<sub>a</sub> = 4,74.</li></ul>" +
+    tabla(["Ácido", "K<sub>a</sub>", "pK<sub>a</sub>", "Base conjugada"], [
+      ["HCl, HNO₃", "muy grande (fuertes)", "&lt; 0", "Cl⁻, NO₃⁻ (no reaccionan con el agua)"],
+      ["HF", "6,8·10⁻⁴", "3,17", "F⁻"],
+      ["HNO₂", "4,5·10⁻⁴", "3,35", "NO₂⁻"],
+      ["C₆H₅COOH (benzoico)", "6,5·10⁻⁵", "4,19", "C₆H₅COO⁻"],
+      ["CH₃COOH", "1,8·10⁻⁵", "4,74", "CH₃COO⁻"],
+      ["HClO", "3,0·10⁻⁸", "7,52", "ClO⁻"],
+      ["HCN", "4,9·10⁻¹⁰", "9,31", "CN⁻"]
+    ], "q3t") +
+    "<p>Bases débiles de uso frecuente: NH₃ (K<sub>b</sub> = 1,8·10⁻⁵) y metilamina CH₃NH₂ (K<sub>b</sub> = 4,4·10⁻⁴).</p>" +
+    "<h5>Ácidos fuertes de memoria (y bases fuertes)</h5>" +
+    "<p><b>Ácidos fuertes</b> que se piden: HCl, HBr, HI, HNO₃, HClO₄ y H₂SO₄ (solo en su <i>primera</i> ionización). <b>Bases fuertes</b>: hidróxidos de los alcalinos (LiOH, NaOH, KOH) y de Ca, Sr, Ba. Todo lo demás con aspecto de ácido o base (CH₃COOH, HF, HCN, NH₃, aminas…) se trata como <b>débil</b>.</p>" +
+    "<h5>Pares conjugados: K<sub>a</sub> · K<sub>b</sub> = K<sub>w</sub></h5>" +
+    "<p>Un ácido y su base conjugada están ligados: cuanto más fuerte es el ácido, más débil es su base conjugada. Multiplicando las dos constantes se cancelan las concentraciones del par y queda el producto iónico del agua:</p>" +
+    "<div class='formula-wrap'><div class='formula'>K<sub>a</sub>(HA) · K<sub>b</sub>(A⁻) = K<sub>w</sub> &nbsp;&nbsp;⟹&nbsp;&nbsp; pK<sub>a</sub> + pK<sub>b</sub> = 14</div></div>" +
+    ejemplo("Ejemplo resuelto: de K<sub>a</sub> a K<sub>b</sub> del conjugado", "Calcula K<sub>b</sub> del ion acetato y K<sub>a</sub> del ion amonio, sabiendo K<sub>a</sub>(CH₃COOH) = 1,8·10⁻⁵ y K<sub>b</sub>(NH₃) = 1,8·10⁻⁵.", [
+      "Acetato: K<sub>b</sub> = K<sub>w</sub>/K<sub>a</sub> = 10⁻¹⁴ / 1,8·10⁻⁵ = <b>5,6·10⁻¹⁰</b> (pK<sub>b</sub> = 9,26).",
+      "Amonio: K<sub>a</sub> = K<sub>w</sub>/K<sub>b</sub> = 10⁻¹⁴ / 1,8·10⁻⁵ = <b>5,6·10⁻¹⁰</b> (pK<sub>a</sub> = 9,26).",
+      "Los dos son muy pequeños: el acetato es una base <b>muy débil</b> y el amonio un ácido <b>muy débil</b>. Esto es lo que hace falta en la hidrólisis de sales (sección 6)."
+    ]) +
+    "<h5>Calcular el pH de un ácido o una base débiles</h5>" +
+    "<p>Es una tabla ICE del tema 6, con x = [H⁺] (o [OH⁻]). Para HA de concentración inicial c:</p>" +
+    tabla(["", "HA", "A⁻", "H₃O⁺"], [["inicial", "c", "0", "0"], ["cambio", "−x", "+x", "+x"], ["equilibrio", "c − x", "x", "x"]], "q3t") +
+    "<div class='formula-wrap'><div class='formula'>K<sub>a</sub> = x² / (c − x)</div></div>" +
+    "<p>Tienes dos caminos:</p>" +
+    "<ol><li><b>Aproximado</b>: si x es mucho menor que c, c − x ≈ c y x = √(K<sub>a</sub>·c). Se acepta cuando <b>α = x/c &lt; 5 %</b>; ese 5 % es lo que se comprueba <i>después</i> de calcular.</li>" +
+    "<li><b>Exacto</b>: x² + K<sub>a</sub>·x − K<sub>a</sub>·c = 0, con x = (−K<sub>a</sub> + √(K<sub>a</sub>² + 4K<sub>a</sub>c)) / 2. Siempre vale.</li></ol>" +
+    "<p>La calculadora de abajo te enseña los pasos con los datos que elijas, calcula las dos versiones y avisa cuándo la aproximación falla; en el gráfico «α según c» ves cuándo ocurre.</p>" +
+    w("q7_calc") +
+    ejemplo("Ejemplo resuelto: ácido débil, aproximación válida", "Calcula el pH y el grado de disociación de CH₃COOH 0,1 mol/L (K<sub>a</sub> = 1,8·10⁻⁵).", [
+      "Equilibrio: CH₃COOH + H₂O ⇌ CH₃COO⁻ + H₃O⁺. Tabla: c − x, x, x.",
+      "K<sub>a</sub> = x²/(0,1 − x) ≈ x²/0,1 → x = √(1,8·10⁻⁵ · 0,1) = <b>1,34·10⁻³ mol/L</b>.",
+      "Comprobación: α = x/c = 1,34·10⁻³/0,1 = 1,3 % &lt; 5 %: la aproximación es válida.",
+      "pH = −log(1,34·10⁻³) = <b>2,87</b> y α = <b>1,3 %</b>. (Resolviendo la cuadrática sale 2,88: la diferencia es despreciable.)"
+    ]) +
+    ejemplo("Ejemplo resuelto: base débil", "Calcula el pH de NH₃ 0,2 mol/L (K<sub>b</sub> = 1,8·10⁻⁵) y su grado de ionización.", [
+      "NH₃ + H₂O ⇌ NH₄⁺ + OH⁻. Con x = [OH⁻]: K<sub>b</sub> = x²/(0,2 − x) ≈ x²/0,2.",
+      "x = √(1,8·10⁻⁵ · 0,2) = <b>1,90·10⁻³ mol/L</b> = [OH⁻]. α = x/c = 0,95 % &lt; 5 %: vale.",
+      "pOH = −log(1,90·10⁻³) = 2,72, luego pH = 14 − 2,72 = <b>11,28</b>.",
+      "Una disolución de base débil y concentración 0,2 mol/L tiene un pH <b>menor</b> que una de NaOH de igual concentración (13,30)."
+    ]) +
+    ejemplo("Ejemplo resuelto: hallar K<sub>a</sub> a partir del pH", "Una disolución 0,2 mol/L de un ácido monoprótico HA tiene pH 2,85. Calcula K<sub>a</sub> y α.", [
+      "[H⁺] = 10<sup>−2,85</sup> = 1,41·10⁻³ mol/L = x.",
+      "[A⁻] = x = 1,41·10⁻³ y [HA] = 0,2 − 0,00141 = 0,1986 mol/L.",
+      "K<sub>a</sub> = x²/(c − x) = (1,41·10⁻³)² / 0,1986 = <b>1,0·10⁻⁵</b>.",
+      "α = x/c = 1,41·10⁻³/0,2 = <b>0,71 %</b> (ácido débil; pK<sub>a</sub> = 5,0)."
+    ]) +
+    ejemplo("Ejemplo resuelto: cuando la aproximación NO vale", "Calcula el pH de HF 0,1 mol/L (K<sub>a</sub> = 6,8·10⁻⁴).", [
+      "Aproximado: x = √(6,8·10⁻⁴ · 0,1) = 8,25·10⁻³ mol/L → α = 8,25 % <b>&gt; 5 %</b>. La aproximación <b>no vale</b>: x ya no es despreciable frente a 0,1.",
+      "Exacto: x² + 6,8·10⁻⁴·x − 6,8·10⁻⁵ = 0 → x = (−6,8·10⁻⁴ + √((6,8·10⁻⁴)² + 4 · 6,8·10⁻⁵)) / 2 = <b>7,91·10⁻³ mol/L</b>.",
+      "pH = −log(7,91·10⁻³) = <b>2,10</b> y α = 7,9 %. (Con la aproximación habría salido 2,08: el error es pequeño en pH, pero el α que se pide no es válido.)",
+      "Regla: se acepta la aproximación si α &lt; 5 %, y esto pasa cuando c/K<sub>a</sub> es mayor que unas 400."
+    ]) +
+    ejemplo("Ejemplo resuelto: diluir un ácido débil", "¿Qué le pasa al grado de disociación del CH₃COOH al diluirlo de 0,1 a 0,001 mol/L?", [
+      "Con 0,1 mol/L: α = 1,3 % (ejemplo anterior). Con 0,001 mol/L la aproximación falla (√(K<sub>a</sub>/c) = 13 %), así que se resuelve la cuadrática: x = <b>1,25·10⁻⁴ mol/L</b>, α = <b>12,5 %</b> y pH = 3,90.",
+      "Al diluir 100 veces, <b>α sube</b> (de 1,3 % a 12,5 %: ley de dilución de Ostwald), pero [H⁺] <b>baja</b> y el pH <b>sube</b> (de 2,88 a 3,90).",
+      "Interpretación con el principio de Le Châtelier: al diluir, el equilibrio se desplaza hacia el lado con más partículas (más iones) para contrarrestar el cambio."
+    ]) +
+    "<h5>Quién predomina a cada pH: distribución de especies</h5>" +
+    "<p>La fracción de ácido sin disociar y de base conjugada depende del <b>pH de la disolución</b>, no solo de c. De K<sub>a</sub> = [A⁻][H⁺]/[HA] sale [A⁻]/[HA] = K<sub>a</sub>/[H⁺] = 10<sup>pH − pK<sub>a</sub></sup>. Por eso, <b>a pH = pK<sub>a</sub> están al 50 %</b>; con pH una unidad por debajo domina el ácido (91 % : 9 %) y una por encima, la base. Mueve el pH y mira cómo se reparten:</p>" +
+    w("q7_distrib") +
+    "<h5>Ácidos polipróticos</h5>" +
+    "<p>Los ácidos con más de un H ácido se ionizan por etapas, cada una con su constante y cada vez más débil: H₂CO₃ (K<sub>a1</sub> = 4,5·10⁻⁷; K<sub>a2</sub> = 4,7·10⁻¹¹), H₃PO₄ (7,1·10⁻³; 6,3·10⁻⁸; 4,2·10⁻¹³). El H₂SO₄ es fuerte en la primera ionización y casi fuerte en la segunda (K<sub>a2</sub> = 1,2·10⁻²). Para el pH de la disolución, casi siempre basta la <b>primera</b> etapa (K<sub>a1</sub> ≫ K<sub>a2</sub>).</p>" +
+    ojo("«Fuerte» y «débil» hablan de <b>cuánto se disocia</b>, no de cuánto hay: HCl 10⁻³ mol/L (fuerte y diluido) tiene pH 3, mientras que CH₃COOH 5 mol/L (débil y concentrado) tiene pH 2,0. Y no confundas <b>K<sub>a</sub></b> (depende de la sustancia y de la temperatura) con <b>α</b> (depende además de la concentración)."
+  ));
+
+  // ---------------------------------------------------------------- 4. Neutralización y valoraciones
+  secciones[3] = env(
+    "<h5>La estequiometría cuenta H⁺ y OH⁻, no «moles de ácido»</h5>" +
+    "<p>La neutralización es H⁺ + OH⁻ → H₂O. Por eso, el punto de equivalencia no es «moles de ácido = moles de base» sino <b>moles de H⁺ = moles de OH⁻</b>:</p>" +
+    "<div class='formula-wrap'><div class='formula'>a · C<sub>a</sub> · V<sub>a</sub> = b · C<sub>b</sub> · V<sub>b</sub></div></div>" +
+    "<p>donde a es el número de H⁺ que cede cada fórmula de ácido (HCl: 1, H₂SO₄: 2, H₃PO₄: 3) y b el de OH⁻ de cada base (NaOH: 1, Ba(OH)₂: 2). La fórmula Cₐ·Vₐ = C<sub>b</sub>·V<sub>b</sub> del enunciado original es el caso a = b = 1.</p>" +
+    ejemplo("Ejemplo resuelto: ácido diprótico", "Para neutralizar 20 mL de H₂SO₄ se gastan 30 mL de NaOH 0,2 mol/L. ¿Qué concentración tiene el ácido?", [
+      "H₂SO₄ + 2 NaOH → Na₂SO₄ + 2 H₂O. El ácido cede 2 H⁺ por fórmula (a = 2); la base, 1 OH⁻ (b = 1).",
+      "n(NaOH) = 0,030 L · 0,2 mol/L = 6,0·10⁻³ mol de OH⁻ → hacen falta 6,0·10⁻³ mol de H⁺ = 3,0·10⁻³ mol de H₂SO₄.",
+      "C(H₂SO₄) = 3,0·10⁻³ mol / 0,020 L = <b>0,15 mol/L</b>. (Si hubieras usado C<sub>a</sub>V<sub>a</sub> = C<sub>b</sub>V<sub>b</sub> saldría 0,30: el error del factor 2.)"
+    ]) +
+    "<h5>Cómo se hace una valoración en el laboratorio</h5>" +
+    "<ol><li>Con una <b>pipeta</b> se mide un volumen exacto de la muestra y se pasa a un <b>matraz erlenmeyer</b>.</li>" +
+    "<li>Se añaden 2 o 3 gotas de <b>indicador</b> (una sustancia que cambia de color según el pH, sección 8).</li>" +
+    "<li>La <b>bureta</b> se llena con el reactivo de concentración conocida, se enrasa en cero y se deja caer poco a poco, agitando.</li>" +
+    "<li>Al notar el <b>viraje</b> (el color que persiste unos 30 s) se cierra y se lee el volumen gastado: es el volumen de equivalencia.</li></ol>" +
+    "<p>Una disolución de NaOH <b>no sirve como patrón</b>, porque el NaOH absorbe agua y CO₂ del aire y su concentración exacta no se conoce al pesarlo. Primero se «valora» (se estandariza) con un <b>patrón primario</b>, sólido estable, puro y que se pesa con precisión, como el ftalato ácido de potasio (KHP, un ácido monoprótico, M = 204,22 g/mol).</p>" +
+    ejemplo("Ejemplo resuelto: estandarizar la base", "Se disuelven 0,5105 g de KHP y se valoran con una disolución de NaOH, gastándose 24,8 mL. ¿Qué concentración tiene el NaOH?", [
+      "n(KHP) = 0,5105 g / 204,22 g/mol = 2,500·10⁻³ mol. El KHP es monoprótico: n(NaOH) = 2,500·10⁻³ mol.",
+      "C(NaOH) = 2,500·10⁻³ mol / 0,0248 L = <b>0,1008 mol/L</b>."
+    ]) +
+    ejemplo("Ejemplo resuelto: ácido acético del vinagre", "Se diluyen 10 mL de vinagre hasta 100 mL; 20 mL de esa disolución gastan 15,4 mL de NaOH 0,100 mol/L. ¿Cuál es la concentración del vinagre en mol/L y en g/L? (M(CH₃COOH) = 60,05 g/mol)", [
+      "n(NaOH) = 0,0154 L · 0,100 mol/L = 1,54·10⁻³ mol = n(CH₃COOH) en los 20 mL.",
+      "Concentración de la disolución diluida: 1,54·10⁻³ / 0,020 = 0,077 mol/L.",
+      "El vinagre original estaba diluido 10 veces: 0,077 · 10 = <b>0,77 mol/L</b>, y en gramos: 0,77 · 60,05 = <b>46,2 g/L</b> (≈ 4,6 % en masa/volumen, un valor normal en vinagres comerciales)."
+    ]) +
+    ojo("La valoración se interpreta en el <b>punto de equivalencia</b> (reaccionó todo), pero lo que se observa es el <b>punto final</b> (cambia el color). Un buen indicador hace que coincidan; si no, hay error. Y el pH en la equivalencia <b>no es siempre 7</b> (sección 8).")
+  );
+
+  B.parte.q2t7a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 7: Ácidos y bases
+   (parte B: secciones nuevas 5 a 11)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t7/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 5
+    {
+      h: "5. Mezclas de ácido y base: quién sobra decide el pH",
+      html: env(
+        "<h5>El método en cuatro pasos</h5>" +
+        "<p>Cuando se mezclan un ácido fuerte y una base fuerte, la reacción es completa y <b>solo importa lo que sobra</b>. Siempre en este orden:</p>" +
+        "<ol><li><b>Moles</b> de H⁺ y de OH⁻ (concentración × volumen, sin olvidar el nº de H⁺ u OH⁻ por fórmula).</li>" +
+        "<li><b>Reacción</b> H⁺ + OH⁻ → H₂O: se restan; el que tenga menos se acaba.</li>" +
+        "<li><b>Concentración del exceso</b> = moles que sobran / <b>volumen total</b> (suma de los dos volúmenes).</li>" +
+        "<li><b>pH</b>: del exceso de H⁺ (pH = −log) o del de OH⁻ (pOH → pH). Si no sobra nada, pH = 7 (sales de ácido y base fuertes).</li></ol>" +
+        ejemplo("Ejemplo resuelto: sobra ácido", "Se mezclan 50 mL de HCl 0,1 mol/L con 50 mL de NaOH 0,06 mol/L. Calcula el pH.", [
+          "n(H⁺) = 0,050 · 0,1 = 5,0·10⁻³ mol. n(OH⁻) = 0,050 · 0,06 = 3,0·10⁻³ mol.",
+          "Reaccionan 3,0·10⁻³ mol de cada uno. Sobran 5,0·10⁻³ − 3,0·10⁻³ = <b>2,0·10⁻³ mol de H⁺</b>.",
+          "Volumen total = 100 mL = 0,100 L → [H⁺] = 2,0·10⁻³ / 0,100 = 0,020 mol/L.",
+          "pH = −log 0,020 = <b>1,70</b>."
+        ]) +
+        ejemplo("Ejemplo resuelto: sobra base", "Se mezclan 30 mL de NaOH 0,1 mol/L con 20 mL de HCl 0,05 mol/L. Calcula el pH.", [
+          "n(OH⁻) = 0,030 · 0,1 = 3,0·10⁻³ mol. n(H⁺) = 0,020 · 0,05 = 1,0·10⁻³ mol.",
+          "Sobran 3,0·10⁻³ − 1,0·10⁻³ = <b>2,0·10⁻³ mol de OH⁻</b> en 50 mL: [OH⁻] = 2,0·10⁻³ / 0,050 = 0,040 mol/L.",
+          "pOH = −log 0,040 = 1,40 → pH = 14 − 1,40 = <b>12,60</b>."
+        ]) +
+        ejemplo("Ejemplo resuelto: con un hidróxido de dos OH⁻", "Se mezclan 20 mL de Ba(OH)₂ 0,04 mol/L con 30 mL de HCl 0,1 mol/L. Calcula el pH.", [
+          "n(OH⁻) = 2 · 0,020 · 0,04 = 1,6·10⁻³ mol (cada Ba(OH)₂ da 2 OH⁻). n(H⁺) = 0,030 · 0,1 = 3,0·10⁻³ mol.",
+          "Sobran 3,0·10⁻³ − 1,6·10⁻³ = <b>1,4·10⁻³ mol de H⁺</b> en 50 mL → [H⁺] = 0,028 mol/L.",
+          "pH = −log 0,028 = <b>1,55</b>."
+        ]) +
+        ejemplo("Ejemplo resuelto: dos ácidos fuertes", "Se mezclan 100 mL de HCl 0,1 mol/L con 100 mL de HNO₃ 0,3 mol/L. ¿Qué pH resulta?", [
+          "No hay reacción entre ellos, solo se suman los H⁺: n(H⁺) = 0,1 · 0,1 + 0,1 · 0,3 = 0,010 + 0,030 = 0,040 mol.",
+          "Volumen total 0,200 L → [H⁺] = 0,040 / 0,200 = 0,20 mol/L → pH = <b>0,70</b>.",
+          "Un error frecuente es hacer la <b>media de pH</b> (1,00 y 0,52 → 0,76): con una escala logarítmica los pH no se promedian; se promedian las <b>concentraciones</b> (ponderadas por el volumen)."
+        ]) +
+        ojo("Divide siempre por el <b>volumen total</b>, no por el de uno solo de los reactivos. Y esta receta es para ácidos y bases <b>fuertes</b>: si uno es débil, lo que queda tras la reacción es una mezcla reguladora (sección 7) o una sal que se hidroliza (sección 6), y el pH se calcula de otra manera.")
+      )
+    },
+    // ------------------------------------------------------------ 6
+    {
+      h: "6. Hidrólisis de sales: por qué el acetato de sodio es básico",
+      html: env(
+        "<h5>Las sales no siempre son neutras</h5>" +
+        "<p>Una sal es un compuesto iónico: al disolverse se separa por completo en sus iones. La mayoría de las veces se escribe que una neutralización forma «sal + agua» y se da por hecho que la disolución es neutra... pero no siempre lo es. Los iones de una sal pueden reaccionar con el agua, y a eso se le llama <b>hidrólisis</b>. Un ion reacciona con el agua <b>solo si es el conjugado de un ácido o base débil</b>:</p>" +
+        "<ul><li>El <b>anión</b> de un <b>ácido débil</b> (CH₃COO⁻, CN⁻, F⁻, CO₃²⁻) es una base: A⁻ + H₂O ⇌ HA + OH⁻ → pH &gt; 7.</li>" +
+        "<li>El <b>catión</b> de una <b>base débil</b> (NH₄⁺, CH₃NH₃⁺) es un ácido: BH⁺ + H₂O ⇌ B + H₃O⁺ → pH &lt; 7.</li>" +
+        "<li>Los iones de ácidos o bases <b>fuertes</b> (Na⁺, K⁺, Ca²⁺, Cl⁻, NO₃⁻, SO₄²⁻ en 1.ª) son espectadores: <b>no reaccionan</b>.</li></ul>" +
+        tabla(["Sal de…", "Ejemplos", "Qué se hidroliza", "pH"], [
+          ["ácido fuerte + base fuerte", "NaCl, KNO₃, Na₂SO₄", "nada", "= 7"],
+          ["ácido débil + base fuerte", "CH₃COONa, NaCN, NaF", "el anión (da OH⁻)", "&gt; 7"],
+          ["ácido fuerte + base débil", "NH₄Cl, NH₄NO₃", "el catión (da H₃O⁺)", "&lt; 7"],
+          ["ácido débil + base débil", "CH₃COONH₄, NH₄CN, NH₄F", "los dos: gana el de K mayor", "depende"]
+        ], "q3t") +
+        "<p>La regla para recordarlo: <b>«el más fuerte gana»</b>. En NaCH₃COO, la base fuerte (NaOH) «gana» al ácido débil (CH₃COOH): la disolución es básica.</p>" +
+        "<h5>Cómo se calcula</h5>" +
+        "<p>El ion que se hidroliza es un ácido o base débil <b>con su propia constante</b>, que sale de K<sub>a</sub>·K<sub>b</sub> = K<sub>w</sub>: la <b>constante de hidrólisis</b> K<sub>h</sub>. Después es un ácido o base débil normal (sección 3), con x = [H₃O⁺] o [OH⁻] y concentración inicial c = la de la sal.</p>" +
+        ejemplo("Ejemplo resuelto: sal de ácido débil (básica)", "Calcula el pH de una disolución de CH₃COONa 0,1 mol/L. K<sub>a</sub>(CH₃COOH) = 1,8·10⁻⁵.", [
+          "Disociación completa: CH₃COONa → CH₃COO⁻ + Na⁺, ambos a 0,1 mol/L. El Na⁺ viene de una base fuerte: no reacciona.",
+          "Hidrólisis: CH₃COO⁻ + H₂O ⇌ CH₃COOH + OH⁻, con K<sub>b</sub> = K<sub>w</sub>/K<sub>a</sub> = 10⁻¹⁴/1,8·10⁻⁵ = <b>5,6·10⁻¹⁰</b>.",
+          "Tabla: c − x, x, x. K<sub>b</sub> = x²/(0,1 − x) ≈ x²/0,1 → x = √(5,6·10⁻¹⁰ · 0,1) = <b>7,5·10⁻⁶ mol/L</b> = [OH⁻]. (α = 0,007 %: la aproximación vale de sobra.)",
+          "pOH = −log(7,5·10⁻⁶) = 5,13 → pH = 14 − 5,13 = <b>8,87</b>: ligeramente básica."
+        ]) +
+        ejemplo("Ejemplo resuelto: sal de base débil (ácida)", "Calcula el pH de una disolución de NH₄Cl 0,1 mol/L. K<sub>b</sub>(NH₃) = 1,8·10⁻⁵.", [
+          "NH₄Cl → NH₄⁺ + Cl⁻. El Cl⁻ viene de un ácido fuerte: no reacciona. El NH₄⁺ es el ácido conjugado del NH₃, una base débil: se hidroliza.",
+          "NH₄⁺ + H₂O ⇌ NH₃ + H₃O⁺, con K<sub>a</sub> = K<sub>w</sub>/K<sub>b</sub> = 10⁻¹⁴/1,8·10⁻⁵ = <b>5,6·10⁻¹⁰</b>.",
+          "x = √(K<sub>a</sub>·c) = √(5,6·10⁻¹⁰ · 0,1) = 7,5·10⁻⁶ mol/L = [H⁺].",
+          "pH = −log(7,5·10⁻⁶) = <b>5,13</b>: ligeramente ácida. (Fíjate en la simetría con el ejemplo anterior: 5,13 y 8,87 suman 14.)"
+        ]) +
+        ejemplo("Ejemplo resuelto: cianuro de sodio", "Calcula el pH de NaCN 0,05 mol/L (K<sub>a</sub>(HCN) = 4,9·10⁻¹⁰) y razona si hay que resolver la cuadrática.", [
+          "CN⁻ es la base conjugada de un ácido muy débil: K<sub>b</sub> = 10⁻¹⁴/4,9·10⁻¹⁰ = 2,04·10⁻⁵ (¡casi igual que el NH₃!).",
+          "x = √(2,04·10⁻⁵ · 0,05) = 1,01·10⁻³ mol/L = [OH⁻]. α = x/c = 2,0 % &lt; 5 %: la aproximación vale.",
+          "pOH = 3,00 → pH = <b>11,00</b>. El NaCN 0,05 mol/L es casi tan básico como el NH₃ 0,05 mol/L (pH 10,98), porque K<sub>b</sub>(CN⁻) y K<sub>b</sub>(NH₃) valen prácticamente lo mismo."
+        ]) +
+        w("q7_sal") +
+        "<h5>Cuando los dos iones son débiles</h5>" +
+        "<p>En NH₄CH₃COO el catión es un ácido débil (K<sub>a</sub> = 5,6·10⁻¹⁰) y el anión una base débil (K<sub>b</sub> = 5,6·10⁻¹⁰). Se hidrolizan los dos y <b>gana el de constante mayor</b>: aquí son iguales, así que el pH es 7 (aunque no hay un ion «neutro»: simplemente se compensan). En NH₄CN gana la base (2,0·10⁻⁵ frente a 5,6·10⁻¹⁰) y la disolución es básica. Con las dos constantes, y sin importar la concentración, un cálculo aproximado da <b>pH = 7 + ½(pK<sub>a</sub> − pK<sub>b</sub>)</b> (ácido débil de origen del anión, base débil de origen del catión): para NH₄CN, 7 + ½(9,31 − 4,74) = 9,28.</p>" +
+        ojo("La hidrólisis <b>no es</b> la disociación de la sal (esa es total): es la reacción de uno de sus <b>iones</b> con el agua, y es pequeña. Y no hidrolices el Na⁺, el K⁺ ni el Cl⁻: «el ion de una base o ácido fuerte no reacciona».")
+      )
+    },
+    // ------------------------------------------------------------ 7
+    {
+      h: "7. Disoluciones reguladoras (tampones)",
+      html: env(
+        "<h5>Qué son y por qué existen</h5>" +
+        "<p>Una disolución <b>reguladora</b> (tampón o buffer) es la que mantiene casi constante su pH al añadirle pequeñas cantidades de ácido o de base, o al diluirla. Es la clave de la sangre (pH 7,4 ± 0,05), del interior de las células y de muchos medicamentos y alimentos. La receta es siempre la misma:</p>" +
+        "<div class='formula-wrap'><div class='formula'>un ácido débil + su base conjugada &nbsp;&nbsp;(CH₃COOH + CH₃COONa) &nbsp;&nbsp;o&nbsp;&nbsp; una base débil + su ácido conjugado &nbsp;&nbsp;(NH₃ + NH₄Cl)</div></div>" +
+        "<p>Funciona por una razón muy sencilla: si entra un ácido fuerte (H⁺), lo neutraliza la <b>base conjugada</b> (A⁻ + H⁺ → HA); si entra una base fuerte (OH⁻), lo neutraliza el <b>ácido débil</b> (HA + OH⁻ → A⁻ + H₂O). Ninguna de las dos reacciones deja H⁺ o OH⁻ libres, solo cambia la proporción [A⁻]/[HA], y el pH depende de ese cociente, no del valor absoluto de las concentraciones.</p>" +
+        "<h5>La ecuación de Henderson–Hasselbalch</h5>" +
+        "<p>De K<sub>a</sub> = [A⁻][H⁺]/[HA] se despeja [H⁺] = K<sub>a</sub>·[HA]/[A⁻]; tomando −log:</p>" +
+        "<div class='formula-wrap'><div class='formula'>pH = pK<sub>a</sub> + log ( [base] / [ácido] )</div></div>" +
+        "<p>Se usa con las concentraciones <b>iniciales</b> (en la mezcla), porque el ácido débil se disocia muy poco y la base conjugada procede casi toda de la sal (hay que comprobarlo: es válida si las dos concentraciones son mucho mayores que [H⁺] y que K<sub>a</sub>). Como el cociente se calcula con moles, <b>no depende del volumen</b> ni de la dilución. Consecuencias: con [base] = [ácido], pH = pK<sub>a</sub>; cada factor 10 en el cociente mueve el pH una unidad; la zona útil es <b>pK<sub>a</sub> ± 1</b>.</p>" +
+        ejemplo("Ejemplo resuelto: pH de un tampón", "Calcula el pH de una disolución que contiene CH₃COOH 0,1 mol/L y CH₃COONa 0,1 mol/L, y el de otra con CH₃COOH 0,2 mol/L y CH₃COONa 0,1 mol/L. K<sub>a</sub> = 1,8·10⁻⁵.", [
+          "pK<sub>a</sub> = −log(1,8·10⁻⁵) = 4,74.",
+          "Primera: [base]/[ácido] = 1 → pH = 4,74 + log 1 = <b>4,74</b>.",
+          "Segunda: [base]/[ácido] = 0,1/0,2 = 0,5 → pH = 4,74 + log 0,5 = 4,74 − 0,30 = <b>4,44</b>.",
+          "Más ácido que base → pH por debajo del pK<sub>a</sub>; más base que ácido → por encima."
+        ]) +
+        ejemplo("Ejemplo resuelto: ¿cuánto resiste?", "A 100 mL del tampón CH₃COOH 0,1 mol/L / CH₃COONa 0,1 mol/L se añaden 1,0 mmol de HCl (sin cambio de volumen). Calcula el pH y compáralo con el que tendría 100 mL de agua con el mismo HCl.", [
+          "Moles iniciales en 100 mL: 10 mmol de CH₃COOH y 10 mmol de CH₃COO⁻.",
+          "El HCl (1,0 mmol de H⁺) reacciona con el acetato: CH₃COO⁻ + H⁺ → CH₃COOH. Quedan 10 − 1 = <b>9</b> mmol de acetato y 10 + 1 = <b>11</b> mmol de ácido.",
+          "pH = 4,74 + log(9/11) = 4,74 − 0,09 = <b>4,66</b> (cambia solo 0,09 unidades).",
+          "En agua pura: [H⁺] = 1,0 mmol/100 mL = 0,010 mol/L → pH = <b>2,00</b>: cae 5 unidades (la [H⁺] se multiplica por 100.000), mientras que en el tampón solo se multiplica por 1,2."
+        ]) +
+        ejemplo("Ejemplo resuelto: hacer un tampón con una valoración parcial", "A 25 mL de CH₃COOH 0,1 mol/L se añaden 10 mL de NaOH 0,1 mol/L. Calcula el pH.", [
+          "n(CH₃COOH) = 0,025 · 0,1 = 2,5 mmol. n(OH⁻) = 0,010 · 0,1 = 1,0 mmol. Reaccionan: CH₃COOH + OH⁻ → CH₃COO⁻ + H₂O.",
+          "Quedan 2,5 − 1,0 = <b>1,5 mmol de CH₃COOH</b> y se forman <b>1,0 mmol de CH₃COO⁻</b>: es un tampón.",
+          "pH = 4,74 + log(1,0/1,5) = 4,74 − 0,18 = <b>4,57</b>.",
+          "Cuando se ha añadido <b>la mitad</b> de la base de equivalencia, [ácido] = [base] y <b>pH = pK<sub>a</sub></b>: así se mide experimentalmente el pK<sub>a</sub> de un ácido débil."
+        ]) +
+        ejemplo("Ejemplo resuelto: el tampón de la sangre", "El principal tampón de la sangre es H₂CO₃/HCO₃⁻ (K<sub>a</sub> = 4,5·10⁻⁷). ¿Qué cociente [HCO₃⁻]/[H₂CO₃] hay a pH 7,4?", [
+          "pK<sub>a</sub> = −log(4,5·10⁻⁷) = 6,35.",
+          "7,4 = 6,35 + log(cociente) → log(cociente) = 1,05 → cociente = 10<sup>1,05</sup> = <b>11,3</b>.",
+          "Hay unas 11 veces más base (bicarbonato) que ácido (CO₂ disuelto): el tampón está pensado para neutralizar más ácido que base, que es lo que produce el metabolismo."
+        ]) +
+        w("q7_regul") +
+        "<h5>Capacidad, intervalo y qué <i>no</i> es un tampón</h5>" +
+        "<ul><li><b>Capacidad</b>: cantidad de ácido o base que aguanta antes de «agotarse». Crece con la concentración total (más moles de ácido y base). Cuando se acaba uno de los dos componentes, el pH salta como en el agua.</li>" +
+        "<li><b>pH</b>: lo fija el pK<sub>a</sub> y el cociente base/ácido. Se elige el ácido débil con pK<sub>a</sub> cercano al pH que se quiere.</li>" +
+        "<li><b>No lo es</b>: un ácido fuerte con su sal (HCl + NaCl), ni una base fuerte con su sal. Tampoco un ácido débil solo: le falta la base conjugada.</li></ul>" +
+        ojo("En un tampón, el ácido y la base son <b>del mismo par conjugado</b>: CH₃COOH con CH₃COONa sí; CH₃COOH con NaCl no. Y al aplicar Henderson–Hasselbalch después de añadir un ácido o una base fuertes, hay que <b>reaccionar primero</b> (cambian los moles) y aplicar la ecuación <b>después</b>.")
+      )
+    },
+    // ------------------------------------------------------------ 8
+    {
+      h: "8. Curvas de valoración e indicadores",
+      html: env(
+        "<h5>La curva de valoración</h5>" +
+        "<p>La curva de valoración representa el pH de la disolución en función del volumen de reactivo añadido. Siempre tiene la misma forma de «S»: cambia despacio al principio, <b>salta bruscamente</b> alrededor del punto de equivalencia y vuelve a cambiar despacio. Ese salto (varias unidades de pH con solo una gota) es lo que permite detectar el final con un indicador. Lo que cambia entre los casos es el pH <b>en el punto de equivalencia</b>, porque depende de la sal que se ha formado:</p>" +
+        tabla(["Valoración", "Se forma…", "pH en la equivalencia", "Indicador adecuado"], [
+          ["ácido fuerte con base fuerte (HCl + NaOH)", "NaCl (neutra)", "= 7", "azul de bromotimol (6,0–7,6); también fenolftaleína o rojo de metilo"],
+          ["ácido débil con base fuerte (CH₃COOH + NaOH)", "CH₃COONa (básica)", "&gt; 7 (≈ 8,7)", "fenolftaleína (8,2–10,0)"],
+          ["base débil con ácido fuerte (NH₃ + HCl)", "NH₄Cl (ácida)", "&lt; 7 (≈ 5,3)", "rojo de metilo (4,2–6,3) o naranja de metilo (3,1–4,4)"]
+        ], "q3t") +
+        w("q7_valora") +
+        "<h5>Las cuatro zonas de la curva de un ácido débil</h5>" +
+        "<ol><li><b>Inicio</b> (V = 0): solo hay ácido débil → pH de un ácido débil (sección 3).</li>" +
+        "<li><b>Antes de la equivalencia</b>: ácido débil + su base conjugada → <b>tampón</b>, Henderson–Hasselbalch (sección 7). Es la parte «plana» inicial.</li>" +
+        "<li><b>En la equivalencia</b>: solo la sal → <b>hidrólisis</b> del anión (sección 6) y pH &gt; 7.</li>" +
+        "<li><b>Después</b>: sobra base fuerte → pH del exceso de OH⁻ (sección 5); la sal casi no cuenta.</li></ol>" +
+        "<p>En medio, <b>en la semiequivalencia</b> (la mitad del volumen de equivalencia) [HA] = [A⁻] y pH = pK<sub>a</sub>.</p>" +
+        ejemplo("Ejemplo resuelto: valoración fuerte-fuerte", "25 mL de HCl 0,1 mol/L se valoran con NaOH 0,1 mol/L. Calcula el volumen de equivalencia y el pH en V = 0, 12,5, 25 y 30 mL.", [
+          "Equivalencia: C<sub>a</sub>V<sub>a</sub> = C<sub>b</sub>V<sub>b</sub> → V<sub>b</sub> = 0,1·25/0,1 = <b>25 mL</b>.",
+          "V = 0: [H⁺] = 0,1 → pH = <b>1,00</b>.",
+          "V = 12,5 mL: n(H⁺) sobrante = 2,5 − 1,25 = 1,25 mmol en 37,5 mL → [H⁺] = 0,0333 → pH = <b>1,48</b>.",
+          "V = 25 mL: se ha formado NaCl, que no se hidroliza → pH = <b>7,00</b>.",
+          "V = 30 mL: n(OH⁻) sobrante = 3,0 − 2,5 = 0,5 mmol en 55 mL → [OH⁻] = 9,09·10⁻³ → pOH = 2,04 → pH = <b>11,96</b>.",
+          "El salto es enorme: con solo 0,025 mL (media gota) antes y después de los 25 mL, el pH pasa de 4,30 a 9,70."
+        ]) +
+        ejemplo("Ejemplo resuelto: ácido débil con base fuerte", "25 mL de CH₃COOH 0,1 mol/L se valoran con NaOH 0,1 mol/L (K<sub>a</sub> = 1,8·10⁻⁵). Calcula el pH en la semiequivalencia y en la equivalencia, y elige un indicador.", [
+          "Volumen de equivalencia: 25 mL. Semiequivalencia: V = 12,5 mL, con 1,25 mmol de ácido y 1,25 mmol de acetato → pH = pK<sub>a</sub> = <b>4,74</b>.",
+          "Equivalencia: 2,5 mmol de CH₃COO⁻ en 50 mL → c = 0,05 mol/L. K<sub>b</sub> = 5,6·10⁻¹⁰; x = √(5,6·10⁻¹⁰ · 0,05) = 5,3·10⁻⁶ mol/L = [OH⁻].",
+          "pOH = 5,28 → pH = <b>8,72</b>.",
+          "El indicador debe virar <b>alrededor de 8,7</b>: la <b>fenolftaleína</b> (8,2–10,0). El rojo de metilo (4,2–6,3) viraría cuando solo se ha gastado la mitad: error enorme."
+        ]) +
+        ejemplo("Ejemplo resuelto: base débil con ácido fuerte", "20 mL de NH₃ 0,2 mol/L se valoran con HCl 0,1 mol/L (K<sub>b</sub> = 1,8·10⁻⁵). Calcula el volumen de equivalencia, el pH en la equivalencia y elige un indicador.", [
+          "Equivalencia: C<sub>b</sub>V<sub>b</sub> = C<sub>a</sub>V<sub>a</sub> → V<sub>a</sub> = 0,2·20/0,1 = <b>40 mL</b>.",
+          "En la equivalencia hay 4,0 mmol de NH₄⁺ en 60 mL → c = 0,0667 mol/L. K<sub>a</sub>(NH₄⁺) = 5,6·10⁻¹⁰.",
+          "x = √(5,6·10⁻¹⁰ · 0,0667) = 6,1·10⁻⁶ mol/L = [H⁺] → pH = <b>5,22</b>.",
+          "Indicador: <b>rojo de metilo</b> (4,2–6,3), que incluye 5,22. La fenolftaleína (8,2–10) no sirve: la disolución parte de pH 11 (rosa) y se volvería incolora al pasar de pH 8,2, cuando todavía queda amoníaco sin neutralizar (el final se «detectaría» demasiado pronto)."
+        ]) +
+        "<h5>Cómo se elige el indicador</h5>" +
+        "<p>Un indicador es un ácido o base débil cuya forma ácida y básica tienen distinto color. Cambia de color en un <b>intervalo de viraje</b> de aproximadamente dos unidades de pH, alrededor de su pK<sub>ind</sub>. El criterio: su zona de viraje debe <b>contener el pH del punto de equivalencia</b> (o al menos caer dentro del salto de pH).</p>" +
+        tabla(["Indicador", "Intervalo de viraje", "Ácido", "Básico"], [
+          ["Naranja de metilo", "3,1 – 4,4", "rojo", "amarillo"],
+          ["Rojo de metilo", "4,2 – 6,3", "rojo", "amarillo"],
+          ["Azul de bromotimol", "6,0 – 7,6", "amarillo", "azul"],
+          ["Fenolftaleína", "8,2 – 10,0", "incoloro", "rosa"]
+        ], "q3t") +
+        ojo("Para el ácido <b>fuerte</b> con base fuerte el salto es tan grande (de pH 4 a 10 con solo media gota) que sirven casi todos. Para los <b>débiles</b> el salto es más pequeño y queda en la zona básica (ácido débil) o ácida (base débil): ahí <b>sí</b> hay que elegir. Y el pH de la equivalencia solo es 7 si la sal formada <b>no se hidroliza</b>.")
+      )
+    },
+    // ------------------------------------------------------------ 9
+    {
+      h: "9. Cómo se responde en la EvAU",
+      html: env(
+        "<h5>Primero decide de qué tipo es el problema</h5>" +
+        "<p>Casi todos los problemas de este tema caen en cuatro tipos. Si identificas el tipo, ya tienes la mitad:</p>" +
+        tabla(["Si el enunciado da…", "Es…", "Camino"], [
+          ["un ácido/base fuerte y su concentración", "pH directo", "[H⁺] = c (o [OH⁻] = c·nº OH); pH = −log; ¡dos OH⁻ en Ba(OH)₂!"],
+          ["un ácido/base débil, c y K (o pH, o α)", "equilibrio", "tabla ICE → K = x²/(c − x); comprobar α &lt; 5 %"],
+          ["dos disoluciones que se mezclan", "neutralización con exceso", "moles → reacción → exceso/V<sub>total</sub> → pH"],
+          ["una sal (NaCN, NH₄Cl…)", "hidrólisis", "¿qué ion viene de débil? K<sub>h</sub> = K<sub>w</sub>/K → pH"],
+          ["ácido débil + su sal, o pH 'estable'", "tampón", "Henderson–Hasselbalch"],
+          ["un volumen gastado en bureta", "valoración", "a·C·V = b·C·V; pH en la equivalencia por hidrólisis"]
+        ], "q3t") +
+        ejemplo("Problema tipo EvAU 1: ácido débil, grado de disociación y valoración", "El ácido benzoico (C₆H₅COOH, K<sub>a</sub> = 6,5·10⁻⁵) se disuelve hasta una concentración 0,05 mol/L. (a) Calcula el pH y el grado de disociación. (b) ¿Qué volumen de NaOH 0,1 mol/L se necesita para neutralizar 25 mL de esa disolución? (c) ¿Qué pH hay en el punto de equivalencia y qué indicador usarías?", [
+          "<b>(a)</b> x = √(6,5·10⁻⁵ · 0,05) = 1,80·10⁻³ mol/L = [H⁺]; α = x/c = 3,6 % &lt; 5 %: la aproximación vale. pH = −log(1,80·10⁻³) = <b>2,74</b> y α = <b>3,6 %</b>.",
+          "<b>(b)</b> n(ácido) = 0,025 · 0,05 = 1,25·10⁻³ mol, monoprótico → n(NaOH) igual. V = 1,25·10⁻³ / 0,1 = 0,0125 L = <b>12,5 mL</b>.",
+          "<b>(c)</b> En la equivalencia hay benzoato de sodio: 1,25 mmol en 25 + 12,5 = 37,5 mL → c = 0,0333 mol/L. K<sub>b</sub> = K<sub>w</sub>/K<sub>a</sub> = 1,54·10⁻¹⁰.",
+          "x = √(1,54·10⁻¹⁰ · 0,0333) = 2,26·10⁻⁶ mol/L = [OH⁻] → pOH = 5,65 → pH = <b>8,35</b> (básico: hidrólisis del anión). Sirve la <b>fenolftaleína</b> (8,2–10,0)."
+        ]) +
+        ejemplo("Problema tipo EvAU 2: tampón de amoníaco", "Se prepara una disolución con 100 mmol de NH₃ y se añade HCl 1 mol/L hasta obtener pH 9,00. K<sub>b</sub>(NH₃) = 1,8·10⁻⁵. ¿Qué volumen de HCl se ha añadido?", [
+          "El HCl convierte parte del NH₃ en NH₄⁺: NH₃ + H⁺ → NH₄⁺. Si se añaden V mmol de HCl, quedan 100 − V de NH₃ y se forman V de NH₄⁺.",
+          "Se usa el par NH₄⁺/NH₃: K<sub>a</sub>(NH₄⁺) = K<sub>w</sub>/K<sub>b</sub> = 5,56·10⁻¹⁰ → pK<sub>a</sub> = 9,255.",
+          "pH = pK<sub>a</sub> + log([NH₃]/[NH₄⁺]) → 9,00 = 9,255 + log((100 − V)/V) → (100 − V)/V = 10<sup>−0,255</sup> = 0,556.",
+          "100 − V = 0,556 V → V = 100 / 1,556 = 64,3 mmol → <b>64,3 mL</b> de HCl 1 mol/L."
+        ]) +
+        "<h5>Frases y hábitos que suman puntos</h5>" +
+        "<ul><li>Escribe la <b>reacción</b> de equilibrio (HA + H₂O ⇌ A⁻ + H₃O⁺) y la <b>constante</b> antes de sustituir.</li>" +
+        "<li>Di si el ácido o la base es <b>fuerte o débil</b>, y por qué, antes de elegir fórmula.</li>" +
+        "<li>Cuando uses la aproximación, <b>comprueba α &lt; 5 %</b> (o x ≪ c) <i>por escrito</i>.</li>" +
+        "<li>En hidrólisis, di <b>qué ion reacciona y cuál no</b>, y justifica «ácida / básica / neutra».</li>" +
+        "<li>En valoraciones, justifica el indicador: «el pH de la equivalencia es 8,7, dentro del intervalo de viraje de la fenolftaleína».</li>" +
+        "<li>Unidades: mol/L, mL (pasa a litros si calculas moles) y <b>pH sin unidades</b>.</li></ul>"
+      )
+    },
+    // ------------------------------------------------------------ 10
+    {
+      h: "10. ¿Qué falla aquí? Errores típicos de ácidos y bases",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente en los exámenes. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    // ------------------------------------------------------------ 11
+    {
+      h: "11. Autocomprobación del tema",
+      html: "<p>Un test de doce preguntas, tarjetas para fijar definiciones y tres juegos: emparejar, ordenar y clasificar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarjetas1") + w("emparejar", "emp1") + w("orden", "orden1") + w("clasificar", "clas1") + w("clasificar", "clas2")
+    }
+  ];
+
+  B.parte.q2t7b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 7: Ácidos y bases
+   (parte C: actividades, ejercicios, láminas y registro del tema)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Brønsted–Lowry</b>: ácido = cede H⁺; base = acepta H⁺. Toda reacción ácido-base tiene <b>dos pares conjugados</b>; el agua es anfótera. Conjugado de un ácido: quita un H⁺; de una base: añade un H⁺.",
+    "<b>pH</b> = −log[H⁺]; pOH = −log[OH⁻]; pH + pOH = 14 y K<sub>w</sub> = [H⁺][OH⁻] = 10⁻¹⁴ (a 25 °C; K<sub>w</sub> crece con T). Cada unidad de pH es ×10 en [H⁺]. Ba(OH)₂ y Ca(OH)₂ dan <b>dos</b> OH⁻. Un ácido fuerte con c &lt; 10⁻⁶ mol/L exige contar el agua.",
+    "<b>Fuerte</b> = disociación total ([H⁺] = c). <b>Débil</b> = equilibrio con K<sub>a</sub> o K<sub>b</sub>: tabla ICE, K = x²/(c − x); aproximar x = √(K·c) <b>solo si α = x/c &lt; 5 %</b> (si no, ecuación de 2.º grado). Al diluir, α aumenta. K<sub>a</sub>·K<sub>b</sub> = K<sub>w</sub> (pK<sub>a</sub> + pK<sub>b</sub> = 14).",
+    "<b>Mezclas</b>: moles de H⁺ y OH⁻ → se restan → exceso ÷ <b>volumen total</b> → pH. Los pH no se promedian. Neutralización: a·C<sub>a</sub>V<sub>a</sub> = b·C<sub>b</sub>V<sub>b</sub> (a, b = nº de H⁺ y OH⁻ por fórmula).",
+    "<b>Hidrólisis</b>: solo reacciona el ion que viene de ácido o base <b>débil</b> (CH₃COO⁻, CN⁻, F⁻ → básica; NH₄⁺ → ácida); Na⁺, K⁺, Cl⁻, NO₃⁻ no. K<sub>h</sub> = K<sub>w</sub>/K<sub>(del par)</sub>; luego es un ácido o base débil normal.",
+    "<b>Tampón</b> = ácido débil + su base conjugada (o base débil + su ácido): pH = pK<sub>a</sub> + log([base]/[ácido]); eficaz en pK<sub>a</sub> ± 1; no cambia con la dilución; la capacidad crece con la concentración. Al añadir ácido o base fuertes, primero se hace reaccionar y luego se aplica la ecuación.",
+    "<b>Valoración</b>: el punto de equivalencia es donde moles H⁺ = moles OH⁻; el salto de pH lo detecta el indicador. pH en la equivalencia: 7 (fuerte–fuerte), &gt; 7 (ácido débil + base fuerte), &lt; 7 (base débil + ácido fuerte). En la semiequivalencia, pH = pK<sub>a</sub>. Se elige el indicador cuyo intervalo de viraje contiene el pH de la equivalencia."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«Una disolución de pH 3 tiene 3 veces más H⁺ que una de pH 6 (porque 6 − 3 = 3).» ¿Qué falla?",
+          op: ["Nada", "El pH es logarítmico: tres unidades de diferencia son 10³ = 1000 veces más [H⁺]", "El pH 3 tiene menos H⁺", "Hay que dividir por 3"], ok: 1,
+          porque: "[H⁺] = 10<sup>−pH</sup>. Entre pH 3 y pH 6 hay un factor 10⁶⁻³ = 1000, no 3." },
+        { q: "«Disuelvo HCl 10⁻⁸ mol/L, así que [H⁺] = 10⁻⁸ y el pH es 8.» ¿Qué falla?",
+          op: ["Nada", "A esa concentración el agua aporta más H⁺ (10⁻⁷) que el ácido: pH = 6,98, ácido", "El HCl es débil", "El pH sería 6"], ok: 1,
+          porque: "Un ácido nunca vuelve básica el agua. Hay que sumar los H⁺ del agua: [H⁺] = 1,05·10⁻⁷ mol/L → pH = 6,98." },
+        { q: "«Para el Ba(OH)₂ 0,01 mol/L, [OH⁻] = 0,01 y pOH = 2.» ¿Qué falla?",
+          op: ["Nada", "El Ba(OH)₂ libera 2 OH⁻ por fórmula: [OH⁻] = 0,02 y pOH = 1,70", "Es una base débil", "pOH = 12"], ok: 1,
+          porque: "Ba(OH)₂ → Ba²⁺ + 2 OH⁻: hay que multiplicar por 2 (como en el ácido H₂SO₄ para el H⁺)." },
+        { q: "«El ácido acético 0,1 mol/L es débil, así que su pH es 7 o casi.» ¿Qué falla?",
+          op: ["Nada", "Débil significa que se disocia poco, no que sea neutro: sigue liberando H⁺ y el pH es 2,88", "El ácido acético es fuerte", "El pH es 13"], ok: 1,
+          porque: "[H⁺] = √(1,8·10⁻⁵ · 0,1) = 1,3·10⁻³ mol/L → pH ≈ 2,9. «Débil» describe α, no el pH." },
+        { q: "«Mezclo 100 mL de HCl 0,1 mol/L con 50 mL de NaOH 0,1 mol/L. Sobran 5 mmol de H⁺ en 100 mL: [H⁺] = 0,05.» ¿Qué falla?",
+          op: ["Nada", "Hay que dividir por el volumen total (150 mL): [H⁺] = 5·10⁻³/0,150 = 0,033 mol/L → pH 1,48", "No sobra ácido", "Debe dividirse por 50 mL"], ok: 1,
+          porque: "Tras mezclar, el exceso se reparte en <b>todo</b> el volumen: 100 + 50 = 150 mL." },
+        { q: "«Una disolución de NaCN es neutra porque es una sal.» ¿Qué falla?",
+          op: ["Nada", "El CN⁻ es la base conjugada de un ácido muy débil (HCN): se hidroliza y la disolución es básica (pH ≈ 11)", "Es ácida porque tiene Na⁺", "El Na⁺ se hidroliza"], ok: 1,
+          porque: "Un ion de ácido o base débil reacciona con el agua. El Na⁺ viene de una base fuerte y es espectador; el CN⁻ no: CN⁻ + H₂O ⇌ HCN + OH⁻." },
+        { q: "«Al diluir 100 veces el ácido acético, su grado de disociación disminuye porque hay menos ácido.» ¿Qué falla?",
+          op: ["Nada", "Aumenta: al diluir, el equilibrio se desplaza hacia más iones (Le Châtelier / ley de Ostwald)", "Se queda igual", "Pasa a ser un ácido fuerte"], ok: 1,
+          porque: "α = √(K<sub>a</sub>/c): al bajar c, sube α (del 1,3 % al 12,5 % al pasar de 0,1 a 0,001 mol/L). El pH, en cambio, sí sube porque hay menos H⁺ en total." },
+        { q: "«En la valoración de ácido acético con NaOH, el punto de equivalencia está en pH 7 porque ya está todo neutralizado.» ¿Qué falla?",
+          op: ["Nada", "En la equivalencia solo queda acetato de sodio, una sal que se hidroliza: pH ≈ 8,7", "Está en pH 4,74", "El pH vale 14"], ok: 1,
+          porque: "«Neutralizado» (moles de H⁺ = moles de OH⁻) no significa «pH 7»: el anión CH₃COO⁻ es una base débil y deja la disolución algo básica." },
+        { q: "«Una mezcla de CH₃COOH y NaCl es una disolución reguladora.» ¿Qué falla?",
+          op: ["Nada", "Falta la base conjugada del CH₃COOH (CH₃COO⁻): el Cl⁻ no es su conjugada y no neutraliza el ácido añadido", "El NaCl es una base", "Solo funciona con HCl"], ok: 1,
+          porque: "Un tampón necesita las dos formas del <b>mismo</b> par conjugado (CH₃COOH y CH₃COO⁻, p. ej. de CH₃COONa)." },
+        { q: "«Para HF 0,1 mol/L, √(K<sub>a</sub>·c) = 8,2·10⁻³ y α = 8,2 %. Como el cálculo está hecho, esta aproximación es correcta.» ¿Qué falla?",
+          op: ["Nada", "α &gt; 5 %: la aproximación c − x ≈ c no vale; hay que resolver la ecuación de 2.º grado (x = 7,9·10⁻³)", "α siempre es 100 %", "K<sub>a</sub> es incorrecta"], ok: 1,
+          porque: "La aproximación se acepta solo si x/c &lt; 5 %. Aquí es 8,2 %: se resuelve x² + K<sub>a</sub>x − K<sub>a</sub>c = 0." },
+        { q: "«En H₂SO₄ + 2 NaOH → Na₂SO₄ + 2 H₂O, C<sub>a</sub>V<sub>a</sub> = C<sub>b</sub>V<sub>b</sub>.» ¿Qué falla?",
+          op: ["Nada", "El ácido cede 2 H⁺: 2·C<sub>a</sub>V<sub>a</sub> = C<sub>b</sub>V<sub>b</sub> (se igualan moles de H⁺ y de OH⁻)", "Faltan 2 en la base", "Solo vale para ácidos débiles"], ok: 1,
+          porque: "El punto de equivalencia iguala moles de H⁺ y de OH⁻: a·C<sub>a</sub>V<sub>a</sub> = b·C<sub>b</sub>V<sub>b</sub>." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "¿Cuál es la base conjugada del H₂CO₃?",
+          op: ["HCO₃⁻", "CO₃²⁻", "H₃O⁺", "CO₂"], ok: 0, porque: "La base conjugada se obtiene quitando un H⁺: H₂CO₃ → HCO₃⁻." },
+        { q: "En la reacción HCN + H₂O ⇌ CN⁻ + H₃O⁺, el agua actúa como…",
+          op: ["base", "ácido", "disolvente inerte", "sal"], ok: 0, porque: "El agua acepta el H⁺ del HCN: es la base (su ácido conjugado es H₃O⁺)." },
+        { q: "El pH de una disolución de HNO₃ 0,001 mol/L es…",
+          op: ["3", "11", "1", "0,001"], ok: 0, porque: "Ácido fuerte: [H⁺] = 10⁻³ → pH = 3." },
+        { q: "¿Qué pH tiene una disolución con [OH⁻] = 10⁻⁴ mol/L?",
+          op: ["10", "4", "9", "14"], ok: 0, porque: "pOH = 4 → pH = 14 − 4 = 10." },
+        { q: "Una disolución de pH 2 tiene, respecto a una de pH 4,",
+          op: ["100 veces más [H⁺]", "2 veces más [H⁺]", "100 veces menos [H⁺]", "la misma [H⁺]"], ok: 0, porque: "Dos unidades de pH = factor 10² = 100 (más ácida)." },
+        { q: "K<sub>a</sub> del NH₄⁺, sabiendo que K<sub>b</sub>(NH₃) = 1,8·10⁻⁵, vale…",
+          op: ["5,6·10⁻¹⁰", "1,8·10⁻⁵", "1,8·10⁻⁹", "5,6·10⁻⁵"], ok: 0, porque: "K<sub>a</sub> = K<sub>w</sub>/K<sub>b</sub> = 10⁻¹⁴/1,8·10⁻⁵ = 5,6·10⁻¹⁰." },
+        { q: "La aproximación [HA] ≈ c en un ácido débil es aceptable si…",
+          op: ["α &lt; 5 %", "α &gt; 50 %", "pH &gt; 7", "K<sub>a</sub> &gt; 1"], ok: 0, porque: "Si x/c es menor del 5 %, c − x ≈ c con un error despreciable." },
+        { q: "¿Cuál de estas sales da una disolución ácida?",
+          op: ["NH₄Cl", "NaCl", "CH₃COONa", "KNO₃"], ok: 0, porque: "El NH₄⁺ es el ácido conjugado del NH₃ (base débil) y se hidroliza; el Cl⁻ no." },
+        { q: "Se mezclan 50 mL de HCl 0,2 mol/L y 50 mL de NaOH 0,2 mol/L. El pH es…",
+          op: ["7", "1", "13", "0,7"], ok: 0, porque: "Cantidades iguales: neutralización total, queda NaCl (no se hidroliza): pH = 7." },
+        { q: "Una disolución reguladora de pH 4,74 se obtiene con…",
+          op: ["CH₃COOH 0,1 mol/L + CH₃COONa 0,1 mol/L", "HCl + NaCl", "CH₃COOH solo", "NaOH + NaCl"], ok: 0, porque: "[base] = [ácido] → pH = pK<sub>a</sub> = 4,74 (K<sub>a</sub> = 1,8·10⁻⁵)." },
+        { q: "En la valoración de NH₃ con HCl, el pH en el punto de equivalencia es…",
+          op: ["menor que 7", "igual a 7", "mayor que 7", "igual a 14"], ok: 0, porque: "Queda NH₄Cl: el NH₄⁺ se hidroliza y da H₃O⁺." },
+        { q: "El mejor indicador para valorar CH₃COOH con NaOH es…",
+          op: ["fenolftaleína (8,2–10)", "naranja de metilo (3,1–4,4)", "rojo de metilo (4,2–6,3)", "cualquiera"], ok: 0, porque: "El pH de la equivalencia (≈ 8,7) debe caer en el intervalo de viraje." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: ácidos y bases",
+      cartas: [
+        { a: "Ácido y base de Brønsted–Lowry", b: "Ácido: cede H⁺. Base: acepta H⁺. Siempre dos pares conjugados: ácido₁ + base₂ ⇌ base₁ + ácido₂." },
+        { a: "Sustancia anfótera", b: "Puede actuar como ácido o como base según con quién reaccione: H₂O, HCO₃⁻, HSO₄⁻, H₂PO₄⁻." },
+        { a: "K<sub>w</sub>", b: "[H⁺][OH⁻] = 10⁻¹⁴ a 25 °C (crece al subir T). pH + pOH = 14." },
+        { a: "pH y pOH", b: "pH = −log[H⁺]; pOH = −log[OH⁻]. Cada unidad de pH = ×10 en [H⁺]." },
+        { a: "Ácido fuerte frente a débil", b: "Fuerte: se disocia por completo ([H⁺] = c). Débil: equilibrio con K<sub>a</sub> y α pequeño; pH mayor para la misma c." },
+        { a: "Grado de disociación α", b: "α = x/c (mol disociados / mol iniciales). Aumenta al diluir (α = √(K/c) si α es pequeño)." },
+        { a: "Ácido débil: pH", b: "K<sub>a</sub> = x²/(c − x). Si α &lt; 5 %: x = √(K<sub>a</sub>·c). Si no, x² + K<sub>a</sub>x − K<sub>a</sub>c = 0." },
+        { a: "K<sub>a</sub> · K<sub>b</sub>", b: "= K<sub>w</sub> para un par conjugado: pK<sub>a</sub> + pK<sub>b</sub> = 14. Ácido fuerte ⟹ base conjugada muy débil." },
+        { a: "Mezcla fuerte–fuerte", b: "Moles de H⁺ y OH⁻ → se restan → exceso/V<sub>total</sub> → pH. Sin exceso: pH = 7." },
+        { a: "Hidrólisis de una sal", b: "Solo reacciona el ion conjugado de un ácido o base débil. Anión de ácido débil: básica; catión de base débil: ácida; fuerte–fuerte: neutra." },
+        { a: "Disolución reguladora", b: "Ácido débil + su base conjugada (o inversa). pH = pK<sub>a</sub> + log([base]/[ácido]). Eficaz en pK<sub>a</sub> ± 1." },
+        { a: "Punto de equivalencia y semiequivalencia", b: "Equivalencia: moles de H⁺ = moles de OH⁻. Semiequivalencia (ácido débil): [HA] = [A⁻] y pH = pK<sub>a</sub>." },
+        { a: "Elegir indicador", b: "Su intervalo de viraje debe contener el pH de la equivalencia: 7 (fuerte–fuerte), &gt; 7 (ácido débil), &lt; 7 (base débil)." }
+      ]
+    },
+    emp1: {
+      titulo: "Une cada dato con su significado",
+      consigna: "Une cada elemento con la idea que le corresponde.",
+      pares: [
+        ["CH₃COO⁻", "base conjugada del CH₃COOH"],
+        ["NH₄⁺", "ácido conjugado del NH₃"],
+        ["K<sub>a</sub>·K<sub>b</sub>", "K<sub>w</sub> = 10⁻¹⁴"],
+        ["pH = pK<sub>a</sub>", "tampón 1:1 o semiequivalencia"],
+        ["NaCN (aq)", "disolución básica (hidrólisis del anión)"],
+        ["NH₄Cl (aq)", "disolución ácida (hidrólisis del catión)"],
+        ["Ba(OH)₂ 0,01 mol/L", "[OH⁻] = 0,02 mol/L"]
+      ]
+    },
+    orden1: {
+      titulo: "Ordena los pasos para el pH de un ácido débil",
+      consigna: "Ordena los pasos del problema «pH de una disolución de ácido débil de concentración c y constante K<sub>a</sub>».",
+      items: [
+        { t: "Escribir el equilibrio y la expresión de K<sub>a</sub>", nota: "HA + H₂O ⇌ A⁻ + H₃O⁺" },
+        { t: "Hacer la tabla inicial / cambio / equilibrio con x", nota: "c − x, x, x" },
+        { t: "Sustituir en K<sub>a</sub> = x²/(c − x) y aproximar c − x ≈ c", nota: "x = √(K<sub>a</sub>·c)" },
+        { t: "Comprobar que α = x/c es menor del 5 %", nota: "si no, resolver la cuadrática" },
+        { t: "Calcular el pH = −log x", nota: "x = [H⁺]" }
+      ]
+    },
+    clas1: {
+      titulo: "Clasifica el ácido o la base",
+      consigna: "Toca cada sustancia y después su tipo.",
+      categorias: ["Ácido fuerte", "Ácido débil", "Base fuerte", "Base débil"],
+      items: [
+        { t: "HCl", c: 0 }, { t: "HNO₃", c: 0 }, { t: "HClO₄", c: 0 },
+        { t: "CH₃COOH", c: 1 }, { t: "HF", c: 1 }, { t: "HCN", c: 1 },
+        { t: "NaOH", c: 2 }, { t: "KOH", c: 2 }, { t: "Ba(OH)₂", c: 2 },
+        { t: "NH₃", c: 3 }, { t: "CH₃NH₂", c: 3 }
+      ]
+    },
+    clas2: {
+      titulo: "¿Cómo es la disolución de esta sal?",
+      consigna: "Toca cada sal y después el carácter de su disolución en agua.",
+      categorias: ["Neutra (pH ≈ 7)", "Ácida (pH &lt; 7)", "Básica (pH &gt; 7)"],
+      items: [
+        { t: "NaCl", c: 0 }, { t: "KNO₃", c: 0 }, { t: "Na₂SO₄", c: 0 },
+        { t: "NH₄Cl", c: 1 }, { t: "NH₄NO₃", c: 1 },
+        { t: "CH₃COONa", c: 2 }, { t: "NaCN", c: 2 }, { t: "NaF", c: 2 }, { t: "KClO", c: 2 }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS (★ 15 · ★★ 17 · ★★★ 16)
+  // ================================================================
+  var E = [];
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function ge(id, nivel, enun, check, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: check, pistas: pistas, pasos: pasos, resultado: res }); }
+  var KW = "K<sub>w</sub> = 10⁻¹⁴ a 25 °C. ";
+
+  // ---------------- ★
+  nu("c1", 1, "Calcula el pH de una disolución de HNO₃ 0,02 mol/L.", "pH =", 1.70,
+    ["Ácido fuerte: se disocia por completo."], ["HNO₃ → H⁺ + NO₃⁻: [H⁺] = 0,02 mol/L.", "pH = −log 0,02 = 1,70."], "pH = 1,70", 0.01);
+  nu("c2", 1, "Calcula el pH de una disolución de NaOH 0,005 mol/L a 25 °C.", "pH =", 11.70,
+    ["Base fuerte: primero el pOH."], ["[OH⁻] = 0,005 mol/L → pOH = −log 0,005 = 2,30.", "pH = 14 − 2,30 = 11,70."], "pH = 11,70", 0.01);
+  op("c3", 1, "¿Cuál es la base conjugada del ion H₂PO₄⁻?", "Base conjugada", ["HPO₄²⁻", "H₃PO₄", "PO₄³⁻", "H₃O⁺"], 0,
+    ["Quita un H⁺ al ácido."], ["Ácido: H₂PO₄⁻. Quitamos un H⁺: HPO₄²⁻ (la carga baja una unidad).", "El H₃PO₄ es su ácido conjugado (le añadiríamos el H⁺)."], "HPO₄²⁻");
+  nu("c4", 1, "Una disolución tiene pH = 9,0. ¿Cuánto vale [OH⁻] en mol/L? " + KW + "(Escribe la potencia así: 1*10^-5.)", "[OH⁻] (mol/L) =", 1e-5,
+    ["Primero el pOH."], ["pOH = 14 − 9,0 = 5,0.", "[OH⁻] = 10<sup>−5</sup> = 1·10⁻⁵ mol/L."], "[OH⁻] = 1·10⁻⁵ mol/L");
+  nu("c5", 1, "Calcula el pH de una disolución de Ba(OH)₂ 0,001 mol/L.", "pH =", 11.30,
+    ["Cada fórmula da 2 OH⁻."], ["Ba(OH)₂ → Ba²⁺ + 2 OH⁻: [OH⁻] = 2·10⁻³ mol/L.", "pOH = 2,70 → pH = 11,30."], "pH = 11,30", 0.01);
+  nu("c6", 1, "Se diluyen 25 mL de HCl 0,2 mol/L hasta 500 mL. ¿Qué pH tiene la disolución final?", "pH =", 2.00,
+    ["Los moles no cambian al diluir."], ["n = 0,025 · 0,2 = 5·10⁻³ mol.", "c = 5·10⁻³ / 0,5 = 0,01 mol/L → pH = 2,00."], "pH = 2,00", 0.01);
+  op("c7", 1, "En NH₃ + H₂O ⇌ NH₄⁺ + OH⁻, según Brønsted–Lowry, el agua actúa como…", "El agua es…", ["ácido", "base", "ni ácido ni base", "sal"], 0,
+    ["¿Gana o pierde un H⁺?"], ["El NH₃ coge un H⁺ del agua, que se queda en OH⁻.", "El agua <b>cede</b> el protón: es el ácido (y OH⁻ su base conjugada)."], "El agua actúa como ácido");
+  nu("c8", 1, "Calcula el pK<sub>b</sub> del ion acetato (CH₃COO⁻), sabiendo que K<sub>a</sub>(CH₃COOH) = 1,8·10⁻⁵.", "pK<sub>b</sub> =", 9.26,
+    ["K<sub>a</sub>·K<sub>b</sub> = K<sub>w</sub>, o pK<sub>a</sub> + pK<sub>b</sub> = 14."], ["pK<sub>a</sub> = −log(1,8·10⁻⁵) = 4,74, luego pK<sub>b</sub> = 14 − 4,74 = 9,26.", "Equivale a K<sub>b</sub> = K<sub>w</sub>/K<sub>a</sub> = 5,6·10⁻¹⁰."], "pK<sub>b</sub> = 9,26 (K<sub>b</sub> = 5,6·10⁻¹⁰)", 0.005);
+  nu("c9", 1, "Se disuelven 0,73 g de HCl en agua hasta 250 mL. Calcula el pH. (M(HCl) = 36,5 g/mol)", "pH =", 1.10,
+    ["Moles, concentración y pH."], ["n = 0,73 / 36,5 = 0,020 mol.", "c = 0,020 / 0,250 = 0,080 mol/L → pH = −log 0,08 = 1,10."], "pH = 1,10", 0.01);
+  nu("c10", 1, "¿Qué volumen (mL) de NaOH 0,1 mol/L neutraliza 20 mL de HCl 0,05 mol/L?", "Volumen (mL) =", 10,
+    ["Moles de H⁺ = moles de OH⁻."], ["n(H⁺) = 0,020 · 0,05 = 1,0·10⁻³ mol.", "V = 1,0·10⁻³ / 0,1 = 0,010 L = 10 mL."], "10 mL");
+  nu("c11", 1, "Una disolución 0,1 mol/L de un ácido monoprótico HA tiene pH = 3,00. Calcula su grado de disociación (en %).", "α (%) =", 1,
+    ["[H⁺] = x."], ["[H⁺] = 10⁻³ mol/L = x.", "α = x/c = 10⁻³/0,1 = 0,01 = 1 %."], "α = 1 %", 0.02);
+  op("c12", 1, "¿Cuál de estas sales produce una disolución neutra?", "Sal neutra", ["KNO₃", "NH₄Cl", "NaCN", "CH₃COONa"], 0,
+    ["Mira si los dos iones vienen de un ácido y una base fuertes."], ["KNO₃: K⁺ (de KOH, fuerte) y NO₃⁻ (de HNO₃, fuerte): ninguno se hidroliza.", "NH₄Cl es ácida; NaCN y CH₃COONa, básicas."], "KNO₃");
+  nu("c13", 1, "Una disolución tiene [H⁺] = 3,2·10⁻⁴ mol/L. ¿Cuál es su pH?", "pH =", 3.49,
+    ["pH = −log[H⁺]."], ["pH = −log(3,2·10⁻⁴) = 4 − log 3,2 = 4 − 0,505 = 3,49."], "pH = 3,49", 0.01);
+  op("c14", 1, "¿Cuál de estos ácidos es fuerte en agua?", "Ácido fuerte", ["HNO₃", "HF", "HCN", "CH₃COOH"], 0,
+    ["Los ácidos fuertes se aprenden: HCl, HBr, HI, HNO₃, HClO₄, H₂SO₄ (1.ª ionización)."], ["Los otros tres tienen K<sub>a</sub> pequeñas (6,8·10⁻⁴, 4,9·10⁻¹⁰ y 1,8·10⁻⁵)."], "HNO₃");
+  nu("c15", 1, "Calcula el pK<sub>a</sub> del ion NH₄⁺, sabiendo que K<sub>b</sub>(NH₃) = 1,8·10⁻⁵.", "pK<sub>a</sub> =", 9.26,
+    ["pK<sub>a</sub> + pK<sub>b</sub> = 14."], ["pK<sub>b</sub> = −log(1,8·10⁻⁵) = 4,74.", "pK<sub>a</sub> = 14 − 4,74 = 9,26."], "pK<sub>a</sub> = 9,26", 0.01);
+
+  // ---------------- ★★
+  ge("c16", 2, "Calcula el pH y el grado de disociación (en %) de una disolución de CH₃COOH 0,05 mol/L (K<sub>a</sub> = 1,8·10⁻⁵).",
+    [{ tipo: "num", etiqueta: "pH =", valor: 3.02, tol: 0.01 }, { tipo: "num", etiqueta: "α (%) =", valor: 1.9, tol: 0.02 }],
+    ["Tabla ICE y aproximación."], ["x = √(1,8·10⁻⁵ · 0,05) = 9,49·10⁻⁴ mol/L.", "α = x/c = 1,9 % &lt; 5 %: la aproximación vale.", "pH = −log(9,49·10⁻⁴) = 3,02."], "pH = 3,02; α = 1,9 %");
+  ge("c17", 2, "Calcula el pH y el grado de ionización (en %) de una disolución de NH₃ 0,05 mol/L (K<sub>b</sub> = 1,8·10⁻⁵).",
+    [{ tipo: "num", etiqueta: "pH =", valor: 10.98, tol: 0.01 }, { tipo: "num", etiqueta: "α (%) =", valor: 1.9, tol: 0.02 }],
+    ["Con K<sub>b</sub>, x = [OH⁻]."], ["x = √(1,8·10⁻⁵ · 0,05) = 9,49·10⁻⁴ mol/L = [OH⁻]; α = 1,9 %.", "pOH = 3,02 → pH = 14 − 3,02 = 10,98."], "pH = 10,98; α = 1,9 %");
+  nu("c18", 2, "Una disolución 0,1 mol/L de un ácido monoprótico débil HA tiene pH = 2,50. Calcula K<sub>a</sub>. (Escribe la potencia así: 1,03*10^-4.)", "K<sub>a</sub> =", 1.03e-4,
+    ["Del pH sale x; [HA] = c − x."], ["x = 10<sup>−2,5</sup> = 3,16·10⁻³ mol/L = [H⁺] = [A⁻].", "[HA] = 0,1 − 0,00316 = 0,0968 mol/L.", "K<sub>a</sub> = x²/[HA] = 1,0·10⁻⁵/0,0968 = 1,03·10⁻⁴."], "K<sub>a</sub> = 1,03·10⁻⁴", 0.02);
+  nu("c19", 2, "Se mezclan 100 mL de HCl 0,05 mol/L con 50 mL de NaOH 0,02 mol/L. Calcula el pH.", "pH =", 1.57,
+    ["Moles de cada uno, reacción y exceso."], ["n(H⁺) = 0,1 · 0,05 = 5,0 mmol; n(OH⁻) = 0,05 · 0,02 = 1,0 mmol.", "Sobran 4,0 mmol de H⁺ en 150 mL: [H⁺] = 0,0267 mol/L.", "pH = −log 0,0267 = 1,57."], "pH = 1,57", 0.01);
+  nu("c20", 2, "Se mezclan 50 mL de KOH 0,1 mol/L con 25 mL de HNO₃ 0,12 mol/L. Calcula el pH.", "pH =", 12.43,
+    ["¿De cuál sobran moles?"], ["n(OH⁻) = 5,0 mmol; n(H⁺) = 3,0 mmol → sobran 2,0 mmol de OH⁻ en 75 mL.", "[OH⁻] = 0,0267 mol/L → pOH = 1,57 → pH = 12,43."], "pH = 12,43", 0.01);
+  nu("c21", 2, "Calcula el pH de una disolución de CH₃COONa 0,2 mol/L (K<sub>a</sub> del ácido acético = 1,8·10⁻⁵).", "pH =", 9.02,
+    ["El anión se hidroliza: K<sub>b</sub> = K<sub>w</sub>/K<sub>a</sub>."], ["K<sub>b</sub>(CH₃COO⁻) = 5,56·10⁻¹⁰.", "x = [OH⁻] = √(5,56·10⁻¹⁰ · 0,2) = 1,05·10⁻⁵ mol/L.", "pOH = 4,98 → pH = 9,02."], "pH = 9,02", 0.01);
+  nu("c22", 2, "Calcula el pH de una disolución de NH₄NO₃ 0,05 mol/L (K<sub>b</sub> del NH₃ = 1,8·10⁻⁵).", "pH =", 5.28,
+    ["El NO₃⁻ no reacciona; el NH₄⁺ sí."], ["K<sub>a</sub>(NH₄⁺) = 5,56·10⁻¹⁰.", "x = [H⁺] = √(5,56·10⁻¹⁰ · 0,05) = 5,27·10⁻⁶ mol/L.", "pH = 5,28."], "pH = 5,28", 0.01);
+  nu("c23", 2, "Para neutralizar totalmente 20 mL de H₃PO₄ se gastan 24 mL de NaOH 0,25 mol/L. Calcula la concentración del H₃PO₄ (mol/L).", "C (mol/L) =", 0.1,
+    ["El H₃PO₄ cede 3 H⁺."], ["n(OH⁻) = 0,024 · 0,25 = 6,0·10⁻³ mol.", "Cada H₃PO₄ aporta 3 H⁺: n(H₃PO₄) = 6,0·10⁻³/3 = 2,0·10⁻³ mol.", "C = 2,0·10⁻³/0,020 = 0,1 mol/L."], "0,1 mol/L");
+  nu("c24", 2, "Calcula el pH de una disolución reguladora con CH₃COOH 0,2 mol/L y CH₃COONa 0,4 mol/L (K<sub>a</sub> = 1,8·10⁻⁵).", "pH =", 5.05,
+    ["Henderson–Hasselbalch."], ["pK<sub>a</sub> = 4,74.", "pH = 4,74 + log(0,4/0,2) = 4,74 + 0,30 = 5,05."], "pH = 5,05", 0.01);
+  nu("c25", 2, "¿Cuántos gramos de NaOH (M = 40 g/mol) hay que disolver para preparar 500 mL de disolución de pH 12,5?", "Masa (g) =", 0.632,
+    ["Del pH al pOH y a [OH⁻]."], ["pOH = 1,5 → [OH⁻] = 10⁻¹·⁵ = 0,0316 mol/L.", "n = 0,0316 · 0,5 = 0,0158 mol.", "m = 0,0158 · 40 = 0,632 g."], "0,63 g", 0.01);
+  nu("c26", 2, "Un ácido débil HA, de K<sub>a</sub> = 1,0·10⁻⁵, está 0,01 mol/L. Calcula el pH (resolviendo la ecuación de segundo grado si hace falta).", "pH =", 3.51,
+    ["Comprueba α con la aproximación."], ["Aproximado: x = √(10⁻⁵ · 10⁻²) = 3,16·10⁻⁴ → α = 3,2 % &lt; 5 %: vale (pH = 3,50).", "Exacto: x² + 10⁻⁵x − 10⁻⁷ = 0 → x = 3,11·10⁻⁴ → pH = 3,51. Las dos valen."], "pH = 3,51", 0.01);
+  op("c27", 2, "De estas disoluciones 0,1 mol/L, ¿cuál tiene el pH más alto?", "Mayor pH", ["CH₃COONa", "NaCl", "NH₄Cl", "HCl"], 0,
+    ["Una sal básica, una neutra, una ácida y un ácido."], ["pH aproximados: CH₃COONa 8,9; NaCl 7,0; NH₄Cl 5,1; HCl 1,0."], "CH₃COONa");
+  op("c28", 2, "¿Cuál de estas mezclas es una disolución reguladora?", "Reguladora", ["CH₃COOH + CH₃COONa", "HCl + NaCl", "NaOH + NaCl", "CH₃COOH + NaCl"], 0,
+    ["Hace falta un ácido débil y su base conjugada."], ["CH₃COOH es un ácido débil y CH₃COO⁻ (de la sal) su base conjugada.", "En las demás, falta uno de los dos: HCl y NaOH son fuertes, y el Cl⁻ no es la base conjugada del CH₃COOH."], "CH₃COOH + CH₃COONa");
+  nu("c29", 2, "20 mL de HCl 0,1 mol/L se valoran con NaOH 0,1 mol/L. ¿Qué pH hay después de añadir 15 mL de NaOH?", "pH =", 1.85,
+    ["Todavía no se ha llegado a la equivalencia."], ["n(H⁺) = 2,0 mmol; n(OH⁻) = 1,5 mmol → sobran 0,5 mmol de H⁺ en 35 mL.", "[H⁺] = 0,0143 mol/L → pH = 1,85."], "pH = 1,85", 0.01);
+  nu("c30", 2, "Calcula el pH de una disolución de HCl 10⁻⁸ mol/L (a 25 °C), contando los H⁺ del agua.", "pH =", 6.98,
+    ["[H⁺] = 10⁻⁸ + [OH⁻] = 10⁻⁸ + 10⁻¹⁴/[H⁺]."], ["[H⁺]² − 10⁻⁸[H⁺] − 10⁻¹⁴ = 0 → [H⁺] = 1,05·10⁻⁷ mol/L.", "pH = 6,98: casi neutro (no 8)."], "pH = 6,98", 0.005);
+  nu("c31", 2, "Un ácido débil tiene pK<sub>a</sub> = 4,74. ¿Qué cociente [A⁻]/[HA] hace falta para que un tampón tenga pH = 5,74?", "[A⁻]/[HA] =", 10,
+    ["pH − pK<sub>a</sub> = log del cociente."], ["5,74 − 4,74 = 1 = log([A⁻]/[HA]).", "Cociente = 10¹ = 10."], "10");
+  nu("c32", 2, "Se mezclan 50 mL de H₂SO₄ 0,05 mol/L con 50 mL de NaOH 0,08 mol/L. Calcula el pH (considera el H₂SO₄ totalmente disociado en 2 H⁺).", "pH =", 2.00,
+    ["El H₂SO₄ da 2 H⁺."], ["n(H⁺) = 2 · 0,050 · 0,05 = 5,0 mmol; n(OH⁻) = 0,050 · 0,08 = 4,0 mmol.", "Sobra 1,0 mmol de H⁺ en 100 mL → 0,010 mol/L → pH = 2,00."], "pH = 2,00", 0.01);
+
+  // ---------------- ★★★
+  ge("c33", 3, "Calcula el pH y el grado de disociación (en %) de HNO₂ 0,02 mol/L (K<sub>a</sub> = 4,5·10⁻⁴). Comprueba antes si vale la aproximación.",
+    [{ tipo: "num", etiqueta: "pH =", valor: 2.56, tol: 0.01 }, { tipo: "num", etiqueta: "α (%) =", valor: 13.9, tol: 0.02 }],
+    ["Aproximado, α sale mayor del 5 %."], ["Aproximado: x = √(4,5·10⁻⁴ · 0,02) = 3,0·10⁻³ → α = 15 % &gt; 5 %: no vale.", "Exacto: x² + 4,5·10⁻⁴x − 9,0·10⁻⁶ = 0 → x = 2,78·10⁻³ mol/L.", "α = 13,9 % y pH = −log(2,78·10⁻³) = 2,56."], "pH = 2,56; α = 13,9 %");
+  nu("c34", 3, "Se mezclan 40 mL de NH₃ 0,1 mol/L con 15 mL de HCl 0,1 mol/L. Calcula el pH (K<sub>b</sub> = 1,8·10⁻⁵).", "pH =", 9.48,
+    ["Queda NH₃ sin reaccionar y se forma NH₄⁺: es un tampón."], ["n(NH₃) = 4,0 mmol; n(H⁺) = 1,5 mmol. NH₃ + H⁺ → NH₄⁺: quedan 2,5 mmol de NH₃ y 1,5 mmol de NH₄⁺.", "pK<sub>a</sub>(NH₄⁺) = 9,255.", "pH = 9,255 + log(2,5/1,5) = 9,255 + 0,222 = 9,48."], "pH = 9,48", 0.005);
+  nu("c35", 3, "25 mL de HCOOH 0,2 mol/L (K<sub>a</sub> = 1,8·10⁻⁴) se valoran con NaOH 0,2 mol/L. Calcula el pH en el punto de equivalencia.", "pH =", 8.37,
+    ["En la equivalencia solo hay formiato de sodio."], ["V<sub>eq</sub> = 25 mL: 5,0 mmol de HCOO⁻ en 50 mL → c = 0,10 mol/L.", "K<sub>b</sub> = 10⁻¹⁴/1,8·10⁻⁴ = 5,56·10⁻¹¹; x = [OH⁻] = √(5,56·10⁻¹¹ · 0,1) = 2,36·10⁻⁶.", "pOH = 5,63 → pH = 8,37."], "pH = 8,37", 0.005);
+  op("c36", 3, "Para valorar NH₃ con HCl, ¿qué indicador es más adecuado? (El pH de la equivalencia es ≈ 5,2.)", "Indicador", ["rojo de metilo (4,2–6,3)", "fenolftaleína (8,2–10,0)", "azul de bromotimol (6,0–7,6)", "timolftaleína (9,3–10,5)"], 0,
+    ["Su intervalo debe contener el pH de la equivalencia."], ["En la equivalencia hay NH₄Cl, que se hidroliza: pH &lt; 7.", "Solo el rojo de metilo (4,2–6,3) contiene 5,2."], "Rojo de metilo");
+  op("c37", 3, "Valoramos CH₃COOH con NaOH. ¿Por qué se usa fenolftaleína y no naranja de metilo?", "Razón", ["El pH de la equivalencia es ≈ 8,7, dentro del viraje de la fenolftaleína", "La fenolftaleína es más barata", "El naranja de metilo reacciona con el NaOH", "En la equivalencia el pH es 4,4"], 0,
+    ["¿Cómo es la sal que se forma?"], ["Se forma CH₃COONa: el CH₃COO⁻ se hidroliza y deja pH ≈ 8,7.", "El naranja de metilo vira entre 3,1 y 4,4: lo haría muy pronto, con mucho ácido sin neutralizar."], "pH de equivalencia ≈ 8,7");
+  nu("c38", 3, "A 200 mL de un tampón con CH₃COOH 0,2 mol/L y CH₃COONa 0,2 mol/L se añaden 5,0 mmol de HCl (sin cambio de volumen). Calcula el pH.", "pH =", 4.64,
+    ["Calcula los mmol de cada componente y haz reaccionar el HCl con el acetato."], ["n(CH₃COOH) = 40 mmol; n(CH₃COO⁻) = 40 mmol.", "CH₃COO⁻ + H⁺ → CH₃COOH: quedan 35 mmol de acetato y 45 de ácido.", "pH = 4,745 + log(35/45) = 4,745 − 0,109 = 4,64."], "pH = 4,64", 0.005);
+  nu("c39", 3, "A 100 mL de CH₃COOH 0,4 mol/L se añade NaOH 0,2 mol/L hasta que el pH vale 5,00. ¿Qué volumen (mL) de NaOH se ha añadido? (K<sub>a</sub> = 1,8·10⁻⁵)", "Volumen (mL) =", 128.6,
+    ["Si se añaden x mmol de OH⁻, quedan 40 − x de ácido y se forman x de acetato."], ["n(ácido) = 40 mmol. 5,00 = 4,745 + log(x/(40 − x)) → x/(40 − x) = 10<sup>0,255</sup> = 1,80.", "x = 1,80 · 40 / 2,80 = 25,7 mmol de OH⁻.", "V = 25,7 mmol / 0,2 mol/L = 128,6 mL."], "128,6 mL", 0.01);
+  nu("c40", 3, "En la valoración de 25 mL de un ácido débil monoprótico con NaOH, tras añadir justo la mitad del volumen de equivalencia el pH es 4,76. Calcula K<sub>a</sub>. (Escribe la potencia así: 1,74*10^-5.)", "K<sub>a</sub> =", 1.74e-5,
+    ["En la semiequivalencia [HA] = [A⁻]."], ["En la semiequivalencia, pH = pK<sub>a</sub> → pK<sub>a</sub> = 4,76.", "K<sub>a</sub> = 10<sup>−4,76</sup> = 1,74·10⁻⁵."], "K<sub>a</sub> = 1,74·10⁻⁵", 0.02);
+  nu("c41", 3, "Se disuelven 0,4210 g de ftalato ácido de potasio (KHP, ácido monoprótico, M = 204,22 g/mol) y se valoran con NaOH, gastándose 20,5 mL. Calcula la concentración del NaOH (mol/L).", "C (mol/L) =", 0.1006,
+    ["Monoprótico: n(NaOH) = n(KHP)."], ["n(KHP) = 0,4210 / 204,22 = 2,061·10⁻³ mol.", "C(NaOH) = 2,061·10⁻³ / 0,0205 = 0,1006 mol/L."], "0,1006 mol/L", 0.005);
+  nu("c42", 3, "¿Qué concentración (mol/L) debe tener una disolución de CH₃COOH (K<sub>a</sub> = 1,8·10⁻⁵) para que su pH sea 3,00?", "c (mol/L) =", 0.0566,
+    ["De K<sub>a</sub> = x²/(c − x), despeja c."], ["x = [H⁺] = 10⁻³ mol/L.", "c = x²/K<sub>a</sub> + x = 10⁻⁶/1,8·10⁻⁵ + 10⁻³ = 0,0556 + 0,0010 = 0,0566 mol/L."], "c = 0,0566 mol/L", 0.01);
+  nu("c43", 3, "Se mezclan 50 mL de NH₃ 0,1 mol/L con 25 mL de HCl 0,1 mol/L. Calcula el pH (K<sub>b</sub> = 1,8·10⁻⁵).", "pH =", 9.26,
+    ["Es justo la mitad de la neutralización."], ["n(NH₃) = 5,0 mmol; n(H⁺) = 2,5 mmol → quedan 2,5 mmol de NH₃ y se forman 2,5 mmol de NH₄⁺.", "[base] = [ácido] → pH = pK<sub>a</sub>(NH₄⁺) = 9,26."], "pH = 9,26", 0.005);
+  ge("c44", 3, "Calcula el pH y el grado de ionización (en %) de CH₃NH₂ 0,1 mol/L (K<sub>b</sub> = 4,4·10⁻⁴). Justifica si vale la aproximación.",
+    [{ tipo: "num", etiqueta: "pH =", valor: 11.81, tol: 0.005 }, { tipo: "num", etiqueta: "α (%) =", valor: 6.4, tol: 0.02 }],
+    ["Aproximada, α supera el 5 %."], ["Aproximado: x = √(4,4·10⁻⁴ · 0,1) = 6,6·10⁻³ → α = 6,6 % &gt; 5 %: no vale.", "Exacto: x² + 4,4·10⁻⁴x − 4,4·10⁻⁵ = 0 → x = 6,42·10⁻³ mol/L = [OH⁻]; α = 6,4 %.", "pOH = 2,19 → pH = 11,81."], "pH = 11,81; α = 6,4 %");
+  nu("c45", 3, "Calcula el pH de una disolución de NaF 0,5 mol/L (K<sub>a</sub>(HF) = 6,8·10⁻⁴).", "pH =", 8.43,
+    ["El F⁻ es la base conjugada de un ácido débil."], ["K<sub>b</sub>(F⁻) = 10⁻¹⁴/6,8·10⁻⁴ = 1,47·10⁻¹¹.", "x = [OH⁻] = √(1,47·10⁻¹¹ · 0,5) = 2,71·10⁻⁶ mol/L.", "pOH = 5,57 → pH = 8,43."], "pH = 8,43", 0.005);
+  nu("c46", 3, "A 25 mL de HCl 0,1 mol/L se le añade NaOH 0,1 mol/L. ¿Qué volumen total (mL) de NaOH hay que añadir para que el pH sea 12?", "Volumen (mL) =", 30.6,
+    ["pH 12 → [OH⁻] = 0,01 mol/L en el volumen total."], ["Sea V el volumen de NaOH. Exceso de OH⁻ = 0,1 V − 2,5 mmol; volumen total 25 + V.", "(0,1 V − 2,5)/(25 + V) = 0,01 → 0,1 V − 2,5 = 0,25 + 0,01 V → 0,09 V = 2,75.", "V = 30,6 mL."], "30,6 mL", 0.005);
+  ge("c47", 3, "Explica por qué una disolución de acetato de sodio (CH₃COONa) es básica y no neutra, a pesar de ser una sal.",
+    { tipo: "rubrica", etiqueta: "Tu explicación", filas: 5, items: [
+      { t: "Se disocia por completo: CH₃COONa → Na⁺ + CH₃COO⁻", p: 0.2 },
+      { t: "El Na⁺ procede de una base fuerte (NaOH): no reacciona con el agua", p: 0.25 },
+      { t: "El CH₃COO⁻ es la base conjugada de un ácido débil: CH₃COO⁻ + H₂O ⇌ CH₃COOH + OH⁻ (hidrólisis)", p: 0.35 },
+      { t: "Se liberan OH⁻ ([OH⁻] &gt; [H⁺]): pH &gt; 7 (≈ 8,9 para 0,1 mol/L)", p: 0.2 }] },
+    ["Distingue qué ion reacciona con el agua y cuál no."],
+    ["Los dos iones salen de la sal; solo uno viene de un ácido o base débil.", "K<sub>b</sub>(CH₃COO⁻) = K<sub>w</sub>/K<sub>a</sub> = 5,6·10⁻¹⁰: poca hidrólisis, pero suficiente para pH &gt; 7."], "El acetato se hidroliza y libera OH⁻");
+  ge("c48", 3, "En la valoración de CH₃COOH 0,1 mol/L con NaOH 0,1 mol/L, describe cómo es el pH al empezar, en la semiequivalencia y en la equivalencia, y justifica el indicador.",
+    { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 6, items: [
+      { t: "Al empezar: ácido débil, pH ≈ 2,9 (√(K<sub>a</sub>·c))", p: 0.2 },
+      { t: "Semiequivalencia: [CH₃COOH] = [CH₃COO⁻] (tampón), pH = pK<sub>a</sub> = 4,74", p: 0.25 },
+      { t: "Equivalencia: solo CH₃COO⁻, que se hidroliza: pH ≈ 8,7 &gt; 7", p: 0.3 },
+      { t: "Indicador cuyo intervalo de viraje contiene 8,7: fenolftaleína (8,2–10)", p: 0.25 }] },
+    ["Recuerda las cuatro zonas de la curva."],
+    ["Inicio: ácido débil. Antes de la equivalencia: tampón. Equivalencia: hidrólisis. Después: exceso de NaOH.", "El indicador debe virar dentro del salto, alrededor de pH 8,7."], "Fenolftaleína");
+
+  var ejercicios = E;
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "pH, fuerza y constantes: fórmulas del tema",
+      items: [
+        { label: "pH y pOH", formula: "pH = −log[H⁺] · pOH = −log[OH⁻] · pH + pOH = 14", cuando: "Siempre a 25 °C.", ejemplo: "[H⁺] = 10⁻⁵ → pH 5 → [OH⁻] = 10⁻⁹.", ojo: "Ba(OH)₂ y Ca(OH)₂ dan 2 OH⁻." },
+        { label: "Ácido o base débil", formula: "K = x²/(c − x) ⟹ x = √(K·c) si α &lt; 5 %", cuando: "x = [H⁺] (ácido) o [OH⁻] (base).", ejemplo: "CH₃COOH 0,1 M: x = 1,3·10⁻³ → pH 2,87.", ojo: "Comprueba α = x/c; si α ≥ 5 %, ecuación de 2.º grado." },
+        { label: "Par conjugado", formula: "K<sub>a</sub>·K<sub>b</sub> = K<sub>w</sub> · pK<sub>a</sub> + pK<sub>b</sub> = 14", cuando: "Hidrólisis y pares ácido–base.", ejemplo: "K<sub>b</sub>(CH₃COO⁻) = 5,6·10⁻¹⁰." },
+        { label: "Tampón", formula: "pH = pK<sub>a</sub> + log([base]/[ácido])", cuando: "Ácido débil + su base conjugada.", ejemplo: "0,2 M ácido y 0,4 M base: 4,74 + log 2 = 5,05.", ojo: "Si se añade ácido o base fuertes, reacciona primero." }
+      ],
+      nota: "Fuertes: HCl, HBr, HI, HNO₃, HClO₄, H₂SO₄ (1.ª). Bases fuertes: hidróxidos de alcalinos y de Ca, Sr, Ba." },
+    { titulo: "¿Qué tipo de problema es?", ancha: true,
+      tabla: { cab: ["Datos", "Método"], filas: [
+        ["ácido o base fuerte + c", "[H⁺] o [OH⁻] = c·(nº H⁺/OH⁻); pH directo"],
+        ["ácido o base débil + c + K", "tabla ICE; x = √(K·c); α &lt; 5 %"],
+        ["mezcla de ácido y base fuertes", "moles → exceso → ÷ V<sub>total</sub> → pH"],
+        ["sal", "¿ion de débil? K<sub>h</sub> = K<sub>w</sub>/K → pH"],
+        ["ácido débil + su sal", "tampón: Henderson–Hasselbalch"],
+        ["bureta", "a·C·V = b·C·V; pH de equivalencia por hidrólisis"]
+      ] },
+      nota: "Escribe siempre la reacción y di si cada especie es fuerte o débil." },
+    { titulo: "Hidrólisis de sales", ancha: true,
+      tabla: { cab: ["Sal de…", "Ejemplo", "Se hidroliza", "pH"], filas: [
+        ["ác. fuerte + base fuerte", "NaCl, KNO₃", "nada", "7"],
+        ["ác. débil + base fuerte", "CH₃COONa, NaCN, NaF", "el anión", "&gt; 7"],
+        ["ác. fuerte + base débil", "NH₄Cl, NH₄NO₃", "el catión", "&lt; 7"],
+        ["ác. débil + base débil", "NH₄CN, CH₃COONH₄", "los dos", "según K"]
+      ] },
+      nota: "«El más fuerte gana». Na⁺, K⁺, Cl⁻ y NO₃⁻ son espectadores." },
+    { titulo: "Valoraciones e indicadores", ancha: true,
+      tabla: { cab: ["Valoración", "pH en la equivalencia", "Indicador"], filas: [
+        ["fuerte + fuerte", "7", "azul de bromotimol (6,0–7,6)"],
+        ["ácido débil + base fuerte", "&gt; 7 (≈ 8,7)", "fenolftaleína (8,2–10)"],
+        ["base débil + ácido fuerte", "&lt; 7 (≈ 5,3)", "rojo de metilo (4,2–6,3)"]
+      ] },
+      nota: "Semiequivalencia de un ácido débil: pH = pK<sub>a</sub>. Elige el indicador cuyo viraje contiene el pH de la equivalencia." },
+    { titulo: "Errores típicos del tema", ancha: true,
+      errores: [
+        { mal: "pH 3 → pH 6: «3 veces más ácido»", bien: "1000 veces menos [H⁺]", por: "Escala logarítmica." },
+        { mal: "Ba(OH)₂ 0,01 M: [OH⁻] = 0,01", bien: "[OH⁻] = 0,02 (2 OH⁻)", por: "Cuenta los OH⁻ por fórmula." },
+        { mal: "HCl 10⁻⁸ M: pH = 8", bien: "pH = 6,98", por: "Hay que sumar el H⁺ del agua." },
+        { mal: "Ácido débil: [H⁺] = c", bien: "[H⁺] = x, con K<sub>a</sub> = x²/(c − x)", por: "Solo el fuerte se disocia por completo." },
+        { mal: "Dividir por el volumen de un reactivo", bien: "Dividir por el volumen total", por: "Tras mezclar, todo está en la suma." },
+        { mal: "NaCN o NH₄Cl: pH 7 (son sales)", bien: "Básica y ácida (hidrólisis)", por: "El ion de ácido o base débil reacciona." },
+        { mal: "Equivalencia = pH 7", bien: "Depende de la sal formada", por: "Hidrólisis tras la neutralización." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t7", { resumen: resumen, secciones: B.parte.q2t7a.secciones, nuevas: B.parte.q2t7b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 </script>
