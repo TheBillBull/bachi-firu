@@ -148,7 +148,7 @@
     { t: "x² − 4x + 3", ex: "x^2-4*x+3", a: 0, b: 4, rg: [-0.5, 4.5] },
     { t: "x³ − x", ex: "x^3-x", a: -1, b: 2, rg: [-1.5, 2.5] },
     { t: "x³ − 3x² + 2x", ex: "x^3-3*x^2+2*x", a: 0, b: 2, rg: [-0.5, 2.5] },
-    { t: "sen x", ex: "sin(x)", a: 0, b: 6.2832, rg: [-0.3, 6.6] }
+    { t: "sen x", ex: "sin(x)", a: 0, b: 2 * Math.PI, rg: [-0.3, 6.6] }
   ];
   T12.signoCalc = function (ex, a, b) {
     var f = fn(ex), tr = trozos(f, a, b), neta = 0, area = 0;
@@ -182,8 +182,8 @@
     g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 5, ymin: -2, ymax: 4, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Área con cambio de signo" });
     U.fichas(cuerpo.querySelector("[data-pre]"), PS.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { preset(+k); });
     var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
-    sa = U.slider(ctl, { et: "a", min: -0.5, max: 4.5, step: 0.05, val: PS[0].a, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.a = Math.min(v, st.b - 0.1); if (st.a !== v) sa.set(st.a); pinta(); } });
-    sb = U.slider(ctl, { et: "b", min: -0.5, max: 4.5, step: 0.05, val: PS[0].b, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.b = Math.max(v, st.a + 0.1); if (st.b !== v) sb.set(st.b); pinta(); } });
+    sa = U.slider(ctl, { et: "a", min: -0.5, max: 4.5, val: PS[0].a, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.a = Math.min(v, st.b - 0.1); if (st.a !== v) sa.set(st.a); pinta(); } });
+    sb = U.slider(ctl, { et: "b", min: -0.5, max: 4.5, val: PS[0].b, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.b = Math.max(v, st.a + 0.1); if (st.b !== v) sb.set(st.b); pinta(); } });
     preset(0);
   };
 
@@ -191,11 +191,11 @@
   // 3. ÁREA ENTRE DOS CURVAS
   // ============================================================
   var PE = T12.entre = [
-    { t: "x y x²", f: "x", g: "x^2", a: 0, b: 1, rg: [-0.5, 1.5] },
-    { t: "x² y x + 2", f: "x+2", g: "x^2", a: -1, b: 2, rg: [-2.5, 3] },
-    { t: "x³ y x", f: "x", g: "x^3", a: -1, b: 1, rg: [-1.6, 1.6] },
-    { t: "sen x y cos x", f: "cos(x)", g: "sin(x)", a: 0, b: 1.5708, rg: [-0.3, 3.4] },
-    { t: "√x y x²", f: "sqrt(x)", g: "x^2", a: 0, b: 1, rg: [-0.3, 1.6] }
+    { t: "x y x²", f: "x", g: "x^2", tf: "x", tg: "x²", a: 0, b: 1, rg: [-0.5, 1.5] },
+    { t: "x² y x + 2", f: "x+2", g: "x^2", tf: "x + 2", tg: "x²", a: -1, b: 2, rg: [-2.5, 3] },
+    { t: "x³ y x", f: "x", g: "x^3", tf: "x", tg: "x³", a: -1, b: 1, rg: [-1.6, 1.6] },
+    { t: "sen x y cos x", f: "cos(x)", g: "sin(x)", tf: "cos x", tg: "sen x", a: 0, b: Math.PI / 2, rg: [-0.3, 3.4] },
+    { t: "√x y x²", f: "sqrt(x)", g: "x^2", tf: "√x", tg: "x²", a: 0, b: 1, rg: [-0.3, 1.6] }
   ];
   T12.entreCalc = function (fe, ge, a, b) {
     var f = fn(fe), g = fn(ge), h = function (x) { return f(x) - g(x); }, tr = trozos(h, a, b), neta = 0, area = 0;
@@ -215,8 +215,8 @@
       g.vertical(st.a, { clase: "c-faint", dash: "5 4" }); g.vertical(st.b, { clase: "c-faint", dash: "5 4" });
       c.tr.slice(1).forEach(function (t) { pto(g, t.a, f(t.a), "c-ok"); });
       lectura.innerHTML =
-        fil("Curva roja f", P.f.replace(/\^/g, "").replace(/sqrt/, "√").replace("sin", "sen"), "") +
-        fil("Curva azul g", P.g.replace(/\^/g, "").replace("sin", "sen"), "") +
+        fil("Curva roja f", P.tf, "") +
+        fil("Curva azul g", P.tg, "") +
         fil("∫ (f − g) neta", num3(c.neta), "pen") +
         fil("Área = suma de |trozos|", num3(c.area), "ok");
       tab.innerHTML = filasTrozos(c.tr, "∫ (f − g)");
@@ -230,8 +230,8 @@
     g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 2, ymin: -1, ymax: 2, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Área entre dos curvas" });
     U.fichas(cuerpo.querySelector("[data-pre]"), PE.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { preset(+k); });
     var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
-    sa = U.slider(ctl, { et: "a", min: -0.5, max: 1.5, step: 0.02, val: 0, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.a = Math.min(v, st.b - 0.05); if (st.a !== v) sa.set(st.a); pinta(); } });
-    sb = U.slider(ctl, { et: "b", min: -0.5, max: 1.5, step: 0.02, val: 1, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.b = Math.max(v, st.a + 0.05); if (st.b !== v) sb.set(st.b); pinta(); } });
+    sa = U.slider(ctl, { et: "a", min: -0.5, max: 1.5, val: 0, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.a = Math.min(v, st.b - 0.05); if (st.a !== v) sa.set(st.a); pinta(); } });
+    sb = U.slider(ctl, { et: "b", min: -0.5, max: 1.5, val: 1, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.b = Math.max(v, st.a + 0.05); if (st.b !== v) sb.set(st.b); pinta(); } });
     preset(0);
   };
 
@@ -264,7 +264,6 @@
       gt.zona(f, Math.min(P.a, u), Math.max(P.a, u), { clase: (u >= P.a) === true ? "z-pen" : "z-red" });
       gt.curva(f, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 3);
       gt.vertical(u, { clase: "c-red", dash: "5 4" }); gt.vertical(P.a, { clase: "c-faint", dash: "5 4" });
-      etq(gt, u, f(u), st.cuad ? "t = x²" : "t = x", "", 6, -8);
       gb.rango(d[0], d[1], yb[0], yb[1]); gb.limpiar();
       gb.curva(G, { clase: "c-ok", n: 400 }).setAttribute("stroke-width", 3);
       gb.vertical(st.x, { clase: "c-faint", dash: "5 4" });
