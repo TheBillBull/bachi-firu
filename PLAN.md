@@ -82,6 +82,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | **Tanda 3 de Química II (t9–t11 + simulacros), total agentes** | **807.947** | ≈76 min |
 | **Química II completa (3 tandas), total agentes** | **2.654.816** | ≈4 h |
 | Química II: contrastar formato PAU y rehacer sim6–sim8 (242 comprobaciones) | 129.722 (32 herramientas) | 10 min |
+| Mates II t1 (≈6.800 palabras, 47 ejercicios, 5 interactivos con motor de matrices propio, 292 comprobaciones) | 255.692 (80 herramientas) | 27 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
