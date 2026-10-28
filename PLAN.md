@@ -83,6 +83,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | **Química II completa (3 tandas), total agentes** | **2.654.816** | ≈4 h |
 | Química II: contrastar formato PAU y rehacer sim6–sim8 (242 comprobaciones) | 129.722 (32 herramientas) | 10 min |
 | Mates II t1 (≈6.800 palabras, 47 ejercicios, 5 interactivos con motor de matrices propio, 292 comprobaciones) | 255.692 (80 herramientas) | 27 min |
+| Mates II t2 (≈6.600 palabras, 45 ejercicios, 5 interactivos, 152 comprobaciones) | 218.948 (54 herramientas) | 20 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -132,7 +133,7 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **Avisos programados:** los `send_later` y las notificaciones de agentes pertenecen a la conversación que los creó; **no actúan en una conversación nueva**. No esperes ninguno.
 **Si el límite de uso (429) corta algo:** parar, anotar la hora de reinicio que indique el error y esperar; no reintentar en bucle.
 
-**Reanudado el 27-oct-2026 23:50 UTC (sesión `session_01N58emLFiFmstrFRv9SzEpD`):** el tema 3 no tenía nada fusionado (se rehace). Agentes nuevos en marcha: `a77c66b0d845a7604` → terminar tema 1 (verificador `verificar_quimica2_t1.py`, revisión §4b, pruebas); `a9d6434391062fc80` → tema 3. Ramas `worktree-agent-<id>`; fusionar con `sh herramientas/fusionar_agente.sh <id>`. Después: t2 tras t1 y t4 tras t3.
+**Reanudado el 27-oct-2026 23:50 UTC (sesión `session_01N58emLFiFmstrFRv9SzEpD`):** el tema 3 no tenía nada fusionado (se rehace). Agentes nuevos en marcha: `a77c66b0d845a7604` → terminar tema 1 (verificador `verificar_quimica2_t1.py`, revisión §4b, pruebas); `a9d6434391062fc80` → tema 3. Ramas `worktree-agent-<id>`; fusionar y probar con `sh herramientas/validar_tema.sh <id> <asig> <N>` (o `fusionar_agente.sh <id>`; ¡sin cambios en el índice antes de fusionar!). Después: t2 tras t1 y t4 tras t3.
 
 **28-oct 00:00 UTC:** tema 1 fusionado y validado; lanzado `a7d2c2ba5db2196ad` → tema 2. **Publicar bloqueado**: la herramienta exige que una conversación nueva lea entera la página publicada (63.313 líneas, 5,7 MB) antes de republicar en la misma dirección; se ha preguntado al usuario (dirección nueva / esperar / releer).
 **28-oct ~00:15 UTC:** tema 3 fusionado y validado; lanzado `agente tema 4` (ver `git worktree list`). Pega menor conocida: en móvil los símbolos del eje de `q3_anomalias` quedan algo apretados.
