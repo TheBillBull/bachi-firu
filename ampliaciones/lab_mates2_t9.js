@@ -34,10 +34,10 @@
   // SIGNOS: f, f′ y f″ con un punto que se mueve
   // ============================================================
   var SG = [
-    { t: "x³ − 3x² − 9x + 5", f: function (x) { return x * x * x - 3 * x * x - 9 * x + 5; }, rg: [-3, 5, -25, 20], nota: "Dos extremos relativos (máximo en x = −1, mínimo en x = 3) y una inflexión en x = 1." },
-    { t: "x·e^(−x)", f: function (x) { return x * Math.exp(-x); }, rg: [-1, 6, -2.2, 0.6], nota: "Un máximo en x = 1 y una inflexión en x = 2, donde la curva pasa de ∩ a ∪." },
-    { t: "x⁴ − 4x³", f: function (x) { return x * x * x * (x - 4); }, rg: [-1, 4.2, -30, 12], nota: "En x = 0 se anula f′ pero NO hay extremo (f′ no cambia de signo): es una inflexión con tangente horizontal." },
-    { t: "ln(x)/x", f: function (x) { return Math.log(x) / x; }, rg: [0.3, 9, -1.5, 0.6], nota: "Dominio x &gt; 0. Máximo en x = e ≈ 2,718 e inflexión en x = e<sup>3/2</sup> ≈ 4,482." },
+    { t: "x³ − 3x² − 9x + 5", f: function (x) { return x * x * x - 3 * x * x - 9 * x + 5; }, rg: [-3, 5, -32, 20], nota: "Dos extremos relativos (máximo en x = −1, mínimo en x = 3) y una inflexión en x = 1." },
+    { t: "x·e^(−x)", f: function (x) { return x * Math.exp(-x); }, rg: [-1, 6, -3.6, 0.8], nota: "Un máximo en x = 1 y una inflexión en x = 2, donde la curva pasa de ∩ a ∪." },
+    { t: "x⁴ − 4x³", f: function (x) { return x * x * x * (x - 4); }, rg: [-1, 4.2, -36, 12], nota: "En x = 0 se anula f′ pero NO hay extremo (f′ no cambia de signo): es una inflexión con tangente horizontal." },
+    { t: "ln(x)/x", f: function (x) { return Math.log(x) / x; }, rg: [0.5, 9, -1.8, 0.6], nota: "Dominio x &gt; 0. Máximo en x = e ≈ 2,718 e inflexión en x = e<sup>3/2</sup> ≈ 4,482." },
     { t: "e^(−x²)", f: function (x) { return Math.exp(-x * x); }, rg: [-3, 3, -0.2, 1.1], nota: "Máximo en x = 0 y dos inflexiones en x = ±1/√2 ≈ ±0,707 (la «campana de Gauss»)." },
     { t: "x³", f: function (x) { return x * x * x; }, rg: [-2, 2, -8, 8], nota: "f′(0) = 0 y f″(0) = 0, pero hay inflexión y no hay extremo: f siempre crece." }
   ];
