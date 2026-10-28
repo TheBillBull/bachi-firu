@@ -402,6 +402,9 @@
 
   // Número escrito como lo haría un alumno: "1/2", "-3,5", "2√3", "π/2"
   Mate.numero = function (src) {
+    // notación científica cómoda: 7,07e-7 · 7,07E-7 · 7,07·10⁻⁷ (se pasa a 7,07·10^-7 antes de leer)
+    src = String(src).replace(/(\d)\s*[eE]\s*([+\-−]?\d+)(?![\d,.])/g, "$1·10^$2")
+      .replace(/10\s*([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)/g, function (m, e) { return "10^" + e.replace(/⁻/g, "-").replace(/⁺/g, "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, function (d) { return "⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(d); }); });
     var r = Mate.compilar(src);
     if (!r.ok) return NaN;
     if (/[a-df-z]/i.test(String(src).replace(/pi|sqrt|raiz|sen|sin|cos|tan|tg|ln|log|exp|abs|arc/gi, ""))) return NaN;
