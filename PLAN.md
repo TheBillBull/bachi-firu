@@ -14,7 +14,7 @@
 |---|---|---|
 | Matemáticas I (13 temas) | **Cerrada** | ≈100.000 palabras añadidas · 663 ejercicios (611 nuevos) · 20 simulacros (13 nuevos) · ≈220 actividades · 129 láminas nuevas |
 | Física y Química I (13 temas) | **Cerrada** | ≈117.000 palabras añadidas · 674 ejercicios (622 nuevos) · 11 simulacros (4 nuevos) · ≈240 actividades · 115 láminas nuevas |
-| Química II (11 temas) | **EN CURSO (prioridad)**. **Tanda 1 (t1–t4) terminada y verificada el 28-oct-2026** con el estándar «con cariño»: t1 48 ejercicios (136 cifras), t2 46 (117), t3 46 (313 comprobaciones), t4 46 (259); ≈31.000 palabras y 9 interactivos nuevos, todos probados pulsándolos. Además, el tema 6 (Equilibrio) con el estándar antiguo | Tanda 2 (t5–t8) **solo si el usuario lo pide** |
+| Química II (11 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 11 temas ampliados · 525 ejercicios en temas (t6 incluye 10 antiguos) · 8 simulacros (3 nuevos) · ≈45 interactivos nuevos, todos probados pulsándolos · ≈4.500 comprobaciones de cifras nuevas sin fallos |
 | Historia de España (15 temas) | **A medias a propósito**: solo el tema 7 (Restauración) con el estándar antiguo (7 ejercicios, línea del tiempo, diagramas, comentario guiado) | Después de Química II, si el usuario lo decide |
 | Matemáticas II (14), Física II (12), Biología II (16), Lengua (22), Historia de la Filosofía (16) | Sin empezar (solo el contenido original) | — |
 
@@ -78,6 +78,9 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Química II t9 completo (≈7.200 palabras, 52 ejercicios, 6 simuladores nuevos, 459 comprobaciones con RDKit/OPSIN) | 284.949 (71 herramientas) | 31 min |
 | Química II t10 completo (≈7.000 palabras, 51 ejercicios, 3 simuladores nuevos, 198 comprobaciones) | 210.410 (47 herramientas) | 19 min |
 | Química II simulacros sim6–sim8 (21 cuestiones, ≈60 apartados, 187 comprobaciones) | 133.671 (23 herramientas) | 8 min |
+| Química II t11 completo (≈5.400 palabras, 45 ejercicios, 2 interactivos nuevos, 236 comprobaciones) | 178.917 (54 herramientas) | 18 min |
+| **Tanda 3 de Química II (t9–t11 + simulacros), total agentes** | **807.947** | ≈76 min |
+| **Química II completa (3 tandas), total agentes** | **2.654.816** | ≈4 h |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -140,3 +143,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct:** t8 fusionado y validado: tanda 2 terminada. Tanda 3 en marcha en la misma conversación: t9 y t10; después t11 y los 3 simulacros (no existe aún `quimica2_t99_simulacros.js`; tomar de modelo `fyq1_t99_simulacros.js`).
 **28-oct:** tanda 2 publicada (versión 4 de la dirección nueva, `comprobar_todo` «TODO CUADRA»). t9 y t10 fusionados y validados; en marcha t11 y los simulacros. `verificar_quimica2_t9.py` necesita `pip install rdkit py2opsin` y Java.
 **28-oct:** simulacros sim6–sim8 fusionados (formato «elige 5 de 7, 2 puntos cada una»: sin confirmar que sea el reparto exacto del examen actual de Madrid). Solo queda t11.
+**28-oct ~13:20 UTC: QUÍMICA II CERRADA.** t11 fusionado; `comprobar_todo.sh` → «TODO CUADRA» (32 grupos; 21.149 comprobaciones de cifras). Publicado en la dirección nueva. Pendientes menores: 1 px de desborde en móvil en t10 y t11 (solo lo ve `comprobar_todo.sh completo`), `q7_reacciones` abre siempre en «Adición», t11 quedó en ≈5.400 palabras. Siguiente asignatura: la decide el usuario (§2).
