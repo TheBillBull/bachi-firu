@@ -87,6 +87,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Mates II t4 (≈6.300 palabras, 45 ejercicios, 3 interactivos con vista 3D girable, 94 comprobaciones) | 230.786 (53 herramientas) | 17 min |
 | Mates II t3 (≈7.900 palabras con ejercicios, 44 ejercicios, 5 interactivos, 369 comprobaciones) | 273.227 (75 herramientas) | 25 min |
 | Mates II t5 (≈7.200 palabras, 46 ejercicios, 3 interactivos 3D, 112 comprobaciones) | 204.051 (36 herramientas) | 15 min |
+| Mates II t6 (≈6.700 palabras, 45 ejercicios, 2 interactivos, 126 comprobaciones) | 209.493 (47 herramientas) | 16 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
