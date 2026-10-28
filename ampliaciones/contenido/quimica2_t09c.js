@@ -227,9 +227,9 @@
     ["La cetona es el grupo principal."], ["Cetona > alcohol: sufijo «-ona», prefijo «hidroxi».", "Numerando desde el CH₃: C=O en 2, OH en 4 (frente a 3 y 1 desde el otro extremo: gana el 2 para la cetona).", "4-hidroxibutan-2-ona."], "4-hidroxibutan-2-ona");
   tx("e3", 3, "(Estilo EvAU) Nombra CH₃–CH(CH₃)–CH₂–CH(CH₂CH₃)–CH₂–CH₃.", "Nombre IUPAC", ["4-etil-2-metilhexano"], [],
     ["Cadena más larga: 6 carbonos."], ["Hexano con metilo y etilo.", "Localizadores {2, 4} frente a {3, 5}: gana {2, 4}.", "Alfabético: etil antes que metil."], "4-etil-2-metilhexano");
-  ge("e4", 3, "(Estilo EvAU) Un compuesto contiene 62,1 % de C, 10,3 % de H y 27,6 % de O y su masa molar es 58 g/mol. Halla su fórmula molecular: número de átomos de C, H y O.",
+  ge("e4", 3, "(Estilo EvAU) Un compuesto contiene 62,1 % de C, 10,4 % de H y 27,5 % de O y su masa molar es 58 g/mol. Halla su fórmula molecular: número de átomos de C, H y O.",
     [nc("n.º de C =", 3), nc("n.º de H =", 6), nc("n.º de O =", 1)],
-    ["En 100 g de compuesto hay 62,1 g de C…"], ["Moles: C = 62,1/12,0 = 5,18; H = 10,3/1,01 = 10,2; O = 27,6/16,0 = 1,73.", "Entre el menor (1,73): C = 3,0; H = 5,9; O = 1. Empírica C₃H₆O (M = 58).", "k = 58/58 = 1 → C₃H₆O (propanal o propanona)."], "C₃H₆O");
+    ["En 100 g de compuesto hay 62,1 g de C…"], ["Moles: C = 62,1/12,0 = 5,18; H = 10,4/1,01 = 10,3; O = 27,5/16,0 = 1,72.", "Entre el menor (1,72): C = 3,0; H = 6,0; O = 1. Empírica C₃H₆O (M = 58).", "k = 58/58 = 1 → C₃H₆O (propanal o propanona)."], "C₃H₆O");
   ge("e5", 3, "(Estilo EvAU) Al quemar 0,920 g de un compuesto de C, H y O se obtienen 1,76 g de CO₂ y 1,08 g de H₂O. Calcula la masa de oxígeno de la muestra (g) y el número de átomos de H de la fórmula molecular si M = 46 g/mol.",
     [nc("m(O) (g) =", 0.32, 0.02), nc("n.º de H =", 6)],
     ["m(C) = n(C)·12; m(H) = 2·n(H₂O)·1; O por diferencia."], ["n(C) = 1,76/44,0 = 0,0400 mol → 0,480 g.", "n(H) = 2·1,08/18,0 = 0,120 mol → 0,120 g.", "m(O) = 0,920 − 0,480 − 0,120 = 0,320 g → 0,0200 mol.", "C : H : O = 2 : 6 : 1 → C₂H₆O (M = 46): k = 1."], "m(O) = 0,320 g; C₂H₆O");

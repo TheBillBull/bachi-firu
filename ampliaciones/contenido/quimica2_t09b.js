@@ -59,9 +59,9 @@
         "<h5>El método de combustión</h5>" +
         "<p>Al quemar una muestra, todo el C pasa a CO₂ y todo el H a H₂O; el O del compuesto <b>no se mide</b>: se obtiene <b>por diferencia</b> con la masa de muestra. Como 1 mol de CO₂ contiene 1 mol de C y 1 mol de H₂O contiene <b>2 mol de H</b>:</p>" +
         "<div class='formula-wrap'><div class='formula'>n(C) = m(CO₂)/44,0 · n(H) = 2·m(H₂O)/18,0 · m(O) = m(muestra) − m(C) − m(H)</div></div>" +
-        ejemplo("Ejemplo resuelto: composición centesimal y masa molar", "Un compuesto contiene 54,5 % de C, 9,1 % de H y 36,4 % de O, y su masa molar es 88 g/mol. Halla su fórmula molecular y propón dos isómeros.", [
-          "En 100 g: 54,5 g C, 9,1 g H, 36,4 g O. Moles: C = 54,5/12,0 = 4,54; H = 9,1/1,01 = 9,0; O = 36,4/16,0 = 2,28.",
-          "Se divide entre el menor (2,28): C = 1,99 ≈ 2; H = 3,95 ≈ 4; O = 1. Empírica: <b>C₂H₄O</b> (M = 44).",
+        ejemplo("Ejemplo resuelto: composición centesimal y masa molar", "Un compuesto contiene 54,5 % de C, 9,2 % de H y 36,3 % de O, y su masa molar es 88 g/mol. Halla su fórmula molecular y propón dos isómeros.", [
+          "En 100 g: 54,5 g C, 9,2 g H, 36,3 g O. Moles: C = 54,5/12,0 = 4,54; H = 9,2/1,01 = 9,1; O = 36,3/16,0 = 2,27.",
+          "Se divide entre el menor (2,27): C = 2,00; H = 4,01; O = 1. Empírica: <b>C₂H₄O</b> (M = 44).",
           "k = 88/44 = <b>2</b> → molecular <b>C₄H₈O₂</b>.",
           "DI = (2·4 + 2 − 8)/2 = 1. Isómeros posibles: el <b>ácido butanoico</b> (función ácido) y el <b>etanoato de etilo</b> (función éster); también un <b>hidroxi-aldehído</b> sería válido."
         ]) +

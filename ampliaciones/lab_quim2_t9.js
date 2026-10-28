@@ -16,6 +16,7 @@
   function azar(a) { return a[Math.floor(Math.random() * a.length)]; }
   function mezcla(a) { var b = a.slice(), i, j, t; for (i = b.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
   function O() { return B.lab.org; }
+  function d1(x) { return (Math.round(x * 10) / 10).toFixed(1).replace(".", ",").replace("-", "−"); }
 
   function estilo() {
     if (document.getElementById("q9-css")) return;
@@ -386,7 +387,7 @@
     function pinta() {
       var S = Q.FZ[st.s], C = S.c[st.i], pes = S.c.map(function (c) { return c.pe; }), mn = Math.min.apply(null, pes), mx = Math.max.apply(null, pes), rg = (mx - mn) || 1;
       bar.innerHTML = S.c.map(function (c, j) {
-        return '<button type="button" class="q9-fila' + (j === st.i ? " sel" : "") + '" data-j="' + j + '"><span>' + c.n + '</span><span><span class="q9-pista q9-' + c.f + '" style="width:' + (6 + 94 * (c.pe - mn) / rg) + '%"></span></span><span class="q9-t">' + fmt(c.pe, 1) + " °C</span></button>";
+        return '<button type="button" class="q9-fila' + (j === st.i ? " sel" : "") + '" data-j="' + j + '"><span>' + c.n + '</span><span><span class="q9-pista q9-' + c.f + '" style="width:' + (6 + 94 * (c.pe - mn) / rg) + '%"></span></span><span class="q9-t">' + d1(c.pe) + " °C</span></button>";
       }).join("");
       O().dibujaGrafo(g, O().grafoDeSmiles(C.s), { min: 1.7 });
       lec.innerHTML = U.lec("Compuesto", "<span class='q7-nombre'>" + C.n + "</span>", "ok ancho") + U.lec("Masa molar", fmt(masa(C), 1) + " g/mol", "") + U.lec("Fuerza dominante", FNOM[C.f], C.f === "H" ? "red" : C.f === "D" ? "ok" : "pen");
