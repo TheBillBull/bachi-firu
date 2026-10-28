@@ -36,7 +36,9 @@
     ".mm-eq{font:600 20px/1.3 var(--math);color:var(--ink);margin:6px 0}" +
     ".mm-msg{border-left:4px solid var(--red);background:var(--red-soft);border-radius:4px 10px 10px 4px;padding:8px 14px;margin:10px 0;font-size:14.5px}" +
     ".mm-msg.ok{border-color:var(--ok);background:var(--ok-soft)}" +
-    "@media (max-width:520px){.mm-t{font-size:15px}.mm-t td{min-width:2em}.mm-in{width:2.3em}}");
+    ".mm-t td{white-space:nowrap} .mm-nw{display:inline-flex;align-items:center;gap:1px;white-space:nowrap}" +
+    "@media (max-width:520px){.mm-t{font-size:15px}.mm-t td{min-width:2em}.mm-in{width:2.3em}}" +
+    ".mm-t.g{font-size:14px;border-spacing:2px;padding:2px 2px}.mm-t.g td{min-width:1.5em;padding:0 2px}");
 
   // ------------------------------------------------------------
   // Fracciones exactas: { n, d }
@@ -55,7 +57,7 @@
   T.val = function (a) { return a.n / a.d; };
   function sg(n) { return n < 0 ? "−" : ""; }
   T.txt = function (a) { return a.d === 1 ? sg(a.n) + Math.abs(a.n) : sg(a.n) + Math.abs(a.n) + "/" + a.d; };
-  T.html = function (a) { return a.d === 1 ? sg(a.n) + Math.abs(a.n) : sg(a.n) + H.fr(Math.abs(a.n), a.d); };
+  T.html = function (a) { return a.d === 1 ? sg(a.n) + Math.abs(a.n) : "<span class='mm-nw'>" + sg(a.n) + H.fr(Math.abs(a.n), a.d) + "</span>"; };
   T.parse = function (s) {
     s = String(s).replace(/\s+/g, "").replace(/[−–]/g, "-").replace(/,/g, ".");
     var m;
@@ -145,7 +147,7 @@
   // o = { cls(i,j), sep, edit: nombre, celda(i,j,x) }
   function mhtml(M, o) {
     o = o || {};
-    var h = '<span class="mm-wrap"' + (o.id ? ' data-mat="' + o.id + '"' : "") + '><table class="mm-t"><tbody>';
+    var h = '<span class="mm-wrap"' + (o.id ? ' data-mat="' + o.id + '"' : "") + '><table class="mm-t' + (M[0].length >= 5 ? " g" : "") + '"><tbody>';
     for (var i = 0; i < M.length; i++) {
       h += "<tr>";
       for (var j = 0; j < M[i].length; j++) {
@@ -220,14 +222,15 @@
         cc.innerHTML = mhtml(C, { id: "C", cls: function (i, j) { var idx = i * q + j; return idx === k - 1 ? "act" : idx < k ? "hecho" : "pend"; }, celda: function (i, j, x) { return (i * q + j) < k ? T.html(x) : "?"; } });
         Array.prototype.forEach.call(cc.querySelectorAll("td"), function (td) { td.addEventListener("click", function () { k = +td.getAttribute("data-i") * q + +td.getAttribute("data-j") + 1; pinta(); }); });
       } else cc.innerHTML = '<span class="mm-msg">no existe</span>';
-      var BA = (q === m && p === n) || (q === m) ? (q === m ? T.mmul(E.B, E.A) : null) : null;
-      var bExiste = q === m;
-      var igual = ok && bExiste && m === q && p === n ? T.igual(C, T.mmul(E.B, E.A)) : null;
+      var bExiste = q === m, igual = null, motivo = "";
+      if (ok && bExiste) { var BAm = T.mmul(E.B, E.A); if (BAm.length === C.length && BAm[0].length === C[0].length) igual = T.igual(C, BAm); else motivo = "no: distinto tamaño"; }
+      else if (ok || bExiste) motivo = "no: solo existe uno";
+      else motivo = "no existe ninguno";
       lect.innerHTML =
         U.lec("A y B", "A " + m + "×" + n + " · B " + p + "×" + q) +
         U.lec("A·B", ok ? "existe: " + m + "×" + q : "no existe", ok ? "ok" : "red") +
         U.lec("B·A", bExiste ? "existe: " + p + "×" + n : "no existe", bExiste ? "ok" : "red") +
-        U.lec("¿A·B = B·A?", igual === null ? "no se puede comparar" : igual ? "sí (casualidad)" : "no", igual === null ? "" : igual ? "ok" : "red");
+        U.lec("¿A·B = B·A?", igual === null ? motivo : igual ? "sí (casualidad)" : "no", igual === true ? "ok" : "red");
       if (!ok) pie.innerHTML = "A tiene <b>" + n + "</b> columnas y B tiene <b>" + p + "</b> filas: para multiplicar tienen que coincidir. Cambia las dimensiones con los deslizadores.";
       else if (!k) pie.innerHTML = "El resultado será " + m + "×" + q + ". Pulsa «Siguiente» para ver cómo sale cada elemento, o pulsa una casilla del resultado.";
       else {
