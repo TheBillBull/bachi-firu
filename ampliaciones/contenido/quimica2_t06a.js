@@ -1,6 +1,6 @@
 /* ============================================================
    Química II · ampliaciones
-   Tema 6: Equilibrio químico
+   Tema 6: Equilibrio químico (parte A)
    Lo original de pagina.html no se toca: esto se añade al final de cada
    sección, como secciones nuevas, ejercicios nuevos y bloques de lámina.
    ============================================================ */
@@ -354,6 +354,8 @@
       ] }
   ];
 
-  B.registrar("quimica2", "t6", { secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+  // el registro final lo hace quimica2_t06c.js, que junta las partes A, B y C
+  B.parte = B.parte || {};
+  B.parte.q2t6a = { secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina };
 
 })(window);
