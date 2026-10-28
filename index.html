@@ -16514,6 +16514,198 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 3: Sistema periódico
+   Reutiliza el motor B.lab.quim de lab_atomo.js (elementos, configuraciones) y añade:
+   Q.slater (carga nuclear efectiva) · q3_zef · q3_anomalias · q3_radios
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, Q = B.lab.quim, EL = Q.EL;
+  function fil(r, v, c) { return U.lec(r, v, c); }
+
+  // ------------------------------------------------------------
+  // Reglas de Slater. cfg = [{n, l, e}] ; se calcula para el electrón más externo
+  //  ns, np : mismo grupo 0,35 (1s: 0,30) · capa n−1: 0,85 · capas n−2 y menores: 1,00
+  //  nd, nf : mismo grupo 0,35 · todos los grupos de la izquierda: 1,00
+  // ------------------------------------------------------------
+  Q.slater = function (Z, cfg) {
+    var nmax = 0, lmax = 0, N = 0, i;
+    cfg.forEach(function (s) { N += s.e; if (s.n > nmax || (s.n === nmax && s.l > lmax)) { nmax = s.n; lmax = s.l; } });
+    var esD = lmax >= 2, mismo = 0, capaN1 = 0, resto = 0, izq = 0, parts = [];
+    cfg.forEach(function (s) {
+      var e = s.e, igual = s.n === nmax && (esD ? s.l === lmax : s.l <= 1);
+      if (igual) { mismo += e; return; }
+      if (esD) { izq += e; return; }
+      if (s.n === nmax - 1) capaN1 += e; else if (s.n < nmax - 1) resto += e; else izq += e;   // izq: caso imposible
+    });
+    mismo -= 1;                                            // el propio electrón no se cuenta
+    var cm = nmax === 1 ? 0.30 : 0.35, sigma;
+    if (esD) { sigma = cm * mismo + 1.0 * izq; parts = [[mismo, cm, "mismo grupo"], [izq, 1.0, "grupos a la izquierda"]]; }
+    else { sigma = cm * mismo + 0.85 * capaN1 + 1.0 * resto; parts = [[mismo, cm, "mismo grupo (n = " + nmax + ")"], [capaN1, 0.85, "capa n = " + (nmax - 1)], [resto, 1.0, "capas internas"]]; }
+    return { n: nmax, l: lmax, N: N, sigma: sigma, zef: Z - sigma, partes: parts };
+  };
+  var LET = ["s", "p", "d", "f"];
+  Q.etqSlater = function (r) { return r.n + LET[r.l]; };
+
+  // ------------------------------------------------------------
+  // Afinidad electrónica (kJ/mol, energía liberada al captar un e⁻; CRC/NIST).
+  // null = no libera energía (el anión no es estable: Be, N, Mg y gases nobles)
+  // ------------------------------------------------------------
+  Q.AE = { 1: 73, 2: null, 3: 60, 4: null, 5: 27, 6: 122, 7: null, 8: 141, 9: 328, 10: null, 11: 53, 12: null, 13: 42, 14: 134, 15: 72, 16: 200, 17: 349, 18: null, 19: 48, 20: 2 };
+
+  // Radios iónicos de Shannon (pm, índice de coordinación 6; el N³⁻ solo está tabulado con 4)
+  Q.IONES = [
+    { s: "N", Z: 7, q: -3, r: 146 }, { s: "O", Z: 8, q: -2, r: 140 }, { s: "F", Z: 9, q: -1, r: 133 }, { s: "Na", Z: 11, q: 1, r: 102 }, { s: "Mg", Z: 12, q: 2, r: 72 }, { s: "Al", Z: 13, q: 3, r: 53.5 },
+    { s: "S", Z: 16, q: -2, r: 184 }, { s: "Cl", Z: 17, q: -1, r: 181 }, { s: "K", Z: 19, q: 1, r: 138 }, { s: "Ca", Z: 20, q: 2, r: 100 }, { s: "Sc", Z: 21, q: 3, r: 74.5 },
+    { s: "Se", Z: 34, q: -2, r: 198 }, { s: "Br", Z: 35, q: -1, r: 196 }, { s: "Rb", Z: 37, q: 1, r: 152 }, { s: "Sr", Z: 38, q: 2, r: 118 }
+  ];
+  // Pares átomo → ion (radio covalente del átomo, de la tabla del tema 1; radio iónico de Shannon)
+  Q.PARES = [
+    { s: "Li", q: 1, r: 76 }, { s: "Na", q: 1, r: 102 }, { s: "K", q: 1, r: 138 }, { s: "Mg", q: 2, r: 72 }, { s: "Al", q: 3, r: 53.5 },
+    { s: "O", q: -2, r: 140 }, { s: "F", q: -1, r: 133 }, { s: "S", q: -2, r: 184 }, { s: "Cl", q: -1, r: 181 }, { s: "Br", q: -1, r: 196 }
+  ];
+
+  // ============================================================
+  // Q3_ZEF: carga nuclear efectiva (Slater)
+  // ============================================================
+  var COLP = ["#D14D72", "#E2A400", "#2E86DE", "#13804B"];
+  B.w.q3_zef = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Carga nuclear efectiva (reglas de Slater)");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { Z: 11, q: 0 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), g, slZ, slQ;
+    var neutros = EL.filter(function (e) { return e.Z <= 36; }).map(function (e) { return Q.slater(e.Z, Q.config(e.Z, true)); });
+    slZ = U.slider(ctl, { et: "Elemento (<i>Z</i>)", min: 3, max: 36, step: 1, val: st.Z, on: function (v) { st.Z = v; pinta(); }, fmt: function (v) { return v + " · " + EL[v - 1].s; } });
+    slQ = U.slider(ctl, { et: "Carga del ion", min: -2, max: 3, step: 1, val: st.q, on: function (v) { st.q = v; pinta(); }, fmt: function (v) { return v === 0 ? "neutro" : (v > 0 ? "+" : "−") + Math.abs(v); } });
+    function pinta() {
+      var Z = st.Z, q = st.q, el = EL[Z - 1], cfg = Q.configIon(Z, q), N = Z - q;
+      if (N < 1) { lectura.innerHTML = fil("Carga imposible", "no quedan electrones", "red"); return; }
+      var r = Q.slater(Z, cfg), nombre = Q.ion(el.s, q);
+      g.limpiar();
+      [10, 18, 36].forEach(function (z) { g.segmento(z + 0.5, 0, z + 0.5, 12, { clase: "c-faint", dash: "3 5" }); });
+      var prev = null;
+      EL.forEach(function (e) {
+        if (e.Z > 36 || e.Z < 3) return;
+        var v = neutros[e.Z - 1].zef;
+        if (prev && prev.p === e.p) g.segmento(prev.Z, neutros[prev.Z - 1].zef, e.Z, v, { clase: "c-faint" });
+        prev = e;
+        var pt = g.punto(e.Z, v, { r: 4, clase: "c-pen" }); pt.style.fill = COLP[["s", "p", "d", "f"].indexOf(Q.bloque(e.Z))];
+      });
+      g.punto(Z, r.zef, { r: 8, clase: "c-red" });
+      g.texto(Z, r.zef, nombre + ": " + fmt(r.zef, 2), { dy: -12, ancla: "middle", clase: "red" });
+      var filas = r.partes.filter(function (p) { return p[0] > 0; }).map(function (p) { return p[0] + " × " + fmt(p[1], 2) + " <small>(" + p[2] + ")</small>"; });
+      lectura.innerHTML = fil("Átomo o ion", nombre + " · " + N + " e⁻", "pen") + fil("Configuración", Q.cfgTxt(cfg, true), "ancho") +
+        fil("Electrón estudiado (el más externo)", Q.etqSlater(r), "ok") + fil("Apantallamiento σ", filas.join(" + ") + " = " + fmt(r.sigma, 2), "ancho") +
+        fil("Z* = Z − σ", Z + " − " + fmt(r.sigma, 2) + " = " + fmt(r.zef, 2), "red");
+      pie.innerHTML = "Puntos: <i>Z</i>* del electrón más externo de cada átomo neutro (colores: bloque s, p, d). En un periodo sube casi sin pausa porque cada electrón nuevo se añade <b>en la misma capa</b> y apantalla poco (0,35) mientras el núcleo gana un protón entero. Al empezar el periodo siguiente cae: el nuevo electrón está en una capa más lejos y los de dentro lo apantallan casi del todo. Modelo cualitativo: no esperes valores exactos.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 2, xmax: 37, ymin: 0, ymax: 12, w: 620, h: 300, etx: "Z", ety: "Z* (electrón más externo)", etiqueta: "Carga nuclear efectiva del electrón más externo en función de Z" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), [{ k: "11,0", t: "Na" }, { k: "11,1", t: "Na⁺" }, { k: "9,0", t: "F" }, { k: "9,-1", t: "F⁻" }, { k: "19,0", t: "K" }, { k: "26,0", t: "Fe (3d)" }], "11,0", function (k) {
+      var p = k.split(","); st.Z = +p[0]; st.q = +p[1]; slZ.set(st.Z); slQ.set(st.q); pinta();
+    });
+    pinta();
+  };
+
+  // ============================================================
+  // Q3_ANOMALIAS: anomalías de la energía de ionización y de la afinidad electrónica
+  // ============================================================
+  var ANOM = {
+    ie: [
+      { k: "be", t: "Be → B", a: 4, b: 5, txt: "El B (2s² 2p¹) pierde con facilidad su electrón 2p, que está algo más alto y más apantallado por los 2s², mientras que el Be (2s²) tendría que perder un electrón 2s, más penetrante y más ligado. Por eso EI(B) &lt; EI(Be) aunque B tenga un protón más." },
+      { k: "n", t: "N → O", a: 7, b: 8, txt: "En el N (2p³) los tres electrones están desapareados, uno por orbital (semicapa llena, estable). En el O (2p⁴) hay un par apareado en un orbital: la repulsión entre esos dos electrones facilita arrancar uno. EI(O) &lt; EI(N)." },
+      { k: "mg", t: "Mg → Al", a: 12, b: 13, txt: "Igual que Be → B, un periodo más abajo: el Al (3s² 3p¹) pierde un electrón 3p, más alto y más apantallado que los 3s² del Mg. EI(Al) &lt; EI(Mg)." },
+      { k: "p", t: "P → S", a: 15, b: 16, txt: "Igual que N → O: el P (3p³) tiene la semicapa llena con tres electrones desapareados; el S (3p⁴) tiene un par apareado cuya repulsión facilita arrancar un electrón. EI(S) &lt; EI(P)." }
+    ],
+    ae: [
+      { k: "bemg", t: "Be, N, Mg: ≈ 0", a: 4, b: 12, txt: "Be (2s²) y Mg (3s²) tienen el subnivel s completo: el electrón nuevo iría a un p, más alto y apantallado. El N (2p³) tiene la semicapa llena: el nuevo electrón tendría que aparearse y sufrir repulsión. En los tres, captar un electrón apenas libera energía (o hay que aportarla)." },
+      { k: "nobles", t: "Gases nobles: ≈ 0", a: 10, b: 18, txt: "He, Ne y Ar tienen la capa de valencia completa: el electrón nuevo debe ir a la capa siguiente, lejos del núcleo y bien apantallado. No liberan energía: no forman aniones estables." },
+      { k: "clf", t: "Cl &gt; F", a: 9, b: 17, txt: "Lo esperable sería que el F, más pequeño, tuviese la mayor afinidad. Pero en el F el electrón entra en una capa n = 2 muy compacta y siente fuerte repulsión de los 7 electrones ya presentes; en el Cl (n = 3) hay más espacio. Resultado: AE(Cl) = 349 &gt; AE(F) = 328 kJ/mol." }
+    ]
+  };
+  B.w.q3_anomalias = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Energía de ionización y afinidad electrónica: los puntos que se salen de la tendencia");
+    cuerpo.innerHTML = '<div data-prop class="chips"></div><div data-an class="chips"></div><div class="w-plot"></div><div class="q1-orbitales" data-orb></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { p: "ie", k: null }, g, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), orb = cuerpo.querySelector("[data-orb]");
+    function valor(Z) { return st.p === "ie" ? EL[Z - 1].ie : Q.AE[Z]; }
+    function eligeAn() {
+      U.fichas(cuerpo.querySelector("[data-an]"), [{ k: "", t: "Ver curva" }].concat(ANOM[st.p].map(function (a) { return { k: a.k, t: a.t }; })), st.k || "", function (k) { st.k = k || null; pinta(); });
+    }
+    function ultimos(Z) { return Q.config(Z, true).slice(-2).map(Q.cajasHTML).join(""); }
+    function pinta() {
+      var ie = st.p === "ie", top = ie ? 2600 : 380, an = ANOM[st.p].filter(function (a) { return a.k === st.k; })[0], Z;
+      g.rango(0.4, 20.6, 0, top); g.limpiar();
+      [2, 10, 18].forEach(function (z) { g.segmento(z + 0.5, 0, z + 0.5, top, { clase: "c-faint", dash: "3 5" }); });
+      var prev = null;
+      for (Z = 1; Z <= 20; Z++) {
+        var v = valor(Z), z = EL[Z - 1], cero = v == null;
+        if (cero) v = 0;
+        if (prev && prev.p === z.p) g.segmento(prev.Z, prev.v, Z, v, { clase: "c-faint" });
+        prev = { Z: Z, v: v, p: z.p };
+        var marc = an && (Z === an.a || Z === an.b || (st.k === "bemg" && (Z === 4 || Z === 7 || Z === 12)) || (st.k === "nobles" && (Z === 2 || Z === 10 || Z === 18)));
+        var pt = g.punto(Z, v, { r: marc ? 8 : 4.5, clase: marc ? "c-red" : "c-pen" });
+        if (!marc) pt.style.fill = COLP[["s", "p", "d", "f"].indexOf(Q.bloque(Z))];
+        g.texto(Z, top * 0.045, z.s, { dy: 0, ancla: "middle", clase: marc ? "red" : "faint" });
+      }
+      if (an) {
+        var za = st.k === "bemg" ? [4, 7, 12] : st.k === "nobles" ? [2, 10, 18] : [an.a, an.b];
+        lectura.innerHTML = fil("Casos", za.map(function (z) { return EL[z - 1].s + " (" + (valor(z) == null ? "≈ 0" : valor(z)) + ")"; }).join(" · ") + " kJ/mol", "red") + fil("Explicación", an.txt, "ancho");
+        orb.innerHTML = za.slice(0, 2).map(function (z) { return "<span>" + EL[z - 1].s + ": </span>" + ultimos(z); }).join("");
+      } else {
+        lectura.innerHTML = fil("Qué ver", ie ? "En cada periodo la EI sube con irregularidades: dos caídas pequeñas (Be → B y N → O) en el 2.º periodo; las mismas en el 3.º (Mg → Al, P → S)." : "La AE es mayor en la parte alta de la derecha (halógenos). Los elementos con subnivel completo (Be, Mg) o semicapa llena (N) y los gases nobles liberan ≈ 0.", "ancho");
+        orb.innerHTML = "";
+      }
+      pie.innerHTML = (ie ? "Primera energía de ionización (kJ/mol)." : "Afinidad electrónica = energía <b>liberada</b> al captar un electrón (kJ/mol); ΔH = −AE. Los puntos en 0 son elementos que no liberan energía.") + " Colores: bloque s / p. Pulsa un caso para ver los orbitales implicados.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0.4, xmax: 20.6, ymin: 0, ymax: 2600, w: 640, h: 300, sinX: true, etx: "", ety: "kJ/mol", etiqueta: "Propiedad en función de Z" });
+    U.fichas(cuerpo.querySelector("[data-prop]"), [{ k: "ie", t: "1.ª energía de ionización" }, { k: "ae", t: "Afinidad electrónica" }], "ie", function (k) { st.p = k; st.k = null; eligeAn(); pinta(); });
+    eligeAn(); pinta();
+  };
+
+  // ============================================================
+  // Q3_RADIOS: radio de iones y especies isoelectrónicas
+  // ============================================================
+  B.w.q3_radios = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Radio de los iones: ¿quién es más grande?");
+    cuerpo.innerHTML = '<div data-m class="chips"></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { m: "i10" }, g, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var SERIES = { i10: [7, 8, 9, 11, 12, 13], i18: [16, 17, 19, 20, 21], i36: [34, 35, 37, 38] };
+    function ionPorZ(Z) { return Q.IONES.filter(function (i) { return i.Z === Z; })[0]; }
+    function pinta() {
+      var Z, i;
+      if (st.m === "par") {
+        g.rango(0, Q.PARES.length + 1, 0, 230); g.limpiar();
+        Q.PARES.forEach(function (p, k) {
+          var at = Q.porSimbolo(p.s), signo = p.q > 0;
+          g.rect(k + 0.55, 0, k + 1, at.r, { clase: "z-pen" });
+          g.rect(k + 1, 0, k + 1.45, p.r, { clase: signo ? "z-ok" : "z-red" });
+          g.texto(k + 0.78, at.r, String(at.r), { dy: -5, ancla: "middle", clase: "faint" });
+          g.texto(k + 1.22, p.r, fmt(p.r, p.r % 1 ? 1 : 0), { dy: -5, ancla: "middle", clase: signo ? "ok" : "red" });
+          g.texto(k + 1, 5, Q.ion(p.s, p.q), { dy: 0, ancla: "middle" });
+        });
+        lectura.innerHTML = fil("Cationes (verde)", "más pequeños que su átomo: pierden electrones (a veces toda una capa) y los que quedan sienten más Z*", "ok ancho") +
+          fil("Aniones (rojo)", "más grandes que su átomo: ganan electrones, la repulsión aumenta y Z* baja", "red ancho");
+        pie.innerHTML = "Barra azul = átomo neutro (radio covalente); barra de color = ion (radio de Shannon, pm).";
+        return;
+      }
+      var Zs = SERIES[st.m], mx = 230, ne = st.m === "i10" ? 10 : st.m === "i18" ? 18 : 36;
+      g.rango(0, Zs.length + 1, 0, mx); g.limpiar();
+      Zs.forEach(function (z, k) {
+        var io = ionPorZ(z), neg = io.q < 0;
+        g.rect(k + 0.65, 0, k + 1.35, io.r, { clase: neg ? "z-red" : "z-ok" });
+        g.texto(k + 1, io.r, fmt(io.r, io.r % 1 ? 1 : 0), { dy: -5, ancla: "middle", clase: neg ? "red" : "ok" });
+        g.texto(k + 1, 5, Q.ion(io.s, io.q), { dy: 0, ancla: "middle" });
+      });
+      var tabla = Zs.map(function (z) { var io = ionPorZ(z), r = Q.slater(z, Q.configIon(z, io.q)); return Q.ion(io.s, io.q) + ": Z = " + z + ", Z* ≈ " + fmt(r.zef, 2); });
+      lectura.innerHTML = fil("Todos tienen", ne + " electrones y la misma configuración (" + Q.cfgTxt(Q.config(ne, false), true) + ")", "pen ancho") + fil("Cambia", "el número de protones Z", "ancho") + fil("Z* (Slater)", tabla.join(" · "), "ancho") +
+        fil("Conclusión", "a más protones, mayor Z* y menor radio: " + Zs.map(function (z) { var io = ionPorZ(z); return Q.ion(io.s, io.q); }).join(" &gt; "), "red ancho");
+      pie.innerHTML = "Especies isoelectrónicas: mismo número de electrones, distinto número de protones. Radios de Shannon en pm (el N³⁻ está tabulado con coordinación 4). Cuanto mayor es <i>Z</i>, más fuerte tira el núcleo de los mismos electrones.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 7, ymin: 0, ymax: 230, w: 620, h: 290, sinX: true, etx: "", ety: "pm", etiqueta: "Radios iónicos" });
+    U.fichas(cuerpo.querySelector("[data-m]"), [{ k: "i10", t: "10 e⁻ (como el Ne)" }, { k: "i18", t: "18 e⁻ (como el Ar)" }, { k: "i36", t: "36 e⁻ (como el Kr)" }, { k: "par", t: "Átomo → ion" }], "i10", function (k) { st.m = k; pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de rectas (Matemáticas I, tema 8)
    motor B.lab.recta + recta2p · ecgeneral · posiciones · distpunto
    mediatriz · ptosnotables · region
@@ -47714,6 +47906,619 @@
   ];
 
   B.registrar("quimica2", "t1", { resumen: resumen, secciones: B.parte.q2t1a.secciones, nuevas: B.parte.q2t1b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 3: Sistema periódico
+   (parte A: se añade al final de las secciones originales 1 a 4)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t3/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Repaso: organización de la tabla
+  secciones[0] = env(
+    "<h5>De la configuración electrónica a la casilla de la tabla</h5>" +
+    "<p>La tabla periódica no es un catálogo: es un <b>mapa de configuraciones electrónicas</b>. Si sabes escribir la configuración de un átomo, sabes dónde está en la tabla, y si sabes dónde está, puedes predecir cómo se comporta. Hay tres reglas que conviene tener automáticas:</p>" +
+    "<ul>" +
+    "<li><b>Periodo = mayor valor de <i>n</i></b> que aparece en la configuración (la capa más externa ocupada). El Cl, con 1s² 2s² 2p⁶ <b>3s² 3p⁵</b>, está en el periodo 3.</li>" +
+    "<li><b>Bloque = subnivel donde entra el último electrón</b>: s (grupos 1 y 2), p (grupos 13 a 18), d (grupos 3 a 12, metales de transición) y f (lantánidos y actínidos).</li>" +
+    "<li><b>Grupo</b>: en el bloque s, el número de electrones del subnivel s (1 o 2); en el bloque p, <b>10 + los electrones de valencia</b> (ns² np<sup>k</sup> → grupo 12 + k); en el bloque d, la suma de electrones <b>(n−1)d + ns</b> (hasta 10 → grupo 12 con d¹⁰ s²).</li>" +
+    "</ul>" +
+    tabla(["Grupo", "Configuración de valencia", "Nombre de la familia", "Ion habitual"], [
+      ["1", "ns¹", "Alcalinos", "+1"], ["2", "ns²", "Alcalinotérreos", "+2"], ["13", "ns² np¹", "Térreos (B, Al…)", "+3"],
+      ["14", "ns² np²", "Carbonoideos", "+4 / −4 (según el elemento)"], ["15", "ns² np³", "Nitrogenoideos", "−3"], ["16", "ns² np⁴", "Anfígenos (O, S…)", "−2"],
+      ["17", "ns² np⁵", "Halógenos", "−1"], ["18", "ns² np⁶", "Gases nobles", "(no forman iones)"]
+    ], "q3t") +
+    ejemplo("Ejemplo resuelto: situar un elemento a partir de su configuración", "Un elemento tiene la configuración 1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p³. Indica su número atómico, su periodo, su grupo y cuántos electrones de valencia tiene. Haz lo mismo con [Kr] 5s² 4d².", [
+      "Número atómico: sumas los electrones 2 + 2 + 6 + 2 + 6 + 2 + 10 + 3 = <b>33</b> (el átomo es neutro, así que Z = n.º de electrones). Es el arsénico.",
+      "Periodo: el mayor <i>n</i> es 4 → <b>periodo 4</b>.",
+      "Valencia: la capa más externa es la n = 4: 4s² 4p³ → <b>5 electrones de valencia</b>. El último electrón entra en un p (bloque p): grupo 10 + 5 = <b>15</b>. Como tiene 5 electrones de valencia, necesita 3 para completar el octeto: ion habitual 3−.",
+      "El segundo, [Kr] 5s² 4d²: Z = 36 + 2 + 2 = 40 (circonio); periodo 5; bloque d; grupo = 2 + 2 = <b>4</b>."
+    ]) +
+    "<p>Prueba la tabla: cambia el criterio de color y comprueba que los bloques s, p y d forman «trozos» continuos de la tabla; después toca elementos y compara su configuración con su posición.</p>" +
+    w("q1_tabla") +
+    "<h5>Configuración de iones: quién sale primero</h5>" +
+    "<p>Los átomos se convierten en iones para llegar a configuraciones estables (gas noble). Al formar un <b>catión</b> se pierden los electrones de la <b>capa más externa (mayor <i>n</i>)</b>, aunque no sean los últimos que entraron. Por eso el hierro, [Ar] 4s² 3d⁶, pierde primero los 4s: <b>Fe²⁺ = [Ar] 3d⁶</b> y <b>Fe³⁺ = [Ar] 3d⁵</b> (cinco electrones desapareados, una configuración estable de semicapa llena). Los <b>aniones</b> ganan electrones hasta completar el subnivel: S²⁻ = [Ne] 3s² 3p⁶, igual que el Ar.</p>" +
+    ojo("Un fallo clásico: quitar los electrones del hierro «por el final» de la configuración y escribir Fe²⁺ = [Ar] 4s² 3d⁴. Es incorrecto: sale antes el electrón de <b>mayor <i>n</i></b>, el 4s. Los metales de transición pierden primero los <i>s</i> y después los <i>d</i>.") +
+    "<p>Practica con el simulador de configuraciones: elige un elemento, ponle carga y comprueba cuántos electrones tiene, cuántos desapareados y a qué gas noble se parece.</p>" +
+    w("q1_config") +
+    "<p><b>Dos excepciones que conviene saber:</b> el cromo ([Ar] 4s¹ 3d⁵) y el cobre ([Ar] 4s¹ 3d¹⁰). El subnivel d <b>semilleno o lleno</b> es especialmente estable (la ganancia de energía por tener todos los electrones d desapareados, o el subnivel completo, compensa promocionar un electrón desde el 4s). En la EvAU, si te piden la configuración del Cu o del Cr, esta es la que se espera.</p>"
+  );
+
+  // ---------------------------------------------------------------- 2. Radio atómico y carga nuclear efectiva
+  secciones[1] = env(
+    "<h5>La idea que explica casi todo: la carga nuclear efectiva</h5>" +
+    "<p>Un electrón de valencia no «ve» toda la carga del núcleo. Los electrones que hay entre él y el núcleo (los <b>internos</b>) hacen de pantalla y le llegan atenuados los protones. A esa carga neta que realmente siente se le llama <b>carga nuclear efectiva</b>:</p>" +
+    "<div class='formula-wrap'><div class='formula'>Z* = Z − σ</div></div>" +
+    "<p>donde <i>Z</i> es el número de protones y <b>σ</b> es la <b>constante de apantallamiento</b> (cuánta carga «tapan» los demás electrones). Las reglas de Slater dan una estimación sencilla de σ para el electrón más externo:</p>" +
+    tabla(["Los demás electrones están…", "Cada uno aporta a σ"], [
+      ["en la misma capa (mismo grupo ns np)", "0,35 (0,30 si es la capa n = 1)"],
+      ["en la capa n − 1", "0,85"],
+      ["en capas n − 2 o inferiores", "1,00"],
+      ["(si el electrón estudiado es d o f) en cualquier grupo a su izquierda", "1,00"]
+    ], "q3t") +
+    ejemplo("Ejemplo resuelto: Z* del electrón de valencia del Na y del Cl", "Calcula la carga nuclear efectiva que siente un electrón de la capa más externa en el sodio (Z = 11) y en el cloro (Z = 17), y explica qué átomo es más pequeño.", [
+      "Na: 1s² 2s² 2p⁶ <b>3s¹</b>. Para el electrón 3s: no hay otros en su capa; en la capa n = 2 hay 8 electrones (2s² 2p⁶) → 8 · 0,85 = 6,80; en la capa n = 1 hay 2 → 2 · 1 = 2,00. σ = 8,80 → <b>Z* = 11 − 8,80 = 2,2</b>.",
+      "Cl: 1s² 2s² 2p⁶ <b>3s² 3p⁵</b>. Para un electrón 3p: los otros electrones de su capa son 6 (7 − 1) → 6 · 0,35 = 2,10; capa n = 2: 8 · 0,85 = 6,80; capa n = 1: 2 · 1 = 2,00. σ = 10,90 → <b>Z* = 17 − 10,90 = 6,1</b>.",
+      "Los dos están en la misma capa (n = 3), pero el electrón del Cl siente una carga casi tres veces mayor (6,1 frente a 2,2). El núcleo del Cl atrae con mucha más fuerza a su capa → <b>el Cl es mucho más pequeño que el Na</b>."
+    ]) +
+    "<p>Mueve el deslizador de <i>Z</i> y observa en la gráfica la forma de «diente de sierra» de <i>Z</i>*: dentro de un periodo sube casi sin parar (cada protón nuevo cuenta 1, cada electrón nuevo de la misma capa solo apantalla 0,35); al empezar un periodo nuevo, <i>Z</i>* cae porque el electrón nuevo va a una capa más externa y los de dentro lo tapan casi del todo. También puedes ponerle carga al átomo.</p>" +
+    w("q3_zef") +
+    "<h5>Las dos tendencias del radio, explicadas con <i>Z</i>* y <i>n</i></h5>" +
+    "<p>El tamaño de un átomo depende de dos cosas que compiten: <b>cuántas capas tiene</b> (n, que lo agranda) y <b>cuánto tira el núcleo</b> de la capa más externa (Z*, que lo encoge). Con eso se entiende todo:</p>" +
+    "<ul>" +
+    "<li><b>En un periodo (de izquierda a derecha)</b> n es el mismo, pero Z* aumenta (Na 2,2 → Cl 6,1). La capa externa es atraída con más fuerza y el átomo <b>se contrae</b>. Es un efecto fuerte: el Na (166 pm) casi duplica el radio del Cl (102 pm).</li>" +
+    "<li><b>En un grupo (de arriba abajo)</b> Z* apenas cambia (Li 1,3; Na 2,2; K 2,2), pero n sube una unidad en cada fila: el electrón de valencia está en una capa cada vez más lejana. El átomo <b>crece</b>.</li>" +
+    "</ul>" +
+    tabla(["Elemento", "Li", "Na", "K", "Rb"], [["Radio covalente (pm)", "128", "166", "203", "220"], ["Capa de valencia (n)", "2", "3", "4", "5"], ["Z* de Slater", "1,3", "2,2", "2,2", "2,2"]], "q3t") +
+    "<p>Compruébalo en datos reales. Elige «radio» y desplázate por la gráfica: verás un diente de sierra con caídas dentro de cada periodo y saltos hacia arriba en cada alcalino. Después juega al reto de ordenar elementos.</p>" +
+    w("q1_tendencias") +
+    ojo("Entre el escandio y el zinc (metales de transición) el radio casi no cambia a lo largo del periodo: los electrones nuevos entran en la capa <b>interna</b> 3d y apantallan bien, así que Z* crece poco. Y no compares radios de elementos en periodos distintos con «derecha-izquierda» sin pensar: Na (periodo 3, grupo 1) es <b>mayor</b> que Mg, pero también mayor que Li y que Cl. Cuando dos elementos no están en el mismo periodo ni en el mismo grupo, razona con configuraciones electrónicas.")
+  );
+
+  // ---------------------------------------------------------------- 3. Energía de ionización
+  secciones[2] = env(
+    "<h5>Qué mide exactamente y en qué unidades</h5>" +
+    "<p>La <b>primera energía de ionización</b> (EI₁) es la energía que hay que <b>aportar</b> a un mol de átomos neutros, en estado gaseoso y en su estado fundamental, para arrancar a cada uno su electrón más externo:</p>" +
+    "<div class='formula-wrap'><div class='formula'>X(g) → X⁺(g) + e⁻ &nbsp;&nbsp; ΔH = EI₁ &gt; 0</div></div>" +
+    "<p>Siempre es positiva: arrancar un electrón del atractivo del núcleo <b>cuesta</b> energía. Se da en <b>kJ/mol</b> (la EvAU) o en <b>eV por átomo</b> (1 eV = 1,602·10⁻¹⁹ J, lo que equivale a 96,485 kJ/mol). Así, para el sodio EI₁ = 496 kJ/mol = 496 000 / (6,022·10²³ · 1,602·10⁻¹⁹) = <b>5,14 eV</b> por átomo.</p>" +
+    "<p>Su tendencia (Z* y n otra vez): aumenta en un periodo porque Z* sube y el electrón está más sujeto; disminuye en un grupo porque, aunque Z* casi no cambia, el electrón está cada vez más lejos. El helio tiene la mayor EI₁ (2372 kJ/mol); el cesio, la menor entre los elementos estables.</p>" +
+    "<h5>Las dos «irregularidades» que siempre preguntan</h5>" +
+    "<p>Si dibujas EI₁ frente a Z no sube de forma lisa: hay <b>dos pequeñas bajadas</b> dentro de cada periodo del bloque p. Ambas tienen una explicación en los orbitales y caen cada año en alguna prueba:</p>" +
+    "<ul>" +
+    "<li><b>Be → B (y Mg → Al)</b>: el B (2s² 2p¹) tiene menor EI que el Be (2s²) aunque tenga un protón más. El electrón que se arranca al B es un 2p, que está más alto en energía y está más apantallado por los 2s² que un electrón 2s. Es más fácil de quitar.</li>" +
+    "<li><b>N → O (y P → S)</b>: el O (2p⁴) tiene menor EI que el N (2p³). En el N los tres electrones p están en tres orbitales distintos (desapareados, semicapa llena, con la repulsión mínima). En el O hay que meter un cuarto electrón en un orbital que ya tiene uno; la <b>repulsión entre los dos electrones apareados</b> facilita quitar uno de ellos.</li>" +
+    "</ul>" +
+    "<p>Pulsa cada caso en el simulador para ver los orbitales implicados (las cajitas con flechas) y comprueba con los números reales cuánto baja la energía en cada uno.</p>" +
+    w("q3_anomalias") +
+    "<h5>Energías de ionización sucesivas: el «DNI» del número de electrones de valencia</h5>" +
+    "<p>Una vez arrancado el primer electrón se puede seguir con el segundo (EI₂), el tercero (EI₃), etc. Cada una es mayor que la anterior (el ion cada vez es más positivo y retiene más a los electrones que le quedan). El dato clave es <b>el salto enorme</b> que aparece cuando se empieza a arrancar electrones de la <b>capa interna completa</b>: esa capa está mucho más cerca del núcleo y está muy poco apantallada.</p>" +
+    ejemplo("Ejemplo resuelto: ¿a qué grupo pertenece el elemento?", "Un elemento tiene estas energías de ionización sucesivas (kJ/mol): 738, 1451, 7733, 10543, 13630. ¿Cuántos electrones de valencia tiene, a qué grupo pertenece y de qué elemento se trata?", [
+      "Razones entre valores consecutivos: 1451/738 = 1,97; 7733/1451 = <b>5,33</b>; 10543/7733 = 1,36; 13630/10543 = 1,29. El único salto brusco está entre EI₂ y EI₃.",
+      "Los dos primeros electrones se arrancan con facilidad (están en la capa de valencia); el tercero pertenece a una capa interna completa. Por tanto tiene <b>2 electrones de valencia</b> → configuración de valencia ns² → <b>grupo 2</b> (alcalinotérreo).",
+      "Para saber cuál: EI₁ = 738 kJ/mol. En el grupo 2, el Be tiene 900, el Mg 738 y el Ca 590. Es el <b>magnesio</b> (1s² 2s² 2p⁶ 3s²): el tercer electrón sale de la capa n = 2."
+    ]) +
+    w("q1_ionsucesiva") +
+    ojo("Ojo con la pregunta típica «¿por qué la EI₂ del Na es muchísimo mayor que la EI₁?». No basta con decir que «es más difícil». La respuesta que puntúa: el Na⁺ tiene configuración de gas noble (1s² 2s² 2p⁶) y el segundo electrón se arranca de la capa n = 2, más cercana al núcleo, con Z* mucho mayor (6,85 frente a 2,2) y sin apantallar casi.")
+  );
+
+  // ---------------------------------------------------------------- 4. Afinidad electrónica y electronegatividad
+  secciones[3] = env(
+    "<h5>Afinidad electrónica: el signo hay que mirarlo siempre</h5>" +
+    "<p>La <b>afinidad electrónica</b> (AE) es la energía asociada a la captura de un electrón por un átomo gaseoso neutro:</p>" +
+    "<div class='formula-wrap'><div class='formula'>X(g) + e⁻ → X⁻(g)</div></div>" +
+    "<p>En muchos libros se define como la energía <b>liberada</b> (valor positivo, por ejemplo AE(Cl) = +349 kJ/mol) y en otros como el <b>cambio de entalpía</b> del proceso, que entonces es negativo (ΔH = −349 kJ/mol). Son la misma información con distinto signo; <b>lee siempre la definición del enunciado</b>. Aquí usamos «AE = energía liberada», así que «mayor afinidad» = «más energía liberada». Los halógenos son los átomos con mayor afinidad: al captar un electrón completan el octeto y quedan con configuración de gas noble.</p>" +
+    "<p>La tendencia general es la de la EI (aumenta hacia la derecha y hacia arriba), pero tiene <b>más excepciones</b> que la energía de ionización:</p>" +
+    "<ul>" +
+    "<li><b>Be, Mg y gases nobles ≈ 0</b>: el electrón nuevo iría a una capa o subnivel más alto y más apantallado. No liberan energía (a veces hay que aportarla).</li>" +
+    "<li><b>N ≈ 0</b>: el electrón nuevo tiene que aparearse en un orbital p que ya tiene uno: repulsión que anula casi toda la ganancia.</li>" +
+    "<li><b>Cl &gt; F</b>: el F es más pequeño, pero en su capa n = 2 los electrones están tan juntos que la repulsión se come parte de la energía liberada. AE(Cl) = 349 kJ/mol frente a 328 kJ/mol del F. Lo mismo ocurre con el S frente al O (200 frente a 141).</li>" +
+    "<li><b>Segunda afinidad siempre desfavorable</b>: añadir un segundo electrón a un anión repele; O⁻ + e⁻ → O²⁻ cuesta energía (del orden de +700 kJ/mol). El O²⁻ solo es estable en los cristales (con el MgO, por ejemplo), donde la red lo compensa.</li>" +
+    "</ul>" +
+    "<p>Vuelve al simulador de antes y pulsa <em>Afinidad electrónica</em>; elige después cada caso para ver el porqué de cada irregularidad.</p>" +
+    "<h5>Electronegatividad: no se mide, se asigna</h5>" +
+    "<p>La electronegatividad (χ) mide la capacidad de un átomo <b>dentro de un enlace</b> para atraer hacia sí el par de electrones compartido. En la escala de Pauling (sin unidades) el flúor vale 3,98 (el más electronegativo), el oxígeno 3,44, el nitrógeno 3,04, el cloro 3,16, el carbono 2,55, el hidrógeno 2,20 y el cesio 0,79 (el menos electronegativo entre los metales alcalinos estables). Los gases nobles no tienen valor útil (apenas forman enlaces).</p>" +
+    "<p>Mulliken propuso una definición que une las dos propiedades anteriores: <b>χ ∝ (EI + AE) / 2</b>. Un átomo es muy electronegativo cuando le cuesta perder electrones (EI alta) <b>y</b> los capta con ganas (AE alta). Por eso la tendencia de χ coincide con la de EI y AE: crece hacia la derecha y hacia arriba. Las tres propiedades (EI, AE, χ) tienen la misma causa: <b>Z* alta y electrón cerca del núcleo</b>.</p>" +
+    ojo("La electronegatividad <b>no es</b> lo mismo que la afinidad electrónica: la AE es una energía medida de un átomo aislado (se puede medir en kJ/mol); la χ es un número relativo que describe al átomo <b>enlazado</b>. Dos errores frecuentes: decir que el F tiene la mayor afinidad electrónica (es el Cl) y decir que el helio es el elemento más electronegativo (el F; el He no forma enlaces).") +
+    w("q1_tabla")
+  );
+
+  B.parte.q2t3a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 3: Sistema periódico
+   (parte B: secciones nuevas 5 a 10)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t3/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 5
+    {
+      h: "5. Radio iónico y especies isoelectrónicas",
+      html: env(
+        "<h5>Un átomo y su ion no tienen el mismo tamaño</h5>" +
+        "<p>Cuando un átomo se convierte en ion, <b>cambia el número de electrones pero no el de protones</b>, y eso cambia muchísimo el tamaño:</p>" +
+        "<ul>" +
+        "<li><b>Un catión es más pequeño que su átomo.</b> Pierde electrones, y a menudo toda su capa externa (Na → Na⁺ pasa de n = 3 a n = 2). Además los electrones que quedan sienten una Z* mayor porque hay menos repulsión entre ellos: en el Na el electrón de valencia siente Z* = 2,2; en el Na⁺ el electrón más externo siente 6,85. Cuanta más carga positiva, mayor contracción.</li>" +
+        "<li><b>Un anión es más grande que su átomo.</b> Gana electrones sin ganar protones: la repulsión entre electrones aumenta, el apantallamiento crece, Z* baja y la nube se «hincha». En el F el electrón externo siente Z* = 5,2; en el F⁻, 4,85.</li>" +
+        "</ul>" +
+        "<h5>Especies isoelectrónicas</h5>" +
+        "<p>Se llaman <b>isoelectrónicas</b> las especies (átomos o iones) con <b>el mismo número de electrones</b> (y, por tanto, la misma configuración), aunque tengan distinto número de protones. N³⁻, O²⁻, F⁻, Ne, Na⁺, Mg²⁺ y Al³⁺ tienen todas 10 electrones: 1s² 2s² 2p⁶. ¿Cuál es la más grande? Como los electrones y la capa son idénticos, <b>solo importa la carga del núcleo</b>: a más protones, más fuerte se atrae la misma nube y menor es el radio.</p>" +
+        "<div class='formula-wrap'><div class='formula'>Isoelectrónicas: a mayor <i>Z</i>, menor radio &nbsp;&nbsp; r(N³⁻) &gt; r(O²⁻) &gt; r(F⁻) &gt; r(Na⁺) &gt; r(Mg²⁺) &gt; r(Al³⁺)</div></div>" +
+        "<p>Elige una serie y compara; la pestaña «Átomo → ion» compara cada ion con su átomo de origen.</p>" +
+        w("q3_radios") +
+        ejemplo("Ejemplo resuelto: ordenar radios de iones", "Ordena de mayor a menor radio: S²⁻, Cl⁻, K⁺, Ca²⁺ y el átomo de argón. Justifica la respuesta. (Z: S 16, Cl 17, Ar 18, K 19, Ca 20)", [
+          "Número de electrones de cada especie: S²⁻ 16 + 2 = 18; Cl⁻ 17 + 1 = 18; Ar 18; K⁺ 19 − 1 = 18; Ca²⁺ 20 − 2 = 18. <b>Son isoelectrónicas</b> (18 e⁻, configuración [Ne] 3s² 3p⁶).",
+          "Misma configuración → misma capa externa (n = 3) y el mismo apantallamiento. Lo único que cambia es el número de protones: 16 &lt; 17 &lt; 18 &lt; 19 &lt; 20.",
+          "A mayor Z, mayor fuerza de atracción sobre los 18 electrones y menor radio: <b>S²⁻ &gt; Cl⁻ &gt; Ar &gt; K⁺ &gt; Ca²⁺</b>. (Datos de radios: 184, 181, —, 138, 100 pm.)"
+        ]) +
+        ejemplo("Ejemplo resuelto: ¿mayor el catión de un periodo o el del anterior?", "Compara el radio del Na⁺, el del K⁺ y el del Mg²⁺.", [
+          "Na⁺ y Mg²⁺ son isoelectrónicos (10 e⁻, n = 2): Z = 11 y 12 → r(Na⁺) &gt; r(Mg²⁺) (102 y 72 pm).",
+          "El K⁺ tiene 18 electrones y su capa externa es n = 3: más capas que los otros dos → <b>mayor radio</b> (138 pm).",
+          "Orden: <b>K⁺ &gt; Na⁺ &gt; Mg²⁺</b>. Regla práctica: primero cuenta capas (n); a igual n, compara Z o Z*."
+        ]) +
+        "<h5>Estrategia para comparar tamaños (y casi todo lo demás)</h5>" +
+        "<ol><li>Escribe las configuraciones y <b>cuenta electrones</b>. ¿Son isoelectrónicas? Entonces decide el número de protones.</li>" +
+        "<li>Si no, compara el número de <b>capas</b> (n). Más capas, más grande.</li>" +
+        "<li>Si tienen las mismas capas, compara <b>Z*</b> (más cargado el núcleo, más pequeño).</li></ol>" +
+        ojo("Al comparar átomos con sus iones no mezcles «cuanto más a la derecha, más pequeño»: Na⁺ (102 pm) es mucho <b>menor</b> que Na (166 pm) y que F⁻ (133 pm), a pesar de que Na está a la izquierda de F. El ion cambia las reglas; lo que manda es el número de electrones.")
+      )
+    },
+    // ------------------------------------------------------------ 6
+    {
+      h: "6. Carácter metálico, reactividad y tipo de enlace",
+      html: env(
+        "<h5>Metales y no metales</h5>" +
+        "<p>El <b>carácter metálico</b> (tendencia a perder electrones y dar cationes) crece <b>hacia la izquierda y hacia abajo</b>: es la tendencia inversa a la EI y a la electronegatividad. Los metales tienen EI baja y χ baja (≤ 1,9, aproximadamente); los no metales, EI y χ altas. En la frontera están los semimetales (B, Si, Ge, As, Sb, Te): una «escalera» que separa unos de otros.</p>" +
+        tabla(["Propiedad", "Metales", "No metales"], [
+          ["EI y electronegatividad", "bajas", "altas"],
+          ["Ion que forman", "cationes (pierden e⁻)", "aniones (ganan e⁻) o enlaces covalentes"],
+          ["Óxido con agua", "básico: Na₂O + H₂O → 2 NaOH", "ácido: SO₃ + H₂O → H₂SO₄"],
+          ["Tendencia en la tabla", "crece abajo y a la izquierda (Cs, Fr)", "crece arriba y a la derecha (F, O)"]
+        ], "q3t") +
+        "<p>Un caso curioso es el aluminio: está cerca de la frontera y su óxido, Al₂O₃, es <b>anfótero</b> (reacciona tanto con ácidos como con bases). Los óxidos de los no metales (CO₂, SO₂, P₄O₁₀) forman ácidos al disolverse en agua.</p>" +
+        "<h5>Reactividad: tiene sentido con la EI y la electronegatividad</h5>" +
+        "<ul>" +
+        "<li><b>Alcalinos</b>: su reactividad con el agua <b>aumenta al bajar</b> en el grupo (Li &lt; Na &lt; K &lt; Rb &lt; Cs), porque su EI baja: el electrón de valencia se pierde cada vez más fácilmente.</li>" +
+        "<li><b>Halógenos</b>: su reactividad <b>disminuye al bajar</b> (F₂ &gt; Cl₂ &gt; Br₂ &gt; I₂), porque su electronegatividad y su afinidad (en lo posible) bajan y el átomo capta electrones con menos fuerza. Un halógeno más reactivo desplaza al menos reactivo de sus sales: Cl₂ + 2 NaBr → 2 NaCl + Br₂.</li>" +
+        "</ul>" +
+        "<h5>Diferencia de electronegatividad y tipo de enlace</h5>" +
+        "<p>Si dos átomos se enlazan, la <b>diferencia de electronegatividad Δχ</b> da una idea del carácter del enlace (Tema 4): Δχ ≈ 0 → covalente apolar (Cl₂, H₂); Δχ pequeña (menos de 1,7 aproximadamente) → covalente polar (HCl, H₂O); Δχ grande (más de 1,7–2) → enlace con fuerte carácter iónico (NaCl, MgO, CsF).</p>" +
+        ejemplo("Ejemplo resuelto: tipo de enlace por Δχ", "Calcula la diferencia de electronegatividad en H–Cl, Na–Cl y C–H y clasifica el enlace. (χ: H 2,20; C 2,55; Na 0,93; Cl 3,16)", [
+          "H–Cl: Δχ = 3,16 − 2,20 = <b>0,96</b> → covalente polar (el Cl atrae más al par, δ⁻ sobre el Cl).",
+          "Na–Cl: Δχ = 3,16 − 0,93 = <b>2,23</b> → fuerte carácter iónico (Na⁺ Cl⁻ en el cristal).",
+          "C–H: Δχ = 2,55 − 2,20 = <b>0,35</b> → casi apolar; por eso los hidrocarburos son poco polares."
+        ]) +
+        "<p>Clasifica estos elementos por su carácter y después comprueba la tabla coloreada con el modo «Metal / no metal».</p>" +
+        w("clasificar", "clas1") +
+        ojo("«Mayor carácter metálico» no significa «mejor conductor» ni «más duro». Es la tendencia de un átomo a <b>perder</b> electrones. El elemento con mayor carácter metálico estable es el cesio; el francio sería mayor, pero es radiactivo y casi no se estudia.")
+      )
+    },
+    // ------------------------------------------------------------ 7
+    {
+      h: "7. Cómo justificar una ordenación en la EvAU",
+      html: env(
+        "<h5>Un esquema que se aplica siempre</h5>" +
+        "<p>Las preguntas de este tema suelen ser del tipo «ordena X, Y y Z según… y justifica la respuesta». La mitad de los puntos está en la <b>justificación</b>, y casi siempre se pierde por dar solo la ordenación o por justificar con «porque sí, es la tendencia». Un esquema de cuatro pasos que suma la puntuación completa:</p>" +
+        "<ol>" +
+        "<li><b>Configuraciones</b> electrónicas (y posición: periodo y grupo).</li>" +
+        "<li><b>Qué es lo que cambia</b> entre las especies: capas (n), carga nuclear (Z o Z*), número de electrones.</li>" +
+        "<li><b>Cómo afecta</b> a la propiedad: «más Z* → electrón más atraído → menor radio / mayor EI».</li>" +
+        "<li><b>Orden final</b>, con los símbolos &gt; o &lt; y, si hay una anomalía conocida, mencionarla.</li>" +
+        "</ol>" +
+        ejemplo("Ejemplo resuelto 1: radio y energía de ionización", "Dados los elementos de números atómicos 7, 8 y 9: (a) escribe sus configuraciones electrónicas; (b) ordénalos por radio atómico creciente; (c) ordénalos por primera energía de ionización creciente. Justifica.", [
+          "(a) N: 1s² 2s² 2p³ · O: 1s² 2s² 2p⁴ · F: 1s² 2s² 2p⁵. Los tres son del periodo 2 (grupos 15, 16 y 17).",
+          "(b) Misma capa (n = 2); aumenta Z y Z* de N a F (3,9 &lt; 4,55 &lt; 5,2 con Slater). Con el mismo n, una mayor Z* atrae más la capa externa y la contrae: <b>r(F) &lt; r(O) &lt; r(N)</b> (57, 66 y 71 pm).",
+          "(c) La EI aumenta, en general, con Z* a lo largo del periodo, pero hay una anomalía: el N (2p³, semicapa llena, tres desapareados) tiene EI mayor que el O (2p⁴, un par apareado cuya repulsión facilita arrancar un electrón). Orden creciente: <b>EI(O) &lt; EI(N) &lt; EI(F)</b> (1314 &lt; 1402 &lt; 1681 kJ/mol). Un orden «O &lt; N &lt; F» sin esa explicación pierde la mitad del apartado."
+        ]) +
+        ejemplo("Ejemplo resuelto 2: isoelectrónicas y electronegatividad", "Se tienen los iones Na⁺, Mg²⁺ y F⁻ y los elementos Na, Mg y F. (a) ¿Cuáles son isoelectrónicos? (b) Ordena los iones por radio. (c) Ordena los elementos por electronegatividad y justifica la respuesta.", [
+          "(a) Na⁺ (11 − 1 = 10 e⁻), Mg²⁺ (12 − 2 = 10 e⁻) y F⁻ (9 + 1 = 10 e⁻): <b>los tres iones</b> son isoelectrónicos entre sí y con el Ne (1s² 2s² 2p⁶).",
+          "(b) Mismo número de electrones → decide Z: 9 &lt; 11 &lt; 12. A mayor Z, menor radio: <b>F⁻ &gt; Na⁺ &gt; Mg²⁺</b> (133, 102 y 72 pm).",
+          "(c) Electronegatividad: F (2.º periodo, a la derecha) es el más electronegativo: Z* alta, capa n = 2 cerca del núcleo. Na y Mg están en el periodo 3 y a la izquierda; Mg tiene más Z* (más a la derecha) y atrae algo más: <b>F (3,98) &gt; Mg (1,31) &gt; Na (0,93)</b>."
+        ]) +
+        ejemplo("Ejemplo resuelto 3: explicar un dato", "La primera energía de ionización del Al (578 kJ/mol) es menor que la del Mg (738 kJ/mol), aunque el Al está a la derecha. Explícalo.", [
+          "Configuraciones: Mg 1s² 2s² 2p⁶ <b>3s²</b>; Al 1s² 2s² 2p⁶ <b>3s² 3p¹</b>.",
+          "En el Mg se arranca un electrón 3s; en el Al se arranca el 3p, un electrón de un subnivel <b>de mayor energía</b>, más alejado del núcleo y apantallado por los 3s² (y el resto).",
+          "Aunque el Al tiene un protón más, ese efecto no compensa: <b>EI(Al) &lt; EI(Mg)</b>. Es el mismo fenómeno que Be → B."
+        ]) +
+        ejemplo("Ejemplo resuelto 4: de datos a razonamiento", "Se dan los radios (pm): A = 128, B = 166, C = 203 y las EI (kJ/mol): A = 520, B = 496, C = 419, de tres elementos del mismo grupo. (a) ¿Qué grupo puede ser? (b) ¿Qué relación hay entre radio y EI? (c) ¿Qué elemento es el más reactivo con el agua?", [
+          "(a) Mismo grupo, radio y EI muy parecidos a los alcalinos (Li, Na, K): son los de la columna 1 (ns¹).",
+          "(b) <b>A mayor radio, menor EI</b>: el electrón externo está cada vez más lejos del núcleo (n mayor, con Z* casi igual) y se arranca con menos energía.",
+          "(c) El de menor EI: C (K, 419 kJ/mol). Su electrón se pierde con más facilidad, así que es el más reactivo."
+        ]) +
+        ojo("Palabras que quitan puntos: «porque tiene más electrones» (sin decir cuáles ni dónde), «porque está más a la derecha» (es descripción, no razón) y «por la tendencia periódica». Palabras que suman: <b>capa</b>, <b>carga nuclear efectiva</b>, <b>apantallamiento</b>, <b>distancia</b>, <b>atracción</b>, <b>configuración</b>, <b>subnivel</b>, <b>semicapa llena</b>.")
+      )
+    },
+    // ------------------------------------------------------------ 8
+    {
+      h: "8. Problemas tipo EvAU: energías, fotones y datos de ionización",
+      html: env(
+        "<h5>Con la energía de ionización se puede hacer cálculo</h5>" +
+        "<p>Cuando la energía de ionización aparece en un problema, casi siempre hay que pasar de <b>kJ/mol</b> (por mol de átomos) a <b>J por átomo</b> (para un solo átomo o un solo fotón) o de <b>eV</b> a J. Los cambios son siempre los mismos: dividir entre N<sub>A</sub> = 6,022·10²³ para pasar de mol a átomo; multiplicar por 1000 para pasar de kJ a J; y la relación entre energía y longitud de onda de un fotón E = h·c/λ (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s).</p>" +
+        ejemplo("Ejemplo resuelto: la luz que ioniza", "La primera energía de ionización del sodio es 496 kJ/mol. Calcula la longitud de onda máxima de un fotón capaz de ionizar un átomo de sodio y di en qué región del espectro está.", [
+          "Energía por átomo: E = 496·10³ J/mol / 6,022·10²³ mol⁻¹ = <b>8,236·10⁻¹⁹ J</b>.",
+          "Un fotón ioniza el átomo si E<sub>fotón</sub> ≥ EI. Para la longitud de onda máxima, E = EI: λ = h·c / E = 6,626·10⁻³⁴ · 3,00·10⁸ / 8,236·10⁻¹⁹ = 2,413·10⁻⁷ m = <b>241 nm</b>.",
+          "Una longitud de onda menor da fotones más energéticos, así que sirve cualquier λ ≤ 241 nm: <b>ultravioleta</b>. La luz visible (400–700 nm) no ioniza el sodio."
+        ]) +
+        ejemplo("Ejemplo resuelto: energía cinética del electrón arrancado", "Se ilumina un vapor de potasio (EI = 419 kJ/mol) con radiación de 250 nm. Calcula la energía cinética de los electrones que salen.", [
+          "Energía del fotón: E = h·c/λ = 6,626·10⁻³⁴ · 3,00·10⁸ / 250·10⁻⁹ = <b>7,951·10⁻¹⁹ J</b>.",
+          "Energía necesaria por átomo: EI = 419·10³ / 6,022·10²³ = <b>6,958·10⁻¹⁹ J</b>.",
+          "Balance de energía: E<sub>fotón</sub> = EI + E<sub>c</sub> → E<sub>c</sub> = 7,951·10⁻¹⁹ − 6,958·10⁻¹⁹ = <b>9,93·10⁻²⁰ J</b> (unos 0,62 eV)."
+        ]) +
+        ejemplo("Ejemplo resuelto: energía por gramo y varias ionizaciones", "(a) ¿Qué energía hace falta para ionizar los átomos de 1,00 g de sodio gaseoso (EI₁ = 496 kJ/mol; M = 22,99 g/mol)? (b) ¿Y para convertir 0,50 mol de Na en Na²⁺ (EI₂ = 4562 kJ/mol)?", [
+          "(a) n = 1,00 / 22,99 = 0,0435 mol. Energía = 0,0435 · 496 = <b>21,6 kJ</b>.",
+          "(b) Para formar Na²⁺ hay que pasar dos ionizaciones: EI₁ + EI₂ = 496 + 4562 = 5058 kJ/mol. Con 0,50 mol: 0,50 · 5058 = <b>2529 kJ</b>.",
+          "La mayor parte del coste es la segunda ionización: arrancar un electrón de la capa interna cuesta nueve veces más que el primero."
+        ]) +
+        "<h5>Identificar un elemento a partir de datos</h5>" +
+        "<p>Un tipo de pregunta muy habitual: te dan un ion, unos electrones o unas energías y tienes que decir <b>qué elemento es</b>. Casi siempre se resuelve contando electrones y pasando a la tabla.</p>" +
+        ejemplo("Ejemplo resuelto: ¿qué elemento es?", "(a) El ion X²⁺ es isoelectrónico con el argón. ¿Qué elemento es X? (b) El ion Y²⁻ tiene la misma configuración que el Ar. ¿Qué elemento es Y? (c) Un átomo tiene 3 electrones desapareados y su capa de valencia es n = 3; ¿qué elemento es?", [
+          "(a) Ar: 18 electrones. X²⁺ tiene 18 e⁻, así que X tiene 20 e⁻ y Z = 20: <b>calcio</b> (Ca²⁺).",
+          "(b) Y²⁻ tiene 18 e⁻, así que Y tiene 16 e⁻ y Z = 16: <b>azufre</b> (S²⁻).",
+          "(c) Tres desapareados en n = 3: 3p³ (el 3p tiene tres orbitales con un electrón cada uno), es decir, 3s² 3p³ → Z = 15: <b>fósforo</b>. (La alternativa 3d³ pertenece al n = 4, que sería ya la capa de valencia 4s²: V, Z = 23; no cumple «capa de valencia n = 3».)"
+        ]) +
+        ojo("Si el enunciado da <b>kJ/mol</b> y te pide energía de <b>un átomo</b> o de <b>un fotón</b>, tienes que dividir entre N<sub>A</sub>. Y si te da eV, multiplica por 1,602·10⁻¹⁹ J/eV. El error más frecuente es olvidar la conversión de kJ a J: da energías de 10⁻²² J en vez de 10⁻¹⁹ J.")
+      )
+    },
+    // ------------------------------------------------------------ 9
+    {
+      h: "9. ¿Qué falla aquí? Errores típicos del sistema periódico",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente en los exámenes. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    // ------------------------------------------------------------ 10
+    {
+      h: "10. Autocomprobación del tema",
+      html: "<p>Un test de doce preguntas, tarjetas para fijar definiciones y tres juegos: emparejar, ordenar y clasificar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarjetas1") + w("emparejar", "emp1") + w("orden", "orden1")
+    }
+  ];
+
+  B.parte.q2t3b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 3: Sistema periódico
+   (parte C: actividades, ejercicios, láminas y registro del tema)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h;
+
+  var resumen = [
+    "<b>La tabla es un mapa de configuraciones</b>: periodo = mayor n; bloque = subnivel del último electrón; grupo (bloque p) = 10 + electrones de valencia. En los cationes salen primero los electrones de mayor n (Fe²⁺ = [Ar] 3d⁶).",
+    "<b>Z* = Z − σ</b> explica las tendencias: en un periodo Z* sube y el átomo se contrae; en un grupo Z* casi no cambia pero n sube y el átomo crece. Slater: 0,35 misma capa, 0,85 capa n−1, 1,00 capas inferiores.",
+    "<b>Irregularidades</b>: EI(B) &lt; EI(Be) y EI(Al) &lt; EI(Mg) (electrón p, más alto); EI(O) &lt; EI(N) y EI(S) &lt; EI(P) (repulsión del par apareado). AE: Cl &gt; F; Be, N, Mg y gases nobles ≈ 0. Un salto brusco en las EI sucesivas marca el fin de la capa de valencia.",
+    "<b>Iones</b>: catión &lt; átomo &lt; anión. En especies isoelectrónicas (mismos electrones) manda Z: a mayor Z, menor radio. Si no, primero capas (n) y luego Z*.",
+    "<b>Justificar</b> = configuración → qué cambia (n, Z*, electrones) → cómo afecta → orden. Con energías: kJ/mol ÷ N<sub>A</sub> = J por átomo; E = h·c/λ."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "Un alumno escribe la configuración del Fe²⁺ así: [Ar] 4s² 3d⁴ (quita los dos últimos electrones, los del 3d). ¿Qué falla?",
+          op: ["Nada: se quitan los últimos que entraron", "Se quitan primero los de mayor n, los 4s: Fe²⁺ = [Ar] 3d⁶", "Debía quitar un 4s y un 3d", "El Fe no puede formar un ion 2+"], ok: 1,
+          porque: "Un catión pierde los electrones de la capa más externa (mayor n). El 4s está más lejos que el 3d, así que sale antes: Fe²⁺ = [Ar] 3d⁶ y Fe³⁺ = [Ar] 3d⁵." },
+        { q: "«El átomo de Cl es mayor que el de Na porque el Cl tiene más electrones (17 frente a 11).» ¿Qué falla?",
+          op: ["Nada", "El Na es mayor: ambos tienen n = 3, pero la carga nuclear efectiva del Cl (≈ 6,1) es mucho mayor que la del Na (≈ 2,2) y contrae su capa", "El Cl es mayor porque está más a la derecha", "Tienen el mismo radio al ser del mismo periodo"], ok: 1,
+          porque: "En un periodo los electrones nuevos entran en la misma capa y apantallan poco, pero el núcleo gana un protón por cada paso. Z* sube y el átomo se contrae: Na (166 pm) &gt; Cl (102 pm)." },
+        { q: "«La EI₂ del sodio es mucho mayor que la EI₁ porque el sodio ya es positivo.» ¿Qué falla?",
+          op: ["Nada", "No basta: el Na⁺ tiene configuración de gas noble (2s² 2p⁶) y el segundo electrón sale de una capa interna, más cercana al núcleo y poco apantallada", "La EI₂ es menor que la EI₁", "Se debe a que el Na es un metal"], ok: 1,
+          porque: "Cada ionización sucesiva cuesta algo más, pero un salto de 9 veces (496 → 4562) solo se explica porque el segundo electrón es de la capa n = 2, con Z* ≈ 6,85, frente a 2,2 del 3s." },
+        { q: "«La EI del O es mayor que la del N porque el O está más a la derecha.» ¿Qué falla?",
+          op: ["Nada", "Es la tendencia general, pero el N (2p³, desapareados) rompe la regla: EI(N) = 1402 &gt; EI(O) = 1314 kJ/mol", "La EI no depende de la configuración", "El O tiene menos electrones"], ok: 1,
+          porque: "En el O (2p⁴) hay un orbital con dos electrones: la repulsión entre ellos facilita arrancar uno. El N, con semicapa llena, retiene más sus electrones." },
+        { q: "«El flúor tiene la mayor afinidad electrónica porque es el más electronegativo.» ¿Qué falla?",
+          op: ["Nada", "La mayor afinidad la tiene el cloro (349 kJ/mol; F 328): en el F, tan pequeño, la repulsión entre electrones reduce la energía liberada", "El flúor tiene afinidad negativa", "La afinidad y la electronegatividad son la misma propiedad"], ok: 1,
+          porque: "La afinidad electrónica es una energía; la electronegatividad es una escala relativa dentro de un enlace. Aunque tienen tendencias parecidas, el F es una excepción en la AE." },
+        { q: "Se ordenan N³⁻, O²⁻, F⁻, Na⁺ y Mg²⁺ por radio creciente con el argumento «cuanto más a la derecha, más pequeño». ¿Qué falla?",
+          op: ["Nada", "Son isoelectrónicos (10 e⁻): decide el número de protones. A mayor Z, menor radio; por eso Mg²⁺ &lt; Na⁺ &lt; F⁻ &lt; O²⁻ &lt; N³⁻", "El Na⁺ es mayor que el F⁻", "No se pueden comparar"], ok: 1,
+          porque: "Con el mismo número de electrones la capa es la misma, y solo importa cuánto tira el núcleo: más protones, más contracción. La regla del periodo no sirve cuando hay iones." },
+        { q: "«El átomo de potasio es menor que el de sodio porque tiene más protones.» ¿Qué falla?",
+          op: ["Nada", "En un grupo, al bajar se añade una capa completa (n = 4 frente a n = 3); Z* es casi la misma (2,2) y el K es mayor (203 frente a 166 pm)", "El K tiene menos electrones", "El radio no cambia en un grupo"], ok: 1,
+          porque: "Los protones nuevos son compensados por los electrones internos. Manda el aumento de n: más capas, más tamaño." },
+        { q: "Un alumno calcula la longitud de onda para ionizar el Na con EI = 496 kJ/mol así: λ = h·c / (496) = 6,626·10⁻³⁴ · 3·10⁸ / 496. ¿Qué falla?",
+          op: ["Nada", "La EI está en kJ por mol: hay que pasarla a J por átomo (496·10³ / 6,022·10²³ = 8,24·10⁻¹⁹ J) antes de usar E = h·c/λ", "Debía usar la constante de Rydberg", "Debía multiplicar por N<sub>A</sub>"], ok: 1,
+          porque: "E = h·c/λ da la energía de un fotón (un átomo), así que E debe estar en J por átomo: 496 000 J/mol ÷ N<sub>A</sub>. Así λ = 241 nm (ultravioleta)." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "Un elemento tiene la configuración de valencia 3s² 3p⁴. Está en…",
+          op: ["periodo 3, grupo 16", "periodo 4, grupo 14", "periodo 3, grupo 14", "periodo 2, grupo 16"], ok: 0, porque: "Periodo = mayor n = 3. Bloque p con 2 + 4 = 6 electrones de valencia: grupo 10 + 6 = 16 (el azufre)." },
+        { q: "Configuración del ion Fe³⁺ (Z = 26):",
+          op: ["[Ar] 3d⁵", "[Ar] 4s² 3d³", "[Ar] 4s¹ 3d⁴", "[Ar] 3d⁶"], ok: 0, porque: "Se quitan primero los 4s (2 electrones) y luego uno 3d: 3d⁶ → 3d⁵. Cinco electrones desapareados." },
+        { q: "La carga nuclear efectiva aumenta de izquierda a derecha en un periodo porque…",
+          op: ["aumenta Z y los electrones nuevos de la misma capa apantallan poco", "disminuye Z", "aumenta el número de capas", "los electrones internos desaparecen"], ok: 0, porque: "Cada paso añade un protón (+1) pero el electrón nuevo, de la misma capa, solo apantalla 0,35." },
+        { q: "¿Cuál tiene mayor radio?",
+          op: ["Na", "Mg", "Al", "Si"], ok: 0, porque: "Mismo periodo: el radio disminuye de izquierda a derecha. El sodio es el mayor (166 pm)." },
+        { q: "Ordena de mayor a menor radio: Cl⁻, K⁺, Ca²⁺.",
+          op: ["Cl⁻ &gt; K⁺ &gt; Ca²⁺", "Ca²⁺ &gt; K⁺ &gt; Cl⁻", "K⁺ &gt; Cl⁻ &gt; Ca²⁺", "Cl⁻ &gt; Ca²⁺ &gt; K⁺"], ok: 0, porque: "Los tres tienen 18 electrones (isoelectrónicos): a mayor número de protones, menor radio. Z = 17, 19 y 20: Cl⁻ (181 pm) &gt; K⁺ (138) &gt; Ca²⁺ (100)." },
+        { q: "¿Qué elemento tiene mayor primera energía de ionización?",
+          op: ["Na", "Mg", "Al", "Ne"], ok: 3, porque: "Entre los de la lista, el neón: gas noble con n = 2 y Z* altísima (2081 kJ/mol)." },
+        { q: "EI₁ del Al (578) es menor que la del Mg (738) porque…",
+          op: ["el electrón que pierde el Al es un 3p, de mayor energía y más apantallado", "el Al tiene menos protones", "el Al es un gas", "el Mg tiene menos electrones"], ok: 0, porque: "Mg: 3s²; Al: 3s² 3p¹. El 3p está más alto y más apantallado que un 3s." },
+        { q: "Un elemento tiene EI (kJ/mol): 577, 1816, 2744, 11 600. ¿Cuántos electrones de valencia tiene?",
+          op: ["3", "4", "2", "1"], ok: 0, porque: "El salto entre EI₃ y EI₄ (2744 → 11 600) marca el final de la capa de valencia: son 3 electrones (grupo 13)." },
+        { q: "¿Qué especie NO es isoelectrónica con el Ne?",
+          op: ["Mg²⁺", "F⁻", "Cl⁻", "O²⁻"], ok: 2, porque: "El Ne tiene 10 electrones; el Cl⁻ tiene 18 (isoelectrónico con el Ar)." },
+        { q: "La afinidad electrónica es mayor (se libera más energía) en…",
+          op: ["Cl", "F", "Ne", "Na"], ok: 0, porque: "Cl (349 kJ/mol) &gt; F (328): excepción por repulsión en la capa n = 2. El Ne no libera energía." },
+        { q: "El enlace con mayor carácter iónico entre estos es…",
+          op: ["Cs–F", "H–Cl", "C–H", "Cl–Cl"], ok: 0, porque: "Δχ: Cs–F 3,19; H–Cl 0,96; C–H 0,35; Cl–Cl 0. Mayor diferencia, más iónico." },
+        { q: "Un fotón puede ionizar un átomo si su energía es…",
+          op: ["mayor o igual que la energía de ionización por átomo", "menor que la energía de ionización", "igual que la afinidad electrónica", "da igual la energía"], ok: 0, porque: "E<sub>fotón</sub> = h·c/λ ≥ EI (por átomo). El exceso se convierte en energía cinética del electrón." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: sistema periódico",
+      cartas: [
+        { a: "¿Cómo se deduce el periodo y el grupo de un elemento?", b: "Periodo = mayor n de la configuración. Bloque p: grupo = 10 + electrones de valencia. Bloque s: grupo = electrones del s. Bloque d: (n−1)d + ns." },
+        { a: "Carga nuclear efectiva", b: "Z* = Z − σ: la carga que realmente siente un electrón, descontando el apantallamiento de los demás." },
+        { a: "Reglas de Slater (ns, np)", b: "Misma capa: 0,35 (0,30 en n = 1). Capa n−1: 0,85. Capas inferiores: 1,00." },
+        { a: "Tendencia del radio atómico", b: "Crece al bajar en un grupo (más capas) y disminuye a la derecha en un periodo (Z* mayor)." },
+        { a: "Radio de un catión y de un anión", b: "Catión menor que su átomo; anión mayor que su átomo." },
+        { a: "Especies isoelectrónicas", b: "Mismo número de electrones. A mayor Z, menor radio." },
+        { a: "Primera energía de ionización", b: "Energía para X(g) → X⁺(g) + e⁻. Aumenta a la derecha y arriba. Siempre positiva." },
+        { a: "Anomalías de la EI", b: "B &lt; Be y Al &lt; Mg (el electrón p está más alto); O &lt; N y S &lt; P (repulsión del par apareado)." },
+        { a: "EI sucesivas", b: "Siempre crecen; el salto brusco señala el paso a la capa interna y da el número de electrones de valencia." },
+        { a: "Afinidad electrónica", b: "Energía liberada al captar un e⁻: X(g) + e⁻ → X⁻(g). Mayor en el Cl que en el F. Be, N, Mg y gases nobles ≈ 0." },
+        { a: "Electronegatividad", b: "Escala relativa (Pauling) de atracción del par de enlace. F = 3,98 (máx.), Cs = 0,79. Sube a la derecha y arriba." },
+        { a: "Carácter metálico", b: "Crece a la izquierda y abajo (EI y χ bajas). Óxidos de metales: básicos; de no metales: ácidos." },
+        { a: "De kJ/mol a energía de un fotón", b: "E (J por átomo) = EI·10³ / N<sub>A</sub>; λ = h·c / E." }
+      ]
+    },
+    emp1: {
+      titulo: "Empareja cada hecho con su causa",
+      consigna: "Une cada observación con la explicación que la justifica.",
+      pares: [
+        ["El radio disminuye de Na a Cl", "Z* aumenta con la misma capa (n = 3)"],
+        ["El radio aumenta de Li a K", "Se añaden capas (n sube; Z* casi igual)"],
+        ["EI(B) &lt; EI(Be)", "El electrón arrancado es un 2p, más alto y apantallado"],
+        ["EI(O) &lt; EI(N)", "Repulsión del par apareado del 2p⁴"],
+        ["Salto grande entre EI₂ y EI₃ del Mg", "El tercer electrón es de una capa interna completa"],
+        ["Na⁺ es menor que Na", "Pierde la capa n = 3 y los que quedan sienten más Z*"],
+        ["F⁻ es mayor que F", "Mayor repulsión entre electrones, Z* menor"]
+      ]
+    },
+    orden1: {
+      titulo: "Ordena por radio creciente",
+      consigna: "De menor a mayor radio: Al³⁺, Mg²⁺, Na⁺, F⁻, O²⁻ (todos isoelectrónicos de 10 e⁻).",
+      items: [
+        { t: "Al³⁺ (13 protones)", nota: "53,5 pm: el núcleo con más protones contrae más." },
+        { t: "Mg²⁺ (12 protones)", nota: "72 pm." },
+        { t: "Na⁺ (11 protones)", nota: "102 pm." },
+        { t: "F⁻ (9 protones)", nota: "133 pm." },
+        { t: "O²⁻ (8 protones)", nota: "140 pm: los mismos electrones con menos protones." }
+      ]
+    },
+    clas1: {
+      titulo: "Metal, no metal o semimetal",
+      consigna: "Toca cada elemento y después su categoría.",
+      categorias: ["Metal", "No metal", "Semimetal"],
+      items: [
+        { t: "Na", c: 0 }, { t: "Ca", c: 0 }, { t: "Al", c: 0 }, { t: "Fe", c: 0 }, { t: "Cs", c: 0 },
+        { t: "O", c: 1 }, { t: "Cl", c: 1 }, { t: "S", c: 1 }, { t: "N", c: 1 }, { t: "C", c: 1 },
+        { t: "Si", c: 2 }, { t: "Ge", c: 2 }, { t: "As", c: 2 }, { t: "B", c: 2 }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS (★ 15 · ★★ 16 · ★★★ 15)
+  // ================================================================
+  var E = [];
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function ge(id, nivel, enun, check, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: check, pistas: pistas, pasos: pasos, resultado: res }); }
+
+  // ---------------- ★ ----------------
+  nu("a1", 1, "¿En qué grupo de la tabla periódica está el elemento de número atómico 17?", "Grupo =", 17,
+    ["Escribe la configuración: la capa externa te da los electrones de valencia."],
+    ["1s² 2s² 2p⁶ 3s² 3p⁵: capa de valencia 3s² 3p⁵, 7 electrones.", "Bloque p: grupo = 10 + 7 = 17 (halógenos)."], "Grupo 17 (cloro)");
+  ge("a2", 1, "Un elemento tiene la configuración electrónica [Ne] 3s² 3p². Indica su número atómico y su grupo.",
+    [{ tipo: "num", etiqueta: "Z =", valor: 14 }, { tipo: "num", etiqueta: "Grupo =", valor: 14 }],
+    ["Neón: 10 electrones."],
+    ["Z = 10 + 2 + 2 = 14 (silicio).", "Bloque p con 4 electrones de valencia: grupo 10 + 4 = 14."], "Z = 14; grupo 14");
+  ge("a3", 1, "Indica el periodo y el grupo del calcio (Z = 20).",
+    { tipo: "lista", etiqueta: "Periodo y grupo =", valores: [4, 2] },
+    ["Configuración: [Ar] 4s²."],
+    ["1s² 2s² 2p⁶ 3s² 3p⁶ 4s²: mayor n = 4 → periodo 4.", "Bloque s con 2 electrones de valencia → grupo 2."], "Periodo 4, grupo 2");
+  nu("a4", 1, "¿Cuántos electrones de valencia tiene el aluminio (Z = 13)?", "Electrones de valencia =", 3,
+    ["Mira la capa más externa."], ["1s² 2s² 2p⁶ 3s² 3p¹: la capa n = 3 tiene 2 + 1 = 3 electrones."], "3");
+  op("a5", 1, "¿Cuál de estos átomos tiene el mayor radio atómico: Na, Mg o Al?", "Mayor radio", ["Na", "Mg", "Al", "los tres iguales (mismo periodo)"], 0,
+    ["Mismo periodo: ¿hacia dónde disminuye el radio?"], ["Los tres son del periodo 3: n = 3 en todos.", "De izquierda a derecha aumenta Z* y el radio disminuye: Na (166) &gt; Mg (141) &gt; Al (121 pm)."], "Na");
+  op("a6", 1, "¿Cuál tiene la mayor primera energía de ionización: Li, Na o K?", "Mayor EI₁", ["Li", "Na", "K", "las tres son iguales"], 0,
+    ["En un grupo, el electrón de valencia está cada vez más lejos."], ["Mismo grupo: al bajar crece n y el electrón se arranca con menos energía.", "EI: Li 520 &gt; Na 496 &gt; K 419 kJ/mol."], "Li");
+  op("a7", 1, "¿Cuál de estos elementos es el más electronegativo: C, N, O o F?", "Más electronegativo", ["C", "N", "O", "F"], 3,
+    ["Mismo periodo; la electronegatividad aumenta hacia la derecha."], ["Periodo 2 en orden C, N, O, F: χ crece de izquierda a derecha.", "χ: C 2,55 &lt; N 3,04 &lt; O 3,44 &lt; F 3,98."], "F");
+  nu("a8", 1, "Para el magnesio, EI₂ = 1451 kJ/mol y EI₃ = 7733 kJ/mol. ¿Cuántas veces mayor es la tercera energía de ionización que la segunda?", "EI₃ / EI₂ =", 5.329,
+    ["Divide."], ["EI₃ / EI₂ = 7733 / 1451 = 5,33.", "Un salto de este tamaño señala que el tercer electrón sale de una capa interna: el Mg tiene 2 electrones de valencia."], "≈ 5,33 veces");
+  op("a9", 1, "¿Qué es mayor, el radio del átomo de cloro o el del ion cloruro Cl⁻?", "Mayor radio", ["Cl", "Cl⁻", "son iguales"], 1,
+    ["Un anión gana electrones sin ganar protones."], ["Cl⁻ tiene 18 electrones y 17 protones: más repulsión, menos Z*.", "r(Cl) = 102 pm &lt; r(Cl⁻) = 181 pm."], "Cl⁻");
+  ge("a10", 1, "Escribe la configuración electrónica del ion Mg²⁺ (Z = 12).",
+    { tipo: "texto", etiqueta: "Configuración =", valores: ["1s2 2s2 2p6", "[He] 2s2 2p6"], formula: true },
+    ["Primero escribe la del átomo y luego quita los electrones de la capa externa."],
+    ["Mg: 1s² 2s² 2p⁶ 3s².", "Mg²⁺ pierde los dos 3s: 1s² 2s² 2p⁶ (como el neón)."], "1s² 2s² 2p⁶");
+  op("a11", 1, "¿Cuál de estas especies es isoelectrónica con el átomo de neón (Z = 10)?", "Isoelectrónica con Ne", ["K⁺", "Mg²⁺", "Cl⁻", "Ca²⁺"], 1,
+    ["Cuenta los electrones de cada especie."], ["Ne: 10 electrones. Mg²⁺: 12 − 2 = 10 ✓.", "K⁺: 18; Cl⁻: 18; Ca²⁺: 18 (isoelectrónicos con el Ar)."], "Mg²⁺");
+  op("a12", 1, "¿Qué ion forma el calcio al reaccionar?", "Ion", ["Ca⁺", "Ca²⁺", "Ca²⁻", "Ca³⁺"], 1,
+    ["Mira su configuración de valencia."], ["Ca: [Ar] 4s². Pierde los 2 electrones 4s y queda con la configuración del argón.", "Ion: Ca²⁺."], "Ca²⁺");
+  nu("a13", 1, "La primera energía de ionización del sodio es 496 kJ/mol. Exprésala en eV por átomo. (N<sub>A</sub> = 6,022·10²³; 1 eV = 1,602·10⁻¹⁹ J)", "EI₁ (eV) =", 5.141,
+    ["Pasa de kJ/mol a J por átomo y de J a eV."], ["496·10³ / 6,022·10²³ = 8,236·10⁻¹⁹ J por átomo.", "8,236·10⁻¹⁹ / 1,602·10⁻¹⁹ = 5,14 eV."], "5,14 eV");
+  op("a14", 1, "El fósforo (Z = 15) es…", "El fósforo es", ["metal", "no metal", "semimetal", "gas noble"], 1,
+    ["Configuración 3s² 3p³: ¿cuántos electrones le faltan para completar el octeto?"], ["Grupo 15, periodo 3: electronegatividad 2,19, EI alta, forma aniones P³⁻.", "Es un no metal."], "No metal");
+  op("a15", 1, "De estos elementos del segundo periodo, ¿cuál tiene el mayor radio atómico: Li, Be, C o F?", "Mayor radio", ["Li", "Be", "C", "F"], 0,
+    ["Mismo periodo: el radio disminuye hacia la derecha."], ["Li está a la izquierda: menor Z*.", "Radios: Li 128; Be 96; C 76; F 57 pm."], "Li");
+
+  // ---------------- ★★ ----------------
+  nu("b1", 2, "Calcula con las reglas de Slater la carga nuclear efectiva sobre un electrón de la capa más externa del cloro (Z = 17).", "Z* =", 6.1,
+    ["Configuración 3s² 3p⁵: 6 electrones en su capa (sin contar el estudiado)."],
+    ["Misma capa (n = 3): 6 · 0,35 = 2,10.", "Capa n = 2: 8 · 0,85 = 6,80. Capa n = 1: 2 · 1,00 = 2,00.", "σ = 10,90 → Z* = 17 − 10,90 = 6,10."], "Z* = 6,1");
+  nu("b2", 2, "Calcula la carga nuclear efectiva sobre un electrón 3p del aluminio (Z = 13).", "Z* =", 3.5,
+    ["Config.: 3s² 3p¹."], ["Misma capa: hay 2 electrones más (3s²) → 2 · 0,35 = 0,70.", "Capa n = 2: 8 · 0,85 = 6,80; capa n = 1: 2 · 1,00 = 2,00.", "σ = 9,50 → Z* = 13 − 9,50 = 3,50."], "Z* = 3,5");
+  nu("b3", 2, "Calcula la carga nuclear efectiva sobre un electrón de la capa más externa del Mg²⁺ (Z = 12).", "Z* =", 7.85,
+    ["Mg²⁺ tiene la configuración 1s² 2s² 2p⁶."], ["Misma capa (n = 2): 7 · 0,35 = 2,45.", "Capa n = 1: 2 · 0,85 = 1,70.", "σ = 4,15 → Z* = 12 − 4,15 = 7,85."], "Z* = 7,85");
+  nu("b4", 2, "Calcula la carga nuclear efectiva sobre un electrón 4p del bromo (Z = 35: [Ar] 4s² 3d¹⁰ 4p⁵).", "Z* =", 7.6,
+    ["Capa n = 3: 3s² 3p⁶ 3d¹⁰ = 18 electrones."], ["Misma capa (n = 4): 6 · 0,35 = 2,10.", "Capa n = 3: 18 · 0,85 = 15,30.", "Capas n = 2 y n = 1: 10 · 1,00 = 10,00.", "σ = 27,40 → Z* = 35 − 27,40 = 7,60."], "Z* = 7,6");
+  nu("b5", 2, "Un elemento del tercer periodo tiene las energías de ionización sucesivas (kJ/mol): 738, 1451, 7733, 10 543. ¿En qué grupo está?", "Grupo =", 2,
+    ["Busca el salto brusco."], ["Salto entre EI₂ y EI₃ (×5,3): 2 electrones de valencia.", "Configuración de valencia 3s² → grupo 2 (es el magnesio)."], "Grupo 2");
+  nu("b6", 2, "Las energías de ionización sucesivas de un elemento (kJ/mol) son 578; 1817; 2745; 11 577; 14 842. ¿Cuántos electrones de valencia tiene?", "Electrones de valencia =", 3,
+    ["El salto grande indica la capa interna."], ["Razones: 3,1; 1,5; 4,2; 1,3.", "El salto está entre EI₃ y EI₄: los tres primeros electrones son de valencia (aluminio)."], "3");
+  nu("b7", 2, "Calcula la longitud de onda máxima (en nm) de un fotón capaz de ionizar un átomo de sodio (EI₁ = 496 kJ/mol). h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s; N<sub>A</sub> = 6,022·10²³", "λ (nm) =", 241.3,
+    ["Primero la energía por átomo, en J."], ["E = 496·10³ / 6,022·10²³ = 8,236·10⁻¹⁹ J.", "λ = h·c / E = 6,626·10⁻³⁴ · 3,00·10⁸ / 8,236·10⁻¹⁹ = 2,413·10⁻⁷ m = 241 nm."], "λ ≈ 241 nm (UV)");
+  ge("b8", 2, "Una radiación de 200 nm, ¿qué energía tiene por mol de fotones (kJ/mol)? ¿Puede ionizar el magnesio (EI₁ = 738 kJ/mol)? (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s; N<sub>A</sub> = 6,022·10²³)",
+    [{ tipo: "num", etiqueta: "E (kJ/mol) =", valor: 598.5 }, { tipo: "opcion", etiqueta: "¿Ioniza el Mg?", opciones: ["Sí", "No"], ok: 1 }],
+    ["E = h·c/λ por fotón; multiplica por N<sub>A</sub>."],
+    ["E = 6,626·10⁻³⁴ · 3,00·10⁸ / 200·10⁻⁹ = 9,939·10⁻¹⁹ J por fotón.", "Por mol: 9,939·10⁻¹⁹ · 6,022·10²³ = 5,985·10⁵ J = 598,5 kJ/mol.", "598,5 &lt; 738: la energía del fotón no alcanza la EI₁ del Mg: no lo ioniza."], "598,5 kJ/mol; no");
+  nu("b9", 2, "¿Cuánta energía (kJ) hace falta para arrancar un electrón a todos los átomos de 1,00 g de sodio gaseoso? (EI₁ = 496 kJ/mol; M = 22,99 g/mol)", "E (kJ) =", 21.57,
+    ["Primero los moles de átomos."], ["n = 1,00 / 22,99 = 0,0435 mol.", "E = 0,0435 · 496 = 21,6 kJ."], "≈ 21,6 kJ");
+  nu("b10", 2, "¿Cuántos electrones desapareados tiene el ion Fe³⁺ (Z = 26)?", "Desapareados =", 5,
+    ["Primero los electrones que salen: los de mayor n."], ["Fe: [Ar] 4s² 3d⁶. Fe³⁺ pierde los 4s² y un 3d: [Ar] 3d⁵.", "Cinco electrones d en cinco orbitales (Hund): los cinco desapareados."], "5");
+  ge("b11", 2, "Calcula la diferencia de electronegatividad en los enlaces Na–Cl y H–Cl (χ: Na 0,93; H 2,20; Cl 3,16).",
+    [{ tipo: "num", etiqueta: "Δχ (Na–Cl) =", valor: 2.23 }, { tipo: "num", etiqueta: "Δχ (H–Cl) =", valor: 0.96 }],
+    ["Resta el menor del mayor."], ["Na–Cl: 3,16 − 0,93 = 2,23 → fuerte carácter iónico.", "H–Cl: 3,16 − 2,20 = 0,96 → covalente polar."], "2,23 y 0,96");
+  op("b12", 2, "Ordena por primera energía de ionización creciente: Na, Mg, Al, Si.", "Orden creciente", ["Na &lt; Al &lt; Mg &lt; Si", "Na &lt; Mg &lt; Al &lt; Si", "Si &lt; Al &lt; Mg &lt; Na", "Na &lt; Al &lt; Si &lt; Mg"], 0,
+    ["Hay una anomalía entre el Mg y el Al."], ["Datos: Na 496; Mg 738; Al 578; Si 787 kJ/mol.", "La tendencia general es creciente, pero Al &lt; Mg (el electrón es 3p, más alto)."], "Na &lt; Al &lt; Mg &lt; Si");
+  op("b13", 2, "Ordena de mayor a menor radio: S²⁻, Cl⁻, K⁺, Ca²⁺.", "Orden", ["S²⁻ &gt; Cl⁻ &gt; K⁺ &gt; Ca²⁺", "Ca²⁺ &gt; K⁺ &gt; Cl⁻ &gt; S²⁻", "K⁺ &gt; Ca²⁺ &gt; S²⁻ &gt; Cl⁻", "Cl⁻ &gt; S²⁻ &gt; Ca²⁺ &gt; K⁺"], 0,
+    ["Cuenta los electrones: ¿qué tienen en común?"], ["Los cuatro tienen 18 electrones.", "A mayor Z (16, 17, 19, 20), menor radio: 184 &gt; 181 &gt; 138 &gt; 100 pm."], "S²⁻ &gt; Cl⁻ &gt; K⁺ &gt; Ca²⁺");
+  ge("b14", 2, "Un átomo tiene la configuración 1s² 2s² 2p⁶ 3s² 3p⁶ 4s¹. Indica su periodo y su grupo.",
+    { tipo: "lista", etiqueta: "Periodo y grupo =", valores: [4, 1] },
+    ["Es un alcalino."], ["Mayor n = 4 → periodo 4.", "Un electrón de valencia en un s → grupo 1 (potasio)."], "Periodo 4, grupo 1");
+  nu("b15", 2, "Calcula la energía (kJ) necesaria para convertir 0,50 mol de átomos de sodio gaseoso en iones Na²⁺ (EI₁ = 496 kJ/mol; EI₂ = 4562 kJ/mol).", "E (kJ) =", 2529,
+    ["Suma las dos ionizaciones."], ["Por mol: 496 + 4562 = 5058 kJ.", "Con 0,50 mol: 0,50 · 5058 = 2529 kJ."], "2529 kJ");
+  ge("b16", 2, "Escribe la configuración electrónica del cobre (Z = 29) teniendo en cuenta su excepción.",
+    { tipo: "texto", etiqueta: "Configuración =", valores: ["[Ar] 3d10 4s1", "[Ar] 4s1 3d10", "1s2 2s2 2p6 3s2 3p6 4s1 3d10", "1s2 2s2 2p6 3s2 3p6 3d10 4s1"], formula: true },
+    ["El subnivel d lleno es más estable que 3d⁹ 4s²."], ["Lo esperado sería [Ar] 4s² 3d⁹.", "Pasa un electrón del 4s al 3d: [Ar] 4s¹ 3d¹⁰ (subnivel d completo)."], "[Ar] 4s¹ 3d¹⁰");
+
+  // ---------------- ★★★ ----------------
+  ge("c1", 3, "Considera Na, Mg y Al. (a) Escribe la configuración del Mg. (b) Ordénalos por radio atómico creciente. (c) Justifica por qué la EI₁ del Al (578 kJ/mol) es menor que la del Mg (738 kJ/mol).",
+    { tipo: "rubrica", etiqueta: "Tus respuestas", filas: 6, items: [
+      { t: "(a) Mg: 1s² 2s² 2p⁶ 3s²", p: 0.2 },
+      { t: "(b) Orden de radios: Al &lt; Mg &lt; Na (el radio baja al aumentar Z* en el periodo)", p: 0.3 },
+      { t: "(c) El Al pierde un electrón 3p (Mg: un 3s); el 3p es de mayor energía", p: 0.2 },
+      { t: "(c) Está más apantallado por los 3s² y las capas internas, y eso compensa su protón extra", p: 0.15 },
+      { t: "(c) Concluye EI(Al) &lt; EI(Mg), excepción a la tendencia", p: 0.15 }] },
+    ["(c) Piensa en qué subnivel pierde cada uno el electrón."],
+    ["(a) Mg: 1s² 2s² 2p⁶ 3s².", "(b) Mismo periodo: el radio disminuye con Z*: Al (121) &lt; Mg (141) &lt; Na (166 pm).", "(c) Al pierde un 3p (más alto y más apantallado que un 3s): EI(Al) &lt; EI(Mg), pese a que el Al tiene un protón más."], "Mg 1s² 2s² 2p⁶ 3s²; Al &lt; Mg &lt; Na; el 3p es más alto y apantallado");
+  ge("c2", 3, "Dados los iones Na⁺, Mg²⁺ y F⁻: (a) ¿qué tienen en común? (b) Ordénalos por radio creciente. (c) Justifica el orden.",
+    { tipo: "rubrica", etiqueta: "Tus respuestas", filas: 6, items: [
+      { t: "(a) Los tres tienen 10 electrones (1s² 2s² 2p⁶): son isoelectrónicos", p: 0.25 },
+      { t: "(b) Orden: r(Mg²⁺) &lt; r(Na⁺) &lt; r(F⁻)", p: 0.25 },
+      { t: "(c) Misma configuración y capa: solo cambia el número de protones (12, 11, 9)", p: 0.25 },
+      { t: "(c) A mayor carga nuclear (Z*), mayor atracción sobre los mismos electrones y menor radio", p: 0.25 }] },
+    ["Mira cuántos electrones tiene cada uno."],
+    ["(a) Na: 11 − 1 = 10; Mg: 12 − 2 = 10; F: 9 + 1 = 10 electrones.", "(b) Con igual configuración, a mayor Z menor radio: Mg²⁺ (Z = 12) &lt; Na⁺ (11) &lt; F⁻ (9).", "(c) Los radios son 72, 102 y 133 pm."], "Mg²⁺ &lt; Na⁺ &lt; F⁻");
+  ge("c3", 3, "Un elemento del tercer periodo tiene las EI sucesivas (kJ/mol): 578; 1817; 2745; 11 577. (a) ¿En qué grupo está? (b) ¿De qué elemento se trata? (c) Explica el salto entre EI₃ y EI₄.",
+    { tipo: "rubrica", etiqueta: "Tus respuestas", filas: 6, items: [
+      { t: "(a) Salto entre EI₃ y EI₄: 3 electrones de valencia, grupo 13", p: 0.25 },
+      { t: "(b) Es el aluminio (periodo 3, grupo 13; 3s² 3p¹)", p: 0.25 },
+      { t: "(c) El cuarto electrón se arranca de la capa n = 2, ya completa", p: 0.25 },
+      { t: "(c) Esa capa está más cerca del núcleo y poco apantallada (Z* mucho mayor), por eso la energía se multiplica por unas 4", p: 0.25 }] },
+    ["Busca el salto: ¿entre qué ionizaciones está?"],
+    ["(a) Salto entre EI₃ y EI₄ → 3 electrones de valencia → grupo 13.", "(b) Periodo 3, grupo 13: aluminio (3s² 3p¹).", "(c) El cuarto electrón es de la capa n = 2 completa: más próximo al núcleo y casi sin apantallamiento."], "Grupo 13; Al; capa interna");
+  ge("c4", 3, "Explica por qué la primera energía de ionización del nitrógeno (1402 kJ/mol) es mayor que la del oxígeno (1314 kJ/mol), si el oxígeno está a su derecha.",
+    { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 5, items: [
+      { t: "Configuraciones: N 2s² 2p³; O 2s² 2p⁴", p: 0.25 },
+      { t: "En el N los tres electrones p están desapareados, uno en cada orbital (Hund): semicapa llena", p: 0.25 },
+      { t: "En el O hay un orbital 2p con dos electrones apareados", p: 0.25 },
+      { t: "La repulsión entre esos dos electrones facilita arrancar uno de ellos", p: 0.25 }] },
+    ["Dibuja los tres orbitales 2p de cada átomo."],
+    ["N: 2p³ → ↑ ↑ ↑ (tres orbitales con un electrón).", "O: 2p⁴ → ↑↓ ↑ ↑ (un orbital con dos electrones).", "La repulsión entre los electrones apareados hace que uno se arranque con menos energía: EI(O) &lt; EI(N)."], "Repulsión del par apareado del O");
+  ge("c5", 3, "El cloro tiene mayor afinidad electrónica (349 kJ/mol) que el flúor (328 kJ/mol), aunque el flúor es más electronegativo. Explícalo.",
+    { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 5, items: [
+      { t: "Define la afinidad electrónica como energía liberada al captar un electrón", p: 0.25 },
+      { t: "El F es muy pequeño: su capa n = 2 es muy compacta", p: 0.25 },
+      { t: "El electrón que llega sufre una fuerte repulsión de los 7 electrones de valencia ya presentes", p: 0.25 },
+      { t: "En el Cl (n = 3) hay más espacio y menos repulsión: libera más energía", p: 0.25 }] },
+    ["Piensa en el tamaño de la nube de electrones."],
+    ["La AE es la energía liberada por X(g) + e⁻ → X⁻(g).", "En el F el electrón va a n = 2, junto a otros 7 electrones: repulsión grande.", "El Cl, con n = 3, soporta mejor el nuevo electrón."], "Repulsión en la capa compacta del F");
+  ge("c6", 3, "Con las reglas de Slater: (a) Z* del electrón de valencia del Cl (Z = 17: 3s² 3p⁵); (b) Z* del electrón de valencia del Na (Z = 11); (c) ¿cuántas veces mayor es la del Cl que la del Na? Relaciónalo con el radio.",
+    [{ tipo: "num", etiqueta: "(a) Z*(Cl) =", valor: 6.1 }, { tipo: "num", etiqueta: "(b) Z*(Na) =", valor: 2.2 }, { tipo: "num", etiqueta: "(c) Z*(Cl)/Z*(Na) =", valor: 2.773 }],
+    ["Aplica los tres pesos: 0,35; 0,85; 1,00."],
+    ["(a) σ = 6 · 0,35 + 8 · 0,85 + 2 = 10,9 → Z* = 6,1.", "(b) σ = 8 · 0,85 + 2 = 8,8 → Z* = 2,2.", "(c) 6,1 / 2,2 = 2,77: con el mismo n = 3, el Cl se contrae mucho más (102 pm frente a 166 pm del Na)."], "6,1; 2,2; 2,77");
+  ge("c7", 3, "El bromo tiene Z = 35. (a) Indica su grupo. (b) Indica su periodo. (c) Escribe el ion estable que forma. (d) Compara el radio del átomo y del ion.",
+    [{ tipo: "num", etiqueta: "(a) Grupo =", valor: 17 }, { tipo: "num", etiqueta: "(b) Periodo =", valor: 4 }, { tipo: "texto", etiqueta: "(c) Ion =", valores: ["Br-", "Br1-"], formula: true },
+     { tipo: "opcion", etiqueta: "(d) Radio", opciones: ["Br⁻ mayor que Br", "Br mayor que Br⁻", "iguales"], ok: 0 }],
+    ["Configuración: [Ar] 4s² 3d¹⁰ 4p⁵."],
+    ["(a) 4s² 4p⁵: 7 electrones de valencia → grupo 17.", "(b) Mayor n = 4 → periodo 4.", "(c) Gana un electrón y completa el octeto: Br⁻ (como el Kr).", "(d) Un anión es mayor que su átomo: r(Br) = 120 &lt; r(Br⁻) = 196 pm."], "17; 4; Br⁻; Br⁻ &gt; Br");
+  nu("c8", 3, "Se ilumina vapor de potasio (EI₁ = 419 kJ/mol) con luz de 250 nm. Calcula la energía cinética de los electrones arrancados, en unidades de 10⁻²⁰ J. (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s; N<sub>A</sub> = 6,022·10²³)", "E<sub>c</sub> (·10⁻²⁰ J) =", 9.934,
+    ["Balance: E<sub>fotón</sub> = EI (por átomo) + E<sub>c</sub>."], ["E<sub>fotón</sub> = h·c/λ = 7,951·10⁻¹⁹ J.", "EI por átomo = 419·10³ / 6,022·10²³ = 6,958·10⁻¹⁹ J.", "E<sub>c</sub> = 7,951·10⁻¹⁹ − 6,958·10⁻¹⁹ = 9,93·10⁻²⁰ J."], "9,93·10⁻²⁰ J", 0.01);
+  ge("c9", 3, "El cesio (χ = 0,79) y el flúor (χ = 3,98) forman CsF. (a) Calcula Δχ. (b) ¿Qué tipo de enlace es de esperar?",
+    [{ tipo: "num", etiqueta: "(a) Δχ =", valor: 3.19 }, { tipo: "opcion", etiqueta: "(b) Enlace", opciones: ["Fuertemente iónico", "Covalente polar", "Covalente apolar", "Metálico"], ok: 0 }],
+    ["Resta."], ["Δχ = 3,98 − 0,79 = 3,19.", "Una diferencia tan grande (&gt; 2) indica transferencia casi completa del electrón: Cs⁺ F⁻, enlace iónico."], "3,19; iónico");
+  ge("c10", 3, "(a) ¿Cuál es el número atómico de un elemento X cuyo ion X²⁺ es isoelectrónico con el argón? (b) ¿Qué elemento Y de tercer periodo forma el ion Y³⁺ isoelectrónico con el neón?",
+    [{ tipo: "num", etiqueta: "(a) Z de X =", valor: 20 }, { tipo: "texto", etiqueta: "(b) Símbolo de Y =", valores: ["Al"], formula: true }],
+    ["Cuenta electrones."], ["(a) Ar: 18 e⁻. X²⁺: 18 e⁻ → X tiene 20 e⁻: Z = 20 (calcio).", "(b) Ne: 10 e⁻; Y³⁺: 10 e⁻ → Y tiene 13 e⁻: aluminio."], "Z = 20 (Ca); Al");
+  op("c11", 3, "Ordena de mayor a menor radio: Fe, Fe²⁺ y Fe³⁺. Justifica con la configuración.", "Orden", ["Fe &gt; Fe²⁺ &gt; Fe³⁺", "Fe³⁺ &gt; Fe²⁺ &gt; Fe", "Fe²⁺ &gt; Fe &gt; Fe³⁺", "son iguales"], 0,
+    ["Cuenta los electrones y las capas."], ["Fe: [Ar] 4s² 3d⁶ (n = 4). Fe²⁺: [Ar] 3d⁶ (sin 4s: capa más externa n = 3). Fe³⁺: [Ar] 3d⁵.", "Pierde la capa n = 4 al formar Fe²⁺, y al pasar a Fe³⁺ hay menos repulsión entre los electrones d con el mismo núcleo.", "Fe &gt; Fe²⁺ &gt; Fe³⁺ (radios iónicos de 78 pm y 64,5 pm para Fe²⁺ alto espín y Fe³⁺ alto espín)."], "Fe &gt; Fe²⁺ &gt; Fe³⁺");
+  ge("c12", 3, "¿Verdadero o falso? «La energía de ionización del berilio es menor que la del boro porque el boro tiene más electrones.» Corrige el argumento si es necesario.",
+    { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 5, items: [
+      { t: "Dice que la afirmación es falsa: EI(Be) = 900 &gt; EI(B) = 801 kJ/mol", p: 0.25 },
+      { t: "Configuraciones: Be 2s²; B 2s² 2p¹", p: 0.25 },
+      { t: "El electrón que pierde el B es un 2p, de mayor energía y más apantallado por los 2s²", p: 0.25 },
+      { t: "No es el número de electrones lo que importa, sino el subnivel del electrón arrancado", p: 0.25 }] },
+    ["Compara los datos: ¿quién tiene la mayor EI?"], ["Be (900) &gt; B (801 kJ/mol): la afirmación es falsa.", "La causa no es el número de electrones: es el subnivel del electrón arrancado (2p frente a 2s)."], "Falsa");
+  nu("c13", 3, "Según Mulliken, la electronegatividad es proporcional a (EI + AE)/2. Calcula ese promedio para el cloro (EI₁ = 1251 kJ/mol; AE = 349 kJ/mol) en kJ/mol.", "(EI + AE)/2 =", 800,
+    ["Suma y divide entre 2."], ["(1251 + 349) / 2 = 800 kJ/mol.", "Para el Na (496 + 53)/2 = 274,5: mucho menor, coherente con χ(Cl) &gt; χ(Na)."], "800 kJ/mol");
+  op("c14", 3, "Ordena por carácter metálico decreciente (de mayor a menor): Na, Al, Si, Cl.", "Orden", ["Na &gt; Al &gt; Si &gt; Cl", "Cl &gt; Si &gt; Al &gt; Na", "Al &gt; Na &gt; Si &gt; Cl", "Na &gt; Si &gt; Al &gt; Cl"], 0,
+    ["Mismo periodo: el carácter metálico disminuye hacia la derecha."], ["Periodo 3 en orden Na, Al, Si, Cl: de izquierda a derecha.", "El carácter metálico (perder electrones) disminuye: EI y χ crecen."], "Na &gt; Al &gt; Si &gt; Cl");
+  ge("c15", 3, "(a) Calcula la energía (kJ) necesaria para convertir 1,00 mol de Al(g) en Al³⁺(g), con EI₁ = 578; EI₂ = 1817; EI₃ = 2745 kJ/mol. (b) ¿Por qué no se forma Al⁴⁺ en los compuestos habituales (EI₄ = 11 577 kJ/mol)?",
+    [{ tipo: "num", etiqueta: "(a) E (kJ) =", valor: 5140 }, { tipo: "opcion", etiqueta: "(b) Porque…", opciones: ["la 4.ª ionización sale de una capa interna y cuesta una energía enorme", "el Al no tiene más electrones", "la 4.ª EI es menor que la 3.ª", "el Al³⁺ es un gas noble"], ok: 0 }],
+    ["Suma las tres primeras."], ["(a) 578 + 1817 + 2745 = 5140 kJ/mol.", "(b) El cuarto electrón es de la capa n = 2 (ya completa): 11 577 kJ/mol, mucho más de lo que puede compensar la energía de red de cualquier compuesto."], "5140 kJ; capa interna");
+
+  var ejercicios = E;
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Tendencias periódicas, con su causa",
+      tabla: { cab: ["Propiedad", "En un periodo (→)", "En un grupo (↓)", "Causa"], filas: [
+        ["Radio atómico", "disminuye", "aumenta", "Z* sube; n sube"],
+        ["Energía de ionización", "aumenta", "disminuye", "Z* y distancia"],
+        ["Afinidad electrónica", "aumenta (más liberada)", "disminuye", "Z* y distancia"],
+        ["Electronegatividad", "aumenta", "disminuye", "Z* y distancia"],
+        ["Carácter metálico", "disminuye", "aumenta", "inverso de EI"]
+      ] },
+      nota: "Irregularidades: B &lt; Be, Al &lt; Mg (electrón p); O &lt; N, S &lt; P (par apareado); AE: Cl &gt; F; Be, N, Mg, gases nobles ≈ 0." },
+    { titulo: "Z* y reglas de Slater",
+      items: [
+        { label: "Carga nuclear efectiva", formula: "Z* = Z − σ", cuando: "Carga que siente un electrón de valencia.", ojo: "σ no incluye al propio electrón." },
+        { label: "σ para un electrón ns, np", formula: "0,35 · (misma capa) + 0,85 · (n−1) + 1,00 · (resto)", cuando: "En n = 1: 0,30.", ejemplo: "Cl: 6·0,35 + 8·0,85 + 2 = 10,9 → Z* = 6,1." },
+        { label: "σ para un electrón nd, nf", formula: "0,35 · (mismo grupo) + 1,00 · (grupos a la izquierda)", cuando: "Electrones d y f.", ejemplo: "Fe³⁺ (3d): 4·0,35 + 18 = 19,4 → Z* = 6,6." }
+      ],
+      nota: "Es un modelo cualitativo: sirve para comparar, no para dar valores exactos." },
+    { titulo: "Cómo justificar una ordenación", ancha: true,
+      pasos: ["<b>Configuraciones</b> y posición (periodo y grupo).", "<b>¿Qué cambia?</b> Capas (n), carga nuclear (Z o Z*), número de electrones.", "<b>¿Isoelectrónicas?</b> Decide Z: más protones, menos radio.", "<b>Efecto</b> sobre la propiedad: «más Z* → más atracción → …».", "<b>Anomalías</b> si las hay (Be/B, N/O).", "<b>Orden final</b> con &gt; o &lt;."],
+      nota: "Palabras que suman: capa, carga nuclear efectiva, apantallamiento, distancia, subnivel, semicapa." },
+    { titulo: "Errores típicos del tema", ancha: true,
+      errores: [
+        { mal: "Fe²⁺ = [Ar] 4s² 3d⁴", bien: "Fe²⁺ = [Ar] 3d⁶", por: "Salen primero los electrones de mayor n (4s)." },
+        { mal: "EI(O) &gt; EI(N) «por la tendencia»", bien: "EI(N) &gt; EI(O)", por: "El N tiene semicapa llena; el O, un par apareado." },
+        { mal: "El F tiene la mayor afinidad electrónica", bien: "Es el Cl (349 &gt; 328 kJ/mol)", por: "Repulsión en la capa n = 2 del F." },
+        { mal: "Radios isoelectrónicos: «más a la derecha, más pequeño»", bien: "Decide el número de protones", por: "Misma configuración: más Z, menos radio." },
+        { mal: "λ = h·c / 496 con EI en kJ/mol", bien: "Pasar a J por átomo: 496·10³ / N<sub>A</sub>", por: "E = h·c/λ es para un fotón." },
+        { mal: "Un anión es menor que su átomo", bien: "Un anión es mayor", por: "Más electrones, misma carga nuclear." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t3", { resumen: resumen, secciones: B.parte.q2t3a.secciones, nuevas: B.parte.q2t3b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 /* ============================================================
