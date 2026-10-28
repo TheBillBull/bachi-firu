@@ -7866,6 +7866,67 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Historia de la Filosofía, tema 7 (Santo Tomás y la escolástica)
+   filo_vias: las cinco vías una a una (hecho de partida, razonamiento, conclusión y ejemplo cotidiano),
+   para ver que comparten la misma estructura.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("ft7-estilos")) return;
+    var s = document.createElement("style"); s.id = "ft7-estilos";
+    s.textContent =
+      ".ft7-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0 4px}" +
+      ".ft7-c{padding:8px 8px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;line-height:1.4;color:var(--ink)}" +
+      ".ft7-c b.t{display:block;font-size:12.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}" +
+      ".ft7-c.f{border-color:var(--pen);background:var(--pen-soft)}" +
+      ".ft7-ej{margin-top:8px;padding:8px 10px;border-radius:10px;border:1.5px dashed var(--line);font-size:14.5px;color:var(--ink)}" +
+      "@media(max-width:560px){.ft7-grid{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  var VIAS = [
+    { k: 1, t: "1. Movimiento", hecho: "En el mundo hay cosas que se mueven, es decir, que cambian (pasan de potencia a acto).",
+      paso: "Nada pasa de potencia a acto si no lo mueve algo que ya está en acto. Esa cadena de motores no puede ser infinita: sin un primer motor no habría segundos.",
+      fin: "Un <b>primer motor inmóvil</b> (mueve sin ser movido): eso es Dios.",
+      ej: "Un vagón se mueve porque lo arrastra otro; si ninguno tuviera locomotora, ninguno se movería." },
+    { k: 2, t: "2. Causa eficiente", hecho: "Hay un orden de causas eficientes: cada cosa se produce por otra.",
+      paso: "Nada es causa de sí mismo (sería anterior a sí). Y una cadena ordenada de causas sin una primera no tendría causas intermedias ni efecto final.",
+      fin: "Una <b>primera causa eficiente</b> (incausada): eso es Dios.",
+      ej: "Existes por tus padres, ellos por los suyos… Si no hubiera una causa primera, nada habría empezado a producir nada." },
+    { k: 3, t: "3. Contingencia", hecho: "Hay cosas contingentes: pueden ser o no ser, porque nacen y mueren.",
+      paso: "Si todo fuese contingente, alguna vez no habría habido nada; y de la nada no sale nada, así que ahora no habría nada. Pero sí hay cosas.",
+      fin: "Un <b>ser necesario</b> por sí mismo, origen de los demás seres: eso es Dios.",
+      ej: "Una vela se enciende y se apaga: podría no haber existido. Debe haber alguien que es sin poder no ser." },
+    { k: 4, t: "4. Grados de perfección", hecho: "En las cosas hay grados: unas son más buenas, más verdaderas, más nobles que otras.",
+      paso: "Un «más» solo se entiende por comparación con un máximo. Y lo máximo en un género es causa de todo lo que hay en ese género.",
+      fin: "Un <b>ser máximamente perfecto</b>, causa de la bondad, la verdad y el ser de todo: eso es Dios.",
+      ej: "Decimos «más caliente» respecto de lo máximo en calor (el fuego, en el ejemplo antiguo): el máximo es la medida y la causa." },
+    { k: 5, t: "5. Orden y finalidad", hecho: "Cosas sin conocimiento (un girasol, una piedra que cae) obran siempre de forma parecida y para un fin.",
+      paso: "Lo que no conoce no puede dirigirse a un fin por sí mismo: necesita ser dirigido, como la flecha por el arquero.",
+      fin: "Una <b>inteligencia ordenadora</b> que dirige todas las cosas a su fin: eso es Dios.",
+      ej: "Un girasol gira hacia la luz sin saber astronomía: alguien (según Tomás) puso ese orden en su naturaleza." }
+  ];
+
+  B.w.filo_vias = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Las cinco vías, una a una");
+    cuerpo.innerHTML = '<p class="w-intro">Elige una vía. Fíjate en que siempre hay tres pasos: un <b>hecho</b> del mundo, la <b>imposibilidad de seguir sin fin</b> y un <b>primer término</b> al que se llama Dios.</p><div data-ctl></div><div class="ft7-det"></div>';
+    var det = cuerpo.querySelector(".ft7-det"), cur = 1;
+    U.fichas(cuerpo.querySelector("[data-ctl]"), VIAS.map(function (o) { return { k: o.k, t: o.t }; }), cur, function (k) { cur = +k; pinta(); });
+    function pinta() {
+      var o = VIAS[cur - 1];
+      det.innerHTML = '<div class="ft7-grid">' +
+        [["1 · Hecho observable", o.hecho, ""], ["2 · No hay regreso infinito", o.paso, ""], ["3 · Primer término", o.fin, " f"]].map(function (c) {
+          return '<div class="ft7-c' + c[2] + '"><b class="t">' + c[0] + "</b>" + c[1] + "</div>";
+        }).join("") + '</div><div class="ft7-ej"><b>Ejemplo:</b> ' + o.ej + "</div>";
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · motor de formulación y nomenclatura inorgánica (Física y Química I, tema 3)
    B.lab.formulacion: tablas de elementos y números de oxidación, y un catálogo de compuestos
    (óxidos, peróxidos, hidróxidos, hidruros, hidrácidos, oxoácidos, sales binarias, oxisales, sales
@@ -44196,6 +44257,642 @@
     vistazo: vistazo,
     secciones: B.parte.hf6a.secciones,
     nuevas: B.parte.hf6a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 7: Santo Tomás y la escolástica
+   (parte A: teoría. Parte B, historia_fil_t07b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Fe y razón: armonía sin contradicción; verdades solo reveladas (misterios) y verdades que la razón también alcanza → sección 3 + clasificar.
+   2. Las cinco vías: estructura común (hecho → no regreso infinito → primer término) → sección 4 + widget filo_vias + ordenar.
+   3. Distinguir las cinco vías entre sí (la 3.ª y la 4.ª se confunden) y qué conclusión tiene cada una → sección 4 + emparejar.
+   4. Por qué las vías son «a posteriori» y Tomás rechaza el argumento ontológico de Anselmo → sección 4 (ojo).
+   5. La cadena no puede ser infinita: se habla de orden de causas, no de «lo primero en el tiempo» → sección 4.
+   6. Ley natural: ni ley física ni ley religiosa; primer precepto, preceptos derivados y los cuatro tipos de ley → sección 5 + emparejar.
+   7. Esencia y existencia; Dios creador (frente al Primer motor de Aristóteles) y analogía → sección nueva 6.
+   8. Ser humano y conocimiento: alma forma del cuerpo e inmortal; abstracción; frente a Agustín y a Averroes → sección nueva 7.
+   9. Ética y política: felicidad como bienaventuranza, virtudes cardinales y teologales, ley injusta → sección nueva 8.
+   10. Comentario de texto (vía del movimiento) y comparación con Agustín, Aristóteles, Hume y Kant → comentario resuelto + mapa.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t7/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. La escolástica
+  secciones[0] =
+    "<h5>Quién fue Tomás de Aquino (hacia 1224/25–1274)</h5>" +
+    "<p>Tomás nació hacia 1224 o 1225 en <b>Roccasecca</b>, cerca de Aquino (Italia), en una familia noble. Con unos 19 años entró en la <b>orden de los dominicos</b>, una orden de frailes dedicados a predicar y estudiar, y su familia intentó impedírselo. Estudió en Nápoles, en París y en Colonia, donde tuvo como maestro a <b>Alberto Magno</b>. Enseñó sobre todo en la <b>Universidad de París</b>, el gran centro intelectual de la época. Murió en 1274 en el monasterio de <b>Fossanova</b>, de camino al Concilio de Lyon, con unos 50 años. Fue canonizado en 1323.</p>" +
+    "<p>Escribió muchísimo. Las dos obras que hay que conocer son:</p>" +
+    "<ul><li><b><i>Suma contra los gentiles</i></b> (hacia 1259–1265): defiende la fe cristiana ante quienes no la comparten (judíos, musulmanes) usando sobre todo argumentos de la razón.</li>" +
+    "<li><b><i>Suma teológica</i></b> (hacia 1265–1273, inacabada): su gran obra. Una «suma» es un resumen ordenado de todo el saber sobre un tema. De ella salen casi todos los textos de la PAU: las cinco vías (primera parte, cuestión 2, artículo 3) y la ley natural (primera parte de la segunda parte, cuestiones 90 a 97).</li></ul>" +
+    "<p>También escribió comentarios a Aristóteles y opúsculos como <i>El ente y la esencia</i>.</p>" +
+    "<h5>Dónde se hace la escolástica: la universidad</h5>" +
+    "<p>La palabra «escolástica» viene de <i>schola</i>. Es la filosofía hecha en las <b>escuelas</b> y, sobre todo, en las <b>universidades</b> que nacen en los siglos XII y XIII (París, Oxford, Bolonia). Allí enseñan dos tipos de frailes, los <b>dominicos</b> (Alberto Magno, Tomás) y los <b>franciscanos</b>. Un estudiante universitario de entonces no aprendía de memoria: <b>leía</b> un libro de autoridad (la Biblia, Aristóteles), <b>planteaba cuestiones</b> sobre él y las <b>discutía</b> en público.</p>" +
+    "<h5>El método: así se escribe un artículo de la <i>Suma</i></h5>" +
+    "<p>Cada tema de la <i>Suma teológica</i> se divide en cuestiones, y cada cuestión en <b>artículos</b>, que siguen siempre el mismo esquema. Si lo conoces, puedes leer cualquier texto de Tomás sin perderte:</p>" +
+    tabla(["Parte del artículo", "Qué hace", "Ejemplo (¿Existe Dios?)"], [
+      ["<b>Planteamiento</b>", "Una pregunta con respuesta «sí» o «no»", "¿Existe Dios?"],
+      ["<b>«Parece que no…»</b>", "Objeciones: los argumentos de quienes piensan lo contrario", "El mal en el mundo; la naturaleza se explica sin Dios"],
+      ["<b><i>Sed contra</i></b> («en cambio…»)", "Una autoridad que apunta a la respuesta de Tomás", "Una frase de la Biblia: «Yo soy el que soy»"],
+      ["<b>«Respondo diciendo que…»</b>", "Su solución razonada (aquí están las cinco vías)", "Hay cinco caminos para probarlo"],
+      ["<b>Respuestas a las objeciones</b>", "Una a una, desmonta cada objeción", "El mal solo se explica si existe un bien que falta"]
+    ]) +
+    ojo("La escolástica no «copia» a las autoridades: las <b>discute</b>. Por eso el método es una forma de pensar con razones, y por eso se parece mucho a un comentario de texto: tesis, objeciones, respuesta. Si en la PAU te piden la <b>diferencia con la patrística</b>: la patrística (Agustín) defiende y fundamenta la fe frente al mundo pagano; la escolástica la <b>sistematiza</b> con método y con Aristóteles.");
+
+  // ---------------------------------------------------------------- 2. La recuperación de Aristóteles
+  secciones[1] =
+    "<h5>Cómo llegó Aristóteles a Europa</h5>" +
+    "<p>Durante siglos Europa occidental solo conoció de Aristóteles algunos escritos de lógica. Su obra completa (la <i>Física</i>, la <i>Metafísica</i>, <i>Acerca del alma</i>, la <i>Ética</i>…) llegó entre los siglos XII y XIII por dos vías: a través del <b>mundo árabe y judío</b> (traducciones del árabe al latín, sobre todo en <b>Toledo</b>) y mediante traducciones directas del griego. Los comentaristas más influyentes fueron <b>Avicena</b> (980–1037), <b>Averroes</b> (1126–1198, de Córdoba, «el Comentador») y el judío <b>Maimónides</b> (1138–1204, también de Córdoba).</p>" +
+    "<p>Para un universitario de París era un descubrimiento enorme: un sistema completo para explicar la naturaleza, el movimiento, el alma y la ética <b>partiendo solo de la razón</b>, escrito por un pagano. Esto producía un problema: ¿cómo encajaba con la fe cristiana?</p>" +
+    "<h5>Tres reacciones ante Aristóteles</h5>" +
+    tabla(["Postura", "Quién", "Qué piensa"], [
+      ["<b>Rechazo / desconfianza</b>", "Sectores de la teología tradicional (agustinismo)", "Aristóteles es pagano y puede alejar de la fe. Condenas de ciertas tesis aristotélicas en París."],
+      ["<b>Averroísmo latino</b>", "Siger de Brabante y otros profesores de artes", "Siguen a Averroes casi al pie de la letra (por ejemplo, un único intelecto para todos). Se les acusaba de defender una «doble verdad»: verdadero para la razón, aunque falso para la fe."],
+      ["<b>Síntesis tomista</b>", "Alberto Magno y, sobre todo, Tomás", "Aristóteles tiene mucho de verdadero, y lo verdadero no puede contradecir la fe. Se acepta y se corrige donde choca con ella."]
+    ]) +
+    "<p>En 1277 el obispo de París condenó una lista de tesis, entre ellas muchas averroístas y algunas cercanas a Tomás. Pero con el tiempo el pensamiento de Tomás se convirtió en el gran modelo de la teología católica.</p>" +
+    "<h5>Qué toma Tomás de Aristóteles (y qué cambia)</h5>" +
+    tabla(["Tema", "Aristóteles (T4)", "Tomás de Aquino"], [
+      ["Realidad", "Hilemorfismo: sustancia = materia + forma", "Lo acepta y lo aplica también al ser humano"],
+      ["Conocimiento", "Se parte de los sentidos y se abstrae", "Lo acepta («nada hay en el entendimiento que antes no estuviera en los sentidos»)"],
+      ["Dios", "Primer motor inmóvil, acto puro; no crea el mundo", "Dios creador libre de todo de la nada; tiene providencia"],
+      ["Ética", "Felicidad = actividad racional virtuosa", "Felicidad plena = ver a Dios (bienaventuranza)"],
+      ["Alma", "Forma del cuerpo", "Forma del cuerpo, pero además inmortal"]
+    ]) +
+    ojo("Tomás no es un «aristotélico a secas»: <b>cristianiza</b> a Aristóteles. Cuando en la PAU te pidan la relación con Aristóteles, di siempre qué conserva (los conceptos: forma y materia, causas, potencia y acto, virtudes) y qué cambia (Dios creador y providente, alma inmortal, felicidad completa tras la muerte).");
+
+  // ---------------------------------------------------------------- 3. Fe y razón
+  secciones[2] =
+    "<h5>El problema: dos fuentes de verdad</h5>" +
+    "<p>Un cristiano medieval tiene dos fuentes de conocimiento: la <b>fe</b>, que acepta lo que Dios ha revelado (la Biblia y la tradición), y la <b>razón</b>, la capacidad natural de pensar y de partir de la experiencia. La pregunta es: ¿qué pasa si se contradicen? ¿Cuál manda?</p>" +
+    "<h5>La respuesta de Tomás, en cuatro ideas</h5>" +
+    "<ol><li><b>Hay verdades que solo se conocen por revelación</b>, porque la razón no puede alcanzarlas: los <b>misterios</b>, como la Trinidad (un Dios en tres personas), la Encarnación o la resurrección.</li>" +
+    "<li><b>Hay verdades que la razón puede alcanzar</b> y que además Dios ha revelado: la existencia de Dios, su unidad, el alma inmortal. Tomás las llama <b>preámbulos de la fe</b>, porque la fe se apoya en ellas. Se revelan también porque la razón es lenta y muchos no tendrían tiempo ni capacidad de llegar a ellas con claridad.</li>" +
+    "<li><b>No puede haber contradicción</b>: la fe y la razón vienen del mismo Dios, que es la Verdad. Si parece que se contradicen, o la razón se ha equivocado en algún paso, o se ha entendido mal la revelación.</li>" +
+    "<li><b>Cada una tiene su método</b>: la filosofía parte de la razón natural y de la experiencia; la teología (la «doctrina sagrada») parte de lo revelado. La teología puede usar la filosofía como instrumento, como se suele decir con la imagen tradicional de la filosofía «al servicio» de la teología.</li></ol>" +
+    tabla(["", "Verdades de razón", "Verdades de fe (misterios)"], [
+      ["<b>Cómo se conocen</b>", "Con la razón natural, desde la experiencia", "Solo por la revelación, aceptadas por la fe"],
+      ["<b>Ejemplos</b>", "Dios existe, es uno; el alma es inmortal (preámbulos)", "La Trinidad, la Encarnación, la resurrección de los muertos"],
+      ["<b>Con la razón</b>", "Se pueden demostrar", "Se pueden aclarar o defender, pero no demostrar"]
+    ]) +
+    "<h5>Tomás frente a Agustín y frente a los averroístas</h5>" +
+    tabla(["", "San Agustín (T6)", "Santo Tomás", "Averroístas latinos"], [
+      ["<b>Fe y razón</b>", "«Cree para entender»: la fe va delante y guía la razón", "Dos caminos distintos y armónicos hacia la misma verdad", "Parecen separarlas hasta contradecirse (la «doble verdad»)"],
+      ["<b>Filosofía de base</b>", "Platón / neoplatonismo", "Aristóteles", "Aristóteles según Averroes"],
+      ["<b>Conocimiento</b>", "Iluminación divina", "Abstracción desde los sentidos", "Abstracción, con intelecto único"]
+    ]) +
+    ojo("Cuidado con dos errores clásicos: (1) decir que para Tomás la razón <b>sustituye</b> a la fe: no, los misterios solo se aceptan por fe; (2) decir que son caminos «opuestos»: son <b>distintos y armónicos</b>. En un examen, la fórmula buena es: «ambos son caminos hacia la misma verdad, con ámbitos propios, y nunca pueden contradecirse».") +
+    w("clasificar", "fe_razon");
+
+  // ---------------------------------------------------------------- 4. Las cinco vías
+  secciones[3] =
+    "<h5>¿Qué es probar la existencia de Dios para Tomás?</h5>" +
+    "<p>Para Tomás, la existencia de Dios <b>no es evidente para nosotros</b>: no la vemos de golpe, como que dos más dos son cuatro. Pero sí se puede <b>demostrar</b>, y se hace <b>desde los efectos</b>: partimos de cosas que sí vemos en el mundo y razonamos hacia su causa. A este modo de razonar (de los efectos a la causa, desde la experiencia) se le llama <b>a posteriori</b>. Es el método aristotélico: todo conocimiento empieza en los sentidos.</p>" +
+    ojo("Tomás <b>rechaza el argumento ontológico</b> de San Anselmo (1033–1109), que decía: «Dios es aquello mayor que lo cual nada puede pensarse; si solo existiera en la mente, se podría pensar algo mayor, uno que además existiera; luego existe». Tomás responde que de una idea no se pasa a una existencia real, y que nosotros no conocemos la esencia de Dios. Por eso necesita partir del mundo observable.") +
+    "<h5>La estructura común: tres pasos</h5>" +
+    "<ol><li><b>Un hecho observable</b> del mundo (algo se mueve, hay causas, hay cosas que nacen y mueren, hay grados, hay orden).</li>" +
+    "<li><b>No se puede seguir hacia atrás sin fin.</b> Si cada cosa dependiera de otra y esa de otra, y así siempre, no habría explicación de nada.</li>" +
+    "<li><b>Hay un primer término</b>: una realidad que no depende de otra para ser, moverse o ser causa. «Y a esto todos llaman Dios» (así termina cada vía, en traducción habitual).</li></ol>" +
+    w("filo_vias") +
+    "<h5>Las cinco vías, en resumen</h5>" +
+    tabla(["Vía", "Se parte de…", "Principio clave", "Se llega a…"], [
+      ["<b>1. Movimiento</b>", "Las cosas se mueven (cambian)", "Todo lo movido lo mueve otro", "Primer motor inmóvil"],
+      ["<b>2. Causa eficiente</b>", "Hay causas y efectos ordenados", "Nada es causa de sí mismo", "Primera causa incausada"],
+      ["<b>3. Contingencia</b>", "Hay seres que pueden ser o no ser", "Si todo fuera contingente, no habría nada ahora", "Ser necesario por sí mismo"],
+      ["<b>4. Grados de perfección</b>", "Hay cosas más y menos buenas, verdaderas…", "El «más» se mide por un máximo", "Ser máximamente perfecto"],
+      ["<b>5. Orden y finalidad</b>", "Lo que no conoce obra para un fin", "Lo que no conoce necesita ser dirigido", "Inteligencia ordenadora"]
+    ]) +
+    "<h5>Cómo distinguirlas entre sí</h5>" +
+    "<ul><li><b>Movimiento</b> trata del <b>cambio</b> (de potencia a acto) y su motor. <b>Causa eficiente</b> trata de la <b>producción</b> (quién hace que algo exista). Suenan parecido; la clave es: una pregunta por quién <i>mueve</i>, la otra por quién <i>produce</i>.</li>" +
+    "<li><b>Contingencia</b> habla de seres que podrían <i>no existir</i> (nacen y mueren). Es la única que acaba en un ser <b>necesario</b>.</li>" +
+    "<li><b>Grados</b> es la única que parte de <b>valores</b> (bueno, verdadero) y no de cosas que se mueven o se causan. Suele ser la más difícil de recordar porque suena «platónica».</li>" +
+    "<li><b>Finalidad</b> es la que usa el <i>orden</i> de la naturaleza: se parece a lo que hoy se llama «argumento del diseño».</li></ul>" +
+    "<h5>«Una cadena no puede ser infinita»: qué quiere decir exactamente</h5>" +
+    "<p>Tomás <b>no</b> habla de una cadena de acontecimientos del pasado (tus padres, tus abuelos…). Habla de causas que dependen unas de otras <b>a la vez</b>, como en este ejemplo: la mano mueve el bastón, el bastón mueve la piedra. El bastón solo mueve mientras la mano lo mueve; si quitamos la primera causa, desaparecen todas. Un bastón que se mueve solo «porque lo mueve otro bastón que lo mueve otro…» sin que ninguno tenga la fuerza propia no explica nada. Por eso exige un primero. De hecho, Tomás pensaba que la razón <b>no puede probar</b> que el mundo tuviera un comienzo en el tiempo: eso se sabe por la fe.</p>" +
+    ejemplo("Un esquema para escribir una vía en la PAU", "Ejemplo con la vía del movimiento:", [
+      "<b>Hecho.</b> Vemos que hay cosas que se mueven (cambian).",
+      "<b>Principio.</b> Todo lo que se mueve es movido por otro: nada pasa de potencia a acto sin algo que ya esté en acto.",
+      "<b>No hay regreso infinito.</b> Si todos los motores fueran movidos, sin primero no habría ninguno que moviera a los demás.",
+      "<b>Conclusión.</b> Hay un primer motor inmóvil, que mueve sin ser movido: «a esto todos llaman Dios».",
+      "<b>Relación.</b> Usa la potencia y el acto de Aristóteles (T4)."
+    ]) +
+    "<h5>Críticas posteriores (para valorar)</h5>" +
+    "<ul><li><b>Hume</b> (T10): no percibimos la causalidad, solo sucesiones de hechos; no podemos apoyar un argumento en ella.</li>" +
+    "<li><b>Kant</b> (T12): las categorías, como la causalidad, solo valen para la experiencia posible; usarlas para llegar a Dios es ir más allá. Además, según él, la vía de la contingencia depende en el fondo del argumento ontológico.</li>" +
+    "<li><b>Física moderna</b> (Galileo, T8): con la inercia, un cuerpo no necesita un motor continuo para seguir moviéndose, así que el «movimiento» de la primera vía no es el de la física moderna.</li>" +
+    "<li><b>Lo que no demuestran</b>: aunque se aceptase que hay un primer motor, no queda probado que sea el Dios personal del cristianismo. Tomás intenta deducirlo después, estudiando sus atributos.</li></ul>" +
+    w("emparejar", "vias") + w("orden", "ordenvia");
+
+  // ---------------------------------------------------------------- 5. La ley natural
+  secciones[4] =
+    "<h5>Cuatro clases de ley</h5>" +
+    "<p>Para Tomás, una ley es «una ordenación de la razón dirigida al bien común, promulgada por quien tiene el cuidado de la comunidad». No toda norma es lo mismo, y distingue cuatro niveles:</p>" +
+    tabla(["Ley", "Qué es", "Ejemplo"], [
+      ["<b>Ley eterna</b>", "El plan racional con el que Dios gobierna todo lo creado", "El orden de la naturaleza y del bien"],
+      ["<b>Ley natural</b>", "La parte de la ley eterna que el ser humano descubre con su razón", "«Hay que hacer el bien», «no hay que matar al inocente»"],
+      ["<b>Ley humana</b>", "Las leyes que dicta cada sociedad para aplicar la ley natural", "El código de circulación, el Código Penal"],
+      ["<b>Ley divina</b>", "Lo que Dios ha revelado y la razón no alcanza por sí sola", "Los mandamientos, el Evangelio"]
+    ]) +
+    "<h5>El primer principio y las inclinaciones naturales</h5>" +
+    "<p>El primer principio de la razón práctica (<i>Suma teológica</i>, I-II, q. 94, a. 2) es: <b>«el bien debe hacerse y buscarse, y el mal debe evitarse»</b>. Es tan básico que nadie lo discute: incluso quien hace el mal lo hace porque cree que le conviene. Para saber qué es «bien» para el ser humano, Tomás mira sus <b>inclinaciones naturales</b>, que ordena de menos a más específicas:</p>" +
+    "<ul><li>Como todo ser, el humano tiende a <b>conservar su vida</b>.</li>" +
+    "<li>Como los animales, tiende a la <b>unión de los sexos y a la crianza de los hijos</b>.</li>" +
+    "<li>Como ser racional, tiende a <b>conocer la verdad</b> (también sobre Dios) y a <b>vivir en sociedad</b>.</li></ul>" +
+    "<p>Lo que favorece estas inclinaciones es bueno; lo que las daña, malo. Por eso la ley natural se descubre con la razón, mirando <i>qué somos</i>, y no con una revelación.</p>" +
+    "<h5>De los principios a las normas concretas</h5>" +
+    tabla(["Manera de derivar", "Qué es", "Ejemplo"], [
+      ["<b>Por conclusión</b>", "Se deduce de un principio, como una conclusión", "No hay que matar al inocente (deriva de no hacer daño)"],
+      ["<b>Por determinación</b>", "El principio es general y cada sociedad lo concreta", "Debe haber una pena para el robo (cuál, lo fija cada ley); conducir por la derecha"]
+    ]) +
+    "<p>Los primeros principios son <b>universales e iguales para todos</b>. Cuanto más concreta es la norma, más puede variar o fallar en casos particulares (devolver un depósito es lo justo, pero no devolverle un arma a quien la reclama para matar).</p>" +
+    "<h5>¿Y si la ley humana es injusta?</h5>" +
+    "<p>Si una ley humana contradice la ley natural, para Tomás <b>no es verdadera ley, sino corrupción de la ley</b>. No obliga en conciencia (salvo para evitar un mal mayor, como un desorden grave). Es la conexión con la tradición de <i>Antígona</i> y con el debate sofista entre <i>physis</i> y <i>nomos</i> (T2): hay un derecho por encima de lo que dicen los gobernantes. De ahí parten, siglos después, ideas como los <b>derechos humanos</b> universales.</p>" +
+    ojo("La ley natural <b>no</b> es una ley física (como la gravedad) ni una ley «religiosa» que solo valga para creyentes. Es la ley <b>moral</b> que la razón humana puede descubrir en la naturaleza humana. Su base última es Dios (ley eterna), pero su <b>conocimiento</b> es racional. Y no confundas «natural» con «instintivo»: lo natural en el humano es lo racional.") +
+    w("emparejar", "leyes");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Dios, esencia y existencia: la metafísica de Tomás", html:
+    "<p>Después de probar que Dios existe, Tomás quiere saber <b>cómo es</b>. Y aquí aparece lo más original de su metafísica: la distinción entre <b>esencia</b> y <b>existencia</b>.</p>" +
+    "<h5>Esencia y existencia</h5>" +
+    "<ul><li><b>Esencia</b>: lo que una cosa es (qué es un delfín, un triángulo, un fénix).</li>" +
+    "<li><b>Existencia</b>: el hecho de que algo exista, el «es».</li></ul>" +
+    "<p>Puedes saber perfectamente qué es un fénix, una criatura de la mitología, sin saber si existe. Eso muestra que, en las criaturas, <b>saber lo que son no implica que existan</b>: la existencia se les «da» desde fuera. En cambio, en Dios la esencia es existir: no depende de nada, es el «ser mismo subsistente». Por eso Dios es <b>necesario</b> y todas las demás cosas son <b>contingentes</b>.</p>" +
+    tabla(["", "Criaturas", "Dios"], [
+      ["<b>Esencia y existencia</b>", "Distintas (reciben la existencia)", "Idénticas (es el mismo ser)"],
+      ["<b>Tipo de ser</b>", "Contingente: podría no existir", "Necesario: no puede no existir"],
+      ["<b>Hilemorfismo</b>", "Materia y forma (salvo los ángeles)", "Sin materia: acto puro"]
+    ]) +
+    "<h5>Dios creador (la gran diferencia con Aristóteles)</h5>" +
+    "<p>El Primer motor de Aristóteles mueve el mundo como un fin deseado, pero no lo ha creado, y el mundo es eterno. Para Tomás, Dios <b>crea libremente</b> todo lo que existe <b>de la nada</b> (creación <i>ex nihilo</i>) y lo sostiene en el ser. «Crear» no significa solo «dar un empujón al principio»: es dar y mantener el ser en cada momento. Tomás considera que la razón no puede demostrar si el mundo tuvo comienzo en el tiempo; que fue creado en el tiempo lo sabemos por la fe.</p>" +
+    "<h5>Cómo hablar de Dios: la analogía</h5>" +
+    "<p>Si decimos «Dios es bueno» y «Pedro es bueno», ¿usamos «bueno» en el mismo sentido? No exactamente (sería hablar de Dios como de una persona más), pero tampoco con un sentido totalmente distinto (no sabríamos nada de Él). Tomás propone el <b>lenguaje analógico</b>: el término se aplica con un significado en parte semejante y en parte distinto. Además, conocemos mejor lo que Dios <b>no</b> es (no es material, no cambia, no tiene límites) que lo que es: la «vía negativa».</p>" +
+    ojo("Esencia y existencia es un punto donde Tomás va más allá de Aristóteles. Si te piden la diferencia entre el Primer motor de Aristóteles y el Dios de Tomás, tres cosas: Dios es <b>creador</b>, tiene <b>providencia</b> (cuida de lo creado) y es <b>el mismo ser</b> (esencia = existencia).") });
+
+  nuevas.push({ h: "7. El ser humano y el conocimiento", html:
+    "<h5>Alma y cuerpo: hilemorfismo con alma inmortal</h5>" +
+    "<p>Como Aristóteles, Tomás piensa que el ser humano es una <b>sola sustancia</b>: el cuerpo es la materia y el alma racional es su <b>forma</b>. No somos un alma metida en un cuerpo (Platón, Agustín); somos un compuesto. Pero, a diferencia de Aristóteles, Tomás defiende que el alma racional es <b>espiritual y subsistente</b>: como realiza actividades (pensar) que no dependen de ningún órgano, puede existir sin el cuerpo y, por tanto, es <b>inmortal</b>. Eso sí, la persona completa es alma y cuerpo, por lo que cree en la resurrección (verdad de fe).</p>" +
+    tabla(["", "Platón (T3) / Agustín (T6)", "Tomás de Aquino"], [
+      ["<b>Ser humano</b>", "Alma que usa el cuerpo (dualismo)", "Compuesto de cuerpo (materia) y alma (forma)"],
+      ["<b>Inmortalidad</b>", "El alma es inmortal", "El alma racional es inmortal; la persona es alma y cuerpo"],
+      ["<b>Conocimiento</b>", "Recuerdo de Ideas / iluminación", "Abstracción desde los sentidos"]
+    ]) +
+    "<h5>Cómo conocemos: empirismo moderado</h5>" +
+    "<p>Tomás sigue a Aristóteles: <b>todo conocimiento empieza en los sentidos</b> (se resume en la fórmula escolástica «nada hay en el entendimiento que antes no haya estado en los sentidos»). Los sentidos nos dan lo individual (este perro); el <b>entendimiento agente</b> abstrae de lo individual lo universal (la esencia «perro»), y el entendimiento recibe ese universal. Es un empirismo <b>moderado</b> porque la razón no es pasiva: elabora los conceptos. No hay ideas innatas.</p>" +
+    ojo("No lo confundas con el empirismo de Hume (T10): para Tomás se conoce con certeza la <b>esencia</b> de las cosas y se pueden demostrar verdades sobre Dios, mientras que Hume niega que se pueda ir más allá de las impresiones.") +
+    "<h5>El problema de los universales</h5>" +
+    "<p>¿Qué son los conceptos generales («perro», «justicia»)? Era la <b>querella de los universales</b>. Hay tres posturas clásicas: el <b>realismo</b> extremo (los universales existen en sí, como Ideas platónicas), el <b>nominalismo</b> (solo existen los individuos; los universales son meros nombres, como defenderá Ockham, c. 1287–1347) y el <b>realismo moderado</b> de Tomás: los universales existen <b>en las cosas</b> como esencia común, <b>en la mente de Dios</b> como modelo y <b>en nuestra mente</b> como concepto obtenido por abstracción.</p>" +
+    "<h5>Voluntad y libertad</h5>" +
+    "<p>Tomás defiende el <b>libre albedrío</b>: el ser humano elige, porque su voluntad sigue lo que la razón presenta como bueno, pero no está obligada por un bien concreto (solo la felicidad total la atrae de forma necesaria). Si no hubiera libertad, no tendrían sentido ni las leyes ni la responsabilidad moral.</p>" });
+
+  nuevas.push({ h: "8. Ética y política: felicidad, virtudes y sociedad", html:
+    "<h5>El fin último: la felicidad</h5>" +
+    "<p>Como Aristóteles, Tomás cree que todos los actos tienden a un fin y que el fin último es la <b>felicidad</b>. Pero la cristianiza: la felicidad completa (<b>bienaventuranza</b>) consiste en <b>ver a Dios</b> (la «visión beatífica»), algo que la razón sola no alcanza ni en esta vida. En esta vida solo es posible una felicidad <b>imperfecta</b>: la vida virtuosa, la amistad, la contemplación de la verdad. Su ética es <b>teleológica y eudemonista</b> (busca un fin: la felicidad), como la de Aristóteles, y se opone a la ética kantiana del deber (T12).</p>" +
+    "<h5>Las virtudes</h5>" +
+    tabla(["Tipo", "Cuáles", "Cómo se adquieren"], [
+      ["<b>Intelectuales</b>", "Sabiduría, ciencia, prudencia…", "Estudiando y pensando"],
+      ["<b>Morales (cardinales)</b>", "<b>Prudencia, justicia, fortaleza y templanza</b>", "Con el hábito, practicándolas (como en Aristóteles)"],
+      ["<b>Teologales</b>", "<b>Fe, esperanza y caridad (amor)</b>", "Las regala Dios por la gracia; la razón sola no las da"]
+    ]) +
+    "<p>«Cardinal» viene de <i>cardo</i>, «gozne»: son los ejes sobre los que gira la vida moral. Las virtudes teologales son lo que añade Tomás respecto a Aristóteles: la ética cristiana no se queda en la vida buena en la ciudad, sino que apunta a Dios.</p>" +
+    "<h5>La política</h5>" +
+    "<p>Siguiendo a Aristóteles, el ser humano es <b>naturalmente social y político</b>: necesita vivir con otros para satisfacer sus necesidades y para vivir bien. El poder político es <b>natural</b> y su fin es el <b>bien común</b>. El gobernante debe respetar la ley natural; si manda cosas contrarias a ella, esas leyes son injustas (sección 5) y la tiranía es la peor de las formas de gobierno. Tomás prefiere el gobierno de uno, la monarquía, aunque con un régimen mixto que permita la participación de todos. Respecto a la relación entre la Iglesia y el poder civil, defiende que ambos tienen su ámbito propio; el poder espiritual es superior en lo que toca a la salvación.</p>" +
+    ojo("En política, la clave de la PAU es esta: el poder tiene límites porque hay una <b>ley natural</b> superior a la ley humana. Una ley injusta «no es ley». Es la idea germen de los derechos humanos, aunque Tomás no habló de ellos con ese nombre.") });
+
+  nuevas.push({ h: "9. Mapa del tema: Tomás y los demás autores", html:
+    "<p>Una buena respuesta de PAU relaciona a Tomás con otros autores. Este cuadro resume con quién compararlo y en qué:</p>" +
+    tabla(["Autor", "Relación con Tomás", "Idea clave para comparar"], [
+      ["<b>Aristóteles (T4)</b>", "Su gran maestro filosófico", "Hilemorfismo, potencia/acto, causas, virtudes; pero Tomás añade creación, providencia y alma inmortal"],
+      ["<b>San Agustín (T6)</b>", "Antecesor de la tradición cristiana", "Fe antes que razón («cree para entender»); iluminación. Tomás: fe y razón armónicas; abstracción"],
+      ["<b>Averroes</b>", "Comentador árabe de Aristóteles", "Intelecto único para todos; Tomás: cada persona tiene el suyo. «Doble verdad»: Tomás la rechaza"],
+      ["<b>Platón (T3)</b>", "Fondo de la tradición agustiniana", "Dualismo y Ideas separadas; Tomás: realismo moderado, alma forma del cuerpo"],
+      ["<b>Descartes (T9)</b>", "Parte de la duda, no de los sentidos", "Ideas innatas y cogito; Tomás: empirismo moderado. Ambos prueban a Dios, pero por caminos distintos"],
+      ["<b>Hume (T10)</b>", "Crítico de la causalidad", "La causalidad no se percibe; la base de las vías"],
+      ["<b>Kant (T12)</b>", "Crítico de la metafísica y de las pruebas de Dios", "Razón limitada a la experiencia; ética del deber frente a la ética de la felicidad"]
+    ]) +
+    "<h5>Después de Tomás</h5>" +
+    "<p>La síntesis tomista no fue la última palabra de la Edad Media. <b>Duns Escoto</b> (c. 1266–1308) subrayó la libertad de Dios y de la voluntad, y <b>Guillermo de Ockham</b> (c. 1287–1347) defendió el nominalismo y separó más la fe de la razón. Con ellos empieza a resquebrajarse el equilibrio de Tomás, y la filosofía moderna (T8 en adelante) irá por otros caminos.</p>" });
+
+  nuevas.push({ h: "10. Comentario de texto resuelto: la vía del movimiento", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Tomás de Aquino, <em>Suma teológica</em>, I, q. 2, a. 3; paráfrasis fiel y condensada de la traducción española habitual: las frases pueden variar según la edición, y los puntos suspensivos entre corchetes unen pasajes del artículo):<br><em>«Es cierto, y consta por los sentidos, que en este mundo hay cosas que se mueven. Ahora bien, todo lo que se mueve es movido por otro. […] Pero no se puede seguir hasta el infinito, porque entonces no habría un primer motor y, por consiguiente, ningún otro motor. […] Por tanto, es necesario llegar a un primer motor que no sea movido por nada, y éste es el que todos entienden por Dios.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Tomás de Aquino (hacia 1224/25–1274), <i>Suma teológica</i>, primera parte, cuestión 2 (si Dios existe), artículo 3: la primera de las cinco vías. Pertenece a su obra de madurez y responde a la pregunta «¿existe Dios?».</li>" +
+    "<li><b>2. Tema.</b> Una demostración racional de la existencia de Dios a partir del movimiento.</li>" +
+    "<li><b>3. Idea principal.</b> Como en el mundo hay cosas que se mueven y todo lo movido es movido por otro, y esa serie no puede ser infinita, existe un primer motor inmóvil: Dios.</li>" +
+    "<li><b>4. Ideas secundarias y términos.</b> (a) «Consta por los sentidos»: el punto de partida es la experiencia (método a posteriori). (b) «Movimiento»: en sentido aristotélico, todo cambio, el paso de la potencia al acto. (c) «No se puede seguir hasta el infinito»: sin un primero no habría motores segundos (orden de causas). (d) «Primer motor… el que todos entienden por Dios»: se identifica con Dios, cuyos atributos se estudian después.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Es la primera de las cinco vías, todas con la misma estructura. Depende de Aristóteles (potencia, acto, Primer motor) y se integra en la armonía entre fe y razón: la existencia de Dios es una verdad que la razón alcanza (preámbulo de la fe). Conecta con el rechazo del argumento ontológico de Anselmo y con su distinción entre Dios (acto puro) y las criaturas.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con Aristóteles: su Primer motor mueve como fin, sin crear ni cuidar del mundo; el de Tomás es el Dios creador. Con Hume (T10) o Kant (T12): critican que la causalidad sirva para pasar de la experiencia a una causa fuera del mundo.</li>" +
+    "<li><b>7. Valora y concluye.</b> El argumento es un hito en la historia de la teología natural y muestra la confianza medieval en la razón. Sus límites: la física moderna (inercia) cambia el sentido de «movimiento»; y aunque se aceptase, no probaría que ese primer motor sea el Dios personal cristiano.</li></ol>" +
+    ojo("Errores típicos: (1) decir que Tomás «cree por fe» en las vías, cuando las presenta como <b>demostración racional</b>; (2) entender «primer» como primero en el <b>tiempo</b> (es primero en el <b>orden</b> de dependencia); (3) no nombrar a Aristóteles ni la potencia y el acto; (4) olvidar que las cinco vías comparten la misma estructura.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Fe y razón en Santo Tomás", "Respuesta modelo:", [
+      "<b>Contexto.</b> Recuperación de Aristóteles en las universidades del siglo XIII; hay que integrar razón natural y fe.",
+      "<b>Tesis.</b> Fe y razón son caminos distintos y armónicos hacia la misma verdad; no pueden contradecirse porque ambas vienen de Dios.",
+      "<b>Dos tipos de verdades.</b> Preámbulos de la fe (existencia de Dios, alma inmortal: la razón puede alcanzarlos) y misterios (Trinidad: solo por revelación).",
+      "<b>Comparación.</b> Con Agustín («cree para entender»: la fe guía a la razón) y con los averroístas (doble verdad).",
+      "<b>Valoración.</b> Es una síntesis muy influyente, pero presupone que la razón puede llegar a Dios."
+    ]) +
+    ejemplo("Pregunta 2. Las cinco vías", "Respuesta modelo:", [
+      "<b>Idea general.</b> Demostración a posteriori de la existencia de Dios, desde hechos del mundo.",
+      "<b>Estructura común.</b> Hecho observable → no hay regreso infinito → primer término (Dios).",
+      "<b>Dos vías con detalle.</b> Movimiento (primer motor inmóvil) y causa eficiente (primera causa incausada); luego contingencia, grados de perfección y orden del mundo.",
+      "<b>Relación.</b> Usa la física de Aristóteles; rechaza el argumento ontológico de Anselmo.",
+      "<b>Crítica.</b> Hume y Kant: la causalidad no puede llevarnos fuera de la experiencia."
+    ]) +
+    ejemplo("Pregunta 3. La ley natural", "Respuesta modelo:", [
+      "<b>Definición.</b> Principios morales que la razón humana descubre en la naturaleza humana; participación de la ley eterna.",
+      "<b>Primer principio.</b> «Hay que hacer el bien y evitar el mal»; inclinaciones naturales (vida, familia, verdad y sociedad).",
+      "<b>Cuatro leyes.</b> Eterna, natural, humana y divina.",
+      "<b>Consecuencia.</b> Una ley humana injusta no es verdadera ley.",
+      "<b>Valoración.</b> Base de los derechos humanos; el reto es qué es «natural» en una sociedad plural."
+    ]) +
+    ejemplo("Pregunta 4. Relación con Aristóteles y Agustín", "Respuesta modelo:", [
+      "<b>Con Aristóteles.</b> Toma el hilemorfismo, la potencia y el acto, las causas, el empirismo moderado y las virtudes; añade Dios creador y alma inmortal.",
+      "<b>Con Agustín.</b> Frente a la fe que guía a la razón y la iluminación, la razón tiene autonomía y el conocimiento viene de los sentidos.",
+      "<b>Conclusión.</b> Tomás es la gran síntesis de razón griega y fe cristiana."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf7a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 7 (parte B): Santo Tomás y la escolástica
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t7.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "La <b>escolástica</b> sistematiza el saber en las universidades con el método de la disputa; Tomás de Aquino (1224/25–1274) integra a <b>Aristóteles</b> en la fe cristiana.",
+    "<b>Fe y razón</b> son caminos distintos y armónicos hacia la misma verdad; nunca pueden contradecirse.",
+    "Las <b>cinco vías</b> prueban a posteriori que Dios existe: hecho del mundo, sin regreso infinito, primer término.",
+    "La <b>ley natural</b> es la parte de la ley eterna que la razón descubre: «hay que hacer el bien y evitar el mal»."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Tomás de Aquino · 1224/25–1274",
+    autores: [{ n: "Tomás de Aquino", f: "1224/25–1274", l: "Roccasecca (Italia); París; murió en Fossanova" }],
+    obras: ["Suma contra los gentiles", "Suma teológica", "El ente y la esencia"],
+    bloques: [
+      { t: "Contexto", frases: ["Dominico y profesor en la <b>Universidad de París</b> (siglo XIII).", "Se recupera a <b>Aristóteles</b> por vía árabe y judía.", "Método escolástico: pregunta, objeciones, respuesta."] },
+      { t: "Fe y razón", frases: ["Son caminos <b>distintos y armónicos</b> hacia la misma verdad.", "Los misterios (Trinidad) solo se conocen por <b>revelación</b>.", "Nunca hay contradicción real entre ambas."],
+        tabla: { cab: ["Razón (preámbulos)", "Fe (misterios)"], filas: [["Dios existe", "Trinidad"], ["alma inmortal", "Encarnación"]] } },
+      { t: "Dios: las cinco vías", frases: ["Prueba <b>a posteriori</b>: parte de hechos del mundo.", "Estructura común: hecho, no regreso infinito, primer término.", "Rechaza el argumento ontológico de Anselmo."],
+        tabla: { cab: ["Vía", "Conclusión"], filas: [["movimiento", "primer motor inmóvil"], ["causa eficiente", "primera causa incausada"], ["contingencia", "ser necesario"], ["grados", "ser máximamente perfecto"], ["orden y finalidad", "inteligencia ordenadora"]] } },
+      { t: "Ser y conocimiento", frases: ["En Dios la <b>esencia es existir</b>; las criaturas reciben el ser.", "Dios <b>crea</b> de la nada; el Primer motor de Aristóteles no.", "Conocemos por <b>abstracción</b> desde los sentidos."] },
+      { t: "Ser humano y ética", frases: ["Alma <b>forma del cuerpo</b>, pero inmortal.", "Fin último: la <b>felicidad</b> como ver a Dios.", "Virtudes cardinales y <b>teologales</b>."] },
+      { t: "Ley y política", frases: ["Ley eterna, <b>natural</b>, humana y divina.", "Primer precepto: hacer el bien y evitar el mal.", "Una ley injusta no es verdadera ley."],
+        tabla: { cab: ["Ley", "Quién la conoce"], filas: [["natural", "la razón humana"], ["divina", "la revelación"]] } }
+    ],
+    resumen: [
+      "<b>Fe y razón</b> armonizadas: la filosofía ayuda a la teología, sin contradicción.",
+      "Las <b>cinco vías</b> prueban que Dios existe a partir del mundo observable.",
+      "La <b>ley natural</b> funda la moral en la razón y limita al poder.",
+      "<b>Aristóteles cristianizado</b>: Dios creador, alma inmortal, felicidad como visión de Dios."
+    ],
+    conecta: [
+      { con: "Aristóteles (T4):", rel: "su gran fuente; lo corrige con la creación y el alma inmortal." },
+      { con: "San Agustín (T6):", rel: "frente a «cree para entender», fe y razón armónicas." },
+      { con: "Descartes (T9):", rel: "parte de la duda y de ideas innatas, no de los sentidos." },
+      { con: "Hume (T10):", rel: "niega que percibamos la causalidad en que se apoyan las vías." },
+      { con: "Kant (T12):", rel: "critica las pruebas de Dios y opone el deber a la felicidad." }
+    ],
+    claves: [
+      ["Escolástica", "filosofía de las escuelas medievales; sistematiza el saber con disputa y razón"],
+      ["Preámbulos de la fe", "verdades sobre Dios que la razón alcanza y la fe presupone"],
+      ["Misterio", "verdad que solo se conoce por revelación (Trinidad)"],
+      ["Cinco vías", "pruebas a posteriori de la existencia de Dios"],
+      ["A posteriori", "razonar desde los efectos observables hasta su causa"],
+      ["Ser necesario", "el que no puede no existir; Dios, esencia igual a existencia"],
+      ["Creación", "Dios da el ser a todo de la nada y lo sostiene"],
+      ["Ley natural", "principios morales que la razón descubre en la naturaleza humana"],
+      ["Bienaventuranza", "felicidad plena: ver a Dios"],
+      ["Virtudes teologales", "fe, esperanza y caridad, dones de la gracia"]
+    ],
+    cita: { txt: "El bien ha de hacerse y buscarse, y el mal ha de evitarse.", autor: "Tomás de Aquino", obra: "Suma teológica, I-II, q. 94, a. 2 (traducción habitual)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    fe_razon: {
+      titulo: "¿Razón, fe o las dos?",
+      consigna: "Toca cada verdad y después la categoría en la que Tomás la coloca.",
+      categorias: ["Solo por revelación (misterio)", "La razón puede alcanzarla (preámbulo)"],
+      items: [
+        { t: "Dios es uno", c: 1 },
+        { t: "La Trinidad (un Dios en tres personas)", c: 0 },
+        { t: "El alma racional es inmortal", c: 1 },
+        { t: "La Encarnación", c: 0 },
+        { t: "Dios existe", c: 1 },
+        { t: "La resurrección de los muertos", c: 0 }
+      ]
+    },
+    vias: {
+      titulo: "Cada vía, su conclusión",
+      consigna: "Une cada vía con el nombre al que llega.",
+      pares: [["Movimiento", "Primer motor inmóvil"], ["Causa eficiente", "Primera causa incausada"], ["Contingencia", "Ser necesario por sí mismo"], ["Grados de perfección", "Ser máximamente perfecto"], ["Orden y finalidad", "Inteligencia ordenadora"]]
+    },
+    ordenvia: {
+      titulo: "La vía del movimiento, paso a paso",
+      consigna: "Ordena el razonamiento de la primera vía.",
+      items: [
+        { t: "Hecho: en el mundo hay cosas que se mueven" },
+        { t: "Todo lo que se mueve es movido por otro" },
+        { t: "La cadena de motores no puede ser infinita" },
+        { t: "Existe un primer motor que no es movido" },
+        { t: "A ese primer motor lo llamamos Dios" }
+      ]
+    },
+    leyes: {
+      titulo: "Los cuatro tipos de ley",
+      consigna: "Une cada ley con su descripción.",
+      pares: [["Ley eterna", "El plan racional con que Dios gobierna lo creado"], ["Ley natural", "La parte de la ley eterna que la razón humana descubre"], ["Ley humana", "Las normas que cada sociedad dicta para concretar la ley natural"], ["Ley divina", "Lo revelado que la razón por sí sola no alcanza"]]
+    },
+    quiz1: {
+      titulo: "Test del tema 7",
+      preguntas: [
+        { q: "La escolástica se caracteriza por…", op: ["sistematizar el saber con el método de la disputa argumentada", "rechazar toda filosofía pagana", "defender la fe solo con la intuición", "negar el valor de la razón"], ok: 0, porque: "Sistematiza el saber en las universidades con preguntas, objeciones y respuestas." },
+        { q: "Santo Tomás integra en la teología cristiana la filosofía de…", op: ["Aristóteles", "Platón", "Epicuro", "Descartes"], ok: 0, porque: "Es el gran proyecto de Tomás." },
+        { q: "Para Santo Tomás, fe y razón son…", op: ["caminos distintos y armónicos hacia la misma verdad", "caminos opuestos", "un único camino idéntico", "irrelevantes entre sí"], ok: 0, porque: "Ambos proceden de Dios, por lo que no pueden contradecirse." },
+        { q: "¿Cuál es una verdad solo accesible por revelación?", op: ["La Trinidad", "La existencia de Dios", "La inmortalidad del alma", "La unidad de Dios"], ok: 0, porque: "Es un misterio; los otros tres son preámbulos de la fe." },
+        { q: "Las cinco vías son pruebas…", op: ["a posteriori, desde hechos del mundo", "a priori, desde el concepto de Dios", "basadas solo en la fe", "basadas en la intuición"], ok: 0, porque: "Parten de la experiencia, no de la idea de Dios." },
+        { q: "La vía del movimiento concluye en…", op: ["un primer motor inmóvil", "una primera causa del orden moral", "un ser contingente", "una Idea separada"], ok: 0, porque: "Mueve sin ser movido." },
+        { q: "La vía que parte de seres que pueden ser o no ser es la de…", op: ["la contingencia", "los grados de perfección", "el orden del mundo", "la causa eficiente"], ok: 0, porque: "Los seres contingentes nacen y mueren; la vía llega a un ser necesario." },
+        { q: "La quinta vía compara el orden de la naturaleza con…", op: ["una flecha dirigida por un arquero", "un reloj que se rompe", "una cadena de dominó", "un ejército sin general"], ok: 0, porque: "Lo que no conoce necesita ser dirigido por una inteligencia." },
+        { q: "El primer principio de la ley natural es…", op: ["hay que hacer el bien y evitar el mal", "obedece siempre al gobernante", "busca tu propio placer", "haz lo que te dicte la costumbre"], ok: 0, porque: "De este principio se derivan los demás." },
+        { q: "Una ley humana contraria a la ley natural es, para Tomás…", op: ["una corrupción de la ley, no verdadera ley", "la ley más importante", "una ley divina", "una ley eterna"], ok: 0, porque: "Una ley injusta no obliga en conciencia." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre fe y razón en Tomás es FALSA?", op: ["La razón sustituye a la fe incluso en los misterios", "Fe y razón no pueden contradecirse", "La existencia de Dios es un preámbulo de la fe", "La Trinidad solo se conoce por revelación"], ok: 0, porque: "Los misterios solo se aceptan por fe; la razón no los demuestra." },
+        { q: "¿Cuál de estas afirmaciones sobre las cinco vías es FALSA?", op: ["Parten de la idea de Dios, como el argumento de Anselmo", "Parten de hechos observables", "Rechazan un regreso infinito", "Concluyen en un primer término al que se llama Dios"], ok: 0, porque: "Tomás rechaza el argumento ontológico; sus vías son a posteriori." },
+        { q: "¿Cuál de estas afirmaciones sobre «no puede haber cadena infinita» es FALSA?", op: ["Se refiere solo al primer acontecimiento del pasado en el tiempo", "Se refiere a causas que dependen unas de otras a la vez", "Sin primer motor no habría motores segundos", "Tomás cree que la razón no prueba que el mundo tuvo comienzo temporal"], ok: 0, porque: "Habla del orden de dependencia, no del tiempo." },
+        { q: "¿Cuál de estas afirmaciones sobre el Dios de Tomás y el de Aristóteles es FALSA?", op: ["Ambos crean el mundo de la nada", "El de Tomás es creador libre", "El de Aristóteles es Primer motor inmóvil", "El de Tomás tiene providencia"], ok: 0, porque: "El Primer motor de Aristóteles no crea; el de Tomás sí." },
+        { q: "¿Cuál de estas afirmaciones sobre la ley natural es FALSA?", op: ["Solo pueden conocerla los creyentes por revelación", "La descubre la razón humana", "Es la parte de la ley eterna accesible al ser humano", "Su primer principio es hacer el bien y evitar el mal"], ok: 0, porque: "La ley natural es accesible a la razón de cualquier persona." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["Tomás de Aquino es anterior a San Agustín", "Agustín murió en 430", "Tomás murió en 1274", "Anselmo vivió antes que Tomás"], ok: 0, porque: "Agustín (354–430) es muy anterior a Tomás (1224/25–1274)." },
+        { q: "¿Cuál de estas afirmaciones sobre el conocimiento en Tomás es FALSA?", op: ["Las ideas son innatas, como en Platón", "El conocimiento empieza en los sentidos", "El entendimiento abstrae lo universal", "No hay conocimiento sin experiencia previa"], ok: 0, porque: "Es un empirismo moderado: no hay ideas innatas." },
+        { q: "¿Cuál de estas afirmaciones sobre el alma en Tomás es FALSA?", op: ["El alma es una sustancia distinta del cuerpo, que solo lo usa", "El alma racional es forma del cuerpo", "El alma racional es inmortal", "La persona es alma y cuerpo"], ok: 0, porque: "Eso es dualismo; Tomás la entiende como forma del cuerpo." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Santo Tomás",
+      cartas: [
+        { a: "Escolástica", b: "Filosofía de las escuelas y universidades medievales; sistematiza el saber con el método de la disputa." },
+        { a: "Suma teológica", b: "Obra principal de Tomás (hacia 1265–1273, inacabada); contiene las cinco vías y la ley natural." },
+        { a: "Preámbulos de la fe", b: "Verdades sobre Dios que la razón alcanza y que la fe presupone (existencia de Dios)." },
+        { a: "Misterio", b: "Verdad solo conocida por revelación (Trinidad, Encarnación); la razón no la demuestra." },
+        { a: "Prueba a posteriori", b: "Razonar desde los efectos observables hasta su causa. Son las cinco vías." },
+        { a: "Vía del movimiento", b: "Todo lo movido lo mueve otro; no hay regreso infinito; hay un primer motor inmóvil." },
+        { a: "Vía de la causa eficiente", b: "Nada es causa de sí mismo; debe haber una primera causa incausada." },
+        { a: "Vía de la contingencia", b: "Hay seres que pueden no ser; debe haber un ser necesario por sí mismo." },
+        { a: "Vía de los grados", b: "Hay más y menos perfección; esto exige un máximo, causa de todo lo perfecto." },
+        { a: "Vía del orden", b: "Lo que no conoce obra para un fin; lo dirige una inteligencia ordenadora." },
+        { a: "Esencia y existencia", b: "En las criaturas son distintas; en Dios coinciden: es el ser mismo." },
+        { a: "Ley natural", b: "Principios morales que la razón descubre en la naturaleza humana; parte de la ley eterna." },
+        { a: "Ley eterna", b: "El plan racional con que Dios gobierna todo lo creado." },
+        { a: "Bienaventuranza", b: "Felicidad plena: la visión de Dios, que solo se alcanza del todo tras la muerte." },
+        { a: "Virtudes cardinales", b: "Prudencia, justicia, fortaleza y templanza. Las teologales son fe, esperanza y caridad." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("hs1", 1, "¿A qué orden religiosa perteneció Tomás de Aquino?", ["A los dominicos", "A los franciscanos", "A los benedictinos", "A los jesuitas"], 0,
+    ["Entró en la orden dominica, dedicada a la predicación y al estudio. Los jesuitas son muy posteriores."]);
+  O("hs2", 1, "¿Cómo se llama la gran obra de Tomás que contiene las cinco vías?", ["Suma teológica", "Confesiones", "Ética a Nicómaco", "Ciudad de Dios"], 0,
+    ["Las cinco vías están en la <i>Suma teológica</i> (I, q. 2, a. 3). <i>Confesiones</i> y <i>Ciudad de Dios</i> son de Agustín."]);
+  O("hs3", 1, "¿Qué filósofo griego es la gran fuente filosófica de Tomás?", ["Aristóteles", "Platón", "Epicuro", "Parménides"], 0,
+    ["Integra la filosofía aristotélica en la teología cristiana."]);
+  T("hs4", 1, "Completa: el periodo de la filosofía medieval hecho en las escuelas y universidades se llama ______.", "Término =", ["escolástica"],
+    ["Del latín <i>schola</i>, «escuela»."], "escolástica");
+  O("hs5", 1, "¿Cómo es la relación entre fe y razón para Tomás?", ["Distintas pero armónicas", "Opuestas", "La razón manda siempre", "La fe sustituye a la razón"], 0,
+    ["Dos caminos hacia la misma verdad, sin contradicción posible."]);
+  O("hs6", 1, "¿Cuál de estas verdades solo se conoce por revelación?", ["La Trinidad", "La existencia de Dios", "La unidad de Dios", "La inmortalidad del alma"], 0,
+    ["La Trinidad es un misterio; las otras tres son preámbulos de la fe, alcanzables por la razón."]);
+  M("hs7", 1, "Clasifica cada verdad como preámbulo de la fe o misterio.", [
+    C("Dios existe", ["Preámbulo", "Misterio"], 0),
+    C("La Encarnación", ["Preámbulo", "Misterio"], 1),
+    C("El alma racional es inmortal", ["Preámbulo", "Misterio"], 0),
+    C("La Trinidad", ["Preámbulo", "Misterio"], 1)],
+    ["Preámbulo = la razón puede alcanzarlo; misterio = solo por revelación."], "Dios existe–preámbulo, Encarnación–misterio, alma inmortal–preámbulo, Trinidad–misterio");
+  O("hs8", 1, "¿Cuántas son las vías con las que Tomás prueba la existencia de Dios?", ["Cinco", "Tres", "Cuatro", "Siete"], 0,
+    ["Movimiento, causa eficiente, contingencia, grados de perfección y orden del mundo."]);
+  O("hs9", 1, "La primera vía concluye en…", ["un primer motor inmóvil", "una Idea del Bien", "un ser contingente", "una causa final del universo"], 0,
+    ["Mueve sin ser movido."]);
+  M("hs10", 1, "Une cada vía con su punto de partida.", [
+    C("Movimiento", ["Hay cosas que se mueven", "Hay seres que pueden ser o no ser", "Hay grados de perfección", "Lo que no conoce obra por un fin"], 0),
+    C("Contingencia", ["Hay cosas que se mueven", "Hay seres que pueden ser o no ser", "Hay grados de perfección", "Lo que no conoce obra por un fin"], 1),
+    C("Grados de perfección", ["Hay cosas que se mueven", "Hay seres que pueden ser o no ser", "Hay grados de perfección", "Lo que no conoce obra por un fin"], 2),
+    C("Orden y finalidad", ["Hay cosas que se mueven", "Hay seres que pueden ser o no ser", "Hay grados de perfección", "Lo que no conoce obra por un fin"], 3)],
+    ["Cada vía arranca de un hecho distinto del mundo."], "Movimiento–cosas que se mueven; contingencia–pueden ser o no ser; grados–más y menos perfecto; orden–obrar por un fin");
+  T("hs11", 1, "Completa: el método de las cinco vías es a ______ (parte de los efectos observables).", "Término =", ["posteriori", "a posteriori"],
+    ["De los efectos a la causa."], "a posteriori");
+  O("hs12", 1, "El primer principio de la ley natural es…", ["hay que hacer el bien y evitar el mal", "obedece a la ley humana", "busca tu placer", "honra a tus padres"], 0,
+    ["Los demás preceptos se derivan de él."]);
+  O("hs13", 1, "La felicidad plena para Tomás consiste en…", ["ver a Dios", "acumular riqueza", "el placer", "el honor"], 0,
+    ["La bienaventuranza es la visión de Dios."]);
+  O("hs14", 1, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Aristóteles → Agustín → Tomás de Aquino", "Agustín → Aristóteles → Tomás de Aquino", "Tomás de Aquino → Agustín → Aristóteles", "Aristóteles → Tomás de Aquino → Agustín"], 0,
+    ["Aristóteles (384–322 a. C.), Agustín (354–430), Tomás de Aquino (1224/25–1274)."], "Aristóteles → Agustín → Tomás de Aquino");
+
+  // ---- nivel 2
+  V("hs15", 2, "«Para Tomás, la razón puede demostrar el misterio de la Trinidad.»", false, [
+    "Es falso: los misterios solo se conocen por revelación", "Es falso: la razón no sirve para nada", "Es verdad: la razón lo demuestra con las cinco vías", "Es verdad: porque fe y razón son idénticas"], 0,
+    ["La razón puede acercarse a ellos, pero no demostrarlos."]);
+  V("hs16", 2, "«Las cinco vías parten de hechos observables del mundo.»", true, [
+    "Es verdad: son pruebas a posteriori", "Es verdad: porque parten del concepto de Dios", "Es verdad: porque parten de la fe", "Es verdad: porque parten de ideas innatas"], 0,
+    ["Siguen el método aristotélico: todo conocimiento empieza en la experiencia."]);
+  V("hs17", 2, "«Tomás acepta el argumento ontológico de Anselmo.»", false, [
+    "Es falso: de una idea no se pasa a una existencia real, y no conocemos la esencia de Dios", "Es falso: porque Anselmo vivió después", "Es verdad: porque era su maestro", "Es verdad: lo toma como la primera vía"], 0,
+    ["Para él la existencia de Dios no es evidente para nosotros y hay que demostrarla desde el mundo."]);
+  V("hs18", 2, "«Para Tomás, Dios crea el mundo de la nada, a diferencia del Primer motor de Aristóteles.»", true, [
+    "Es verdad: el Dios cristiano es creador libre y providente", "Es verdad: porque el Primer motor también crea", "Es verdad: porque el mundo es eterno e increado", "Es verdad: porque Aristóteles era cristiano"], 0,
+    ["Creación <i>ex nihilo</i> y providencia son aportaciones cristianas."]);
+  V("hs19", 2, "«Según la ley natural de Tomás, solo los cristianos pueden conocer qué es moralmente bueno.»", false, [
+    "Es falso: cualquiera puede descubrirla con su razón", "Es falso: porque no existe ley natural", "Es verdad: porque solo se conoce por revelación", "Es verdad: porque la razón no sirve en ética"], 0,
+    ["La ley natural es accesible a la razón de todos, de ahí su influencia en los derechos humanos."]);
+  V("hs20", 2, "«El alma racional, para Tomás, es forma del cuerpo y a la vez inmortal.»", true, [
+    "Es verdad: no es un ser aparte, pero su actividad intelectual no depende de un órgano", "Es verdad: porque el alma es una Idea", "Es verdad: porque el cuerpo es inmortal", "Es verdad: porque niega el alma"], 0,
+    ["Hilemorfismo con alma subsistente: una síntesis entre Aristóteles y la fe cristiana."]);
+  V("hs21", 2, "«Una ley humana injusta es, para Tomás, verdadera ley que hay que obedecer siempre.»", false, [
+    "Es falso: es corrupción de la ley y no obliga en conciencia, salvo para evitar un mal mayor", "Es falso: porque no hay leyes humanas", "Es verdad: porque la ley siempre obliga", "Es verdad: porque la ley humana es la divina"], 0,
+    ["Una ley contraria a la ley natural pierde su carácter de ley."]);
+  O("hs22", 2, "¿En qué se distingue Tomás de San Agustín en la relación entre fe y razón?",
+    ["En que para Tomás son caminos armónicos con ámbitos propios, y Agustín pone la fe delante de la razón", "En que Tomás niega la fe", "En que Agustín niega la razón", "En que no hay diferencia"], 0,
+    ["Agustín: «cree para entender». Tomás: dos caminos paralelos."]);
+  O("hs23", 2, "El ejemplo de la flecha y el arquero ilustra la vía…", ["del orden y la finalidad", "del movimiento", "de la contingencia", "de los grados"], 0,
+    ["Lo que no conoce necesita ser dirigido por quien conoce."]);
+  O("hs24", 2, "¿Qué significa que una cadena de motores no pueda ser infinita?",
+    ["Que sin un primer motor no habría motores segundos: es el orden de dependencia, no el tiempo", "Que el mundo tuvo comienzo en el tiempo, probado por la razón", "Que los motores se agotan", "Que Dios está en el pasado"], 0,
+    ["Tomás habla de causas subordinadas a la vez, como la mano que mueve el bastón."]);
+  O("hs25", 2, "En la vía de la contingencia, ¿qué ocurriría si todo fuese contingente?",
+    ["Habría un tiempo en que nada existía y, por tanto, ahora no habría nada", "Todo sería necesario", "El mundo sería eterno", "Nada cambiaría"], 0,
+    ["De la nada no sale nada; como hay cosas, debe existir un ser necesario."]);
+  O("hs26", 2, "¿A qué tipo de ley pertenece «hay que hacer el bien y evitar el mal»?", ["Ley natural", "Ley humana", "Ley divina positiva", "Ley física"], 0,
+    ["Es su primer principio, descubierto por la razón."]);
+  O("hs27", 2, "Los preceptos como «debe haber una pena para el robo» se derivan de la ley natural…", ["por determinación", "por conclusión de un silogismo físico", "por revelación divina directa", "por tradición religiosa"], 0,
+    ["La norma general la concreta cada sociedad: eso es determinación."]);
+  O("hs28", 2, "¿Qué virtudes añade Tomás al esquema de Aristóteles?", ["Las teologales: fe, esperanza y caridad", "Las cardinales", "Las dianoéticas", "Ninguna"], 0,
+    ["Las cardinales (prudencia, justicia, fortaleza, templanza) ya existían; las teologales son cristianas."]);
+  O("hs29", 2, "En Tomás, la diferencia entre esencia y existencia en las criaturas significa que…",
+    ["saber lo que son no implica que existan: reciben el ser", "no tienen esencia", "su existencia es necesaria", "son idénticas a Dios"], 0,
+    ["Solo en Dios la esencia es existir."]);
+  O("hs30", 2, "Para conocer, Tomás parte…", ["de los sentidos, y el entendimiento abstrae lo universal", "de ideas innatas", "de la iluminación directa de Dios", "de la duda"], 0,
+    ["Empirismo moderado, frente a Platón, Agustín y Descartes."]);
+
+  // ---- nivel 3
+  O("hs31", 3, "Texto: «Es cierto, y consta por los sentidos, que en este mundo hay cosas que se mueven» (<i>Suma teológica</i>, I, q. 2, a. 3; traducción habitual). El inicio muestra que la prueba…",
+    ["parte de la experiencia sensible, no de la fe ni de una idea", "parte de una revelación", "parte de ideas innatas", "parte de una intuición mística"], 0,
+    ["«Consta por los sentidos» indica un punto de partida empírico: argumento a posteriori."]);
+  O("hs32", 3, "Texto: «El bien ha de hacerse y buscarse, y el mal evitarse» (<i>Suma teológica</i>, I-II, q. 94, a. 2; traducción habitual). Su idea principal es…",
+    ["el primer principio de la razón práctica, del que derivan los demás preceptos", "un mandamiento exclusivo de la Biblia", "una ley física", "una norma sin fundamento"], 0,
+    ["Es el principio básico de la ley natural."]);
+  O("hs33", 3, "Una alumna afirma: «las cinco vías prueban que Dios es el Dios de la Biblia». ¿Qué matiz es el correcto?",
+    ["Prueban un primer término; sus atributos se estudian después", "Tiene razón: lo prueban todo", "No prueban nada", "Solo prueban que existe la materia"], 0,
+    ["Concluyen «y a esto llamamos Dios»; Tomás desarrolla después los atributos."]);
+  O("hs34", 3, "¿Qué crítica hace Hume a las vías?",
+    ["Que no percibimos la causalidad, solo hechos que se suceden", "Que Dios no puede ser causa", "Que el movimiento no existe", "Que la fe es irracional"], 0,
+    ["Cuestiona la base causal de las vías (T10)."]);
+  O("hs35", 3, "¿Qué crítica hace Kant a las pruebas de Dios?",
+    ["Que la razón no puede usar las categorías (causalidad) más allá de la experiencia", "Que Dios no puede existir", "Que no hay experiencia", "Que la fe es mejor que la razón"], 0,
+    ["La razón teórica, para Kant (T12), no puede conocer lo que está fuera de la experiencia posible."]);
+  O("hs36", 3, "¿Qué distingue el dualismo de Platón y Agustín del hilemorfismo de Tomás en el ser humano?",
+    ["Para Tomás el ser humano es una sola sustancia: el alma es forma del cuerpo", "Para Tomás no hay alma", "Para Platón el alma es forma del cuerpo", "No hay diferencia"], 0,
+    ["Dualismo = dos sustancias; hilemorfismo = una sola, compuesta."]);
+  O("hs37", 3, "Tomás y Kant se diferencian en ética en que…",
+    ["Tomás busca la felicidad como fin con las virtudes; Kant, el deber universal", "Kant defiende la bienaventuranza", "ambos defienden el deber", "Tomás rechaza la razón"], 0,
+    ["Ética teleológica (fin: felicidad) frente a ética formal del deber."]);
+  M("hs38", 3, "Empareja cada tipo de ley con su descripción.", [
+    C("Ley eterna", ["Plan racional de Dios para lo creado", "Lo que la razón humana descubre del plan de Dios", "Norma dictada por una sociedad", "Lo revelado por Dios"], 0),
+    C("Ley natural", ["Plan racional de Dios para lo creado", "Lo que la razón humana descubre del plan de Dios", "Norma dictada por una sociedad", "Lo revelado por Dios"], 1),
+    C("Ley humana", ["Plan racional de Dios para lo creado", "Lo que la razón humana descubre del plan de Dios", "Norma dictada por una sociedad", "Lo revelado por Dios"], 2),
+    C("Ley divina", ["Plan racional de Dios para lo creado", "Lo que la razón humana descubre del plan de Dios", "Norma dictada por una sociedad", "Lo revelado por Dios"], 3)],
+    ["Eterna → natural (participación racional) → humana (concreción) y divina (revelación)."], "Eterna–plan de Dios; natural–lo que descubre la razón; humana–norma social; divina–revelada");
+  M("hs39", 3, "Empareja cada vía con el nombre al que llega.", [
+    C("Causa eficiente", ["Primera causa incausada", "Ser necesario por sí mismo", "Ser máximamente perfecto", "Inteligencia ordenadora"], 0),
+    C("Contingencia", ["Primera causa incausada", "Ser necesario por sí mismo", "Ser máximamente perfecto", "Inteligencia ordenadora"], 1),
+    C("Grados de perfección", ["Primera causa incausada", "Ser necesario por sí mismo", "Ser máximamente perfecto", "Inteligencia ordenadora"], 2),
+    C("Orden y finalidad", ["Primera causa incausada", "Ser necesario por sí mismo", "Ser máximamente perfecto", "Inteligencia ordenadora"], 3)],
+    ["Cada vía acaba en un primer término distinto, que Tomás identifica con Dios."], "Causa eficiente–primera causa; contingencia–ser necesario; grados–máximamente perfecto; orden–inteligencia ordenadora");
+  R("hs40", "Explica la relación entre fe y razón según Santo Tomás y compárala con la de San Agustín. (Pregunta tipo PAU)", 9, [
+    { t: "Contexto: recuperación de Aristóteles y universidades del siglo XIII", p: 0.3 },
+    { t: "Tesis: fe y razón son caminos distintos y armónicos hacia la misma verdad; no hay contradicción posible", p: 0.5 },
+    { t: "Distingue preámbulos de la fe (accesibles a la razón) y misterios (solo revelación), con ejemplos", p: 0.5 },
+    { t: "Compara con Agustín («cree para entender»: la fe guía a la razón) y con los averroístas", p: 0.4 },
+    { t: "Valoración o conclusión coherente", p: 0.3 }],
+    ["Contexto.", "Tesis de armonía.", "Preámbulos y misterios.", "Comparación con Agustín.", "Valoración."], "Dos caminos armónicos hacia una sola verdad");
+  R("hs41", "Explica las cinco vías de Santo Tomás: su estructura común y dos de ellas con detalle. (Pregunta tipo PAU)", 8, [
+    { t: "Enuncia las cinco vías (movimiento, causa eficiente, contingencia, grados, finalidad)", p: 0.5 },
+    { t: "Estructura común: hecho observable, imposibilidad de regreso infinito, primer término", p: 0.5 },
+    { t: "Desarrolla correctamente dos vías con su conclusión", p: 0.5 },
+    { t: "Explica el carácter a posteriori y el rechazo del argumento ontológico", p: 0.3 },
+    { t: "Crítica o valoración (Hume, Kant o ciencia moderna)", p: 0.2 }],
+    ["Las cinco vías.", "Estructura común.", "Dos vías.", "A posteriori.", "Crítica."], "Hecho → no regreso infinito → primer término");
+  R("hs42", "Explica la ley natural en Santo Tomás y su relación con la ley eterna, humana y divina. (Pregunta tipo PAU)", 9, [
+    { t: "Define la ley natural como lo que la razón descubre de la ley eterna", p: 0.5 },
+    { t: "Primer principio (hacer el bien y evitar el mal) y las inclinaciones naturales", p: 0.5 },
+    { t: "Distingue ley eterna, natural, humana y divina con ejemplos", p: 0.5 },
+    { t: "Ley humana injusta: no es verdadera ley", p: 0.2 },
+    { t: "Valoración: influencia en los derechos humanos, límites", p: 0.3 }],
+    ["Definición.", "Primer principio.", "Cuatro leyes.", "Ley injusta.", "Valoración."], "La razón descubre la ley natural, participación de la ley eterna");
+  R("hs43", "Compara a Santo Tomás con Aristóteles: qué conserva y qué añade. (Pregunta tipo PAU)", 8, [
+    { t: "Qué conserva: hilemorfismo, potencia y acto, causas, empirismo moderado y virtudes", p: 0.5 },
+    { t: "Dios creador libre frente al Primer motor que no crea", p: 0.5 },
+    { t: "Alma forma del cuerpo y además inmortal", p: 0.3 },
+    { t: "Felicidad: actividad virtuosa y, plenamente, ver a Dios", p: 0.3 },
+    { t: "Conclusión: Aristóteles cristianizado", p: 0.4 }],
+    ["Qué conserva.", "Dios creador.", "Alma inmortal.", "Felicidad.", "Conclusión."], "Tomás cristianiza a Aristóteles");
+  R("hs44", "Comenta este texto: «Es cierto, y consta por los sentidos, que en este mundo hay cosas que se mueven. Ahora bien, todo lo que se mueve es movido por otro […]. Por tanto, es necesario llegar a un primer motor que no sea movido por nada, y éste es el que todos entienden por Dios» (Tomás de Aquino, <i>Suma teológica</i>, traducción habitual). Indica tema, ideas, relación con el autor y comparación con otro pensador. (Pregunta tipo PAU)", 9, [
+    { t: "Tema: demostración de la existencia de Dios desde el movimiento (primera vía)", p: 0.3 },
+    { t: "Idea principal: lo movido lo mueve otro; no hay regreso infinito; existe un primer motor inmóvil", p: 0.4 },
+    { t: "Aclara términos: movimiento como paso de potencia a acto, a posteriori, orden de causas", p: 0.4 },
+    { t: "Relaciona con el autor: las otras cuatro vías, fe y razón, Aristóteles", p: 0.5 },
+    { t: "Compara con Aristóteles, Hume o Kant", p: 0.3 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario de la primera vía");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Tres respuestas sobre fe y razón", ancha: true,
+      tabla: { cab: ["", "Agustín (T6)", "Tomás", "Averroístas"], filas: [
+        ["Relación", "la fe guía a la razón", "caminos armónicos", "doble verdad"],
+        ["Base filosófica", "Platón", "Aristóteles", "Aristóteles / Averroes"],
+        ["Conocimiento", "iluminación", "abstracción", "abstracción"]
+      ] } },
+    { titulo: "Las cinco vías", ancha: true,
+      tabla: { cab: ["Vía", "Parte de…", "Llega a…"], filas: [
+        ["Movimiento", "lo que se mueve", "primer motor inmóvil"],
+        ["Causa eficiente", "causas y efectos", "primera causa incausada"],
+        ["Contingencia", "seres que pueden no ser", "ser necesario"],
+        ["Grados", "más y menos perfecto", "ser perfectísimo"],
+        ["Finalidad", "orden sin conocimiento", "inteligencia ordenadora"]
+      ] } },
+    { titulo: "Cuatro leyes", ancha: true,
+      tabla: { cab: ["Ley", "Quién la conoce"], filas: [
+        ["Eterna", "solo Dios en plenitud"],
+        ["Natural", "la razón humana"],
+        ["Humana", "cada sociedad la dicta"],
+        ["Divina", "la revelación"]
+      ] } },
+    { titulo: "La vía del movimiento",
+      pasos: ["Hay cosas que se mueven.", "Todo lo movido lo mueve otro.", "No puede haber regreso infinito.", "Hay un primer motor inmóvil: Dios."],
+      nota: "Es un orden de dependencia, no de tiempo." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Para Tomás la razón sustituye a la fe", bien: "Fe y razón son caminos armónicos; los misterios son de fe", por: "No hay contradicción posible." },
+        { mal: "Las vías parten de la idea de Dios", bien: "Parten de hechos observables (a posteriori)", por: "Tomás rechaza el argumento ontológico." },
+        { mal: "La ley natural solo la conocen los creyentes", bien: "La descubre la razón de cualquiera", por: "Participación racional de la ley eterna." },
+        { mal: "El Primer motor de Aristóteles y el Dios de Tomás son lo mismo", bien: "El de Tomás crea y tiene providencia", por: "Tomás cristianiza a Aristóteles." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t7", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf7a.secciones,
+    nuevas: B.parte.hf7a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
