@@ -77,6 +77,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | **Tanda 2 de Química II (t5–t8), total agentes** | **1.062.601** | ≈101 min |
 | Química II t9 completo (≈7.200 palabras, 52 ejercicios, 6 simuladores nuevos, 459 comprobaciones con RDKit/OPSIN) | 284.949 (71 herramientas) | 31 min |
 | Química II t10 completo (≈7.000 palabras, 51 ejercicios, 3 simuladores nuevos, 198 comprobaciones) | 210.410 (47 herramientas) | 19 min |
+| Química II simulacros sim6–sim8 (21 cuestiones, ≈60 apartados, 187 comprobaciones) | 133.671 (23 herramientas) | 8 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -138,3 +139,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct:** t6 reforzado, fusionado y validado (`quimica2_t06.js` pasó a `quimica2_t06a.js`, mismo contenido). `Mate.numero` (grafica.js) acepta ahora notación científica (`7,07e-7`, `7,07·10⁻⁷`); efecto lateral conocido: en Mates, «2e-1» se lee como 0,2 y no como 2·e−1 (escribir «2*e-1»). Mates I y FyQ I siguen aceptando todas sus respuestas. Solo queda t8 en marcha.
 **28-oct:** t8 fusionado y validado: tanda 2 terminada. Tanda 3 en marcha en la misma conversación: t9 y t10; después t11 y los 3 simulacros (no existe aún `quimica2_t99_simulacros.js`; tomar de modelo `fyq1_t99_simulacros.js`).
 **28-oct:** tanda 2 publicada (versión 4 de la dirección nueva, `comprobar_todo` «TODO CUADRA»). t9 y t10 fusionados y validados; en marcha t11 y los simulacros. `verificar_quimica2_t9.py` necesita `pip install rdkit py2opsin` y Java.
+**28-oct:** simulacros sim6–sim8 fusionados (formato «elige 5 de 7, 2 puntos cada una»: sin confirmar que sea el reparto exacto del examen actual de Madrid). Solo queda t11.
