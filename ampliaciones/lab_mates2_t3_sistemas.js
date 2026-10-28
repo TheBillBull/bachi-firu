@@ -42,7 +42,7 @@
     var a = absF(f);
     if (a.n === 1 && a.d === 1) return nom;
     if (a.d === 1) return a.n + nom;
-    return a.n + nom + "/" + a.d;
+    return (a.n === 1 ? "" : a.n) + nom + "/" + a.d;
   }
   // combinación lineal c + Σ coef·nombre, escrita con signos limpios
   S.lin = function (c, coefs, nombres) {
@@ -172,13 +172,13 @@
   };
 
   // Enlaza <input class="mm-in"> con una matriz de estado
-  function enlazar(host, M, alCambiar) {
+  function enlazar(host, getM, alCambiar) {
     host.addEventListener("input", function (e) {
       var inp = e.target; if (!inp.classList || !inp.classList.contains("mm-in")) return;
       var v = T.parse(inp.value);
       inp.classList.toggle("malo", !v);
       if (!v) return;
-      M[+inp.getAttribute("data-i")][+inp.getAttribute("data-j")] = v;
+      getM()[+inp.getAttribute("data-i")][+inp.getAttribute("data-j")] = v;
       alCambiar();
     });
   }
@@ -409,7 +409,7 @@
     U.fichas(cu.querySelector("[data-pre]"), PRES_P.map(function (p) { return { k: p.k, t: p.t }; }), "scd", function (kk) {
       pre = PRES_P.filter(function (p) { return p.k === kk; })[0]; E.A = T.de(pre.A); armar();
     });
-    enlazar(ent, E.A, pinta);
+    enlazar(ent, function () { return E.A; }, pinta);
     var ctl = U.ctl(cu.querySelector("[data-rot]"));
     U.slider(ctl, { et: "giro", min: -180, max: 180, step: 5, val: yaw, on: function (v) { yaw = v; pinta(); }, fmt: function (v) { return v + "°"; } });
     U.slider(ctl, { et: "altura", min: 0, max: 85, step: 5, val: pit, on: function (v) { pit = v; pinta(); }, fmt: function (v) { return v + "°"; } });
@@ -422,7 +422,7 @@
   var PRES_C = [
     { k: "a", t: "2×2", A: [[2, 3, 12], [1, -1, 1]], n: 2 },
     { k: "b", t: "3×3", A: [[2, 1, -1, -1], [1, -2, 1, 5], [3, 1, 2, 6]], n: 3 },
-    { k: "c", t: "3×3 con fracciones", A: [[1, 2, 1, 5], [2, -1, 3, 1], [1, 1, 4, 6]], n: 3 },
+    { k: "c", t: "3×3 (x = 0)", A: [[1, 2, 1, 5], [2, -1, 3, 1], [1, 1, 4, 6]], n: 3 },
     { k: "d", t: "det(A) = 0", A: [[1, -1, 2, 3], [2, 1, -1, 0], [3, 0, 1, 3]], n: 3 }
   ];
   S.PRES_C = PRES_C;
@@ -459,7 +459,7 @@
     U.fichas(cu.querySelector("[data-pre]"), PRES_C.map(function (p) { return { k: p.k, t: p.t }; }), "b", function (kk) {
       pre = PRES_C.filter(function (p) { return p.k === kk; })[0]; E.A = T.de(pre.A); n = pre.n; iv = 0; armar();
     });
-    enlazar(ent, E.A, pinta);
+    enlazar(ent, function () { return E.A; }, pinta);
     armar();
   };
 
@@ -492,7 +492,7 @@
       inc: ["x = € en A", "y = € en B", "z = € en C"],
       ecs: [["«reparte 6.000 €»", "x + y + z = 6000"], ["«240 € de intereses»", "0,02x + 0,04y + 0,06z = 240  →  x + 2y + 3z = 12000"]],
       A: [[1, 1, 1, 6000], [1, 2, 3, 12000]], n: 3, unid: ["€", "€", "€"],
-      nota: "Hay 3 incógnitas y solo 2 ecuaciones independientes: el sistema es SCI. Si el enunciado añade «la cantidad en C es el doble que en A», se añade la ecuación z = 2x y se obtiene una solución única." }
+      nota: "Hay 3 incógnitas y solo 2 ecuaciones independientes: el sistema es SCI. Si el enunciado añade «en B hay el triple que en A», entra la ecuación y = 3x y la solución es única: (1200, 3600, 1200)." }
   ];
   PROB[3].A = [[2, 1, 1, F(17, 2)], [1, 2, 1, F(15, 2)], [1, 1, 3, 10]];
   S.PROB = PROB;
