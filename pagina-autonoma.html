@@ -7717,6 +7717,78 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Historia de la Filosofía, tema 3 (Platón)
+   filo_caverna: el mito de la caverna paso a paso, con lo que simboliza cada etapa y el nivel de la
+   línea dividida (eikasía, pístis, diánoia, nóesis) al que corresponde. Se elige la etapa pulsando.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("ft3-estilos")) return;
+    var s = document.createElement("style"); s.id = "ft3-estilos";
+    s.textContent =
+      ".ft3-linea{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0 4px}" +
+      ".ft3-n{padding:8px 4px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);text-align:center;font-size:13px;line-height:1.3;color:var(--ink-faint);opacity:.6}" +
+      ".ft3-n b{display:block;font-size:14px;color:var(--ink)}" +
+      ".ft3-n.on{opacity:1;border-color:var(--pen);background:var(--pen-soft)}" +
+      ".ft3-grp{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12.5px;color:var(--ink-faint);text-align:center;margin-top:10px}" +
+      ".ft3-fila{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:15px;line-height:1.45;color:var(--ink)}" +
+      ".ft3-fila em{flex:none;width:112px;font-style:normal;font-weight:700;color:var(--ink-faint);font-size:13.5px}" +
+      "@media(max-width:520px){.ft3-linea{grid-template-columns:1fr 1fr}.ft3-grp{display:none}.ft3-fila{flex-direction:column;gap:2px}.ft3-fila em{width:auto}.ft3-n{font-size:12px}}";
+    document.head.appendChild(s);
+  })();
+
+  var ETAPAS = [
+    { k: 1, t: "1 Sombras", nivel: 0, titulo: "Encadenados mirando las sombras",
+      mito: "Los prisioneros, de espaldas a la hoguera, solo ven las sombras de la pared del fondo.",
+      mundo: "Mundo sensible (lo más bajo)", obj: "Imágenes, sombras, apariencias", sab: "Imaginación (eikasía): tomar las imágenes por la realidad.",
+      hoy: "Creer algo porque «lo dice todo el mundo» o porque sale en una red social.", sient: "Comodidad: no sabes que ignoras." },
+    { k: 2, t: "2 Giro", nivel: 1, titulo: "Liberado: se gira y ve la hoguera y las figuras",
+      mito: "Un prisionero es liberado, se gira y descubre los objetos y el fuego. La luz le duele y duda.",
+      mundo: "Mundo sensible", obj: "Cosas concretas y seres vivos", sab: "Creencia (pístis): confiar en lo que se ve y se toca.",
+      hoy: "Darte cuenta de que lo de las redes eran copias y mirar las cosas reales.", sient: "Dolor y confusión: aprender cuesta." },
+    { k: 3, t: "3 Reflejos", nivel: 2, titulo: "Sale al exterior: sombras y reflejos",
+      mito: "Arrastrado hacia fuera, al principio solo soporta ver sombras y reflejos en el agua.",
+      mundo: "Mundo inteligible (entrada)", obj: "Objetos matemáticos, apoyados en figuras", sab: "Razonamiento (diánoia): parte de hipótesis y usa imágenes.",
+      hoy: "Demostrar un teorema con un triángulo dibujado, pensando en el triángulo ideal.", sient: "Empiezas a ver, pero aún con ayudas." },
+    { k: 4, t: "4 Seres reales", nivel: 3, titulo: "Ve los seres verdaderos",
+      mito: "Poco a poco mira las cosas mismas, de noche y luego de día.",
+      mundo: "Mundo inteligible", obj: "Las Ideas (Justicia, Belleza, Igualdad…)", sab: "Inteligencia (nóesis): conocimiento directo de las Ideas por la dialéctica.",
+      hoy: "Entender qué es la justicia en sí, no solo casos de justicia.", sient: "Comprensión plena, sin hipótesis." },
+    { k: 5, t: "5 Sol", nivel: 3, titulo: "Contempla el Sol",
+      mito: "Al fin puede mirar el Sol: causa de la luz, de la vida y de que se vean las cosas.",
+      mundo: "Cima del mundo inteligible", obj: "La Idea de Bien", sab: "Nóesis en su grado más alto: el Bien da ser y verdad a las demás Ideas.",
+      hoy: "Comprender para qué y por qué es bueno todo lo demás.", sient: "Felicidad: sabe cuál es la meta." },
+    { k: 6, t: "6 Regreso", nivel: -1, titulo: "Vuelve a la cueva",
+      mito: "Baja a liberar a los demás. Con la vista deslumbrada, torpe entre sombras, se burlan de él y pueden matarlo.",
+      mundo: "De nuevo el sensible, con otra mirada", obj: "Los prisioneros", sab: "El que sabe tiene el deber de educar y gobernar.",
+      hoy: "Sócrates ejecutado en 399 a. C.: el sabio que quiere educar a quien no lo desea.", sient: "Incomprensión; pero es un deber, no una opción." }
+  ];
+  var NIVELES = [["Imaginación", "eikasía"], ["Creencia", "pístis"], ["Razonamiento", "diánoia"], ["Inteligencia", "nóesis"]];
+
+  B.w.filo_caverna = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El ascenso de la caverna, etapa a etapa");
+    cuerpo.innerHTML = '<p class="w-intro">Pulsa cada etapa del mito y mira qué simboliza y a qué nivel de la línea dividida corresponde.</p>' +
+      '<div data-ctl></div><div class="ft3-linea"></div><div class="ft3-grp"><span>Opinión (dóxa): mundo sensible</span><span>Ciencia (epistéme): mundo inteligible</span></div>' +
+      '<div class="ft3-det"></div>';
+    var linea = cuerpo.querySelector(".ft3-linea"), det = cuerpo.querySelector(".ft3-det");
+    var cur = 1;
+    U.fichas(cuerpo.querySelector("[data-ctl]"), ETAPAS.map(function (e) { return { k: e.k, t: e.t }; }), cur, function (k) { cur = +k; pinta(); });
+    function pinta() {
+      var e = ETAPAS[cur - 1];
+      linea.innerHTML = NIVELES.map(function (n, i) { return '<div class="ft3-n' + (i === e.nivel ? " on" : "") + '"><b>' + n[0] + "</b>" + n[1] + "</div>"; }).join("");
+      det.innerHTML = '<h5 style="margin:10px 0 4px">' + e.titulo + "</h5>" +
+        [["En el mito", e.mito], ["Mundo", e.mundo], ["Qué se conoce", e.obj], ["Nivel de saber", e.sab], ["Hoy sería…", e.hoy], ["Qué se siente", e.sient]].map(function (f) {
+          return '<div class="ft3-fila"><em>' + f[0] + "</em><span>" + f[1] + "</span></div>";
+        }).join("");
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · motor de formulación y nomenclatura inorgánica (Física y Química I, tema 3)
    B.lab.formulacion: tablas de elementos y números de oxidación, y un catálogo de compuestos
    (óxidos, peróxidos, hidróxidos, hidruros, hidrácidos, oxoácidos, sales binarias, oxisales, sales
@@ -41099,6 +41171,603 @@
     vistazo: vistazo,
     secciones: B.parte.hf1a.secciones,
     nuevas: B.parte.hf1a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 3: Platón
+   (parte A: teoría. Parte B, historia_fil_t03b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Las Ideas no son «ideas en la cabeza»: son realidades objetivas, eternas y fuera de nosotros → sección 2 + clasificar.
+   2. El mundo sensible no es «falso» ni «inexistente»: es copia, participa de las Ideas → sección 2 (ojo) + encuentra el error.
+   3. La línea dividida: cuatro niveles (eikasía, pístis, diánoia, nóesis) y su paralelo con la caverna → sección nueva 6 + widget filo_caverna.
+   4. El mito de la caverna: qué simboliza cada elemento y por qué el liberado DEBE volver → sección 3 + widget + comentario resuelto.
+   5. La Idea de Bien y el Sol: causa de ser y de conocer → secciones 2 y 3.
+   6. Reminiscencia e inmortalidad del alma (el esclavo del Menón, el Fedón) → sección 4.
+   7. El alma tripartita ↔ virtudes ↔ clases, y la justicia como armonía → sección 4 y 5 + emparejar + orden.
+   8. Política: filósofo-rey, educación, crítica de la democracia, y su valoración → sección 5.
+   9. Comparación con Sócrates (de la definición a la Idea), con Heráclito/Parménides y con Aristóteles (T4) → mapa del tema.
+   10. Comentario de texto: cómo se comenta un fragmento de la República → comentario resuelto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t3/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Platón: vida, obra y problema
+  secciones[0] =
+    "<h5>La vida de Platón (427–347 a. C.) y por qué importa para entender su filosofía</h5>" +
+    "<p>Platón nació en Atenas (427 a. C.) en una familia aristocrática. Lo normal habría sido dedicarse a la política, y de joven quiso hacerlo. Pero tres golpes se lo impidieron:</p>" +
+    "<ul><li><b>La derrota de Atenas</b> frente a Esparta (guerra del Peloponeso, que acabó en 404 a. C.). Había visto una democracia que cometía errores graves y una ciudad humillada.</li>" +
+    "<li><b>Los Treinta Tiranos</b> (404 a. C.), un gobierno oligárquico que incluía a familiares suyos y que resultó brutal. Su primera ilusión se rompió.</li>" +
+    "<li><b>La condena a muerte de Sócrates</b> (470–399 a. C.), en 399 a. C., por la democracia restaurada. Para Platón el mejor y más justo de los hombres había sido ejecutado legalmente. Conclusión: <em>ninguna ciudad se arregla si no la gobiernan quienes saben qué es lo justo</em>. De ahí su famosa idea de que filosofía y poder deben unirse.</li></ul>" +
+    "<p>Después de la muerte de Sócrates viajó (Megara, Egipto, el sur de Italia, Sicilia). En Siracusa trató al tirano Dionisio I (hacia 388–387 a. C.). De vuelta en Atenas fundó la <b>Academia</b> (hacia 387 a. C.), una escuela en los jardines dedicados al héroe Academo, que duró siglos. Allí se estudiaban matemáticas, astronomía, dialéctica y política; se cuenta (es una tradición, no un dato seguro) que en la entrada ponía algo así como «que no entre quien no sepa geometría». Volvió a Siracusa dos veces más (367 y 361 a. C.) para intentar educar al joven Dionisio II como gobernante-filósofo, y fracasó. En la Academia estudió <b>Aristóteles</b> (384–322 a. C.), que entró hacia 367 a. C. con unos diecisiete años y se quedó unos veinte, hasta la muerte de su maestro (347 a. C.).</p>" +
+    "<h5>Cómo escribe: el diálogo</h5>" +
+    "<p>Platón no escribió tratados, sino <b>diálogos</b>: conversaciones inventadas (sobre bases reales) en las que casi siempre el protagonista es Sócrates. Hay una razón profunda: para Platón la filosofía no es repetir una doctrina, sino <em>pensar con otros, probar, corregir</em>. Por eso termina en preguntas abiertas con frecuencia. Los diálogos suelen dividirse (con matices entre los especialistas) en tres etapas:</p>" +
+    tabla(["Etapa", "Obras que debes conocer", "Rasgo principal"], [
+      ["Juventud (socrática)", "<i>Apología de Sócrates</i>, <i>Critón</i>, <i>Eutifrón</i>", "Retrata al Sócrates histórico: busca definiciones y no las encuentra."],
+      ["Madurez", "<i>Menón</i>, <i>Fedón</i>, <i>Banquete</i>, <i>República</i>, <i>Fedro</i>", "Expone la teoría de las Ideas, del alma y el Estado ideal. <b>La parte que cae en la PAU.</b>"],
+      ["Vejez", "<i>Parménides</i>, <i>Teeteto</i>, <i>Sofista</i>, <i>Político</i>, <i>Timeo</i>, <i>Leyes</i>", "Revisa críticamente sus propias teorías; política más realista (<i>Leyes</i>)."]
+    ]) +
+    "<p>Importa distinguir: en los primeros diálogos habla el <b>Sócrates histórico</b> (tema 2); en los de madurez, el personaje «Sócrates» es ya <b>portavoz de Platón</b>. Esa es la diferencia clave entre los dos maestros: Sócrates preguntaba qué es la justicia y reconocía no saberlo; Platón responde que existe una <b>Idea de Justicia</b> que la razón puede conocer.</p>" +
+    "<h5>El problema del que parte</h5>" +
+    "<p>Platón recibe dos herencias que parecen incompatibles. De los presocráticos (tema 1): Heráclito dice que todo cambia (y entonces no hay nada estable que conocer), Parménides dice que el verdadero ser es inmutable. De Sócrates (tema 2): hay que buscar definiciones universales (qué es la virtud, la justicia), frente a los sofistas, que decían que todo depende de cada persona. Platón quiere salvar a la vez <b>tres cosas</b>: (1) que existe un conocimiento verdadero y universal (contra los sofistas); (2) que ese conocimiento versa sobre algo estable (Parménides); (3) que el mundo que vemos sí cambia (Heráclito). Su solución: <b>dos mundos</b>.</p>";
+
+  // ---------------------------------------------------------------- 2. Teoría de las Ideas
+  secciones[1] =
+    "<h5>De dónde sale la idea: el argumento de lo universal</h5>" +
+    "<p>Piensa en un círculo dibujado en una pizarra: nunca es un círculo perfecto, y con la tiza ni siquiera es redondo del todo. Y sin embargo la geometría demuestra cosas exactas sobre «el círculo», con un círculo que nadie ha visto jamás. ¿De qué trata entonces la geometría? Platón responde: de la <b>Idea de Círculo</b>, perfecta, que los círculos dibujados imitan mal.</p>" +
+    "<p>Lo mismo pasa con la belleza o la justicia. Ves mil cosas bellas, distintas entre sí (un paisaje, una canción, un gesto), y sin embargo llamas «bello» a todas. ¿Qué tienen en común? No es algo que se vea: es la <b>Belleza en sí</b>. Si no existiera, no podríamos juzgar que esto es más bello que aquello (¿más cerca de qué?). Es el argumento de lo universal, y es la continuación natural de la pregunta de Sócrates «¿qué es X?»: <em>Sócrates buscaba la definición; Platón le da una existencia propia a lo definido.</em></p>" +
+    "<h5>Qué es una Idea (y qué no)</h5>" +
+    "<p>La palabra «idea» engaña, porque hoy solemos decir «idea» a lo que pensamos. Para Platón una <b>Idea (eîdos, ideá)</b> no está en nuestra mente: es una <b>realidad objetiva</b> que existe por sí misma, tanto si alguien piensa en ella como si no (como los números: el 7 no desaparece cuando dejas de pensar en él). Sus características:</p>" +
+    "<ul><li><b>Eterna e inmutable:</b> no nace ni muere ni cambia (lo que pedía Parménides).</li>" +
+    "<li><b>Una frente a lo múltiple:</b> hay muchas cosas bellas, una sola Belleza.</li>" +
+    "<li><b>Perfecta y modelo:</b> es el patrón de que las cosas son copias imperfectas.</li>" +
+    "<li><b>Inteligible:</b> solo se conoce con la razón, no con los sentidos.</li>" +
+    "<li><b>Más real</b> que las cosas: de ella depende que las cosas sean lo que son.</li></ul>" +
+    "<h5>Relación entre los dos mundos: participación e imitación</h5>" +
+    "<p>Las cosas sensibles no son «nada», sino <b>copias</b> de las Ideas. Platón usa dos palabras para describirlo, y conviene conocer ambas: las cosas <b>participan</b> de la Idea (<em>méthexis</em>: tienen una parte de ella, son bellas porque participan de la Belleza) o <b>imitan</b> la Idea (<em>mímesis</em>: la copian, como un dibujo copia un modelo). Y las Ideas se pueden entender también como la <b>causa</b> de que algo sea lo que es. Las cosas sensibles están «a medio camino entre el ser y el no ser»: no son la nada (existen), pero tampoco son el ser pleno (cambian, nacen, mueren, son bellas desde un punto de vista y feas desde otro).</p>" +
+    tabla(["", "Mundo sensible", "Mundo inteligible"], [
+      ["Qué lo forma", "Cosas concretas: este caballo, esta acción justa", "Ideas: Caballo, Justicia, Belleza, Igualdad, Bien"],
+      ["Cómo es", "Cambiante, múltiple, imperfecto, corruptible", "Eterno, único, perfecto, inmutable"],
+      ["Cómo se accede", "Sentidos (da <b>opinión</b>, <i>dóxa</i>)", "Razón (da <b>ciencia</b>, <i>epistéme</i>)"],
+      ["Relación", "<b>Copia</b>: participa de las Ideas", "<b>Modelo</b>: causa de que las cosas sean"],
+      ["Presocrático que se parece", "Heráclito (todo fluye)", "Parménides (el ser es inmutable)"]
+    ]) +
+    ojo("Error muy común: decir que para Platón el mundo sensible «no existe» o es «una ilusión». No es cierto: existe, pero es <b>menos real</b>, es copia. Otro error: pensar que las Ideas están «dentro de nuestra cabeza»; son objetivas. Tercer error: poner un solo «mundo de las Ideas» sin jerarquía; las Ideas están ordenadas y presididas por la Idea de Bien.") +
+    "<h5>La jerarquía de las Ideas y la Idea de Bien</h5>" +
+    "<p>Las Ideas no son un montón: tienen un orden. Hay Ideas de objetos (Caballo), de valores morales y estéticos (Justicia, Belleza), de relaciones matemáticas (Igualdad, Número). Y por encima de todas, la <b>Idea de Bien</b>. En la <em>República</em> (libro VI) Platón la compara con el <b>Sol</b>: el Sol hace que veamos las cosas (da luz) y que las cosas existan y crezcan (da vida); igualmente, el Bien hace que las Ideas sean <b>conocibles</b> (da verdad) y que <b>sean</b> lo que son (da ser). Por eso, conocer el Bien es el fin más alto de la filosofía y condición para gobernar bien. Cuidado: «Bien» no es solo «bondad moral»; es el principio de orden, perfección y finalidad de todo.</p>" +
+    "<h5>Tres problemas que te pueden preguntar</h5>" +
+    "<ul><li><b>¿Cómo conecta con Heráclito y Parménides?</b> Da la razón a Heráclito sobre el mundo sensible (cambia) y a Parménides sobre el inteligible (inmutable).</li>" +
+    "<li><b>¿Cómo conecta con Sócrates?</b> Las definiciones universales que buscaba Sócrates tienen un objeto real: las Ideas.</li>" +
+    "<li><b>¿Qué crítica recibirá?</b> Aristóteles (tema 4) dirá que las Ideas «duplican» el mundo sin explicarlo, y que la forma de las cosas está <em>en</em> las cosas, no separada. El propio Platón, en el <i>Parménides</i>, ya se planteó objeciones (el llamado «tercer hombre»).</li></ul>" +
+    w("clasificar", "sensinteligible");
+
+  // ---------------------------------------------------------------- 3. Caverna
+  secciones[2] =
+    "<h5>Qué simboliza cada elemento del mito</h5>" +
+    "<p>El mito de la caverna es una <b>alegoría</b>: casi cada detalle es un símbolo. Para la PAU conviene saber la tabla de símbolos de memoria, porque es lo que se pide en cuanto sale el texto:</p>" +
+    tabla(["En el mito", "Simboliza", "Nivel"], [
+      ["La caverna, el interior", "El mundo sensible", "Dóxa (opinión)"],
+      ["Las cadenas, el estar de espaldas", "Las ataduras del cuerpo, los sentidos y los prejuicios", "Ignorancia"],
+      ["Las sombras en la pared", "Las apariencias, las imágenes, lo que «se dice»", "Eikasía (imaginación)"],
+      ["Los objetos que pasan tras el muro y el fuego", "Las cosas sensibles y su origen aparente", "Pístis (creencia)"],
+      ["El camino empinado hacia fuera", "El esfuerzo y el dolor de la educación; la dialéctica", "Ascenso"],
+      ["El exterior", "El mundo inteligible", "Epistéme (ciencia)"],
+      ["Los reflejos y sombras al aire libre", "Los objetos matemáticos", "Diánoia (razonamiento)"],
+      ["Los seres reales", "Las Ideas", "Nóesis (inteligencia)"],
+      ["El Sol", "La Idea de Bien", "Cima del saber"],
+      ["El regreso a la cueva", "El deber del filósofo de educar y gobernar", "Ética y política"]
+    ]) +
+    "<h5>Lo que enseña el mito, en cuatro ideas</h5>" +
+    "<ol><li><b>Vivimos tomando por real lo que es copia</b>, y no lo sabemos. Hoy sería parecido a creer que lo que sale en una pantalla es la vida entera.</li>" +
+    "<li><b>Educar no es «meter» conocimiento en la cabeza</b>, sino <em>girar el alma</em> hacia donde está la verdad (Platón dice que el alma ya tiene la capacidad de ver; hay que orientarla). Fíjate: al prisionero no se le pide permiso: se le obliga a salir.</li>" +
+    "<li><b>El conocimiento es un camino difícil y gradual.</b> La luz duele al principio. Quien sale de golpe, se deslumbra. Por eso la educación platónica es larga y escalonada.</li>" +
+    "<li><b>El sabio tiene un deber político.</b> No puede quedarse arriba disfrutando de la contemplación: debe bajar. Esto conecta directamente con el filósofo-rey.</li></ol>" +
+    "<h5>La conexión con Sócrates</h5>" +
+    "<p>Platón escribe de forma que el lector piense en Sócrates: el prisionero liberado que baja a ayudar y es ridiculizado (e incluso amenazado de muerte) es el mismo destino de su maestro. El mito es también una defensa de la filosofía ante una ciudad que mató al filósofo.</p>" +
+    ojo("En la PAU, no cuentes el mito como un cuento: <b>cada paso se explica con su símbolo</b>. Y no olvides el final (el regreso), que es lo que lo conecta con la política.") +
+    w("filo_caverna");
+
+  // ---------------------------------------------------------------- 4. Alma, conocimiento, ética
+  secciones[3] =
+    "<h5>Dualismo: el alma frente al cuerpo</h5>" +
+    "<p>Platón sostiene un <b>dualismo antropológico</b>: el ser humano está formado por dos realidades distintas. El <b>alma</b> es de la naturaleza de las Ideas (inmortal, invisible, racional) y el <b>cuerpo</b> es de la naturaleza del mundo sensible (mortal, cambiante). Juega con un juego de palabras en griego: el cuerpo (<em>sôma</em>) sería la tumba o cárcel (<em>sêma</em>) del alma. Para Platón, el alma se encuentra en el cuerpo como un exiliado: por eso el filósofo «se prepara para morir», es decir, aprende a vivir liberándose de las pasiones del cuerpo para contemplar mejor la verdad. No significa que odie el cuerpo, sino que quiere que el alma mande.</p>" +
+    "<h5>Argumentos de la inmortalidad (Fedón)</h5>" +
+    "<p>En el <i>Fedón</i> (que narra la última conversación de Sócrates antes de beber la cicuta) Platón da varios argumentos. Basta con que conozcas dos ideas: (1) <b>Afinidad</b>: el alma conoce las Ideas, que son eternas e invisibles; solo algo de su misma naturaleza puede conocerlas. Luego el alma es afín a lo eterno. (2) <b>Reminiscencia</b>: si sabemos cosas que no hemos aprendido en esta vida, el alma existía antes.</p>" +
+    "<h5>La reminiscencia, con el ejemplo del <i>Menón</i></h5>" +
+    "<p>Platón da un ejemplo que se hizo famoso. En el <i>Menón</i>, Sócrates interroga a un esclavo sin estudios y, solo con preguntas y un dibujo en la arena, hace que el esclavo llegue a descubrir cómo duplicar el área de un cuadrado. Sócrates no le dice nada: el esclavo «lo saca de sí». Platón concluye: ese saber estaba ya en su alma, olvidado. Aprender es <b>recordar</b> (<em>anámnesis</em>). Es una teoría del <b>innatismo</b>: el conocimiento verdadero no viene de los sentidos, sino que ya está en el alma. La experiencia sirve solo como <em>ocasión</em>: al ver cosas iguales (dos palos casi iguales) recordamos la Idea de Igualdad, que nunca hemos visto. Fíjate cómo sostiene el mismo esquema: <b>las Ideas → alma las contempló → olvida al unirse al cuerpo → los sentidos despiertan el recuerdo</b>.</p>" +
+    ejemplo("Un ejemplo cotidiano de reminiscencia", "Ves dos baldosas «iguales», pero si las mides con precisión, nunca son exactamente iguales. ¿De dónde sacas la idea de «igualdad perfecta» con la que las comparas?", [
+      "Los sentidos solo te dieron cosas casi iguales, nunca la igualdad perfecta.",
+      "Sin embargo, juzgas que «no son del todo iguales»: usas un patrón.",
+      "Platón: ese patrón es la Idea de Igualdad, que el alma conoció antes de nacer; las baldosas te la <b>recuerdan</b>."
+    ]) +
+    "<h5>Las tres partes del alma (el carro alado)</h5>" +
+    "<p>En el <i>Fedro</i>, Platón compara el alma con un <b>carro tirado por dos caballos</b> y guiado por un auriga. Es la mejor imagen para entender la teoría de las tres partes:</p>" +
+    tabla(["Parte del alma", "Imagen (Fedro)", "Dónde reside", "Función", "Virtud", "Clase social"], [
+      ["Racional (<i>logistikón</i>)", "El auriga", "Cabeza", "Pensar, conocer, decidir", "Sabiduría (<i>sophía</i>, prudencia)", "Gobernantes-filósofos"],
+      ["Irascible (<i>thymoeidés</i>)", "El caballo noble", "Pecho", "Voluntad, valor, ira noble", "Valentía (<i>andreía</i>, fortaleza)", "Guardianes (guerreros)"],
+      ["Concupiscible (<i>epithymetikón</i>)", "El caballo rebelde", "Vientre", "Deseos de placer, comida, dinero", "Templanza (<i>sophrosýne</i>)", "Productores (artesanos, labradores)"]
+    ], "q3t") +
+    "<p>Hay que entender bien lo que se pide: <b>cada parte tiene su virtud propia</b>, y la cuarta virtud, la <b>justicia</b>, no es de una parte, sino de la armonía de todas. Una persona es justa cuando la razón manda, la voluntad la obedece y los deseos se dejan guiar. Lo mismo ocurre con el Estado.</p>" +
+    "<h5>Ética: intelectualismo y felicidad</h5>" +
+    "<p>La ética de Platón es la continuación de la de Sócrates con una base metafísica: nadie hace el mal voluntariamente, porque nadie quiere lo malo para sí; se obra mal por <b>ignorancia del Bien</b> (intelectualismo moral). Pero Platón añade algo que Sócrates no tenía: como el alma tiene partes, se puede <em>saber lo bueno</em> y a pesar de ello dejarse arrastrar por el deseo (el caballo rebelde). Por eso, además de saber, hace falta <b>educar el carácter</b>. La vida buena (felicidad, <em>eudaimonía</em>) es la del alma ordenada, y el filósofo, que conoce el Bien, es el más feliz. Las cuatro <b>virtudes cardinales</b> (sabiduría, valentía, templanza, justicia) ordenan el alma y el Estado.</p>" +
+    ojo("Cuidado con confundir: <b>templanza</b> no es solo «de los productores»; es la virtud de acuerdo y armonía entre las tres partes (sobre quién debe mandar). Aun así, en el esquema básico de la PAU se asocia al alma concupiscible y a los productores. Y no mezcles dos cosas distintas: la <i>reminiscencia</i> explica cómo conocemos; la <i>tripartición</i> explica cómo actuamos.") +
+    w("emparejar", "alma");
+
+  // ---------------------------------------------------------------- 5. Política
+  secciones[4] =
+    "<h5>Por qué hace falta un Estado ideal</h5>" +
+    "<p>La política de Platón sale directamente de su ética: así como en el alma debe mandar la razón, en la ciudad deben mandar quienes saben. Una persona sola no es autosuficiente (necesita comida, casa, defensa), y por eso nace la ciudad; pero para que la ciudad funcione, cada uno debe hacer <b>lo que mejor sabe hacer</b>. De ahí la división en tres clases, que reproduce las tres partes del alma:</p>" +
+    tabla(["Clase", "Parte del alma", "Virtud", "Tarea", "Educación"], [
+      ["Gobernantes (filósofos)", "Racional", "Sabiduría", "Gobernar con conocimiento del Bien", "Larga: música, gimnasia, matemáticas, dialéctica hasta los 50 años"],
+      ["Guardianes (guerreros)", "Irascible", "Valentía", "Defender la ciudad", "Música y gimnasia"],
+      ["Productores", "Concupiscible", "Templanza", "Producir bienes (agricultura, oficios, comercio)", "La necesaria para su oficio"]
+    ], "q3t") +
+    "<h5>Cómo se selecciona y se educa</h5>" +
+    "<p>Para Platón la clase no se hereda: se asigna según las <b>aptitudes</b>, de modo que un hijo de artesano con talento filosófico podría llegar a gobernar, y viceversa. Para ello propone un sistema educativo del Estado. Se parte de la gimnasia y la música (que incluye la literatura y forma el carácter), se selecciona a los mejor dotados y se les somete a las matemáticas y finalmente a la <b>dialéctica</b>, que lleva a conocer el Bien. El filósofo no gobierna a gusto: lo hace por deber (es el regreso a la caverna). De hecho, Platón dice que debe gobernar el que <em>menos desee</em> el poder.</p>" +
+    "<h5>Medidas llamativas (y discutibles)</h5>" +
+    "<ul><li>Para que los gobernantes y guardianes no se corrompan, <b>no tienen propiedad privada</b> ni familia propia: viven en común y comparten (lo que se llama «comunismo» de bienes y de familia, que no hay que confundir con el comunismo moderno).</li>" +
+    "<li><b>Las mujeres</b> con aptitudes pueden ser guardianas y gobernantes: un rasgo muy avanzado para su época, aunque se justifica por la aptitud y no por la igualdad como derecho.</li>" +
+    "<li><b>Control de la poesía y la música</b> que educan, porque los mitos que se cuentan a los niños forman el alma.</li></ul>" +
+    "<h5>Justicia y degeneración de las formas de gobierno</h5>" +
+    "<p>La justicia es el principio que ordena todo: <b>cada cual hace lo suyo</b>, sin invadir lo ajeno. En la <i>República</i> (libros VIII–IX) Platón describe cómo se degrada un Estado cuando se rompe ese orden. El Estado justo es la <b>aristocracia</b> (el gobierno de los mejores, los sabios). Se degrada en <b>timocracia</b> (gobierno de los guerreros, que aman el honor), luego en <b>oligarquía</b> (de los ricos), después en <b>democracia</b> (donde todos los deseos valen igual y manda la multitud) y, finalmente, en <b>tiranía</b>, la peor. A cada forma de Estado corresponde un tipo de alma: la tiranía es el alma dominada por el deseo desordenado.</p>" +
+    "<h5>Cómo valorarlo</h5>" +
+    "<p>Platón critica la democracia porque, para él, el gobierno debe ser un <b>saber</b> (como el del piloto de un barco o el del médico) y no una cuestión de votos; recuerda que la democracia mató a Sócrates. Críticos modernos como Popper lo consideran un precedente de los totalitarismos, por su control de la educación, la jerarquía rígida y la poca importancia de la libertad individual. Los defensores subrayan su idea de que el poder exige preparación y sentido del bien común, y que en sus últimas obras (<i>Político</i>, <i>Leyes</i>) propone un modelo «segundo mejor» sometido a leyes y con instituciones mixtas, mucho más realista. Una buena respuesta de PAU incluye una valoración equilibrada.</p>" +
+    w("orden", "ordenasc");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. La línea dividida: grados del conocimiento", html:
+    "<p>En el libro VI de la <i>República</i>, antes del mito de la caverna, Platón dibuja una imagen: una <b>línea</b> dividida en dos partes desiguales, y cada una a su vez en dos. Representa los <b>cuatro grados del conocimiento</b> y los cuatro tipos de objetos que conocemos con cada grado. El mito de la caverna dice lo mismo con una historia, por eso se estudian juntos.</p>" +
+    tabla(["Mundo", "Grado de conocimiento", "Objeto", "Ejemplo"], [
+      ["Sensible (<i>dóxa</i>, opinión)", "<b>Imaginación</b> (<i>eikasía</i>)", "Imágenes, sombras, reflejos, copias de las cosas", "Creer que el retrato es la persona"],
+      ["Sensible (<i>dóxa</i>)", "<b>Creencia</b> (<i>pístis</i>)", "Cosas y seres vivos concretos", "Fiarte de lo que ves y tocas"],
+      ["Inteligible (<i>epistéme</i>, ciencia)", "<b>Razonamiento</b> (<i>diánoia</i>)", "Objetos matemáticos, con hipótesis y figuras", "Demostrar con un triángulo dibujado"],
+      ["Inteligible (<i>epistéme</i>)", "<b>Inteligencia</b> (<i>nóesis</i>)", "Las Ideas, hasta la Idea de Bien", "Entender qué es la justicia en sí"]
+    ]) +
+    "<h5>Cómo leerla sin confundirse</h5>" +
+    "<ul><li><b>Opinión frente a ciencia.</b> Los dos primeros grados son opinión (<i>dóxa</i>): conocimiento probable y cambiante. Los dos últimos son ciencia (<i>epistéme</i>): conocimiento seguro de lo inmutable.</li>" +
+    "<li><b>Diánoia frente a nóesis.</b> En el razonamiento (matemáticas) se parte de <em>hipótesis</em> (por ejemplo, «sea un triángulo…») y se baja hacia las conclusiones usando figuras visibles. En la inteligencia (dialéctica) se asciende a un principio que ya no es hipótesis, el Bien, y no hacen falta imágenes. Por eso la matemática es el puente: prepara la mente para la dialéctica.</li>" +
+    "<li><b>La línea tiene proporciones.</b> Cada tramo es más pequeño que el siguiente en claridad y verdad: cuanto más arriba, más ser y más verdad.</li></ul>" +
+    "<h5>Línea y caverna, juntas</h5>" +
+    "<p>Una correspondencia que se maneja en los manuales (hay variantes de interpretación, y el propio Platón no la establece punto por punto) es la siguiente: las <b>sombras</b> de la pared son la imaginación; los <b>objetos</b> que las producen, la creencia; los <b>reflejos</b> al aire libre, el razonamiento; los <b>seres reales</b>, la inteligencia; el <b>Sol</b>, la Idea de Bien. Prueba el widget del apartado 3 y compáralo con esta tabla.</p>" +
+    ojo("En la PAU, si hablas de la línea, dilo en orden de abajo arriba: <b>eikasía → pístis → diánoia → nóesis</b>, y di siempre qué mundo y qué objeto corresponde a cada uno. Un error muy frecuente es poner las matemáticas en la ciencia más alta: son <i>diánoia</i>, el escalón previo.") +
+    w("emparejar", "linea") });
+
+  nuevas.push({ h: "7. Mapa del tema: Platón y los demás autores", html:
+    "<p>El comentario de texto de la PAU casi siempre pide <b>relacionar el texto con el pensamiento del autor</b> y <b>compararlo con otro autor</b>. Con Platón, estas son las relaciones que más se piden:</p>" +
+    tabla(["Autor", "Relación con Platón"], [
+      ["Heráclito y Parménides (T1)", "Platón los concilia: el mundo sensible cambia (Heráclito), el inteligible no (Parménides)."],
+      ["Sócrates (T2)", "Platón hace objetivas las definiciones de Sócrates: el «qué es» tiene una Idea. Ambos son intelectualistas en ética."],
+      ["Sofistas (T2)", "Platón los combate: hay una verdad y un bien universales, no relativos a cada persona."],
+      ["Aristóteles (T4)", "Su discípulo le critica: las formas no están separadas de las cosas. Ambos son racionalistas y teleológicos, pero Aristóteles parte de la experiencia."],
+      ["Agustín de Hipona (T6)", "Cristianiza el platonismo: las Ideas pasan a ser ideas en la mente de Dios; el alma es inmortal; el mundo sensible es inferior."],
+      ["Descartes (T9)", "Comparte el innatismo (las ideas ya están en la mente) y el dualismo alma–cuerpo, aunque con otro método."],
+      ["Kant (T12)", "También separa lo que aparece (fenómeno) y lo que es (cosa en sí), pero no cree que se pueda conocer el segundo."],
+      ["Nietzsche (T14)", "Lo critica duramente: inventar un «otro mundo» devalúa la vida real; el platonismo sería «cristianismo para el pueblo»."]
+    ]) +
+    "<p>Estos números de tema son los de la ruta de este curso; lo importante es la idea de cada relación. Para recordarlo, piensa en tres palabras: <b>concilia</b> (a los presocráticos), <b>objetiva</b> (a Sócrates), <b>es criticado</b> (por Aristóteles).</p>" +
+    "<h5>Cuadro-resumen: lo que sostiene Platón</h5>" +
+    tabla(["Ámbito", "Tesis de Platón"], [
+      ["Realidad (metafísica)", "Dos mundos: sensible (copia) e inteligible (Ideas), presididos por la Idea de Bien."],
+      ["Conocimiento", "Cuatro grados (línea dividida); conocer es recordar (anámnesis); innatismo y racionalismo."],
+      ["Ser humano", "Dualismo: alma inmortal y tripartita en un cuerpo mortal."],
+      ["Ética", "Intelectualismo moral; virtud como armonía del alma; justicia = cada parte a lo suyo."],
+      ["Política", "Estado en tres clases; filósofos-gobernantes; educación; crítica de la democracia."]
+    ]) });
+
+  nuevas.push({ h: "8. Comentario de texto resuelto: el Sol y el Bien", html:
+    "<p>En la PAU se pide comentar un fragmento breve: <b>tema, ideas, relación con el autor y comparación con otro</b>. Aquí tienes uno resuelto paso a paso, con dos frases cortas de la <i>República</i>.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Platón, <em>República</em>, libros VI y VII; traducción española habitual, que varía levemente según la edición):<br><em>«Lo que proporciona la verdad a las cosas cognoscibles y otorga al que conoce el poder de conocer, es la Idea del Bien. [...] En los últimos límites de lo cognoscible está la Idea del Bien, que se percibe con dificultad.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Platón (427–347 a. C.), <i>República</i>, obra de madurez, de los libros VI y VII, donde aparecen el Sol, la línea y la caverna. Contexto: la educación del filósofo que debe gobernar.</li>" +
+    "<li><b>2. Tema.</b> La Idea de Bien como principio supremo de la verdad y del conocimiento.</li>" +
+    "<li><b>3. Idea principal.</b> El Bien es la causa de que las demás Ideas sean verdaderas (cognoscibles) y de que el sujeto pueda conocerlas; es lo último que se alcanza, y con esfuerzo.</li>" +
+    "<li><b>4. Ideas secundarias y términos.</b> (a) «Verdad a lo cognoscible» y «poder de conocer»: como el Sol da luz al objeto visto y vista al ojo. (b) «Últimos límites»: se llega al final de un ascenso (dialéctica, línea, caverna). (c) «Con dificultad»: el conocimiento exige esfuerzo, y deslumbra al principio.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Es el centro de su sistema: dos mundos, el inteligible presidido por el Bien (como el Sol en el sensible); conocimiento como ascenso (línea, caverna) y educación como giro del alma; la ética y la política dependen de conocer el Bien: solo quien lo conoce puede gobernar (filósofo-rey) y ser justo (armonía del alma).</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con Aristóteles (tema 4): también el Bien es el fin de todo, pero para él es inmanente (el fin propio de cada ser), no una Idea separada; critica que un Bien único y separado no explique los bienes concretos. Con Sócrates: este buscaba el bien por la definición y la ignorancia; Platón le da un objeto real.</li>" +
+    "<li><b>7. Valora y concluye.</b> El texto muestra el carácter racionalista, idealista y ético de Platón: el conocimiento más alto no es técnico, sino moral. Su influencia es inmensa: el platonismo cristiano (Agustín) hace del Bien a Dios.</li></ol>" +
+    ojo("Errores típicos al comentar: (1) <b>contar</b> el texto en vez de explicar las ideas; (2) quedarse solo con el Sol sin relacionarlo con las Ideas ni con la política; (3) olvidar que el Bien es la última y más difícil Idea; (4) comparar sin decir en qué difieren (Aristóteles y el bien inmanente).") +
+    "<p>Practica ahora con los comentarios de texto con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "9. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>Preguntas típicas y respuesta modelo en forma de esquema. El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Explica la teoría de las Ideas", "Respuesta modelo, en cinco movimientos:", [
+      "<b>Definición.</b> Las Ideas son realidades objetivas, eternas, inmutables y perfectas, solo accesibles a la razón; son el modelo de las cosas.",
+      "<b>Dos mundos.</b> Sensible (cambiante, copia, opinión) e inteligible (Ideas, ciencia).",
+      "<b>Relación.</b> Participación e imitación; la Idea de Bien, como el Sol, ilumina todas las demás.",
+      "<b>Origen.</b> Resuelve el dilema Heráclito–Parménides y da objeto a las definiciones de Sócrates.",
+      "<b>Crítica.</b> Aristóteles la rechaza: las formas no están separadas de las cosas."
+    ]) +
+    ejemplo("Pregunta 2. Explica el mito de la caverna", "Respuesta modelo:", [
+      "<b>Relato breve:</b> prisioneros, sombras, liberación, ascenso, Sol, regreso.",
+      "<b>Símbolos:</b> caverna = mundo sensible; exterior = inteligible; Sol = Bien.",
+      "<b>Línea dividida:</b> sombras, objetos, reflejos, seres reales.",
+      "<b>Mensaje:</b> la educación es un giro del alma y el sabio debe volver.",
+      "<b>Conexión:</b> Sócrates; filósofo-rey."
+    ]) +
+    ejemplo("Pregunta 3. Alma y Estado en Platón", "Respuesta modelo:", [
+      "Tres partes del alma: racional, irascible, concupiscible.",
+      "Tres virtudes: sabiduría, valentía, templanza; la justicia es la armonía.",
+      "Tres clases: gobernantes, guardianes, productores.",
+      "El Estado es el alma «en grande»: gobierna quien tiene la razón.",
+      "Valoración: elitismo y crítica a la democracia frente a la idea de que gobernar exige saber."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf3a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 3 (parte B): Platón
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t3.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Platón (427–347 a. C.) responde a Heráclito y Parménides con <b>dos mundos</b>: el sensible (copia, cambiante) y el inteligible (<b>Ideas</b>, eternas).",
+    "Conocer es <b>ascender</b> (línea dividida, caverna) hasta la Idea de Bien, y es <b>recordar</b> (anámnesis) lo que el alma ya vio.",
+    "El <b>alma</b> tiene tres partes (razón, ánimo, deseo) con tres virtudes; la <b>justicia</b> es su armonía.",
+    "El <b>Estado</b> ideal copia el alma: gobiernan los filósofos, defienden los guardianes y producen los artesanos."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Platón · 427–347 a. C.",
+    autores: [{ n: "Platón", f: "427–347 a. C.", l: "Atenas (fundó la Academia, 387 a. C.)" }],
+    obras: ["Apología de Sócrates", "Menón", "Fedón", "Banquete", "República", "Fedro", "Parménides", "Leyes"],
+    bloques: [
+      { t: "Contexto", frases: ["Discípulo de Sócrates; su condena (399 a. C.) le marca.", "Escribe <b>diálogos</b>; funda la <b>Academia</b> (387 a. C.).", "Une lo que dijeron Heráclito y Parménides."] },
+      { t: "Realidad: las Ideas", frases: ["Las Ideas son <b>objetivas</b>, eternas y modelo de las cosas.", "Las cosas <b>participan</b> de ellas o las imitan.", "La <b>Idea de Bien</b> las preside, como el Sol."],
+        tabla: { cab: ["Mundo sensible", "Mundo inteligible"], filas: [["cambia, múltiple", "eterno, único"], ["copia", "modelo"], ["opinión (<i>dóxa</i>)", "ciencia (<i>epistéme</i>)"]] } },
+      { t: "Conocimiento", frases: ["Línea dividida: imaginación, creencia, razonamiento, inteligencia.", "Caverna: ascenso doloroso y <b>regreso</b> del sabio.", "Conocer es <b>recordar</b> (<i>anámnesis</i>); innatismo."] },
+      { t: "Ser humano y ética", frases: ["<b>Dualismo</b>: alma inmortal, cuerpo mortal.", "Tres partes del alma, cada una con su virtud.", "Se obra mal por ignorancia del Bien (intelectualismo moral)."],
+        tabla: { cab: ["Parte del alma", "Virtud · clase"], filas: [["racional", "sabiduría · gobernantes"], ["irascible", "valentía · guardianes"], ["concupiscible", "templanza · productores"]] } },
+      { t: "Política", frases: ["La <b>justicia</b>: cada parte y cada clase hace lo suyo.", "Los <b>filósofos</b> gobiernan: solo ellos conocen el Bien.", "Critica la democracia; propone educación estatal."] },
+      { t: "Valoración", frases: ["Primer gran sistema idealista y racionalista.", "Críticas: Aristóteles (formas separadas) y Popper (elitismo).", "Influye en el cristianismo (Agustín)."] }
+    ],
+    resumen: [
+      "Hay <b>dos mundos</b>: el sensible es copia del inteligible, donde viven las Ideas.",
+      "Conocer es ascender hacia el <b>Bien</b> y recordar lo que el alma ya contempló.",
+      "El <b>alma</b> tripartita fundamenta el <b>Estado</b> ideal: justicia = armonía.",
+      "El que sabe tiene el <b>deber</b> de volver a la caverna y gobernar."
+    ],
+    conecta: [
+      { con: "Heráclito y Parménides (T1):", rel: "Platón concilia cambio e inmutabilidad en dos mundos." },
+      { con: "Sócrates (T2):", rel: "convierte sus definiciones en Ideas; se opone a los sofistas." },
+      { con: "Aristóteles (T4):", rel: "critica las Ideas separadas y parte de la experiencia." },
+      { con: "Agustín (T6):", rel: "cristianiza el platonismo." }
+    ],
+    claves: [
+      ["Idea", "realidad objetiva, eterna y perfecta, modelo de las cosas"],
+      ["Participación", "las cosas sensibles tienen parte de la Idea (<i>méthexis</i>)"],
+      ["Idea de Bien", "la Idea suprema: causa de ser y de verdad, como el Sol"],
+      ["Dóxa / epistéme", "opinión (sensible) frente a ciencia (inteligible)"],
+      ["Línea dividida", "cuatro grados: eikasía, pístis, diánoia, nóesis"],
+      ["Anámnesis", "conocer es recordar lo que el alma contempló antes"],
+      ["Dualismo", "el alma (inmortal) y el cuerpo (mortal) son distintos"],
+      ["Alma tripartita", "racional, irascible y concupiscible"],
+      ["Justicia", "armonía: cada parte y cada clase cumple su función"],
+      ["Filósofo-rey", "solo quien conoce el Bien debe gobernar"]
+    ],
+    cita: { txt: "No cesarán los males de las ciudades hasta que los filósofos gobiernen o los gobernantes filosofen.", autor: "Platón", obra: "República, libro V (473c-d)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    sensinteligible: {
+      titulo: "¿Sensible o inteligible?",
+      consigna: "Toca una frase y después el mundo al que pertenece.",
+      categorias: ["Mundo sensible", "Mundo inteligible"],
+      items: [
+        { t: "Este círculo dibujado en la pizarra", c: 0 },
+        { t: "El Círculo perfecto del que trata la geometría", c: 1 },
+        { t: "Un atardecer hermoso", c: 0 },
+        { t: "La Belleza en sí, eterna y única", c: 1 },
+        { t: "Una acción justa concreta que vemos", c: 0 },
+        { t: "La Idea de Bien", c: 1 },
+        { t: "Lo que se conoce con los sentidos y da opinión", c: 0 },
+        { t: "Lo que solo se conoce con la razón y da ciencia", c: 1 }
+      ]
+    },
+    alma: {
+      titulo: "Alma, virtud y clase",
+      consigna: "Une cada parte del alma con su virtud.",
+      pares: [["Alma racional", "Sabiduría"], ["Alma irascible", "Valentía"], ["Alma concupiscible", "Templanza"]]
+    },
+    linea: {
+      titulo: "La línea dividida",
+      consigna: "Une cada grado de conocimiento con su objeto.",
+      pares: [["Imaginación (eikasía)", "Imágenes y sombras"], ["Creencia (pístis)", "Cosas y seres concretos"], ["Razonamiento (diánoia)", "Objetos matemáticos"], ["Inteligencia (nóesis)", "Las Ideas"]]
+    },
+    ordenasc: {
+      titulo: "La formación del gobernante",
+      consigna: "Ordena el camino del futuro filósofo-rey, de lo más básico a lo más alto.",
+      items: [
+        { t: "Música y gimnasia: formar el carácter" },
+        { t: "Selección de los mejor dotados" },
+        { t: "Matemáticas: preparar la mente para lo inteligible" },
+        { t: "Dialéctica: ascenso a las Ideas y al Bien" },
+        { t: "Regreso a la «caverna»: gobernar la ciudad" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 3",
+      preguntas: [
+        { q: "Para Platón, las Ideas son…", op: ["realidades objetivas, eternas e inmutables", "pensamientos de cada persona", "palabras convencionales", "cosas que vemos con los ojos"], ok: 0, porque: "No están en nuestra mente: existen por sí mismas, en el mundo inteligible." },
+        { q: "¿Qué simboliza el Sol en el mito de la caverna?", op: ["La Idea de Bien", "La opinión", "El cuerpo", "La democracia"], ok: 0, porque: "Es la causa de la luz y de la vida, como el Bien lo es del ser y del conocer." },
+        { q: "Según la teoría de la reminiscencia, aprender es…", op: ["recordar lo que el alma contempló antes", "recibir datos de los sentidos", "repetir lo que dice el maestro", "una ilusión"], ok: 0, porque: "El alma preexiste y ya vio las Ideas; la experiencia solo despierta el recuerdo." },
+        { q: "En la línea dividida, las matemáticas corresponden a…", op: ["diánoia (razonamiento)", "eikasía (imaginación)", "nóesis (inteligencia)", "pístis (creencia)"], ok: 0, porque: "Parten de hipótesis y usan figuras: son el escalón previo a la dialéctica." },
+        { q: "La virtud propia del alma irascible es…", op: ["la valentía", "la sabiduría", "la templanza", "la justicia"], ok: 0, porque: "El alma irascible se asocia con los guardianes y la valentía." },
+        { q: "¿Qué es la justicia para Platón?", op: ["Que cada parte (del alma y del Estado) cumpla su función sin invadir las demás", "Que todos tengan lo mismo", "Obedecer las leyes de cualquier ciudad", "El interés del más fuerte"], ok: 0, porque: "Es armonía. El «interés del más fuerte» lo defiende el sofista Trasímaco, al que Platón rebate." },
+        { q: "¿Por qué deben gobernar los filósofos?", op: ["Porque solo ellos conocen el Bien", "Porque son los más ricos", "Porque lo decide el voto popular", "Porque son los más fuertes"], ok: 0, porque: "Gobernar es un saber; solo quien ha contemplado el Bien puede hacerlo bien." },
+        { q: "Platón fundó…", op: ["la Academia, en Atenas", "el Liceo", "el Jardín", "la escuela de Elea"], ok: 0, porque: "El Liceo fue de Aristóteles y el Jardín, de Epicuro." },
+        { q: "Respecto a Heráclito y Parménides, Platón…", op: ["concilia ambos con dos mundos", "da la razón solo a Heráclito", "da la razón solo a Parménides", "los ignora"], ok: 0, porque: "El sensible cambia (Heráclito); el inteligible es inmutable (Parménides)." },
+        { q: "El mundo sensible es, para Platón…", op: ["una copia imperfecta del inteligible", "una nada absoluta", "más real que las Ideas", "creado por el alma"], ok: 0, porque: "Existe, pero participa de las Ideas y es menos real." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre Platón es FALSA?", op: ["Para Platón el mundo sensible no existe en absoluto", "Las cosas sensibles participan de las Ideas", "El mundo sensible es copia del inteligible", "La opinión es el conocimiento del mundo sensible"], ok: 0, porque: "Existe, pero es menos real: está «entre» el ser y el no ser." },
+        { q: "¿Cuál de estas afirmaciones sobre las Ideas es FALSA?", op: ["Están en la mente de cada persona y varían con ella", "Son eternas", "Son objeto de la razón", "Son modelo de las cosas"], ok: 0, porque: "Son objetivas, no subjetivas." },
+        { q: "¿Cuál de estas afirmaciones sobre el mito de la caverna es FALSA?", op: ["El prisionero liberado se queda arriba y se olvida de los demás", "Las sombras son las apariencias", "El Sol simboliza el Bien", "El liberado es mal recibido al regresar"], ok: 0, porque: "Platón insiste en que el sabio debe volver para educar." },
+        { q: "¿Cuál de estas afirmaciones sobre el alma es FALSA?", op: ["El alma es mortal y nace con el cuerpo", "Tiene tres partes", "Existía antes del cuerpo", "El alma racional debe gobernar"], ok: 0, porque: "Es inmortal y preexistente." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["Platón nació antes de la muerte de Sócrates", "Platón murió en 347 a. C.", "Aristóteles fue discípulo de Platón", "Platón es anterior a Sócrates"], ok: 3, porque: "Platón (427–347) es posterior a Sócrates (470–399), que fue su maestro." },
+        { q: "¿Cuál de estas afirmaciones sobre la política de Platón es FALSA?", op: ["Los gobernantes se eligen por herencia", "Los gobernantes deben ser filósofos", "La justicia es que cada clase haga lo suyo", "Critica la democracia"], ok: 0, porque: "Se eligen por aptitud y educación, no por herencia." },
+        { q: "¿Cuál de estas afirmaciones sobre la línea dividida es FALSA?", op: ["La matemática (diánoia) es el grado más alto", "La nóesis es el grado más alto", "La imaginación es el más bajo", "Distingue opinión y ciencia"], ok: 0, porque: "La matemática es el escalón previo a la nóesis." },
+        { q: "¿Cuál de estas afirmaciones sobre el conocimiento es FALSA?", op: ["Los sentidos nos dan el conocimiento verdadero", "Conocer es recordar", "El conocimiento verdadero versa sobre las Ideas", "El método socrático ayuda a recordar"], ok: 0, porque: "Los sentidos dan opinión; solo la razón da ciencia." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Platón",
+      cartas: [
+        { a: "Idea", b: "Realidad objetiva, eterna, inmutable y perfecta; modelo de las cosas sensibles." },
+        { a: "Participación (méthexis)", b: "Relación por la que las cosas sensibles tienen parte de la Idea." },
+        { a: "Idea de Bien", b: "La Idea suprema, comparada con el Sol: da ser y verdad a las demás." },
+        { a: "Dóxa", b: "Opinión: conocimiento del mundo sensible." },
+        { a: "Epistéme", b: "Ciencia: conocimiento verdadero del mundo inteligible." },
+        { a: "Eikasía", b: "Imaginación: primer grado; conoce imágenes y sombras." },
+        { a: "Pístis", b: "Creencia: conoce las cosas sensibles concretas." },
+        { a: "Diánoia", b: "Razonamiento: matemático, con hipótesis y figuras." },
+        { a: "Nóesis", b: "Inteligencia: conocimiento directo de las Ideas por la dialéctica." },
+        { a: "Anámnesis", b: "Reminiscencia: conocer es recordar lo que el alma ya contempló." },
+        { a: "Alma tripartita", b: "Racional (sabiduría), irascible (valentía), concupiscible (templanza)." },
+        { a: "Justicia", b: "Armonía: cada parte del alma y del Estado hace su función." },
+        { a: "Filósofo-rey", b: "Gobernante que conoce el Bien y por eso debe gobernar." },
+        { a: "Academia", b: "Escuela fundada por Platón en Atenas (h. 387 a. C.)." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("hp1", 1, "¿Quién fue el maestro de Platón?", ["Sócrates", "Aristóteles", "Heráclito", "Protágoras"], 0,
+    ["Platón fue discípulo de Sócrates; Aristóteles fue discípulo de Platón."]);
+  O("hp2", 1, "¿Cómo se llama la escuela que fundó Platón en Atenas?", ["La Academia", "El Liceo", "El Jardín", "El Pórtico"], 0,
+    ["Academia (h. 387 a. C.). Liceo = Aristóteles; Jardín = Epicuro; Pórtico = estoicos."]);
+  O("hp3", 1, "Los escritos de Platón tienen forma de…", ["diálogos", "poemas épicos", "tratados sistemáticos", "cartas a sus discípulos"], 0,
+    ["Son diálogos, con Sócrates como protagonista casi siempre."]);
+  O("hp4", 1, "¿En qué obra aparece el mito de la caverna?", ["República", "Fedón", "Apología de Sócrates", "Leyes"], 0,
+    ["Libro VII de la <i>República</i>."]);
+  O("hp5", 1, "¿Qué simbolizan las sombras de la pared de la caverna?", ["Las apariencias y las meras opiniones", "Las Ideas", "El alma", "Los gobernantes"], 0,
+    ["Las sombras son lo más alejado de la verdad: imágenes de imágenes."]);
+  O("hp6", 1, "¿Qué simboliza el Sol en el mito?", ["La Idea de Bien", "La Belleza", "El mundo sensible", "La muerte"], 0,
+    ["El Sol da luz y vida; el Bien da verdad y ser."]);
+  T("hp7", 1, "Completa: para Platón, conocer es ______ (en griego, anámnesis).", "Término =", ["recordar", "reminiscencia", "recuerdo"],
+    ["Anámnesis = reminiscencia: conocer es recordar lo que el alma contempló."], "recordar");
+  M("hp8", 1, "Empareja cada parte del alma con su virtud.", [
+    C("Alma racional", ["Sabiduría", "Valentía", "Templanza"], 0),
+    C("Alma irascible", ["Sabiduría", "Valentía", "Templanza"], 1),
+    C("Alma concupiscible", ["Sabiduría", "Valentía", "Templanza"], 2)],
+    ["Racional: sabiduría · irascible: valentía · concupiscible: templanza."], "Racional–sabiduría, irascible–valentía, concupiscible–templanza");
+  M("hp9", 1, "Empareja cada parte del alma con su clase social en el Estado ideal.", [
+    C("Alma racional", ["Gobernantes", "Guardianes", "Productores"], 0),
+    C("Alma irascible", ["Gobernantes", "Guardianes", "Productores"], 1),
+    C("Alma concupiscible", ["Gobernantes", "Guardianes", "Productores"], 2)],
+    ["El Estado es el alma «en grande»."], "Racional–gobernantes, irascible–guardianes, concupiscible–productores");
+  O("hp10", 1, "¿A qué se llama «mundo inteligible»?", ["Al mundo de las Ideas, accesible a la razón", "Al mundo que vemos", "Al mundo de los sueños", "Al mundo de los dioses del Olimpo"], 0,
+    ["Inteligible = que se conoce con la inteligencia, no con los sentidos."]);
+  O("hp11", 1, "¿Qué orden cronológico (de más antiguo a más moderno por nacimiento) es correcto?",
+    ["Sócrates → Platón → Aristóteles", "Platón → Sócrates → Aristóteles", "Aristóteles → Platón → Sócrates", "Sócrates → Aristóteles → Platón"], 0,
+    ["Sócrates (470–399), Platón (427–347), Aristóteles (384–322)."], "Sócrates → Platón → Aristóteles");
+  O("hp12", 1, "El conocimiento del mundo sensible se llama, en Platón…", ["dóxa (opinión)", "epistéme (ciencia)", "nóesis", "anámnesis"], 0,
+    ["Dóxa = opinión. Epistéme = ciencia, del mundo inteligible."]);
+  T("hp13", 1, "Completa: la Idea suprema, que preside a todas las demás, es la Idea de ______.", "Término =", ["Bien", "el Bien"],
+    ["La Idea de Bien, comparada con el Sol."], "Bien");
+  O("hp14", 1, "¿Quién debe gobernar el Estado ideal?", ["Los filósofos", "Los guerreros", "Los comerciantes", "El pueblo reunido"], 0,
+    ["Solo quien conoce el Bien puede gobernar con sabiduría."]);
+
+  // ---- nivel 2
+  V("hp15", 2, "«Para Platón, las Ideas existen solo en la mente de quien piensa en ellas.»", false, [
+    "Es falso: son realidades objetivas, independientes de nuestro pensamiento", "Es falso: las Ideas no existen", "Es falso: solo existen los gobernantes", "Es verdad por definición"], 0,
+    ["Las Ideas son objetivas y eternas, como las verdades matemáticas."]);
+  V("hp16", 2, "«El mundo sensible es, para Platón, una copia imperfecta del mundo inteligible.»", true, [
+    "Es verdad: sus cosas participan de las Ideas y las imitan sin igualarlas", "Es verdad: porque las cosas sensibles no existen", "Es verdad: porque las Ideas dependen de las cosas", "Es verdad: por la doctrina de Heráclito"], 0,
+    ["Participación e imitación: el mundo sensible depende de las Ideas."]);
+  V("hp17", 2, "«En el mito de la caverna, el prisionero liberado debe volver a bajar a ayudar a los demás.»", true, [
+    "Es verdad: el sabio tiene el deber de educar y gobernar", "Es verdad: porque se aburre arriba", "Es verdad: porque las sombras son más reales", "Es verdad: porque el Sol se apaga"], 0,
+    ["El regreso conecta el mito con el filósofo-rey y con Sócrates."]);
+  V("hp18", 2, "«Las matemáticas pertenecen al grado más alto del conocimiento (nóesis).»", false, [
+    "Es falso: son diánoia, el escalón previo, porque parten de hipótesis y usan figuras", "Es falso: pertenecen a la imaginación", "Es falso: no son conocimiento", "Es falso: pertenecen a la pístis"], 0,
+    ["Línea: eikasía, pístis (sensible); diánoia, nóesis (inteligible)."]);
+  V("hp19", 2, "«Platón sostiene que el alma es mortal y desaparece con el cuerpo.»", false, [
+    "Es falso: es inmortal y preexiste al cuerpo", "Es falso: no tiene partes", "Es falso: solo el alma racional existe", "Es falso: el cuerpo es inmortal"], 0,
+    ["Dualismo: alma inmortal, cuerpo mortal."]);
+  V("hp20", 2, "«Para Platón, los gobernantes deben elegirse por herencia familiar.»", false, [
+    "Es falso: se eligen por aptitud y educación", "Es falso: los elige el pueblo", "Es falso: los elige el rey de Esparta", "Es falso: no hay gobernantes"], 0,
+    ["La clase se asigna por aptitudes, no se hereda."]);
+  O("hp21", 2, "¿Cómo explica Platón que Heráclito y Parménides tengan, cada uno, parte de razón?",
+    ["Heráclito describe el mundo sensible (cambiante) y Parménides, el inteligible (inmutable)", "Porque ambos creen en los átomos", "Porque ninguno distingue razón y sentidos", "Porque ambos niegan el cambio"], 0,
+    ["Dos mundos: lo que cambia y lo que permanece."]);
+  O("hp22", 2, "En la línea dividida, el grado más bajo (eikasía) conoce…", ["imágenes, sombras y reflejos", "las Ideas", "los objetos matemáticos", "las cosas concretas"], 0,
+    ["Eikasía = imaginación: imágenes. Pístis = cosas concretas."]);
+  O("hp23", 2, "¿Qué papel tiene el esclavo del <i>Menón</i> en la argumentación de Platón?",
+    ["Muestra que se puede «sacar» un saber geométrico sin enseñárselo, luego ya estaba en su alma", "Demuestra que los esclavos no pueden aprender", "Prueba que el conocimiento viene de los sentidos", "Ilustra la democracia ateniense"], 0,
+    ["Con preguntas, el esclavo descubre cómo duplicar un cuadrado: reminiscencia."]);
+  O("hp24", 2, "¿Qué relación hay entre Platón y Sócrates respecto a las definiciones?",
+    ["Platón da un objeto real (la Idea) a lo que Sócrates buscaba definir", "Platón rechaza buscar definiciones", "Platón cree que no hay definiciones posibles", "No hay relación"], 0,
+    ["De «¿qué es la justicia?» a «la Idea de Justicia existe»."]);
+  O("hp25", 2, "Para el intelectualismo moral, se obra mal por…", ["ignorancia del Bien", "mala suerte", "voluntad perversa", "un castigo divino"], 0,
+    ["Nadie hace el mal voluntariamente; falta conocer el Bien."]);
+  O("hp26", 2, "¿Por qué Platón desconfía de la democracia?",
+    ["Porque gobernar exige un saber y la democracia condenó a Sócrates", "Porque quiere una monarquía hereditaria", "Porque rechaza toda ley", "Porque defiende la tiranía"], 0,
+    ["Gobernar es un saber, como el del piloto; la mayoría no lo tiene."]);
+  O("hp27", 2, "Según la <i>República</i>, ¿cuál es la forma de gobierno más degradada?", ["La tiranía", "La aristocracia", "La timocracia", "La oligarquía"], 0,
+    ["Aristocracia → timocracia → oligarquía → democracia → tiranía."]);
+  O("hp28", 2, "¿Qué significa que el cuerpo sea una «cárcel» (<i>sêma</i>) del alma?",
+    ["Que el alma está atada a lo sensible y debe liberarse para contemplar las Ideas", "Que el cuerpo es malo y debe destruirse", "Que el alma no existe", "Que el alma se crea con el cuerpo"], 0,
+    ["No es odio al cuerpo, sino que el alma debe mandar sobre él."]);
+  O("hp29", 2, "En el Estado ideal, la virtud de los guardianes es…", ["la valentía", "la templanza", "la sabiduría", "la justicia"], 0,
+    ["Guardianes ↔ alma irascible ↔ valentía."]);
+  O("hp30", 2, "La Idea de Bien es comparada con el Sol porque…",
+    ["da a las Ideas su verdad y ser, como el Sol da luz y vida a las cosas", "se parece físicamente al Sol", "está en el cielo", "es adorada por los atenienses"], 0,
+    ["Causa del ser y del conocer."]);
+
+  // ---- nivel 3
+  O("hp31", 3, "Texto: «Lo que proporciona la verdad a las cosas cognoscibles y otorga al que conoce el poder de conocer, es la Idea del Bien» (<i>República</i>). Su idea principal es…",
+    ["que el Bien es el principio de la verdad y del conocimiento", "que el Sol es un dios", "que el conocimiento viene de los sentidos", "que el Bien es relativo"], 0,
+    ["Tema: la Idea de Bien como principio supremo (el Sol del mundo inteligible)."], null, "Tu respuesta");
+  O("hp32", 3, "Texto: «No cesarán los males de las ciudades hasta que los filósofos gobiernen o los gobernantes filosofen» (<i>República</i>, V). Su idea principal es…",
+    ["que el buen gobierno exige unir el poder político y el saber filosófico", "que los filósofos deben evitar la política", "que los gobernantes deben ser guerreros", "que la democracia es el mejor sistema"], 0,
+    ["Tesis del filósofo-rey: solo quien conoce el Bien puede gobernar bien."]);
+  O("hp33", 3, "Un alumno afirma: «según Platón, lo que percibimos con los sentidos no existe». ¿Qué matiz es el correcto?",
+    ["Existe, pero es menos real: copia que participa de las Ideas", "Tiene razón: es una ilusión total", "Es más real que las Ideas", "Es creado por el alma"], 0,
+    ["Entre el ser y el no ser: existe como copia."]);
+  O("hp34", 3, "¿Qué diferencia hay entre diánoia y nóesis?",
+    ["La primera parte de hipótesis y usa figuras; la segunda asciende por la dialéctica sin imágenes hasta el Bien", "La primera es del mundo sensible y la segunda del inteligible", "No hay diferencia", "La primera usa los sentidos y la segunda la fe"], 0,
+    ["Ambas son epistéme (mundo inteligible), pero con distinto método."]);
+  O("hp35", 3, "¿Por qué la reminiscencia exige que el alma sea inmortal y preexistente?",
+    ["Porque, si recordamos lo que contemplamos, el alma tuvo que existir y ver las Ideas antes de unirse al cuerpo", "Porque el cuerpo es eterno", "Porque no necesitamos ver las Ideas", "Porque el alma nace con el cuerpo y aprende por los sentidos"], 0,
+    ["Recordar supone haber conocido antes: la teoría presupone la preexistencia."]);
+  O("hp36", 3, "¿Cuál es la crítica principal de Aristóteles a la teoría de las Ideas?",
+    ["Que las Ideas separadas duplican el mundo sin explicarlo: la forma está en las cosas", "Que las Ideas no son eternas", "Que no hay conocimiento", "Que el alma no existe"], 0,
+    ["Aristóteles (tema 4) sitúa la forma dentro de la sustancia concreta."]);
+  O("hp37", 3, "Platón y Descartes coinciden en…", ["el innatismo y el dualismo alma–cuerpo", "el empirismo", "el materialismo", "la negación del alma"], 0,
+    ["Ambos creen que hay ideas ya presentes en el alma y que alma y cuerpo son distintos."]);
+  M("hp38", 3, "Empareja cada elemento del mito con su símbolo.", [
+    C("Las sombras", ["Apariencias", "Ideas", "Bien", "Mundo inteligible"], 0),
+    C("El exterior", ["Apariencias", "Ideas", "Bien", "Mundo inteligible"], 3),
+    C("El Sol", ["Apariencias", "Ideas", "Bien", "Mundo inteligible"], 2),
+    C("Los seres reales", ["Apariencias", "Ideas", "Bien", "Mundo inteligible"], 1)],
+    ["Sombras = apariencias · exterior = mundo inteligible · Sol = Bien · seres reales = Ideas."], "Sombras–apariencias, exterior–inteligible, Sol–Bien, seres reales–Ideas");
+  M("hp39", 3, "Empareja cada grado de la línea dividida con su objeto.", [
+    C("Eikasía", ["Imágenes", "Cosas concretas", "Objetos matemáticos", "Ideas"], 0),
+    C("Pístis", ["Imágenes", "Cosas concretas", "Objetos matemáticos", "Ideas"], 1),
+    C("Diánoia", ["Imágenes", "Cosas concretas", "Objetos matemáticos", "Ideas"], 2),
+    C("Nóesis", ["Imágenes", "Cosas concretas", "Objetos matemáticos", "Ideas"], 3)],
+    ["De abajo arriba: imágenes → cosas → matemáticas → Ideas."], "Eikasía–imágenes, pístis–cosas, diánoia–matemáticas, nóesis–Ideas");
+  R("hp40", "Explica la teoría de las Ideas de Platón y cómo resuelve el problema planteado por Heráclito y Parménides. (Pregunta tipo PAU)", 9, [
+    { t: "Define las Ideas: realidades objetivas, eternas, inmutables y modelo de las cosas", p: 0.5 },
+    { t: "Distingue mundo sensible (cambiante, copia, opinión) y mundo inteligible (Ideas, ciencia)", p: 0.5 },
+    { t: "Explica la participación o imitación entre ambos mundos", p: 0.3 },
+    { t: "Menciona la Idea de Bien y su comparación con el Sol", p: 0.3 },
+    { t: "Relaciona con Heráclito (cambio en lo sensible) y Parménides (ser inmutable en lo inteligible)", p: 0.4 }],
+    ["Define Idea.", "Dos mundos.", "Participación.", "Bien.", "Heráclito y Parménides."], "Dos mundos: sensible (Heráclito) e inteligible (Parménides)");
+  R("hp41", "Explica el mito de la caverna y su relación con la línea dividida. (Pregunta tipo PAU)", 8, [
+    { t: "Resume el relato: prisioneros, sombras, liberación, ascenso, Sol, regreso", p: 0.5 },
+    { t: "Identifica los símbolos: caverna = sensible, exterior = inteligible, Sol = Bien", p: 0.5 },
+    { t: "Relaciona con la línea: eikasía, pístis, diánoia y nóesis", p: 0.4 },
+    { t: "Explica el mensaje: educación como giro del alma y deber de regresar", p: 0.4 },
+    { t: "Conecta con Sócrates o con el filósofo-rey", p: 0.2 }],
+    ["Relato.", "Símbolos.", "Línea.", "Mensaje.", "Conexión."], "Ascenso de las sombras al Bien y regreso del sabio");
+  R("hp42", "Explica la teoría platónica del alma, el conocimiento como reminiscencia y su relación con la ética. (Pregunta tipo PAU)", 8, [
+    { t: "Dualismo: alma inmortal y preexistente, cuerpo mortal", p: 0.4 },
+    { t: "Reminiscencia: conocer es recordar lo que el alma contempló (ejemplo: Menón)", p: 0.5 },
+    { t: "Tres partes del alma con sus virtudes (sabiduría, valentía, templanza)", p: 0.5 },
+    { t: "Justicia como armonía de las partes", p: 0.3 },
+    { t: "Intelectualismo moral: se obra mal por ignorancia del Bien", p: 0.3 }],
+    ["Alma.", "Reminiscencia.", "Tripartición.", "Justicia.", "Ética."], "Alma inmortal, conocer es recordar y virtud como armonía");
+  R("hp43", "Explica el Estado ideal de Platón y su relación con la teoría del alma. Valóralo críticamente. (Pregunta tipo PAU)", 9, [
+    { t: "Tres clases (gobernantes, guardianes, productores) y su correspondencia con las partes del alma", p: 0.5 },
+    { t: "Justicia como cada clase cumpliendo su función", p: 0.4 },
+    { t: "Filósofo-rey: gobierna quien conoce el Bien (regreso a la caverna)", p: 0.4 },
+    { t: "Educación y selección por aptitud; medidas para guardianes (sin propiedad ni familia)", p: 0.3 },
+    { t: "Valoración equilibrada: crítica a la democracia, elitismo (Popper) y su sentido de la política como saber", p: 0.4 }],
+    ["Clases y alma.", "Justicia.", "Filósofo-rey.", "Educación.", "Valoración."], "Estado como alma «en grande», gobernado por filósofos");
+  R("hp44", "Comenta este texto: «Lo que proporciona la verdad a las cosas cognoscibles y otorga al que conoce el poder de conocer, es la Idea del Bien» (Platón, <i>República</i>). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: la Idea de Bien como principio de verdad y conocimiento", p: 0.3 },
+    { t: "Idea principal: el Bien hace conocibles y verdaderas las demás Ideas y da al sujeto el poder de conocer", p: 0.4 },
+    { t: "Relaciona con el autor: Sol, dos mundos, línea y caverna", p: 0.5 },
+    { t: "Relaciona con la ética y la política (el filósofo-rey conoce el Bien)", p: 0.3 },
+    { t: "Compara con Aristóteles u otro autor (Bien inmanente frente a Bien separado)", p: 0.4 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → relación con el autor → comparación → valoración."], "Comentario del Bien en la República");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Los dos mundos de Platón", ancha: true,
+      tabla: { cab: ["", "Mundo sensible", "Mundo inteligible"], filas: [
+        ["Contiene", "cosas concretas", "Ideas (Bien en la cima)"],
+        ["Rasgos", "cambia, múltiple, copia", "eterno, único, modelo"],
+        ["Se conoce con", "sentidos", "razón"],
+        ["Saber", "dóxa (opinión)", "epistéme (ciencia)"],
+        ["Heráclito / Parménides", "Heráclito", "Parménides"]
+      ] } },
+    { titulo: "Línea dividida y caverna", ancha: true,
+      tabla: { cab: ["Grado", "Objeto", "En la caverna"], filas: [
+        ["Eikasía", "imágenes", "sombras en la pared"],
+        ["Pístis", "cosas concretas", "objetos y fuego"],
+        ["Diánoia", "matemáticas", "reflejos fuera"],
+        ["Nóesis", "Ideas", "seres reales; el Sol = Bien"]
+      ] } },
+    { titulo: "Alma, virtud y Estado", ancha: true,
+      tabla: { cab: ["Alma", "Virtud", "Clase"], filas: [
+        ["Racional", "sabiduría", "gobernantes"],
+        ["Irascible", "valentía", "guardianes"],
+        ["Concupiscible", "templanza", "productores"],
+        ["Armonía de todas", "justicia", "Estado justo"]
+      ] } },
+    { titulo: "Camino del conocimiento",
+      pasos: ["Se vive entre sombras (opinión).", "Un giro del alma: se sale de la caverna.", "Ascenso por las matemáticas y la dialéctica.", "Contemplación del Bien.", "Regreso: gobernar y educar."],
+      nota: "El sabio no se queda arriba: su deber es volver." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "El mundo sensible no existe", bien: "Existe, pero es copia y menos real", por: "Participa de las Ideas." },
+        { mal: "Las Ideas están en la cabeza", bien: "Son objetivas y eternas", por: "Existen aunque nadie piense en ellas." },
+        { mal: "Las matemáticas son el saber más alto", bien: "Son diánoia, el escalón previo a la nóesis", por: "Parten de hipótesis y figuras." },
+        { mal: "El liberado se queda arriba", bien: "Debe regresar a educar", por: "Deber del filósofo-rey." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t3", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf3a.secciones,
+    nuevas: B.parte.hf3a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
