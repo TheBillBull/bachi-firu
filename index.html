@@ -11167,6 +11167,357 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 2 (Determinantes)
+   det_geom · det_props · det_adjuntos · det_param · det_calc
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  B.lab = B.lab || {};
+  var D = B.lab.det = {};
+
+  // ---------- estilos propios (inyectados desde el JS) ----------
+  (function () {
+    if (!global.document || !document.head || document.getElementById("dt-estilos")) return;
+    var s = document.createElement("style"); s.id = "dt-estilos";
+    s.textContent =
+      ".dt-fila{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin:8px 0}" +
+      ".dt-bloque{display:flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:100%}" +
+      ".dt-bloque>small{font-size:11.5px;color:var(--ink-faint)}" +
+      ".dt-par{border-radius:14px}.dt-d{border-left-width:2px!important;border-right-width:2px!important}.dt-m{font-size:16px}.dt-m .matrix-cell{min-width:1.5em;padding:1px 3px;border-radius:5px}" +
+      ".dt-m .hi{background:var(--hl-mark,rgba(255,200,0,.28))}" +
+      ".dt-m .pos{color:var(--ok)}.dt-m .neg{color:var(--red)}.dt-m .dim{color:var(--ink-faint)}" +
+      ".dt-m .sel{background:color-mix(in srgb,var(--pen) 22%,transparent);font-weight:700}" +
+      ".dt-log{margin:6px 0 0;padding:0;list-style:none;font-size:13.5px;line-height:1.45}" +
+      ".dt-log li{padding:3px 0;border-top:1px solid var(--line,rgba(128,128,128,.25))}" +
+      ".dt-terms{font:14.5px/1.7 var(--math);margin:4px 0}.dt-terms div{padding:1px 0}" +
+      ".dt-ok{color:var(--ok);font-weight:700}.dt-mal{color:var(--red);font-weight:700}" +
+      "@media(max-width:520px){.dt-m{font-size:14px}.dt-m .matrix-row{gap:8px}.dt-fila{gap:10px 14px}}";
+    document.head.appendChild(s);
+  })();
+
+  // ---------- álgebra básica ----------
+  function sg(n) { return n < 0 ? "−" + (-n) : String(n); }
+  function par(n) { return n < 0 ? "(−" + (-n) + ")" : String(n); }
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = a % b; a = b; b = t; } return a; }
+  D.frac = function (n, d) {                       // fracción reducida como HTML
+    if (d < 0) { n = -n; d = -d; }
+    var g = gcd(n, d) || 1; n /= g; d /= g;
+    return d === 1 ? sg(n) : (n < 0 ? "−" : "") + B.h.fr(Math.abs(n), d);
+  };
+  D.menor = function (A, i, j) {
+    return A.filter(function (_, r) { return r !== i; }).map(function (f) { return f.filter(function (_, c) { return c !== j; }); });
+  };
+  D.det = function (A) {
+    var n = A.length;
+    if (n === 1) return A[0][0];
+    if (n === 2) return A[0][0] * A[1][1] - A[0][1] * A[1][0];
+    var s = 0;
+    for (var j = 0; j < n; j++) if (A[0][j]) s += (j % 2 ? -1 : 1) * A[0][j] * D.det(D.menor(A, 0, j));
+    return s;
+  };
+  D.tras = function (A) { return A[0].map(function (_, j) { return A.map(function (f) { return f[j]; }); }); };
+  D.cof = function (A) {
+    return A.map(function (f, i) { return f.map(function (_, j) { return ((i + j) % 2 ? -1 : 1) * D.det(D.menor(A, i, j)); }); });
+  };
+  D.rango = function (A, tol) {                     // eliminación numérica (A puede tener decimales)
+    var M = A.map(function (f) { return f.slice(); }), r = 0, n = M.length, m = M[0].length, esc = 0;
+    tol = tol || 1e-9;
+    M.forEach(function (f) { f.forEach(function (x) { esc = Math.max(esc, Math.abs(x)); }); });
+    for (var c = 0; c < m && r < n; c++) {
+      var p = r;
+      for (var i = r + 1; i < n; i++) if (Math.abs(M[i][c]) > Math.abs(M[p][c])) p = i;
+      if (Math.abs(M[p][c]) <= tol * Math.max(1, esc)) continue;
+      var t = M[p]; M[p] = M[r]; M[r] = t;
+      for (var k = r + 1; k < n; k++) { var q = M[k][c] / M[r][c]; for (var l = c; l < m; l++) M[k][l] -= q * M[r][l]; }
+      r++;
+    }
+    return r;
+  };
+
+  // matriz como HTML. A: filas (números o textos). cls(i,j) → clase; txt(i,j,v) → texto de la celda
+  function mx(A, cls, txt, esDet) {
+    return '<span class="matrix dt-m ' + (esDet ? "dt-d" : "dt-par") + '">' + A.map(function (f, i) {
+      return '<span class="matrix-row">' + f.map(function (v, j) {
+        return '<span class="matrix-cell ' + (cls ? cls(i, j) || "" : "") + '">' + (txt ? txt(i, j, v) : (typeof v === "number" ? sg(v) : v)) + "</span>";
+      }).join("") + "</span>";
+    }).join("") + "</span>";
+  }
+  D.mat = function (A) { return mx(A); };           // para la teoría: matriz con paréntesis redondeados
+  D.dtm = function (A) { return mx(A, null, null, true); };   // determinante con barras rectas
+  function bloque(titulo, html) { return '<div class="dt-bloque"><small>' + titulo + "</small>" + html + "</div>"; }
+  function clonar(A) { return A.map(function (f) { return f.slice(); }); }
+
+  // ============================================================
+  // ÁREA Y VOLUMEN: el determinante como medida con signo
+  // ============================================================
+  function snap(v, lim) { v = Math.round(v * 2) / 2; return Math.max(-lim, Math.min(lim, v)); }
+  function asa(g, get, set, clase, etq, lim) {
+    var h = g.punto(0, 0, { capa: "top", r: 9, clase: clase });
+    g.arrastrar(h, function (x, y, tecla) {
+      if (tecla) set(snap(x, lim), get()[1]); else set(snap(x, lim), snap(y, lim));
+    }, { get: function () { return get()[0]; }, paso: 0.5, etiqueta: etq });
+    return h;
+  }
+  function etq(g, p, t, clase) { g.texto(p[0], p[1], t, { dx: 8, dy: -8, clase: clase }); }
+
+  B.w.det_geom = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El determinante mide área y volumen");
+    cuerpo.innerHTML = '<div data-modo></div><div data-pre></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { modo: "2d", u: [3, 1], v: [1, 2], w: [1, 1, 2] }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    var lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), plotEl = cuerpo.querySelector(".w-plot");
+    var g, h1, h2, sl = [];
+    var pres2 = [
+      { k: "0", t: "Ejemplo", u: [3, 1], v: [1, 2] }, { k: "1", t: "Intercambio u ↔ v", u: [1, 2], v: [3, 1] },
+      { k: "2", t: "Proporcionales", u: [2, 1], v: [4, 2] }, { k: "3", t: "Cuadrado", u: [2, 0], v: [0, 2] }
+    ];
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "2d", t: "2D · área" }, { k: "3d", t: "3D · volumen" }], st.modo, function (k) { st.modo = k; arma(); });
+    function arma() {
+      plotEl.innerHTML = ""; ctl.innerHTML = ""; sl = [];
+      var pre = cuerpo.querySelector("[data-pre]");
+      if (st.modo === "2d") {
+        g = new B.Plot(plotEl, { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 520, h: 380, etx: "x", ety: "y", etiqueta: "Vectores u y v y el paralelogramo que forman" });
+        g.rangoIso(0, 0, 5);
+        h1 = asa(g, function () { return st.u; }, function (x, y) { st.u = [x, y]; pinta(); }, "c-pen", "Extremo del vector u", 5);
+        h2 = asa(g, function () { return st.v; }, function (x, y) { st.v = [x, y]; pinta(); }, "c-red", "Extremo del vector v", 5);
+        U.fichas(pre, pres2.map(function (p) { return { k: p.k, t: p.t }; }), "-", function (k) { var p = pres2[+k]; st.u = p.u.slice(); st.v = p.v.slice(); pinta(); });
+        pre.style.display = "";
+      } else {
+        g = new B.Plot(plotEl, { xmin: -4, xmax: 10, ymin: -4, ymax: 6, w: 560, h: 340, etx: "", ety: "", etiqueta: "Paralelepípedo de aristas u, v y w" });
+        ["a", "b", "c"].forEach(function (n, i) {
+          sl.push(U.slider(ctl, { et: "w<sub>" + "xyz"[i] + "</sub>", min: -2, max: 3, step: 1, val: st.w[i], on: function (v) { st.w[i] = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } }));
+        });
+        pre.innerHTML = ""; pre.style.display = "none";
+      }
+      pinta();
+    }
+    function pinta2() {
+      var u = st.u, v = st.v, d = u[0] * v[1] - u[1] * v[0], s = [u[0] + v[0], u[1] + v[1]];
+      g.limpiar(); g.mover(h1, u[0], u[1]); g.mover(h2, v[0], v[1]);
+      g.poligono([[0, 0], u, s, v], { clase: d > 0 ? "z-ok" : d < 0 ? "z-red" : "z-pen", borde: "var(--ink-faint)" });
+      U.flecha(g, 0, 0, u[0], u[1], { clase: "c-pen" }); etq(g, u, "u", "pen");
+      U.flecha(g, 0, 0, v[0], v[1], { clase: "c-red" }); etq(g, v, "v", "red");
+      lectura.innerHTML =
+        U.lec("det(u, v)", "|" + sg(u[0]) + " " + sg(u[1]) + "; " + sg(v[0]) + " " + sg(v[1]) + "| = " + fmt(d, 1)) +
+        U.lec("Área del paralelogramo", "|det| = " + fmt(Math.abs(d), 1)) +
+        U.lec("Área del triángulo 0,u,v", fmt(Math.abs(d) / 2, 2)) +
+        U.lec("Orientación", d > 0 ? "antihoraria (+)" : d < 0 ? "horaria (−)" : "colineales (0)", d > 0 ? "ok" : d < 0 ? "mal" : "");
+      pie.innerHTML = d === 0 ? "Con det = 0 los vectores son <b>proporcionales</b>: el paralelogramo se aplasta en un segmento y su área es 0."
+        : "Mueve los puntos. El <b>valor absoluto</b> del determinante es el área; el <b>signo</b> dice si para ir de u a v se gira en sentido antihorario (verde, +) u horario (rojo, −). Intercambiar u y v cambia el signo.";
+    }
+    function P(p) { return [p[0] + 0.5 * p[1], p[2] + 0.3 * p[1]]; }
+    function pinta3() {
+      var u = [2, 0, 0], v = [1, 2, 0], w = st.w, add = function (a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; };
+      var O = [0, 0, 0], uv = add(u, v), uw = add(u, w), vw = add(v, w), uvw = add(uv, w);
+      var d = D.det([u, v, w]), base = 4, alt = Math.abs(w[2]);
+      g.limpiar();
+      g.poligono([P(O), P(u), P(uv), P(v)], { clase: "z-pen", borde: "var(--ink-faint)" });
+      g.poligono([P(w), P(uw), P(uvw), P(vw)], { clase: d > 0 ? "z-ok" : d < 0 ? "z-red" : "z-pen", borde: "var(--ink-faint)" });
+      [[O, w], [u, uw], [v, vw], [uv, uvw]].forEach(function (e) { var a = P(e[0]), b = P(e[1]); g.segmento(a[0], a[1], b[0], b[1], { clase: "c-faint", dash: "3 3" }); });
+      [[u, "u", "c-pen"], [v, "v", "c-red"], [w, "w", "c-ok"]].forEach(function (e) {
+        var b = P(e[0]); U.flecha(g, 0, 0, b[0], b[1], { clase: e[2] }); g.texto(b[0], b[1], e[1], { dx: 8, dy: -8, clase: e[2].replace("c-", "") });
+      });
+      lectura.innerHTML =
+        U.lec("det(u, v, w)", fmt(d, 0)) + U.lec("Volumen", "|det| = " + fmt(Math.abs(d), 0)) +
+        U.lec("Base (u, v)", fmt(base, 0)) + U.lec("Altura sobre la base", fmt(alt, 0)) +
+        U.lec("Orientación", d > 0 ? "directa (+)" : d < 0 ? "inversa (−)" : "coplanarios (0)", d > 0 ? "ok" : d < 0 ? "mal" : "");
+      pie.innerHTML = d === 0 ? "w está en el plano de u y v: los tres vectores son <b>coplanarios</b> y el volumen es 0."
+        : "Fíjate: <b>w<sub>x</sub> y w<sub>y</sub> no cambian el volumen</b> (deslizan la cara de arriba sin cambiar la altura); sólo importa w<sub>z</sub>. El volumen es base × altura = 4·|w<sub>z</sub>|.";
+    }
+    function pinta() { if (st.modo === "2d") pinta2(); else pinta3(); }
+    arma();
+  };
+
+  // ============================================================
+  // PROPIEDADES, FILA A FILA
+  // ============================================================
+  B.w.det_props = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Propiedades del determinante, fila a fila");
+    cuerpo.innerHTML = '<div data-pre></div><div class="dt-fila"><div data-mat></div></div><div data-fa class="chips"></div><div data-fb class="chips"></div><div data-ctl></div><div data-ops class="chips"></div><div class="lectura anch"></div><ul class="dt-log"></ul><p class="w-pie"></p>';
+    var pres = [
+      { k: "0", t: "Ejemplo", m: [[1, 2, 0], [3, 1, 2], [0, 1, 4]] },
+      { k: "1", t: "Otro", m: [[2, 1, 3], [1, 0, 2], [4, 1, 5]] },
+      { k: "2", t: "Triangular", m: [[2, 5, 1], [0, 3, 4], [0, 0, -1]] }
+    ];
+    var st = { pi: 0, A: clonar(pres[0].m), d0: 0, a: 0, b: 1, k: 2, log: [], ult: "" }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    var matEl = cuerpo.querySelector("[data-mat]"), lec = cuerpo.querySelector(".lectura"), log = cuerpo.querySelector(".dt-log"), pie = cuerpo.querySelector(".w-pie");
+    var sk = U.slider(ctl, { et: "Número <i>k</i>", min: -3, max: 3, step: 1, val: 2, on: function (v) { st.k = v; }, fmt: function (v) { return fmt(v, 0); } });
+    U.fichas(cuerpo.querySelector("[data-pre]"), pres.map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) { st.pi = +k; st.A = clonar(pres[+k].m); st.d0 = D.det(st.A); st.log = []; pinta(); });
+    var filas = [{ k: "0", t: "F1" }, { k: "1", t: "F2" }, { k: "2", t: "F3" }];
+    var fa = cuerpo.querySelector("[data-fa]"), fb = cuerpo.querySelector("[data-fb]");
+    U.fichas(fa, filas.map(function (f) { return { k: f.k, t: "fila a = " + f.t }; }), "0", function (k) { st.a = +k; });
+    U.fichas(fb, filas.map(function (f) { return { k: f.k, t: "fila b = " + f.t }; }), "1", function (k) { st.b = +k; });
+    st.d0 = D.det(st.A);
+    var ops = [
+      { k: "swap", t: "Intercambiar a ↔ b" }, { k: "add", t: "a ← a + k·b" }, { k: "mul", t: "Multiplicar fila a por k" },
+      { k: "all", t: "Multiplicar toda A por k" }, { k: "tra", t: "Trasponer" }, { k: "res", t: "Reiniciar" }
+    ];
+    var opsEl = cuerpo.querySelector("[data-ops]"); opsEl.className = "chips";
+    ops.forEach(function (o) { U.boton(opsEl, o.t, function () { aplica(o.k); }); });
+    function aplica(k) {
+      var A = st.A, a = st.a, b = st.b, kk = st.k, antes = D.det(A), esp = null, txt = "";
+      if (k === "res") { st.A = clonar(pres[st.pi].m); st.log = []; st.ult = ""; pinta(); return; }
+      if ((k === "swap" || k === "add") && a === b) { st.ult = "Elige dos filas distintas (a ≠ b)."; pinta(); return; }
+      if (k === "swap") { var t = A[a]; A[a] = A[b]; A[b] = t; esp = -antes; txt = "F" + (a + 1) + " ↔ F" + (b + 1) + ": regla «intercambiar dos filas cambia el signo»"; }
+      else if (k === "add") { A[a] = A[a].map(function (x, j) { return x + kk * A[b][j]; }); esp = antes; txt = "F" + (a + 1) + " ← F" + (a + 1) + " + (" + sg(kk) + ")·F" + (b + 1) + ": regla «sumar a una fila un múltiplo de otra no cambia nada»"; }
+      else if (k === "mul") { A[a] = A[a].map(function (x) { return x * kk; }); esp = kk * antes; txt = "F" + (a + 1) + " × (" + sg(kk) + "): regla «multiplicar una fila por k multiplica |A| por k»"; }
+      else if (k === "all") { st.A = A.map(function (f) { return f.map(function (x) { return x * kk; }); }); A = st.A; esp = Math.pow(kk, 3) * antes; txt = "(" + sg(kk) + ")·A: regla «|kA| = k³·|A|» (orden 3)"; }
+      else if (k === "tra") { st.A = D.tras(A); A = st.A; esp = antes; txt = "Aᵗ: regla «|Aᵗ| = |A|»"; }
+      var des = D.det(A), ok = des === esp;
+      st.log.unshift("<li>" + txt + ".<br>|A| pasa de <b>" + sg(antes) + "</b> a <b>" + sg(des) + "</b> (esperado " + sg(esp) + ") <span class='" + (ok ? "dt-ok" : "dt-mal") + "'>" + (ok ? "✓" : "✗") + "</span></li>");
+      st.log = st.log.slice(0, 5); st.ult = ""; pinta();
+    }
+    function pinta() {
+      var A = st.A, d = D.det(A);
+      matEl.innerHTML = bloque("Matriz actual A", mx(A, function (i) { return i === st.a ? "sel" : i === st.b ? "hi" : ""; }));
+      lec.innerHTML = U.lec("|A| inicial", sg(st.d0)) + U.lec("|A| ahora", sg(d), d === 0 ? "mal" : "ok") + U.lec("¿Tiene inversa?", d === 0 ? "no (|A| = 0)" : "sí (|A| ≠ 0)");
+      log.innerHTML = st.log.join("");
+      pie.innerHTML = st.ult || "Elige las filas <b>a</b> (azul) y <b>b</b> (amarillo), el número <i>k</i> y pulsa una operación: la web recalcula |A| con Sarrus y lo compara con lo que predice la propiedad. Prueba <b>k = 0</b> o hacer dos filas iguales para ver |A| = 0.";
+    }
+    pinta();
+  };
+
+  // ============================================================
+  // DESARROLLO POR ADJUNTOS E INVERSA
+  // ============================================================
+  var PRE_ADJ = [
+    { k: "0", t: "3×3 (−22)", m: [[1, 2, 0], [3, 1, 2], [0, 1, 4]] },
+    { k: "1", t: "3×3 con ceros", m: [[2, 1, 0], [1, 3, 1], [0, 1, 2]] },
+    { k: "2", t: "3×3 (|A| = 1)", m: [[1, 2, 3], [0, 1, 4], [5, 6, 0]] },
+    { k: "3", t: "Singular", m: [[1, 2, 3], [4, 5, 6], [7, 8, 9]] },
+    { k: "4", t: "4×4", m: [[2, 0, 1, 3], [1, 2, 0, 1], [0, 1, 0, 2], [3, 0, 0, 1]] }
+  ];
+  D.PRE_ADJ = PRE_ADJ;
+  B.w.det_adjuntos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Adjuntos: desarrollo del determinante e inversa");
+    cuerpo.innerHTML = '<div data-modo></div><div data-pre></div><div data-lin class="chips"></div><div data-paso class="chips"></div><div class="dt-fila" data-mats></div><div class="dt-terms"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, modo: /inversa$/.test(host.getAttribute("data-ref") || "") ? "inv" : "des", lin: "f0", paso: 4 };
+    var mats = cuerpo.querySelector("[data-mats]"), terms = cuerpo.querySelector(".dt-terms"), lec = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var linEl = cuerpo.querySelector("[data-lin]"), pasoEl = cuerpo.querySelector("[data-paso]");
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "des", t: "Desarrollo por una línea" }, { k: "inv", t: "Inversa por adjuntos" }], st.modo, function (k) { st.modo = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE_ADJ.map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) { st.i = +k; if (st.lin.charAt(1) >= PRE_ADJ[st.i].m.length) st.lin = "f0"; opciones(); pinta(); });
+    function opciones() {
+      var n = PRE_ADJ[st.i].m.length, o = [];
+      for (var i = 0; i < n; i++) o.push({ k: "f" + i, t: "Fila " + (i + 1) });
+      for (var j = 0; j < n; j++) o.push({ k: "c" + j, t: "Columna " + (j + 1) });
+      U.fichas(linEl, o, st.lin, function (k) { st.lin = k; pinta(); });
+      U.fichas(pasoEl, [{ k: "1", t: "① Menores" }, { k: "2", t: "② Adjuntos" }, { k: "3", t: "③ Traspuesta" }, { k: "4", t: "④ Dividir entre |A|" }], String(st.paso), function (k) { st.paso = +k; pinta(); });
+    }
+    function pinta() {
+      var A = PRE_ADJ[st.i].m, n = A.length, d = D.det(A), M = A.map(function (f, i) { return f.map(function (_, j) { return D.det(D.menor(A, i, j)); }); });
+      var C = D.cof(A);
+      linEl.style.display = st.modo === "des" ? "" : "none"; pasoEl.style.display = st.modo === "inv" ? "" : "none";
+      if (st.modo === "des") {
+        var fila = st.lin.charAt(0) === "f", idx = +st.lin.charAt(1), suma = 0, tr = [], ceros = [];
+        var sig = A.map(function (f, i) { return f.map(function (_, j) { return (i + j) % 2 ? "−" : "+"; }); });
+        mats.innerHTML = bloque("Matriz A (línea elegida resaltada)", mx(A, function (i, j) { return (fila ? i === idx : j === idx) ? "sel" : ""; })) +
+          bloque("Signos (−1)<sup>i+j</sup>", mx(sig, function (i, j) { return sig[i][j] === "+" ? "pos" : "neg"; }));
+        for (var t = 0; t < n; t++) {
+          var i = fila ? idx : t, j = fila ? t : idx, a = A[i][j], c = C[i][j];
+          suma += a * c;
+          tr.push("<div>" + (a === 0 ? "a<sub>" + (i + 1) + (j + 1) + "</sub> = 0: el término vale 0 (no hace falta el menor)"
+            : "a<sub>" + (i + 1) + (j + 1) + "</sub>·(" + (((i + j) % 2) ? "−" : "+") + ")·|M<sub>" + (i + 1) + (j + 1) + "</sub>| = " + par(a) + "·(" + (((i + j) % 2) ? "−" : "+") + ")·(" + sg(M[i][j]) + ") = <b>" + sg(a * c) + "</b>") + "</div>");
+        }
+        for (var q = 0; q < n; q++) { var z = 0; for (var r = 0; r < n; r++) if (A[fila ? q : r][fila ? r : q] === 0) z++; ceros.push(z); }
+        var mejor = ceros.indexOf(Math.max.apply(null, ceros));
+        terms.innerHTML = tr.join("") + "<div>Suma de los términos: <b>|A| = " + sg(suma) + "</b></div>";
+        lec.innerHTML = U.lec("|A| por esta línea", sg(suma)) + U.lec("|A| por Sarrus / otro desarrollo", sg(d)) + U.lec("Ceros en la línea elegida", String(ceros[idx])) +
+          U.lec("Línea con más ceros", (fila ? "fila " : "columna ") + (mejor + 1) + " (" + ceros[mejor] + (ceros[mejor] === 1 ? " cero)" : " ceros)"));
+        pie.innerHTML = "Elige una fila o columna: <b>el resultado es siempre el mismo</b>, pero cuantos más ceros tenga la línea, menos menores hay que calcular. Con la 4×4 se nota mucho.";
+      } else {
+        var T = D.tras(C);
+        var inv = d !== 0, titulo, mat;
+        if (st.paso === 1) { titulo = "Menores M<sub>ij</sub> = |A sin fila i ni columna j|"; mat = mx(M); }
+        else if (st.paso === 2) { titulo = "Adjuntos A<sub>ij</sub> = (−1)<sup>i+j</sup>·M<sub>ij</sub>  (matriz Adj(A))"; mat = mx(C, function (i, j) { return (i + j) % 2 ? "neg" : "pos"; }); }
+        else if (st.paso === 3) { titulo = "Traspuesta de la adjunta: Adj(A)<sup>t</sup>"; mat = mx(T); }
+        else { titulo = inv ? "A<sup>−1</sup> = Adj(A)<sup>t</sup> / |A|" : "|A| = 0: no hay inversa"; mat = inv ? mx(T, null, function (i, j, v) { return D.frac(v, d); }) : '<span class="dt-mal">no existe</span>'; }
+        mats.innerHTML = bloque("Matriz A, |A| = " + sg(d), mx(A)) + '<span style="font-size:22px">→</span>' + bloque(titulo, mat);
+        terms.innerHTML = "";
+        lec.innerHTML = U.lec("|A|", sg(d), inv ? "ok" : "mal") + U.lec("¿Tiene inversa?", inv ? "sí" : "no: |A| = 0");
+        pie.innerHTML = st.paso === 1 ? "Cada menor es un determinante de orden " + (n - 1) + ", que sale de tachar una fila y una columna."
+          : st.paso === 2 ? "Se cambia el signo según el tablero + − + / − + − / + − +…"
+          : st.paso === 3 ? "<b>Ojo</b>: la traspuesta. Es el error más típico: olvidar este paso."
+          : inv ? "Se divide cada elemento entre |A|. Comprobación rápida: la fila 1 de A por la columna 1 de A<sup>−1</sup> debe dar 1."
+          : "Si |A| = 0 no se puede dividir: la matriz no tiene inversa (es singular).";
+      }
+    }
+    opciones(); pinta();
+  };
+
+  // ============================================================
+  // DETERMINANTE CON PARÁMETRO
+  // ============================================================
+  var PRE_PAR = [
+    { k: "0", t: "m en la diagonal inversa", f: function (m) { return [[1, 1, m], [1, m, 1], [m, 1, 1]]; }, txt: [["1", "1", "m"], ["1", "m", "1"], ["m", "1", "1"]], raices: [1, -2], rn: ["1", "−2"], ymax: 10, ymin: -10 },
+    { k: "1", t: "Tridiagonal", f: function (m) { return [[m, 1, 0], [1, m, 1], [0, 1, m]]; }, txt: [["m", "1", "0"], ["1", "m", "1"], ["0", "1", "m"]], raices: [-Math.SQRT2, 0, Math.SQRT2], rn: ["−√2", "0", "√2"], ymax: 8, ymin: -8 },
+    { k: "2", t: "Una sola raíz", f: function (m) { return [[1, 2, 1], [2, m, 2], [1, 2, 3]]; }, txt: [["1", "2", "1"], ["2", "m", "2"], ["1", "2", "3"]], raices: [4], rn: ["4"], ymax: 12, ymin: -12 },
+    { k: "3", t: "2×2: m² − 4", f: function (m) { return [[m, 4], [1, m]]; }, txt: [["m", "4"], ["1", "m"]], raices: [-2, 2], rn: ["−2", "2"], ymax: 12, ymin: -6 }
+  ];
+  D.PRE_PAR = PRE_PAR;
+  B.w.det_param = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Determinante con parámetro: ¿para qué m se anula?");
+    cuerpo.innerHTML = '<div data-pre></div><div data-raiz class="chips"></div><div class="dt-fila"><div data-mat></div></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, m: 0.5 }, g, pm, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lec = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), matEl = cuerpo.querySelector("[data-mat]");
+    var sk = U.slider(ctl, { et: "Parámetro <i>m</i>", min: -4, max: 4, step: 0.05, val: 0.5, on: function (v) { st.m = Math.round(v * 1000) / 1000; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE_PAR.map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) { st.i = +k; arma(); });
+    function arma() {
+      var p = PRE_PAR[st.i], el = cuerpo.querySelector(".w-plot");
+      el.innerHTML = "";
+      g = new B.Plot(el, { xmin: -4, xmax: 4, ymin: p.ymin, ymax: p.ymax, w: 560, h: 280, etx: "m", ety: "|A(m)|", etiqueta: "Valor del determinante según m" });
+      pm = g.punto(0, 0, { capa: "top", r: 7, clase: "c-pen" });
+      var o = p.raices.map(function (r, j) { return { k: String(j), t: "m = " + p.rn[j] }; });
+      U.fichas(cuerpo.querySelector("[data-raiz]"), o, "-", function (k) { st.m = p.raices[+k]; sk.set(st.m); pinta(); });
+      pinta();
+    }
+    function pinta() {
+      var p = PRE_PAR[st.i], A = p.f(st.m), d = D.det(A), esRaiz = p.raices.some(function (r) { return Math.abs(r - st.m) < 1e-9; });
+      if (esRaiz) d = 0;
+      g.limpiar();
+      g.horizontal(0, { clase: "c-faint" });
+      g.curva(function (m) { return D.det(p.f(m)); }, { clase: "c-pen" });
+      p.raices.forEach(function (r, j) { g.punto(r, 0, { clase: "c-red", r: 6 }); g.texto(r, 0, p.rn[j], { dx: 6, dy: -9, clase: "red" }); });
+      g.mover(pm, st.m, Math.max(p.ymin, Math.min(p.ymax, d)));
+      var rg = esRaiz ? D.rango(A) : (Math.abs(d) < 1e-9 ? D.rango(A) : A.length);
+      matEl.innerHTML = bloque("A(m) con m = " + fmt(st.m, 2), mx(A, null, function (i, j) { var t = p.txt[i][j]; return t === "m" ? "<b>" + fmt(st.m, 2) + "</b>" : t; }));
+      lec.innerHTML = U.lec("|A(m)|", fmt(d, 3), esRaiz ? "mal" : "") + U.lec("rg A(m)", String(rg), esRaiz ? "mal" : "ok") + U.lec("¿Tiene inversa?", esRaiz ? "no (|A| = 0)" : "sí") + U.lec("Valores que anulan |A|", "m = " + p.rn.join(", "));
+      pie.innerHTML = "Desliza <i>m</i>. Donde la curva corta el eje (puntos rojos) el determinante vale 0: <b>justo ahí</b> baja el rango y desaparece la inversa. Para cualquier otro valor, rg = " + A.length + ". Pulsa los botones de «m =» para saltar a cada raíz.";
+    }
+    arma();
+  };
+
+  // ============================================================
+  // CALCULADORA DE PROPIEDADES: |k·A^p·(Aᵗ)^q·B|
+  // ============================================================
+  B.w.det_calc = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Calcula |k·Aᵖ·(Aᵗ)ᵠ·B| sin conocer A");
+    cuerpo.innerHTML = '<div data-n class="chips"></div><div data-ctl></div><div data-usaB class="chips"></div><div class="dt-terms"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { n: 3, dA: 3, k: 2, p: -1, q: 1, b: 0, dB: 2 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    var terms = cuerpo.querySelector(".dt-terms"), lec = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.fichas(cuerpo.querySelector("[data-n]"), [{ k: "2", t: "Orden n = 2" }, { k: "3", t: "n = 3" }, { k: "4", t: "n = 4" }], "3", function (k) { st.n = +k; pinta(); });
+    function sl(et, min, max, val, key) { return U.slider(ctl, { et: et, min: min, max: max, step: 1, val: val, on: function (v) { st[key] = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } }); }
+    sl("|A|", -5, 5, 3, "dA"); sl("k", -3, 4, 2, "k"); sl("Exponente p de A", -2, 3, -1, "p"); sl("Exponente q de Aᵗ", 0, 2, 1, "q");
+    U.fichas(cuerpo.querySelector("[data-usaB]"), [{ k: "0", t: "Sin B" }, { k: "1", t: "Multiplicar por B (|B| = 2)" }], "0", function (k) { st.b = +k; pinta(); });
+    function sup(e) { return e === 1 ? "" : "<sup>" + sg(e) + "</sup>"; }
+    function pinta() {
+      var n = st.n, dA = st.dA, k = st.k, p = st.p, q = st.q, b = st.b, e = p + q;
+      var expr = (k === 1 ? "" : sg(k)) + "A" + sup(p) + (q ? "·(A<sup>t</sup>)" + sup(q) : "") + (b ? "·B" : "");
+      var l1 = "|" + expr + "| = " + par(k) + "<sup>" + n + "</sup>·|A|" + sup(p) + (q ? "·|A<sup>t</sup>|" + sup(q) : "") + (b ? "·|B|" : "");
+      var l2 = "= " + par(k) + "<sup>" + n + "</sup>·" + par(dA) + sup(p) + (q ? "·" + par(dA) + sup(q) : "") + (b ? "·" + par(st.dB) : "");
+      var ok = !(dA === 0 && p < 0), num = 1, den = 1;
+      if (ok) {
+        num = Math.pow(k, n) * (b ? st.dB : 1);
+        if (e >= 0) num *= Math.pow(dA, e); else den = Math.pow(dA, -e);
+      }
+      var res = ok ? D.frac(num, den) : '<span class="dt-mal">no existe: A no tiene inversa</span>';
+      terms.innerHTML = "<div>" + l1 + "</div><div>(la clave: |kA| = kⁿ|A|, |Aᵗ| = |A|, |A<sup>−1</sup>| = 1/|A|, |AB| = |A||B|)</div><div>" + l2 + "</div><div>= <b>" + res + "</b></div>";
+      lec.innerHTML = U.lec("Expresión", "|" + expr + "|") + U.lec("Resultado", ok ? D.frac(num, den) : "no existe", ok ? "ok" : "mal") + U.lec("Exponente total de |A|", sg(e)) + U.lec("Factor k<sup>n</sup>", sg(Math.pow(k, n)));
+      pie.innerHTML = "Cambia el orden <i>n</i>: el número <i>k</i> sale <b>elevado a n</b>, no multiplicado. Con exponentes negativos, A debe ser invertible (|A| ≠ 0).";
+    }
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · mecánica I (Física y Química 1.º, tema 8: cinemática)
    motor B.lab.mec1 + f8_movil · f8_encuentro · f8_graficas · f8_caida
    ============================================================ */
@@ -50710,6 +51061,651 @@
   ];
 
   B.registrar("mates2", "t1", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 2: Determinantes
+   (parte A: se añade al final de las seis secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  var D = B.lab.det, M = D.mat, T = D.dtm;
+  function w(n, ref) { return H.w(n, ref && "mates2/t2/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. ¿Qué es un determinante?
+  secciones[0] =
+    "<h5>Un número con tres significados</h5>" +
+    "<p>El determinante de una matriz cuadrada se lee de tres maneras a la vez, y casi todo el tema consiste en saltar de una a otra:</p>" +
+    tabla(["Lectura", "Qué dice |A| = 0", "Dónde la usarás"], [
+      ["Algebraica", "A no tiene inversa (es <b>singular</b>)", "este tema y el Tema 1"],
+      ["De filas y columnas", "alguna fila (o columna) es combinación lineal de las demás: el rango baja", "rango, Tema 3 (sistemas)"],
+      ["Geométrica", "el área (2×2) o el volumen (3×3) que forman las filas vale 0: los vectores son proporcionales o coplanarios", "Tema 6 y siguientes"]
+    ]) +
+    "<p>Por eso los ejercicios de la EvAU casi nunca piden «calcula el determinante» y punto: piden <i>«halla los valores de <b>m</b> para los que la matriz no tiene inversa»</i>, <i>«discute el rango según <b>a</b>»</i> o <i>«comprueba que los puntos están alineados»</i>. Todas son, en el fondo, la pregunta <b>¿cuándo vale 0 el determinante?</b></p>" +
+    "<h5>Tres avisos antes de empezar</h5>" +
+    "<ul>" +
+    "<li><b>|A| es un número, no una matriz.</b> Las barras no son un «paréntesis distinto»: transforman toda la matriz en un solo valor. Por eso se escribe |A| = −22 y nunca A = −22.</li>" +
+    "<li>Solo las matrices <b>cuadradas</b> tienen determinante. Una matriz 2×3 no tiene determinante, aunque sí puede tener rango.</li>" +
+    "<li><b>El determinante no es lineal en la matriz entera</b>: en general |A + B| ≠ |A| + |B|. Sí es lineal fila a fila (lo verás en las propiedades), y esa diferencia es la fuente de muchos errores.</li>" +
+    "</ul>" +
+    "<h5>Cómo se define de verdad (para entender los cálculos)</h5>" +
+    "<p>El determinante de orden 1 es el propio número: |a| = a. Los demás se definen <b>con los de orden menor</b>: se elige una fila, se multiplica cada elemento por su adjunto (un determinante de un orden menos, con su signo) y se suma. Es el desarrollo por adjuntos, que verás en la sección 7. Sarrus y la fórmula 2×2 son solo ese desarrollo escrito ya «desplegado» para los órdenes 2 y 3.</p>";
+
+  // ---------------------------------------------------------------- 2. Determinante 2×2
+  secciones[1] =
+    "<h5>Ejemplos con números negativos y con parámetro</h5>" +
+    ejemplo("Determinantes 2×2 con signos",
+      "Calcula " + T([[3, -2], [5, 4]]) + " y " + T([[-2, 3], [1, -6]]) + ".",
+      ["Primero: 3·4 − (−2)·5 = 12 + 10 = <b>22</b>. El segundo producto lleva un signo menos delante <i>y</i> otro propio: se suman.",
+       "Segundo: (−2)·(−6) − 3·1 = 12 − 3 = <b>9</b>."]) +
+    ejemplo("Un 2×2 con parámetro",
+      "¿Para qué valores de m la matriz " + M([["m", 2], [1, "m + 1"]]) + " <b>no</b> tiene inversa?",
+      ["|A| = m(m + 1) − 2·1 = m² + m − 2.",
+       "No hay inversa cuando |A| = 0: m² + m − 2 = 0 → m = (−1 ± 3)/2 → <b>m = 1</b> o <b>m = −2</b>.",
+       "Comprobación con m = 1: " + M([[1, 2], [1, 2]]) + ", dos filas iguales, |A| = 0 ✓."]) +
+    "<h5>El 2×2 es un área</h5>" +
+    "<p>Con dos vectores u = (a, c) y v = (b, d) escritos como columnas (o filas), |ad − bc| es el <b>área del paralelogramo</b> que forman. Si los vectores son proporcionales, el paralelogramo se aplasta y el área es 0: en lenguaje de matrices, la matriz tiene rango 1 y no tiene inversa. Lo verás con un simulador en la sección 9.</p>" +
+    ojo("La fórmula ad − bc se aplica <b>solo</b> a 2×2. No existe un «atajo de la diagonal» para 3×3 ni para 4×4: para esos hay Sarrus (3×3) o adjuntos (cualquier orden).");
+
+  // ---------------------------------------------------------------- 3. Sarrus
+  secciones[2] =
+    "<h5>Sarrus sin equivocarse con los signos</h5>" +
+    "<p>Los fallos de Sarrus casi nunca son de idea, sino de <b>signos y de despiste con los elementos negativos</b>. Un método ordenado: escribe en una línea los <b>seis productos</b> y no los sumes hasta tenerlos todos con su signo propio. Con A = (a b c / d e f / g h i):</p>" +
+    "<ul>" +
+    "<li><b>Los tres que suman</b>: <i>aei</i> (diagonal principal), <i>bfg</i> y <i>cdh</i> (las dos «diagonales rotas» paralelas a ella).</li>" +
+    "<li><b>Los tres que restan</b>: <i>ceg</i> (diagonal secundaria), <i>bdi</i> y <i>afh</i> (sus paralelas rotas).</li>" +
+    "</ul>" +
+    ejemplo("Sarrus con un cero y un negativo",
+      "Calcula |A| con A = " + M([[2, 1, 3], [0, -1, 4], [1, 2, -2]]) + ".",
+      ["Productos que suman: aei = 2·(−1)·(−2) = 4; bfg = 1·4·1 = 4; cdh = 3·0·2 = 0. Suma: <b>8</b>.",
+       "Productos que restan: ceg = 3·(−1)·1 = −3; bdi = 1·0·(−2) = 0; afh = 2·4·2 = 16. Suma: <b>13</b>.",
+       "|A| = 8 − 13 = <b>−5</b>. Distinto de 0: A tiene inversa."]) +
+    ejemplo("Sarrus con muchos negativos",
+      "Calcula |B| con B = " + M([[-1, 2, 3], [4, 0, -2], [1, -3, 5]]) + ".",
+      ["Suman: aei = (−1)·0·5 = 0; bfg = 2·(−2)·1 = −4; cdh = 3·4·(−3) = −36. Suma: <b>−40</b>.",
+       "Restan: ceg = 3·0·1 = 0; bdi = 2·4·5 = 40; afh = (−1)·(−2)·(−3) = −6. Suma: <b>34</b>.",
+       "|B| = (−40) − 34 = <b>−74</b>. Cuidado: restar 34 a −40 da −74, no −6."]) +
+    ojo("Sarrus <b>solo vale para 3×3</b>. En una 4×4 aplicarlo «por analogía» da un número inventado. Para 4×4 se hacen ceros o se desarrolla por adjuntos (sección 7). Y antes de aplicar Sarrus mira si hay una fila con muchos ceros: con los ceros desaparecen casi todos los productos.");
+
+  // ---------------------------------------------------------------- 4. Propiedades
+  secciones[3] =
+    "<h5>Las propiedades, ordenadas por lo que permiten hacer</h5>" +
+    "<p>Las siete propiedades del apartado anterior se agrupan en tres usos. Memorízalas así, no como una lista suelta.</p>" +
+    tabla(["Operación sobre A", "Efecto sobre |A|", "Ejemplo"], [
+      ["Intercambiar dos filas (o columnas)", "cambia de signo", "|A| = 4 → −4"],
+      ["Multiplicar <b>una</b> fila por k", "queda multiplicado por k", "fila ×3: |A| = 4 → 12"],
+      ["Multiplicar <b>toda</b> la matriz n×n por k", "queda multiplicado por kⁿ", "3×3 con k = 2: |A| = 4 → 32"],
+      ["Sumar a una fila un múltiplo de otra", "no cambia", "F₂ ← F₂ + 5F₁: sigue valiendo 4"],
+      ["Trasponer", "no cambia", "|Aᵗ| = |A|"],
+      ["Multiplicar matrices", "|AB| = |A|·|B|", "|A| = 2, |B| = 3 → |AB| = 6"],
+      ["Invertir (si |A| ≠ 0)", "|A⁻¹| = 1/|A|", "|A| = 4 → 1/4"],
+      ["Dos filas iguales o proporcionales, o una fila de ceros", "vale 0", "—"]
+    ]) +
+    "<p>Dos consecuencias que se usan constantemente: <b>|Aⁿ| = |A|ⁿ</b> (potencia entera, también negativa) y que el determinante de una matriz <b>triangular</b> (o diagonal) es el producto de los elementos de su diagonal principal. Este último hecho es la meta de «hacer ceros»: se transforma la matriz en triangular con operaciones que no cambian |A| (o cuyo efecto se controla) y se multiplica la diagonal.</p>" +
+    "<h5>Problemas del tipo «si |A| = 3, calcula…»</h5>" +
+    "<p>Son clásicos de la EvAU. El método no cambia: <b>descompón la expresión en factores</b>, aplica la regla de cada factor y no olvides que un número k que multiplica a una matriz n×n sale elevado a <b>n</b>.</p>" +
+    ejemplo("|2A⁻¹Aᵗ| con A de orden 3",
+      "Sea A una matriz 3×3 con |A| = 3. Calcula |2A⁻¹Aᵗ|.",
+      ["El 2 multiplica a una matriz 3×3: sale como 2³ = 8.",
+       "|2A⁻¹Aᵗ| = 2³·|A⁻¹|·|Aᵗ| = 8·(1/3)·3.",
+       "Resultado: <b>8</b>. (Obsérvalo: |A⁻¹|·|Aᵗ| = (1/|A|)·|A| = 1, así que solo queda el 2³.)"]) +
+    ejemplo("Potencias y signos",
+      "Sea A de orden 3 con |A| = −2. Calcula |3A²| y |(−A)⁻¹|.",
+      ["|3A²| = 3³·|A|² = 27·(−2)² = 27·4 = <b>108</b>. Se eleva al cuadrado <i>antes</i> de multiplicar: (−2)² = +4.",
+       "|−A| = (−1)³·|A| = −(−2) = 2, luego |(−A)⁻¹| = 1/2 = <b>0,5</b>."]) +
+    ejemplo("Operaciones por filas: ¿cuánto vale el nuevo determinante?",
+      "Sea |A| = 4 con filas F₁, F₂, F₃ (A de orden 3). Calcula el determinante de la matriz que tiene por filas 2F₁, F₃ y F₂ + 5F₁.",
+      ["Saca el 2 de la primera fila: 2·|F₁, F₃, F₂ + 5F₁|.",
+       "En la tercera fila, F₂ + 5F₁ → F₂ (restar 5 veces la primera no cambia nada): 2·|F₁, F₃, F₂|.",
+       "Intercambiar F₂ y F₃ cambia el signo: 2·(−|F₁, F₂, F₃|) = 2·(−4) = <b>−8</b>."]) +
+    ejemplo("Hacer ceros en un 4×4",
+      "Calcula " + T([[1, 2, 3, 4], [2, 3, 4, 1], [3, 4, 1, 2], [4, 1, 2, 3]]) + ".",
+      ["Suma a la columna 1 las otras tres: cada fila suma 1 + 2 + 3 + 4 = 10. La nueva columna 1 es (10, 10, 10, 10). Esta operación no cambia |A|.",
+       "Saca 10 de la primera columna: queda 10 · det con primera columna (1, 1, 1, 1).",
+       "Resta la fila 1 a las filas 2, 3 y 4 (tampoco cambia |A|): las filas son (0, 1, 1, −3), (0, 2, −2, −2), (0, −1, −1, −1).",
+       "Desarrolla por la columna 1 (solo queda el 1 de arriba): 10·" + T([[1, 1, -3], [2, -2, -2], [-1, -1, -1]]) + ". Por Sarrus vale 10 − (−6) = 16.",
+       "|A| = 10·16 = <b>160</b>."]) +
+    ejemplo("Cero sin calcular nada",
+      "Demuestra sin desarrollar que " + T([[1, "a", "b + c"], [1, "b", "a + c"], [1, "c", "a + b"]]) + " = 0.",
+      ["Suma a la tercera columna la segunda: C₃ ← C₃ + C₂. No cambia el determinante.",
+       "La tercera columna pasa a ser (a + b + c, a + b + c, a + b + c) = (a + b + c)·(1, 1, 1): es proporcional a la primera.",
+       "Dos columnas proporcionales ⟹ determinante <b>0</b>. ∎"]) +
+    "<h5>Probar las propiedades tú mismo</h5>" +
+    "<p>Este aplicador hace las operaciones por filas y comprueba, cada vez, que el determinante cambia como predice la regla. Prueba con k = 0 (¿qué pasa al multiplicar una fila por 0?), con a = b (fila repetida) y con la matriz triangular.</p>" +
+    w("det_props") +
+    "<h5>La calculadora del «si |A| = …»</h5>" +
+    "<p>Compón una expresión de la forma |k·Aᵖ·(Aᵗ)ᵠ·B| y mira cómo cada regla va entrando. Fíjate en tres cosas: el orden n cambia el efecto de k; los exponentes de A y Aᵗ se suman (|Aᵗ| = |A|); y con p negativo hace falta |A| ≠ 0 (pon |A| = 0 para verlo).</p>" +
+    w("det_calc") +
+    ojo("Tres errores de manual: (1) |kA| = k|A| (es kⁿ|A|); (2) |A + B| = |A| + |B| (falso en general); (3) «el determinante de A⁻¹ es −|A|» o «es |A|⁻¹ con signo cambiado» (es 1/|A|, sin cambio de signo).");
+
+  // ---------------------------------------------------------------- 5. Rango
+  secciones[4] =
+    "<h5>Rango por menores: el método de la EvAU</h5>" +
+    "<p>Un <b>menor de orden r</b> es el determinante de una submatriz r×r que se forma eligiendo r filas y r columnas. El rango de A es el <b>mayor orden r de un menor distinto de 0</b>. Para no calcular todos los menores se procede «<b>orlando</b>»:</p>" +
+    "<ol>" +
+    "<li>Busca un menor de orden 1 distinto de 0 (cualquier elemento no nulo): rg ≥ 1.</li>" +
+    "<li>Busca un menor de orden 2 no nulo que lo contenga: rg ≥ 2. Si todos los menores de orden 2 son 0, rg = 1 y has terminado.</li>" +
+    "<li>Añade (<b>orla</b>) a ese menor una fila y una columna más y calcula los menores de orden 3 así formados. Si alguno es distinto de 0: rg ≥ 3. Si <b>todos</b> los orlados valen 0, rg = 2 (no hace falta mirar otros menores de orden 3).</li>" +
+    "<li>Repite mientras la matriz tenga filas y columnas suficientes.</li>" +
+    "</ol>" +
+    "<p>Si A es cuadrada n×n el atajo es directo: rg(A) = n ⟺ |A| ≠ 0. Por eso, con un parámetro, <b>solo hay que ver qué pasa en los valores que anulan |A|</b>.</p>" +
+    ejemplo("Rango de una 3×3 según un parámetro",
+      "Discute el rango de " + M([[1, 2, -1], [2, "a", -2], [3, 6, "a"]]) + " según los valores de a.",
+      ["Por Sarrus: suman a·a·1 = a², 2·(−2)·3 = −12 y (−1)·2·6 = −12 (total a² − 24); restan (−1)·a·3 = −3a, 2·2·a = 4a y 1·(−2)·6 = −12 (total a − 12). Entonces |A| = a² − 24 − (a − 12) = a² − a − 12 = (a − 4)(a + 3).",
+       "Si <b>a ≠ 4 y a ≠ −3</b>: |A| ≠ 0 y <b>rg(A) = 3</b>.",
+       "Si <b>a = 4</b>: las filas son (1, 2, −1), (2, 4, −2), (3, 6, 4). Las dos primeras son proporcionales, pero el menor " + T([[1, -1], [3, 4]]) + " = 4 + 3 = 7 ≠ 0. Luego <b>rg(A) = 2</b>.",
+       "Si <b>a = −3</b>: filas (1, 2, −1), (2, −3, −2), (3, 6, −3). La tercera es 3·F₁, y el menor " + T([[1, 2], [2, -3]]) + " = −3 − 4 = −7 ≠ 0. Luego <b>rg(A) = 2</b>."]) +
+    ejemplo("Rango de una 3×4 por menores orlados",
+      "Calcula el rango de " + M([[1, 0, 2, 1], [2, 1, 3, 0], [3, 1, "a", 1]]) + " según a.",
+      ["Menor de orden 2 no nulo: " + T([[1, 0], [2, 1]]) + " = 1 ≠ 0. Luego rg ≥ 2.",
+       "Orlamos con la columna 3 y la fila 3: el menor de las tres primeras columnas vale " + T([[1, 0, 2], [2, 1, 3], [3, 1, "a"]]) + " = a − 5.",
+       "Si <b>a ≠ 5</b>: hay un menor de orden 3 no nulo, <b>rg(A) = 3</b> (el máximo posible en una 3×4).",
+       "Si <b>a = 5</b>: hay que mirar los <i>otros</i> menores orlados, los que usan la columna 4: con columnas (1, 2, 4) el menor vale 0, con (1, 3, 4) vale 0, con (2, 3, 4) vale 0. Todos los menores de orden 3 son 0: <b>rg(A) = 2</b>."]) +
+    ojo("No dejes sin comprobar el valor singular: decir «si a = 5, el rango es 2» sin mirar los demás menores de orden 3 es un error de razonamiento. En una cuadrada basta |A| = 0; en una <b>no cuadrada</b> hay que revisar todos los menores orlados (o triangular por Gauss).");
+
+  // ---------------------------------------------------------------- 6. Inversa
+  secciones[5] =
+    "<h5>La inversa por adjuntos, paso a paso</h5>" +
+    "<p>La receta tiene cuatro pasos, siempre en este orden, y cada uno es una fuente típica de error:</p>" +
+    "<ol>" +
+    "<li><b>Comprueba |A| ≠ 0.</b> Si es 0, no hay inversa y has terminado.</li>" +
+    "<li><b>Calcula los menores</b> M<sub>ij</sub> (determinantes que quedan al tachar la fila i y la columna j) y ponles su signo (−1)<sup>i+j</sup> → <b>adjuntos</b> A<sub>ij</sub>. Con ellos formas Adj(A).</li>" +
+    "<li><b>Traspón</b>: Adj(A)ᵗ. (El paso que más se olvida.)</li>" +
+    "<li><b>Divide</b> entre |A|: A⁻¹ = Adj(A)ᵗ / |A|.</li>" +
+    "</ol>" +
+    ejemplo("Inversa 3×3 con determinante −22",
+      "Halla la inversa de A = " + M([[1, 2, 0], [3, 1, 2], [0, 1, 4]]) + ".",
+      ["|A| = 1·1·4 + 2·2·0 + 0·3·1 − (0·1·0 + 2·3·4 + 1·2·1) = 4 − 26 = <b>−22</b> ≠ 0.",
+       "Adjuntos: A₁₁ = " + T([[1, 2], [1, 4]]) + " = 2; A₁₂ = −" + T([[3, 2], [0, 4]]) + " = −12; A₁₃ = " + T([[3, 1], [0, 1]]) + " = 3.",
+       "A₂₁ = −" + T([[2, 0], [1, 4]]) + " = −8; A₂₂ = " + T([[1, 0], [0, 4]]) + " = 4; A₂₃ = −" + T([[1, 2], [0, 1]]) + " = −1.",
+       "A₃₁ = " + T([[2, 0], [1, 2]]) + " = 4; A₃₂ = −" + T([[1, 0], [3, 2]]) + " = −2; A₃₃ = " + T([[1, 2], [3, 1]]) + " = −5.",
+       "Adj(A) = " + M([[2, -12, 3], [-8, 4, -1], [4, -2, -5]]) + ", y su traspuesta Adj(A)ᵗ = " + M([[2, -8, 4], [-12, 4, -2], [3, -1, -5]]) + ".",
+       "A⁻¹ = (1/−22)·Adj(A)ᵗ = " + M([[fr("−1", "11"), fr("4", "11"), fr("−2", "11")], [fr("6", "11"), fr("−2", "11"), fr("1", "11")], [fr("−3", "22"), fr("1", "22"), fr("5", "22")]]) + "."]) +
+    ejemplo("Cuando |A| = 1 la inversa sale entera",
+      "Halla la inversa de " + M([[1, 2, 3], [0, 1, 4], [5, 6, 0]]) + ".",
+      ["|A| = 0 + 40 + 0 − (15 + 24 + 0) = 40 − 39 = <b>1</b>. Al dividir entre 1 no aparecen fracciones.",
+       "Adj(A)ᵗ = " + M([[-24, 18, 5], [20, -15, -4], [-5, 4, 1]]) + " y por tanto A⁻¹ es esa misma matriz.",
+       "Comprobación de una fila: (1, 2, 3)·(−24, 20, −5) = −24 + 40 − 15 = 1 ✓ (primer elemento de A·A⁻¹ = I)."]) +
+    "<p>Pruébalo con distintas matrices, incluida una singular. Pulsa los cuatro pasos y fíjate en cómo el paso ③ coloca cada adjunto en la posición contraria:</p>" +
+    w("det_adjuntos", "inversa") +
+    "<h5>Ecuaciones matriciales: el orden importa</h5>" +
+    "<p>Como el producto de matrices <b>no es conmutativo</b>, multiplicar por A⁻¹ hay que hacerlo <b>por el mismo lado</b> en los dos miembros: de AX = B se obtiene X = A⁻¹B (A⁻¹ a la izquierda); de XA = B se obtiene X = BA⁻¹ (A⁻¹ a la derecha). Si hay que sacar factor común, también por el lado correcto: XA + 2X = B ⟹ X(A + 2I) = B (nunca X(A + 2) porque 2 no es una matriz).</p>" +
+    ejemplo("AX = B y XA = B con la misma A",
+      "Sean A = " + M([[1, 2], [3, 5]]) + " y B = " + M([[1, 0], [2, 1]]) + ". Resuelve AX = B y XA = B.",
+      ["|A| = 5 − 6 = −1 y A⁻¹ = (1/−1)·" + M([[5, -2], [-3, 1]]) + " = " + M([[-5, 2], [3, -1]]) + ".",
+       "AX = B ⟹ X = A⁻¹B = " + M([[-5, 2], [3, -1]]) + M([[1, 0], [2, 1]]) + " = " + M([[-1, 2], [1, -1]]) + ".",
+       "XA = B ⟹ X = BA⁻¹ = " + M([[1, 0], [2, 1]]) + M([[-5, 2], [3, -1]]) + " = " + M([[-5, 2], [-7, 3]]) + ".",
+       "Son matrices distintas: cambiar el lado de A⁻¹ cambia el resultado."]) +
+    ojo("Recuerda que (AB)⁻¹ = B⁻¹A⁻¹ (se invierte el orden) y que (Aᵗ)⁻¹ = (A⁻¹)ᵗ. Y que el atajo «A⁻¹ = 1/A» no existe: no se divide entre una matriz.");
+
+  B.parte.m2t2a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 2: Determinantes
+   (parte B: secciones nuevas 7 a 12)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  var D = B.lab.det, M = D.mat, T = D.dtm;
+  function w(n, ref) { return H.w(n, ref && "mates2/t2/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Desarrollo por adjuntos y determinantes de orden 4",
+      html:
+        "<h5>Menor, adjunto y signo</h5>" +
+        "<p>Para un elemento a<sub>ij</sub> de una matriz n×n:</p>" +
+        "<ul>" +
+        "<li>Su <b>menor</b> M<sub>ij</sub> es el determinante (de orden n − 1) que queda al <b>tachar la fila i y la columna j</b>.</li>" +
+        "<li>Su <b>adjunto</b> es A<sub>ij</sub> = (−1)<sup>i+j</sup>·M<sub>ij</sub>. El signo sigue el «tablero de ajedrez» con + en la esquina superior izquierda: el signo de a<sub>ij</sub> es + si i + j es par y − si es impar.</li>" +
+        "</ul>" +
+        "<div class='formula-wrap'><div class='formula'>|A| = a<sub>i1</sub>A<sub>i1</sub> + a<sub>i2</sub>A<sub>i2</sub> + … + a<sub>in</sub>A<sub>in</sub> &nbsp; (por la fila i) &nbsp;·&nbsp; |A| = a<sub>1j</sub>A<sub>1j</sub> + … + a<sub>nj</sub>A<sub>nj</sub> &nbsp; (por la columna j)</div></div>" +
+        "<p>Vale <b>cualquier fila o columna</b> y siempre da el mismo número. Elige la que tenga <b>más ceros</b>: cada cero elimina un determinante entero que habría que calcular.</p>" +
+        ejemplo("Desarrollo de un 3×3 por la primera fila",
+          "Calcula " + T([[2, 1, 0], [1, 3, 1], [0, 1, 2]]) + " por adjuntos.",
+          ["Primera fila: |A| = 2·A₁₁ + 1·A₁₂ + 0·A₁₃.",
+           "A₁₁ = +" + T([[3, 1], [1, 2]]) + " = 6 − 1 = 5. A₁₂ = −" + T([[1, 1], [0, 2]]) + " = −(2 − 0) = −2.",
+           "|A| = 2·5 + 1·(−2) + 0 = 10 − 2 = <b>8</b>. El tercer término ni se calcula, porque a₁₃ = 0.",
+           "Comprobación con Sarrus: (12 + 0 + 0) − (0 + 2 + 2) = 12 − 4 = 8 ✓."]) +
+        "<h5>Determinantes de orden 4 en la EvAU</h5>" +
+        "<p>En la prueba casi siempre aparecen con <b>muchos ceros</b> o con una estructura que permite hacerlos. Hay dos movimientos que se combinan:</p>" +
+        "<ol><li><b>Hacer ceros</b> en una columna (o fila) con operaciones «F<sub>i</sub> ← F<sub>i</sub> + k·F<sub>j</sub>», que no cambian el determinante.</li>" +
+        "<li><b>Desarrollar</b> por esa columna: solo sobrevive un término, y el determinante pasa a ser de orden 3.</li></ol>" +
+        ejemplo("Un 4×4 haciendo ceros",
+          "Calcula " + T([[1, 2, -1, 3], [2, 5, 0, 1], [-1, 0, 3, 2], [3, 1, 2, 4]]) + ".",
+          ["La columna 1 empieza por 1: úsala de pivote. F₂ ← F₂ − 2F₁, F₃ ← F₃ + F₁, F₄ ← F₄ − 3F₁.",
+           "Nuevas filas: (0, 1, 2, −5), (0, 2, 2, 5), (0, −5, 5, −5). La primera fila queda (1, 2, −1, 3).",
+           "Desarrollo por la columna 1: solo cuenta el 1 de la posición (1,1), con signo +: |A| = 1·" + T([[1, 2, -5], [2, 2, 5], [-5, 5, -5]]) + ".",
+           "Por Sarrus: suman −10 − 50 − 50 = −110; restan 50 − 20 + 25 = 55. El determinante 3×3 vale −110 − 55 = −165.",
+           "|A| = <b>−165</b>."]) +
+        ejemplo("Un 4×4 con una columna casi vacía",
+          "Calcula " + T([[2, 0, 1, 3], [1, 2, 0, 1], [0, 1, 0, 2], [3, 0, 0, 1]]) + ".",
+          ["La columna 3 es (1, 0, 0, 0): un solo elemento no nulo, a₁₃ = 1, con signo (−1)<sup>1+3</sup> = +.",
+           "|A| = 1·" + T([[1, 2, 1], [0, 1, 2], [3, 0, 1]]) + " (tachando la fila 1 y la columna 3).",
+           "Sarrus: (1 + 12 + 0) − (3 + 0 + 0) = 13 − 3 = 10. Luego |A| = <b>10</b>."]) +
+        "<p>Prueba el desarrollo con el simulador: elige una fila o columna y comprueba que el resultado no cambia, pero el trabajo sí. Con la 4×4, mira qué línea tiene más ceros.</p>" +
+        w("det_adjuntos", "desarrollo") +
+        "<h5>Una curiosidad que explica la inversa</h5>" +
+        "<p>Si multiplicas los elementos de una fila por los adjuntos de <b>otra</b> fila distinta, la suma da <b>0</b>: es como desarrollar el determinante de una matriz con dos filas iguales. Por ejemplo, en la matriz anterior: 2·A₂₁ + 1·A₂₂ + 0·A₂₃ = 2·(−2) + 1·4 + 0 = 0. Esta propiedad es la razón de que A·Adj(A)ᵗ = |A|·I y, de ahí, A⁻¹ = Adj(A)ᵗ/|A|.</p>" +
+        ojo("Los errores de signo en el tablero son los más frecuentes: el elemento a₁₂ lleva signo <b>menos</b>, a₂₁ también, y a₂₂ lleva más. Escribe el tablero de signos al lado de la matriz antes de empezar.")
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Determinantes con parámetro: ¿cuándo vale 0?",
+      html:
+        "<p>Es el esquema de casi todos los problemas de determinantes de la EvAU: una matriz con un parámetro (m, a, k…) y varias preguntas que se responden con <b>el mismo determinante</b>.</p>" +
+        tabla(["Paso", "Qué hacer"], [
+          ["1", "Calcula |A(m)| (Sarrus u otro método) y <b>factorízalo</b>."],
+          ["2", "Resuelve |A(m)| = 0: los valores que salgan son los <b>valores singulares</b>."],
+          ["3", "Para cualquier otro m: |A| ≠ 0 ⟹ tiene inversa y rg = n (orden de la matriz)."],
+          ["4", "Para <b>cada</b> valor singular, sustituye y estudia el rango por separado (menores)."]
+        ]) +
+        "<p>Para factorizar un polinomio de grado 3 usa Ruffini probando como raíces los divisores del término independiente (±1, ±2, …). Si sale una raíz doble, el factor aparece al cuadrado: eso <i>no</i> añade valores singulares, pero conviene detectarla.</p>" +
+        ejemplo("Inversa, rango y una inversa concreta",
+          "Sea A(m) = " + M([[1, 1, "m"], [1, "m", 1], ["m", 1, 1]]) + ". (a) ¿Para qué m tiene inversa? (b) Calcula el rango en los valores singulares. (c) Halla A(0)⁻¹.",
+          ["(a) Sarrus: suman m + m + m = 3m; restan m·m·m + 1 + 1 = m³ + 2. Luego |A| = −m³ + 3m − 2 = −(m³ − 3m + 2).",
+           "Ruffini con m = 1: 1 + 0 − 3 + 2 = 0 ✓. m³ − 3m + 2 = (m − 1)(m² + m − 2) = (m − 1)²(m + 2). Por tanto |A| = −(m − 1)²(m + 2).",
+           "Tiene inversa si <b>m ≠ 1 y m ≠ −2</b>.",
+           "(b) Con m = 1 todas las filas son (1, 1, 1): <b>rg = 1</b>. Con m = −2: " + M([[1, 1, -2], [1, -2, 1], [-2, 1, 1]]) + ", y el menor " + T([[1, 1], [1, -2]]) + " = −3 ≠ 0, así que <b>rg = 2</b> (el 3×3 vale 0).",
+           "(c) A(0) = " + M([[1, 1, 0], [1, 0, 1], [0, 1, 1]]) + " con |A| = −2. Adj(A)ᵗ = " + M([[-1, -1, 1], [-1, 1, -1], [1, -1, -1]]) + " y A(0)⁻¹ = (1/−2)·Adj(A)ᵗ = " + M([[fr("1", "2"), fr("1", "2"), fr("−1", "2")], [fr("1", "2"), fr("−1", "2"), fr("1", "2")], [fr("−1", "2"), fr("1", "2"), fr("1", "2")]]) + "."]) +
+        ejemplo("Resolver una ecuación con un determinante",
+          "Resuelve " + T([[1, 1, 1], ["x", 2, 3], ["x²", 4, 9]]) + " = 0.",
+          ["Sarrus: suman 18 + 3x² + 4x; restan 2x² + 9x + 12.",
+           "Determinante: x² − 5x + 6 = (x − 2)(x − 3). Las soluciones son <b>x = 2</b> y <b>x = 3</b>.",
+           "Se podía prever: con x = 2 la primera columna es (1, 2, 4), igual que la segunda; con x = 3 es (1, 3, 9), igual que la tercera. Es un determinante de Vandermonde."]) +
+        ejemplo("Otra matriz con parámetro",
+          "¿Para qué valores de a tiene inversa " + M([["a", 2, 1], [1, "a", 0], [0, 1, 1]]) + "?",
+          ["Sarrus: suman a² + 0 + 1; restan 0 + 2 + 0. |A| = a² + 1 − 2 = a² − 1 = (a − 1)(a + 1).",
+           "Tiene inversa para todo <b>a ≠ 1 y a ≠ −1</b>."]) +
+        "<p>Mueve el parámetro y observa dónde la curva |A(m)| corta al eje: en ese instante el rango baja y la inversa desaparece. Hay cuatro matrices; en la primera la raíz m = 1 es doble (la curva solo «toca» el eje).</p>" +
+        w("det_param") +
+        ojo("Un error frecuente: dividir entre un factor que puede valer 0. Si escribes «m(m − 1) = m ⟹ m − 1 = 1», pierdes la solución m = 0. Factoriza e iguala a 0 cada factor, en vez de simplificar.")
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Interpretación geométrica: área, volumen y orientación",
+      html:
+        "<p>Si las filas de una matriz son vectores, su determinante mide algo muy concreto: el <b>área</b> (en el plano) o el <b>volumen</b> (en el espacio) de la figura que forman, <b>con signo</b>.</p>" +
+        tabla(["Situación", "Fórmula", "Interpretación del 0"], [
+          ["Paralelogramo de lados u, v (plano)", "Área = |det(u, v)|", "u y v proporcionales"],
+          ["Triángulo de vértices A, B, C", "Área = ½·|det(AB, AC)|", "A, B, C alineados"],
+          ["Paralelepípedo de aristas u, v, w", "Volumen = |det(u, v, w)|", "u, v, w coplanarios"],
+          ["Tetraedro de aristas u, v, w", "Volumen = ⅙·|det(u, v, w)|", "los 4 puntos son coplanarios"]
+        ]) +
+        "<p>El <b>signo</b> es la orientación: en el plano, det(u, v) &gt; 0 si para ir de u a v se gira en sentido antihorario; al cambiar el orden, el signo cambia (justo la propiedad de intercambiar filas). En el espacio, det(u, v, w) &gt; 0 si la terna es «directa» (regla de la mano derecha).</p>" +
+        w("det_geom") +
+        ejemplo("Área de un triángulo",
+          "Calcula el área del triángulo de vértices A(1, 1), B(5, 2), C(2, 6).",
+          ["AB = (4, 1) y AC = (1, 5).",
+           "det(AB, AC) = " + T([[4, 1], [1, 5]]) + " = 20 − 1 = 19.",
+           "Área = ½·|19| = <b>19/2 = 9,5</b> unidades cuadradas."]) +
+        ejemplo("Tres puntos alineados",
+          "¿Para qué valor de k están alineados A(1, 2), B(3, k) y C(−1, −4)?",
+          ["Alineados ⟺ el triángulo tiene área 0 ⟺ " + T([[1, 2, 1], [3, "k", 1], [-1, -4, 1]]) + " = 0.",
+           "Por Sarrus: suman k − 2 − 12 = k − 14; restan −k + 6 − 4 = −k + 2. El determinante es (k − 14) − (−k + 2) = 2k − 16.",
+           "2k − 16 = 0 ⟹ <b>k = 8</b>. Comprobación: pendientes AB = (8 − 2)/(3 − 1) = 3 y AC = (−4 − 2)/(−1 − 1) = 3 ✓."]) +
+        ejemplo("Volumen de un paralelepípedo y de un tetraedro",
+          "Sean u = (1, 2, 0), v = (0, 1, 3), w = (2, 0, 1). Calcula el volumen del paralelepípedo y del tetraedro que determinan.",
+          ["det(u, v, w) = " + T([[1, 2, 0], [0, 1, 3], [2, 0, 1]]) + ". Sarrus: suman 1 + 12 + 0 = 13; restan 0 + 0 + 0 = 0. El determinante vale 13.",
+           "Volumen del paralelepípedo = |13| = <b>13</b> u³.",
+           "Volumen del tetraedro = 13/6 ≈ <b>2,17</b> u³ (un sexto del paralelepípedo)."]) +
+        ejemplo("¿Cuatro puntos coplanarios?",
+          "Estudia si A(1, 0, 0), B(0, 1, 0), C(0, 0, 1) y D(2, 2, −3) están en un mismo plano.",
+          ["AB = (−1, 1, 0), AC = (−1, 0, 1), AD = (1, 2, −3).",
+           "det(AB, AC, AD) = " + T([[-1, 1, 0], [-1, 0, 1], [1, 2, -3]]) + " = (0 + 1 + 0) − (0 − 2 + 3) = 1 − 1 = 0.",
+           "Determinante 0 ⟹ los cuatro puntos son <b>coplanarios</b> (están en el plano x + y + z = 1)."])
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Problemas tipo EvAU resueltos",
+      html:
+        ejemplo("Problema 1 · Propiedades sin conocer las matrices",
+          "Sean A y B matrices 3×3 con |A| = 2 y |B| = −3. Calcula |3A⁻¹B²|, |AᵗB⁻¹| y |Adj(A)|.",
+          ["|3A⁻¹B²| = 3³·|A⁻¹|·|B|² = 27·(1/2)·9 = <b>243/2</b>.",
+           "|AᵗB⁻¹| = |A|·(1/|B|) = 2·(−1/3) = <b>−2/3</b>.",
+           "Como A·Adj(A)ᵗ = |A|·I, tomando determinantes: |A|·|Adj(A)| = |A|³, luego |Adj(A)| = |A|² = <b>4</b> (en general |Adj A| = |A|<sup>n−1</sup>)."]) +
+        ejemplo("Problema 2 · Una matriz con parámetro",
+          "Sea B(m) = " + M([[1, "m", 0], [0, 1, "m"], ["m", 0, 1]]) + ". (a) ¿Para qué m existe B⁻¹? (b) Rango en el valor singular. (c) B(1)⁻¹.",
+          ["(a) Sarrus: suman 1 + m³ + 0; restan 0. |B| = 1 + m³ = (m + 1)(m² − m + 1).",
+           "El factor m² − m + 1 no tiene raíces reales (discriminante 1 − 4 &lt; 0). Luego |B| = 0 solo si <b>m = −1</b>: existe B⁻¹ para todo m ≠ −1.",
+           "(b) Con m = −1: " + M([[1, -1, 0], [0, 1, -1], [-1, 0, 1]]) + ". El menor " + T([[1, -1], [0, 1]]) + " = 1 ≠ 0 y |B| = 0: <b>rg = 2</b>.",
+           "(c) m = 1: " + M([[1, 1, 0], [0, 1, 1], [1, 0, 1]]) + ", |B| = 2. Adjuntos y traspuesta dan B(1)⁻¹ = " + M([[fr("1", "2"), fr("−1", "2"), fr("1", "2")], [fr("1", "2"), fr("1", "2"), fr("−1", "2")], [fr("−1", "2"), fr("1", "2"), fr("1", "2")]]) + "."]) +
+        ejemplo("Problema 3 · Ecuación matricial",
+          "Sea A = " + M([[1, 2], [3, 4]]) + ". Halla X con XA − 2X = I.",
+          ["Saca X factor común <b>por la izquierda</b>: X(A − 2I) = I. (No vale X(A − 2), porque 2 no es una matriz.)",
+           "A − 2I = " + M([[-1, 2], [3, 2]]) + ", con |A − 2I| = −2 − 6 = −8 ≠ 0, así que tiene inversa.",
+           "X = (A − 2I)⁻¹ = (1/−8)·" + M([[2, -2], [-3, -1]]) + " = " + M([[fr("−1", "4"), fr("1", "4")], [fr("3", "8"), fr("1", "8")]]) + "."]) +
+        ejemplo("Problema 4 · Razonamientos con determinantes",
+          "(a) Si Aᵗ = −A y A es 3×3, demuestra que |A| = 0. (b) Si A² = A, ¿qué valores puede tener |A|?",
+          ["(a) |Aᵗ| = |A|, y también |−A| = (−1)³|A| = −|A|. Entonces |A| = −|A| ⟹ 2|A| = 0 ⟹ <b>|A| = 0</b>. (Para orden par no sale: ahí |−A| = |A|.)",
+           "(b) |A²| = |A|² = |A| ⟹ |A|(|A| − 1) = 0 ⟹ <b>|A| = 0 o |A| = 1</b>."]) +
+        ejemplo("Problema 5 · Área con parámetro",
+          "Los puntos O(0, 0), P(m, 2) y Q(3, m) forman un triángulo de área 2. Halla m.",
+          ["Área = ½·|" + T([["m", 2], [3, "m"]]) + "| = ½·|m² − 6|.",
+           "½·|m² − 6| = 2 ⟹ |m² − 6| = 4 ⟹ m² − 6 = 4 o m² − 6 = −4 ⟹ m² = 10 o m² = 2.",
+           "Soluciones: <b>m = ±√10 ≈ ±3,16</b> y <b>m = ±√2 ≈ ±1,41</b> (cuatro valores)."])
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. ¿Qué falla aquí? Errores típicos",
+      html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+    },
+    // -------------------------------------------------------------- 12
+    {
+      h: "12. Autocomprobación del tema",
+      html: "<p>Doce preguntas de test con explicación, tarjetas con las fórmulas, una actividad de emparejar, otra de clasificar y el orden correcto para calcular una inversa.</p>" +
+        w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "props") + w("clasificar", "cero") + w("orden", "inversa")
+    }
+  ];
+
+  B.parte.m2t2b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 2: Determinantes
+   (parte C: resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr;
+  var D = B.lab.det, M = D.mat, T = D.dtm;
+
+  var resumen = [
+    "|A| es un <b>número</b> asociado a una matriz cuadrada. 2×2: |A| = ad − bc. 3×3: Sarrus, (aei + bfg + cdh) − (ceg + bdi + afh). Para órdenes mayores: <b>hacer ceros</b> y <b>desarrollar por adjuntos</b> (por la fila o columna con más ceros): |A| = Σ a<sub>ij</sub>·A<sub>ij</sub>, con A<sub>ij</sub> = (−1)<sup>i+j</sup>·M<sub>ij</sub>.",
+    "Propiedades: intercambiar dos filas cambia el signo · multiplicar <b>una</b> fila por k multiplica |A| por k · |kA| = kⁿ|A| · sumar a una fila un múltiplo de otra no cambia |A| · dos filas proporcionales o una fila de ceros ⟹ |A| = 0 · |Aᵗ| = |A| · |AB| = |A||B| · |A⁻¹| = 1/|A| · |Aⁿ| = |A|ⁿ · triangular: producto de la diagonal.",
+    "Problemas «si |A| = 3, calcula…»: descompón en factores y aplica cada regla; recuerda que el número que multiplica a una matriz n×n sale elevado a <b>n</b>.",
+    "<b>Rango</b> = orden del mayor menor no nulo; se calcula orlando. En una matriz cuadrada: rg = n ⟺ |A| ≠ 0.",
+    "<b>Inversa</b>: A⁻¹ = Adj(A)ᵗ/|A|, con |A| ≠ 0. Orden de los pasos: determinante → adjuntos → traspuesta → dividir. En ecuaciones matriciales, AX = B ⟹ X = A⁻¹B, pero XA = B ⟹ X = BA⁻¹.",
+    "<b>Con parámetro</b>: calcula |A(m)|, factoriza, resuelve |A(m)| = 0 y estudia el rango de cada valor singular por separado. <b>Geometría</b>: |det| es área (2×2) o volumen (3×3); |det| = 0 ⟺ vectores proporcionales / coplanarios / puntos alineados; el signo es la orientación."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«A es 3×3 con |A| = 5, luego |2A| = 2·5 = 10». ¿Qué falla?",
+          op: ["Nada, está bien", "El 2 multiplica a las tres filas: sale 2³ = 8, y |2A| = 8·5 = 40", "|2A| = 2 + 5 = 7", "|2A| = 5/2"], ok: 1,
+          porque: "Multiplicar toda la matriz por k es multiplicar cada una de sus n filas por k, y cada fila aporta un factor k: |kA| = kⁿ|A|. Solo si se multiplica <i>una</i> fila el determinante queda multiplicado por k." },
+        { q: "Un alumno escribe |A + B| = |A| + |B|. ¿Qué falla?",
+          op: ["Es correcto", "El determinante no es lineal respecto de la matriz entera: con A = B = I (2×2), |A + B| = |2I| = 4 pero |A| + |B| = 2", "Solo falla con matrices 3×3", "Falla porque |B| debe restarse"], ok: 1,
+          porque: "Las propiedades correctas son |AB| = |A||B| (producto) y la linealidad fila a fila. La suma de matrices no tiene fórmula sencilla." },
+        { q: "Para calcular el determinante de una matriz 4×4, un alumno aplica Sarrus «ampliando» la regla. ¿Qué falla?",
+          op: ["Nada", "Sarrus solo vale para 3×3; en 4×4 hay que hacer ceros o desarrollar por adjuntos", "Debe usar la regla 2×2 dos veces", "Sarrus vale si hay ceros"], ok: 1,
+          porque: "Una 4×4 tiene 24 productos, no 8; la regla de las diagonales no los recoge. Se desarrolla por una línea y se baja a determinantes 3×3." },
+        { q: "Al invertir A = (2 1 / 5 3) un alumno obtiene (3 5 / −1 2)·(1/1) tras calcular los adjuntos 3, −5, −1, 2. ¿Qué falla?",
+          op: ["Nada", "Se olvidó de trasponer la matriz de adjuntos: la inversa es (3 −1 / −5 2)", "Debía dividir entre 2", "El determinante es 0"], ok: 1,
+          porque: "A⁻¹ = Adj(A)ᵗ/|A|. La adjunta es (3 −5 / −1 2); su traspuesta (3 −1 / −5 2) es la inversa, y es la que cumple A·A⁻¹ = I." },
+        { q: "«Como |A| = 0, la matriz A es la matriz nula». ¿Qué falla?",
+          op: ["Nada", "|A| = 0 solo dice que A es singular: por ejemplo (1 2 / 2 4) tiene |A| = 0 y no es nula", "La matriz nula tiene determinante 1", "|A| = 0 implica rango 0"], ok: 1,
+          porque: "|A| = 0 ⟺ no hay inversa ⟺ rg(A) &lt; n. El rango puede ser n − 1 o menos, pero no tiene por qué ser 0." },
+        { q: "De XA = B un alumno obtiene X = A⁻¹B. ¿Qué falla?",
+          op: ["Nada", "Hay que multiplicar por A⁻¹ por la derecha: X = BA⁻¹, porque el producto no es conmutativo", "X = B/A", "X = A·B⁻¹"], ok: 1,
+          porque: "XA·A⁻¹ = X·I = X, así que A⁻¹ se coloca a la derecha en ambos miembros. A⁻¹B sería la solución de AX = B." },
+        { q: "«Hago F₂ ← 3F₂ + F₁; esa operación no cambia el determinante». ¿Qué falla?",
+          op: ["Nada", "Multiplicar F₂ por 3 sí cambia el determinante (lo multiplica por 3); solo sumar un múltiplo de otra fila deja |A| igual", "Cambia el signo", "Lo divide entre 3"], ok: 1,
+          porque: "F₂ ← F₂ + kF₁ es la operación segura. F₂ ← 3F₂ + F₁ equivale a multiplicar la fila 2 por 3 (|A| ×3) y luego sumar F₁ (sin efecto)." },
+        { q: "Se afirma que |A⁻¹| = −|A|. ¿Qué falla?",
+          op: ["Nada", "|A⁻¹| = 1/|A|: A·A⁻¹ = I, así que |A|·|A⁻¹| = 1", "|A⁻¹| = |A|", "|A⁻¹| = |A|ᵗ"], ok: 1,
+          porque: "Tomando determinantes en AA⁻¹ = I se obtiene |A||A⁻¹| = |I| = 1. No hay cambio de signo, y la inversa existe solo si |A| ≠ 0." },
+        { q: "Una fila se multiplica por 2 y otra por 3. Un alumno dice que |A| queda multiplicado por 5. ¿Qué falla?",
+          op: ["Nada", "Los factores se multiplican: 2·3 = 6, no se suman", "Queda multiplicado por 3", "Queda multiplicado por 2/3"], ok: 1,
+          porque: "Cada fila multiplicada por k aporta un factor k al determinante; los factores de distintas filas se multiplican entre sí." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 2",
+      preguntas: [
+        { q: "El determinante de (3 −2 / 5 4) es", op: ["22", "2", "−22", "17"], ok: 0, porque: "3·4 − (−2)·5 = 12 + 10 = 22." },
+        { q: "Si |A| = 4 y A es 3×3, |2A| vale", op: ["8", "32", "16", "12"], ok: 1, porque: "2³·4 = 8·4 = 32." },
+        { q: "Si |A| = 5, |A⁻¹Aᵗ| vale", op: ["1", "5", "1/5", "25"], ok: 0, porque: "|A⁻¹|·|Aᵗ| = (1/5)·5 = 1." },
+        { q: "Intercambiar dos columnas de una matriz", op: ["no cambia |A|", "cambia el signo de |A|", "multiplica |A| por 2", "anula |A|"], ok: 1, porque: "Es la propiedad del cambio de signo." },
+        { q: "Una matriz con una fila igual a la suma de otras dos filas tiene determinante", op: ["1", "0", "el doble", "no se puede saber"], ok: 1, porque: "Es combinación lineal de las otras: al restar, aparece una fila de ceros." },
+        { q: "El determinante de una matriz triangular 3×3 con diagonal 2, −1, 4 es", op: ["5", "−8", "8", "0"], ok: 1, porque: "Producto de la diagonal: 2·(−1)·4 = −8." },
+        { q: "Para que A tenga inversa hace falta que", op: ["|A| = 0", "|A| ≠ 0", "A sea simétrica", "A sea triangular"], ok: 1, porque: "A⁻¹ = Adj(A)ᵗ/|A| exige dividir entre |A|." },
+        { q: "En A⁻¹ = (1/|A|)·(…) el paréntesis es", op: ["Adj(A)", "Adj(A)ᵗ", "A", "Aᵗ"], ok: 1, porque: "La traspuesta de la matriz de adjuntos." },
+        { q: "El rango de una matriz 3×3 con |A| = 0 es", op: ["3", "como mucho 2", "0", "exactamente 2"], ok: 1, porque: "rg &lt; 3, pero puede ser 0, 1 o 2." },
+        { q: "El área del paralelogramo de lados (3, 1) y (1, 2) es", op: ["7", "5", "1", "6"], ok: 1, porque: "|3·2 − 1·1| = 5." },
+        { q: "Si |A| = 3 con A de orden 4, |Adj(A)| vale", op: ["9", "27", "3", "81"], ok: 1, porque: "|Adj A| = |A|ⁿ⁻¹ = 3³ = 27." },
+        { q: "En el desarrollo por adjuntos, el signo del elemento a₂₃ es", op: ["+", "−", "depende del valor", "siempre 0"], ok: 1, porque: "(−1)^{2+3} = −1." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas de determinantes",
+      cartas: [
+        { a: "Determinante 2×2", b: "|a b / c d| = ad − bc" },
+        { a: "Regla de Sarrus", b: "(aei + bfg + cdh) − (ceg + bdi + afh). Solo 3×3." },
+        { a: "Adjunto de a<sub>ij</sub>", b: "A<sub>ij</sub> = (−1)<sup>i+j</sup>·M<sub>ij</sub>" },
+        { a: "Desarrollo por adjuntos", b: "|A| = suma de (elementos de una línea) × (sus adjuntos). Elige la línea con más ceros." },
+        { a: "|kA| en una matriz n×n", b: "kⁿ·|A|" },
+        { a: "|AB|, |Aᵗ|, |A⁻¹|", b: "|A||B| · |A| · 1/|A|" },
+        { a: "Operación que no cambia |A|", b: "Sumar a una fila un múltiplo de otra (F<sub>i</sub> ← F<sub>i</sub> + kF<sub>j</sub>)" },
+        { a: "Matriz triangular", b: "|A| = producto de la diagonal" },
+        { a: "Inversa por adjuntos", b: "A⁻¹ = Adj(A)ᵗ/|A|, con |A| ≠ 0" },
+        { a: "Rango por menores", b: "Orden del mayor menor ≠ 0; se orla desde un menor no nulo" },
+        { a: "Resolver XA = B", b: "X = BA⁻¹ (A⁻¹ a la derecha)" },
+        { a: "Interpretación geométrica", b: "|det| = área (2×2) o volumen (3×3); 0 ⟺ proporcionales / coplanarios / alineados" }
+      ]
+    },
+    props: {
+      titulo: "Operación y efecto",
+      consigna: "Une cada operación con lo que le pasa a |A|.",
+      pares: [
+        ["Intercambiar dos filas", "|A| cambia de signo"],
+        ["Multiplicar una fila por 3", "|A| se multiplica por 3"],
+        ["Sumar a F₂ el doble de F₁", "|A| no cambia"],
+        ["Trasponer la matriz", "|Aᵗ| = |A|"],
+        ["Multiplicar por 2 una matriz 3×3", "|A| se multiplica por 8"],
+        ["Dos filas iguales", "|A| = 0"],
+        ["Invertir la matriz", "|A| pasa a 1/|A|"]
+      ]
+    },
+    cero: {
+      titulo: "¿|A| = 0 o |A| ≠ 0?",
+      consigna: "Toca una matriz y después elige si su determinante es cero.",
+      categorias: ["|A| = 0", "|A| ≠ 0"],
+      items: [
+        { t: "Una fila de ceros", c: 0 }, { t: "La matriz identidad 4×4", c: 1 }, { t: "F₃ = F₁ + F₂", c: 0 },
+        { t: "Triangular con diagonal 1, 2, 3", c: 1 }, { t: "Dos columnas proporcionales", c: 0 }, { t: "Una A que tiene inversa", c: 1 },
+        { t: "Filas (1,2,3), (4,5,6), (7,8,9)", c: 0 }, { t: "Antisimétrica 3×3 (Aᵗ = −A)", c: 0 },
+        { t: "Aᵗ, con A invertible", c: 1 }, { t: "Una A con rg(A) = n", c: 1 }
+      ]
+    },
+    inversa: {
+      titulo: "Calcular la inversa por adjuntos",
+      consigna: "Ordena los pasos.",
+      items: [
+        { t: "Calcular |A| y comprobar que es distinto de 0" },
+        { t: "Calcular los menores de cada elemento" },
+        { t: "Poner el signo (−1)<sup>i+j</sup> a cada menor: matriz de adjuntos" },
+        { t: "Trasponer la matriz de adjuntos" },
+        { t: "Dividir entre |A|" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    { id: "d1", nivel: 1, enunciado: "Calcula " + T([[4, -3], [2, 5]]) + ".", check: num("|A| =", 26),
+      pistas: ["ad − bc."], pasos: ["4·5 − (−3)·2 = 20 + 6 = 26."], resultado: "26" },
+    { id: "d2", nivel: 1, enunciado: "Calcula " + T([[-2, 3], [1, -6]]) + ".", check: num("|A| =", 9),
+      pistas: ["Cuidado con (−2)(−6) = +12."], pasos: ["(−2)(−6) − 3·1 = 12 − 3 = 9."], resultado: "9" },
+    { id: "d3", nivel: 1, enunciado: "Calcula por Sarrus " + T([[1, 2, 3], [0, 1, 4], [5, 6, 0]]) + ".", check: num("|A| =", 1),
+      pistas: ["Suman: 1·1·0, 2·4·5, 3·0·6. Restan: 3·1·5, 2·0·0, 1·4·6."],
+      pasos: ["Suman: 0 + 40 + 0 = 40.", "Restan: 15 + 0 + 24 = 39.", "|A| = 40 − 39 = 1."], resultado: "1" },
+    { id: "d4", nivel: 1, enunciado: "Calcula por Sarrus " + T([[2, 0, 1], [1, 3, 2], [0, -1, 1]]) + ".", check: num("|A| =", 9),
+      pistas: ["Hay un 0 y un −1: cuidado con los signos."],
+      pasos: ["Suman: 2·3·1 + 0·2·0 + 1·1·(−1) = 6 + 0 − 1 = 5.", "Restan: 1·3·0 + 0·1·1 + 2·2·(−1) = 0 + 0 − 4 = −4.", "|A| = 5 − (−4) = 9."], resultado: "9" },
+    { id: "d5", nivel: 1, enunciado: "Calcula " + T([[3, 5, 7], [0, -2, 1], [0, 0, 4]]) + " sin hacer Sarrus.", check: num("|A| =", -24),
+      pistas: ["Es triangular superior: producto de la diagonal."], pasos: ["3·(−2)·4 = −24."], resultado: "−24" },
+    { id: "d6", nivel: 1, enunciado: "Halla x para que " + T([["x", 2], [3, 4]]) + " = 0.", check: num("x =", 1.5),
+      pistas: ["4x − 6 = 0."], pasos: ["4x − 2·3 = 0.", "x = 6/4 = 1,5."], resultado: "x = 3/2" },
+    { id: "d7", nivel: 1, enunciado: "Sin desarrollar, ¿cuánto vale " + T([[1, 2, 3], [4, 5, 6], [5, 7, 9]]) + "?",
+      check: opcion("Respuesta", ["0, porque F₃ = F₁ + F₂", "−3", "1", "No se puede saber sin calcular"], 0),
+      pistas: ["Suma la fila 1 y la fila 2."], pasos: ["F₁ + F₂ = (1+4, 2+5, 3+6) = (5, 7, 9) = F₃.", "Una fila combinación de las otras ⟹ |A| = 0."], resultado: "0" },
+    { id: "d8", nivel: 1, enunciado: "Si A es 2×2 con |A| = −4, calcula |3A|.", check: num("|3A| =", -36),
+      pistas: ["Orden 2: el 3 sale al cuadrado."], pasos: ["|3A| = 3²·(−4) = 9·(−4) = −36."], resultado: "−36" },
+    { id: "d9", nivel: 1, enunciado: "Si A es 3×3 con |A| = 5, calcula |2A|.", check: num("|2A| =", 40),
+      pistas: ["El 2 sale al cubo."], pasos: ["2³·5 = 8·5 = 40."], resultado: "40" },
+    { id: "d10", nivel: 1, enunciado: "Si |A| = 6, ¿cuánto vale |A⁻¹|? (decimal)", check: num("|A⁻¹| =", 1 / 6, { ph: "0,1667" }),
+      pistas: ["|A|·|A⁻¹| = 1."], pasos: ["|A⁻¹| = 1/6 ≈ 0,1667."], resultado: "1/6" },
+    { id: "d11", nivel: 1, enunciado: "Si |A| = 7 y |B| = −2 (del mismo orden), calcula |AB|.", check: num("|AB| =", -14),
+      pistas: ["|AB| = |A||B|."], pasos: ["7·(−2) = −14."], resultado: "−14" },
+    { id: "d12", nivel: 1, enunciado: "Para A = " + M([[1, 2, 3], [4, 5, 6], [7, 8, 10]]) + ", calcula el adjunto A₂₃.", check: num("A₂₃ =", 6),
+      pistas: ["Tacha la fila 2 y la columna 3; signo (−1)<sup>2+3</sup>."],
+      pasos: ["Queda " + T([[1, 2], [7, 8]]) + " = 8 − 14 = −6.", "Signo (−1)⁵ = −1: A₂₃ = −(−6) = 6."], resultado: "6" },
+    { id: "d13", nivel: 1, enunciado: "Calcula el rango de " + M([[1, 0, 2], [0, 1, 3]]) + ".", check: num("rg =", 2),
+      pistas: ["Busca un menor de orden 2 distinto de 0."], pasos: ["El menor de las dos primeras columnas es " + T([[1, 0], [0, 1]]) + " = 1 ≠ 0.", "No hay menores de orden 3 (solo 2 filas): rg = 2."], resultado: "2" },
+    { id: "d14", nivel: 1, enunciado: "Calcula el área del triángulo de vértices A(0, 1), B(4, 3), C(1, 6).", check: num("Área =", 9),
+      pistas: ["Área = ½|det(AB, AC)|."], pasos: ["AB = (4, 2), AC = (1, 5).", "det = 20 − 2 = 18.", "Área = 18/2 = 9."], resultado: "9" },
+    // ---------------------------------------------------------------- ★★
+    { id: "d15", nivel: 2, enunciado: "Calcula " + T([[2, 1, 1, 1], [1, 2, 1, 1], [1, 1, 2, 1], [1, 1, 1, 2]]) + ".", check: num("|A| =", 5),
+      pistas: ["Suma todas las columnas en la primera: cada fila suma 5."],
+      pasos: ["C₁ ← C₁ + C₂ + C₃ + C₄ = (5, 5, 5, 5).", "Saca el 5: 5·|1 1 1 1 / 1 2 1 1 / 1 1 2 1 / 1 1 1 2|.", "Resta F₁ a las demás filas: quedan (0,1,0,0), (0,0,1,0), (0,0,0,1).", "Triangular con diagonal 1: |A| = 5·1 = 5."], resultado: "5" },
+    { id: "d16", nivel: 2, enunciado: "Calcula " + T([[3, 1, 0, 2], [1, 2, 0, 1], [2, 0, 1, 4], [0, 1, 0, 5]]) + " desarrollando por la columna 3.", check: num("|A| =", 24),
+      pistas: ["La columna 3 es (0, 0, 1, 0)."],
+      pasos: ["Solo a₃₃ = 1, con signo (−1)⁶ = +.", "|A| = " + T([[3, 1, 2], [1, 2, 1], [0, 1, 5]]) + " (tachando fila 3 y columna 3).", "Sarrus: suman 30 + 0 + 2 = 32; restan 0 + 3 + 5 = 8. |A| = 32 − 8 = 24."], resultado: "24" },
+    { id: "d17", nivel: 2, enunciado: "Sea A una matriz 4×4 con |A| = 2. Calcula |3A⁻¹Aᵗ|.", check: num("|3A⁻¹Aᵗ| =", 81),
+      pistas: ["El 3 sale elevado a 4."], pasos: ["|3A⁻¹Aᵗ| = 3⁴·|A⁻¹|·|Aᵗ| = 81·(1/2)·2 = 81."], resultado: "81" },
+    { id: "d18", nivel: 2, enunciado: "Sea A una matriz 3×3 con |A| = −2. Calcula |A³·(−A)ᵗ|.", check: num("|A³(−A)ᵗ| =", -16),
+      pistas: ["|(−A)ᵗ| = |−A| = (−1)³|A|."], pasos: ["|A³| = (−2)³ = −8.", "|(−A)ᵗ| = |−A| = (−1)³·(−2) = 2.", "Producto: (−8)·2 = −16."], resultado: "−16" },
+    { id: "d19", nivel: 2, enunciado: "Sea A una matriz 3×3 con filas F₁, F₂, F₃ y |A| = 5. Calcula el determinante de la matriz con filas 3F₂, F₁ y F₃ − 4F₂.", check: num("Determinante =", -15),
+      pistas: ["Saca el 3, quita el −4F₂ (no cambia), y cuenta los intercambios."], pasos: ["Saca el 3: 3·|F₂, F₁, F₃ − 4F₂|.", "Restar un múltiplo de otra fila no cambia: 3·|F₂, F₁, F₃|.", "Pasar de (F₂, F₁, F₃) a (F₁, F₂, F₃) es un intercambio: −|A| = −5.", "Total: 3·(−5) = −15."], resultado: "−15" },
+    { id: "d20", nivel: 2, enunciado: "Halla los valores de m para los que " + M([["m", 1, 0], [1, "m", 1], [0, 1, "m"]]) + " no tiene inversa (de menor a mayor).", check: lista("m =", [-Math.SQRT2, 0, Math.SQRT2], "tres valores"),
+      pistas: ["|A| = 0. Sarrus: suman m³ + 0 + 0; restan 0 + m + m."],
+      pasos: ["|A| = m³ − 2m = m(m² − 2).", "m(m² − 2) = 0 ⟹ m = 0 o m² = 2.", "m = 0, m = √2 ≈ 1,414, m = −√2 ≈ −1,414."], resultado: "m = −√2, 0, √2" },
+    { id: "d21", nivel: 2, enunciado: "¿Para qué valores de a la matriz " + M([["a", 3], [2, "a + 1"]]) + " no tiene inversa?", check: lista("a =", [-3, 2], "dos valores"),
+      pistas: ["|A| = a(a + 1) − 6."], pasos: ["a² + a − 6 = 0.", "a = (−1 ± 5)/2 ⟹ a = 2 o a = −3."], resultado: "a = −3, a = 2" },
+    { id: "d22", nivel: 2, enunciado: "Resuelve " + T([["x", 1, 1], [1, "x", 1], [1, 1, "x"]]) + " = 0.", check: lista("x =", [-2, 1], "dos valores"),
+      pistas: ["Sarrus y Ruffini: x = 1 es raíz."], pasos: ["Suman x³ + 1 + 1; restan x + x + x. Determinante: x³ − 3x + 2.", "Ruffini con x = 1: x³ − 3x + 2 = (x − 1)(x² + x − 2) = (x − 1)²(x + 2).", "x = 1 (doble) o x = −2."], resultado: "x = −2, x = 1" },
+    { id: "d23", nivel: 2, enunciado: "Calcula la inversa de A = " + M([[2, 1], [5, 3]]) + " y escribe sus cuatro elementos por filas (a₁₁, a₁₂, a₂₁, a₂₂).", check: lista("A⁻¹ =", [3, -1, -5, 2], "cuatro valores"),
+      pistas: ["|A| = 1."], pasos: ["|A| = 6 − 5 = 1.", "Adj(A)ᵗ = " + M([[3, -1], [-5, 2]]) + ".", "A⁻¹ = esa matriz."], resultado: "(3 −1 / −5 2)" },
+    { id: "d24", nivel: 2, enunciado: "Para A = " + M([[1, 2, 3], [0, 1, 4], [5, 6, 0]]) + " (|A| = 1) calcula la primera fila de A⁻¹.", check: lista("Fila 1 =", [-24, 18, 5], "tres valores"),
+      pistas: ["La primera fila de A⁻¹ está formada por los adjuntos de la primera <i>columna</i> de A (por la traspuesta)."],
+      pasos: ["A₁₁ = " + T([[1, 4], [6, 0]]) + " = −24; A₂₁ = −" + T([[2, 3], [6, 0]]) + " = 18; A₃₁ = " + T([[2, 3], [1, 4]]) + " = 5.", "Fila 1 de A⁻¹: (A₁₁, A₂₁, A₃₁)/|A| = (−24, 18, 5)."], resultado: "(−24, 18, 5)" },
+    { id: "d25", nivel: 2, enunciado: "Para A = " + M([[2, 1, 0], [1, 3, 1], [0, 1, 2]]) + " (|A| = 8) calcula la primera fila de A⁻¹ (en decimales).", check: lista("Fila 1 =", [0.625, -0.25, 0.125], "tres valores"),
+      pistas: ["Adjuntos de la primera columna: A₁₁, A₂₁, A₃₁."], pasos: ["A₁₁ = " + T([[3, 1], [1, 2]]) + " = 5; A₂₁ = −" + T([[1, 0], [1, 2]]) + " = −2; A₃₁ = " + T([[1, 0], [3, 1]]) + " = 1.", "Fila 1 de A⁻¹ = (5, −2, 1)/8 = (0,625; −0,25; 0,125)."], resultado: "(5/8, −1/4, 1/8)" },
+    { id: "d26", nivel: 2, enunciado: "Calcula el rango de " + M([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) + ".", check: num("rg =", 2),
+      pistas: ["|A| = 0, pero hay un menor de orden 2 no nulo."], pasos: ["|A| = 0 (F₃ = 2F₂ − F₁).", "El menor " + T([[1, 2], [4, 5]]) + " = −3 ≠ 0.", "rg = 2."], resultado: "2" },
+    { id: "d27", nivel: 2, enunciado: "¿Para qué valores de a el rango de " + M([[1, "a", 2], [2, 1, "a"], [1, 1, 1]]) + " es menor que 3?",
+      check: opcion("Respuesta", ["Para ninguno: |A| = a² − 3a + 3 nunca se anula", "a = 1 y a = 2", "a = 3", "a = 0"], 0),
+      pistas: ["Calcula |A| y mira si tiene raíces reales (discriminante)."], pasos: ["Sarrus: suman 1 + a² + 4 = a² + 5; restan 2 + 2a + a = 3a + 2. |A| = a² + 5 − 3a − 2 = a² − 3a + 3.", "Discriminante 9 − 12 = −3 &lt; 0: no hay raíces reales.", "|A| ≠ 0 para todo a: rg = 3 siempre."], resultado: "Para ninguno" },
+    { id: "d28", nivel: 2, enunciado: "Resuelve AX = B con A = " + M([[2, 1], [5, 3]]) + " y B = " + M([[1, 2], [0, 1]]) + ". Escribe los cuatro elementos de X (de menor a mayor).", check: lista("X =", [-8, -5, 3, 5], "cuatro valores"),
+      pistas: ["X = A⁻¹B, con A⁻¹ = (3 −1 / −5 2)."], pasos: ["X = (3 −1 / −5 2)·(1 2 / 0 1) = (3 5 / −5 −8).", "Elementos: 3, 5, −5, −8."], resultado: "(3 5 / −5 −8)" },
+    { id: "d29", nivel: 2, enunciado: "Calcula el volumen del tetraedro que determinan u = (1, 1, 0), v = (0, 2, 1) y w = (1, 0, 3) (decimal).", check: num("Volumen =", 7 / 6, { ph: "1,1667" }),
+      pistas: ["Volumen = |det|/6."], pasos: ["det = " + T([[1, 1, 0], [0, 2, 1], [1, 0, 3]]) + ": suman 6 + 1 + 0 = 7; restan 0 + 0 + 0 = 0 ⟹ 7.", "Tetraedro: 7/6 ≈ 1,1667."], resultado: "7/6" },
+    { id: "d30", nivel: 2, enunciado: "Halla k para que A(2, 1), B(5, k) y C(−1, −2) estén alineados.", check: num("k =", 4),
+      pistas: ["det(AB, AC) = 0."], pasos: ["AB = (3, k − 1), AC = (−3, −3).", "det = −9 + 3(k − 1) = 3k − 12 = 0.", "k = 4."], resultado: "4" },
+    // ---------------------------------------------------------------- ★★★
+    { id: "d31", nivel: 3, enunciado: "Calcula |A(3)| con A(m) = " + M([["m", 1, 1], [1, "m", 1], [1, 1, "m"]]) + " usando |A(m)| = m³ − 3m + 2.", check: num("|A(3)| =", 20),
+      pistas: ["Sustituye m = 3, o comprueba con Sarrus la matriz (3 1 1 / 1 3 1 / 1 1 3)."], pasos: ["27 − 9 + 2 = 20.", "Con Sarrus: suman 27 + 1 + 1 = 29; restan 3 + 3 + 3 = 9. 29 − 9 = 20 ✓."], resultado: "20" },
+    { id: "d32", nivel: 3, enunciado: "Demuestra que si A es ortogonal (A·Aᵗ = I), entonces |A| = 1 o |A| = −1.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 5, items: [
+        { t: "Toma determinantes en A·Aᵗ = I", p: 0.5 }, { t: "Usa |AAᵗ| = |A|·|Aᵗ|", p: 0.5 },
+        { t: "Usa |Aᵗ| = |A| y |I| = 1, llegando a |A|² = 1", p: 0.5 }, { t: "Concluye |A| = 1 o |A| = −1", p: 0.5 }] },
+      pasos: ["|A·Aᵗ| = |I| = 1.", "|A|·|Aᵗ| = |A|·|A| = |A|² = 1.", "|A|² = 1 ⟹ |A| = 1 o |A| = −1. ∎"], resultado: "|A| = ±1" },
+    { id: "d33", nivel: 3, enunciado: "Sean A y B de orden 3 con |A| = 2 y |B| = −3. Calcula |A²·B⁻¹·(2Bᵗ)|.", check: num("Valor =", 32),
+      pistas: ["Sale 2³ de la última; |B⁻¹|·|Bᵗ| = 1."], pasos: ["|A²| = 4; |B⁻¹| = −1/3; |2Bᵗ| = 2³·(−3) = −24.", "Producto: 4·(−1/3)·(−24) = 32."], resultado: "32" },
+    { id: "d34", nivel: 3, enunciado: "Una matriz A de orden 3 cumple A² = 2A y tiene inversa. Calcula |A|.", check: num("|A| =", 8),
+      pistas: ["Multiplica por A⁻¹ para despejar A."], pasos: ["A² = 2A ⟹ A⁻¹A² = 2A⁻¹A ⟹ A = 2I.", "|2I| = 2³·1 = 8."], resultado: "8" },
+    { id: "d35", nivel: 3, enunciado: "Si A es una matriz 3×3 con |A| = 2, calcula |Adj(2A)|.", check: num("|Adj(2A)| =", 256),
+      pistas: ["|Adj(M)| = |M|² para M de orden 3. Primero |2A|."], pasos: ["|2A| = 8·2 = 16.", "|Adj(2A)| = 16² = 256."], resultado: "256" },
+    { id: "d36", nivel: 3, enunciado: "Discute el rango de " + M([[1, 2, 3, 1], [2, 4, "a", 2], [3, 6, 9, "a"]]) + " e indica los dos valores de a para los que rg = 2 (de menor a mayor).", check: lista("a =", [3, 6], "dos valores"),
+      pistas: ["Las columnas 1 y 2 son proporcionales: usa los menores de las columnas 1, 3 y 4."],
+      pasos: ["Menor de columnas (1, 3, 4): " + T([[1, 3, 1], [2, "a", 2], [3, 9, "a"]]) + " = a² − 9a + 18 = (a − 3)(a − 6).", "Menor de columnas (2, 3, 4) = 2·(a − 3)(a − 6).", "Si a ≠ 3 y a ≠ 6: ese menor es distinto de 0 y rg = 3.", "Si a = 3 o a = 6: todos los menores de orden 3 se anulan (las columnas 1 y 2 son proporcionales y los otros dos menores llevan el mismo factor (a − 3)(a − 6)). Hay un menor de orden 2 no nulo: para a = 3, filas 1 y 2 con columnas 1 y 3 → a − 6 = −3; para a = 6, filas 1 y 3 con columnas 1 y 4 → a − 3 = 3. Luego rg = 2."], resultado: "a = 3 y a = 6 (rg = 2); en el resto rg = 3" },
+    { id: "d37", nivel: 3, enunciado: "Para C = " + M([[1, 1, 2], [2, 1, 1], [1, 2, 1]]) + " (|C| = 4) calcula el elemento (1, 1) de C⁻¹ (decimal).", check: num("(C⁻¹)₁₁ =", -0.25),
+      pistas: ["Es el adjunto A₁₁ dividido entre |C|."], pasos: ["A₁₁ = " + T([[1, 1], [2, 1]]) + " = 1 − 2 = −1.", "(C⁻¹)₁₁ = −1/4 = −0,25."], resultado: "−1/4" },
+    { id: "d38", nivel: 3, enunciado: "Calcula " + T([[1, 1, 1], [1, 3, 6], [1, 9, 36]]) + " usando la fórmula del determinante de Vandermonde |1 1 1 / a b c / a² b² c²| = (b − a)(c − a)(c − b) con a = 1, b = 3, c = 6.", check: num("|A| =", 30),
+      pistas: ["Sustituye en la fórmula."], pasos: ["(3 − 1)(6 − 1)(6 − 3) = 2·5·3 = 30."], resultado: "30" },
+    { id: "d39", nivel: 3, enunciado: "Los puntos P(1, 1), Q(m, 3), R(4, m) forman un triángulo de área 5/2. Halla los dos valores <b>enteros</b> de m (de menor a mayor).", check: lista("m =", [0, 2], "dos valores enteros"),
+      pistas: ["det(PQ, PR) = (m − 1)² − 6; el área es la mitad de su valor absoluto."], pasos: ["PQ = (m − 1, 2), PR = (3, m − 1): det = (m − 1)² − 6.", "½|(m − 1)² − 6| = 5/2 ⟹ |(m − 1)² − 6| = 5.", "(m − 1)² = 11 o (m − 1)² = 1. Los enteros salen de (m − 1)² = 1: m = 0 o m = 2."], resultado: "m = 0 y m = 2" },
+    { id: "d40", nivel: 3, enunciado: "Si A es una matriz 4×4 con |A| = 2, calcula |Adj(A)|.", check: num("|Adj(A)| =", 8),
+      pistas: ["|Adj A| = |A|ⁿ⁻¹."], pasos: ["|Adj(A)| = 2⁴⁻¹ = 2³ = 8."], resultado: "8" },
+    { id: "d41", nivel: 3, enunciado: "Si |A| = −3 con A de orden 3 y |B| = 2, calcula |(AB)⁻¹·A²|.", check: num("Valor =", -1.5),
+      pistas: ["|(AB)⁻¹| = 1/(|A||B|)."], pasos: ["|(AB)⁻¹| = 1/((−3)·2) = −1/6.", "|A²| = 9.", "(−1/6)·9 = −1,5."], resultado: "−3/2" },
+    { id: "d42", nivel: 3, enunciado: "Sea A = " + M([[1, 2], [3, 4]]) + ". Resuelve AX + X = B con B = " + M([[1, 0], [0, 2]]) + ". Escribe los elementos de X de menor a mayor.", check: lista("X =", [-1, -0.75, 1, 1.25], "cuatro valores"),
+      pistas: ["Saca X factor común por la derecha: (A + I)X = B."], pasos: ["(A + I)X = B, con A + I = (2 2 / 3 5), |A + I| = 4.", "(A + I)⁻¹ = (1/4)(5 −2 / −3 2).", "X = (1/4)(5 −2 / −3 2)(1 0 / 0 2) = (1/4)(5 −4 / −3 4) = (1,25 −1 / −0,75 1)."], resultado: "(5/4 −1 / −3/4 1)" },
+    { id: "d43", nivel: 3, enunciado: "Demuestra que si A tiene inversa, entonces |A⁻¹| = 1/|A|.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 4, items: [
+        { t: "Parte de A·A⁻¹ = I", p: 0.5 }, { t: "Toma determinantes: |A·A⁻¹| = |I| = 1", p: 0.5 },
+        { t: "Aplica |AB| = |A||B|: |A|·|A⁻¹| = 1", p: 0.5 }, { t: "Despeja, indicando que |A| ≠ 0", p: 0.5 }] },
+      pasos: ["A·A⁻¹ = I.", "|A|·|A⁻¹| = |I| = 1.", "Como el producto vale 1, |A| ≠ 0 y |A⁻¹| = 1/|A|. ∎"], resultado: "|A⁻¹| = 1/|A|" },
+    { id: "d44", nivel: 3, enunciado: "Prueba, sin desarrollar, que " + T([[1, 1, 1], ["a", "b", "c"], ["b + c", "a + c", "a + b"]]) + " = 0.",
+      check: { tipo: "rubrica", etiqueta: "Tu razonamiento", filas: 4, items: [
+        { t: "Suma a la tercera fila la segunda: F₃ ← F₃ + F₂ (no cambia el determinante)", p: 0.5 },
+        { t: "La nueva fila 3 es (a + b + c, a + b + c, a + b + c)", p: 0.5 },
+        { t: "Es (a + b + c) veces la fila 1: filas proporcionales", p: 0.5 }, { t: "Concluye que el determinante vale 0", p: 0.5 }] },
+      pasos: ["F₃ ← F₃ + F₂ = (a + b + c, a + b + c, a + b + c).", "Es (a + b + c)·F₁.", "Dos filas proporcionales ⟹ |A| = 0. ∎"], resultado: "0" },
+    { id: "d45", nivel: 3, enunciado: "Si |A| = 0 para una matriz A de orden n, ¿qué se puede asegurar?",
+      check: opcion("Respuesta", ["A no tiene inversa y rg(A) &lt; n", "A es la matriz nula", "rg(A) = 0", "Todas las filas de A son iguales"], 0),
+      pistas: ["Piensa en (1 2 / 2 4)."], pasos: ["|A| = 0 ⟺ A no es invertible ⟺ rg(A) &lt; n.", "No implica A = 0 ni filas iguales: (1 2 / 2 4) tiene |A| = 0, rg = 1."], resultado: "No tiene inversa y rg &lt; n" }
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Cómo calcular un determinante",
+      tabla: { cab: ["Orden / situación", "Método"], filas: [
+        ["2×2", "ad − bc"], ["3×3", "Sarrus (o adjuntos si hay ceros)"], ["4×4 o más", "hacer ceros + desarrollar por adjuntos"],
+        ["Triangular / diagonal", "producto de la diagonal"], ["Con parámetro", "calcular, factorizar, igualar a 0"]
+      ] },
+      nota: "Antes de nada, mira si hay una fila o columna con ceros o dos filas proporcionales." },
+    { titulo: "Propiedades que más se usan",
+      items: [
+        { label: "Intercambio de filas", formula: "|A| → −|A|" },
+        { label: "Fila × k", formula: "|A| → k·|A|" },
+        { label: "Matriz × k (orden n)", formula: "|kA| = kⁿ·|A|" },
+        { label: "Suma de múltiplo de otra fila", formula: "no cambia |A|" },
+        { label: "Producto, traspuesta, inversa", formula: "|AB| = |A||B| · |Aᵗ| = |A| · |A⁻¹| = 1/|A|" },
+        { label: "Adjunta", formula: "|Adj A| = |A|ⁿ⁻¹" }
+      ] },
+    { titulo: "Inversa y rango",
+      items: [
+        { label: "Inversa", formula: "A⁻¹ = Adj(A)ᵗ / |A|", cuando: "Si |A| ≠ 0.", ojo: "No olvides trasponer." },
+        { label: "Ecuaciones matriciales", formula: "AX = B ⟹ X = A⁻¹B · XA = B ⟹ X = BA⁻¹" },
+        { label: "Rango por menores", formula: "mayor orden de un menor ≠ 0 (se orla)" },
+        { label: "Cuadrada n×n", formula: "rg = n ⟺ |A| ≠ 0" }
+      ] },
+    { titulo: "Determinantes y geometría", ancha: true,
+      tabla: { cab: ["Figura", "Fórmula", "|det| = 0 significa"], filas: [
+        ["Paralelogramo (plano)", "|det(u, v)|", "u ∥ v"], ["Triángulo", "½|det(AB, AC)|", "A, B, C alineados"],
+        ["Paralelepípedo", "|det(u, v, w)|", "u, v, w coplanarios"], ["Tetraedro", "⅙|det(u, v, w)|", "4 puntos coplanarios"]
+      ] },
+      nota: "El signo del determinante es la orientación (antihoraria o directa si es positivo)." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "|2A| = 2|A| (A 3×3)", bien: "|2A| = 8|A|", por: "Sale kⁿ." },
+        { mal: "|A + B| = |A| + |B|", bien: "No hay fórmula así", por: "Solo |AB| = |A||B|." },
+        { mal: "Sarrus en una 4×4", bien: "Hacer ceros y adjuntos", por: "Sarrus es solo 3×3." },
+        { mal: "A⁻¹ = Adj(A)/|A|", bien: "A⁻¹ = Adj(A)ᵗ/|A|", por: "Falta trasponer." },
+        { mal: "XA = B ⟹ X = A⁻¹B", bien: "X = BA⁻¹", por: "El producto no conmuta." },
+        { mal: "F₂ ← 3F₂ + F₁ no cambia |A|", bien: "multiplica |A| por 3", por: "Solo F₂ + kF₁ es seguro." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t2", {
+    resumen: resumen, secciones: B.parte.m2t2a.secciones, nuevas: B.parte.m2t2b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
 })(window);
 
 /* ============================================================
