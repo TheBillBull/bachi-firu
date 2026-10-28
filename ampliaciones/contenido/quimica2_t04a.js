@@ -58,7 +58,7 @@
       "N = 4·8 = 32; compartidos = 32 − 24 = 8 → <b>4 enlaces</b>. El esqueleto tiene 3: falta 1 → <b>un doble enlace</b> C=O.",
       "Pares libres: (24 − 8)/2 = <b>8 pares</b>: 2 en el O del doble enlace y 3 en cada uno de los otros dos O.",
       "CF: C = 4 − 0 − 4 = 0; O (=) = 6 − 4 − 2 = 0; cada O (–) = 6 − 6 − 1 = <b>−1</b>. Suma: 0 + 0 − 1 − 1 = −2 ✓.",
-      "El doble enlace puede estar en cualquiera de los tres O: hay <b>3 formas resonantes</b> equivalentes. La estructura real es un <b>híbrido</b> de las tres (no un cambio rápido de una a otra): los tres enlaces C–O son iguales, de orden 4/3 ≈ 1,33 y de longitud intermedia (≈ 129 pm, entre C–O 143 y C=O 122), y cada O soporta −2/3."
+      "El doble enlace puede estar en cualquiera de los tres O: hay <b>3 formas resonantes</b> equivalentes. La estructura real es un <b>híbrido</b> de las tres (no un cambio rápido de una a otra): los tres enlaces C–O son iguales, de orden 4/3 ≈ 1,33 y de longitud intermedia entre la de un C–O (143 pm) y la de un C=O (122 pm), y cada O soporta −2/3."
     ]) +
     ejemplo("Ejemplo resuelto: dióxido de azufre SO₂", "Estructura de Lewis, cargas formales y resonancia del SO₂.", [
       "V = 6 + 2·6 = <b>18 e⁻</b>. Esqueleto: O–S–O. N = 3·8 = 24; compartidos = 6 → <b>3 enlaces</b>: falta 1 → un doble enlace S=O y un sencillo S–O.",
