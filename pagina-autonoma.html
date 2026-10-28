@@ -11673,6 +11673,173 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 13 (Azar y probabilidad)
+   m2_venn_prob (Venn con P(A), P(B), P(A ∩ B): todas las probabilidades derivadas) ·
+   m2_total_bayes (árbol con tres causas editable: probabilidad total y Bayes con barras antes/después).
+   Reutiliza el motor de Matemáticas I (B.ui, estilos m13-* y los widgets m13_contingencia, m13_bayes, m13_urna, m13_combinatoria).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  var NS = "http://www.w3.org/2000/svg";
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("m2t13-estilos")) return;
+    var s = document.createElement("style"); s.id = "m2t13-estilos";
+    s.textContent =
+      ".m2p-barra{fill:color-mix(in srgb,var(--ink-faint) 55%,transparent)}" +
+      ".m2p-barra.post{fill:var(--red)}" +
+      ".m2p-hoja.sel{fill:var(--ok);stroke:var(--ok)}" +
+      ".m2p-aviso{margin:6px 0 0;font-size:14px;color:var(--ink-soft)}";
+    document.head.appendChild(s);
+  })();
+
+  function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function txt(t, x, y, clase, ancla, parent, tam) { var e = el("text", { x: x, y: y, "text-anchor": ancla || "middle", "class": "m13-t " + (clase || "") }, parent); if (tam) e.style.fontSize = tam + "px"; e.textContent = t; return e; }
+  function lienzo(host, w, h, etiqueta) { var s = el("svg", { viewBox: "0 0 " + w + " " + h, "class": "m13-svg", role: "img", "aria-label": etiqueta }); host.appendChild(s); return s; }
+  function d4(x) { return fmt(Math.round(x * 1e6) / 1e6, 4); }
+  function d2(x) { return fmt(Math.round(x * 1e6) / 1e6, 2); }
+  function fil(r, v, c) { return U.lec(r, v, c); }
+
+  // ============================================================
+  // VENN DE PROBABILIDADES: P(A), P(B), P(A ∩ B) ⟹ todo lo demás
+  // Las tres entradas son enteros (centésimas) para que las comparaciones sean exactas.
+  // ============================================================
+  var VPRE = [
+    { k: "ind", t: "Independientes", a: 50, b: 40, i: 20 },
+    { k: "inc", t: "Incompatibles", a: 30, b: 40, i: 0 },
+    { k: "sub", t: "A dentro de B", a: 20, b: 50, i: 20 },
+    { k: "dep", t: "Dependientes", a: 60, b: 50, i: 40 },
+    { k: "cub", t: "Entre los dos cubren todo", a: 70, b: 60, i: 30 }
+  ];
+  var VOPS = [
+    { k: "u", t: "A ∪ B (al menos uno)", f: [1, 1, 1, 0], v: function (a, b, i) { return a + b - i; }, ex: "P(A) + P(B) − P(A ∩ B)" },
+    { k: "i", t: "A ∩ B (los dos)", f: [0, 1, 0, 0], v: function (a, b, i) { return i; }, ex: "dato" },
+    { k: "amb", t: "A − B (solo A)", f: [1, 0, 0, 0], v: function (a, b, i) { return a - i; }, ex: "P(A) − P(A ∩ B)" },
+    { k: "bma", t: "B − A (solo B)", f: [0, 0, 1, 0], v: function (a, b, i) { return b - i; }, ex: "P(B) − P(A ∩ B)" },
+    { k: "ex", t: "Exactamente uno", f: [1, 0, 1, 0], v: function (a, b, i) { return a + b - 2 * i; }, ex: "P(A) + P(B) − 2·P(A ∩ B)" },
+    { k: "ni", t: "Ninguno: Ā ∩ B̄ = (A ∪ B)ᶜ", f: [0, 0, 0, 1], v: function (a, b, i) { return 100 - (a + b - i); }, ex: "1 − P(A ∪ B)" },
+    { k: "nl", t: "No los dos: Ā ∪ B̄ = (A ∩ B)ᶜ", f: [1, 0, 1, 1], v: function (a, b, i) { return 100 - i; }, ex: "1 − P(A ∩ B)" }
+  ];
+  B.w.m2_venn_prob = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Venn de probabilidades: mueve P(A), P(B) y P(A ∩ B)");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-op class="chips"></div><div data-ctl></div><div class="m13-venn"></div><div class="lectura anch"></div><p class="m2p-aviso"></p><p class="w-pie"></p>';
+    var st = { a: 50, b: 40, i: 20, op: "u" }, cont = cuerpo.querySelector(".m13-venn"), lectura = cuerpo.querySelector(".lectura"), aviso = cuerpo.querySelector(".m2p-aviso"), pie = cuerpo.querySelector(".w-pie"), ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    var W = 600, H = 300, cA = [225, 150], cB = [375, 150], R = 112;
+    function f2(v) { return fmt(v / 100, 2); }
+    var sA = U.slider(ctl, { et: "P(A)", min: 0, max: 100, step: 1, val: st.a, on: function (v) { st.a = v; ajusta(); }, fmt: f2 });
+    var sB = U.slider(ctl, { et: "P(B)", min: 0, max: 100, step: 1, val: st.b, on: function (v) { st.b = v; ajusta(); }, fmt: f2 });
+    var sI = U.slider(ctl, { et: "P(A ∩ B)", min: 0, max: 100, step: 1, val: st.i, on: function (v) { st.i = v; pinta(); }, fmt: f2 });
+    function limites() { return [Math.max(0, st.a + st.b - 100), Math.min(st.a, st.b)]; }
+    function ajusta() {
+      var L = limites(); st.i = Math.max(L[0], Math.min(L[1], st.i));
+      sI.input.min = L[0]; sI.input.max = L[1]; sI.set(st.i); pinta();
+    }
+    function pinta() {
+      var a = st.a, b = st.b, i = st.i, op = VOPS.filter(function (o) { return o.k === st.op; })[0], L = limites();
+      var reg = [a - i, i, b - i, 100 - (a + b - i)];            // solo A, ambos, solo B, ninguno
+      cont.innerHTML = ""; var s = lienzo(cont, W, H, "Diagrama de Venn con las probabilidades de cada región");
+      var defs = el("defs", null, s), cp = el("clipPath", { id: "m2pvA" }, defs); el("circle", { cx: cA[0], cy: cA[1], r: R }, cp);
+      function capa(forma, activa) { forma.setAttribute("class", "m13-vacio"); var cop = forma.cloneNode(false); cop.setAttribute("class", activa ? "m13-reg" : "m13-nada"); s.appendChild(forma); s.appendChild(cop); }
+      // regiones: 0 solo A, 1 ambos, 2 solo B, 3 ninguno. Se pinta el universo, luego A, luego B, y la intersección encima
+      capa(el("rect", { x: 6, y: 6, width: W - 12, height: H - 12, rx: 10 }), op.f[3]);
+      capa(el("circle", { cx: cA[0], cy: cA[1], r: R }), op.f[0]);
+      capa(el("circle", { cx: cB[0], cy: cB[1], r: R }), op.f[2]);
+      capa(el("circle", { cx: cB[0], cy: cB[1], r: R, "clip-path": "url(#m2pvA)" }), op.f[1]);
+      el("rect", { x: 6, y: 6, width: W - 12, height: H - 12, rx: 10, "class": "m13-univ" }, s);
+      el("circle", { cx: cA[0], cy: cA[1], r: R, "class": "m13-cir pen" }, s); el("circle", { cx: cB[0], cy: cB[1], r: R, "class": "m13-cir red" }, s);
+      txt("A", cA[0] - 78, 56, "pen", "middle", s, 22); txt("B", cB[0] + 78, 56, "red", "middle", s, 22); txt("E", 24, 30, "faint", "middle", s, 18);
+      var pos = [[165, 158], [300, 158], [435, 158], [540, 270]];
+      for (var k = 0; k < 4; k++) txt(d2(reg[k] / 100), pos[k][0], pos[k][1], op.f[k] ? "sel" : "faint", "middle", s, 21);
+      var tot = op.v(a, b, i) / 100, ind = i * 100 === a * b, inc = i === 0;
+      lectura.innerHTML =
+        fil("Región iluminada: " + op.t.replace(/ \(.*$/, ""), d2(tot) + "  =  " + op.ex, "ok ancho") +
+        fil("P(A ∪ B)", d2((a + b - i) / 100)) + fil("P(A ∩ B)", d2(i / 100)) +
+        fil("P(Ā ∩ B̄)  [= 1 − P(A ∪ B)]", d2(1 - (a + b - i) / 100), "pen") + fil("P(Ā ∪ B̄)  [= 1 − P(A ∩ B)]", d2(1 - i / 100), "pen") +
+        fil("Exactamente uno", d2((a + b - 2 * i) / 100)) + fil("P(Ā) · P(B̄)", d2((100 - a) * (100 - b) / 10000)) +
+        fil("P(A | B) = P(A ∩ B)/P(B)", b ? d4(i / b) : "—", "red") + fil("P(B | A) = P(A ∩ B)/P(A)", a ? d4(i / a) : "—", "red") +
+        fil("¿Independientes?", ind ? "sí: P(A)·P(B) = " + d4(a * b / 10000) + " = P(A ∩ B)" : "no: P(A)·P(B) = " + d4(a * b / 10000) + " ≠ " + d2(i / 100), ind ? "ok ancho" : "ancho") +
+        fil("¿Incompatibles?", inc ? "sí: A ∩ B = ∅" : "no: P(A ∩ B) = " + d2(i / 100) + " ≠ 0", inc ? "ok ancho" : "ancho");
+      aviso.textContent = "P(A ∩ B) solo puede valer entre " + d2(L[0] / 100) + " y " + d2(L[1] / 100) + " con estos P(A) y P(B).";
+      pie.innerHTML = "Cada región del dibujo lleva su probabilidad; las cuatro suman 1. Todo lo demás sale de <b>sumar regiones</b>. Fíjate en dos cosas: (1) «independientes» e «incompatibles» son casi opuestos: si P(A) y P(B) no son cero, dos sucesos incompatibles <b>nunca</b> pueden ser independientes (prueba el botón «Incompatibles»); (2) las leyes de De Morgan: «ninguno» y «no los dos» son los complementarios de «al menos uno» y de «los dos».";
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), VPRE.map(function (p) { return { k: p.k, t: p.t }; }), "ind", function (k) {
+      var p = VPRE.filter(function (q) { return q.k === k; })[0]; st.a = p.a; st.b = p.b; st.i = p.i; sA.set(p.a); sB.set(p.b); ajusta();
+    });
+    U.fichas(cuerpo.querySelector("[data-op]"), VOPS.map(function (o) { return { k: o.k, t: o.t }; }), "u", function (k) { st.op = k; pinta(); });
+    ajusta();
+  };
+
+  // ============================================================
+  // ÁRBOL CON TRES CAUSAS: probabilidad total y Bayes
+  // ============================================================
+  var TPRE = [
+    { k: "fab", t: "Fábrica: 3 máquinas", p: [50, 30], q: [2, 3, 6], nB: ["M₁", "M₂", "M₃"], nA: "pieza defectuosa", nAn: "pieza correcta", nota: "Cada máquina fabrica una parte de las piezas y tiene su porcentaje de defectuosas." },
+    { k: "dos", t: "Solo dos máquinas", p: [60, 40], q: [2, 5, 0], nB: ["M₁", "M₂", "M₃"], nA: "pieza defectuosa", nAn: "pieza correcta", nota: "El ejemplo de la teoría: la tercera máquina no fabrica nada (P = 0)." },
+    { k: "edad", t: "Test por grupos de edad", p: [60, 30], q: [1, 3, 8], nB: ["jóvenes", "adultos", "mayores"], nA: "enfermo", nAn: "sano", nota: "Si una persona está enferma, ¿de qué grupo es más probable que sea?" },
+    { k: "ind", t: "A no depende de B", p: [50, 30], q: [10, 10, 10], nB: ["B₁", "B₂", "B₃"], nA: "A", nAn: "Ā", nota: "Todas las causas dan A con la misma probabilidad: saber A no cambia nada (posterior = prior)." }
+  ];
+  B.w.m2_total_bayes = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Árbol con tres causas: probabilidad total y Bayes");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-dado class="chips"></div><div data-ctl></div><div class="m13-venn m2p-arbol"></div><div class="m13-venn m2p-barras"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, p1: 50, p2: 30, q: [2, 3, 6], dado: "a" }, arbol = cuerpo.querySelector(".m2p-arbol"), barras = cuerpo.querySelector(".m2p-barras"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    function pc(v) { return fmt(v, 1) + " %"; }
+    var s1 = U.slider(ctl, { et: "P(B₁)", min: 0, max: 100, step: 0.5, val: st.p1, on: function (v) { st.p1 = v; if (st.p1 + st.p2 > 100) { st.p2 = 100 - st.p1; s2.set(st.p2); } s2.input.max = 100 - st.p1; pinta(); }, fmt: pc });
+    var s2 = U.slider(ctl, { et: "P(B₂)", min: 0, max: 100, step: 0.5, val: st.p2, on: function (v) { st.p2 = v; pinta(); }, fmt: pc });
+    var sq = [0, 1, 2].map(function (k) { return U.slider(ctl, { et: "P(A | B" + ["₁", "₂", "₃"][k] + ")", min: 0, max: 100, step: 0.5, val: st.q[k], on: function (v) { st.q[k] = v; pinta(); }, fmt: pc }); });
+    function pinta() {
+      var N = TPRE[st.i], p = [st.p1 / 100, st.p2 / 100, Math.max(0, 1 - st.p1 / 100 - st.p2 / 100)], q = st.q.map(function (v) { return v / 100; });
+      var conj = [0, 1, 2].map(function (k) { return [p[k] * q[k], p[k] * (1 - q[k])]; });             // [Bk∩A, Bk∩Ā]
+      var pA = conj[0][0] + conj[1][0] + conj[2][0], pAn = 1 - pA, d = st.dado === "a" ? 0 : 1, den = d ? pAn : pA;
+      var post = [0, 1, 2].map(function (k) { return den > 1e-12 ? conj[k][d] / den : NaN; });
+      // ---- árbol
+      var W = 600, Hh = 330; arbol.innerHTML = ""; var s = lienzo(arbol, W, Hh, "Árbol de tres causas B1, B2 y B3 y el suceso A");
+      var r = [28, 165], m = [[210, 55], [210, 165], [210, 275]], hojas = [];
+      for (var k = 0; k < 3; k++) hojas.push([[395, m[k][1] - 24], [395, m[k][1] + 24]]);
+      function rama(a, b, et, cl, dy) { el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], "class": "m13-rama " + (cl || "") }, s); txt(et, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + (dy || -7), cl || "", "middle", s, 17); }
+      for (k = 0; k < 3; k++) {
+        rama(r, m[k], d2(p[k]), k === 1 ? "faint" : "pen", k === 0 ? -8 : k === 2 ? 16 : -7);
+        rama(m[k], hojas[k][0], d2(q[k]), "pen", -6); rama(m[k], hojas[k][1], d2(1 - q[k]), "faint", 14);
+        el("circle", { cx: m[k][0], cy: m[k][1], r: 7, "class": "m13-nodo" }, s); txt(N.nB[k], m[k][0] - 4, m[k][1] - 14, "pen", "end", s, 16);
+        for (var j = 0; j < 2; j++) {
+          var sel = j === d; el("circle", { cx: hojas[k][j][0], cy: hojas[k][j][1], r: 6, "class": "m13-hoja m2p-hoja" + (sel ? " sel" : "") }, s);
+          txt("B" + ["₁", "₂", "₃"][k] + " ∩ " + (j ? "Ā" : "A") + " = " + d4(conj[k][j]), hojas[k][j][0] + 13, hojas[k][j][1] + 5, sel ? "ok" : "faint", "start", s, 17);
+        }
+      }
+      el("circle", { cx: r[0], cy: r[1], r: 7, "class": "m13-nodo" }, s);
+      // ---- barras antes / después
+      var Wb = 600, Hb = 190; barras.innerHTML = ""; var sb = lienzo(barras, Wb, Hb, "Probabilidad de cada causa antes y después de saber el resultado");
+      var x0 = 70, ancho = 400;
+      el("rect", { x: x0, y: 8, width: 16, height: 14, rx: 3, "class": "m2p-barra" }, sb); txt("antes: P(Bᵢ)", x0 + 24, 20, "faint", "start", sb, 15);
+      el("rect", { x: x0 + 190, y: 8, width: 16, height: 14, rx: 3, "class": "m2p-barra post" }, sb); txt("después: P(Bᵢ | " + (d ? "Ā" : "A") + ")", x0 + 214, 20, "red", "start", sb, 15);
+      for (k = 0; k < 3; k++) {
+        var y = 36 + k * 50;
+        txt(N.nB[k], 8, y + 30, "pen", "start", sb, 16);
+        el("rect", { x: x0, y: y, width: Math.max(1, p[k] * ancho), height: 18, rx: 3, "class": "m2p-barra" }, sb); txt(d2(p[k]), x0 + p[k] * ancho + 6, y + 15, "faint", "start", sb, 15);
+        var pv = isNaN(post[k]) ? 0 : post[k];
+        el("rect", { x: x0, y: y + 21, width: Math.max(1, pv * ancho), height: 18, rx: 3, "class": "m2p-barra post" }, sb); txt(isNaN(post[k]) ? "—" : d2(pv), x0 + pv * ancho + 6, y + 36, "red", "start", sb, 15);
+      }
+      var rows = fil("Contexto", N.nota, "ancho") +
+        fil("P(B₃) = 1 − P(B₁) − P(B₂)", d4(p[2])) +
+        fil("Total: P(A)", conj.map(function (c) { return d4(c[0]); }).join(" + ") + " = " + d4(pA), "ok ancho") +
+        fil("P(Ā)", d4(pAn));
+      for (k = 0; k < 3; k++) if (p[k] > 0) rows += fil("Bayes: P(B" + ["₁", "₂", "₃"][k] + " | " + (d ? "Ā" : "A") + ")", isNaN(post[k]) ? "—" : d4(conj[k][d]) + " / " + d4(den) + " = " + d4(post[k]), "red ancho");
+      lectura.innerHTML = rows;
+      pie.innerHTML = "Cada hoja es el producto de su rama: <b>P(Bᵢ ∩ A) = P(Bᵢ)·P(A | Bᵢ)</b>. La <b>probabilidad total</b> suma las hojas con A (las verdes si elegiste «Dado A»). <b>Bayes</b> divide cada hoja verde entre esa suma, así que las tres probabilidades «después» suman siempre 1. Las barras rojas son las grises corregidas por la información: la causa que más «tiende» a producir A sube, y la que menos, baja.";
+    }
+    function aplica(k) {
+      var N = TPRE.filter(function (t) { return t.k === k; })[0]; st.i = TPRE.indexOf(N); st.p1 = N.p[0]; st.p2 = N.p[1]; st.q = N.q.slice();
+      s2.input.max = 100; s1.set(st.p1); s2.set(st.p2); s2.input.max = 100 - st.p1; sq.forEach(function (sl, j) { sl.set(st.q[j]); });
+      pinta();
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), TPRE.map(function (t) { return { k: t.k, t: t.t }; }), "fab", aplica);
+    U.fichas(cuerpo.querySelector("[data-dado]"), [{ k: "a", t: "Dado A (ocurre)" }, { k: "n", t: "Dado Ā (no ocurre)" }], "a", function (k) { st.dado = k; pinta(); });
+    s2.input.max = 100 - st.p1;
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de matrices (Matemáticas II, tema 1)
    motor B.lab.mt (fracciones exactas) + mm_producto · mm_potencias ·
    mm_gauss · mm_ecuacion · mm_rango
@@ -61326,6 +61493,572 @@
 
   B.registrar("mates2", "t12", {
     resumen: resumen, secciones: B.parte.m2t12a.secciones, nuevas: nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 13: Azar y probabilidad
+   (parte A: se añade al final de las cinco secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t13/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Repaso: Laplace y operaciones
+  secciones[0] =
+    "<h5>Las reglas que sostienen todo el tema</h5>" +
+    "<p>Un <b>experimento aleatorio</b> tiene un <b>espacio muestral</b> E (todos los resultados posibles) y los <b>sucesos</b> son subconjuntos de E. La probabilidad cumple tres reglas, y de ellas salen todas las demás:</p>" +
+    "<ul><li>0 ≤ P(A) ≤ 1 y P(E) = 1.</li>" +
+    "<li><b>Complementario</b>: P(Ā) = 1 − P(A). Es el truco más útil de todo el tema: «al menos uno» se calcula casi siempre como 1 − P(«ninguno»).</li>" +
+    "<li><b>Unión</b>: P(A ∪ B) = P(A) + P(B) − P(A ∩ B). Se resta la intersección porque se ha contado dos veces. Si A y B son <b>incompatibles</b> (A ∩ B = ∅), se reduce a P(A) + P(B).</li></ul>" +
+    "<p>La <b>regla de Laplace</b>, P(A) = casos favorables / casos posibles, solo vale cuando <b>todos los resultados elementales son equiprobables</b>. Con dos dados, los 36 pares (a, b) lo son, pero las 11 sumas posibles (2 a 12) <b>no</b>: la suma 7 sale de 6 pares y la suma 2 de uno solo.</p>" +
+    w("m13_laplace") +
+    ejemplo("Laplace con dos dados",
+      "Se lanzan dos dados. Calcula la probabilidad de que la suma sea 7 y la de que la suma sea 7 o los dos números sean iguales.",
+      ["Espacio muestral: 36 pares equiprobables. Suma 7: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1) ⟹ <b>P = 6/36 = 1/6</b>.",
+       "Dobles: (1,1), …, (6,6) ⟹ 6 casos. Ninguno de los dobles suma 7 (la suma de dos números iguales es par), así que son incompatibles.",
+       "P(suma 7 ∪ dobles) = 6/36 + 6/36 = <b>12/36 = 1/3</b>."]) +
+    ejemplo("La unión con datos",
+      "Sean A y B dos sucesos con P(A) = 0,5, P(B) = 0,4 y P(A ∪ B) = 0,7. Calcula P(A ∩ B).",
+      ["Despejamos de P(A ∪ B) = P(A) + P(B) − P(A ∩ B).",
+       "P(A ∩ B) = 0,5 + 0,4 − 0,7 = <b>0,2</b>.",
+       "Comprobación: tiene que estar entre max(0, 0,5 + 0,4 − 1) = 0 y min(0,5; 0,4) = 0,4 ✓."]) +
+    ojo("Si un enunciado te da P(A) = 0,7 y P(B) = 0,6 <b>no pueden ser incompatibles</b>: sumarían 1,3 &gt; 1. De hecho, P(A ∩ B) ≥ 0,7 + 0,6 − 1 = 0,3. Detectar un dato imposible es una pregunta típica.");
+
+  // ---------------------------------------------------------------- 2. Combinatoria
+  secciones[1] =
+    "<h5>Tres preguntas para elegir la fórmula</h5>" +
+    "<p>Antes de calcular, responde: <b>(1)</b> ¿entran todos los elementos o solo una parte? <b>(2)</b> ¿importa el orden? <b>(3)</b> ¿pueden repetirse? Con eso eliges:</p>" +
+    tabla(["Situación", "Fórmula", "Ejemplo"], [
+      ["Todos, en orden", "P(n) = n!", "Ordenar 5 personas en una fila: 120"],
+      ["Una parte, importa el orden", "V(n, k) = n!/(n−k)!", "Podio de 3 entre 8 corredores: 8·7·6 = 336"],
+      ["Una parte, NO importa el orden", "C(n, k) = n!/(k!(n−k)!)", "Comisión de 3 entre 8 personas: 56"],
+      ["Todos, con elementos repetidos", "n!/(a!·b!…)", "Palabras con las letras de MAMA: 4!/(2!·2!) = 6"]
+    ]) +
+    "<p>Dos propiedades ahorran muchas cuentas: <b>C(n, k) = C(n, n−k)</b> (elegir los que entran es lo mismo que elegir los que se quedan fuera) y <b>C(n, 0) = C(n, n) = 1</b>. En probabilidad, la combinatoria se usa para <b>contar casos favorables y posibles</b> cuando se extraen varios elementos «de golpe» (o sin reposición, sin importar el orden): P = C(favorables…)/C(total, k).</p>" +
+    w("m13_combinatoria") +
+    ejemplo("Extraer varias cartas: producto de combinaciones",
+      "De una baraja española (40 cartas, 10 oros) se reparten 5 cartas. Calcula la probabilidad de que haya exactamente 2 oros.",
+      ["Casos posibles: C(40, 5) = 658.008 manos distintas (el orden de las cartas no importa).",
+       "Casos favorables: 2 oros de 10 y las otras 3 cartas de las 30 que no son oros: C(10, 2)·C(30, 3) = 45·4.060 = 182.700.",
+       "<b>P = 182.700/658.008 = 5.075/18.278 ≈ 0,2777.</b>",
+       "Idea clave: se <b>multiplica</b> por cada grupo («2 de los oros» y «3 de los no oros») y se <b>divide</b> por todas las manos."]) +
+    ejemplo("«Al menos uno» con combinaciones",
+      "Se elige una comisión de 3 personas entre 10 (6 chicas y 4 chicos). ¿Probabilidad de que haya al menos un chico?",
+      ["«Al menos un chico» es el contrario de «ninguno»: la comisión sería solo de chicas.",
+       "P(ninguno) = C(6, 3)/C(10, 3) = 20/120 = 1/6.",
+       "<b>P(al menos un chico) = 1 − 1/6 = 5/6.</b> Contar directamente (1 chico, 2 chicos, 3 chicos) también sale, pero con tres sumandos."]) +
+    ejemplo("Permutaciones con una condición",
+      "Cinco amigos se sientan al azar en una fila de 5 sillas. ¿Probabilidad de que Ana y Luis estén juntos?",
+      ["Casos posibles: 5! = 120.",
+       "Favorables: se trata la pareja como un bloque. Con el bloque y los otros 3 hay 4 «piezas» ⟹ 4! ordenaciones, y dentro del bloque Ana-Luis o Luis-Ana: ×2. Total 2·4! = 48.",
+       "<b>P = 48/120 = 2/5.</b>"]) +
+    ojo("Si tras escribir C(n, k) la probabilidad sale mayor que 1, hay un error: los favorables siempre están dentro de los posibles. Comprueba que en el numerador los elementos elegidos suman k y que los «de cada grupo» suman n.");
+
+  // ---------------------------------------------------------------- 3. Condicionada
+  secciones[2] =
+    "<h5>La regla del producto y los cuatro números que importan</h5>" +
+    "<p>Despejando de la definición se obtiene la <b>regla del producto</b>: <b>P(A ∩ B) = P(B)·P(A | B) = P(A)·P(B | A)</b>. Es la regla que usan los diagramas de árbol: se multiplica a lo largo de una rama. Dos propiedades de la condicionada, a menudo olvidadas: (1) P( · | B) es una probabilidad como cualquier otra, así que <b>P(Ā | B) = 1 − P(A | B)</b>; (2) <b>P(A | B) ≠ P(B | A)</b> en general: «de los que tienen fiebre, pocos tienen gripe grave» no es lo mismo que «de los que tienen gripe grave, pocos tienen fiebre».</p>" +
+    ejemplo("Las condicionadas a partir de tres datos",
+      "Sean P(A) = 0,6, P(B) = 0,5 y P(A ∩ B) = 0,2. Calcula P(A | B), P(B | A), P(A | B̄) y P(A ∪ B).",
+      ["P(A | B) = P(A ∩ B)/P(B) = 0,2/0,5 = <b>0,4</b>.   P(B | A) = 0,2/0,6 = <b>1/3</b> ≈ 0,333.",
+       "Para P(A | B̄) se necesita P(A ∩ B̄) = P(A) − P(A ∩ B) = 0,6 − 0,2 = 0,4 (la parte de A que no está en B) y P(B̄) = 0,5. Entonces <b>P(A | B̄) = 0,4/0,5 = 0,8</b>.",
+       "P(A ∪ B) = 0,6 + 0,5 − 0,2 = <b>0,9</b>.",
+       "Fíjate: P(A | B) = 0,4 &lt; P(A) = 0,6 &lt; P(A | B̄) = 0,8. Saber que B ocurre hace A <b>menos</b> probable: A y B no son independientes. (Pruébalo en el simulador de la sección 6 con P(A) = 0,6, P(B) = 0,5 y P(A ∩ B) = 0,2.)"]) +
+    ejemplo("Sin reposición: regla del producto",
+      "Una urna tiene 5 bolas rojas y 3 azules. Se sacan dos sin reponer. ¿Probabilidad de que ambas sean rojas?",
+      ["P(1.ª roja) = 5/8. Como la bola no vuelve, quedan 4 rojas de 7: P(2.ª roja | 1.ª roja) = 4/7.",
+       "<b>P(R₁ ∩ R₂) = 5/8 · 4/7 = 20/56 = 5/14 ≈ 0,357.</b>",
+       "Con reposición sería 5/8 · 5/8 = 25/64 ≈ 0,391: las extracciones serían independientes."]) +
+    w("m13_urna");
+
+  // ---------------------------------------------------------------- 4. Probabilidad total
+  secciones[3] =
+    "<h5>Cómo se arma el árbol: tres causas</h5>" +
+    "<p>La probabilidad total funciona con <b>cualquier</b> número de causas, siempre que formen una <b>partición</b>: son incompatibles dos a dos y entre todas cubren E (sus probabilidades suman 1). Se dibuja un árbol con las causas B₁, B₂, B₃ en la primera etapa y el suceso A (o su contrario Ā) en la segunda; <b>cada hoja vale el producto de su rama</b> y la probabilidad de A es la suma de las hojas que acaban en A.</p>" +
+    ejemplo("Tres máquinas",
+      "Tres máquinas producen el 50 %, el 30 % y el 20 % de las piezas de una fábrica, con un 2 %, un 3 % y un 6 % de piezas defectuosas respectivamente. ¿Probabilidad de que una pieza elegida al azar sea defectuosa?",
+      ["Causas: M₁, M₂, M₃ con P = 0,5; 0,3; 0,2 (suman 1 ✓). Suceso D = «defectuosa» con P(D | Mᵢ) = 0,02; 0,03; 0,06.",
+       "Hojas con D: 0,5·0,02 = 0,010;  0,3·0,03 = 0,009;  0,2·0,06 = 0,012.",
+       "<b>P(D) = 0,010 + 0,009 + 0,012 = 0,031</b> (un 3,1 %).",
+       "Comprobación de sentido común: tiene que quedar entre el menor (2 %) y el mayor (6 %) de los porcentajes, y más cerca de los de las máquinas que fabrican más."]) +
+    w("m2_total_bayes") +
+    ojo("No es lo mismo la probabilidad total que la <b>media simple</b> de los porcentajes: (2 + 3 + 6)/3 ≈ 3,67 % ≠ 3,1 %. Hay que <b>ponderar</b> por lo que fabrica cada máquina. Y recuerda que las probabilidades de las ramas que salen de un mismo nodo deben sumar 1: es la mejor forma de detectar un dato mal copiado.");
+
+  // ---------------------------------------------------------------- 5. Bayes
+  secciones[4] =
+    "<h5>Bayes con frecuencias: 1.000 personas lo aclaran todo</h5>" +
+    "<p>La fórmula de Bayes asusta menos si se traduce a <b>contar personas</b>. Imagina 1.000 personas y reparte según las probabilidades. El teorema dice entonces: <i>de las que cumplen el resultado observado, ¿qué fracción viene de cada causa?</i></p>" +
+    ejemplo("Test médico (el resultado que sorprende)",
+      "Una enfermedad afecta al 1 % de la población. Un test da positivo en el 95 % de los enfermos (sensibilidad) y también en el 5 % de los sanos (falsos positivos). Una persona da positivo. ¿Probabilidad de que esté enferma?",
+      ["Con 1.000 personas: 10 enfermas y 990 sanas.",
+       "Positivos entre los enfermos: 0,95·10 = 9,5.  Positivos entre los sanos: 0,05·990 = 49,5.  Total de positivos: 59.",
+       "Solo 9,5 de los 59 positivos están enfermos: <b>P(E | +) = 9,5/59 ≈ 0,161</b>. ¡Un 16 %, no un 95 %!",
+       "Con la fórmula: P(E | +) = 0,01·0,95/(0,01·0,95 + 0,99·0,05) = 0,0095/0,059 ≈ 0,161. Es lo mismo; el árbol y las 1.000 personas dan los mismos números.",
+       "La explicación: la enfermedad es rara, y el 5 % de los 990 sanos es muchísima más gente que el 95 % de los 10 enfermos. Esto se llama <b>falacia de la tasa base</b>."]) +
+    w("m13_bayes") +
+    "<p>Prueba a subir la prevalencia del 1 % al 20 %: la probabilidad de estar enfermo tras un positivo sube con fuerza. Un test no es «bueno» o «malo» en abstracto: lo que significa un positivo depende de lo frecuente que sea la enfermedad en el grupo al que se aplica.</p>" +
+    ejemplo("Bayes con tres causas",
+      "En la fábrica de las tres máquinas (50 %, 30 %, 20 % de la producción; 2 %, 3 %, 6 % de defectuosas), se encuentra una pieza defectuosa. ¿De qué máquina es más probable que proceda?",
+      ["P(D) = 0,031 (calculado arriba). Hojas con D: 0,010; 0,009; 0,012.",
+       "P(M₁ | D) = 0,010/0,031 = 10/31 ≈ 0,323.   P(M₂ | D) = 0,009/0,031 = 9/31 ≈ 0,290.   P(M₃ | D) = 0,012/0,031 = 12/31 ≈ <b>0,387</b>.",
+       "Suman 1 ✓ (10 + 9 + 12 = 31). La máquina M₃ solo fabrica el 20 % de las piezas pero es responsable del 38,7 % de las defectuosas: «antes» 0,20, «después» 0,387.",
+       "Si la pieza fuese <b>correcta</b>, el denominador sería P(D̄) = 1 − 0,031 = 0,969 y, por ejemplo, P(M₁ | D̄) = 0,5·0,98/0,969 ≈ 0,506."]);
+
+  B.parte.m2t13a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 13: Azar y probabilidad
+   (parte B: secciones nuevas 6 a 12)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t13/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 6
+    {
+      h: "6. Álgebra de sucesos y diagramas de Venn",
+      html:
+        "<p>Muchos enunciados de la EvAU empiezan con una frase en castellano («que ocurra al menos uno», «que no ocurra ninguno») que hay que <b>traducir a conjuntos</b> antes de calcular. Si tienes una tabla de traducción en la cabeza, la mitad del problema está hecha.</p>" +
+        tabla(["En castellano", "En símbolos", "Probabilidad"], [
+          ["Ocurre A o B (al menos uno)", "A ∪ B", "P(A) + P(B) − P(A ∩ B)"],
+          ["Ocurren A y B (los dos)", "A ∩ B", "dato, o P(A)·P(B | A)"],
+          ["No ocurre A", "Ā", "1 − P(A)"],
+          ["No ocurre ninguno (ni A ni B)", "Ā ∩ B̄ = (A ∪ B)ᶜ", "1 − P(A ∪ B)"],
+          ["No ocurren los dos (como mucho uno)", "Ā ∪ B̄ = (A ∩ B)ᶜ", "1 − P(A ∩ B)"],
+          ["Solo A (A pero no B)", "A ∩ B̄ = A − B", "P(A) − P(A ∩ B)"],
+          ["Exactamente uno", "(A ∩ B̄) ∪ (Ā ∩ B)", "P(A) + P(B) − 2·P(A ∩ B)"]
+        ]) +
+        "<h5>Las leyes de De Morgan</h5>" +
+        "<p><b>(A ∪ B)ᶜ = Ā ∩ B̄</b> y <b>(A ∩ B)ᶜ = Ā ∪ B̄</b>. En palabras: «no (A o B)» equivale a «ni A ni B»; «no (A y B)» equivale a «no A o no B». En probabilidad son un atajo constante: si te dan P(Ā ∪ B̄) = 0,8, sabes de inmediato que P(A ∩ B) = 1 − 0,8 = 0,2, sin dibujar nada.</p>" +
+        "<p>El diagrama de Venn de probabilidades ayuda porque cada región lleva su valor y las cuatro suman 1. Mueve P(A), P(B) y P(A ∩ B), elige una operación y mira qué región se ilumina y qué probabilidad le corresponde.</p>" +
+        w("m2_venn_prob") +
+        ejemplo("Del enunciado a las regiones",
+          "Se sabe que P(A) = 0,5, P(B) = 0,4 y P(A ∪ B) = 0,7. Calcula P(A ∩ B), P(Ā ∩ B̄), P(Ā ∪ B̄) y la probabilidad de que ocurra exactamente uno.",
+          ["P(A ∩ B) = 0,5 + 0,4 − 0,7 = <b>0,2</b>.",
+           "Regiones del Venn: solo A = 0,5 − 0,2 = 0,3; ambos = 0,2; solo B = 0,4 − 0,2 = 0,2; ninguno = 1 − 0,7 = <b>0,3</b> (suman 0,3 + 0,2 + 0,2 + 0,3 = 1 ✓).",
+           "P(Ā ∩ B̄) = P((A ∪ B)ᶜ) = 1 − 0,7 = <b>0,3</b>.   P(Ā ∪ B̄) = P((A ∩ B)ᶜ) = 1 − 0,2 = <b>0,8</b>.",
+           "Exactamente uno = solo A + solo B = 0,3 + 0,2 = <b>0,5</b>."]) +
+        ejemplo("Un dato dado «al revés» con De Morgan",
+          "Si P(Ā ∪ B̄) = 0,8, P(A) = 0,5 y P(Ā ∩ B̄) = 0,3, calcula P(B).",
+          ["De Morgan: P(A ∩ B) = 1 − P(Ā ∪ B̄) = 1 − 0,8 = 0,2.   Y P(A ∪ B) = 1 − P(Ā ∩ B̄) = 1 − 0,3 = 0,7.",
+           "De P(A ∪ B) = P(A) + P(B) − P(A ∩ B): 0,7 = 0,5 + P(B) − 0,2 ⟹ <b>P(B) = 0,4</b>."]) +
+        "<h5>«Al menos uno» con muchos sucesos: el truco del complementario</h5>" +
+        "<p>Para tres o más sucesos independientes, la unión se desarrolla fatal (siete términos). Se evita pasando al complementario: <b>P(al menos uno) = 1 − P(ninguno) = 1 − P(Ā₁)·P(Ā₂)·P(Ā₃)</b>. Para «exactamente uno» sí hay que sumar los casos y se calcula caso a caso.</p>" +
+        ejemplo("Tres tiradores",
+          "Tres tiradores aciertan con probabilidades 0,8, 0,7 y 0,6, y disparan de forma independiente. Calcula la probabilidad de que acierte al menos uno, la de que acierte exactamente uno y la de que acierten los tres.",
+          ["<b>Ninguno</b> acierta: 0,2·0,3·0,4 = 0,024 ⟹ <b>al menos uno</b>: 1 − 0,024 = <b>0,976</b>.",
+           "<b>Exactamente uno</b>: acierta solo el 1.º (0,8·0,3·0,4 = 0,096), o solo el 2.º (0,2·0,7·0,4 = 0,056), o solo el 3.º (0,2·0,3·0,6 = 0,036). Suma: <b>0,188</b>.",
+           "<b>Los tres</b>: 0,8·0,7·0,6 = <b>0,336</b>."]) +
+        ojo("«Exactamente uno» <b>no</b> es lo mismo que «al menos uno». En el Venn, «al menos uno» ilumina las tres regiones (solo A, ambos, solo B); «exactamente uno» solo las dos de los lados, sin la intersección. La diferencia es justo P(A ∩ B).")
+    },
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Independencia frente a incompatibilidad",
+      html:
+        "<p>Es la confusión más frecuente del tema, y la EvAU lo sabe. Son dos ideas distintas:</p>" +
+        tabla(["", "Incompatibles", "Independientes"], [
+          ["Significa", "No pueden ocurrir a la vez", "Saber uno no cambia la probabilidad del otro"],
+          ["En fórmulas", "A ∩ B = ∅, es decir P(A ∩ B) = 0", "P(A ∩ B) = P(A)·P(B)"],
+          ["Unión", "P(A ∪ B) = P(A) + P(B)", "P(A ∪ B) = P(A) + P(B) − P(A)·P(B)"],
+          ["Condicionada", "P(A | B) = 0", "P(A | B) = P(A)"],
+          ["Se ve en el Venn", "Círculos separados", "Los círculos se solapan «en la proporción justa»"]
+        ]) +
+        "<p><b>Si P(A) &gt; 0 y P(B) &gt; 0, dos sucesos incompatibles nunca son independientes</b>: ocurrir A obliga a que B no ocurra, así que saber A sí cambia la probabilidad de B (la deja en 0). Comprueba en el simulador de la sección 6 con el botón «Incompatibles» que el indicador de independencia marca «no».</p>" +
+        "<p>Tres formas equivalentes de comprobar independencia (si una vale, valen las tres): <b>P(A ∩ B) = P(A)·P(B)</b>, <b>P(A | B) = P(A)</b>, <b>P(B | A) = P(B)</b>. Además, si A y B son independientes, también lo son A y B̄, Ā y B, Ā y B̄: saber algo de uno no te dice nada del otro, ni del contrario.</p>" +
+        ejemplo("Hallar x para que sean independientes (o incompatibles)",
+          "Sean A y B con P(A) = 0,3 y P(A ∪ B) = 0,58. Calcula P(B) si (a) A y B son independientes; (b) A y B son incompatibles.",
+          ["<b>(a)</b> Independientes: P(A ∩ B) = 0,3·x. Entonces 0,58 = 0,3 + x − 0,3x = 0,3 + 0,7x ⟹ 0,7x = 0,28 ⟹ <b>x = 0,4</b>.",
+           "Comprobación: P(A ∩ B) = 0,12 y 0,3 + 0,4 − 0,12 = 0,58 ✓.",
+           "<b>(b)</b> Incompatibles: P(A ∩ B) = 0 ⟹ 0,58 = 0,3 + x ⟹ <b>x = 0,28</b>.",
+           "El mismo dato produce dos valores distintos: por eso el enunciado tiene que decir cuál de las dos situaciones se da."]) +
+        ejemplo("Comprobar independencia con tres datos",
+          "Se sabe que P(A) = 0,55, P(B) = 0,6 y P(A | B) = 0,5. ¿Son independientes? Calcula P(A ∩ B).",
+          ["P(A ∩ B) = P(B)·P(A | B) = 0,6·0,5 = <b>0,3</b>.",
+           "Si fueran independientes, sería P(A)·P(B) = 0,55·0,6 = 0,33 ≠ 0,3. (O de otra forma: P(A | B) = 0,5 ≠ P(A) = 0,55.) <b>No son independientes.</b>",
+           "P(A ∪ B) = 0,55 + 0,6 − 0,3 = 0,85."]) +
+        ejemplo("Independencia en un experimento de dados",
+          "Se lanza un dado. A = «sale par», B = «sale múltiplo de 3». ¿Son independientes?",
+          ["A = {2, 4, 6} ⟹ P(A) = 1/2.   B = {3, 6} ⟹ P(B) = 1/3.   A ∩ B = {6} ⟹ P(A ∩ B) = 1/6.",
+           "P(A)·P(B) = 1/2 · 1/3 = 1/6 = P(A ∩ B) ✓ ⟹ <b>son independientes</b>, aunque tienen un resultado en común (no son incompatibles).",
+           "Si cambias B por «sale 5 o más» = {5, 6}: P(B) = 1/3, P(A ∩ B) = 1/6 también (solo el 6)... y P(A)·P(B) = 1/6: otra vez independientes. En cambio con B = «sale más de 3» = {4, 5, 6}: P(B) = 1/2, P(A ∩ B) = 2/6 = 1/3 ≠ 1/4: <b>dependientes</b>. Con dados no se adivina: se calcula."]) +
+        ojo("«Independientes» no se ve en el enunciado como palabra mágica: a veces solo dice «los resultados de dos lanzamientos» o «con reposición». En cambio «sin reposición» casi siempre significa <b>dependientes</b>.")
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Tablas de contingencia y diagramas de árbol",
+      html:
+        "<p>Muchos problemas dan los datos de una forma y piden otra. Hay tres representaciones equivalentes (árbol, tabla de contingencia, fórmulas) y conviene saber pasar de una a otra. La <b>tabla de contingencia</b> es la más fiable cuando los datos son <b>porcentajes de una misma población</b>: rellenas las casillas y todo se lee contando.</p>" +
+        ejemplo("Una tabla con 200 alumnos",
+          "En un grupo de 200 alumnos hay 120 chicas. Practican deporte 80 alumnos, y de ellos 50 son chicas. Se elige un alumno al azar. Calcula P(chica | deporte), P(deporte | chica) y estudia la independencia.",
+          ["Se construye la tabla (columnas: deporte / no; filas: chica / chico). Chicas con deporte: 50. Chicas sin deporte: 120 − 50 = 70. Chicos con deporte: 80 − 50 = 30. Chicos sin deporte: 80 − 30 = 50 (hay 200 − 120 = 80 chicos).",
+           "<b>P(chica | deporte)</b> = 50/80 = 5/8 = 0,625 (la casilla entre el total de su <i>columna</i>).   <b>P(deporte | chica)</b> = 50/120 = 5/12 ≈ 0,417 (la casilla entre el total de su <i>fila</i>).",
+           "Independencia: P(chica)·P(deporte) = 0,6·0,4 = 0,24, mientras que P(chica ∩ deporte) = 50/200 = 0,25. Como 0,24 ≠ 0,25, <b>no son independientes</b> (aunque casi)."]) +
+        w("m13_contingencia") +
+        "<p>Cambia las frecuencias de la tabla y comprueba cómo se mueven las condicionadas. El caso «Independientes» está construido para que los productos coincidan casilla a casilla.</p>" +
+        "<h5>Del árbol a la tabla y vuelta</h5>" +
+        "<p>Cuando el enunciado da porcentajes («el 60 % de los clientes son de la zona norte, y de ellos el 30 % compra online…»), conviene <b>inventar una población de 1.000 (o 10.000) personas</b> y rellenar la tabla con números enteros: las operaciones con probabilidades se convierten en simples divisiones de casillas. Es el mismo método de las 1.000 personas del test médico.</p>" +
+        ejemplo("Del árbol a la tabla",
+          "El 70 % de los alumnos usa transporte público. De los que lo usan, el 50 % llega con retraso; de los que no, el 20 %. ¿Qué porcentaje de los alumnos con retraso usa transporte público?",
+          ["Población de 1.000 alumnos: 700 usan transporte y 300 no. Con retraso: 0,5·700 = 350 y 0,2·300 = 60. Total con retraso: 410.",
+           "Entre los 410 con retraso, 350 usan transporte: <b>350/410 = 35/41 ≈ 0,854</b>.",
+           "Con probabilidades sería: P(B) = 0,7·0,5 + 0,3·0,2 = 0,41 y P(A | B) = 0,35/0,41. Es exactamente lo mismo; la tabla evita errores de signo y de orden."])
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Problemas completos al estilo EvAU",
+      html:
+        "<p>Los tres tipos de problema que más se repiten: urnas con trasvase, objetos con una causa oculta (moneda trucada, fábrica) y pruebas diagnósticas. Todos se resuelven con el mismo esquema: <b>definir los sucesos, dibujar el árbol (o la tabla), multiplicar por ramas, sumar hojas, y dividir para «dar la vuelta»</b>.</p>" +
+        ejemplo("Urnas con trasvase",
+          "La urna U₁ tiene 4 bolas blancas y 6 negras; la urna U₂, 3 blancas y 2 negras. Se saca una bola de U₁ al azar, se pasa a U₂ y de U₂ se extrae una bola. (a) ¿Probabilidad de que la bola extraída de U₂ sea blanca? (b) Si es blanca, ¿probabilidad de que la bola pasada fuese blanca?",
+          ["Sucesos: B₁ = «la bola pasada es blanca» (P = 4/10), N₁ = «negra» (P = 6/10). Y B₂ = «la extraída de U₂ es blanca».",
+           "Si pasó una blanca, U₂ tiene 6 bolas con 4 blancas: P(B₂ | B₁) = 4/6 = 2/3. Si pasó una negra, 3 blancas de 6: P(B₂ | N₁) = 1/2.",
+           "<b>(a)</b> P(B₂) = 4/10·2/3 + 6/10·1/2 = 4/15 + 3/10 = 8/30 + 9/30 = <b>17/30 ≈ 0,567</b>.",
+           "<b>(b)</b> Bayes: P(B₁ | B₂) = (4/10·2/3)/(17/30) = (8/30)/(17/30) = <b>8/17 ≈ 0,471</b>.",
+           "Observa que antes de saber nada P(B₁) = 0,4 y, sabiendo que la extraída fue blanca, sube a 0,471: ver blanca hace algo más probable que se haya añadido una blanca."]) +
+        ejemplo("Moneda trucada",
+          "Una caja contiene dos monedas: una normal y otra trucada con P(cara) = 0,8. Se elige una al azar y se lanza. (a) ¿Probabilidad de cara? (b) Salió cara: ¿probabilidad de que fuese la trucada?",
+          ["T = «trucada» (P = 1/2), N = «normal» (P = 1/2). C = «cara».",
+           "<b>(a)</b> P(C) = 0,5·0,8 + 0,5·0,5 = 0,4 + 0,25 = <b>0,65</b>.",
+           "<b>(b)</b> P(T | C) = 0,4/0,65 = 8/13 ≈ <b>0,615</b>. Antes de lanzar era 0,5; una cara aumenta la sospecha de que sea la trucada."]) +
+        ejemplo("Test con falsos negativos",
+          "Una enfermedad afecta al 2 % de la población. El test da positivo en el 90 % de los enfermos y en el 4 % de los sanos. Una persona da <b>negativo</b>. ¿Probabilidad de que, aun así, esté enferma?",
+          ["E = «enfermo» (0,02), S = «sano» (0,98). Negativo (−): P(− | E) = 0,10 (falso negativo) y P(− | S) = 0,96.",
+           "P(E ∩ −) = 0,02·0,10 = 0,002.   P(S ∩ −) = 0,98·0,96 = 0,9408.   P(−) = 0,002 + 0,9408 = 0,9428.",
+           "<b>P(E | −) = 0,002/0,9428 ≈ 0,0021</b>: un 0,21 %. Un negativo tranquiliza mucho más que un positivo alarma, por la misma razón de la tasa base."]) +
+        ejemplo("Datos al revés: ¿qué sensibilidad hace falta?",
+          "Con prevalencia del 10 % y un 5 % de falsos positivos, ¿qué sensibilidad s debe tener el test para que P(enfermo | positivo) = 0,5?",
+          ["P(E | +) = 0,1·s/(0,1·s + 0,9·0,05) = 0,1s/(0,1s + 0,045).",
+           "Igualando a 0,5: 0,1s = 0,5·(0,1s + 0,045) ⟹ 0,1s = 0,05s + 0,0225 ⟹ 0,05s = 0,0225 ⟹ <b>s = 0,45</b>.",
+           "Interpretación: basta un test que detecte menos de la mitad de los enfermos para que, con esa prevalencia, un positivo sea «cara o cruz»."])
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Método general y errores típicos",
+      html:
+        "<h5>Cinco pasos que sirven para casi todo</h5>" +
+        "<ol><li><b>Nombra los sucesos</b> con letras y escribe lo que significa cada una («D = defectuosa»).</li>" +
+        "<li><b>Traduce los datos</b> a probabilidades, distinguiendo conjuntas P(A ∩ B), condicionadas P(A | B) y simples P(A). Palabras clave de la condicionada: «sabiendo que», «dado que», «de los que», «entre los». Mira lo que va <b>detrás</b> del «dado que»: es la condición.</li>" +
+        "<li><b>Elige representación</b>: árbol si hay etapas o causas; tabla si son porcentajes de una población; Venn si hay operaciones de sucesos.</li>" +
+        "<li><b>Calcula</b>: producto por ramas, suma de hojas (total), cociente (Bayes o condicionada). Para «al menos uno», prueba el complementario.</li>" +
+        "<li><b>Comprueba</b>: ¿entre 0 y 1? ¿las ramas de cada nodo suman 1? ¿el resultado cumple el sentido común?</li></ol>" +
+        "<h5>Los errores que más puntos cuestan</h5>" +
+        tabla(["Error", "Corrección"], [
+          ["Confundir P(A | B) con P(B | A)", "Son distintas: la condición es lo que va detrás de la barra. Bayes es precisamente el puente entre ellas."],
+          ["Creer que incompatibles ⟹ independientes (o al revés)", "Con probabilidades no nulas, incompatibles ⟹ NO independientes."],
+          ["Sumar P(A) + P(B) sin restar P(A ∩ B)", "Solo se puede sumar sin restar si son incompatibles."],
+          ["Multiplicar P(A)·P(B) sin ser independientes", "En general es P(A)·P(B | A)."],
+          ["Hacer la media simple en vez de la total", "Hay que ponderar cada rama por la probabilidad de su causa."],
+          ["Usar Laplace sin equiprobabilidad", "Las sumas de dos dados no son equiprobables; los pares sí."],
+          ["Dar P(E | +) = sensibilidad", "La sensibilidad es P(+ | E); lo que se pide es la inversa. Hace falta la prevalencia."]
+        ])
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. ¿Qué falla aquí? Errores típicos",
+      html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+    },
+    // -------------------------------------------------------------- 12
+    {
+      h: "12. Autocomprobación del tema",
+      html: "<p>Test con explicación, tarjetas con las fórmulas, una actividad de emparejar, otra de clasificar por tipo de situación y el orden correcto para resolver un problema con Bayes.</p>" +
+        w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+    }
+  ];
+
+  B.parte.m2t13b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 13: Azar y probabilidad
+   (parte C: resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Reglas básicas</b>: P(Ā) = 1 − P(A); P(A ∪ B) = P(A) + P(B) − P(A ∩ B). Laplace (favorables/posibles) solo con resultados <b>equiprobables</b>. «Al menos uno» = 1 − P(ninguno).",
+    "<b>Álgebra de sucesos</b>: De Morgan (A ∪ B)ᶜ = Ā ∩ B̄ y (A ∩ B)ᶜ = Ā ∪ B̄. Solo A = P(A) − P(A ∩ B); exactamente uno = P(A) + P(B) − 2P(A ∩ B). Dibuja un Venn con las cuatro regiones: suman 1.",
+    "<b>Combinatoria</b>: ¿importa el orden? Sí: variaciones n!/(n−k)!; no: C(n, k) = n!/(k!(n−k)!); todos en orden: n!. Extracciones «de golpe»: P = C(favorables por grupo)/C(total, k).",
+    "<b>Condicionada y producto</b>: P(A | B) = P(A ∩ B)/P(B); P(A ∩ B) = P(B)·P(A | B). Ojo: P(A | B) ≠ P(B | A). P(Ā | B) = 1 − P(A | B).",
+    "<b>Independencia ≠ incompatibilidad</b>: independientes ⟺ P(A ∩ B) = P(A)·P(B) ⟺ P(A | B) = P(A). Incompatibles: P(A ∩ B) = 0. Con probabilidades no nulas, incompatibles ⟹ NO independientes.",
+    "<b>Probabilidad total</b>: con una partición B₁…Bₙ, P(A) = ΣP(Bᵢ)·P(A | Bᵢ): se multiplica por ramas y se suman las hojas con A. No es la media simple: hay que ponderar.",
+    "<b>Bayes</b>: P(Bᵢ | A) = P(Bᵢ)·P(A | Bᵢ)/P(A) = hoja Bᵢ∩A entre la suma de todas las hojas con A. En un test, con enfermedad rara el positivo engaña (tasa base): se ve con 1.000 personas.",
+    "<b>Estrategia</b>: nombrar sucesos, traducir datos (conjunta, condicionada, simple), elegir árbol/tabla/Venn, calcular, comprobar (entre 0 y 1; ramas que suman 1)."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«A y B son incompatibles con P(A) = 0,3 y P(B) = 0,4; por tanto P(A ∩ B) = 0,12 = P(A)·P(B)». ¿Qué falla?",
+          op: ["Nada, está bien", "Incompatibles significa P(A ∩ B) = 0; el producto es para sucesos independientes", "Debería ser 0,7", "Debería ser 0,3 + 0,4 − 0,12"], ok: 1,
+          porque: "Incompatibles: no pueden ocurrir a la vez, P(A ∩ B) = 0. Con probabilidades no nulas, jamás son independientes (0 ≠ 0,12)." },
+        { q: "«P(A) = 0,5 y P(B) = 0,4, luego P(A ∪ B) = 0,9». ¿Qué falla?",
+          op: ["Nada", "Solo se suma sin restar si son incompatibles; en general hay que restar P(A ∩ B)", "La unión siempre es el producto", "Debería dar 0,2"], ok: 1,
+          porque: "P(A ∪ B) = P(A) + P(B) − P(A ∩ B). Si no sabes nada de la intersección, no se puede dar un valor único: solo que está entre 0,5 y 0,9." },
+        { q: "Test con prevalencia 1 %, sensibilidad 95 % y 5 % de falsos positivos. «Una persona da positivo, luego la probabilidad de estar enferma es 95 %». ¿Qué falla?",
+          op: ["Nada, la sensibilidad es la respuesta", "Se confunde P(+ | enfermo) con P(enfermo | +); hay que aplicar Bayes y da ≈ 16 %", "Debería ser 5 %", "Debería ser 1 %"], ok: 1,
+          porque: "El 95 % es P(+ | E). Lo que se pide es P(E | +) = 0,0095/0,059 ≈ 0,161. Con enfermedad rara hay muchos más falsos positivos que verdaderos." },
+        { q: "Tres máquinas producen el 50 %, 30 % y 20 % con 2 %, 3 % y 6 % de defectuosas. «P(D) = (2 + 3 + 6)/3 = 3,67 %». ¿Qué falla?",
+          op: ["Nada", "Es una media simple; la total pondera: 0,5·0,02 + 0,3·0,03 + 0,2·0,06 = 3,1 %", "Debería sumarse sin dividir", "Debería ser 6 %"], ok: 1,
+          porque: "Cada porcentaje pesa lo que pesa su máquina. La probabilidad total es una media ponderada." },
+        { q: "Una urna con 5 rojas y 3 azules; sin reponer. «La 2.ª bola es roja con probabilidad 4/7». ¿Qué falla?",
+          op: ["Nada", "4/7 es P(2.ª roja | 1.ª roja); sin saber la 1.ª hay que hacer la total: 5/8·4/7 + 3/8·5/7 = 5/8", "Debería ser 5/7", "Debería ser 1/2"], ok: 1,
+          porque: "Sin información sobre la primera, la 2.ª sale roja con la misma probabilidad que la 1.ª: 5/8. Solo si te dicen que la primera fue roja pasa a 4/7." },
+        { q: "«(A ∪ B)ᶜ = Ā ∪ B̄». ¿Qué falla?",
+          op: ["Nada", "De Morgan cambia la unión por intersección: (A ∪ B)ᶜ = Ā ∩ B̄", "Debería ser Ā ∪ B̄", "(A ∪ B)ᶜ = A ∩ B"], ok: 1,
+          porque: "El complementario de «A o B» es «ni A ni B» = Ā ∩ B̄. El símbolo de la operación se invierte (∪ ↔ ∩) al pasar el complementario dentro." },
+        { q: "«Con 3 dados, P(al menos un 6) = 3·(1/6) = 1/2». ¿Qué falla?",
+          op: ["Nada", "Se suman sucesos que no son incompatibles; con el complementario: 1 − (5/6)³ = 91/216 ≈ 0,421", "Debería ser 1/6", "Debería ser 1/216"], ok: 1,
+          porque: "Los 6 de cada dado pueden coincidir, así que sumar cuenta de más. Con el complementario: 1 − P(ningún 6) = 1 − 125/216 = 91/216." },
+        { q: "«Si P(A | B) = P(B | A), entonces A y B son independientes». ¿Qué falla?",
+          op: ["Nada", "P(A | B) = P(B | A) solo exige P(A) = P(B) (si P(A ∩ B) ≠ 0); no hay nada de independencia", "Debe ser P(A | B) = 0", "Debe ser P(A) = 1"], ok: 1,
+          porque: "P(A ∩ B)/P(B) = P(A ∩ B)/P(A) ⟹ P(A) = P(B) (si P(A ∩ B) &gt; 0). La independencia es P(A | B) = P(A), no P(A | B) = P(B | A)." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de probabilidad",
+      preguntas: [
+        { q: "El complementario de «al menos uno de A, B» es", op: ["Ā ∩ B̄ (ninguno)", "Ā ∪ B̄", "A ∩ B", "A − B"], ok: 0, porque: "De Morgan: (A ∪ B)ᶜ = Ā ∩ B̄." },
+        { q: "P(A) = 0,4; P(B) = 0,5; P(A ∩ B) = 0,2. Entonces P(A ∪ B) =", op: ["0,7", "0,9", "0,2", "0,1"], ok: 0, porque: "0,4 + 0,5 − 0,2 = 0,7." },
+        { q: "Los sucesos A y B son independientes si", op: ["P(A ∩ B) = P(A)·P(B)", "P(A ∩ B) = 0", "P(A ∪ B) = P(A) + P(B)", "P(A) = P(B)"], ok: 0, porque: "Las otras son incompatibilidad (dos de ellas) o simplemente igualdad de probabilidades." },
+        { q: "Comisión de 2 personas entre 7, sin orden. Número de comisiones", op: ["21", "42", "14", "49"], ok: 0, porque: "C(7, 2) = 7·6/2 = 21. (42 serían variaciones, con orden.)" },
+        { q: "P(A | B) =", op: ["P(A ∩ B)/P(B)", "P(A ∩ B)/P(A)", "P(A)·P(B)", "P(B | A)"], ok: 0, porque: "La condición B va en el denominador." },
+        { q: "Se saca una carta de una baraja de 40. P(rey de oros o copas) =", op: ["2/40 = 1/20", "1/40", "4/40", "1/2"], ok: 0, porque: "Hay un rey de oros y uno de copas: 2 casos favorables." },
+        { q: "En un árbol, la probabilidad de un camino es", op: ["el producto de las probabilidades de sus ramas", "la suma de las ramas", "la media de las ramas", "la de la última rama"], ok: 0, porque: "Regla del producto: P(B ∩ A) = P(B)·P(A | B)." },
+        { q: "El teorema de la probabilidad total exige que las causas", op: ["formen una partición (incompatibles y sumen 1)", "sean independientes", "tengan igual probabilidad", "sean solo dos"], ok: 0, porque: "Incompatibles dos a dos y que cubran todo E." },
+        { q: "Un test tiene sensibilidad 99 %. Una persona da positivo, luego la probabilidad de estar enferma", op: ["depende también de la prevalencia y de los falsos positivos", "es 99 %", "es 1 %", "es 50 %"], ok: 0, porque: "Es P(E | +), que se calcula con Bayes; 99 % es P(+ | E)." },
+        { q: "P(A) = 0,6; P(B) = 0,5 y son independientes. P(A ∪ B) =", op: ["0,8", "1,1", "0,3", "0,9"], ok: 0, porque: "0,6 + 0,5 − 0,3 = 0,8." },
+        { q: "Si A y B son incompatibles con probabilidades no nulas, entonces", op: ["no son independientes", "son independientes", "P(A ∪ B) = 1", "P(A) = P(B)"], ok: 0, porque: "P(A ∩ B) = 0 ≠ P(A)·P(B) &gt; 0." },
+        { q: "Tres monedas, P(al menos una cara) =", op: ["7/8", "3/8", "1/2", "1/8"], ok: 0, porque: "1 − P(ninguna) = 1 − (1/2)³ = 7/8." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas de probabilidad",
+      cartas: [
+        { a: "Unión", b: "P(A ∪ B) = P(A) + P(B) − P(A ∩ B). Incompatibles: sin restar." },
+        { a: "Leyes de De Morgan", b: "(A ∪ B)ᶜ = Ā ∩ B̄ (ni A ni B)  ·  (A ∩ B)ᶜ = Ā ∪ B̄ (no los dos)." },
+        { a: "Exactamente uno", b: "P(A) + P(B) − 2·P(A ∩ B) = P(solo A) + P(solo B)." },
+        { a: "Al menos uno de varios independientes", b: "1 − P(Ā₁)·P(Ā₂)·…  (complementario de «ninguno»)." },
+        { a: "Condicionada", b: "P(A | B) = P(A ∩ B)/P(B). La condición es lo que va detrás de la barra." },
+        { a: "Regla del producto", b: "P(A ∩ B) = P(B)·P(A | B) = P(A)·P(B | A). En el árbol: producto por ramas." },
+        { a: "Independientes", b: "P(A ∩ B) = P(A)·P(B)  ⟺  P(A | B) = P(A)  ⟺  P(B | A) = P(B)." },
+        { a: "Incompatibles", b: "A ∩ B = ∅, P(A ∩ B) = 0. Con P(A), P(B) &gt; 0: NO independientes." },
+        { a: "Probabilidad total", b: "P(A) = P(B₁)P(A | B₁) + … + P(Bₙ)P(A | Bₙ). Partición: incompatibles y suman 1." },
+        { a: "Bayes", b: "P(Bᵢ | A) = P(Bᵢ)P(A | Bᵢ)/P(A): la hoja Bᵢ∩A entre la suma de las hojas con A." },
+        { a: "Combinaciones y variaciones", b: "C(n, k) = n!/(k!(n−k)!) sin orden;  V(n, k) = n!/(n−k)! con orden;  C(n, k) = C(n, n−k)." },
+        { a: "Test médico", b: "Sensibilidad = P(+ | E). Lo que interesa es P(E | +), que depende de la prevalencia. Truco: 1.000 personas." }
+      ]
+    },
+    empar: {
+      titulo: "Frase y símbolo",
+      consigna: "Une cada frase con su expresión en sucesos.",
+      pares: [
+        ["Ocurre al menos uno de los dos", "A ∪ B"],
+        ["No ocurre ninguno", "Ā ∩ B̄ = (A ∪ B)ᶜ"],
+        ["No ocurren los dos a la vez", "Ā ∪ B̄ = (A ∩ B)ᶜ"],
+        ["Ocurre A pero no B", "A ∩ B̄"],
+        ["Ocurre exactamente uno", "(A ∩ B̄) ∪ (Ā ∩ B)"],
+        ["Sabiendo que ha ocurrido B, ocurre A", "P(A | B)"]
+      ]
+    },
+    clas: {
+      titulo: "¿Qué herramienta uso?",
+      consigna: "Toca cada situación y elige la herramienta que la resuelve.",
+      categorias: ["Combinatoria + Laplace", "Probabilidad total", "Bayes", "Complementario («al menos uno»)"],
+      items: [
+        { t: "Repartir 5 cartas y pedir exactamente 2 oros", c: 0 },
+        { t: "Elegir una comisión de 3 entre 10 personas", c: 0 },
+        { t: "Probabilidad de que una pieza sea defectuosa, si hay tres máquinas", c: 1 },
+        { t: "Se elige una urna al azar y se saca una bola: ¿prob. de roja?", c: 1 },
+        { t: "Probabilidad de que sea de la máquina B sabiendo que es defectuosa", c: 2 },
+        { t: "Dio positivo: ¿prob. de estar enfermo?", c: 2 },
+        { t: "Salió cara: ¿prob. de que la moneda sea la trucada?", c: 2 },
+        { t: "Tres tiradores independientes: acierta al menos uno", c: 3 },
+        { t: "Al lanzar un dado 4 veces sale al menos un 6", c: 3 },
+        { t: "Entre 3 elegidos de un grupo, hay al menos una chica", c: 3 }
+      ]
+    },
+    orden: {
+      titulo: "Un problema de Bayes paso a paso",
+      consigna: "Ordena los pasos para resolver «sabiendo que ha ocurrido A, ¿cuál es la probabilidad de la causa Bᵢ?».",
+      items: [
+        { t: "Nombrar los sucesos: causas B₁, B₂, … y el resultado A", nota: "Escribe qué significa cada letra." },
+        { t: "Escribir P(Bᵢ) y P(A | Bᵢ) (comprobar que las P(Bᵢ) suman 1)", nota: "Con ellas se dibuja el árbol." },
+        { t: "Multiplicar por ramas: P(Bᵢ ∩ A) = P(Bᵢ)·P(A | Bᵢ)", nota: "Una hoja para cada causa." },
+        { t: "Sumar las hojas con A: probabilidad total P(A)", nota: "Es el denominador." },
+        { t: "Dividir la hoja de la causa pedida entre P(A)", nota: "Bayes: P(Bᵢ | A) = P(Bᵢ ∩ A)/P(A)." },
+        { t: "Comprobar: entre 0 y 1 y las P(Bᵢ | A) suman 1", nota: "Si no suman 1, hay un error." }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v) { return { tipo: "num", etiqueta: et, valor: v }; }
+  function opc(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var DA = "P(A) = 0,5, P(B) = 0,4 y P(A ∪ B) = 0,7";
+  var D2 = "P(A) = 0,6, P(B) = 0,5 y P(A ∩ B) = 0,2";
+  var TAB = "En un grupo de 200 alumnos hay 120 chicas. Practican deporte 80 alumnos, y de ellos 50 son chicas.";
+  var TEST = "Una enfermedad afecta al 1 % de la población. Un test da positivo en el 95 % de los enfermos y en el 5 % de los sanos.";
+  var FAB = "Tres máquinas producen el 50 %, el 30 % y el 20 % de las piezas, con un 2 %, un 3 % y un 6 % de defectuosas.";
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    { id: "e1", nivel: 1, enunciado: "Se lanza un dado. Calcula la probabilidad de que salga un múltiplo de 3 o un número par.", check: num("P =", 2 / 3),
+      pistas: ["Escribe los dos conjuntos y haz la unión sin repetir."], pasos: ["Múltiplos de 3: {3, 6}. Pares: {2, 4, 6}.", "Unión: {2, 3, 4, 6}: 4 casos de 6."], resultado: "P = 4/6 = 2/3" },
+    { id: "e2", nivel: 1, enunciado: "De una baraja española de 40 cartas se extrae una. Calcula la probabilidad de que sea una figura (sota, caballo o rey) o un as.", check: num("P =", 0.4),
+      pistas: ["Hay 12 figuras y 4 ases, y ninguna carta es las dos cosas."], pasos: ["Incompatibles: 12 + 4 = 16 casos favorables.", "P = 16/40."], resultado: "P = 16/40 = 2/5 = 0,4" },
+    { id: "e3", nivel: 1, enunciado: "Sean A y B con " + DA + ". Calcula P(A ∩ B).", check: num("P(A ∩ B) =", 0.2),
+      pistas: ["Despeja de P(A ∪ B) = P(A) + P(B) − P(A ∩ B)."], pasos: ["P(A ∩ B) = 0,5 + 0,4 − 0,7."], resultado: "P(A ∩ B) = 0,2" },
+    { id: "e4", nivel: 1, enunciado: "Con los datos anteriores (" + DA + "), calcula P(Ā ∩ B̄), la probabilidad de que no ocurra ninguno.", check: num("P(Ā ∩ B̄) =", 0.3),
+      pistas: ["De Morgan: Ā ∩ B̄ = (A ∪ B)ᶜ."], pasos: ["P = 1 − P(A ∪ B) = 1 − 0,7."], resultado: "0,3" },
+    { id: "e5", nivel: 1, enunciado: "Con los mismos datos (" + DA + "), calcula P(Ā ∪ B̄), la probabilidad de que no ocurran los dos a la vez.", check: num("P(Ā ∪ B̄) =", 0.8),
+      pistas: ["De Morgan: Ā ∪ B̄ = (A ∩ B)ᶜ. Necesitas P(A ∩ B) = 0,2."], pasos: ["P = 1 − P(A ∩ B) = 1 − 0,2."], resultado: "0,8" },
+    { id: "e6", nivel: 1, enunciado: "A y B son incompatibles, con P(A) = 0,35 y P(B) = 0,45. Calcula la probabilidad de que no ocurra ninguno.", check: num("P =", 0.2),
+      pistas: ["Incompatibles: P(A ∪ B) = P(A) + P(B)."], pasos: ["P(A ∪ B) = 0,35 + 0,45 = 0,8.", "Ninguno: 1 − 0,8."], resultado: "0,2" },
+    { id: "e7", nivel: 1, enunciado: "¿Cuántos números de 3 cifras distintas se pueden formar con los dígitos 1, 2, 3, 4 y 5?", check: num("Nº =", 60),
+      pistas: ["Importa el orden y no se repiten: variaciones V(5, 3)."], pasos: ["5·4·3 = 60."], resultado: "60 números" },
+    { id: "e8", nivel: 1, enunciado: "¿Cuántas comisiones distintas de 3 personas se pueden formar con un grupo de 8?", check: num("Nº =", 56),
+      pistas: ["El orden no importa: C(8, 3)."], pasos: ["C(8, 3) = 8·7·6/(3·2·1) = 56."], resultado: "56 comisiones" },
+    { id: "e9", nivel: 1, enunciado: "Una urna tiene 5 bolas rojas y 3 azules. Se extraen dos <b>sin reposición</b>. Calcula la probabilidad de que las dos sean rojas.", check: num("P =", 5 / 14),
+      pistas: ["P(1.ª roja)·P(2.ª roja | 1.ª roja)."], pasos: ["5/8 · 4/7 = 20/56."], resultado: "P = 5/14 ≈ 0,357" },
+    { id: "e10", nivel: 1, enunciado: "La misma urna (5 rojas y 3 azules), pero ahora <b>con reposición</b>. Calcula la probabilidad de que las dos sean rojas.", check: num("P =", 25 / 64),
+      pistas: ["Las extracciones son independientes."], pasos: ["5/8 · 5/8 = 25/64."], resultado: "P = 25/64 ≈ 0,391" },
+    { id: "e11", nivel: 1, enunciado: "Sean A y B con " + D2 + ". Calcula P(A | B).", check: num("P(A | B) =", 0.4),
+      pistas: ["P(A ∩ B)/P(B)."], pasos: ["0,2/0,5."], resultado: "0,4" },
+    { id: "e12", nivel: 1, enunciado: "Con los mismos datos (" + D2 + "), calcula P(B | A).", check: num("P(B | A) =", 1 / 3),
+      pistas: ["Ahora el denominador es P(A)."], pasos: ["0,2/0,6."], resultado: "1/3 ≈ 0,333" },
+    { id: "e13", nivel: 1, enunciado: "A y B son independientes, con P(A) = 0,5 y P(B) = 0,6. Calcula P(A ∪ B).", check: num("P(A ∪ B) =", 0.8),
+      pistas: ["Independientes: P(A ∩ B) = P(A)·P(B)."], pasos: ["P(A ∩ B) = 0,3.", "P(A ∪ B) = 0,5 + 0,6 − 0,3."], resultado: "0,8" },
+    { id: "e14", nivel: 1, enunciado: "La urna I tiene 2 bolas blancas y 3 negras; la urna II, 4 blancas y 1 negra. Se elige una urna al azar (con igual probabilidad) y se saca una bola. Calcula la probabilidad de que sea blanca.", check: num("P(blanca) =", 0.6),
+      pistas: ["Probabilidad total con dos causas."], pasos: ["P = ½·(2/5) + ½·(4/5) = 0,2 + 0,4."], resultado: "P = 0,6" },
+    // ---------------------------------------------------------------- ★★
+    { id: "e15", nivel: 2, enunciado: "Se lanzan dos dados. Calcula la probabilidad de que la suma sea 8.", check: num("P =", 5 / 36),
+      pistas: ["Cuenta los pares (a, b) de 36 con a + b = 8."], pasos: ["(2,6), (3,5), (4,4), (5,3), (6,2): 5 casos."], resultado: "P = 5/36 ≈ 0,139" },
+    { id: "e16", nivel: 2, enunciado: "Se lanzan dos dados. Calcula la probabilidad de obtener al menos un 6.", check: num("P =", 11 / 36),
+      pistas: ["Complementario: ningún 6 en los dos dados."], pasos: ["P(ningún 6) = (5/6)² = 25/36.", "P = 1 − 25/36."], resultado: "P = 11/36 ≈ 0,306" },
+    { id: "e17", nivel: 2, enunciado: "De una baraja española de 40 cartas (10 oros) se reparten 5. Calcula la probabilidad de que haya exactamente 2 oros.", check: num("P =", 5075 / 18278),
+      pistas: ["C(10, 2)·C(30, 3) entre C(40, 5)."], pasos: ["Favorables: 45·4.060 = 182.700.", "Posibles: C(40, 5) = 658.008.", "P = 182.700/658.008."], resultado: "P ≈ 0,2777" },
+    { id: "e18", nivel: 2, enunciado: "Se elige una comisión de 3 personas entre 10 (6 chicas y 4 chicos). Calcula la probabilidad de que haya al menos un chico.", check: num("P =", 5 / 6),
+      pistas: ["Complementario: todas chicas."], pasos: ["P(todas chicas) = C(6, 3)/C(10, 3) = 20/120 = 1/6.", "P = 1 − 1/6."], resultado: "P = 5/6" },
+    { id: "e19", nivel: 2, enunciado: "Cinco amigos se sientan al azar en una fila de 5 sillas. Calcula la probabilidad de que Ana y Luis queden juntos.", check: num("P =", 2 / 5),
+      pistas: ["Trata a la pareja como un bloque que puede ir en dos órdenes."], pasos: ["Favorables: 2·4! = 48. Posibles: 5! = 120."], resultado: "P = 48/120 = 2/5" },
+    { id: "e20", nivel: 2, enunciado: "Tres tiradores aciertan con probabilidades 0,8, 0,7 y 0,6 y disparan de forma independiente. Calcula la probabilidad de que acierte al menos uno.", check: num("P =", 0.976),
+      pistas: ["1 − P(ninguno acierta)."], pasos: ["P(ninguno) = 0,2·0,3·0,4 = 0,024.", "P = 1 − 0,024."], resultado: "P = 0,976" },
+    { id: "e21", nivel: 2, enunciado: "Con los mismos tres tiradores (0,8; 0,7; 0,6), calcula la probabilidad de que acierte <b>exactamente uno</b>.", check: num("P =", 0.188),
+      pistas: ["Suma los tres casos: solo el 1.º, solo el 2.º, solo el 3.º."], pasos: ["0,8·0,3·0,4 = 0,096;  0,2·0,7·0,4 = 0,056;  0,2·0,3·0,6 = 0,036.", "Suma: 0,188."], resultado: "P = 0,188" },
+    { id: "e22", nivel: 2, enunciado: "Sean A y B <b>independientes</b>, con P(A) = 0,3 y P(A ∪ B) = 0,58. Calcula P(B).", check: num("P(B) =", 0.4),
+      pistas: ["P(A ∪ B) = P(A) + P(B) − P(A)·P(B)."], pasos: ["0,58 = 0,3 + x − 0,3x ⟹ 0,7x = 0,28."], resultado: "P(B) = 0,4" },
+    { id: "e23", nivel: 2, enunciado: "Sean A y B <b>incompatibles</b>, con P(A) = 0,3 y P(A ∪ B) = 0,58. Calcula P(B).", check: num("P(B) =", 0.28),
+      pistas: ["Incompatibles: la intersección es nula."], pasos: ["0,58 = 0,3 + P(B)."], resultado: "P(B) = 0,28" },
+    { id: "e24", nivel: 2, enunciado: TAB + " Se elige un alumno al azar. Sabiendo que practica deporte, ¿probabilidad de que sea chica?", check: num("P =", 0.625),
+      pistas: ["Construye la tabla; la condición es «deporte»."], pasos: ["Deporte: 80 alumnos, 50 chicas.", "P = 50/80."], resultado: "P = 5/8 = 0,625" },
+    { id: "e25", nivel: 2, enunciado: TAB + " Se elige una alumna (chica). ¿Probabilidad de que practique deporte?", check: num("P =", 5 / 12),
+      pistas: ["Ahora la condición es «chica»: 120 chicas."], pasos: ["P = 50/120."], resultado: "P = 5/12 ≈ 0,417" },
+    { id: "e26", nivel: 2, enunciado: TAB + " ¿Son independientes «ser chica» y «practicar deporte»?", check: opc("Respuesta", ["Sí, porque P(chica ∩ deporte) = P(chica)·P(deporte)", "No: P(chica)·P(deporte) = 0,24 ≠ 0,25", "No: son incompatibles", "Sí, porque hay chicas que practican deporte"], 1),
+      pistas: ["Compara el producto de marginales con la casilla conjunta."], pasos: ["P(chica) = 0,6, P(deporte) = 0,4: producto 0,24.", "P(chica ∩ deporte) = 50/200 = 0,25 ≠ 0,24."], resultado: "No son independientes" },
+    { id: "e27", nivel: 2, enunciado: TEST + " Calcula la probabilidad de que una persona elegida al azar dé positivo.", check: num("P(+) =", 0.059),
+      pistas: ["Probabilidad total: enfermos y sanos."], pasos: ["0,01·0,95 + 0,99·0,05 = 0,0095 + 0,0495."], resultado: "P(+) = 0,059" },
+    { id: "e28", nivel: 2, enunciado: TEST + " Una persona da positivo. Calcula la probabilidad de que esté enferma.", check: num("P(E | +) =", 0.0095 / 0.059),
+      pistas: ["Bayes: hoja «enfermo y positivo» entre P(+)."], pasos: ["0,0095/0,059 ≈ 0,161."], resultado: "P(E | +) ≈ 0,161 (16,1 %)" },
+    { id: "e29", nivel: 2, enunciado: FAB + " Calcula la probabilidad de que una pieza elegida al azar sea defectuosa.", check: num("P(D) =", 0.031),
+      pistas: ["Probabilidad total con tres causas."], pasos: ["0,5·0,02 + 0,3·0,03 + 0,2·0,06 = 0,010 + 0,009 + 0,012."], resultado: "P(D) = 0,031" },
+    { id: "e30", nivel: 2, enunciado: FAB + " Una pieza resulta defectuosa. Calcula la probabilidad de que sea de la tercera máquina.", check: num("P(M₃ | D) =", 12 / 31),
+      pistas: ["Bayes: 0,012 entre P(D)."], pasos: ["0,012/0,031 = 12/31."], resultado: "P(M₃ | D) = 12/31 ≈ 0,387" },
+    { id: "e31", nivel: 2, enunciado: "Sean A y B con " + D2 + ". Calcula P(A | B̄).", check: num("P(A | B̄) =", 0.8),
+      pistas: ["P(A ∩ B̄) = P(A) − P(A ∩ B) y P(B̄) = 1 − P(B)."], pasos: ["P(A ∩ B̄) = 0,6 − 0,2 = 0,4.", "P(A | B̄) = 0,4/0,5."], resultado: "0,8" },
+    // ---------------------------------------------------------------- ★★★
+    { id: "e32", nivel: 3, enunciado: "La urna U₁ tiene 4 bolas blancas y 6 negras; la urna U₂, 3 blancas y 2 negras. Se saca una bola de U₁, se pasa a U₂ y se extrae una bola de U₂. Calcula la probabilidad de que esta sea blanca.", check: num("P =", 17 / 30),
+      pistas: ["Causas: la bola pasada fue blanca o negra. Cambia la composición de U₂."], pasos: ["P(blanca | pasó blanca) = 4/6; P(blanca | pasó negra) = 3/6.", "P = 0,4·(2/3) + 0,6·(1/2) = 4/15 + 3/10."], resultado: "P = 17/30 ≈ 0,567" },
+    { id: "e33", nivel: 3, enunciado: "En la situación anterior (U₁ → U₂), la bola extraída de U₂ es blanca. ¿Probabilidad de que la bola pasada desde U₁ fuese blanca?", check: num("P =", 8 / 17),
+      pistas: ["Bayes con el resultado del ejercicio anterior en el denominador."], pasos: ["P(pasó blanca ∩ 2.ª blanca) = 0,4·(2/3) = 8/30.", "Dividir entre 17/30: 8/17."], resultado: "P = 8/17 ≈ 0,471" },
+    { id: "e34", nivel: 3, enunciado: "Una caja tiene dos monedas: una normal y otra trucada con P(cara) = 0,8. Se elige una al azar y se lanza. Calcula la probabilidad de obtener cara.", check: num("P(cara) =", 0.65),
+      pistas: ["Total con dos causas equiprobables."], pasos: ["0,5·0,8 + 0,5·0,5 = 0,4 + 0,25."], resultado: "P(cara) = 0,65" },
+    { id: "e35", nivel: 3, enunciado: "En la caja anterior salió cara. ¿Probabilidad de que la moneda sea la trucada?", check: num("P =", 8 / 13),
+      pistas: ["Bayes: 0,4 entre 0,65."], pasos: ["0,4/0,65 = 8/13."], resultado: "P = 8/13 ≈ 0,615" },
+    { id: "e36", nivel: 3, enunciado: "Una urna tiene 5 bolas rojas y 3 azules. Se sacan dos <b>sin reposición</b>. Sin mirar la primera, ¿probabilidad de que la <b>segunda</b> sea roja?", check: num("P(2.ª roja) =", 5 / 8),
+      pistas: ["Total: la primera pudo ser roja o azul."], pasos: ["5/8·4/7 + 3/8·5/7 = 20/56 + 15/56 = 35/56."], resultado: "P = 5/8 (igual que la primera)" },
+    { id: "e37", nivel: 3, enunciado: "En la misma urna (5 rojas, 3 azules, sin reposición), la segunda bola ha sido roja. ¿Probabilidad de que la primera también lo fuese?", check: num("P =", 4 / 7),
+      pistas: ["Bayes con P(2.ª roja) = 5/8."], pasos: ["P(R₁ ∩ R₂) = 5/14.", "(5/14)/(5/8) = 8/14 = 4/7."], resultado: "P = 4/7 ≈ 0,571" },
+    { id: "e38", nivel: 3, enunciado: "Una enfermedad afecta al 2 % de la población. El test da positivo en el 90 % de los enfermos y en el 4 % de los sanos. Una persona da <b>negativo</b>. ¿Probabilidad de que esté enferma?", check: num("P(E | −) =", 0.002 / 0.9428),
+      pistas: ["Falsos negativos: 10 % de los enfermos."], pasos: ["P(E ∩ −) = 0,02·0,10 = 0,002.", "P(−) = 0,002 + 0,98·0,96 = 0,9428.", "0,002/0,9428."], resultado: "P ≈ 0,0021 (0,21 %)" },
+    { id: "e39", nivel: 3, enunciado: "Se sabe que P(A) = 0,7, P(B | A) = 0,5 y P(B | Ā) = 0,2. Calcula P(B).", check: num("P(B) =", 0.41),
+      pistas: ["Total con la partición {A, Ā}."], pasos: ["0,7·0,5 + 0,3·0,2 = 0,35 + 0,06."], resultado: "P(B) = 0,41" },
+    { id: "e40", nivel: 3, enunciado: "Con los datos anteriores (P(A) = 0,7, P(B | A) = 0,5, P(B | Ā) = 0,2), calcula P(A | B).", check: num("P(A | B) =", 35 / 41),
+      pistas: ["Bayes: 0,35 entre 0,41."], pasos: ["P(A ∩ B) = 0,35.", "0,35/0,41 = 35/41."], resultado: "P(A | B) = 35/41 ≈ 0,854" },
+    { id: "e41", nivel: 3, enunciado: "Sean A y B con P(A ∪ B) = 0,85, P(B) = 0,6 y P(A | B) = 0,5. Calcula P(A).", check: num("P(A) =", 0.55),
+      pistas: ["Primero P(A ∩ B) = P(B)·P(A | B)."], pasos: ["P(A ∩ B) = 0,6·0,5 = 0,3.", "P(A) = P(A ∪ B) − P(B) + P(A ∩ B) = 0,85 − 0,6 + 0,3."], resultado: "P(A) = 0,55" },
+    { id: "e42", nivel: 3, enunciado: "Una bolsa tiene 10 bolas, 4 rojas y 6 verdes. Se extraen 3 <b>a la vez</b>. Calcula la probabilidad de que exactamente 2 sean rojas.", check: num("P =", 0.3),
+      pistas: ["C(4, 2)·C(6, 1) entre C(10, 3)."], pasos: ["Favorables: 6·6 = 36. Posibles: 120.", "36/120."], resultado: "P = 3/10" },
+    { id: "e43", nivel: 3, enunciado: "Se lanzan tres dados. Calcula la probabilidad de que salga al menos un 6.", check: num("P =", 91 / 216),
+      pistas: ["No sumes 3·(1/6): usa el complementario."], pasos: ["P(ningún 6) = (5/6)³ = 125/216.", "P = 1 − 125/216."], resultado: "P = 91/216 ≈ 0,421" },
+    { id: "e44", nivel: 3, enunciado: "Si A y B son incompatibles y P(A) &gt; 0, P(B) &gt; 0, entonces", check: opc("Se cumple", ["A y B no son independientes", "A y B son independientes", "P(A ∪ B) = 1", "P(A | B) = P(A)"], 0),
+      pistas: ["Compara P(A ∩ B) con P(A)·P(B)."], pasos: ["P(A ∩ B) = 0, pero P(A)·P(B) &gt; 0."], resultado: "No son independientes" },
+    { id: "e45", nivel: 3, enunciado: "El suceso «A y B no ocurren a la vez» se escribe y tiene probabilidad", check: opc("Es", ["Ā ∪ B̄, con probabilidad 1 − P(A ∩ B)", "Ā ∩ B̄, con probabilidad 1 − P(A ∪ B)", "Ā ∪ B̄, con probabilidad 1 − P(A ∪ B)", "A ∩ B̄, con probabilidad P(A) − P(B)"], 0),
+      pistas: ["De Morgan sobre (A ∩ B)ᶜ."], pasos: ["(A ∩ B)ᶜ = Ā ∪ B̄, con probabilidad 1 − P(A ∩ B)."], resultado: "Ā ∪ B̄, 1 − P(A ∩ B)" },
+    { id: "e46", nivel: 3, enunciado: "Con prevalencia del 10 % y un 5 % de falsos positivos, ¿qué sensibilidad s debe tener un test para que P(enfermo | positivo) = 0,5?", check: num("s =", 0.45),
+      pistas: ["Plantea 0,1s/(0,1s + 0,9·0,05) = 0,5."], pasos: ["0,1s = 0,5(0,1s + 0,045).", "0,05s = 0,0225 ⟹ s = 0,45."], resultado: "s = 0,45 (45 %)" },
+    { id: "e47", nivel: 3, enunciado: "La probabilidad de que ocurra «exactamente uno» de los sucesos A y B es", check: opc("Es", ["P(A) + P(B) − 2·P(A ∩ B)", "P(A) + P(B) − P(A ∩ B)", "P(A) + P(B)", "1 − P(A ∪ B)"], 0),
+      pistas: ["Solo A + solo B, sin la intersección."], pasos: ["(P(A) − P(A ∩ B)) + (P(B) − P(A ∩ B))."], resultado: "P(A) + P(B) − 2·P(A ∩ B)" },
+    { id: "e48", nivel: 3, enunciado: "<b>(Tipo EvAU)</b> Sean A y B con P(A) = 0,4, P(B) = 0,5 y P(A ∪ B) = 0,7. Calcula (a) P(A ∩ B); (b) P(A | B); (c) P(Ā ∩ B̄); (d) P(B | Ā); y (e) di si A y B son independientes.",
+      check: [num("(a) P(A ∩ B) =", 0.2), num("(b) P(A | B) =", 0.4), num("(c) P(Ā ∩ B̄) =", 0.3), num("(d) P(B | Ā) =", 0.5), opc("(e) A y B", ["son independientes", "no son independientes", "son incompatibles", "no se puede saber"], 0)],
+      pistas: ["(d): P(B ∩ Ā) = P(B) − P(A ∩ B). (e): compara P(A)·P(B) con P(A ∩ B)."],
+      pasos: ["(a) 0,4 + 0,5 − 0,7 = 0,2.  (b) 0,2/0,5 = 0,4.  (c) 1 − 0,7 = 0,3.", "(d) P(B ∩ Ā) = 0,5 − 0,2 = 0,3; P(Ā) = 0,6 ⟹ 0,3/0,6 = 0,5.", "(e) P(A)·P(B) = 0,2 = P(A ∩ B): independientes."], resultado: "0,2; 0,4; 0,3; 0,5; independientes" },
+    { id: "e49", nivel: 3, enunciado: "<b>(Tipo EvAU)</b> Se lanza un dado. Si sale 1 o 2, se extrae una bola de la urna X (3 rojas y 1 azul); si sale 3, 4, 5 o 6, se extrae una bola de la urna Y (1 roja y 3 azules). Calcula (a) la probabilidad de que la bola sea roja; (b) sabiendo que es roja, la probabilidad de que venga de la urna X.",
+      check: [num("(a) P(roja) =", 5 / 12), num("(b) P(X | roja) =", 3 / 5)],
+      pistas: ["P(X) = 2/6 = 1/3 y P(Y) = 2/3."], pasos: ["(a) 1/3·3/4 + 2/3·1/4 = 1/4 + 1/6 = 5/12.", "(b) (1/4)/(5/12) = 3/5."], resultado: "5/12 ≈ 0,417; 3/5 = 0,6" }
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Álgebra de sucesos", ancha: true,
+      tabla: { cab: ["En castellano", "En símbolos", "Probabilidad"], filas: [
+        ["Al menos uno", "A ∪ B", "P(A) + P(B) − P(A ∩ B)"],
+        ["Los dos", "A ∩ B", "P(A ∩ B)"],
+        ["Ninguno", "Ā ∩ B̄ = (A ∪ B)ᶜ", "1 − P(A ∪ B)"],
+        ["No los dos", "Ā ∪ B̄ = (A ∩ B)ᶜ", "1 − P(A ∩ B)"],
+        ["Solo A", "A ∩ B̄", "P(A) − P(A ∩ B)"],
+        ["Exactamente uno", "(A ∩ B̄) ∪ (Ā ∩ B)", "P(A) + P(B) − 2P(A ∩ B)"]
+      ] },
+      nota: "Las cuatro regiones del Venn suman 1." },
+    { titulo: "Independientes frente a incompatibles",
+      tabla: { cab: ["", "Incompatibles", "Independientes"], filas: [
+        ["Condición", "P(A ∩ B) = 0", "P(A ∩ B) = P(A)·P(B)"],
+        ["Unión", "P(A) + P(B)", "P(A) + P(B) − P(A)P(B)"],
+        ["Condicionada", "P(A | B) = 0", "P(A | B) = P(A)"]
+      ] },
+      nota: "Con P(A), P(B) &gt; 0: incompatibles ⟹ NO independientes." },
+    { titulo: "Total y Bayes: el árbol",
+      pasos: [
+        "<b>Causas</b> B₁, B₂, … (suman 1) en la primera etapa; el resultado A en la segunda.",
+        "<b>Hoja</b> = producto de su rama: P(Bᵢ ∩ A) = P(Bᵢ)·P(A | Bᵢ).",
+        "<b>Total</b>: P(A) = suma de las hojas con A.",
+        "<b>Bayes</b>: P(Bᵢ | A) = hoja Bᵢ∩A / P(A).",
+        "<b>Test médico</b>: con enfermedad rara, positivo ≠ enfermo (usa 1.000 personas).",
+        "<b>Comprueba</b>: ramas de cada nodo suman 1; los P(Bᵢ | A) suman 1."
+      ], nota: "Condicionada: la condición va detrás de la barra." }
+  ];
+
+  B.registrar("mates2", "t13", {
+    resumen: resumen, secciones: B.parte.m2t13a.secciones, nuevas: B.parte.m2t13b.nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
