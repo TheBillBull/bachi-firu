@@ -1,5 +1,14 @@
 # PLAN.md — cómo retomar el proyecto (léelo entero antes de tocar nada)
 
+## 0. ESTADO AL PARAR (28-oct-2026, ~20:00 UTC) — LEER PRIMERO
+- **Parado por el usuario** («por ahora paramos»). No empezar nada nuevo hasta que diga «continuamos» y qué asignatura.
+- **Hecho y verificado**: Mates I, FyQ I, **Química II (11 temas + 8 simulacros, 3 nuevos en formato oficial PAU Madrid 2025-26)** y **Matemáticas II (14 temas)**. `comprobar_todo.sh` → «TODO CUADRA» (47 grupos, 24.100 comprobaciones de cifras, 0 fallos). Todo commiteado y subido a `claude/admiring-keller-1be6ou`.
+- **Web publicada**: https://claude.ai/artifact/PBj2wEg4PKUru2SyFq2T2c (versión 11 = Mates II completa). Capacidades `sample` y `db`. El usuario decide su visibilidad desde el menú «Compartir» de la página (Claude no puede cambiarla).
+- **Republicar desde una conversación NUEVA** exige que esa conversación lea la página entera (≈6 MB): inviable. Opciones: publicar en una dirección nueva (pasando `capabilities: {sample:{}, db:{}}`) y anotarla aquí, avisando de que el progreso guardado en el navegador no se traslada; o seguir siempre desde la misma conversación.
+- **Pendiente sin empezar**: Física II (12), Biología II (16), Lengua (22), Historia de la Filosofía (16), Historia de España (14 de 15); simulacros nuevos de Mates II. Pegas menores: 1 px de desborde en móvil en Química II t10–t11; `q7_reacciones` abre siempre en «Adición»; en Mates «2e-1» se lee como 0,2 (escribir «2*e-1»).
+- **Cómo se trabajó (funciona bien)**: sesión principal solo orquesta; 2 agentes nuevos a la vez (modelo Sonnet, `isolation: worktree`), un tema cada uno, con el encargo común `herramientas/ENCARGO_COMUN_MATES2.txt` adaptado a la asignatura + 5–8 ideas EvAU del tema; al acabar cada uno: `sh herramientas/validar_tema.sh <id> <asig> <N>` (fusiona, prueba y verifica; el índice debe estar limpio antes), apuntar coste en §7, lanzar el siguiente, publicar cada 2–3 temas. Coste medido: ≈200.000–300.000 tokens por tema. Ajuste previo necesario en un contenedor nuevo: `~/.claude/settings.json` con `{"worktree":{"baseRef":"head"}}` (si no, los worktrees fallan) y `pip install sympy scipy rdkit py2opsin mendeleev`.
+- **Prompt para retomar**: `herramientas/PROMPT_RETOMAR.md`.
+
 Última actualización: cierre de la versión 1 (fin de octubre de 2026). Si algo de aquí no coincide con el repositorio, **manda el repositorio**: dilo y corrige este archivo.
 
 ## 1. Cómo retomar (3 pasos)
