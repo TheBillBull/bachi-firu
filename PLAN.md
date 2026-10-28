@@ -14,7 +14,7 @@
 |---|---|---|
 | Matemáticas I (13 temas) | **Cerrada** | ≈100.000 palabras añadidas · 663 ejercicios (611 nuevos) · 20 simulacros (13 nuevos) · ≈220 actividades · 129 láminas nuevas |
 | Física y Química I (13 temas) | **Cerrada** | ≈117.000 palabras añadidas · 674 ejercicios (622 nuevos) · 11 simulacros (4 nuevos) · ≈240 actividades · 115 láminas nuevas |
-| Química II (11 temas) | **EN CURSO (prioridad)** desde el 27-oct-2026: tanda 1 en marcha. Antes de ella, solo el tema 6 (Equilibrio) está ampliado, con el estándar antiguo (10 ejercicios, simulador de Le Chatelier, tabla ICE, 1 lámina) | **Es lo siguiente** (sección 4) |
+| Química II (11 temas) | **EN CURSO (prioridad)**. **Tanda 1 (t1–t4) terminada y verificada el 28-oct-2026** con el estándar «con cariño»: t1 48 ejercicios (136 cifras), t2 46 (117), t3 46 (313 comprobaciones), t4 46 (259); ≈31.000 palabras y 9 interactivos nuevos, todos probados pulsándolos. Además, el tema 6 (Equilibrio) con el estándar antiguo | Tanda 2 (t5–t8) **solo si el usuario lo pide** |
 | Historia de España (15 temas) | **A medias a propósito**: solo el tema 7 (Restauración) con el estándar antiguo (7 ejercicios, línea del tiempo, diagramas, comentario guiado) | Después de Química II, si el usuario lo decide |
 | Matemáticas II (14), Física II (12), Biología II (16), Lengua (22), Historia de la Filosofía (16) | Sin empezar (solo el contenido original) | — |
 
@@ -68,6 +68,8 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Química II t1: terminar (verificador 136 cifras, 2 ejemplos, e2e de 12 interactivos; partía de lo fusionado) | 138.199 (43 herramientas) | 9 min |
 | Química II t3 completo (≈7.300 palabras, 46 ejercicios, 3 interactivos nuevos, 313 comprobaciones) | 194.946 (55 herramientas) | 18 min |
 | Química II t2 completo (≈7.500 palabras, 46 ejercicios, 3 interactivos nuevos, 117 cifras) | 198.899 (56 herramientas) | 14 min |
+| Química II t4 completo (≈6.300 palabras, 46 ejercicios, 3 interactivos nuevos + 10 reutilizados, 259 comprobaciones) | 252.224 (67 herramientas) | 30 min |
+| **Tanda 1 de Química II (t1–t4), total agentes** | **784.268** | ≈71 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -122,3 +124,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct 00:00 UTC:** tema 1 fusionado y validado; lanzado `a7d2c2ba5db2196ad` → tema 2. **Publicar bloqueado**: la herramienta exige que una conversación nueva lea entera la página publicada (63.313 líneas, 5,7 MB) antes de republicar en la misma dirección; se ha preguntado al usuario (dirección nueva / esperar / releer).
 **28-oct ~00:15 UTC:** tema 3 fusionado y validado; lanzado `agente tema 4` (ver `git worktree list`). Pega menor conocida: en móvil los símbolos del eje de `q3_anomalias` quedan algo apretados.
 **28-oct:** tema 2 fusionado y validado. Solo queda el tema 4 en marcha.
+**28-oct ~01:15 UTC: TANDA 1 CERRADA.** Temas 1–4 fusionados y verificados; `comprobar_todo.sh` → «TODO CUADRA» (24 grupos; 17.531 comprobaciones de cifras). Arreglos en `comprobar_todo.sh`: la ruta de estudio solo se cuenta en temas con `resumen` (quimica2 t6 e historia_esp t7, del estándar antiguo, no la tienen a propósito) y se leen los recuentos de los verificadores de Química II. **Pendiente: publicar** (ver la nota de las 00:00 sobre la dirección). La tanda 2 (t5–t8) solo si el usuario lo pide; abrir conversación nueva para ella.

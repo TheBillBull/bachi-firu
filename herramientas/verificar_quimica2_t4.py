@@ -272,4 +272,4 @@ comprobar('orden Teb CH4 < HCl < NH3 < HF < H2O', -162 < -85 < -33 < 20 < 100); 
 print(f'comprobaciones correctas: {ok}')
 if fallos:
     print('FALLOS:'); [print('  -', f) for f in fallos]; sys.exit(1)
-print('todo verificado')
+print(f'{ok} comprobaciones correctas, 0 fallos · todo verificado')

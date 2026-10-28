@@ -171,4 +171,4 @@ comprobar('Fe3+ d5 desapareados', 5 == 5)
 print(f'comprobaciones correctas: {ok}')
 if fallos:
     print('FALLOS:'); [print('  -', f) for f in fallos]; sys.exit(1)
-print('todo verificado')
+print(f'{ok} comprobaciones correctas, 0 fallos · todo verificado')
