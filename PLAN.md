@@ -87,6 +87,8 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Mates II t4 (≈6.300 palabras, 45 ejercicios, 3 interactivos con vista 3D girable, 94 comprobaciones) | 230.786 (53 herramientas) | 17 min |
 | Mates II t3 (≈7.900 palabras con ejercicios, 44 ejercicios, 5 interactivos, 369 comprobaciones) | 273.227 (75 herramientas) | 25 min |
 | Mates II t5 (≈7.200 palabras, 46 ejercicios, 3 interactivos 3D, 112 comprobaciones) | 204.051 (36 herramientas) | 15 min |
+| Mates II t6 (≈6.700 palabras, 45 ejercicios, 2 interactivos, 126 comprobaciones) | 209.493 (47 herramientas) | 16 min |
+| Mates II t7 (≈8.400 palabras, 44 ejercicios, 2 interactivos nuevos + 7 de Mates I, 119 comprobaciones) | 197.513 (41 herramientas) | 16 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -151,3 +153,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct:** simulacros sim6–sim8 fusionados (rehechos al formato oficial PAU Madrid 2025-26: 1 obligatoria + pares 2A/2B, 3A/3B, 4A/4B, 2,5 puntos por pregunta (reparto deducido, los documentos solo dan el total), 90 min). Solo queda t11.
 **28-oct ~13:20 UTC: QUÍMICA II CERRADA.** t11 fusionado; `comprobar_todo.sh` → «TODO CUADRA» (32 grupos; 21.149 comprobaciones de cifras). Publicado en la dirección nueva. Pendientes menores: 1 px de desborde en móvil en t10 y t11 (solo lo ve `comprobar_todo.sh completo`), `q7_reacciones` abre siempre en «Adición», t11 quedó en ≈5.400 palabras. Siguiente asignatura: la decide el usuario (§2).
 **28-oct 13:20 UTC: Matemáticas II EMPIEZA** (el usuario pidió seguir solo; misma conversación para poder republicar sin coste). Estándar 4b también para Mates II. Instrucciones comunes del encargo en el scratchpad (copia en `herramientas/ENCARGO_COMUN_MATES2.txt`: plantilla §8 + 4b, motores de Mates I, verificador `verificar_mates2_tN.py`, e2e `e2e_mates2_tN.js`). En marcha: t1 y un agente corto que contrasta el formato oficial de la PAU de Química de Madrid para los simulacros sim6–sim8. Orden: t1→t14, de 2 en 2, puerta de 700.000 tokens por tema.
+**28-oct 18:15 UTC — PUNTO DE PARADA DEL USUARIO:** terminar Matemáticas II (t1–t14) y PARAR; no empezar otra asignatura sin que lo diga («tengo que comprobar cositas»). Límite de 5 h alcanzado a las ~16:00; reanudado 18:13 (t8 retomado desde WIP, t9 relanzado).
