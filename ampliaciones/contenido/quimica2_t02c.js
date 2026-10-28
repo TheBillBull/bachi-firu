@@ -103,16 +103,16 @@
       consigna: "Clasifica cada afirmación según el modelo atómico al que corresponde.",
       categorias: ["Thomson", "Rutherford", "Bohr", "Cuántico"],
       items: [
-        { t: "Esfera positiva con electrones incrustados («pudin de pasas»)", c: "Thomson" },
-        { t: "Explica el modelo con la dispersión de partículas α en una lámina de oro", c: "Rutherford" },
-        { t: "Concentra la carga positiva y casi toda la masa en un núcleo diminuto", c: "Rutherford" },
-        { t: "Un electrón que girase emitiría radiación y caería al núcleo (su limitación)", c: "Rutherford" },
-        { t: "Órbitas estacionarias con energía cuantizada", c: "Bohr" },
-        { t: "Explica las series de Lyman, Balmer y Paschen", c: "Bohr" },
-        { t: "Solo funciona bien para el hidrógeno y los iones con un electrón", c: "Bohr" },
-        { t: "Los electrones se describen con orbitales y probabilidad", c: "Cuántico" },
-        { t: "Usa cuatro números cuánticos (n, l, m<sub>l</sub>, m<sub>s</sub>)", c: "Cuántico" },
-        { t: "Compatible con el principio de incertidumbre", c: "Cuántico" }
+        { t: "Esfera positiva con electrones incrustados («pudin de pasas»)", c: 0 },
+        { t: "Explica el modelo con la dispersión de partículas α en una lámina de oro", c: 1 },
+        { t: "Concentra la carga positiva y casi toda la masa en un núcleo diminuto", c: 1 },
+        { t: "Un electrón que girase emitiría radiación y caería al núcleo (su limitación)", c: 1 },
+        { t: "Órbitas estacionarias con energía cuantizada", c: 2 },
+        { t: "Explica las series de Lyman, Balmer y Paschen", c: 2 },
+        { t: "Solo funciona bien para el hidrógeno y los iones con un electrón", c: 2 },
+        { t: "Los electrones se describen con orbitales y probabilidad", c: 3 },
+        { t: "Usa cuatro números cuánticos (n, l, m<sub>l</sub>, m<sub>s</sub>)", c: 3 },
+        { t: "Compatible con el principio de incertidumbre", c: 3 }
       ]
     },
     aportaciones: {
