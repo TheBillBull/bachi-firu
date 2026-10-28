@@ -11840,6 +11840,263 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 14 (Distribuciones de probabilidad)
+   m2t14_discreta (variable aleatoria discreta: función de probabilidad, media y desviación típica)
+   m2t14_binom    (binomial B(n, p): barras con P(X=k), P(X≤k), P(X≥k) o P(a≤X≤b) sombreadas)
+   m2t14_normal   (campana N(μ, σ): área sombreada, tipificación y lectura de la tabla N(0,1))
+   m2t14_inversa  (búsqueda inversa: dado el porcentaje, hallar k)
+   m2t14_aprox    (binomial frente a normal con corrección de continuidad)
+   Las cifras se verifican con herramientas/verificar_mates2_t14.py (scipy/sympy).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, F = B.lab.fun;
+  var fil = F.fil;
+  var T = B.lab.t14 = {};
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("m2t14-estilos")) return;
+    var s = document.createElement("style"); s.id = "m2t14-estilos";
+    s.textContent =
+      ".m14-t{width:100%;border-collapse:collapse;font:14px var(--math);margin-top:8px}" +
+      ".m14-t th,.m14-t td{padding:4px 8px;border-bottom:1px solid var(--line,rgba(128,128,128,.25));text-align:right}" +
+      ".m14-t th{font-size:12px;color:var(--ink-faint);font-weight:600}" +
+      ".m14-t td:first-child,.m14-t th:first-child{text-align:left}" +
+      ".m14-ok{color:var(--ok);font-weight:700}.m14-no{color:var(--red);font-weight:700}" +
+      "@media(max-width:520px){.m14-t{font-size:12.5px}.m14-t th,.m14-t td{padding:3px 4px}}";
+    document.head.appendChild(s);
+  })();
+
+  // ------------------------------------------------------------
+  // Motor numérico: Φ(z), Φ⁻¹, tabla N(0,1) a 4 decimales, binomial
+  // ------------------------------------------------------------
+  function erf(x) {                      // serie de Maclaurin (|x| ≤ 4) y fracción continua fuera
+    var ax = Math.abs(x), s;
+    if (ax > 6) return x > 0 ? 1 : -1;
+    if (ax <= 3) {
+      var term = ax, sum = ax, n = 0;
+      while (Math.abs(term) > 1e-17 * Math.abs(sum) && n < 200) { n++; term *= -ax * ax / n; sum += term / (2 * n + 1); }
+      s = 2 / Math.sqrt(Math.PI) * sum;
+    } else {
+      var f = 0, k; for (k = 60; k >= 1; k--) f = k / 2 / (ax + f);
+      s = 1 - Math.exp(-ax * ax) / Math.sqrt(Math.PI) / (ax + f);
+    }
+    return x < 0 ? -s : s;
+  }
+  T.phi = function (z) { return 0.5 * (1 + erf(z / Math.SQRT2)); };
+  T.dens = function (z) { return Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI); };
+  T.phiInv = function (p) { var lo = -9, hi = 9, m, i; for (i = 0; i < 80; i++) { m = (lo + hi) / 2; if (T.phi(m) < p) lo = m; else hi = m; } return (lo + hi) / 2; };
+  T.r4 = function (x) { return Math.round(x * 1e4 + 1e-9) / 1e4; };
+  T.r2 = function (x) { return Math.round(x * 100 + 1e-9 * (x < 0 ? -1 : 1)) / 100; };
+  T.phiT = function (z) { var a = T.r4(T.phi(T.r2(Math.abs(z)))); return z >= 0 ? a : T.r4(1 - a); };   // Φ(z) por la tabla, con simetría
+  T.zTabla = function (p) {            // z (2 decimales) cuya Φ de la tabla está más cerca de p
+    var mejor = 0, d = 9, z, e;
+    for (z = -4; z <= 4.0001; z += 0.01) { e = Math.abs(T.phiT(T.r2(z)) - p); if (e < d - 1e-12) { d = e; mejor = T.r2(z); } }
+    return mejor;
+  };
+  var LF = [0];
+  function lf(n) { while (LF.length <= n) LF.push(LF[LF.length - 1] + Math.log(LF.length)); return LF[n]; }
+  T.pmf = function (n, k, p) { if (k < 0 || k > n) return 0; if (p <= 0) return k === 0 ? 1 : 0; if (p >= 1) return k === n ? 1 : 0; return Math.exp(lf(n) - lf(k) - lf(n - k) + k * Math.log(p) + (n - k) * Math.log(1 - p)); };
+  T.cdf = function (n, k, p) { var s = 0, i; for (i = 0; i <= Math.min(k, n); i++) s += T.pmf(n, i, p); return k < 0 ? 0 : Math.min(1, s); };
+  T.aprox = function (n, p, k, modo) {   // exacta y por la normal (sin y con corrección) para P(X≤k), P(X=k), P(X≥k)
+    var mu = n * p, sg = Math.sqrt(n * p * (1 - p)), ex, sin, con;
+    var Z = function (x) { return T.phi((x - mu) / sg); };
+    if (modo === "le") { ex = T.cdf(n, k, p); sin = Z(k); con = Z(k + 0.5); }
+    else if (modo === "eq") { ex = T.pmf(n, k, p); sin = 0; con = Z(k + 0.5) - Z(k - 0.5); }
+    else { ex = 1 - T.cdf(n, k - 1, p); sin = 1 - Z(k); con = 1 - Z(k - 0.5); }
+    return { mu: mu, sg: sg, ex: ex, sin: sin, con: con, cond: n * p >= 5 && n * (1 - p) >= 5 };
+  };
+  T.DISC = [
+    { t: "Dado (puntos)", x: [1, 2, 3, 4, 5, 6], p: [1, 1, 1, 1, 1, 1].map(function (v) { return v / 6; }), pt: ["1/6", "1/6", "1/6", "1/6", "1/6", "1/6"], nota: "Equiprobable: μ = 3,5 aunque el 3,5 no sale nunca." },
+    { t: "Caras en 2 monedas", x: [0, 1, 2], p: [0.25, 0.5, 0.25], pt: ["0,25", "0,5", "0,25"], nota: "Simétrica: la media cae en el centro." },
+    { t: "Suma de 2 dados", x: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], p: [1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1].map(function (v) { return v / 36; }), pt: ["1/36", "2/36", "3/36", "4/36", "5/36", "6/36", "5/36", "4/36", "3/36", "2/36", "1/36"], nota: "Triangular y simétrica: μ = 7." },
+    { t: "Juego: gana 5 € con un 6, pierde 1 €", x: [-1, 5], p: [5 / 6, 1 / 6], pt: ["5/6", "1/6"], nota: "μ = 0: es un juego justo (ganancia media nula)." },
+    { t: "Tabla dada (P = 0,1·…)", x: [0, 1, 2, 3, 4], p: [0.1, 0.3, 0.4, 0.15, 0.05], pt: ["0,1", "0,3", "0,4", "0,15", "0,05"], nota: "Un caso típico de enunciado con tabla." }
+  ];
+  T.disc = function (d) {
+    var mu = 0, e2 = 0, sp = 0, i; for (i = 0; i < d.x.length; i++) { mu += d.x[i] * d.p[i]; e2 += d.x[i] * d.x[i] * d.p[i]; sp += d.p[i]; }
+    return { mu: mu, e2: e2, var: e2 - mu * mu, sg: Math.sqrt(e2 - mu * mu), sp: sp };
+  };
+
+  // ------------------------------------------------------------
+  // Utilidades de interfaz
+  // ------------------------------------------------------------
+  function dec(x) { return fmt(x, 4); }
+  function slider(host, et, mn, mx, st, val, on, f) { return U.slider(host, { et: et, min: mn, max: mx, step: st, val: val, on: on, fmt: f || function (v) { return fmt(v, 2); } }); }
+  function entero(v) { return fmt(v, 0); }
+  function rangoSl(sl, mn, mx, st, val) { sl.input.min = mn; sl.input.max = mx; sl.input.step = st; sl.set(Math.max(mn, Math.min(mx, val))); }
+  function cad(z) { return fmt(z, 2); }
+
+  // ============================================================
+  // DISCRETA: función de probabilidad, μ y σ
+  // ============================================================
+  B.w.m2t14_discreta = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Variable aleatoria discreta: función de probabilidad, media y desviación típica");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 7, ymin: 0, ymax: 0.5, w: 600, h: 260, etx: "x", ety: "P", etiqueta: "Función de probabilidad" });
+    var lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function pinta(i) {
+      var d = T.DISC[i], r = T.disc(d), mx = Math.max.apply(null, d.p), n = d.x.length, a = d.x[0], b = d.x[n - 1];
+      g.rango(a - 0.8, b + 0.8, 0, mx * 1.25); g.limpiar();
+      d.x.forEach(function (x, j) { g.rect(x - 0.35, 0, x + 0.35, d.p[j], { clase: "z-pen" }); });
+      g.segmento(r.mu, 0, r.mu, mx * 1.25, { clase: "c-red", dash: "5 4" });
+      g.texto(r.mu, mx * 1.18, "μ", { clase: "c-red", dx: 4 });
+      var sx = d.x.map(function (x, j) { return fmt(x, 0) + "·" + d.pt[j]; }).join(" + ");
+      lectura.innerHTML = fil("Valores x", d.x.map(function (x) { return fmt(x, 0); }).join(", "), "ancho") + fil("P(x)", d.pt.join(" · "), "ancho") +
+        fil("Comprobación ΣP", fmt(r.sp, 4), "ok") + fil("Media μ = Σ x·P(x)", sx + " = " + fmt(r.mu, 3), "red ancho") +
+        fil("E(X²) = Σ x²·P(x)", fmt(r.e2, 3)) + fil("Varianza σ² = E(X²) − μ²", fmt(r.var, 4)) + fil("Desviación típica σ", fmt(r.sg, 4), "pen");
+      pie.innerHTML = d.nota + " La línea roja marca la media: el «centro de gravedad» de las barras. La σ mide cuánto se reparten las barras alrededor de ella.";
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), T.DISC.map(function (z, i) { return { k: String(i), t: z.t }; }), "0", function (k) { pinta(+k); });
+    pinta(0);
+  };
+
+  // ============================================================
+  // BINOMIAL con probabilidad pedida sombreada
+  // ============================================================
+  B.w.m2t14_binom = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Binomial B(n, p): sombrea la probabilidad que piden");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { n: 10, p: 0.3, a: 3, b: 5, m: "eq" }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sn, sp, sa, sb;
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 11, ymin: 0, ymax: 0.3, w: 600, h: 280, etx: "k", ety: "P", etiqueta: "Binomial" });
+    sn = slider(ctl, "Pruebas n", 1, 40, 1, st.n, function (v) { st.n = v; ajusta(); pinta(); }, entero);
+    sp = slider(ctl, "Probabilidad de éxito p", 0.05, 0.95, 0.05, st.p, function (v) { st.p = v; pinta(); });
+    sa = slider(ctl, "Valor k (o límite inferior a)", 0, 40, 1, st.a, function (v) { st.a = v; if (st.b < v) { st.b = v; sb.set(v); } pinta(); }, entero);
+    sb = slider(ctl, "Límite superior b", 0, 40, 1, st.b, function (v) { st.b = v; if (st.a > v) { st.a = v; sa.set(v); } pinta(); }, entero);
+    function ajusta() { sa.input.max = st.n; sb.input.max = st.n; if (st.a > st.n) { st.a = st.n; sa.set(st.n); } if (st.b > st.n) { st.b = st.n; sb.set(st.n); } }
+    function pinta() {
+      var n = st.n, p = st.p, a = st.a, b = st.b, m = st.m, pm = [], mx = 0, i, tot = 0, inc, txt, comp;
+      for (i = 0; i <= n; i++) { pm.push(T.pmf(n, i, p)); mx = Math.max(mx, pm[i]); }
+      sb.el.style.display = m === "ent" ? "" : "none";
+      g.rango(-0.8, n + 0.8, 0, Math.max(0.1, mx * 1.2)); g.limpiar();
+      for (i = 0; i <= n; i++) {
+        inc = m === "eq" ? i === a : m === "le" ? i <= a : m === "ge" ? i >= a : (i >= a && i <= b);
+        if (inc) tot += pm[i];
+        g.rect(i - 0.4, 0, i + 0.4, pm[i], { clase: inc ? "z-red" : "z-pen" });
+      }
+      if (m === "eq") { txt = "P(X = " + a + ") = C(" + n + ", " + a + ")·" + fmt(p, 2) + "<sup>" + a + "</sup>·" + fmt(1 - p, 2) + "<sup>" + (n - a) + "</sup> = " + dec(tot); comp = "—"; }
+      else if (m === "le") { txt = "P(X ≤ " + a + ") = P(0) + … + P(" + a + ") = " + dec(tot); comp = "1 − P(X ≥ " + (a + 1) + ") = " + dec(1 - tot) + " ⟶ P(X > " + a + ")"; }
+      else if (m === "ge") { var q = a === 0 ? 0 : T.cdf(n, a - 1, p); txt = "P(X ≥ " + a + ") = 1 − P(X ≤ " + (a - 1) + ") = 1 − " + dec(q) + " = " + dec(tot); comp = "Complementario: P(X ≤ " + (a - 1) + ") = " + dec(q); }
+      else { txt = "P(" + a + " ≤ X ≤ " + b + ") = P(X ≤ " + b + ") − P(X ≤ " + (a - 1) + ") = " + dec(T.cdf(n, b, p)) + " − " + dec(a === 0 ? 0 : T.cdf(n, a - 1, p)) + " = " + dec(tot); comp = "Suma de " + (b - a + 1) + " barras"; }
+      lectura.innerHTML = fil("Modelo", "X ~ B(" + n + "; " + fmt(p, 2) + ")", "ancho") + fil("Probabilidad pedida", txt, "red ancho") + (m === "eq" ? "" : fil("Otra forma", comp, "ancho")) +
+        fil("Media μ = n·p", fmt(n * p, 3), "ok") + fil("Desviación típica σ = √(n·p·q)", fmt(Math.sqrt(n * p * (1 - p)), 3), "pen");
+      pie.innerHTML = "Las barras <b style='color:var(--red)'>rojas</b> son las que suman la probabilidad pedida. Con «≥» conviene el <b>complementario</b>: 1 − P(X ≤ k − 1) es una resta en vez de muchas sumas.";
+    }
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "eq", t: "P(X = k)" }, { k: "le", t: "P(X ≤ k)" }, { k: "ge", t: "P(X ≥ k)" }, { k: "ent", t: "P(a ≤ X ≤ b)" }], "eq", function (k) { st.m = k; pinta(); });
+    ajusta(); pinta();
+  };
+
+  // ============================================================
+  // NORMAL: área, tipificación y tabla
+  // ============================================================
+  var CTX = [
+    { t: "Estándar N(0, 1)", mu: 0, sg: 1, a: -1, b: 1.5, u: "" },
+    { t: "Pesos N(70; 8)", mu: 70, sg: 8, a: 62, b: 82, u: " kg" },
+    { t: "Notas N(6; 1,5)", mu: 6, sg: 1.5, a: 5, b: 8, u: "" },
+    { t: "Tiempos N(25; 4)", mu: 25, sg: 4, a: 20, b: 30, u: " min" }
+  ];
+  B.w.m2t14_normal = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Normal N(μ, σ): tipifica y lee la tabla");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-modo class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { mu: 70, sg: 8, a: 62, b: 82, m: "le", u: " kg" }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), smu, ssg, sa, sb;
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 1, ymin: 0, ymax: 1, w: 600, h: 270, etx: "x", sinY: true, etiqueta: "Campana normal" });
+    smu = slider(ctl, "Media μ", -10, 100, 1, st.mu, function (v) { st.mu = v; ajusta(); pinta(); }, function (v) { return fmt(v, 0); });
+    ssg = slider(ctl, "Desviación σ", 0.5, 20, 0.5, st.sg, function (v) { st.sg = v; ajusta(); pinta(); }, function (v) { return fmt(v, 1); });
+    sa = slider(ctl, "Valor a", 0, 1, 0.1, st.a, function (v) { st.a = v; if (st.b < v) { st.b = v; sb.set(v); } pinta(); }, function (v) { return fmt(v, 2); });
+    sb = slider(ctl, "Valor b", 0, 1, 0.1, st.b, function (v) { st.b = v; if (st.a > v) { st.a = v; sa.set(v); } pinta(); }, function (v) { return fmt(v, 2); });
+    function ajusta() {
+      var lo = st.mu - 3.5 * st.sg, hi = st.mu + 3.5 * st.sg, pa = st.sg / 10;
+      rangoSl(sa, lo, hi, pa, st.a); rangoSl(sb, lo, hi, pa, st.b); st.a = sa.get(); st.b = sb.get();
+      if (st.b < st.a) { st.b = st.a; sb.set(st.a); }
+    }
+    function pinta() {
+      var mu = st.mu, sg = st.sg, a = st.a, b = st.b, m = st.m, pico = 1 / (sg * Math.sqrt(2 * Math.PI)), f = function (x) { return pico * Math.exp(-Math.pow((x - mu) / sg, 2) / 2); };
+      var za = (a - mu) / sg, zb = (b - mu) / sg, k, pe, pt, cuenta, etq;
+      g.rango(mu - 4 * sg, mu + 4 * sg, 0, pico * 1.22); g.limpiar();
+      if (m === "le") g.zona(f, mu - 4 * sg, a, { clase: "z-red" }); else if (m === "ge") g.zona(f, a, mu + 4 * sg, { clase: "z-red" }); else g.zona(f, a, b, { clase: "z-red" });
+      g.curva(f, { clase: "c-pen" });
+      for (k = -3; k <= 3; k++) { g.segmento(mu + k * sg, 0, mu + k * sg, f(mu + k * sg), { clase: "c-faint" }); if (Math.abs(k) <= 2) g.texto(mu + k * sg, pico * 0.05, "z=" + (k < 0 ? "−" : "") + Math.abs(k), { ancla: "middle", clase: "c-faint" }); }
+      g.segmento(a, 0, a, f(a) + pico * 0.08, { clase: "c-red" });
+      if (m === "ent") g.segmento(b, 0, b, f(b) + pico * 0.08, { clase: "c-red" });
+      if (m === "le") { pe = T.phi(za); pt = T.phiT(za); etq = "P(X ≤ " + fmt(a, 2) + ") = P(Z ≤ " + cad(za) + ")"; cuenta = "Φ(" + cad(za) + ") = " + dec(pt); }
+      else if (m === "ge") { pe = 1 - T.phi(za); pt = T.r4(1 - T.phiT(za)); etq = "P(X ≥ " + fmt(a, 2) + ") = P(Z ≥ " + cad(za) + ")"; cuenta = "1 − Φ(" + cad(za) + ") = 1 − " + dec(T.phiT(za)) + " = " + dec(pt); }
+      else { pe = T.phi(zb) - T.phi(za); pt = T.r4(T.phiT(zb) - T.phiT(za)); etq = "P(" + fmt(a, 2) + " ≤ X ≤ " + fmt(b, 2) + ") = P(" + cad(za) + " ≤ Z ≤ " + cad(zb) + ")"; cuenta = "Φ(" + cad(zb) + ") − Φ(" + cad(za) + ") = " + dec(T.phiT(zb)) + " − " + dec(T.phiT(za)) + " = " + dec(pt); }
+      sb.el.style.display = m === "ent" ? "" : "none";
+      lectura.innerHTML = fil("Modelo", "X ~ N(" + fmt(mu, 0) + "; " + fmt(sg, 1) + ")", "ancho") + fil("Tipificación z = (x − μ)/σ", "z<sub>a</sub> = (" + fmt(a, 2) + " − " + fmt(mu, 0) + ")/" + fmt(sg, 1) + " = " + cad(za) + (m === "ent" ? " · z<sub>b</sub> = " + cad(zb) : ""), "pen ancho") +
+        fil("Probabilidad pedida", etq, "ancho") + fil("Con la tabla N(0,1)", cuenta, "red ancho") + fil("Valor exacto (calculadora)", dec(pe) + "  (" + fmt(pe * 100, 2) + " %)");
+      pie.innerHTML = "Los números <b>z</b> bajo la campana cuentan desviaciones típicas desde la media: tipificar es solo cambiar de escala, por eso la <b>forma y el área no cambian</b>. La tabla sólo da P(Z ≤ z) para z ≥ 0; con z negativa se usa la simetría: P(Z ≤ −z) = 1 − P(Z ≤ z).";
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), CTX.map(function (z, i) { return { k: String(i), t: z.t }; }), "1", function (k) { var z = CTX[+k]; st.mu = z.mu; st.sg = z.sg; smu.set(z.mu); ssg.set(z.sg); ajusta(); st.a = z.a; st.b = z.b; sa.set(z.a); sb.set(z.b); pinta(); });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "le", t: "P(X ≤ a)" }, { k: "ge", t: "P(X ≥ a)" }, { k: "ent", t: "P(a ≤ X ≤ b)" }], "le", function (k) { st.m = k; pinta(); });
+    ajusta(); st.a = 62; st.b = 82; sa.set(62); sb.set(82); pinta();
+  };
+
+  // ============================================================
+  // INVERSA: dado el porcentaje, hallar k
+  // ============================================================
+  B.w.m2t14_inversa = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Búsqueda inversa: del porcentaje al valor k");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-modo class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { mu: 70, sg: 8, p: 0.9, m: "le" }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 1, ymin: 0, ymax: 1, w: 600, h: 260, etx: "x", sinY: true, etiqueta: "Campana normal" });
+    var sp = slider(ctl, "Probabilidad dada", 0.05, 0.99, 0.01, st.p, function (v) { st.p = v; pinta(); }, function (v) { return fmt(v * 100, 0) + " %"; });
+    function pinta() {
+      var mu = st.mu, sg = st.sg, p = st.p, m = st.m, pico = 1 / (sg * Math.sqrt(2 * Math.PI)), f = function (x) { return pico * Math.exp(-Math.pow((x - mu) / sg, 2) / 2); };
+      var obj, z, k, k2, tz, linea, pasos;
+      if (m === "le") { obj = p; } else if (m === "ge") { obj = 1 - p; } else { obj = (1 + p) / 2; }
+      z = T.zTabla(obj); k = mu + z * sg; k2 = mu - z * sg;
+      tz = T.phiT(z);
+      g.rango(mu - 4 * sg, mu + 4 * sg, 0, pico * 1.22); g.limpiar();
+      if (m === "le") g.zona(f, mu - 4 * sg, k, { clase: "z-red" }); else if (m === "ge") g.zona(f, k, mu + 4 * sg, { clase: "z-red" }); else g.zona(f, k2, k, { clase: "z-red" });
+      g.curva(f, { clase: "c-pen" });
+      g.segmento(k, 0, k, f(k) + pico * 0.1, { clase: "c-red" }); g.texto(k, f(k) + pico * 0.16, "k", { ancla: "middle", clase: "c-red" });
+      if (m === "ent") { g.segmento(k2, 0, k2, f(k2) + pico * 0.1, { clase: "c-red" }); g.texto(k2, f(k2) + pico * 0.16, "k′", { ancla: "middle", clase: "c-red" }); }
+      if (m === "le") { linea = "P(X ≤ k) = " + fmt(p, 2) + " ⟹ P(Z ≤ z) = " + fmt(p, 2); }
+      else if (m === "ge") { linea = "P(X ≥ k) = " + fmt(p, 2) + " ⟹ P(Z ≤ z) = 1 − " + fmt(p, 2) + " = " + fmt(obj, 2); }
+      else { linea = "P(k′ ≤ X ≤ k) = " + fmt(p, 2) + " ⟹ P(Z ≤ z) = (1 + " + fmt(p, 2) + ")/2 = " + fmt(obj, 3); }
+      pasos = "En la tabla, el valor más cercano a " + fmt(obj, 4) + " es " + dec(tz) + ", que corresponde a z = " + cad(z);
+      lectura.innerHTML = fil("Modelo", "X ~ N(" + fmt(mu, 0) + "; " + fmt(sg, 1) + ")", "ancho") + fil("Planteamiento", linea, "ancho") + fil("Búsqueda en la tabla", pasos, "pen ancho") +
+        fil("Destipifica x = μ + z·σ", fmt(mu, 0) + " + " + cad(z) + "·" + fmt(sg, 1) + " = " + fmt(k, 2) + (m === "ent" ? "   (y k′ = " + fmt(k2, 2) + ")" : ""), "red ancho");
+      pie.innerHTML = "Se trabaja al revés: primero el área (el porcentaje), después z en el <i>cuerpo</i> de la tabla, y al final se destipifica con x = μ + z·σ. Si el área dada es &lt; 0,5, z sale negativa. Con «≥» o «central», antes hay que convertir a P(Z ≤ z).";
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), CTX.slice(1).map(function (z, i) { return { k: String(i + 1), t: z.t }; }), "1", function (k) { var z = CTX[+k]; st.mu = z.mu; st.sg = z.sg; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "le", t: "P(X ≤ k) = p" }, { k: "ge", t: "P(X ≥ k) = p" }, { k: "ent", t: "central: P(k′ ≤ X ≤ k) = p" }], "le", function (k) { st.m = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // APROXIMACIÓN: binomial frente a normal, con y sin corrección de continuidad
+  // ============================================================
+  B.w.m2t14_aprox = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Binomial frente a normal: la corrección de continuidad");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { n: 40, p: 0.5, k: 22, m: "le" }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sn, sp, sk;
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 1, ymin: 0, ymax: 1, w: 600, h: 280, etx: "k", ety: "P", etiqueta: "Binomial y normal" });
+    sn = slider(ctl, "Pruebas n", 4, 100, 1, st.n, function (v) { st.n = v; ajusta(); pinta(); }, entero);
+    sp = slider(ctl, "Probabilidad p", 0.05, 0.95, 0.05, st.p, function (v) { st.p = v; ajusta(); pinta(); });
+    sk = slider(ctl, "Valor k", 0, 100, 1, st.k, function (v) { st.k = v; pinta(); }, entero);
+    function ajusta() { sk.input.max = st.n; if (st.k > st.n) { st.k = st.n; sk.set(st.n); } }
+    function pinta() {
+      var n = st.n, p = st.p, k = st.k, m = st.m, mu = n * p, sg = Math.sqrt(n * p * (1 - p)), r = T.aprox(n, p, k, m), i, pico = 1 / (sg * Math.sqrt(2 * Math.PI)), f = function (x) { return pico * Math.exp(-Math.pow((x - mu) / sg, 2) / 2); };
+      var lo = Math.max(0, Math.floor(mu - 4.2 * sg)), hi = Math.min(n, Math.ceil(mu + 4.2 * sg)), mx = 0, inc, ok;
+      for (i = lo; i <= hi; i++) mx = Math.max(mx, T.pmf(n, i, p));
+      mx = Math.max(mx, pico);
+      g.rango(lo - 0.8, hi + 0.8, 0, mx * 1.2); g.limpiar();
+            for (i = lo; i <= hi; i++) { inc = m === "le" ? i <= k : m === "eq" ? i === k : i >= k; g.rect(i - 0.4, 0, i + 0.4, T.pmf(n, i, p), { clase: inc ? "z-red" : "z-pen" }); }
+      g.curva(f, { clase: "c-ok" });
+      ok = r.cond;
+      lectura.innerHTML = fil("Modelo", "B(" + n + "; " + fmt(p, 2) + ") ≈ N(" + fmt(mu, 2) + "; " + fmt(sg, 3) + ")", "ancho") +
+        fil("¿Vale la aproximación? n·p ≥ 5 y n·q ≥ 5", "n·p = " + fmt(mu, 1) + " · n·q = " + fmt(n * (1 - p), 1) + (ok ? "  ✓ sí" : "  ✗ no (poco fiable)"), (ok ? "ok" : "red") + " ancho") +
+        fil("Valor exacto (binomial)", dec(r.ex), "pen") + (m === "eq" ? "" : fil("Normal SIN corrección", dec(r.sin) + "  (error " + dec(Math.abs(r.sin - r.ex)) + ")")) +
+        fil("Normal CON corrección", dec(r.con) + "  (error " + dec(Math.abs(r.con - r.ex)) + ")", "ok");
+      pie.innerHTML = "Barras: binomial exacta (rojas = las pedidas). Curva verde: la normal con la misma μ y σ. Como la binomial es discreta, cada barra ocupa de k − 0,5 a k + 0,5: por eso P(X ≤ k) pasa a P(Y ≤ k + 0,5) y P(X ≥ k) a P(Y ≥ k − 0,5). Baja n o acerca p a 0 o 1 y verás cómo falla.";
+    }
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "le", t: "P(X ≤ k)" }, { k: "eq", t: "P(X = k)" }, { k: "ge", t: "P(X ≥ k)" }], "le", function (k) { st.m = k; pinta(); });
+    ajusta(); pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de matrices (Matemáticas II, tema 1)
    motor B.lab.mt (fracciones exactas) + mm_producto · mm_potencias ·
    mm_gauss · mm_ecuacion · mm_rango
@@ -62059,6 +62316,543 @@
 
   B.registrar("mates2", "t13", {
     resumen: resumen, secciones: B.parte.m2t13a.secciones, nuevas: B.parte.m2t13b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 14: Distribuciones de probabilidad
+   (parte A: se añade al final de las cuatro secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t14/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Variable aleatoria
+  secciones[0] =
+    "<h5>Función de probabilidad, media y desviación típica</h5>" +
+    "<p>Una variable aleatoria <b>discreta</b> X toma valores sueltos x<sub>1</sub>, x<sub>2</sub>, …, x<sub>n</sub>. Su <b>función de probabilidad</b> asigna a cada valor su probabilidad p<sub>i</sub> = P(X = x<sub>i</sub>), y se escribe casi siempre como una tabla. Para que sea una distribución válida se exigen dos condiciones:</p>" +
+    "<ul><li><b>Cada probabilidad entre 0 y 1</b>: 0 ≤ p<sub>i</sub> ≤ 1.</li><li><b>Suma total igual a 1</b>: p<sub>1</sub> + p<sub>2</sub> + … + p<sub>n</sub> = 1 (alguno de los valores tiene que salir).</li></ul>" +
+    "<p>Si en el enunciado aparece una incógnita (k, a, …) en la tabla, casi siempre se obtiene con la segunda condición. Los dos números que resumen la distribución son:</p>" +
+    tabla(["Parámetro", "Fórmula", "Qué mide"], [
+      ["Media (esperanza) μ", "μ = Σ x<sub>i</sub>·p<sub>i</sub>", "El valor «promedio a largo plazo»: el centro de gravedad de las barras. No tiene por qué ser un valor posible."],
+      ["Varianza σ²", "σ² = Σ x<sub>i</sub>²·p<sub>i</sub> − μ²", "Cuánto se alejan los valores de la media, en promedio cuadrático."],
+      ["Desviación típica σ", "σ = √σ²", "Lo mismo, en las unidades de X."]
+    ]) +
+    "<p>La fórmula abreviada de la varianza (E(X²) − μ²) es la que conviene usar: se hace en una sola pasada por la tabla. Prueba con las cinco distribuciones del simulador: en la del dado, μ = 3,5 aunque el 3,5 «no salga nunca»; en el juego de las monedas, la media es la ganancia por partida si se juega muchas veces.</p>" +
+    w("m2t14_discreta") +
+    ejemplo("Media y desviación típica con una tabla", "X tiene la función de probabilidad: P(0) = 0,1; P(1) = 0,3; P(2) = 0,4; P(3) = 0,15; P(4) = 0,05. Calcula μ y σ.",
+      ["Comprobamos que es una distribución: 0,1 + 0,3 + 0,4 + 0,15 + 0,05 = 1 ✓.",
+       "Media: μ = 0·0,1 + 1·0,3 + 2·0,4 + 3·0,15 + 4·0,05 = 0 + 0,3 + 0,8 + 0,45 + 0,2 = <b>1,75</b>.",
+       "E(X²) = 0·0,1 + 1·0,3 + 4·0,4 + 9·0,15 + 16·0,05 = 0,3 + 1,6 + 1,35 + 0,8 = 4,05.",
+       "Varianza: σ² = 4,05 − 1,75² = 4,05 − 3,0625 = <b>0,9875</b>. Desviación típica: σ = √0,9875 ≈ <b>0,994</b>."]) +
+    ejemplo("Hallar la incógnita de la tabla", "Una variable X toma los valores 0, 1, 2 y 3 con P(X = x) = k·(x + 1). Calcula k, la media y la desviación típica.",
+      ["Las probabilidades son k, 2k, 3k y 4k. Deben sumar 1: 10k = 1 ⟹ <b>k = 0,1</b> (y así p = 0,1; 0,2; 0,3; 0,4, todas entre 0 y 1).",
+       "μ = 0·0,1 + 1·0,2 + 2·0,3 + 3·0,4 = 0,2 + 0,6 + 1,2 = <b>2</b>.",
+       "E(X²) = 0,2 + 4·0,3 + 9·0,4 = 0,2 + 1,2 + 3,6 = 5. Varianza = 5 − 2² = <b>1</b> y <b>σ = 1</b>."]) +
+    ejemplo("Un juego justo", "Se lanza un dado: si sale 6 se ganan 5 €, y en otro caso se pierde 1 €. ¿Cuál es la ganancia media por partida? ¿Es un juego justo?",
+      ["Sea X la ganancia: toma el valor 5 con probabilidad 1/6 y el valor −1 con probabilidad 5/6.",
+       "μ = 5·(1/6) + (−1)·(5/6) = 5/6 − 5/6 = <b>0 €</b>.",
+       "Un juego es <b>justo</b> cuando la ganancia media es 0: a la larga ni se gana ni se pierde. Con un premio de 4 € la media sería 4/6 − 5/6 = −1/6 €: el jugador perdería 1/6 € por partida."]) +
+    "<h5>Variables continuas: la probabilidad es un área</h5>" +
+    "<p>Una variable <b>continua</b> (peso, altura, tiempo…) puede tomar cualquier valor de un intervalo y su distribución se describe con una <b>función de densidad</b> f(x) ≥ 0, cuya área total vale 1. La probabilidad de un intervalo es el área bajo f sobre él: P(a ≤ X ≤ b) = ∫<sub>a</sub><sup>b</sup> f(x)dx (el Tema 12 entra aquí). Dos consecuencias importantes:</p>" +
+    "<ul><li><b>P(X = a) = 0</b> para cualquier valor concreto: un punto no tiene área. Por eso, en una variable continua, P(X &lt; a) = P(X ≤ a) y da igual escribir &lt; o ≤.</li><li>En una variable <b>discreta</b> sí importa: P(X &lt; 3) ≠ P(X ≤ 3), porque P(X = 3) &gt; 0. En la binomial hay que tener mucho cuidado con la desigualdad.</li></ul>" +
+    ojo("«Probabilidad ≠ altura de la curva». En una continua, f(x) puede ser mayor que 1 (si la variable se concentra en un intervalo muy pequeño); lo que no puede superar 1 es el área.");
+
+  // ---------------------------------------------------------------- 2. Binomial
+  secciones[1] =
+    "<h5>Cuándo una variable es binomial: la lista de comprobación</h5>" +
+    "<p>Reconocer la binomial es la mitad del problema. X ~ B(n, p) cuando se cumplen las <b>cuatro</b> condiciones a la vez:</p>" +
+    "<ol><li>Hay un número fijo n de pruebas.</li><li>Cada prueba tiene solo dos resultados: éxito o fracaso.</li><li>La probabilidad de éxito p es la misma en todas las pruebas.</li><li>Las pruebas son independientes entre sí.</li></ol>" +
+    "<p>Siempre se define X = «número de éxitos» y es <b>éxito</b> lo que el enunciado pide contar (aunque sea algo malo, como una pieza defectuosa). Se escribe q = 1 − p.</p>" +
+    tabla(["Situación", "¿Binomial?", "Por qué"], [
+      ["Acertar al azar un test de 10 preguntas con 4 opciones; X = nº de aciertos", "Sí: B(10; 0,25)", "n = 10 pruebas independientes con p = 1/4."],
+      ["Lanzar un dado 12 veces; X = nº de seises", "Sí: B(12; 1/6)", "Dos resultados (seis / no seis), p constante."],
+      ["Sacar 3 bolas de una urna <b>con</b> reemplazamiento; X = nº de rojas", "Sí", "Al reponer la bola, p no cambia entre extracciones."],
+      ["Sacar 3 bolas de una urna <b>sin</b> reemplazamiento (urna pequeña)", "No", "p cambia en cada extracción (es hipergeométrica). Se resuelve con probabilidad condicionada (Tema 13)."],
+      ["Lanzar una moneda hasta que salga cara; X = nº de lanzamientos", "No", "No hay n fijo: el número de pruebas es la propia incógnita."],
+      ["Cada día llueve con prob. 0,3 si llovió ayer y 0,1 si no", "No", "Las pruebas no son independientes."]
+    ]) +
+    "<h5>Calcular probabilidades: «exactamente», «al menos», «como mucho»</h5>" +
+    "<p>La fórmula P(X = k) = C(n, k)·p<sup>k</sup>·q<sup>n−k</sup> se usa para valores sueltos. Para varios valores a la vez, hay que traducir bien el enunciado y a menudo conviene el <b>complementario</b>, porque las probabilidades de todos los valores suman 1:</p>" +
+    tabla(["Enunciado", "Se escribe", "Cómo se calcula"], [
+      ["Exactamente k", "P(X = k)", "Fórmula directa"],
+      ["Como mucho k (no más de k)", "P(X ≤ k)", "P(0) + P(1) + … + P(k)"],
+      ["Menos de k", "P(X ≤ k − 1)", "Un valor menos que «como mucho k»"],
+      ["Al menos k (k o más)", "P(X ≥ k)", "1 − P(X ≤ k − 1)"],
+      ["Más de k", "P(X ≥ k + 1)", "1 − P(X ≤ k)"],
+      ["Al menos uno", "P(X ≥ 1)", "1 − P(X = 0) = 1 − q<sup>n</sup>"],
+      ["Entre a y b (ambos incluidos)", "P(a ≤ X ≤ b)", "P(a) + … + P(b)"]
+    ]) +
+    w("m2t14_binom") +
+    ejemplo("Binomial: exactamente, al menos uno y complementario", "Una máquina fabrica piezas con una probabilidad 0,3 de salir defectuosas. Se eligen 10 piezas al azar. Calcula la probabilidad de que (a) haya exactamente 3 defectuosas; (b) haya al menos una defectuosa; (c) haya 8 o más; (d) la media y la desviación típica de X.",
+      ["X = nº de defectuosas ~ B(10; 0,3): 10 pruebas independientes, éxito = «defectuosa», p = 0,3, q = 0,7.",
+       "<b>(a)</b> P(X = 3) = C(10, 3)·0,3³·0,7⁷ = 120·0,027·0,0823543 ≈ <b>0,2668</b>.",
+       "<b>(b)</b> P(X ≥ 1) = 1 − P(X = 0) = 1 − 0,7¹⁰ = 1 − 0,0282 = <b>0,9718</b>. (Sumar nueve términos sería un disparate.)",
+       "<b>(c)</b> P(X ≥ 8) = P(8) + P(9) + P(10) = 45·0,3⁸·0,7² + 10·0,3⁹·0,7 + 0,3¹⁰ ≈ 0,00145 + 0,00014 + 0,00001 ≈ <b>0,0016</b>: muy improbable.",
+       "<b>(d)</b> μ = n·p = 10·0,3 = <b>3</b> defectuosas de media; σ = √(10·0,3·0,7) = √2,1 ≈ <b>1,449</b>."]) +
+    ejemplo("«Al menos» con una tabla de la binomial", "En un test de 10 preguntas con 4 opciones se responde al azar. ¿Qué probabilidad hay de aprobar (5 o más aciertos)?",
+      ["X ~ B(10; 0,25). Se pide P(X ≥ 5) = 1 − P(X ≤ 4).",
+       "P(0) = 0,0563; P(1) = 0,1877; P(2) = 0,2816; P(3) = 0,2503; P(4) = 0,1460. Suma: P(X ≤ 4) = 0,9219.",
+       "P(X ≥ 5) = 1 − 0,9219 = <b>0,0781</b>: aprobar al azar es muy raro (≈ 7,8 %). Esperados: μ = 2,5 aciertos."]) +
+    ojo("«Al menos 3» NO es P(X &gt; 3): es P(X ≥ 3) = 1 − P(X ≤ 2). El error de un valor en la desigualdad es el más común en la binomial. Para evitarlo, escribe siempre «X ≥ …» o «X ≤ …» con el signo y rodea el valor frontera.");
+
+  // ---------------------------------------------------------------- 3. Normal
+  secciones[2] =
+    "<h5>Propiedades de la curva normal</h5>" +
+    "<p>La densidad de N(μ, σ) es f(x) = (1/(σ√(2π)))·e<sup>−(x−μ)²/(2σ²)</sup>. No hace falta integrarla (no tiene primitiva elemental): para eso existe la tabla. Lo que sí hay que saber de la gráfica:</p>" +
+    "<ul><li>Es <b>simétrica</b> respecto de x = μ, con el máximo en la media (que coincide con la mediana).</li><li>El área total vale 1, y el <b>50 %</b> queda a cada lado de la media.</li><li>La <b>media μ</b> la desplaza a izquierda o derecha; la <b>desviación σ</b> la ensancha (σ grande: campana baja y ancha) o la estrecha. Tiene puntos de inflexión en μ ± σ.</li><li>Regla empírica <b>68 – 95 – 99,7</b>: en [μ − σ, μ + σ] está el 68,3 % de los datos; en [μ − 2σ, μ + 2σ], el 95,4 %; en [μ − 3σ, μ + 3σ], el 99,7 %.</li></ul>" +
+    "<h5>Tipificar es cambiar de escala</h5>" +
+    "<p>Si X ~ N(μ, σ), entonces Z = (X − μ)/σ sigue una N(0, 1). Restar μ centra la campana en 0; dividir por σ fija la unidad de medida en «desviaciones típicas». Como el área es la misma antes y después, <b>P(X ≤ a) = P(Z ≤ (a − μ)/σ)</b>. En el simulador, los números <b>z</b> debajo de la campana indican cuántas desviaciones típicas hay entre cada punto y la media: cambia μ y σ y comprueba que la forma no cambia, solo la escala del eje.</p>" +
+    w("m2t14_normal") +
+    ejemplo("Regla 68–95–99,7 con notas", "Las notas de un examen siguen N(6; 1,5). ¿Entre qué valores está el 95 % central de los alumnos? ¿Y cuántos de 200 alumnos sacan entre 4,5 y 7,5?",
+      ["El 95 % central es μ ± 2σ = 6 ± 3 ⟹ <b>[3; 9]</b>.",
+       "4,5 = μ − σ y 7,5 = μ + σ: ese tramo contiene el 68 % aproximado, es decir, 0,68·200 ≈ <b>136 alumnos</b> (con la tabla, 0,6826·200 = 136,5).",
+       "Fuera de [3; 9] queda un 5 %, 2,5 % a cada lado: 5 alumnos por cada extremo."]) +
+    ojo("La desviación típica va <b>en el denominador</b> al tipificar: Z = (X − μ)/σ, no (X − μ)·σ ni (X − μ)/σ². Y si el enunciado da la <b>varianza</b> (N(μ, σ²) en algunos libros), hay que hacer la raíz antes de tipificar: en la EvAU de Madrid se escribe N(μ, σ) con la desviación típica, pero lee con cuidado.");
+
+  // ---------------------------------------------------------------- 4. Aproximación
+  secciones[3] =
+    "<h5>Cuándo la aproximación es fiable</h5>" +
+    "<p>La binomial B(n, p) se parece a la normal N(np, √(npq)) cuando las dos barras «a cada lado» tienen sitio para desarrollarse. La regla práctica que se usa en clase (y en la EvAU) es:</p>" +
+    "<div class='formula-wrap'><div class='formula'>n·p ≥ 5 &nbsp; y &nbsp; n·q ≥ 5 &nbsp;(= n(1 − p) ≥ 5)</div></div>" +
+    "<p>Con p cerca de 0 o de 1 la binomial es muy asimétrica y la campana no sirve; con n pequeño, tampoco. En el simulador de abajo, mueve p hacia 0,05 con n = 20 y verás cómo falla; vuelve a subir n y se arregla.</p>" +
+    "<h5>La corrección de continuidad (Yates)</h5>" +
+    "<p>X es discreta (barras) y la normal continua (área). La barra de «X = k» ocupa en el eje el intervalo <b>[k − 0,5; k + 0,5]</b>, y es esa anchura la que hay que recoger. Se llama Y a la normal N(np, √(npq)) y se hace:</p>" +
+    tabla(["Binomial (discreta)", "Normal (continua)"], [
+      ["P(X = k)", "P(k − 0,5 ≤ Y ≤ k + 0,5)"],
+      ["P(X ≤ k)", "P(Y ≤ k + 0,5)"],
+      ["P(X &lt; k) = P(X ≤ k − 1)", "P(Y ≤ k − 0,5)"],
+      ["P(X ≥ k)", "P(Y ≥ k − 0,5)"],
+      ["P(X &gt; k) = P(X ≥ k + 1)", "P(Y ≥ k + 0,5)"],
+      ["P(a ≤ X ≤ b)", "P(a − 0,5 ≤ Y ≤ b + 0,5)"]
+    ]) +
+    "<p>Truco para no equivocarse: <b>dibuja las barras</b>. Para P(X ≤ k) se incluye la barra entera del k, así que el borde derecho es k + 0,5; para P(X ≥ k) se incluye la barra del k, así que el borde izquierdo es k − 0,5. El simulador sombrea las barras pedidas y compara el resultado exacto, la normal sin corrección y la normal con corrección.</p>" +
+    w("m2t14_aprox") +
+    ejemplo("Binomial → normal con corrección", "Se lanza 100 veces una moneda. Halla (a) P(X ≤ 55) y (b) P(X = 50), con la aproximación normal.",
+      ["X ~ B(100; 0,5). Condición: n·p = 50 ≥ 5 y n·q = 50 ≥ 5 ✓. Aproximación: Y ~ N(50; √(100·0,5·0,5)) = N(50; 5).",
+       "<b>(a)</b> P(X ≤ 55) ≈ P(Y ≤ 55,5) = P(Z ≤ (55,5 − 50)/5) = P(Z ≤ 1,1) = <b>0,8643</b>. (Sin corrección saldría P(Z ≤ 1) = 0,8413: se pierde casi 0,023.) El valor exacto binomial es 0,8644.",
+       "<b>(b)</b> P(X = 50) ≈ P(49,5 ≤ Y ≤ 50,5) = P(−0,1 ≤ Z ≤ 0,1) = 2·0,5398 − 1 = <b>0,0796</b>. Exacto: 0,0796. Sin corrección, la probabilidad de un solo punto sería 0: absurdo."]) +
+    ejemplo("Cuándo NO usar la aproximación", "¿Se puede aproximar B(40; 0,05) por una normal?",
+      ["n·p = 40·0,05 = 2 &lt; 5: la condición falla. La distribución es muy asimétrica (casi todo el peso en 0, 1, 2, 3 éxitos).",
+       "Hay que calcular con la fórmula binomial, o usar otra aproximación (Poisson, que no es materia de Bachillerato)."]);
+
+  B.parte.m2t14a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 14: Distribuciones de probabilidad
+   (parte B: secciones nuevas 5 a 7)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t14/" + ref); }
+
+  var nuevas = [];
+
+  // ---------------------------------------------------------------- 5. La tabla N(0,1)
+  nuevas.push({
+    h: "5. La tabla N(0,1): cómo se lee y las cinco situaciones",
+    html:
+      "<p>La tabla de la normal estándar da, para cada z ≥ 0 con dos decimales, el valor <b>Φ(z) = P(Z ≤ z)</b> (el área a la izquierda de z). Se entra por la <b>fila</b> con la unidad y el primer decimal (1,3) y por la <b>columna</b> con el segundo decimal (0,07): la casilla de la fila 1,3 y la columna 0,07 es Φ(1,37) = <b>0,9147</b>. Algunos valores que conviene reconocer:</p>" +
+      tabla(["z", "0", "0,5", "1", "1,28", "1,5", "1,64", "1,65", "1,96", "2", "2,33", "2,5", "2,58", "3"], [
+        ["Φ(z)", "0,5", "0,6915", "0,8413", "0,8997", "0,9332", "0,9495", "0,9505", "0,9750", "0,9772", "0,9901", "0,9938", "0,9951", "0,9987"]
+      ]) +
+      "<p>Los números 1,645 (95 % por la izquierda), 1,96 (95 % central) y 2,575 (99 % central) se usan tanto que merece la pena saberlos de memoria. Como la tabla sólo cubre z ≥ 0, el resto de casos se reducen a ella por la <b>simetría</b> de la campana (el área a la izquierda de −z es la que hay a la derecha de z). Las cinco situaciones son:</p>" +
+      tabla(["Se pide", "Se calcula como", "Ejemplo con la tabla"], [
+        ["P(Z ≤ a), a ≥ 0", "Φ(a): se lee directamente", "P(Z ≤ 1,37) = 0,9147"],
+        ["P(Z ≥ a)", "1 − Φ(a)", "P(Z ≥ 1,37) = 1 − 0,9147 = 0,0853"],
+        ["P(Z ≤ −a)", "1 − Φ(a) (simetría)", "P(Z ≤ −0,84) = 1 − 0,7995 = 0,2005"],
+        ["P(a ≤ Z ≤ b)", "Φ(b) − Φ(a)", "P(0,5 ≤ Z ≤ 1,5) = 0,9332 − 0,6915 = 0,2417"],
+        ["P(−a ≤ Z ≤ b)", "Φ(b) − (1 − Φ(a)) = Φ(a) + Φ(b) − 1", "P(−1,25 ≤ Z ≤ 2) = 0,9772 + 0,8944 − 1 = 0,8716"],
+        ["P(−a ≤ Z ≤ a)", "2Φ(a) − 1", "P(−1,96 ≤ Z ≤ 1,96) = 2·0,9750 − 1 = 0,95"]
+      ]) +
+      "<p>El método más seguro es <b>dibujar la campana</b>, sombrear la zona pedida y pensar qué área es: «todo menos lo que no quiero». Con z negativa, antes de buscar en la tabla se pasa a positiva por simetría. El simulador de la sección 3 te muestra exactamente esta cuenta (con los valores de la tabla) para cualquier μ, σ y valores a, b.</p>" +
+      ejemplo("Leer la tabla en los cinco casos", "Para Z ~ N(0, 1) calcula (a) P(Z ≤ −1,5); (b) P(Z &gt; 2,33); (c) P(−1 ≤ Z ≤ 1); (d) P(1,25 ≤ Z ≤ 2).",
+        ["<b>(a)</b> Simetría: P(Z ≤ −1,5) = 1 − Φ(1,5) = 1 − 0,9332 = <b>0,0668</b>.",
+         "<b>(b)</b> P(Z &gt; 2,33) = 1 − Φ(2,33) = 1 − 0,9901 = <b>0,0099</b> (menos del 1 %).",
+         "<b>(c)</b> P(−1 ≤ Z ≤ 1) = 2Φ(1) − 1 = 2·0,8413 − 1 = <b>0,6826</b> (la regla del 68 %).",
+         "<b>(d)</b> P(1,25 ≤ Z ≤ 2) = Φ(2) − Φ(1,25) = 0,9772 − 0,8944 = <b>0,0828</b>."]) +
+      ojo("Un error muy repetido: P(Z ≤ −0,84) = 1 − 0,7995 = 0,2005, no 0,7995 ni −0,7995. Una probabilidad jamás es negativa, y si z es negativa el área es menor que 0,5.")
+  });
+
+  // ---------------------------------------------------------------- 6. Normal con enunciado
+  nuevas.push({
+    h: "6. Problemas con la normal: tipificar, destipificar y búsqueda inversa",
+    html:
+      "<p>Los problemas de normal de la EvAU son siempre de uno de estos tipos. Ante cada uno, el primer paso es el mismo: <b>escribir la distribución</b> («X = peso ~ N(70, 8)») y dibujar la campana.</p>" +
+      tabla(["Tipo", "Qué te dan", "Qué buscas", "Método"], [
+        ["Directo", "μ, σ y un valor (o dos)", "Una probabilidad", "Tipificar x → z, tabla, restar o complementar"],
+        ["Inverso", "μ, σ y una probabilidad (porcentaje)", "El valor k", "Convertir a P(Z ≤ z) = área, buscar z <b>en el cuerpo</b> de la tabla, destipificar k = μ + z·σ"],
+        ["Parámetro", "Una probabilidad y un valor (y μ o σ)", "σ o μ", "Tipificar con la incógnita, igualar a z de la tabla, despejar"],
+        ["Dos datos", "Dos probabilidades con dos valores", "μ y σ", "Dos z: sistema de dos ecuaciones lineales"]
+      ]) +
+      ejemplo("Tipo directo", "El peso de los adultos de una población sigue N(70; 8) kg. Halla (a) P(X &gt; 80); (b) P(62 ≤ X ≤ 78); (c) P(X &lt; 56); (d) cuántos de 1 000 adultos pesan más de 80 kg.",
+        ["<b>(a)</b> z = (80 − 70)/8 = 1,25. P(X &gt; 80) = 1 − Φ(1,25) = 1 − 0,8944 = <b>0,1056</b>.",
+         "<b>(b)</b> z = (62 − 70)/8 = −1 y z = (78 − 70)/8 = 1. P = Φ(1) − Φ(−1) = 2·0,8413 − 1 = <b>0,6826</b>.",
+         "<b>(c)</b> z = (56 − 70)/8 = −1,75. P(X &lt; 56) = P(Z &lt; −1,75) = 1 − Φ(1,75) = 1 − 0,9599 = <b>0,0401</b>.",
+         "<b>(d)</b> Se espera que el 10,56 % de la población pese más de 80 kg: 1 000·0,1056 = <b>≈ 106 adultos</b>."]) +
+      w("m2t14_inversa") +
+      "<h5>El tipo inverso, paso a paso</h5>" +
+      "<ol><li>Escribe lo que te piden como P(X ≤ k) = p (o convierte: P(X ≥ k) = p ⟹ P(X ≤ k) = 1 − p).</li><li>Escribe P(Z ≤ z) = ese número y <b>busca el número en el interior de la tabla</b> (el más cercano) para leer z en los márgenes. Si el área es menor que 0,5, z es negativa: se busca 1 − área y se cambia el signo.</li><li>Destipifica: k = μ + z·σ.</li></ol>" +
+      ejemplo("Tipo inverso: el 10 % superior", "Con X ~ N(70; 8), ¿a partir de qué peso k se está entre el 10 % de los más pesados?",
+        ["P(X ≥ k) = 0,10 ⟹ P(X ≤ k) = 0,90 ⟹ P(Z ≤ z) = 0,90.",
+         "En el cuerpo de la tabla, el valor más cercano a 0,90 es 0,8997 (que corresponde a z = 1,28; el siguiente, 0,9015, es de z = 1,29).",
+         "k = 70 + 1,28·8 = 70 + 10,24 = <b>80,24 kg</b>. Se necesita pesar más de unos 80,2 kg."]) +
+      ejemplo("Tipo inverso con un intervalo central", "Las puntuaciones de una prueba siguen N(100; 15). Halla el intervalo simétrico respecto de la media que contiene al 95 % de las personas.",
+        ["Se busca [100 − h, 100 + h] con P(100 − h ≤ X ≤ 100 + h) = 0,95. Por simetría quedan 0,025 a cada lado: P(X ≤ 100 + h) = 0,975.",
+         "En la tabla, Φ(z) = 0,9750 ⟹ z = 1,96. Entonces h = 1,96·15 = 29,4.",
+         "Intervalo: <b>[70,6; 129,4]</b>. (La regla de los «2σ» daba [70, 130]: era una aproximación de 1,96 por 2.)"]) +
+      ejemplo("Tipo parámetro: hallar σ", "Las alturas de una planta siguen N(100; σ) cm y se sabe que el 93,32 % mide 112 cm o menos. Halla σ.",
+        ["P(X ≤ 112) = 0,9332 ⟹ P(Z ≤ (112 − 100)/σ) = 0,9332.",
+         "En la tabla, 0,9332 corresponde a z = 1,5. Luego 12/σ = 1,5 ⟹ <b>σ = 8</b> cm."]) +
+      ejemplo("Dos datos: hallar μ y σ", "X sigue una normal. Se sabe que P(X ≤ 80) = 0,9772 y P(X ≤ 56) = 0,1587. Halla μ y σ.",
+        ["0,9772 ⟹ z = 2: (80 − μ)/σ = 2. Y 0,1587 = 1 − 0,8413 ⟹ z = −1: (56 − μ)/σ = −1.",
+         "Sistema: 80 − μ = 2σ y 56 − μ = −σ. Restando: 24 = 3σ ⟹ <b>σ = 8</b>, y μ = 80 − 16 = <b>64</b>."])
+  });
+
+  // ---------------------------------------------------------------- 7. Binomial o normal
+  nuevas.push({
+    h: "7. ¿Binomial o normal? Problemas combinados y aproximación en problemas",
+    html:
+      "<p>En un problema real conviene decidir antes de calcular. Tres preguntas bastan:</p>" +
+      tabla(["Pregunta", "Si la respuesta es…", "Modelo"], [
+        ["¿Qué se mide?", "Se <b>cuenta</b> algo (éxitos, personas, piezas…) → valores 0, 1, 2, …", "Binomial B(n, p)"],
+        ["", "Se <b>mide</b> algo continuo (peso, tiempo, altura, nota) y el enunciado dice «sigue una normal»", "Normal N(μ, σ)"],
+        ["Si es binomial, ¿n es grande?", "n·p ≥ 5 y n·q ≥ 5 y el enunciado pide muchos términos (n ≈ 50 o más)", "Se puede aproximar por N(np, √npq) con corrección de continuidad"],
+        ["", "n pequeño (≤ 20) o p muy pequeño o muy grande", "Fórmula binomial exacta; la normal no sirve"]
+      ]) +
+      "<h5>Aproximación en un problema con enunciado</h5>" +
+      ejemplo("Moneda 400 veces", "Se lanza 400 veces una moneda equilibrada. Halla la probabilidad de obtener (a) 215 caras o más; (b) entre 190 y 210 caras, ambas incluidas.",
+        ["X ~ B(400; 0,5). Como n·p = n·q = 200 ≥ 5, se aproxima por Y ~ N(200; √(400·0,5·0,5)) = N(200; 10).",
+         "<b>(a)</b> P(X ≥ 215) ≈ P(Y ≥ 214,5) = P(Z ≥ 1,45) = 1 − 0,9265 = <b>0,0735</b>.",
+         "<b>(b)</b> P(190 ≤ X ≤ 210) ≈ P(189,5 ≤ Y ≤ 210,5) = P(−1,05 ≤ Z ≤ 1,05) = 2·0,8531 − 1 = <b>0,7062</b>.",
+         "El exacto con la binomial es 0,0735 y 0,7063: la aproximación acierta a 4 decimales. Sin corrección el apartado (b) daría P(−1 ≤ Z ≤ 1) = 0,6826, con un error de casi 0,024."]) +
+      ejemplo("Pocas probabilidades: control de calidad", "Una fábrica produce un 10 % de piezas defectuosas. En un lote de 900 piezas, ¿qué probabilidad hay de que haya 76 defectuosas o menos?",
+        ["X ~ B(900; 0,1): n·p = 90 ≥ 5 y n·q = 810 ≥ 5. Aproximación Y ~ N(90; √(900·0,1·0,9)) = N(90; 9).",
+         "P(X ≤ 76) ≈ P(Y ≤ 76,5) = P(Z ≤ (76,5 − 90)/9) = P(Z ≤ −1,5) = 1 − 0,9332 = <b>0,0668</b>.",
+         "Es poco probable (≈ 6,7 %): lo normal es encontrar unas 90 defectuosas, con una desviación de 9."]) +
+      "<h5>Normal y binomial en el mismo problema</h5>" +
+      "<p>A veces la probabilidad p de la binomial se obtiene con la normal. Primero se calcula la probabilidad de un individuo (con la tabla) y después se aplica la binomial a un grupo.</p>" +
+      ejemplo("Normal para hallar p, binomial para el grupo", "La altura de los adultos sigue N(172; 7) cm. Se eligen 5 personas al azar. ¿Qué probabilidad hay de que al menos una mida más de 179 cm?",
+        ["Para una persona: P(X &gt; 179) = P(Z &gt; (179 − 172)/7) = P(Z &gt; 1) = 1 − 0,8413 = 0,1587. Éste es el valor de p.",
+         "Sea Y = nº de personas de las 5 que superan 179 cm: Y ~ B(5; 0,1587).",
+         "P(Y ≥ 1) = 1 − P(Y = 0) = 1 − 0,8413⁵ = 1 − 0,4215 = <b>0,5785</b>."]) +
+      ojo("Cuidado con la dirección: la normal se usa para continuas (peso, altura, tiempo) y la binomial para contar. Y no se aplica la corrección de continuidad a una normal «de verdad» (como las alturas), sólo cuando se aproxima una binomial.")
+  });
+
+  B.parte.m2t14b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 14: Distribuciones de probabilidad
+   (parte C: problemas EvAU, resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo;
+  function w(n, ref) { return H.w(n, ref && "mates2/t14/" + ref); }
+  var nuevas = B.parte.m2t14b.nuevas;
+
+  // ================================================================
+  //  SECCIONES FINALES (8 problemas EvAU, 9 errores, 10 autocomprobación)
+  // ================================================================
+  nuevas.push({
+    h: "8. Problemas tipo EvAU resueltos",
+    html:
+      "<p>Cinco problemas con el formato de la EvAU de Madrid (con la tabla N(0,1) a la vista). Intenta los apartados antes de leer la solución.</p>" +
+      ejemplo("Problema 1 · Normal con enunciado", "El peso de los paquetes de arroz de una marca sigue N(1000; 20) g. (a) Probabilidad de que un paquete pese menos de 970 g. (b) Probabilidad de que pese entre 990 y 1 030 g. (c) Peso por encima del cual está el 2,5 % de los paquetes más pesados. (d) De 500 paquetes, ¿cuántos se espera que pesen menos de 970 g?",
+        ["X ~ N(1000; 20).",
+         "<b>(a)</b> z = (970 − 1000)/20 = −1,5. P(X &lt; 970) = 1 − Φ(1,5) = 1 − 0,9332 = <b>0,0668</b>.",
+         "<b>(b)</b> z = −0,5 y z = 1,5. P = Φ(1,5) − Φ(−0,5) = 0,9332 − (1 − 0,6915) = 0,9332 − 0,3085 = <b>0,6247</b>.",
+         "<b>(c)</b> P(X ≥ k) = 0,025 ⟹ P(Z ≤ z) = 0,975 ⟹ z = 1,96 ⟹ k = 1000 + 1,96·20 = <b>1 039,2 g</b>.",
+         "<b>(d)</b> 500·0,0668 = 33,4 ⟹ <b>≈ 33 paquetes</b>."]) +
+      ejemplo("Problema 2 · Binomial", "Un test tiene 6 preguntas con 3 opciones cada una, y un alumno contesta todas al azar. Calcula (a) P(exactamente 2 aciertos); (b) P(al menos un acierto); (c) media y desviación típica del número de aciertos.",
+        ["X = nº de aciertos ~ B(6; 1/3): 6 pruebas independientes, éxito = acertar, p = 1/3, q = 2/3.",
+         "<b>(a)</b> P(X = 2) = C(6, 2)·(1/3)²·(2/3)⁴ = 15·(1/9)·(16/81) = 240/729 ≈ <b>0,3292</b>.",
+         "<b>(b)</b> P(X ≥ 1) = 1 − P(X = 0) = 1 − (2/3)⁶ = 1 − 64/729 = 665/729 ≈ <b>0,9122</b>.",
+         "<b>(c)</b> μ = 6·(1/3) = <b>2</b> aciertos; σ = √(6·(1/3)·(2/3)) = √(4/3) ≈ <b>1,155</b>."]) +
+      ejemplo("Problema 3 · Variable discreta con incógnita", "La variable X toma los valores 0, 1, 2 y 3 con probabilidades 0,1; k; 2k y 0,3. Halla k, la media, la desviación típica y P(X ≥ 2).",
+        ["Suma 1: 0,1 + k + 2k + 0,3 = 1 ⟹ 3k = 0,6 ⟹ <b>k = 0,2</b>. Probabilidades: 0,1; 0,2; 0,4; 0,3.",
+         "μ = 0·0,1 + 1·0,2 + 2·0,4 + 3·0,3 = 0,2 + 0,8 + 0,9 = <b>1,9</b>.",
+         "E(X²) = 0,2 + 4·0,4 + 9·0,3 = 0,2 + 1,6 + 2,7 = 4,5 ⟹ σ² = 4,5 − 1,9² = 0,89 ⟹ <b>σ ≈ 0,943</b>.",
+         "P(X ≥ 2) = 0,4 + 0,3 = <b>0,7</b>."]) +
+      ejemplo("Problema 4 · Aproximación por la normal", "El 20 % de los usuarios de una aplicación cancela la suscripción en el primer mes. Entre 225 usuarios nuevos, halla la probabilidad de que cancelen (a) 50 o más; (b) 55 o menos.",
+        ["X = nº de cancelaciones ~ B(225; 0,2). n·p = 45 ≥ 5 y n·q = 180 ≥ 5: se aproxima por Y ~ N(45; √(225·0,2·0,8)) = N(45; 6).",
+         "<b>(a)</b> P(X ≥ 50) ≈ P(Y ≥ 49,5) = P(Z ≥ 0,75) = 1 − 0,7734 = <b>0,2266</b>.",
+         "<b>(b)</b> P(X ≤ 55) ≈ P(Y ≤ 55,5) = P(Z ≤ 1,75) = <b>0,9599</b>.",
+         "Sin la corrección de 0,5, el apartado (a) daría P(Z ≥ 0,83) = 0,2033, y se perdería casi 0,02 de probabilidad."]) +
+      ejemplo("Problema 5 · Hallar μ y σ", "El tiempo de espera en urgencias sigue una normal. El 84,13 % espera menos de 34 minutos y sólo el 2,28 % espera menos de 22. Halla μ y σ y la probabilidad de esperar más de 36 minutos.",
+        ["0,8413 ⟹ z = 1: (34 − μ)/σ = 1. Y 0,0228 = 1 − 0,9772 ⟹ z = −2: (22 − μ)/σ = −2.",
+         "Restando las ecuaciones 34 − μ = σ y 22 − μ = −2σ: 12 = 3σ ⟹ <b>σ = 4</b> y μ = 34 − 4 = <b>30</b>.",
+         "P(X &gt; 36) = P(Z &gt; (36 − 30)/4) = P(Z &gt; 1,5) = 1 − 0,9332 = <b>0,0668</b>."])
+  });
+  nuevas.push({
+    h: "9. ¿Qué falla aquí? Errores típicos",
+    html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+  });
+  nuevas.push({
+    h: "10. Autocomprobación del tema",
+    html: "<p>Test con explicación, tarjetas, emparejar la corrección de continuidad, clasificar situaciones (binomial, normal o ninguna) y el orden de un problema de búsqueda inversa.</p>" +
+      w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+  });
+
+  // ================================================================
+  //  RESUMEN
+  // ================================================================
+  var resumen = [
+    "<b>Discreta</b>: tabla de P(x); cada P entre 0 y 1 y suma 1 (así se halla la incógnita). μ = Σ x·P; σ² = Σ x²·P − μ²; σ = √σ². Un juego es justo si μ = 0. <b>Continua</b>: la probabilidad es un área, P(X = a) = 0.",
+    "<b>Binomial B(n, p)</b>: n pruebas independientes, dos resultados, p constante. P(X = k) = C(n, k)·p<sup>k</sup>·q<sup>n−k</sup>; μ = np; σ = √(npq). «Al menos» y «más de» se resuelven con el complementario; «al menos uno» = 1 − q<sup>n</sup>. Cuidado con ≥ frente a &gt;.",
+    "<b>Normal N(μ, σ)</b>: campana simétrica; 68 – 95 – 99,7 % a 1, 2 y 3σ. Tipificar: Z = (X − μ)/σ ~ N(0, 1).",
+    "<b>Tabla N(0,1)</b>: da Φ(z) = P(Z ≤ z) para z ≥ 0. P(Z ≥ a) = 1 − Φ(a); P(Z ≤ −a) = 1 − Φ(a); P(a ≤ Z ≤ b) = Φ(b) − Φ(a); P(|Z| ≤ a) = 2Φ(a) − 1. Se dibuja la campana siempre.",
+    "<b>Búsqueda inversa</b>: porcentaje → P(Z ≤ z) → z en el cuerpo de la tabla → k = μ + zσ. Z clave: 1,28 (90 %), 1,645 (95 %), 1,96 (97,5 % unilateral; 95 % central), 2,33 (99 %), 2,575 (99 % central).",
+    "<b>Parámetros desconocidos</b>: tipificar con la incógnita e igualar a z; con dos datos sale un sistema lineal.",
+    "<b>Binomial → normal</b>: si n·p ≥ 5 y n·q ≥ 5, B(n, p) ≈ N(np, √npq). <b>Corrección de continuidad</b>: P(X ≤ k) → P(Y ≤ k + 0,5); P(X ≥ k) → P(Y ≥ k − 0,5); P(X = k) → P(k − 0,5 ≤ Y ≤ k + 0,5).",
+    "<b>Decidir</b>: se cuenta → binomial; se mide con «sigue una normal» → normal; binomial con n grande → normal con corrección; a veces la normal da la p de una binomial."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«X ~ B(10; 0,3). P(X ≥ 3) = 1 − P(X ≤ 3)». ¿Qué falla?",
+          op: ["Nada, está bien", "El complementario de X ≥ 3 es X ≤ 2: 1 − P(X ≤ 2)", "Hay que usar la media 3", "Se debe usar la normal"], ok: 1,
+          porque: "Los valores 0, 1, 2 son los que NO cumplen X ≥ 3. Si se resta P(X ≤ 3) se está quitando también P(X = 3), que sí se quería." },
+        { q: "«X ~ N(70; 8). P(X ≤ 62) = P(Z ≤ (62 − 70)/8) = P(Z ≤ −1)» y se lee 0,8413 en la tabla. ¿Qué falla?",
+          op: ["Nada", "Con z negativa hay que pasar a positiva por simetría: P(Z ≤ −1) = 1 − 0,8413 = 0,1587", "El valor 0,8413 no existe", "Hay que dividir entre σ²"], ok: 1,
+          porque: "La tabla da Φ(1) = 0,8413, el área hasta +1. El área hasta −1 es el resto simétrico: 0,1587. Una probabilidad por debajo de la media debe ser menor que 0,5." },
+        { q: "«Se lanza una moneda 100 veces. P(X ≤ 55) ≈ P(Y ≤ 55), con Y ~ N(50; 5), da 0,8413». ¿Qué falla?",
+          op: ["Nada", "Falta la corrección de continuidad: P(Y ≤ 55,5) = 0,8643", "La normal no se puede usar aquí", "σ debería ser 25"], ok: 1,
+          porque: "La barra del 55 llega hasta 55,5: sin la corrección se pierde media barra. La condición n·p = 50 ≥ 5 sí permite la aproximación." },
+        { q: "«B(100; 0,02) se aproxima por N(2; 1,4) porque n = 100 es grande». ¿Qué falla?",
+          op: ["Nada", "n·p = 2 &lt; 5: la binomial es muy asimétrica y la normal no sirve", "σ está mal calculada", "La normal necesita n ≥ 1 000"], ok: 1,
+          porque: "El tamaño de n no basta: hace falta también que n·p y n·q sean ≥ 5. Con p = 0,02 casi toda la probabilidad se concentra en 0, 1, 2, 3, 4." },
+        { q: "«Hay un 95 % de probabilidad de que la nota esté en [μ − 3σ, μ + 3σ]». ¿Qué falla?",
+          op: ["Nada", "El 95 % corresponde a μ ± 1,96σ (≈ 2σ); μ ± 3σ contiene el 99,7 %", "Hay que sumar 0,5", "El intervalo debería ser [μ, μ + 3σ]"], ok: 1,
+          porque: "Regla 68-95-99,7: 1σ → 68 %; 2σ → 95 %; 3σ → 99,7 %." },
+        { q: "«Se sacan 3 bolas SIN reemplazamiento de una urna con 4 rojas y 6 blancas; X = nº de rojas ~ B(3; 0,4)». ¿Qué falla?",
+          op: ["Nada", "Sin reemplazamiento la probabilidad de rojo cambia en cada extracción: las pruebas no son independientes y no es binomial", "n debería ser 10", "p debería ser 0,6"], ok: 1,
+          porque: "Es una hipergeométrica. Con reemplazamiento (o una población enorme) sí sería B(3; 0,4)." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de distribuciones de probabilidad",
+      preguntas: [
+        { q: "En una distribución discreta, ¿qué debe cumplirse siempre?", op: ["Que la media sea un valor posible", "Que las probabilidades sumen 1", "Que todas las probabilidades sean iguales", "Que σ valga 1"], ok: 1, porque: "Es la condición que permite hallar la incógnita de una tabla." },
+        { q: "X ~ B(10; 0,5). La media es", op: ["0,5", "5", "2,5", "10"], ok: 1, porque: "μ = n·p = 10·0,5 = 5." },
+        { q: "X ~ B(100; 0,5). La desviación típica es", op: ["50", "25", "5", "0,5"], ok: 2, porque: "σ = √(100·0,5·0,5) = √25 = 5." },
+        { q: "X ~ B(8; 0,1). P(al menos una) =", op: ["0,1", "8·0,1", "1 − 0,9⁸", "0,9⁸"], ok: 2, porque: "Complementario de «ninguna»: 1 − q<sup>n</sup>." },
+        { q: "Z ~ N(0, 1). P(Z ≤ −0,5) =", op: ["0,6915", "−0,6915", "0,3085", "0,5"], ok: 2, porque: "1 − Φ(0,5) = 1 − 0,6915 = 0,3085." },
+        { q: "X ~ N(50; 10). P(X ≥ 70) =", op: ["0,9772", "0,0228", "0,9987", "0,0013"], ok: 1, porque: "z = 2: 1 − Φ(2) = 1 − 0,9772 = 0,0228." },
+        { q: "X ~ N(μ, σ). Tipificar significa calcular", op: ["(X − μ)·σ", "(X − μ)/σ", "(X − σ)/μ", "X/σ"], ok: 1, porque: "Z = (X − μ)/σ ~ N(0, 1)." },
+        { q: "Si P(Z ≤ z) = 0,95, ¿entre qué valores está z según la tabla?", op: ["entre 1,64 y 1,65", "entre 0,95 y 1", "entre 1,95 y 1,96", "entre 0,64 y 0,65"], ok: 0, porque: "Φ(1,64) = 0,9495 y Φ(1,65) = 0,9505: z ≈ 1,645." },
+        { q: "Aproximando B(100; 0,5) por la normal, P(X ≤ 60) pasa a ser", op: ["P(Y ≤ 60)", "P(Y ≤ 60,5)", "P(Y ≤ 59,5)", "P(Y ≥ 60,5)"], ok: 1, porque: "Para «≤ k» se incluye la barra entera de k: borde k + 0,5." },
+        { q: "¿Cuál de estas condiciones permite aproximar B(n, p) por una normal?", op: ["n ≥ 5", "p = 0,5 siempre", "n·p ≥ 5 y n·q ≥ 5", "n·p·q ≤ 5"], ok: 2, porque: "Con ellas la binomial no es demasiado asimétrica." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas del tema 14",
+      cartas: [
+        { a: "Función de probabilidad", b: "Tabla de P(X = x<sub>i</sub>) con 0 ≤ p<sub>i</sub> ≤ 1 y Σp<sub>i</sub> = 1." },
+        { a: "Media y desviación típica de una discreta", b: "μ = Σ x·p; σ² = Σ x²·p − μ²; σ = √σ²." },
+        { a: "Juego justo", b: "Ganancia media μ = 0: ni se gana ni se pierde a la larga." },
+        { a: "Binomial B(n, p)", b: "n pruebas independientes, dos resultados, p constante. P(X = k) = C(n, k)p<sup>k</sup>q<sup>n−k</sup>." },
+        { a: "Media y σ de la binomial", b: "μ = n·p; σ = √(n·p·q), con q = 1 − p." },
+        { a: "Al menos uno en n pruebas", b: "P(X ≥ 1) = 1 − q<sup>n</sup>." },
+        { a: "Normal N(μ, σ)", b: "Campana simétrica en μ; σ la ensancha o estrecha. 68 – 95 – 99,7 % a 1, 2 y 3σ." },
+        { a: "Tipificar", b: "Z = (X − μ)/σ ~ N(0, 1). El área no cambia: P(X ≤ a) = P(Z ≤ (a − μ)/σ)." },
+        { a: "Tabla N(0,1): P(Z ≤ −a)", b: "= 1 − Φ(a) por simetría (z negativa → positiva)." },
+        { a: "P(a ≤ Z ≤ b) y P(|Z| ≤ a)", b: "Φ(b) − Φ(a) y 2Φ(a) − 1." },
+        { a: "Búsqueda inversa", b: "Área → P(Z ≤ z) = área → z en el cuerpo de la tabla → k = μ + z·σ. Si piden P(X ≥ k) se usa 1 − p." },
+        { a: "z de uso frecuente", b: "1,28 (90 %) · 1,645 (95 %) · 1,96 (97,5 % ⟹ 95 % central) · 2,33 (99 %) · 2,575 (99,5 % ⟹ 99 % central)." },
+        { a: "Aproximación binomial → normal", b: "B(n, p) ≈ N(np, √npq) si n·p ≥ 5 y n·q ≥ 5." },
+        { a: "Corrección de continuidad", b: "P(X ≤ k) ≈ P(Y ≤ k + 0,5); P(X ≥ k) ≈ P(Y ≥ k − 0,5); P(X = k) ≈ P(k − 0,5 ≤ Y ≤ k + 0,5)." }
+      ]
+    },
+    empar: {
+      titulo: "Corrección de continuidad",
+      consigna: "Une cada probabilidad binomial con su traducción a la normal Y (tomando k = 12).",
+      pares: [
+        ["P(X ≤ 12)", "P(Y ≤ 12,5)"],
+        ["P(X ≥ 12)", "P(Y ≥ 11,5)"],
+        ["P(X &lt; 12)", "P(Y ≤ 11,5)"],
+        ["P(X &gt; 12)", "P(Y ≥ 12,5)"],
+        ["P(X = 12)", "P(11,5 ≤ Y ≤ 12,5)"],
+        ["P(10 ≤ X ≤ 12)", "P(9,5 ≤ Y ≤ 12,5)"]
+      ]
+    },
+    clas: {
+      titulo: "¿Binomial, normal o ninguna?",
+      consigna: "Clasifica cada variable según el modelo que le corresponde.",
+      categorias: ["Binomial", "Normal (continua)", "Ninguna de las dos"],
+      items: [
+        { t: "Nº de caras en 20 lanzamientos de una moneda", c: 0 }, { t: "Nº de aciertos al azar en un test de 15 preguntas", c: 0 }, { t: "Nº de piezas defectuosas en un lote de 50 (cada una con prob. 0,02)", c: 0 },
+        { t: "Estatura de una persona elegida al azar", c: 1 }, { t: "Peso de un paquete de arroz de 1 kg nominal", c: 1 }, { t: "Tiempo de espera de un autobús (según el enunciado, «sigue una normal»)", c: 1 },
+        { t: "Nº de lanzamientos hasta que sale la primera cara", c: 2 }, { t: "Nº de bolas rojas al sacar 3 sin reemplazamiento de una urna de 10", c: 2 }, { t: "Nº de lluvias consecutivas si cada día depende del anterior", c: 2 }
+      ]
+    },
+    orden: {
+      titulo: "Problema de búsqueda inversa",
+      consigna: "Ordena los pasos para hallar el valor k tal que P(X ≥ k) = 0,10 con X ~ N(70; 8).",
+      items: [
+        { t: "Escribir la distribución y dibujar la campana con la zona sombreada" }, { t: "Pasar a «hasta k»: P(X ≤ k) = 1 − 0,10 = 0,90" }, { t: "Tipificar: P(Z ≤ z) = 0,90" },
+        { t: "Buscar 0,90 en el cuerpo de la tabla y leer z = 1,28" }, { t: "Destipificar: k = μ + z·σ = 70 + 1,28·8" }, { t: "Interpretar: k ≈ 80,24 y comprobar que es mayor que la media" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  function E(id, nivel, enunciado, check, pistas, pasos, resultado) { return { id: id, nivel: nivel, enunciado: enunciado, check: check, pistas: pistas, pasos: pasos, resultado: resultado }; }
+
+  var ejercicios = [
+    // ---------- NIVEL 1 ----------
+    E("a1", 1, "Una variable X toma los valores 1, 2, 3 y 4 con probabilidades 0,1; 0,2; 0,3 y k. Halla k.", num("k =", 0.4),
+      ["Las probabilidades suman 1."], ["0,1 + 0,2 + 0,3 + k = 1 ⟹ k = 0,4."], "k = 0,4"),
+    E("a2", 1, "Calcula la media de X con P(0) = 0,1; P(1) = 0,3; P(2) = 0,4; P(3) = 0,2.", num("μ =", 1.7),
+      ["μ = Σ x·P(x)."], ["0·0,1 + 1·0,3 + 2·0,4 + 3·0,2 = 0,3 + 0,8 + 0,6 = 1,7."], "μ = 1,7"),
+    E("a3", 1, "X ~ B(6; 0,5). Calcula P(X = 3).", num("P(X = 3) =", 0.3125),
+      ["C(6, 3) = 20."], ["P = 20·0,5³·0,5³ = 20/64 = 0,3125."], "0,3125"),
+    E("a4", 1, "Halla la desviación típica de X ~ B(8; 0,25).", num("σ =", 1.2247),
+      ["σ = √(n·p·q)."], ["σ = √(8·0,25·0,75) = √1,5 ≈ 1,2247."], "σ ≈ 1,225"),
+    E("a5", 1, "X ~ B(5; 0,4). Calcula la probabilidad de que no haya ningún éxito.", num("P(X = 0) =", 0.07776),
+      ["P(X = 0) = q<sup>n</sup>."], ["0,6⁵ = 0,07776."], "0,0778"),
+    E("a6", 1, "X ~ N(100; 15). Tipifica x = 130 (calcula z).", num("z =", 2),
+      ["z = (x − μ)/σ."], ["(130 − 100)/15 = 2."], "z = 2"),
+    E("a7", 1, "Z ~ N(0, 1). Con la tabla, calcula P(Z ≤ 1,35).", num("P =", 0.9115, { tol: 0.002 }),
+      ["Fila 1,3 y columna 0,05."], ["Se lee directamente: Φ(1,35) = 0,9115."], "0,9115"),
+    E("a8", 1, "Z ~ N(0, 1). Calcula P(Z ≥ 1,35).", num("P =", 0.0885, { tol: 0.01 }),
+      ["Complementario."], ["1 − 0,9115 = 0,0885."], "0,0885"),
+    E("a9", 1, "Z ~ N(0, 1). Calcula P(Z ≤ −0,8).", num("P =", 0.2119, { tol: 0.005 }),
+      ["Simetría: P(Z ≤ −a) = 1 − Φ(a)."], ["Φ(0,8) = 0,7881; 1 − 0,7881 = 0,2119."], "0,2119"),
+    E("a10", 1, "Z ~ N(0, 1). Calcula P(−1 ≤ Z ≤ 1).", num("P =", 0.6826, { tol: 0.002 }),
+      ["2Φ(1) − 1."], ["2·0,8413 − 1 = 0,6826."], "0,6826"),
+    E("a11", 1, "X ~ N(50; 10). Calcula P(X ≤ 65).", num("P =", 0.9332, { tol: 0.002 }),
+      ["Tipifica: z = 1,5."], ["P(Z ≤ 1,5) = 0,9332."], "0,9332"),
+    E("a12", 1, "Se lanzan 5 monedas. ¿Probabilidad de obtener al menos una cara?", num("P =", 0.96875),
+      ["Complementario de «ninguna cara»."], ["1 − 0,5⁵ = 1 − 1/32 = 31/32 = 0,96875."], "31/32 ≈ 0,969"),
+    E("a13", 1, "¿Se puede aproximar B(20; 0,1) por una normal?", opcion("Respuesta", ["Sí, porque n = 20 es grande", "No: n·p = 2 &lt; 5", "Sí, porque p &lt; 0,5", "No: n·q &lt; 5"], 1),
+      ["Calcula n·p y n·q."], ["n·p = 20·0,1 = 2 &lt; 5: no se cumple la condición."], "No: n·p = 2"),
+    E("a14", 1, "Una binomial B(100; 0,2) se aproxima por una normal. Da sus parámetros μ y σ (en ese orden).", lista("μ, σ", [20, 4], "20, 4"),
+      ["μ = np; σ = √(npq)."], ["μ = 20; σ = √(100·0,2·0,8) = √16 = 4."], "N(20; 4)"),
+    // ---------- NIVEL 2 ----------
+    E("b1", 2, "X toma los valores 1, 2, 3 y 4 con P(X = x) = k·x. Calcula k y después la media.", num("μ =", 3),
+      ["Suma = 10k = 1."], ["k = 0,1 y P = 0,1; 0,2; 0,3; 0,4.", "μ = 0,1 + 0,4 + 0,9 + 1,6 = 3."], "k = 0,1; μ = 3"),
+    E("b2", 2, "Halla la desviación típica de X con P(0) = 0,1; P(1) = 0,3; P(2) = 0,4; P(3) = 0,2.", num("σ =", 0.9),
+      ["Usa E(X²) − μ²; μ = 1,7."], ["E(X²) = 0,3 + 1,6 + 1,8 = 3,7.", "σ² = 3,7 − 1,7² = 0,81 ⟹ σ = 0,9."], "σ = 0,9"),
+    E("b3", 2, "X ~ B(10; 0,3). Calcula P(X ≥ 3).", num("P =", 0.6172, { tol: 0.005 }),
+      ["1 − P(X ≤ 2)."], ["P(0) = 0,0282; P(1) = 0,1211; P(2) = 0,2335; suma = 0,3828.", "1 − 0,3828 = 0,6172."], "0,6172"),
+    E("b4", 2, "Un test de 10 preguntas con 4 opciones se contesta al azar. ¿Probabilidad de acertar 5 o más?", num("P =", 0.0781, { tol: 0.01 }),
+      ["X ~ B(10; 0,25); 1 − P(X ≤ 4)."], ["P(X ≤ 4) = 0,9219.", "P(X ≥ 5) = 0,0781."], "0,0781"),
+    E("b5", 2, "El 10 % de las piezas de un lote es defectuoso. Se eligen 8 piezas. ¿Probabilidad de que al menos una sea defectuosa?", num("P =", 0.5695, { tol: 0.005 }),
+      ["X ~ B(8; 0,1)."], ["1 − 0,9⁸ = 1 − 0,4305 = 0,5695."], "0,5695"),
+    E("b6", 2, "El peso X sigue N(70; 8). Calcula P(X &gt; 80).", num("P =", 0.1056, { tol: 0.01 }),
+      ["z = 1,25."], ["1 − Φ(1,25) = 1 − 0,8944 = 0,1056."], "0,1056"),
+    E("b7", 2, "Con X ~ N(70; 8), calcula P(66 ≤ X ≤ 86).", num("P =", 0.6687, { tol: 0.005 }),
+      ["z = −0,5 y z = 2."], ["Φ(2) − Φ(−0,5) = 0,9772 − (1 − 0,6915) = 0,9772 − 0,3085 = 0,6687."], "0,6687"),
+    E("b8", 2, "Las notas siguen N(6; 1,5). Calcula P(X &lt; 4,5).", num("P =", 0.1587, { tol: 0.005 }),
+      ["z = −1."], ["P(Z &lt; −1) = 1 − 0,8413 = 0,1587."], "0,1587"),
+    E("b9", 2, "El tiempo de una gestión sigue N(25; 4) minutos. Calcula P(X ≥ 31).", num("P =", 0.0668, { tol: 0.01 }),
+      ["z = 1,5."], ["1 − 0,9332 = 0,0668."], "0,0668"),
+    E("b10", 2, "Z ~ N(0, 1). Halla k tal que P(Z ≤ k) = 0,90.", num("k =", 1.28, { tol: 0.01 }),
+      ["Busca 0,90 en el cuerpo de la tabla."], ["El valor más cercano es 0,8997 ⟹ z = 1,28."], "k ≈ 1,28"),
+    E("b11", 2, "El tiempo de espera sigue N(25; 4). ¿A partir de qué tiempo k se está entre el 20 % de las esperas más largas?", num("k =", 28.36, { tol: 0.005 }),
+      ["P(X ≥ k) = 0,20 ⟹ P(X ≤ k) = 0,80."], ["Φ(z) = 0,80: valor más cercano 0,7995 ⟹ z = 0,84.", "k = 25 + 0,84·4 = 28,36."], "k ≈ 28,36 min"),
+    E("b12", 2, "X ~ B(100; 0,5). Aproxima por la normal P(X ≤ 42) (con corrección de continuidad).", num("P ≈", 0.0668, { tol: 0.01 }),
+      ["N(50; 5) y P(Y ≤ 42,5)."], ["z = (42,5 − 50)/5 = −1,5.", "P = 1 − 0,9332 = 0,0668."], "0,0668"),
+    E("b13", 2, "X ~ B(100; 0,5). Aproxima P(X = 55) por la normal.", num("P ≈", 0.0484, { tol: 0.02 }),
+      ["P(54,5 ≤ Y ≤ 55,5) con N(50; 5)."], ["z entre 0,9 y 1,1.", "Φ(1,1) − Φ(0,9) = 0,8643 − 0,8159 = 0,0484."], "0,0484"),
+    E("b14", 2, "Las notas siguen N(5,9; 1,5). ¿Qué proporción de alumnos aprueba (nota ≥ 5)?", num("P =", 0.7257, { tol: 0.005 }),
+      ["z = (5 − 5,9)/1,5 = −0,6."], ["P(Z ≥ −0,6) = Φ(0,6) = 0,7257."], "72,57 %"),
+    E("b15", 2, "X ~ N(50; σ) y P(X ≥ 62) = 0,0228. Halla σ.", num("σ =", 6),
+      ["P(Z ≥ z) = 0,0228 ⟹ Φ(z) = 0,9772."], ["z = 2: (62 − 50)/σ = 2 ⟹ σ = 6."], "σ = 6"),
+    E("b16", 2, "X ~ N(μ; 5) y P(X ≥ 30) = 0,0228. Halla μ.", num("μ =", 20),
+      ["Φ(z) = 0,9772 ⟹ z = 2."], ["(30 − μ)/5 = 2 ⟹ μ = 20."], "μ = 20"),
+    // ---------- NIVEL 3 ----------
+    E("c1", 3, "¿Cuántas veces hay que lanzar una moneda, como mínimo, para que la probabilidad de obtener al menos una cara sea ≥ 0,99?", num("n =", 7),
+      ["1 − 0,5<sup>n</sup> ≥ 0,99."], ["0,5<sup>n</sup> ≤ 0,01. Con n = 6: 0,0156 (no); con n = 7: 0,0078 (sí).", "n = 7."], "n = 7"),
+    E("c2", 3, "Un arquero acierta con probabilidad 0,7. Hace 5 disparos. ¿Probabilidad de acertar entre 2 y 4 veces (ambos incluidos)?", num("P =", 0.8012, { tol: 0.005 }),
+      ["X ~ B(5; 0,7); 1 − P(0, 1) − P(5)."], ["P(0) = 0,00243; P(1) = 0,02835; P(5) = 0,16807.", "1 − 0,19885 = 0,80115 ≈ 0,8012."], "0,8012"),
+    E("c3", 3, "Se lanza un dado: con un 6 se ganan 6 €, con un 5 se ganan 2 € y en otro caso se pierde 1 €. Calcula la ganancia media por partida.", num("μ =", 2 / 3),
+      ["Valores: 6, 2, −1 con probabilidades 1/6, 1/6, 4/6."], ["μ = 6/6 + 2/6 − 4/6 = 4/6 = 2/3 ≈ 0,667 €."], "μ = 2/3 €"),
+    E("c4", 3, "Se lanzan dos dados y X es la suma. Calcula P(X ≥ 10).", num("P =", 1 / 6),
+      ["Casos: 10 (3), 11 (2), 12 (1)."], ["6 casos favorables entre 36: 1/6 ≈ 0,1667."], "1/6"),
+    E("c5", 3, "Se lanzan dos dados y X es la suma (μ = 7). Calcula la desviación típica.", num("σ =", 2.4152, { tol: 0.005 }),
+      ["E(X²) = 54,833…"], ["E(X²) = (4·1 + 9·2 + 16·3 + 25·4 + 36·5 + 49·6 + 64·5 + 81·4 + 100·3 + 121·2 + 144·1)/36 = 1974/36 = 54,833.", "σ² = 54,833 − 49 = 5,833 = 35/6 ⟹ σ ≈ 2,415."], "σ ≈ 2,415"),
+    E("c6", 3, "La altura sigue N(172; 7) cm. Calcula P(165 ≤ X ≤ 186).", num("P =", 0.8185, { tol: 0.005 }),
+      ["z = −1 y z = 2."], ["Φ(2) − Φ(−1) = 0,9772 − 0,1587 = 0,8185."], "0,8185"),
+    E("c7", 3, "Con la altura N(172; 7) cm, ¿cuántas de 1 000 personas se espera que midan más de 179 cm?", num("Personas ≈", 158.7, { tol: 0.01 }),
+      ["z = 1."], ["P(X &gt; 179) = 1 − 0,8413 = 0,1587; 1 000·0,1587 = 158,7."], "≈ 159 personas"),
+    E("c8", 3, "Las puntuaciones siguen N(250; 20). Halla el extremo superior del intervalo simétrico respecto de la media que contiene al 95 % de las personas.", num("Extremo =", 289.2, { tol: 0.002 }),
+      ["P(Z ≤ z) = 0,975 ⟹ z = 1,96."], ["250 + 1,96·20 = 289,2 (el inferior es 210,8)."], "289,2"),
+    E("c9", 3, "Las notas siguen N(6; 1,5). ¿Qué nota mínima hay que sacar para estar entre el 15 % mejor?", num("k =", 7.56, { tol: 0.005 }),
+      ["P(X ≥ k) = 0,15 ⟹ P(Z ≤ z) = 0,85."], ["Valor más cercano a 0,85: 0,8508 ⟹ z = 1,04.", "k = 6 + 1,04·1,5 = 7,56."], "k ≈ 7,56"),
+    E("c10", 3, "X ~ B(625; 0,2). Aproxima P(X ≥ 145) con la corrección de continuidad.", num("P ≈", 0.0256, { tol: 0.02 }),
+      ["N(125; 10); P(Y ≥ 144,5)."], ["z = 19,5/10 = 1,95.", "1 − Φ(1,95) = 1 − 0,9744 = 0,0256."], "0,0256"),
+    E("c11", 3, "X ~ B(625; 0,2). Aproxima P(120 ≤ X ≤ 135).", num("P ≈", 0.5619, { tol: 0.01 }),
+      ["P(119,5 ≤ Y ≤ 135,5) con N(125; 10)."], ["z = −0,55 y z = 1,05.", "Φ(1,05) − (1 − Φ(0,55)) = 0,8531 − 0,2912 = 0,5619."], "0,5619"),
+    E("c12", 3, "Se lanza 100 veces una moneda. Aproxima la probabilidad de obtener 60 caras o más.", num("P ≈", 0.0287, { tol: 0.02 }),
+      ["N(50; 5); P(Y ≥ 59,5)."], ["z = 9,5/5 = 1,9.", "1 − Φ(1,9) = 1 − 0,9713 = 0,0287."], "0,0287"),
+    E("c13", 3, "X es normal con P(X ≤ 80) = 0,9772 y P(X ≤ 56) = 0,1587. Halla μ.", num("μ =", 64),
+      ["z = 2 y z = −1."], ["80 − μ = 2σ y 56 − μ = −σ ⟹ 24 = 3σ, σ = 8, μ = 64."], "μ = 64 (σ = 8)"),
+    E("c14", 3, "La altura sigue N(172; 7). Se eligen 5 personas. ¿Probabilidad de que al menos una mida más de 179 cm?", num("P =", 0.5785, { tol: 0.005 }),
+      ["p = P(X &gt; 179) = 0,1587; luego binomial B(5; p)."], ["1 − (1 − 0,1587)⁵ = 1 − 0,8413⁵ = 1 − 0,4215 = 0,5785."], "0,5785"),
+    E("c15", 3, "Una aseguradora cobra 100 € de prima y paga 5 000 € con probabilidad 0,01. Calcula el beneficio medio por póliza.", num("μ =", 50),
+      ["Beneficio: 100 (prob. 0,99) o 100 − 5 000 (prob. 0,01)."], ["μ = 100·0,99 + (−4 900)·0,01 = 99 − 49 = 50 €."], "50 €"),
+    E("c16", 3, "Una binomial tiene media 12 y varianza 3. Halla n.", num("n =", 16),
+      ["np = 12 y npq = 3."], ["q = 3/12 = 0,25 ⟹ p = 0,75 ⟹ n = 12/0,75 = 16."], "n = 16 (p = 0,75)")
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Binomial: lo esencial", ancha: true,
+      tabla: { cab: ["Idea", "Fórmula"], filas: [
+        ["Condiciones", "n fijo · dos resultados · p constante · independientes"],
+        ["Probabilidad", "P(X = k) = C(n, k)·p<sup>k</sup>·q<sup>n−k</sup>"],
+        ["Media y σ", "μ = np · σ = √(npq)"],
+        ["Al menos uno", "1 − q<sup>n</sup>"],
+        ["Al menos k", "1 − P(X ≤ k − 1)"]
+      ] } },
+    { titulo: "Normal: de la tabla a la respuesta", ancha: true,
+      pasos: ["Escribe X ~ N(μ, σ) y dibuja la campana sombreada.", "Tipifica: z = (x − μ)/σ.", "Reduce a Φ(z) (z positiva; con negativa, simetría).", "P(Z ≥ a) = 1 − Φ(a); P(a ≤ Z ≤ b) = Φ(b) − Φ(a).", "Inverso: del área a z en el cuerpo de la tabla; k = μ + zσ."],
+      nota: "Z clave: 1,28 · 1,645 · 1,96 · 2,33 · 2,575." },
+    { titulo: "Binomial → normal",
+      tabla: { cab: ["Binomial", "Normal Y"], filas: [
+        ["Condición", "n·p ≥ 5 y n·q ≥ 5"],
+        ["Parámetros", "N(np, √npq)"],
+        ["P(X ≤ k)", "P(Y ≤ k + 0,5)"],
+        ["P(X ≥ k)", "P(Y ≥ k − 0,5)"],
+        ["P(X = k)", "P(k − 0,5 ≤ Y ≤ k + 0,5)"]
+      ] },
+      nota: "Dibuja las barras para decidir el signo de la corrección." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "P(X ≥ 3) = 1 − P(X ≤ 3)", bien: "1 − P(X ≤ 2)", por: "Hay que dejar fuera el valor frontera." },
+        { mal: "P(Z ≤ −a) = Φ(a)", bien: "1 − Φ(a)", por: "Por debajo de la media el área es menor que 0,5." },
+        { mal: "Tipificar con (X − μ)·σ", bien: "(X − μ)/σ", por: "σ divide." },
+        { mal: "Aproximar sin corrección de continuidad", bien: "k ± 0,5 según las barras", por: "Se pierde media barra y P(X = k) saldría 0." },
+        { mal: "Aproximar B(100; 0,02) porque n es grande", bien: "Comprobar n·p ≥ 5 y n·q ≥ 5", por: "Con n·p = 2 la binomial es asimétrica." },
+        { mal: "Usar binomial sin reemplazamiento en urna pequeña", bien: "Probabilidad condicionada", por: "p cambia y las pruebas no son independientes." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t14", {
+    resumen: resumen, secciones: B.parte.m2t14a.secciones, nuevas: nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
