@@ -17021,6 +17021,272 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 5: Cinética química
+   Reutiliza q6_diagrama (perfil de energía, Ea directa/inversa, ΔH y catalizador) y añade cinco:
+   q5_curvas (concentración–tiempo: velocidad media, instantánea y coeficientes) · q5_tabla (velocidades iniciales → órdenes)
+   q5_maxwell (Maxwell–Boltzmann: fracción de choques con E ≥ Ea) · q5_arrhenius (k frente a T, dos temperaturas)
+   q5_mecanismo (etapa lenta, intermedios y ley de velocidad)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  function fil(r, v, c) { return U.lec(r, v, c); }
+  var R = 8.314;   // J/(mol·K)
+
+  function cien(x, d) { return U.cient(x, d == null ? 2 : d); }
+
+  // ============================================================
+  // Q5_CURVAS: [especie] frente a t; velocidad media (secante) e instantánea (tangente)
+  //   v = k·[A]^n  ·  d[A]/dt = −a·v  ·  d[B]/dt = +b·v
+  // ============================================================
+  var REAC = {
+    n2o5: { t: "2 N₂O₅ → 4 NO₂ + O₂", x0: 1.0, esp: [["N₂O₅", -2], ["NO₂", 4], ["O₂", 1]] },
+    haber: { t: "N₂ + 3 H₂ → 2 NH₃", x0: 1.0, esp: [["N₂", -1], ["H₂", -3], ["NH₃", 2]], h2: 3 },
+    hi: { t: "2 HI → H₂ + I₂", x0: 1.0, esp: [["HI", -2], ["H₂", 1], ["I₂", 1]] }
+  };
+  // concentración del primer reactivo (el que fija el orden) en el tiempo t, con orden n y constante k (analítico)
+  //   d[A]/dt = −a·k·[A]^n  (a = |coeficiente de A|)
+  function concA(x0, a, n, k, t) {
+    if (n === 0) return Math.max(0, x0 - a * k * t);
+    if (n === 1) return x0 * Math.exp(-a * k * t);
+    return 1 / (1 / x0 + a * k * t);
+  }
+  // avance ξ (mol/L de «reacción» = Δ[A]/(−a)) y concentración de cada especie
+  function conc(R0, n, k, t) {
+    var a = -R0.esp[0][1], A = concA(R0.x0, a, n, k, t), xi = (R0.x0 - A) / a;
+    return R0.esp.map(function (e, i) {
+      if (e[1] < 0) { var ini = i === 0 ? R0.x0 : R0.x0 * (-e[1]) / a; return ini + e[1] * xi; }
+      return e[1] * xi;
+    });
+  }
+  function vInst(R0, n, k, t) {      // v = k·[A]^n (con n = 0 vale k mientras quede A)
+    var A = concA(R0.x0, -R0.esp[0][1], n, k, t);
+    return n === 0 ? (A > 0 ? k : 0) : k * Math.pow(A, n);
+  }
+  var TMAX = 20;
+  B.w.q5_curvas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Concentración frente al tiempo: velocidad media e instantánea");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ord class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { r: "n2o5", n: 1, k: 0.1, t1: 2, t2: 8 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "k", min: 0.02, max: 0.3, step: 0.01, val: st.k, on: function (v) { st.k = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    var s1 = U.slider(ctl, { et: "t₁ (s)", min: 0, max: 18, step: 0.5, val: st.t1, on: function (v) { st.t1 = v; if (st.t2 <= v + 0.5) { st.t2 = Math.min(20, v + 0.5); s2.set(st.t2); } pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    var s2 = U.slider(ctl, { et: "t₂ (s)", min: 0.5, max: 20, step: 0.5, val: st.t2, on: function (v) { st.t2 = v; if (st.t1 >= v - 0.5) { st.t1 = Math.max(0, v - 0.5); s1.set(st.t1); } pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    var cl = ["c-red", "c-ink", "c-pen", "c-ok"];
+    function pinta() {
+      var R0 = REAC[st.r], n = st.n, k = st.k, a = -R0.esp[0][1];
+      var ymax = 0; R0.esp.forEach(function (e, i) { var f = e[1] < 0 ? (i === 0 ? R0.x0 : R0.x0 * (-e[1]) / a) : e[1] * R0.x0 / a; ymax = Math.max(ymax, f); });
+      g.rango(0, TMAX, 0, ymax * 1.08); g.limpiar();
+      R0.esp.forEach(function (e, i) {
+        g.curva(function (t) { return conc(R0, n, k, t)[i]; }, { clase: cl[i], n: 160 }).setAttribute("stroke-width", i === 0 ? 3.2 : 2.4);
+      });
+      // secante de la primera especie entre t1 y t2 y tangente en t1
+      var C1 = conc(R0, n, k, st.t1), C2 = conc(R0, n, k, st.t2);
+      g.vertical(st.t1, { clase: "c-faint", dash: "3 4" }); g.vertical(st.t2, { clase: "c-faint", dash: "3 4" });
+      g.segmento(st.t1, C1[0], st.t2, C2[0], { clase: "c-red", dash: "6 4" });
+      var pend = -a * vInst(R0, n, k, st.t1), dt = 3.2;
+      g.segmento(Math.max(0, st.t1 - dt), C1[0] - pend * Math.min(dt, st.t1), Math.min(TMAX, st.t1 + dt), C1[0] + pend * Math.min(dt, TMAX - st.t1), { clase: "c-ok" }).setAttribute("stroke-width", 2.4);
+      g.punto(st.t1, C1[0], { r: 5.5, clase: "c-ok" }); g.punto(st.t2, C2[0], { r: 5.5, clase: "c-red" });
+      R0.esp.forEach(function (e, i) { g.texto(TMAX, conc(R0, n, k, TMAX)[i], e[0], { ancla: "end", dy: -6, clase: ["red", "ink", "pen", "ok"][i] }); });
+      var dtt = st.t2 - st.t1;
+      var filas = R0.esp.map(function (e, i) {
+        var d = (C2[i] - C1[i]) / dtt;
+        return e[0] + ": " + fmt(d, 4) + " ÷ " + Math.abs(e[1]) + " = " + fmt(Math.abs(d / e[1]), 4);
+      });
+      var vm = Math.abs((C2[0] - C1[0]) / dtt / R0.esp[0][1]);
+      lectura.innerHTML = fil("Velocidad media entre t₁ y t₂", fmt(vm, 4) + " mol/(L·s)", "red") +
+        fil("Velocidad instantánea en t₁ (tangente verde)", fmt(vInst(R0, n, k, st.t1), 4) + " mol/(L·s)", "ok") +
+        fil("Por especie: Δ[ ]/Δt (mol/(L·s)) ÷ coeficiente = v", filas.join("<br>"), "ancho");
+      pie.innerHTML = "<b>Secante roja discontinua</b> = velocidad media en el intervalo; <b>tangente verde</b> = velocidad en el instante t₁. En orden 0 (recta) coinciden siempre; en orden 1 y 2 la curva se aplana y la velocidad va bajando, así que la media entre t₁ y t₂ queda por debajo de la instantánea en t₁. Cada especie varía a un ritmo proporcional a su coeficiente, pero v = |Δ[X]/Δt|/coeficiente es única.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: TMAX, ymin: 0, ymax: 1.1, w: 620, h: 310, etx: "t (s)", ety: "[ ] (mol/L)", etiqueta: "Concentración frente a tiempo" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(REAC).map(function (k) { return { k: k, t: REAC[k].t }; }), st.r, function (k) { st.r = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-ord]"), [{ k: "0", t: "orden 0" }, { k: "1", t: "orden 1" }, { k: "2", t: "orden 2" }], "1", function (k) { st.n = +k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q5_TABLA: método de las velocidades iniciales
+  // ============================================================
+  var TAB = {
+    d1: { t: "A + B → C", sp: ["A", "B"], ord: [2, 1], k: 0.5, uk: "L²·mol⁻²·s⁻¹", ex: [[0.10, 0.10, 5.0e-4], [0.20, 0.10, 2.0e-3], [0.10, 0.20, 1.0e-3], [0.20, 0.20, 4.0e-3]] },
+    d2: { t: "A + B → D", sp: ["A", "B"], ord: [1, 0], k: 0.040, uk: "s⁻¹", ex: [[0.10, 0.10, 4.0e-3], [0.20, 0.10, 8.0e-3], [0.10, 0.30, 4.0e-3], [0.30, 0.20, 1.2e-2]] },
+    d3: { t: "2 NO + 2 H₂ → N₂ + 2 H₂O", sp: ["NO", "H₂"], ord: [2, 1], k: 0.30, uk: "L²·mol⁻²·s⁻¹", ex: [[0.10, 0.20, 6.0e-4], [0.20, 0.20, 2.4e-3], [0.10, 0.40, 1.2e-3], [0.30, 0.10, 2.7e-3]] }
+  };
+  B.w.q5_tabla = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Velocidades iniciales: deduce los órdenes de la tabla");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-tab></div><div data-par class="chips"></div><div class="lectura anch" data-an></div><div data-resp></div><div class="lectura anch" data-fin></div><p class="w-pie"></p>';
+    var st = { d: "d1", par: "0-1", o: [null, null] }, tab = cuerpo.querySelector("[data-tab]"), an = cuerpo.querySelector("[data-an]"), resp = cuerpo.querySelector("[data-resp]"), fin = cuerpo.querySelector("[data-fin]"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var D = TAB[st.d], par = st.par.split("-").map(Number), i = par[0], j = par[1], E = D.ex;
+      tab.innerHTML = "<div style='overflow-x:auto'><table class='lamina-table q3t' style='width:100%;text-align:center'><thead><tr><th>Exp.</th><th>[" + D.sp[0] + "] (mol/L)</th><th>[" + D.sp[1] + "] (mol/L)</th><th>v<sub>0</sub> (mol/(L·s))</th></tr></thead><tbody>" +
+        E.map(function (e, q) { var on = q === i || q === j; return "<tr" + (on ? " style='font-weight:700;background:var(--c-pen-bg,rgba(80,120,220,.12))'" : "") + "><td>" + (q + 1) + "</td><td>" + fmt(e[0], 2) + "</td><td>" + fmt(e[1], 2) + "</td><td>" + cien(e[2], 2) + "</td></tr>"; }).join("") + "</tbody></table></div>";
+      var a = E[i], b = E[j], ra = b[0] / a[0], rb = b[1] / a[1], rv = b[2] / a[2], txt;
+      if (Math.abs(ra - 1) < 1e-9 && Math.abs(rb - 1) < 1e-9) txt = "Las dos filas son iguales";
+      else if (Math.abs(rb - 1) < 1e-9) txt = "Solo cambia [" + D.sp[0] + "] (×" + fmt(ra, 2) + "): v cambia ×" + fmt(rv, 2) + ". Entonces " + fmt(ra, 2) + "<sup>n</sup> = " + fmt(rv, 2) + " → <b>n(" + D.sp[0] + ") = " + fmt(Math.log(rv) / Math.log(ra), 2) + "</b>.";
+      else if (Math.abs(ra - 1) < 1e-9) txt = "Solo cambia [" + D.sp[1] + "] (×" + fmt(rb, 2) + "): v cambia ×" + fmt(rv, 2) + ". Entonces " + fmt(rb, 2) + "<sup>m</sup> = " + fmt(rv, 2) + " → <b>m(" + D.sp[1] + ") = " + fmt(Math.log(rv) / Math.log(rb), 2) + "</b>.";
+      else txt = "Cambian las dos concentraciones (×" + fmt(ra, 2) + " y ×" + fmt(rb, 2) + "): con este par no se aísla ningún orden. Úsalo solo cuando ya conozcas uno de ellos, o elige otro par.";
+      an.innerHTML = fil("Cociente de concentraciones y de velocidades", "[" + D.sp[0] + "]: ×" + fmt(ra, 2) + " · [" + D.sp[1] + "]: ×" + fmt(rb, 2) + " · v: ×" + fmt(rv, 2), "pen ancho") + fil("Qué se deduce", txt, "ancho");
+      var ops = function (q) { return [0, 1, 2].map(function (n) { return "<button type='button' class='chip-btn" + (st.o[q] === n ? " on" : "") + "' data-q='" + q + "' data-n='" + n + "'>orden " + n + "</button>"; }).join(""); };
+      resp.innerHTML = "<div class='chips' style='margin-top:8px'><b style='align-self:center'>Orden respecto a " + D.sp[0] + ":</b> " + ops(0) + "</div><div class='chips'><b style='align-self:center'>Orden respecto a " + D.sp[1] + ":</b> " + ops(1) + "</div><div class='chips'><button type='button' class='chip-btn' data-ok>Comprobar</button></div>";
+      Array.prototype.forEach.call(resp.querySelectorAll("[data-n]"), function (bt) { bt.onclick = function () { st.o[+bt.getAttribute("data-q")] = +bt.getAttribute("data-n"); fin.innerHTML = ""; pinta(); }; });
+      resp.querySelector("[data-ok]").onclick = comprueba;
+      pie.innerHTML = "Método: compara dos experimentos en los que <b>solo cambia un reactivo</b>; el cociente de velocidades es el cociente de concentraciones elevado a su orden. Después, con cualquier experimento, k = v / ([A]<sup>n</sup>[B]<sup>m</sup>).";
+    }
+    function comprueba() {
+      var D = TAB[st.d];
+      if (st.o[0] == null || st.o[1] == null) { fin.innerHTML = fil("Falta", "Elige un orden para cada reactivo.", "red ancho"); return; }
+      var bien0 = st.o[0] === D.ord[0], bien1 = st.o[1] === D.ord[1], e = D.ex[0];
+      if (bien0 && bien1) {
+        var k = e[2] / (Math.pow(e[0], D.ord[0]) * Math.pow(e[1], D.ord[1]));
+        fin.innerHTML = fil("Correcto", "v = k·[" + D.sp[0] + "]" + (D.ord[0] === 1 ? "" : U.sup(D.ord[0])) + "·[" + D.sp[1] + "]" + (D.ord[1] === 1 ? "" : U.sup(D.ord[1])) + " · orden total " + (D.ord[0] + D.ord[1]), "ok ancho") +
+          fil("Constante k (con el exp. 1)", fmt(k, 3) + " " + D.uk, "ok ancho");
+      } else {
+        fin.innerHTML = fil("Todavía no", (bien0 ? "" : "Revisa " + D.sp[0] + ": busca dos experimentos en los que solo cambie " + D.sp[0] + ". ") + (bien1 ? "" : "Revisa " + D.sp[1] + ": busca dos experimentos en los que solo cambie " + D.sp[1] + "."), "red ancho");
+      }
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(TAB).map(function (k) { return { k: k, t: TAB[k].t }; }), st.d, function (k) { st.d = k; st.o = [null, null]; st.par = "0-1"; fin.innerHTML = ""; parejas(); pinta(); });
+    function parejas() {
+      var ps = [[0, 1], [0, 2], [1, 3], [2, 3], [0, 3]];
+      U.fichas(cuerpo.querySelector("[data-par]"), ps.map(function (p) { return { k: p[0] + "-" + p[1], t: "Comparar " + (p[0] + 1) + " y " + (p[1] + 1) }; }), st.par, function (k) { st.par = k; pinta(); });
+    }
+    parejas(); pinta();
+  };
+
+  // ============================================================
+  // Q5_MAXWELL: distribución de energías de las partículas y fracción con E ≥ Ea
+  //   f(E) = (2/√π)·(RT)^(-3/2)·√E·e^(−E/RT)   (E en kJ/mol);  P(E ≥ Ea) = Γ(3/2, x)/Γ(3/2), x = Ea/RT
+  // ============================================================
+  function fracMB(Ea, T) {     // E en kJ/mol
+    var x = Ea * 1000 / (R * T), a = x, b = x + 60, n = 2400, h = (b - a) / n, s = 0;
+    for (var i = 0; i <= n; i++) { var u = a + i * h, f = Math.sqrt(u) * Math.exp(-u); s += (i === 0 || i === n ? 1 : i % 2 ? 4 : 2) * f; }
+    return s * h / 3 / (Math.sqrt(Math.PI) / 2);
+  }
+  function densMB(E, T) { var rt = R * T / 1000; return 2 / Math.sqrt(Math.PI) * Math.pow(rt, -1.5) * Math.sqrt(E) * Math.exp(-E / rt); }
+  var TREF = 300;
+  B.w.q5_maxwell = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Maxwell–Boltzmann: ¿cuántos choques superan la Eₐ?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-zoom class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { T: 400, Ea: 30, zoom: false }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sT, sE;
+    sT = U.slider(ctl, { et: "T (K)", min: 250, max: 1200, step: 10, val: st.T, on: function (v) { st.T = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " K (" + fmt(v - 273.15, 0) + " °C)"; } });
+    sE = U.slider(ctl, { et: "Eₐ (kJ/mol)", min: 5, max: 60, step: 1, val: st.Ea, on: function (v) { st.Ea = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    function pinta() {
+      var T = st.T, Ea = st.Ea, XMAX = 80, YM = st.zoom ? Math.max(densMB(Ea, T), densMB(Ea, TREF)) * 3 : 0.2;
+      g.rango(0, XMAX, 0, YM); g.limpiar();
+      var pts = [[Ea, 0]]; for (var e = Ea; e <= XMAX; e += 0.5) pts.push([e, densMB(e, T)]); pts.push([XMAX, 0]);
+      g.poligono(pts, { clase: "z-red" });
+      g.curva(function (E) { return densMB(E, TREF); }, { clase: "c-faint", dash: "6 4", x0: 0.05, x1: XMAX, n: 240 });
+      g.curva(function (E) { return densMB(E, T); }, { clase: "c-pen", x0: 0.05, x1: XMAX, n: 240 }).setAttribute("stroke-width", 3);
+      g.segmento(Ea, 0, Ea, YM, { clase: "c-red" }); g.texto(Ea, YM, "Eₐ", { dx: 5, dy: 12, clase: "red" });
+      g.texto(XMAX, YM * 0.95, "azul: T actual", { ancla: "end", clase: "pen" }); g.texto(XMAX, YM * 0.87, "gris: 300 K", { ancla: "end", clase: "faint" });
+      if (st.zoom) g.texto(XMAX, YM * 0.79, "vertical ampliada ×" + cien(0.2 / YM, 1), { ancla: "end", clase: "red" });
+      var f = fracMB(Ea, T), f0 = fracMB(Ea, TREF);
+      lectura.innerHTML = fil("Fracción de partículas con E ≥ Eₐ a " + fmt(T, 0) + " K", cien(f, 2) + "  (" + (f >= 0.01 ? fmt(f * 100, 1) + " %" : cien(f * 100, 2) + " %") + ")", "red ancho") +
+        fil("A 300 K", cien(f0, 2), "faint") + fil("Cociente", T === TREF ? "×1" : "×" + (f / f0 >= 1000 ? cien(f / f0, 2) : fmt(f / f0, 2)), "ok") +
+        fil("Energía más probable ≈ RT/2", fmt(R * T / 2000, 2) + " kJ/mol", "pen");
+      pie.innerHTML = "El área total bajo la curva es siempre 1 (todas las partículas). Al subir T, la curva se <b>ensancha y se aplana</b> y el área a la derecha de Eₐ (zona roja) crece mucho, aunque la energía media solo cambie un poco: por eso k aumenta tanto con T. Con Eₐ típicas (decenas de kJ/mol) solo choca con energía suficiente una fracción pequeñísima a temperatura ambiente. La fracción es ≈ e<sup>−Eₐ/RT</sup> (el factor de Arrhenius).";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 80, ymin: 0, ymax: 0.2, w: 620, h: 300, sinY: true, etx: "energía E (kJ/mol)", ety: "fracción de partículas", etiqueta: "Distribución de Maxwell–Boltzmann" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), [{ k: "a", t: "Eₐ = 20, 300 → 310 K" }, { k: "b", t: "Eₐ = 50, 300 → 600 K" }, { k: "c", t: "Eₐ = 10, a 300 K" }], "", function (k) {
+      var P = { a: [310, 20], b: [600, 50], c: [300, 10] }[k]; st.T = P[0]; st.Ea = P[1]; sT.set(P[0]); sE.set(P[1]); pinta();
+    });
+    U.fichas(cuerpo.querySelector("[data-zoom]"), [{ k: "n", t: "Vista completa" }, { k: "z", t: "Ampliar la cola (área tras Eₐ)" }], "n", function (k) { st.zoom = k === "z"; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q5_ARRHENIUS: k(T) = A·e^(−Ea/RT);  ln(k2/k1) = (Ea/R)(1/T1 − 1/T2)
+  // ============================================================
+  B.w.q5_arrhenius = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Arrhenius con dos temperaturas");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { v: "ln", Ea: 60, T1: 300, T2: 320 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), cont = cuerpo.querySelector(".w-plot");
+    U.slider(ctl, { et: "Eₐ (kJ/mol)", min: 10, max: 150, step: 5, val: st.Ea, on: function (v) { st.Ea = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    U.slider(ctl, { et: "T₁ (K)", min: 250, max: 500, step: 5, val: st.T1, on: function (v) { st.T1 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    U.slider(ctl, { et: "T₂ (K)", min: 260, max: 600, step: 5, val: st.T2, on: function (v) { st.T2 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    function plot() {
+      cont.innerHTML = "";
+      g = new B.Plot(cont, st.v === "ln" ? { xmin: 2, xmax: 4, ymin: -1, ymax: 1, w: 620, h: 300, etx: "1000/T (10⁻³ K⁻¹)", ety: "ln(k/k₁)", etiqueta: "ln k frente a 1/T" }
+        : { xmin: 250, xmax: 600, ymin: 0, ymax: 2, w: 620, h: 300, etx: "T (K)", ety: "k / k₁", etiqueta: "k frente a T" });
+    }
+    function pinta() {
+      var Ea = st.Ea * 1000, T1 = st.T1, T2 = Math.max(st.T2, T1 + 5), lnr = Ea / R * (1 / T1 - 1 / T2), rat = Math.exp(lnr);
+      if (st.v === "ln") {
+        var xa = 1000 / T2, xb = 1000 / T1, pad = (xb - xa) * 0.3 + 0.03, kk = Ea / R / 1000;
+        g.rango(xa - pad, xb + pad, -kk * pad - 0.5, lnr + kk * pad + 0.5); g.limpiar();
+        var y = function (x) { return -kk * (x - xb); };
+        g.curva(y, { clase: "c-pen" }).setAttribute("stroke-width", 3);
+        g.segmento(xa, 0, xb, 0, { clase: "c-faint", dash: "4 4" }); g.segmento(xa, 0, xa, lnr, { clase: "c-faint", dash: "4 4" });
+        g.punto(xb, 0, { r: 6, clase: "c-pen" }); g.punto(xa, lnr, { r: 6, clase: "c-red" });
+        g.texto(xb, 0, "T₁", { dy: -10, ancla: "middle", clase: "pen" }); g.texto(xa, lnr, "T₂", { dy: -10, ancla: "middle", clase: "red" });
+      } else {
+        g.rango(T1 - (T2 - T1) * 0.1 - 5, T2 + (T2 - T1) * 0.1 + 5, 0, rat * 1.15); g.limpiar();
+        g.curva(function (T) { return Math.exp(Ea / R * (1 / T1 - 1 / T)); }, { clase: "c-pen", x0: T1, x1: T2, n: 120 }).setAttribute("stroke-width", 3);
+        g.punto(T1, 1, { r: 6, clase: "c-pen" }); g.punto(T2, rat, { r: 6, clase: "c-red" });
+        g.texto(T1, 1, "k₁", { dy: -10, dx: 8, clase: "pen" }); g.texto(T2, rat, "k₂", { dy: 16, ancla: "end", clase: "red" });
+      }
+      var q10 = Math.exp(Ea / R * (1 / T1 - 1 / (T1 + 10)));
+      lectura.innerHTML = fil("k₂ / k₁", rat < 1000 ? fmt(rat, rat < 10 ? 2 : 1) : cien(rat, 2), "red") +
+        fil("ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂)", fmt(lnr, 3), "pen") +
+        fil("Pendiente de ln k frente a 1/T = −Eₐ/R", fmt(-Ea / R, 0) + " K", "ok") +
+        fil("Cada +10 K a partir de T₁ multiplica k por", fmt(q10, 2), "ancho");
+      pie.innerHTML = "Con Eₐ mayor la reacción es <b>más sensible</b> a la temperatura (pendiente más negativa). La «regla» de que k se duplica cada +10 K solo es aproximada: sale con Eₐ ≈ 50 kJ/mol cerca de la temperatura ambiente. En la EvAU se usa <b>ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂)</b> con T en kelvin y R = 8,314 J/(mol·K).";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), [{ k: "ln", t: "ln k frente a 1/T (recta)" }, { k: "k", t: "k frente a T (curva)" }], st.v, function (k) { st.v = k; plot(); pinta(); });
+    plot(); pinta();
+  };
+
+  // ============================================================
+  // Q5_MECANISMO: etapa lenta, intermedios, catalizador y ley de velocidad
+  // ============================================================
+  var MEC = {
+    m1: { t: "NO₂ + CO → NO + CO₂", glob: "NO₂ + CO → NO + CO₂", obs: "v = k·[NO₂]²", dH: -226,
+      et: [["NO₂ + NO₂ → NO₃ + NO", "k₁[NO₂]²", "bimolecular"], ["NO₃ + CO → NO₂ + CO₂", "k₂[NO₃][CO]", "bimolecular"]], inter: "NO₃", cat: "—", nota: "La etapa lenta usa solo reactivos de la reacción global; el NO₃ (intermedio) aparece y desaparece. Observa que la ley no contiene [CO]: el CO reacciona después de la etapa lenta." },
+    m2: { t: "2 NO₂ + F₂ → 2 NO₂F", glob: "2 NO₂ + F₂ → 2 NO₂F", obs: "v = k·[NO₂]·[F₂]", dH: -284,
+      et: [["NO₂ + F₂ → NO₂F + F", "k₁[NO₂][F₂]", "bimolecular"], ["NO₂ + F → NO₂F", "k₂[NO₂][F]", "bimolecular"]], inter: "F (átomo)", cat: "—", nota: "Los coeficientes de la global (2 NO₂) no son los órdenes: el orden respecto al NO₂ es 1 porque en la etapa lenta solo interviene una molécula de NO₂." },
+    m3: { t: "2 H₂O₂ → 2 H₂O + O₂ (con I⁻)", glob: "2 H₂O₂ → 2 H₂O + O₂", obs: "v = k·[H₂O₂]·[I⁻]", dH: -196,
+      et: [["H₂O₂ + I⁻ → H₂O + IO⁻", "k₁[H₂O₂][I⁻]", "bimolecular"], ["H₂O₂ + IO⁻ → H₂O + O₂ + I⁻", "k₂[H₂O₂][IO⁻]", "bimolecular"]], inter: "IO⁻", cat: "I⁻", nota: "El I⁻ se gasta en la etapa 1 y se regenera en la 2: es un catalizador (no figura en la global pero sí en la ley de velocidad). El IO⁻ se forma y se consume: es un intermedio." }
+  };
+  B.w.q5_mecanismo = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Mecanismo de reacción: ¿cuál es la etapa lenta?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-lenta class="chips"></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { m: "m1", s: 1 }, g, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function nivel(a, b, x) { var s = x * x * (3 - 2 * x); return a + (b - a) * s; }
+    function perfil(M, lenta, x) {        // reactivos 0 → intermedio I → productos P; dos picos
+      var I = 15, P = M.dH / 5, p1 = lenta === 1 ? 95 : 45, p2 = I + (lenta === 2 ? 95 : 30);
+      var base = x < 0.5 ? nivel(0, I, x / 0.5) : nivel(I, P, (x - 0.5) / 0.5);
+      var b1 = (p1 - nivel(0, I, 0.5)) * Math.exp(-Math.pow((x - 0.25) / 0.085, 2));
+      var b2 = (p2 - nivel(I, P, 0.5)) * Math.exp(-Math.pow((x - 0.75) / 0.085, 2));
+      return base + b1 + b2;
+    }
+    function pinta() {
+      var M = MEC[st.m], s = st.s, E1 = M.et[0], E2 = M.et[1], ley = s === 1 ? E1[1] : E2[1], interviene = s === 2;
+      g.rango(0, 1, -60, 140); g.limpiar();
+      g.curva(function (x) { return perfil(M, s, x); }, { clase: "c-pen", n: 260 }).setAttribute("stroke-width", 3.2);
+      g.segmento(0, 0, 0.1, 0, { clase: "c-ink" }).setAttribute("stroke-width", 4); g.segmento(0.9, M.dH / 5, 1, M.dH / 5, { clase: "c-ink" }).setAttribute("stroke-width", 4);
+      g.segmento(0.44, 15, 0.56, 15, { clase: "c-ink" }).setAttribute("stroke-width", 4);
+      g.texto(0.01, 0, "Reactivos", { dy: -8, clase: "pen" }); g.texto(0.99, M.dH / 5, "Productos", { dy: -8, ancla: "end", clase: "red" });
+      g.texto(0.5, 15, "intermedio: " + M.inter, { dy: -10, ancla: "middle", clase: "faint" });
+      g.texto(0.25, s === 1 ? 95 : 45, "etapa 1" + (s === 1 ? " (lenta)" : " (rápida)"), { dy: -10, ancla: "middle", clase: s === 1 ? "red" : "ok" });
+      g.texto(0.75, 15 + (s === 2 ? 95 : 30), "etapa 2" + (s === 2 ? " (lenta)" : " (rápida)"), { dy: -10, ancla: "middle", clase: s === 2 ? "red" : "ok" });
+      var coincide = !interviene;
+      lectura.innerHTML = fil("Reacción global", M.glob + "  (ΔH = " + fmt(M.dH, 0) + " kJ)", "ancho") +
+        fil("Etapa 1", E1[0] + " · " + E1[2], "ancho") + fil("Etapa 2", E2[0] + " · " + E2[2], "ancho") +
+        fil("Ley de velocidad si la etapa " + s + " es la lenta", "v = " + ley.replace(/k[₁₂]/, "k"), (coincide ? "ok" : "red") + " ancho") +
+        fil("Ley observada experimentalmente", M.obs, "pen ancho") +
+        fil("¿Coinciden?", coincide ? "Sí: la etapa 1 como lenta explica la ley observada." : "No: la etapa 2 daría una ley con un intermedio (" + M.inter + "), que no se puede medir ni aparece en la global. Descartada.", (coincide ? "ok" : "red") + " ancho");
+      pie.innerHTML = M.nota + " <b>Intermedio</b>: se forma y se consume (no está en la global). <b>Catalizador</b>: se consume y se regenera. La etapa lenta es la de <b>mayor Eₐ</b> y manda sobre la velocidad global.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 1, ymin: -60, ymax: 140, w: 620, h: 300, sinX: true, sinY: true, etx: "coordenada de reacción", ety: "E (esquema)", etiqueta: "Perfil de un mecanismo en dos etapas" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(MEC).map(function (k) { return { k: k, t: MEC[k].t }; }), st.m, function (k) { st.m = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-lenta]"), [{ k: "1", t: "La etapa lenta es la 1" }, { k: "2", t: "La etapa lenta es la 2" }], "1", function (k) { st.s = +k; pinta(); });
+    pinta();
+  };
+
+  B.lab = B.lab || {};
+  B.lab.q5 = { REAC: REAC, TAB: TAB, MEC: MEC, concA: concA, conc: conc, vInst: vInst, fracMB: fracMB, R: R };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de rectas (Matemáticas I, tema 8)
    motor B.lab.recta + recta2p · ecgeneral · posiciones · distpunto
    mediatriz · ptosnotables · region
@@ -50320,6 +50586,681 @@
   ];
 
   B.registrar("quimica2", "t4", { resumen: resumen, secciones: B.parte.q2t4a.secciones, nuevas: B.parte.q2t4b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 5: Cinética química
+   (parte A: se añade al final de las secciones originales 1 a 5)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t5/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Velocidad de reacción
+  secciones[0] = env(
+    "<h5>Qué mide la velocidad y en qué unidades</h5>" +
+    "<p>La <b>cinética química</b> estudia <i>cuánto tarda</i> en ocurrir una reacción, mientras que la termodinámica (Tema 6) dice <i>si</i> puede ocurrir y cuánta energía intercambia. Una reacción puede ser muy favorable y, aun así, lentísima: el diamante «debería» convertirse en grafito y no lo hace en la vida de nadie.</p>" +
+    "<p>La velocidad se mide como cambio de concentración dividido entre el tiempo, así que sus unidades son <b>mol·L⁻¹·s⁻¹</b> (o mol/(L·min) si la reacción es lenta). Es siempre un número <b>positivo</b>.</p>" +
+    "<h5>Velocidad media y velocidad instantánea</h5>" +
+    "<p>La <b>velocidad media</b> en un intervalo es la pendiente de la <b>secante</b> que une dos puntos de la curva concentración–tiempo: v<sub>m</sub> = −Δ[A]/Δt = −([A]₂ − [A]₁)/(t₂ − t₁). La <b>velocidad instantánea</b> es la de un instante concreto: la pendiente de la <b>tangente</b> en ese punto (el límite de la velocidad media cuando Δt → 0, es decir, la derivada −d[A]/dt).</p>" +
+    "<p>Como los reactivos se van gastando, la curva de un reactivo <b>se aplana con el tiempo</b>: la reacción es más rápida al principio (muchos reactivos, muchos choques) y más lenta al final. Por eso la velocidad inicial es la mayor, y por eso la velocidad media entre dos instantes no es igual a la instantánea en ninguno de ellos.</p>" +
+    w("q5_curvas") +
+    "<h5>La velocidad y los coeficientes estequiométricos</h5>" +
+    "<p>En una reacción como N₂ + 3 H₂ → 2 NH₃, el H₂ se consume tres veces más deprisa que el N₂ y el NH₃ se forma al doble de ritmo que el N₂ se gasta. Para tener <b>una sola</b> velocidad de reacción se divide cada ritmo entre su coeficiente. Para a A + b B → c C + d D:</p>" +
+    "<div class='formula-wrap'><div class='formula'>v = −(1/a)·Δ[A]/Δt = −(1/b)·Δ[B]/Δt = (1/c)·Δ[C]/Δt = (1/d)·Δ[D]/Δt</div></div>" +
+    "<p>Las cantidades |Δ[X]/Δt| sin dividir se llaman <b>velocidades de desaparición</b> (reactivos) o <b>de formación</b> (productos) de cada especie: dependen de la especie que elijas. La <b>velocidad de reacción</b> v es la que ya está dividida entre el coeficiente: es única.</p>" +
+    ejemplo("Ejemplo resuelto: de una especie a las demás", "En la síntesis N₂(g) + 3 H₂(g) → 2 NH₃(g), la concentración de NH₃ pasa de 0,40 a 0,64 mol/L en 20 s. Calcula la velocidad de formación del NH₃, la velocidad de reacción y las velocidades de desaparición de N₂ y de H₂.", [
+      "Formación de NH₃: Δ[NH₃]/Δt = (0,64 − 0,40)/20 = 0,24/20 = <b>0,012 mol·L⁻¹·s⁻¹</b>.",
+      "Velocidad de reacción: se divide entre el coeficiente 2: v = 0,012/2 = <b>0,0060 mol·L⁻¹·s⁻¹</b>.",
+      "Desaparición de N₂ (coeficiente 1): igual que v → <b>0,0060 mol·L⁻¹·s⁻¹</b>.",
+      "Desaparición de H₂ (coeficiente 3): 3 · 0,0060 = <b>0,018 mol·L⁻¹·s⁻¹</b>.",
+      "Comprobación: los ritmos están en proporción 1 : 3 : 2 (N₂ : H₂ : NH₃), igual que los coeficientes: 0,0060 : 0,018 : 0,012."
+    ]) +
+    ejemplo("Ejemplo resuelto: velocidad media en dos intervalos", "En la descomposición 2 N₂O₅ → 4 NO₂ + O₂ se mide [N₂O₅] = 0,800 mol/L en t = 0, 0,560 mol/L en t = 50 s y 0,392 mol/L en t = 100 s. Calcula la velocidad media de reacción en cada intervalo y la velocidad media de formación del NO₂ en el primero.", [
+      "Intervalo 0–50 s: Δ[N₂O₅]/Δt = (0,560 − 0,800)/50 = −0,0048 mol·L⁻¹·s⁻¹. Se divide entre el coeficiente 2 (y se quita el signo): v = <b>0,0024 mol·L⁻¹·s⁻¹</b>.",
+      "Intervalo 50–100 s: Δ[N₂O₅]/Δt = (0,392 − 0,560)/50 = −0,00336; v = 0,00336/2 = <b>0,00168 mol·L⁻¹·s⁻¹</b>.",
+      "La velocidad ha bajado (0,0024 → 0,00168) porque queda menos reactivo: así se ve que la velocidad depende de la concentración.",
+      "Formación de NO₂ (coeficiente 4) en el primer intervalo: 4 · 0,0024 = <b>0,0096 mol·L⁻¹·s⁻¹</b>."
+    ]) +
+    ojo("Si el enunciado da la velocidad «de desaparición del reactivo» y pide «la velocidad de la reacción», hay que dividir entre el coeficiente. Y si pide la de otra especie, se multiplica por su coeficiente. Olvidarse de esto es el error más repetido en esta parte.")
+  );
+
+  // ---------------------------------------------------------------- 2. Ecuación de velocidad y orden
+  secciones[1] = env(
+    "<h5>Cómo se lee una ecuación de velocidad</h5>" +
+    "<p>En v = k·[A]<sup>n</sup>·[B]<sup>m</sup>, <b>n</b> y <b>m</b> son los <b>órdenes parciales</b> (respecto a A y a B) y <b>n + m</b> el <b>orden total</b>. Dicen <i>cuánto</i> depende la velocidad de cada concentración:</p>" +
+    tabla(["Orden respecto a A", "Si [A] se duplica…", "Si [A] se triplica…", "Si [A] se reduce a la mitad…"], [
+      ["0", "v no cambia (×1)", "×1", "×1"],
+      ["1", "v ×2", "×3", "×1/2"],
+      ["2", "v ×4", "×9", "×1/4"],
+      ["3", "v ×8", "×27", "×1/8"]
+    ], "q3t") +
+    "<p>El cambio de velocidad es el cambio de concentración <b>elevado al orden</b>: (factor)<sup>orden</sup>. Si cambian varias concentraciones a la vez, se multiplican los factores de cada una.</p>" +
+    ejemplo("Ejemplo resuelto: ¿en qué factor cambia v?", "La velocidad de una reacción es v = k·[A]·[B]². Calcula el factor por el que cambia v si (a) se triplica [A] y se mantiene [B]; (b) se duplica [B] y se triplica [A]; (c) se reduce a la mitad el volumen del recipiente (reacción en fase gaseosa a T constante).", [
+      "(a) El orden de A es 1: factor 3¹ = <b>×3</b>.",
+      "(b) Factor de A: 3¹ = 3. Factor de B: 2² = 4. Total: 3 · 4 = <b>×12</b>.",
+      "(c) Al reducir el volumen a la mitad, <b>todas</b> las concentraciones se duplican (n/V). Orden total 1 + 2 = 3, así que el factor es 2³ = <b>×8</b>."
+    ]) +
+    "<h5>Unidades de la constante de velocidad k</h5>" +
+    "<p>Como v tiene unidades de mol·L⁻¹·s⁻¹ y [A]<sup>n</sup>[B]<sup>m</sup> de (mol/L)<sup>orden total</sup>, la constante k tiene unidades que <b>dependen del orden total</b>: k = v/[ ]<sup>orden</sup>, es decir (mol·L⁻¹)<sup>1−orden</sup>·s⁻¹.</p>" +
+    tabla(["Orden total", "Unidades de k", "Ejemplo de ley"], [
+      ["0", "mol·L⁻¹·s⁻¹", "v = k"],
+      ["1", "s⁻¹", "v = k[A]"],
+      ["2", "L·mol⁻¹·s⁻¹", "v = k[A]² o v = k[A][B]"],
+      ["3", "L²·mol⁻²·s⁻¹", "v = k[A]²[B]"]
+    ], "q3t") +
+    "<p>Una consecuencia práctica: <b>las unidades de k delatan el orden total</b>. Si te dan k = 3,0·10⁻² L·mol⁻¹·s⁻¹, la reacción es de segundo orden en total sin mirar nada más.</p>" +
+    ejemplo("Ejemplo resuelto: calcular v y las unidades de k", "Para A + B → C se sabe que v = k·[A]²·[B] con k = 0,50 L²·mol⁻²·s⁻¹. Calcula v cuando [A] = 0,20 mol/L y [B] = 0,10 mol/L, y el orden total.", [
+      "Orden total: 2 + 1 = <b>3</b> (coherente con las unidades de k, L²·mol⁻²·s⁻¹).",
+      "v = 0,50 · (0,20)² · 0,10 = 0,50 · 0,040 · 0,10 = <b>2,0·10⁻³ mol·L⁻¹·s⁻¹</b>.",
+      "Comprobación de unidades: L²·mol⁻²·s⁻¹ · mol²·L⁻² · mol·L⁻¹ = mol·L⁻¹·s⁻¹ ✓."
+    ]) +
+    "<h5>Qué es y qué no es la constante k</h5>" +
+    "<ul>" +
+    "<li><b>k no depende de las concentraciones</b>: es la velocidad cuando todas valen 1 mol/L. Cambia con la <b>temperatura</b> (Arrhenius) y con un <b>catalizador</b>, y con nada más.</li>" +
+    "<li>Una reacción con k grande es rápida; con k pequeña, lenta (a la misma T y concentraciones comparables).</li>" +
+    "<li>Los <b>órdenes no salen de los coeficientes</b>: 2 NO + O₂ → 2 NO₂ podría ser de orden 3 o no. Se miden en el laboratorio (sección 6) o se deducen del mecanismo (sección 7).</li>" +
+    "<li>Los órdenes pueden ser 0, 1, 2… e incluso fraccionarios; un reactivo de orden 0 puede estar presente en la reacción y no influir en la velocidad (su concentración «no aparece» en la ley).</li>" +
+    "</ul>" +
+    "<h5>Ampliación: cómo evoluciona la concentración con el tiempo</h5>" +
+    "<p>Para las leyes más sencillas, con una sola especie A que determina la velocidad (v = k[A]<sup>n</sup>), la concentración en función del tiempo tiene forma conocida. En el simulador de la sección 1 puedes cambiar el orden y ver cómo cambia la curva:</p>" +
+    tabla(["Orden", "Cómo baja [A]", "Recta que sale al representar", "Vida media"], [
+      ["0", "linealmente hasta agotarse", "[A] frente a t (pendiente −k)", "depende de [A]₀ (t½ = [A]₀/2k)"],
+      ["1", "exponencialmente: [A] = [A]₀·e<sup>−kt</sup>", "ln[A] frente a t (pendiente −k)", "t½ = ln 2 / k, <b>no depende</b> de [A]₀"],
+      ["2", "más despacio: 1/[A] = 1/[A]₀ + kt", "1/[A] frente a t (pendiente +k)", "t½ = 1/(k[A]₀)"]
+    ], "q3t") +
+    "<p>Estas ecuaciones integradas no suelen pedirse en la EvAU de Madrid; lo habitual es trabajar con velocidades y con v = k[A]<sup>n</sup>[B]<sup>m</sup>. Pero conocer la idea ayuda: <i>la vida media constante</i> es la huella de una reacción de primer orden (por ejemplo, los isótopos radiactivos y la descomposición del N₂O₅).</p>" +
+    ojo("«La reacción A + 2B → C es de orden 3 porque 1 + 2 = 3.» No: solo es cierto si la reacción ocurre en una única etapa (reacción elemental, sección 7). El orden se mide, no se lee de la ecuación ajustada.")
+  );
+
+  // ---------------------------------------------------------------- 3. Factores que afectan
+  secciones[2] = env(
+    "<h5>Cada factor, con su porqué</h5>" +
+    tabla(["Factor", "Efecto sobre la velocidad", "¿Por qué?", "¿Cambia k?"], [
+      ["Concentración (o presión, si son gases)", "Mayor concentración, mayor v", "Más partículas por volumen: más choques por segundo", "No"],
+      ["Temperatura", "Mayor T, mayor v (de forma muy marcada)", "Choques más frecuentes y, sobre todo, <b>más partículas con E ≥ Eₐ</b> (Maxwell–Boltzmann)", "Sí (Arrhenius)"],
+      ["Superficie de contacto (sólidos)", "Más superficie, mayor v", "Más partículas del sólido accesibles a los choques", "No"],
+      ["Catalizador", "Aumenta v (inhibidor: la disminuye)", "Camino alternativo con menor Eₐ", "Sí"],
+      ["Naturaleza de los reactivos", "Cambia mucho entre reacciones", "Reacciones entre iones en disolución suelen ser rápidas; si hay que romper muchos enlaces covalentes, lentas", "Sí (cada reacción tiene su k)"],
+      ["Agitación, estado físico", "Mezcla homogénea, mayor v", "Los reactivos se encuentran más a menudo", "No"]
+    ], "q3t") +
+    "<p>La <b>concentración</b> y la <b>superficie</b> modifican cuántos choques hay; la <b>temperatura</b> y el <b>catalizador</b> modifican cuántos choques <i>son eficaces</i> (con energía suficiente) y por eso son los únicos que cambian k.</p>" +
+    "<h5>La temperatura: un efecto pequeño sobre el movimiento, enorme sobre la reacción</h5>" +
+    "<p>Subir la temperatura de 300 K a 310 K aumenta la energía cinética media solo un 3 %, y sin embargo la velocidad suele duplicarse o triplicarse. La causa no es que las partículas choquen más a menudo (eso crece solo un 2 %), sino que la <b>fracción de partículas con energía por encima de Eₐ</b> crece mucho: lo verás con la distribución de Maxwell–Boltzmann (sección 4).</p>" +
+    ojo("«Al aumentar la concentración aumenta k.» Falso: aumenta v, pero k solo depende de T y del catalizador. Del mismo modo, «un sólido pulverizado tiene mayor k» es falso: tiene mayor <i>velocidad</i> porque hay más superficie, no una constante distinta.")
+  );
+
+  // ---------------------------------------------------------------- 4. Teoría de colisiones y Ea
+  secciones[3] = env(
+    "<h5>Choques eficaces: energía y orientación</h5>" +
+    "<p>La <b>teoría de colisiones</b> explica la velocidad con tres condiciones para que un choque produzca reacción:</p>" +
+    "<ol>" +
+    "<li><b>Choque</b>: las partículas tienen que encontrarse (la frecuencia de choques crece con la concentración y con T).</li>" +
+    "<li><b>Energía suficiente</b>: la energía de la colisión debe ser al menos la <b>energía de activación Eₐ</b>, necesaria para empezar a romper enlaces.</li>" +
+    "<li><b>Orientación adecuada</b>: los átomos que deben unirse tienen que quedar cerca. Un choque de energía sobrada pero mal orientado rebota sin más.</li>" +
+    "</ol>" +
+    "<p>Solo una pequeña parte de los choques cumple las dos últimas condiciones: son los <b>choques eficaces</b>. La velocidad es proporcional al número de choques eficaces por segundo.</p>" +
+    "<h5>Teoría del estado de transición</h5>" +
+    "<p>La teoría del <b>estado de transición</b> (o del complejo activado) añade qué ocurre durante un choque eficaz: los reactivos se aproximan, algunos enlaces se debilitan y otros empiezan a formarse, y el sistema pasa por una situación de <b>máxima energía y muy inestable</b>, el <b>complejo activado</b> o estado de transición (se escribe con ‡). Es el punto más alto del perfil de energía; no se puede aislar ni almacenar, solo «atravesar». A partir de él el sistema cae hacia los productos (o vuelve a los reactivos).</p>" +
+    "<p>Por definición, <b>Eₐ = E(complejo activado) − E(reactivos)</b>. Se mide en kJ/mol.</p>" +
+    "<h5>El perfil de energía: Eₐ directa, Eₐ inversa y ΔH</h5>" +
+    "<p>En el perfil de reacción (energía frente a coordenada de reacción) aparecen tres alturas relacionadas:</p>" +
+    "<div class='formula-wrap'><div class='formula'>ΔH = Eₐ(directa) − Eₐ(inversa)  ⟹  Eₐ(inversa) = Eₐ(directa) − ΔH</div></div>" +
+    "<ul>" +
+    "<li><b>Exotérmica</b> (ΔH &lt; 0): los productos están por debajo de los reactivos; la reacción inversa tiene Eₐ <b>mayor</b> que la directa.</li>" +
+    "<li><b>Endotérmica</b> (ΔH &gt; 0): los productos están por encima; la inversa tiene Eₐ <b>menor</b> que la directa.</li>" +
+    "<li>Una reacción puede ser muy exotérmica y lenta (Eₐ grande), o poco exotérmica y rápida: <b>ΔH y Eₐ son independientes</b>. ΔH dice lo que se libera; Eₐ lo que cuesta empezar.</li>" +
+    "</ul>" +
+    w("q6_diagrama") +
+    ejemplo("Ejemplo resuelto: Eₐ de la reacción inversa", "Una reacción tiene ΔH = −90 kJ/mol y Eₐ(directa) = 40 kJ/mol. Calcula Eₐ(inversa). Repite el cálculo para otra reacción con ΔH = +60 kJ/mol y Eₐ(directa) = 100 kJ/mol. Di cuál es más fácil de revertir.", [
+      "Primera: Eₐ(inv) = Eₐ(dir) − ΔH = 40 − (−90) = <b>130 kJ/mol</b>. Está muy por encima: bajar de los productos al estado de transición cuesta 130 kJ, así que la reacción inversa es mucho más lenta que la directa.",
+      "Segunda: Eₐ(inv) = 100 − 60 = <b>40 kJ/mol</b>. La inversa es más fácil que la directa (es una reacción endotérmica).",
+      "Comprobación de coherencia: en ambos casos Eₐ(inv) &gt; 0, como debe ser; y en la exotérmica Eₐ(inv) &gt; Eₐ(dir), en la endotérmica Eₐ(inv) &lt; Eₐ(dir)."
+    ]) +
+    "<h5>Por qué la temperatura acelera tanto: Maxwell–Boltzmann</h5>" +
+    "<p>Las partículas de una sustancia no tienen todas la misma energía: se reparten según la <b>distribución de Maxwell–Boltzmann</b>, con muchas partículas de energía moderada y una «cola» de partículas muy energéticas. Solo las de la cola (E ≥ Eₐ) pueden reaccionar al chocar. Al subir T, la curva se desplaza, se aplana y se ensancha: el área a la derecha de Eₐ <b>crece de forma desproporcionada</b>, aunque la energía media apenas cambie. Con un catalizador sucede lo contrario: no se mueve la curva, sino que baja Eₐ y el área útil aumenta.</p>" +
+    w("q5_maxwell") +
+    "<h5>Qué hace el catalizador (y qué no)</h5>" +
+    "<p>El catalizador ofrece un <b>mecanismo alternativo</b> con una Eₐ menor y se <b>regenera</b> al final. Cambia la velocidad, pero no los reactivos, los productos ni el balance energético:</p>" +
+    tabla(["El catalizador SÍ cambia", "El catalizador NO cambia"], [
+      ["El camino de la reacción (mecanismo)", "ΔH, ΔG, ΔS de la reacción"],
+      ["Eₐ (la baja, en <b>los dos sentidos</b>)", "Las energías de reactivos y productos"],
+      ["La constante k y la velocidad v", "La constante de equilibrio K y el rendimiento en el equilibrio"],
+      ["El tiempo en alcanzar el equilibrio (menor)", "La estequiometría ni la cantidad de producto que se obtiene"]
+    ], "q3t") +
+    ojo("Un catalizador no hace posible una reacción termodinámicamente imposible (ΔG &gt; 0): solo acelera las que ya son espontáneas. Y como baja Eₐ directa e inversa por igual, no desplaza el equilibrio: lo alcanza antes.")
+  );
+
+  // ---------------------------------------------------------------- 5. Arrhenius
+  secciones[4] = env(
+    "<h5>Cómo leer la ecuación</h5>" +
+    "<p>En k = A·e<sup>−Eₐ/RT</sup>: <b>A</b> es el factor de frecuencia (tiene las mismas unidades que k), <b>R</b> = 8,314 J·mol⁻¹·K⁻¹, <b>T</b> la temperatura en <b>kelvin</b> y Eₐ en <b>J/mol</b> (¡pasar los kJ a J!). El factor e<sup>−Eₐ/RT</sup> es justo la fracción de choques con energía suficiente (la cola de Maxwell–Boltzmann): Eₐ grande hace que sea diminuto, T grande que se acerque a 1.</p>" +
+    "<p>Tomando logaritmos neperianos se obtiene la forma lineal:</p>" +
+    "<div class='formula-wrap'><div class='formula'>ln k = ln A − (Eₐ/R)·(1/T)</div></div>" +
+    "<p>Si se representa <b>ln k frente a 1/T</b> salen puntos alineados: una recta de <b>pendiente −Eₐ/R</b> y ordenada en el origen ln A. Así se determina Eₐ en el laboratorio.</p>" +
+    "<h5>Con dos temperaturas</h5>" +
+    "<p>Restando la ecuación a T₂ y a T₁, A desaparece:</p>" +
+    "<div class='formula-wrap'><div class='formula'>ln(k₂/k₁) = (Eₐ/R)·(1/T₁ − 1/T₂)</div></div>" +
+    "<p>Con ella se calcula k₂ si se conocen k₁ y Eₐ, o se calcula Eₐ a partir de dos valores de k. Si T₂ &gt; T₁ el paréntesis es positivo, así que k₂ &gt; k₁.</p>" +
+    w("q5_arrhenius") +
+    ejemplo("Ejemplo resuelto: k a otra temperatura", "Una reacción tiene k = 1,2·10⁻³ s⁻¹ a 300 K y Eₐ = 60 kJ/mol. Calcula k a 320 K.", [
+      "Datos en unidades SI: Eₐ = 60 000 J/mol; R = 8,314 J·mol⁻¹·K⁻¹.",
+      "ln(k₂/k₁) = (60 000/8,314)·(1/300 − 1/320) = 7 217 · 2,0833·10⁻⁴ = <b>1,503</b>.",
+      "k₂/k₁ = e<sup>1,503</sup> = <b>4,50</b>.",
+      "k₂ = 4,50 · 1,2·10⁻³ = <b>5,4·10⁻³ s⁻¹</b>. Con solo 20 K de aumento, la reacción es 4,5 veces más rápida."
+    ]) +
+    ejemplo("Ejemplo resuelto: calcular la energía de activación", "La constante de velocidad de una reacción es 3,0·10⁻⁴ s⁻¹ a 300 K y 3,0·10⁻³ s⁻¹ a 330 K. Calcula Eₐ.", [
+      "k₂/k₁ = 3,0·10⁻³/3,0·10⁻⁴ = 10, luego ln(k₂/k₁) = ln 10 = 2,303.",
+      "(1/T₁ − 1/T₂) = 1/300 − 1/330 = 3,030·10⁻⁴ K⁻¹.",
+      "Eₐ = R·ln(k₂/k₁)/(1/T₁ − 1/T₂) = 8,314 · 2,303 / 3,030·10⁻⁴ = 6,32·10⁴ J/mol = <b>63,2 kJ/mol</b>."
+    ]) +
+    ejemplo("Ejemplo resuelto: ¿«se duplica cada 10 grados»?", "Calcula cuánto aumenta k al subir de 298 K a 308 K si Eₐ vale (a) 50 kJ/mol, (b) 60 kJ/mol y (c) 100 kJ/mol.", [
+      "Se usa ln(k₂/k₁) = (Eₐ/R)(1/298 − 1/308) con (1/298 − 1/308) = 1,0896·10⁻⁴ K⁻¹.",
+      "(a) 50 000/8,314 · 1,0896·10⁻⁴ = 0,655 → k₂/k₁ = <b>1,93</b> (casi el doble).",
+      "(b) 60 000/8,314 · 1,0896·10⁻⁴ = 0,786 → <b>2,20</b>.",
+      "(c) 100 000/8,314 · 1,0896·10⁻⁴ = 1,311 → <b>3,71</b>.",
+      "Conclusión: la «regla» de que se duplica es una aproximación que vale para Eₐ ≈ 50–60 kJ/mol; cuanto mayor es Eₐ, más sensible es la reacción a la temperatura."
+    ]) +
+    ojo("Tres errores de cálculo muy repetidos con Arrhenius: (1) usar °C en lugar de K; (2) dejar Eₐ en kJ/mol con R en J/(mol·K); (3) invertir el orden (1/T₂ − 1/T₁) y obtener una Eₐ negativa. Si Eₐ te sale negativa o k₂ &lt; k₁ con T₂ &gt; T₁, revisa el signo.")
+  );
+
+  B.parte.q2t5a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 5: Cinética química
+   (parte B: secciones nuevas 6 a 11)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t5/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 6
+    {
+      h: "6. Determinar los órdenes: el método de las velocidades iniciales",
+      html: env(
+        "<h5>La idea</h5>" +
+        "<p>Los órdenes no se pueden adivinar mirando la ecuación química; se obtienen midiendo. El método estándar consiste en medir la <b>velocidad inicial</b> v₀ (al principio, cuando todavía no se ha gastado casi nada) en varios experimentos con distintas concentraciones iniciales. Después se comparan los experimentos <b>de dos en dos</b>.</p>" +
+        "<p>La regla es siempre la misma: si entre dos experimentos <b>solo cambia [A]</b> en un factor f y la velocidad cambia en un factor F, entonces</p>" +
+        "<div class='formula-wrap'><div class='formula'>F = f<sup>n</sup>  ⟹  n = log F / log f</div></div>" +
+        "<p>Con factores sencillos se resuelve a ojo: si [A] se duplica (f = 2) y v se multiplica por 2 → n = 1; por 4 → n = 2; por 8 → n = 3; no cambia → n = 0. Si [A] se triplica y v se multiplica por 9, n = 2.</p>" +
+        "<h5>Receta en cuatro pasos</h5>" +
+        "<ol>" +
+        "<li><b>Busca un par de experimentos</b> en los que cambie una sola concentración.</li>" +
+        "<li>Calcula el cociente de concentraciones f y el cociente de velocidades F; deduce el orden de ese reactivo.</li>" +
+        "<li>Repite para cada reactivo con otro par (o con el mismo par si hay un experimento «puente»).</li>" +
+        "<li>Escribe v = k[A]<sup>n</sup>[B]<sup>m</sup>, <b>calcula k</b> con cualquiera de los experimentos (con sus unidades) y comprueba el resultado con otro experimento.</li>" +
+        "</ol>" +
+        ejemplo("Ejemplo resuelto: tres experimentos", "Para 2 NO + Cl₂ → 2 NOCl se midieron las velocidades iniciales: (1) [NO] = 0,10 y [Cl₂] = 0,10 mol/L, v₀ = 1,8·10⁻⁴ mol·L⁻¹·s⁻¹; (2) [NO] = 0,20 y [Cl₂] = 0,10, v₀ = 7,2·10⁻⁴; (3) [NO] = 0,20 y [Cl₂] = 0,30, v₀ = 2,16·10⁻³. Halla la ecuación de velocidad, el orden total y k. Calcula v₀ cuando [NO] = 0,30 y [Cl₂] = 0,20 mol/L.", [
+          "Experimentos 1 y 2: [Cl₂] constante y [NO] se duplica (f = 2); v pasa de 1,8·10⁻⁴ a 7,2·10⁻⁴ (F = 4). Entonces 2<sup>n</sup> = 4 → <b>n = 2</b> respecto al NO.",
+          "Experimentos 2 y 3: [NO] constante y [Cl₂] se triplica (f = 3); v pasa de 7,2·10⁻⁴ a 2,16·10⁻³ (F = 3). Entonces 3<sup>m</sup> = 3 → <b>m = 1</b> respecto al Cl₂.",
+          "Ley: <b>v = k·[NO]²·[Cl₂]</b>; orden total 2 + 1 = <b>3</b>.",
+          "Constante (con el experimento 1): k = 1,8·10⁻⁴/(0,10² · 0,10) = 1,8·10⁻⁴/1,0·10⁻³ = <b>0,18 L²·mol⁻²·s⁻¹</b> (unidades de un orden 3).",
+          "Predicción: v₀ = 0,18 · 0,30² · 0,20 = 0,18 · 0,090 · 0,20 = <b>3,24·10⁻³ mol·L⁻¹·s⁻¹</b>."
+        ]) +
+        ejemplo("Ejemplo resuelto: un orden cero y un experimento donde cambian los dos", "Para A + B → productos se obtuvo: (1) [A] = 0,20 y [B] = 0,10 mol/L, v₀ = 1,6·10⁻³ mol·L⁻¹·s⁻¹; (2) [A] = 0,40 y [B] = 0,10, v₀ = 3,2·10⁻³; (3) [A] = 0,40 y [B] = 0,30, v₀ = 3,2·10⁻³; (4) [A] = 0,60 y [B] = 0,20, v₀ = 4,8·10⁻³. Halla la ley y k, y comprueba el experimento 4.", [
+          "Experimentos 1 y 2: solo cambia A (×2) y v se duplica (×2) → 2<sup>n</sup> = 2 → <b>n = 1</b>.",
+          "Experimentos 2 y 3: solo cambia B (×3) y v <b>no cambia</b> (×1) → 3<sup>m</sup> = 1 → <b>m = 0</b>: B no aparece en la ley aunque sea reactivo.",
+          "Ley: <b>v = k·[A]</b>; orden total 1; k = 1,6·10⁻³/0,20 = <b>8,0·10⁻³ s⁻¹</b>.",
+          "Comprobación con el experimento 4 (cambian los dos, pero ya conocemos la ley): v = 8,0·10⁻³ · 0,60 = 4,8·10⁻³ ✓. Si el valor no saliera, algo estaría mal en los órdenes."
+        ]) +
+        w("q5_tabla") +
+        "<h5>Otro camino: las gráficas concentración–tiempo</h5>" +
+        "<p>Si en vez de velocidades iniciales se tiene la concentración medida a distintos tiempos, se puede probar qué gráfica sale recta ([A] frente a t → orden 0; ln[A] frente a t → orden 1; 1/[A] frente a t → orden 2). Otra pista: en una reacción de primer orden, la concentración baja <b>siempre en la misma proporción</b> en intervalos de tiempo iguales.</p>" +
+        ejemplo("Ejemplo resuelto: reconocer un primer orden", "En la descomposición del N₂O₅ se midió [N₂O₅] = 0,800 mol/L (t = 0), 0,560 (t = 50 s) y 0,392 (t = 100 s). ¿Qué orden tiene respecto al N₂O₅? Calcula la constante k de d[N₂O₅]/dt = −k·[N₂O₅] y la vida media.", [
+          "Proporciones: 0,560/0,800 = 0,70 y 0,392/0,560 = 0,70. Son iguales en intervalos iguales → <b>primer orden</b>.",
+          "ln[N₂O₅]: ln 0,800 = −0,2231; ln 0,560 = −0,5798; ln 0,392 = −0,9365. Baja −0,3567 en cada intervalo: es una recta.",
+          "k = pendiente cambiada de signo = 0,3567/50 = <b>7,13·10⁻³ s⁻¹</b>.",
+          "Vida media: t½ = ln 2 / k = 0,6931/7,13·10⁻³ = <b>97 s</b> (no depende de la concentración inicial: huella del primer orden)."
+        ]) +
+        ojo("Para aislar el orden de un reactivo hay que comparar dos experimentos en los que <b>los demás reactivos tengan la misma concentración</b>. Si cambian dos concentraciones a la vez, el cociente de velocidades mezcla los dos efectos y no se puede leer el orden directamente (hay que conocer antes uno de ellos).")
+      )
+    },
+    // ------------------------------------------------------------ 7
+    {
+      h: "7. Molecularidad, mecanismos y etapa lenta",
+      html: env(
+        "<h5>Reacción global y reacciones elementales</h5>" +
+        "<p>La ecuación ajustada (<b>reacción global</b>) resume el resultado, pero la mayoría de las reacciones no ocurren en un solo choque: avanzan por una secuencia de <b>etapas elementales</b>, el <b>mecanismo de reacción</b>. Cada etapa elemental es un suceso real de choque (o de ruptura espontánea) entre partículas.</p>" +
+        "<p>La <b>molecularidad</b> de una etapa elemental es el <b>número de partículas que intervienen</b> en ella: <b>unimolecular</b> (1), <b>bimolecular</b> (2) y, rarísima vez, <b>trimolecular</b> (3). Los choques de tres cuerpos a la vez son tan improbables que casi nunca se proponen; una global con coeficientes que sumen 3 o más se explica con etapas bimoleculares sucesivas.</p>" +
+        tabla(["", "Orden de reacción", "Molecularidad"], [
+          ["Se refiere a…", "La reacción global (o una etapa)", "Solo a una <b>etapa elemental</b>"],
+          ["Cómo se obtiene", "Experimentalmente", "Del mecanismo propuesto"],
+          ["Valores posibles", "0, 1, 2, 3, fraccionarios…", "Enteros: 1, 2 (3 raro)"],
+          ["Relación con los coeficientes", "<b>Ninguna</b> en general", "En una etapa elemental, los coeficientes <b>sí</b> son los órdenes"]
+        ], "q3t") +
+        "<h5>La etapa lenta manda</h5>" +
+        "<p>Si un mecanismo tiene varias etapas, la <b>etapa más lenta</b> (la de mayor Eₐ) limita la velocidad global, como el tramo más estrecho de una tubería: no importa lo rápidas que sean las demás. Por eso la <b>ecuación de velocidad experimental coincide con la de la etapa lenta</b>, escrita como si fuera elemental (orden = coeficientes de los reactivos de esa etapa).</p>" +
+        "<p>Un mecanismo es <b>aceptable</b> cuando se cumplen dos condiciones: (1) la suma de todas sus etapas da exactamente la reacción global (se cancelan los intermedios), y (2) la ley de velocidad de la etapa lenta coincide con la ley medida. Cumplirlas no prueba que sea el mecanismo verdadero, pero incumplirlas lo descarta.</p>" +
+        "<h5>Intermedios y catalizadores</h5>" +
+        "<ul>" +
+        "<li><b>Intermedio</b>: especie que <i>se forma</i> en una etapa y <i>se consume</i> en otra posterior. No aparece en la global ni en la ley de velocidad. En el perfil de energía es un <b>mínimo</b> entre dos máximos.</li>" +
+        "<li><b>Catalizador</b>: especie que <i>se consume</i> en una etapa y <i>se regenera</i> después. Tampoco aparece en la global, pero <i>sí</i> puede aparecer en la ley de velocidad.</li>" +
+        "<li><b>Estado de transición</b>: máximo de energía de cada etapa; no es un intermedio (no se puede aislar).</li>" +
+        "</ul>" +
+        ejemplo("Ejemplo resuelto: de un mecanismo a la ley de velocidad", "La reacción NO₂(g) + CO(g) → NO(g) + CO₂(g) transcurre por el mecanismo: etapa 1 (lenta) NO₂ + NO₂ → NO₃ + NO; etapa 2 (rápida) NO₃ + CO → NO₂ + CO₂. Comprueba que el mecanismo es coherente, identifica el intermedio, escribe la ley de velocidad e indica orden total y molecularidad de cada etapa.", [
+          "Suma de etapas: NO₂ + NO₂ + NO₃ + CO → NO₃ + NO + NO₂ + CO₂. Se cancelan NO₃ y un NO₂: queda <b>NO₂ + CO → NO + CO₂</b>, que es la global ✓.",
+          "Intermedio: <b>NO₃</b> (se forma en la etapa 1 y se gasta en la 2).",
+          "Etapa lenta (1): bimolecular con dos NO₂, así que <b>v = k·[NO₂]²</b>.",
+          "Orden total 2 (segundo orden respecto al NO₂ y <b>orden cero respecto al CO</b>: el CO reacciona después de la etapa lenta y no influye en la velocidad). Las dos etapas son <b>bimoleculares</b>.",
+          "Obsérvese que la ley no tiene nada que ver con los coeficientes de la global (1 y 1): sería un error escribir v = k[NO₂][CO]."
+        ]) +
+        ejemplo("Ejemplo resuelto: un catalizador dentro del mecanismo", "La descomposición 2 H₂O₂ → 2 H₂O + O₂ en presencia de I⁻ ocurre así: etapa 1 (lenta) H₂O₂ + I⁻ → H₂O + IO⁻; etapa 2 (rápida) H₂O₂ + IO⁻ → H₂O + O₂ + I⁻. Identifica intermedio y catalizador y escribe la ley de velocidad.", [
+          "Suma: 2 H₂O₂ + I⁻ + IO⁻ → 2 H₂O + IO⁻ + O₂ + I⁻. Se cancelan I⁻ e IO⁻: <b>2 H₂O₂ → 2 H₂O + O₂</b> ✓.",
+          "<b>IO⁻</b> es el intermedio (aparece en la etapa 1 y desaparece en la 2). <b>I⁻</b> es el catalizador (se consume en la 1 y se regenera en la 2).",
+          "Ley (etapa lenta): <b>v = k·[H₂O₂]·[I⁻]</b>: orden 1 respecto al H₂O₂, 1 respecto al I⁻, orden total 2. El catalizador aparece en la ley: por eso su concentración modifica la velocidad.",
+          "Fíjate: el coeficiente 2 del H₂O₂ en la global no se convierte en orden 2."
+        ]) +
+        w("q5_mecanismo") +
+        ojo("«Si la etapa lenta es la segunda, la ley es la de la segunda etapa.» Cuidado: si esa etapa contiene un intermedio, esa ley no sirve (no se mide la concentración de intermedios) y hay que expresarlo en función de reactivos, con herramientas que van más allá de Bachillerato. En los problemas de la EvAU la etapa lenta casi siempre es la primera, o contiene solo reactivos.")
+      )
+    },
+    // ------------------------------------------------------------ 8
+    {
+      h: "8. Catalizadores: tipos, efectos y ejemplos",
+      html: env(
+        "<h5>Tipos de catálisis</h5>" +
+        tabla(["Tipo", "Qué es", "Ejemplos"], [
+          ["Homogénea", "Catalizador y reactivos en la <b>misma fase</b>", "I⁻(aq) en la descomposición de H₂O₂(aq); NO₂(g) en la fabricación de H₂SO₄ por cámaras de plomo"],
+          ["Heterogénea", "Catalizador en <b>fase distinta</b> (normalmente sólido) y la reacción ocurre en su superficie", "Fe en la síntesis de NH₃ (Haber); V₂O₅ en SO₂ → SO₃; Pt/Rh/Pd en el catalizador de los coches"],
+          ["Enzimática", "Catalizadores biológicos (proteínas), muy <b>específicos</b> y eficaces a T y pH moderados", "Catalasa (descompone H₂O₂), amilasa de la saliva, enzimas de la digestión"]
+        ], "q3t") +
+        "<p>En la catálisis heterogénea los reactivos se <b>adsorben</b> en puntos activos de la superficie, donde se debilitan sus enlaces; se transforman y los productos se desorben. Por eso un catalizador finamente dividido (más superficie) es más eficaz, y por eso un <b>veneno</b> que ocupe los puntos activos lo inutiliza (el plomo de las gasolinas antiguas estropeaba los catalizadores de los coches). Un <b>inhibidor</b> es lo contrario de un catalizador: disminuye la velocidad.</p>" +
+        "<h5>Qué cambia y qué no: consecuencias cuantitativas</h5>" +
+        "<p>Si se supone que A es la misma con y sin catalizador, la ecuación de Arrhenius permite saber cuánto acelera:</p>" +
+        "<div class='formula-wrap'><div class='formula'>k<sub>cat</sub>/k = e<sup>(Eₐ − Eₐ,cat)/RT</sup></div></div>" +
+        ejemplo("Ejemplo resuelto: cuánto acelera un catalizador", "Un catalizador reduce la energía de activación de una reacción de 80 a 50 kJ/mol. ¿Cuántas veces aumenta la constante de velocidad a 298 K (suponiendo el mismo factor A)? ¿Y a 500 K?", [
+          "Diferencia de energías de activación: 80 − 50 = 30 kJ/mol = 30 000 J/mol.",
+          "A 298 K: ln(k<sub>cat</sub>/k) = 30 000/(8,314 · 298) = 12,11 → k<sub>cat</sub>/k = e<sup>12,11</sup> = <b>1,8·10⁵</b>: la reacción va unas 180 000 veces más deprisa.",
+          "A 500 K: 30 000/(8,314 · 500) = 7,217 → e<sup>7,217</sup> ≈ <b>1,4·10³</b>.",
+          "A temperaturas más altas el catalizador es relativamente menos decisivo (la energía térmica ya ayuda a superar la barrera)."
+        ]) +
+        ejemplo("Ejemplo resuelto: ¿por qué el catalizador no cambia el equilibrio?", "La reacción A ⇌ B tiene Eₐ(directa) = 80 kJ/mol y Eₐ(inversa) = 120 kJ/mol. Un catalizador reduce la barrera en 30 kJ/mol. Calcula ΔH antes y después y razona qué pasa con K.", [
+          "ΔH = Eₐ(dir) − Eₐ(inv) = 80 − 120 = <b>−40 kJ/mol</b>.",
+          "Con catalizador: Eₐ(dir) = 50 y Eₐ(inv) = 90 (el camino alternativo baja la barrera en los dos sentidos, 30 kJ/mol cada uno). ΔH = 50 − 90 = <b>−40 kJ/mol</b>: no cambia.",
+          "Las dos constantes se multiplican por el mismo factor e<sup>30 000/RT</sup>. Como K<sub>c</sub> = k<sub>dir</sub>/k<sub>inv</sub>, el factor se simplifica: <b>K no cambia</b>.",
+          "Lo que sí cambia es el tiempo necesario para llegar al equilibrio: ahora es mucho menor."
+        ]) +
+        "<h5>Ejemplos que conviene conocer</h5>" +
+        "<ul>" +
+        "<li><b>Convertidor catalítico</b> (Pt, Pd, Rh): transforma CO, hidrocarburos sin quemar y NO<sub>x</sub> de los gases de escape en CO₂, H₂O y N₂.</li>" +
+        "<li><b>Síntesis de Haber</b>: N₂ + 3 H₂ ⇌ 2 NH₃ con Fe; el catalizador hace viable a T moderada (400–500 °C) una reacción que sin él sería inabordablemente lenta.</li>" +
+        "<li><b>Contacto</b>: 2 SO₂ + O₂ ⇌ 2 SO₃ con V₂O₅ en la fabricación de ácido sulfúrico.</li>" +
+        "<li><b>Enzimas</b>: la catalasa acelera la descomposición del H₂O₂ millones de veces; una temperatura demasiado alta las desnaturaliza, así que su actividad tiene un máximo.</li>" +
+        "</ul>" +
+        ojo("Hay dos formas de acelerar una reacción con Eₐ alta: subir la temperatura (más partículas por encima de Eₐ) o usar un catalizador (baja Eₐ). Una reacción exotérmica reversible, además, se desplaza hacia los reactivos al calentar, así que a veces conviene el catalizador y no la temperatura para no perder rendimiento.")
+      )
+    },
+    // ------------------------------------------------------------ 9
+    {
+      h: "9. Problemas tipo EvAU, paso a paso",
+      html: env(
+        "<h5>Una estrategia que sirve casi siempre</h5>" +
+        "<ol>" +
+        "<li><b>Identifica qué te dan</b>: ¿una tabla de velocidades iniciales?, ¿dos constantes a dos temperaturas?, ¿energías de un perfil?, ¿un mecanismo?</li>" +
+        "<li><b>Escribe la fórmula que corresponde</b> antes de sustituir: v = k[A]ⁿ[B]ᵐ, ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂), Eₐ(inv) = Eₐ(dir) − ΔH.</li>" +
+        "<li><b>Convierte las unidades</b>: K, J/mol, mol/L, s.</li>" +
+        "<li><b>Calcula con unidades</b>; las unidades de k te dicen si el orden total que has sacado es el correcto.</li>" +
+        "<li><b>Cierra con una frase</b> que responda lo preguntado.</li>" +
+        "</ol>" +
+        ejemplo("Problema EvAU 1: tabla de velocidades y predicción", "Para la reacción A + 2 B → C se han medido las velocidades iniciales: (1) [A] = 0,10 y [B] = 0,10 mol/L, v₀ = 2,0·10⁻³ mol·L⁻¹·s⁻¹; (2) [A] = 0,20 y [B] = 0,10, v₀ = 4,0·10⁻³; (3) [A] = 0,10 y [B] = 0,30, v₀ = 1,8·10⁻². (a) Órdenes parciales y orden total. (b) Ecuación de velocidad. (c) Constante de velocidad con sus unidades. (d) Velocidad cuando [A] = 0,050 y [B] = 0,20 mol/L. (e) ¿Es razonable que los órdenes coincidan con los coeficientes (1 y 2)?", [
+          "(a) Experimentos 1→2: [A] ×2 y v ×2 → 2<sup>n</sup> = 2 → <b>n = 1</b>. Experimentos 1→3: [B] ×3 y v ×9 → 3<sup>m</sup> = 9 → <b>m = 2</b>. Orden total: <b>3</b>.",
+          "(b) <b>v = k·[A]·[B]²</b>.",
+          "(c) k = v/([A][B]²) = 2,0·10⁻³/(0,10 · 0,10²) = 2,0·10⁻³/1,0·10⁻³ = <b>2,0 L²·mol⁻²·s⁻¹</b>.",
+          "(d) v = 2,0 · 0,050 · 0,20² = 2,0 · 0,050 · 0,040 = <b>4,0·10⁻³ mol·L⁻¹·s⁻¹</b>.",
+          "(e) Es una coincidencia posible (ocurriría si la reacción fuese elemental), pero no puede afirmarse solo con la ecuación: los órdenes se han <i>medido</i> en la tabla, no deducido de los coeficientes."
+        ]) +
+        ejemplo("Problema EvAU 2: perfil de energía y catalizador", "La reacción A → B tiene ΔH = −25 kJ/mol y Eₐ = 60 kJ/mol. Con un catalizador, la Eₐ baja a 35 kJ/mol. (a) Calcula Eₐ de la reacción inversa con y sin catalizador. (b) ¿Cuántas veces aumenta k a 298 K con el catalizador (mismo factor A)? (c) ¿Cambian ΔH, la constante de equilibrio o el rendimiento? (d) Dibuja el perfil con ambos caminos.", [
+          "(a) Sin catalizador: Eₐ(inv) = 60 − (−25) = <b>85 kJ/mol</b>. Con catalizador: Eₐ(inv) = 35 + 25 = <b>60 kJ/mol</b>.",
+          "(b) ΔEₐ = 60 − 35 = 25 kJ/mol. ln(k<sub>cat</sub>/k) = 25 000/(8,314 · 298) = 10,09 → factor e<sup>10,09</sup> = <b>2,4·10⁴</b>.",
+          "(c) <b>No cambian</b> ΔH ni K ni el rendimiento en el equilibrio: el catalizador solo reduce Eₐ en ambos sentidos; se llega antes al mismo equilibrio.",
+          "(d) Dos curvas desde el mismo nivel de reactivos hasta el mismo nivel de productos (25 kJ más abajo): la sin catalizador con un máximo a 60 kJ, la catalizada con un máximo a 35 kJ. (Puedes comprobarlo en el simulador de la sección 4 con ΔH = −30 y Eₐ = 60.)"
+        ]) +
+        ejemplo("Problema EvAU 3: Arrhenius y factores", "Una reacción tiene Eₐ = 75 kJ/mol y k = 2,5·10⁻⁴ s⁻¹ a 298 K. (a) Calcula k a 318 K. (b) ¿Cambiaría k si se duplicase la concentración del reactivo? (c) ¿Y la velocidad? Orden de la reacción: 1.", [
+          "(a) ln(k₂/k₁) = (75 000/8,314)(1/298 − 1/318) = 9 021 · 2,1105·10⁻⁴ = 1,904 → k₂/k₁ = e<sup>1,904</sup> = 6,71 → k₂ = 6,71 · 2,5·10⁻⁴ = <b>1,7·10⁻³ s⁻¹</b>.",
+          "(b) <b>No</b>: k solo depende de la temperatura (y del catalizador), no de la concentración.",
+          "(c) <b>Sí</b>: v = k[A] se duplica (orden 1)."
+        ]) +
+        ejemplo("Problema EvAU 4: mecanismo y ley de velocidad", "Se propone el mecanismo: (1) NO₂ + F₂ → NO₂F + F (lenta); (2) NO₂ + F → NO₂F (rápida). (a) Reacción global. (b) Intermedio. (c) Ley de velocidad y orden total. (d) ¿Qué ocurre con la velocidad si se triplica [F₂] y se duplica [NO₂]?", [
+          "(a) Suma: 2 NO₂ + F₂ + F → 2 NO₂F + F → <b>2 NO₂ + F₂ → 2 NO₂F</b>.",
+          "(b) El <b>átomo de F</b>: se forma en la etapa 1 y se gasta en la 2.",
+          "(c) Etapa lenta: <b>v = k·[NO₂]·[F₂]</b>, orden total <b>2</b> (no 3, como sugerirían los coeficientes 2 y 1 de la global).",
+          "(d) Factor 2¹ · 3¹ = <b>×6</b>."
+        ])
+      )
+    },
+    // ------------------------------------------------------------ 10
+    {
+      h: "10. ¿Qué falla aquí?",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente en los exámenes. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    // ------------------------------------------------------------ 11
+    {
+      h: "11. Autocomprobación del tema",
+      html: "<p>Un test de doce preguntas, tarjetas para fijar definiciones y tres juegos: emparejar, ordenar y clasificar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarjetas1") + w("emparejar", "emp1") + w("orden", "orden1") + w("clasificar", "clas1")
+    }
+  ];
+
+  B.parte.q2t5b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 5: Cinética química
+   (parte C: actividades, ejercicios, láminas y registro del tema)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Velocidad</b>: v = −(1/a)Δ[A]/Δt = (1/c)Δ[C]/Δt, en mol·L⁻¹·s⁻¹ y siempre positiva. Media = pendiente de la secante; instantánea = pendiente de la tangente. Cada especie varía en proporción a su coeficiente.",
+    "<b>Ecuación de velocidad</b>: v = k[A]ⁿ[B]ᵐ. Los órdenes se miden (o salen de la etapa lenta), no de los coeficientes. Cambio de v = (factor de concentración)<sup>orden</sup>. Unidades de k: (mol/L)<sup>1−orden</sup>·s⁻¹ (orden 1 → s⁻¹; orden 2 → L·mol⁻¹·s⁻¹; orden 3 → L²·mol⁻²·s⁻¹).",
+    "<b>Órdenes con una tabla</b>: compara dos experimentos donde solo cambie un reactivo; F = fⁿ. Después k = v/([A]ⁿ[B]ᵐ) con unidades y comprobación con otro experimento.",
+    "<b>Factores</b>: concentración, superficie y agitación cambian v pero <b>no k</b>; temperatura y catalizador cambian <b>k</b>.",
+    "<b>Colisiones y estado de transición</b>: reacciona un choque con E ≥ Eₐ y buena orientación. Eₐ = E(complejo activado) − E(reactivos). Eₐ(inversa) = Eₐ(directa) − ΔH. ΔH y Eₐ son independientes.",
+    "<b>Maxwell–Boltzmann</b>: al subir T crece mucho el área con E ≥ Eₐ (≈ e<sup>−Eₐ/RT</sup>) aunque la energía media cambie poco.",
+    "<b>Arrhenius</b>: k = A·e<sup>−Eₐ/RT</sup>; ln k = ln A − (Eₐ/R)(1/T); ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂), con T en K, Eₐ en J/mol y R = 8,314 J·mol⁻¹·K⁻¹.",
+    "<b>Catalizador</b>: nuevo camino con menor Eₐ en los dos sentidos; aumenta k y v; <b>no</b> cambia ΔH, K ni el rendimiento en el equilibrio, y no hace posible una reacción no espontánea.",
+    "<b>Mecanismo</b>: etapas elementales cuya suma da la global; molecularidad (1, 2…) solo para etapas; la etapa lenta (mayor Eₐ) fija la ley de velocidad; intermedio = se forma y se consume; catalizador = se consume y se regenera."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«La reacción 2 A + B → C es de orden 3 porque los coeficientes suman 3.» ¿Qué falla?",
+          op: ["Nada", "Los órdenes no se deducen de la ecuación ajustada: se miden o salen de la etapa lenta del mecanismo", "El orden sería 2, no 3", "Los coeficientes solo cuentan si la reacción es exotérmica"], ok: 1,
+          porque: "Solo en una reacción elemental (una única etapa) los coeficientes coinciden con los órdenes. En general los órdenes son un dato experimental." },
+        { q: "«Al duplicar la concentración de A, la constante de velocidad k se duplica.» ¿Qué falla?",
+          op: ["Nada", "k no depende de las concentraciones: lo que se duplica (si el orden es 1) es la velocidad", "k se cuadruplica", "k se reduce a la mitad"], ok: 1,
+          porque: "k solo cambia con la temperatura y con un catalizador. Las concentraciones cambian v, no k." },
+        { q: "«Un catalizador desplaza el equilibrio hacia los productos porque acelera la reacción directa.» ¿Qué falla?",
+          op: ["Nada", "Acelera igual la directa y la inversa (baja Eₐ en los dos sentidos): se alcanza antes el mismo equilibrio, K no cambia", "El catalizador siempre desplaza hacia los reactivos", "El catalizador cambia ΔH"], ok: 1,
+          porque: "Kc = k_directa/k_inversa. Un catalizador multiplica ambas constantes por el mismo factor, así que Kc y el rendimiento en el equilibrio no cambian." },
+        { q: "«Una reacción muy exotérmica es siempre muy rápida.» ¿Qué falla?",
+          op: ["Nada", "La velocidad depende de Eₐ, no de ΔH: una reacción muy exotérmica puede tener una barrera enorme (la combustión del papel necesita una chispa)", "Las exotérmicas son siempre lentas", "ΔH determina k"], ok: 1,
+          porque: "ΔH es la diferencia de energía entre productos y reactivos; Eₐ es la altura de la barrera. Son independientes." },
+        { q: "«Para calcular la velocidad de reacción a partir de la formación de NH₃ en N₂ + 3 H₂ → 2 NH₃ basta con tomar Δ[NH₃]/Δt.» ¿Qué falla?",
+          op: ["Nada", "Hay que dividir entre el coeficiente 2: v = (1/2)·Δ[NH₃]/Δt", "Hay que multiplicar por 2", "Hay que usar la concentración de H₂"], ok: 1,
+          porque: "La velocidad de reacción es única y se obtiene dividiendo el ritmo de cada especie entre su coeficiente. Δ[NH₃]/Δt es la velocidad de formación del NH₃, que es el doble de v." },
+        { q: "«Como al subir 10 °C la energía cinética media sube solo un 3 %, la velocidad no puede cambiar mucho.» ¿Qué falla?",
+          op: ["Nada", "Lo que importa es la fracción de partículas con E ≥ Eₐ, que crece de forma desproporcionada (factor e^(−Eₐ/RT))", "La energía cinética media baja con T", "La velocidad solo depende de los choques"], ok: 1,
+          porque: "La cola de Maxwell–Boltzmann es muy sensible a T. Con Eₐ ≈ 50–60 kJ/mol, +10 K suele duplicar k." },
+        { q: "«Un catalizador no aparece en la ecuación global, así que no puede influir en la ley de velocidad.» ¿Qué falla?",
+          op: ["Nada", "Un catalizador sí puede aparecer en la ley de velocidad (v = k[H₂O₂][I⁻]): interviene en la etapa lenta aunque se regenere", "Un catalizador nunca interviene en ninguna etapa", "La ley solo contiene productos"], ok: 1,
+          porque: "El catalizador se consume en una etapa y se regenera en otra; si participa en la etapa lenta, su concentración aparece en la ley." },
+        { q: "«La energía de activación de la reacción inversa es siempre igual a la de la directa.» ¿Qué falla?",
+          op: ["Nada", "Eₐ(inversa) = Eₐ(directa) − ΔH: solo coinciden si ΔH = 0", "Eₐ(inversa) = Eₐ(directa) + ΔH", "La inversa no tiene energía de activación"], ok: 1,
+          porque: "Hay que subir desde el nivel de los productos, que está más arriba o más abajo que el de los reactivos según el signo de ΔH." },
+        { q: "«Con T₂ &gt; T₁ en Arrhenius se obtiene una Eₐ negativa; no pasa nada, el signo no importa.» ¿Qué falla?",
+          op: ["Nada", "Una Eₐ negativa indica un error de cálculo (paréntesis invertido, °C en vez de K): con T₂ &gt; T₁ debe salir k₂ &gt; k₁ y Eₐ &gt; 0", "Las energías de activación a veces son negativas", "Hay que cambiar R por su signo"], ok: 1,
+          porque: "ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂). Si T₂ &gt; T₁, el paréntesis es positivo; hay que usar siempre kelvin." },
+        { q: "«La molecularidad de la reacción 2 NO + O₂ → 2 NO₂ es 3, y su orden también.» ¿Qué falla?",
+          op: ["Nada", "La molecularidad se define solo para etapas elementales; la global es el resultado de varias etapas y su orden es experimental", "La molecularidad vale siempre 1", "El orden es siempre el doble de la molecularidad"], ok: 1,
+          porque: "Un choque simultáneo de tres moléculas es muy improbable. La molecularidad aplica a cada etapa; el orden global se mide." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "La velocidad de una reacción se expresa en…",
+          op: ["mol·L⁻¹·s⁻¹", "mol·s", "L·mol⁻¹", "s⁻¹ siempre"], ok: 0, porque: "Es una variación de concentración (mol/L) por unidad de tiempo (s)." },
+        { q: "En 2 A → B, la velocidad de desaparición de A es 0,040 mol·L⁻¹·s⁻¹. La velocidad de reacción es…",
+          op: ["0,020 mol·L⁻¹·s⁻¹", "0,040 mol·L⁻¹·s⁻¹", "0,080 mol·L⁻¹·s⁻¹", "0,010 mol·L⁻¹·s⁻¹"], ok: 0, porque: "v = (1/2)·0,040 = 0,020: se divide entre el coeficiente." },
+        { q: "Si v = k[A]²[B] y se duplican a la vez [A] y [B], la velocidad se multiplica por…",
+          op: ["8", "4", "6", "2"], ok: 0, porque: "2² · 2 = 8 (orden total 3)." },
+        { q: "Las unidades de k en una reacción de segundo orden total son…",
+          op: ["L·mol⁻¹·s⁻¹", "s⁻¹", "mol·L⁻¹·s⁻¹", "L²·mol⁻²·s⁻¹"], ok: 0, porque: "k = v/[ ]² = (mol·L⁻¹·s⁻¹)/(mol²·L⁻²) = L·mol⁻¹·s⁻¹." },
+        { q: "¿Qué factor de la lista NO modifica la constante k?",
+          op: ["La concentración de los reactivos", "La temperatura", "Un catalizador", "La energía de activación"], ok: 0, porque: "k depende de T y del catalizador (a través de Eₐ y A), no de las concentraciones." },
+        { q: "La energía de activación es…",
+          op: ["La energía mínima de un choque para que sea eficaz (E del complejo activado − E de los reactivos)", "La energía liberada en la reacción", "La energía de los productos", "La diferencia de energía entre reactivos y productos"], ok: 0, porque: "Es la altura de la barrera desde los reactivos hasta el estado de transición. ΔH es la diferencia entre productos y reactivos." },
+        { q: "Una reacción tiene ΔH = −40 kJ/mol y Eₐ(directa) = 55 kJ/mol. ¿Cuánto vale Eₐ(inversa)?",
+          op: ["95 kJ/mol", "15 kJ/mol", "55 kJ/mol", "−15 kJ/mol"], ok: 0, porque: "Eₐ(inv) = Eₐ(dir) − ΔH = 55 − (−40) = 95 kJ/mol." },
+        { q: "Un catalizador…",
+          op: ["Disminuye Eₐ y no modifica ΔH", "Disminuye ΔH", "Aumenta la cantidad de producto en el equilibrio", "Se consume al final de la reacción"], ok: 0, porque: "Ofrece un camino con menor barrera; los niveles de reactivos y productos no cambian." },
+        { q: "Al elevar la temperatura aumenta la velocidad porque…",
+          op: ["Aumenta la fracción de partículas con energía ≥ Eₐ", "Disminuye la energía de activación", "Disminuye ΔH", "Aumenta el orden de reacción"], ok: 0, porque: "La Eₐ de la reacción no cambia; lo que cambia es el área de la cola de Maxwell–Boltzmann por encima de Eₐ." },
+        { q: "Un intermedio de reacción es…",
+          op: ["Una especie que se forma en una etapa y se consume en otra", "Un catalizador", "El estado de transición", "Un producto final"], ok: 0, porque: "No aparece en la reacción global. A diferencia del estado de transición, sí es una especie con cierta estabilidad (un mínimo en el perfil)." },
+        { q: "La ecuación de velocidad experimental de un mecanismo coincide con la de…",
+          op: ["La etapa lenta", "La etapa rápida", "La reacción global ajustada", "La última etapa siempre"], ok: 0, porque: "La etapa más lenta limita la velocidad global." },
+        { q: "En la ecuación de Arrhenius, la gráfica de ln k frente a 1/T es una recta de pendiente…",
+          op: ["−Eₐ/R", "Eₐ·R", "ln A", "Eₐ/(RT)"], ok: 0, porque: "ln k = ln A − (Eₐ/R)(1/T): la pendiente es −Eₐ/R y la ordenada en el origen, ln A." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas del tema",
+      cartas: [
+        { a: "Velocidad de reacción", b: "Variación de concentración por unidad de tiempo, dividida entre el coeficiente: v = −(1/a)Δ[A]/Δt. Unidades: mol·L⁻¹·s⁻¹." },
+        { a: "Velocidad media frente a instantánea", b: "Media: pendiente de la secante entre dos instantes. Instantánea: pendiente de la tangente (derivada) en un instante." },
+        { a: "Ecuación de velocidad", b: "v = k[A]ⁿ[B]ᵐ. Los exponentes (órdenes parciales) se determinan experimentalmente." },
+        { a: "Orden total", b: "Suma de los órdenes parciales (n + m). Determina las unidades de k." },
+        { a: "Constante de velocidad k", b: "Velocidad cuando todas las concentraciones valen 1 mol/L. Solo depende de T y del catalizador." },
+        { a: "Unidades de k", b: "(mol/L)^(1−orden)·s⁻¹: orden 0 → mol·L⁻¹·s⁻¹; 1 → s⁻¹; 2 → L·mol⁻¹·s⁻¹; 3 → L²·mol⁻²·s⁻¹." },
+        { a: "Método de velocidades iniciales", b: "Comparar dos experimentos en los que solo cambia una concentración: F = fⁿ." },
+        { a: "Choque eficaz", b: "Choque con energía ≥ Eₐ y orientación adecuada: da lugar a reacción." },
+        { a: "Energía de activación", b: "Energía mínima necesaria: E(complejo activado) − E(reactivos). En kJ/mol." },
+        { a: "Complejo activado (estado de transición)", b: "Máximo de energía del perfil: especie inestable, intermedia entre reactivos y productos; no se puede aislar." },
+        { a: "Eₐ(inversa)", b: "Eₐ(directa) − ΔH." },
+        { a: "Ecuación de Arrhenius", b: "k = A·e^(−Eₐ/RT); ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂). T en K, Eₐ en J/mol." },
+        { a: "Catalizador", b: "Cambia el mecanismo bajando Eₐ (en los dos sentidos); se regenera; no cambia ΔH ni K ni el rendimiento." },
+        { a: "Molecularidad", b: "Número de partículas que intervienen en una etapa elemental (1, 2, raramente 3)." },
+        { a: "Etapa lenta", b: "La de mayor Eₐ del mecanismo: fija la velocidad y la ley de velocidad." },
+        { a: "Intermedio de reacción", b: "Especie que se forma en una etapa y se consume en otra; no aparece en la global." }
+      ]
+    },
+    emp1: {
+      titulo: "Empareja cada concepto con su definición",
+      consigna: "Toca un concepto y después su definición.",
+      pares: [
+        ["Velocidad de reacción", "variación de concentración por tiempo, entre el coeficiente"],
+        ["Orden de reacción", "exponente de una concentración en v = k[A]ⁿ, medido experimentalmente"],
+        ["Energía de activación", "barrera de energía que deben superar los choques"],
+        ["Complejo activado", "máximo de energía del camino de reacción"],
+        ["Catalizador", "baja Eₐ y se regenera al final"],
+        ["Intermedio", "se forma y se consume dentro del mecanismo"],
+        ["Molecularidad", "partículas que chocan en una etapa elemental"],
+        ["Factor de frecuencia A", "frecuencia y orientación de los choques en Arrhenius"]
+      ]
+    },
+    orden1: {
+      titulo: "Ordena el método de las velocidades iniciales",
+      consigna: "Del primer paso al último, para obtener la ley de velocidad a partir de una tabla.",
+      items: [
+        { t: "Buscar dos experimentos donde cambie solo una concentración", nota: "Las demás deben ser idénticas." },
+        { t: "Calcular el cociente de concentraciones f y el cociente de velocidades F", nota: "f = [A]₂/[A]₁ ; F = v₂/v₁." },
+        { t: "Deducir el orden con F = fⁿ", nota: "Si f = 2: F = 2 → n = 1; F = 4 → n = 2; F = 1 → n = 0." },
+        { t: "Repetir con otro par de experimentos para el otro reactivo", nota: "Así se obtienen todos los órdenes parciales." },
+        { t: "Escribir v = k[A]ⁿ[B]ᵐ y despejar k con un experimento", nota: "No olvides las unidades de k según el orden total." },
+        { t: "Comprobar con un experimento que no se ha usado", nota: "Si la velocidad calculada no coincide, hay un error." }
+      ]
+    },
+    clas1: {
+      titulo: "¿Cambia la constante k?",
+      consigna: "Toca cada cambio y después la categoría: si modifica k o si solo modifica la velocidad.",
+      categorias: ["Cambia k", "No cambia k (solo v)"],
+      items: [
+        { t: "Subir la temperatura", c: 0 }, { t: "Añadir un catalizador", c: 0 }, { t: "Añadir un inhibidor", c: 0 },
+        { t: "Doblar la concentración de A", c: 1 }, { t: "Pulverizar un reactivo sólido", c: 1 }, { t: "Agitar la mezcla", c: 1 },
+        { t: "Reducir el volumen de un gas a la mitad", c: 1 }, { t: "Añadir más reactivo", c: 1 }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS (★ 15 · ★★ 16 · ★★★ 16)
+  // ================================================================
+  var E = [];
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function ge(id, nivel, enun, check, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: check, pistas: pistas, pasos: pasos, resultado: res }); }
+  function N(etq, val, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; return c; }
+
+  // ---------------- ★ ----------------
+  op("a1", 1, "¿En qué unidades se expresa normalmente la velocidad de una reacción?", "Unidades", ["mol·L⁻¹·s⁻¹", "mol·s⁻¹·L", "L·mol⁻¹·s⁻¹", "s⁻¹"], 0,
+    ["Es una concentración dividida entre un tiempo."], ["Concentración: mol/L. Tiempo: s.", "v = Δ[ ]/Δt → mol·L⁻¹·s⁻¹."], "mol·L⁻¹·s⁻¹");
+  nu("a2", 1, "La concentración de un reactivo B pasa de 1,20 a 0,90 mol/L en 15 s. Calcula la velocidad media de desaparición de B (en mol·L⁻¹·s⁻¹).", "v (mol/(L·s)) =", 0.020,
+    ["Variación de concentración entre tiempo, sin signo."], ["Δ[B] = 0,90 − 1,20 = −0,30 mol/L.", "v = 0,30/15 = 0,020 mol·L⁻¹·s⁻¹ (se quita el signo)."], "0,020 mol·L⁻¹·s⁻¹");
+  nu("a3", 1, "En la reacción 2 A → B, la velocidad de desaparición de A es 0,040 mol·L⁻¹·s⁻¹. Calcula la velocidad de reacción.", "v (mol/(L·s)) =", 0.020,
+    ["Divide entre el coeficiente de A."], ["Coeficiente de A: 2.", "v = 0,040/2 = 0,020 mol·L⁻¹·s⁻¹."], "0,020 mol·L⁻¹·s⁻¹");
+  op("a4", 1, "Para v = k·[A]·[B]², ¿cuál es el orden total de la reacción?", "Orden total", ["3", "2", "1", "4"], 0,
+    ["Suma los exponentes."], ["Exponentes: 1 (A) y 2 (B).", "Orden total: 1 + 2 = 3."], "3");
+  nu("a5", 1, "Si v = k·[A]², ¿por qué factor se multiplica la velocidad al triplicar [A]?", "Factor =", 9,
+    ["Eleva el factor de concentración al orden."], ["Factor de concentración: 3.", "Orden: 2 → 3² = 9."], "×9");
+  op("a6", 1, "¿Cuáles son las unidades de k en una reacción de primer orden?", "Unidades de k", ["s⁻¹", "L·mol⁻¹·s⁻¹", "mol·L⁻¹·s⁻¹", "L²·mol⁻²·s⁻¹"], 0,
+    ["v = k[A]: despeja k."], ["k = v/[A] = (mol·L⁻¹·s⁻¹)/(mol·L⁻¹).", "Resulta s⁻¹."], "s⁻¹");
+  nu("a7", 1, "Para v = k·[A]·[B] con k = 0,50 L·mol⁻¹·s⁻¹, [A] = 0,20 mol/L y [B] = 0,30 mol/L, calcula v (mol·L⁻¹·s⁻¹).", "v (mol/(L·s)) =", 0.030,
+    ["Sustituye directamente."], ["v = 0,50 · 0,20 · 0,30 = 0,030 mol·L⁻¹·s⁻¹."], "0,030 mol·L⁻¹·s⁻¹");
+  op("a8", 1, "¿Cuál de estos cambios NO modifica la constante de velocidad k?", "No modifica k", ["Aumentar la concentración de un reactivo", "Subir la temperatura", "Añadir un catalizador", "Cambiar de reacción"], 0,
+    ["k solo depende de T, de la reacción y del catalizador."], ["La concentración cambia la velocidad v, no la constante k."], "Aumentar la concentración");
+  op("a9", 1, "En la teoría de colisiones, ¿qué condiciones debe cumplir un choque para ser eficaz?", "Condiciones", ["Energía ≥ Eₐ y orientación adecuada", "Solo energía ≥ Eₐ", "Solo orientación adecuada", "Que ocurra a presión elevada"], 0,
+    ["Son dos requisitos."], ["Hace falta suficiente energía para vencer la barrera.", "Y que los átomos que han de unirse queden orientados correctamente."], "Energía ≥ Eₐ y orientación");
+  op("a10", 1, "Un catalizador aumenta la velocidad de una reacción porque…", "Efecto del catalizador", ["reduce la energía de activación", "aumenta ΔH", "reduce ΔH", "aumenta la concentración de reactivos"], 0,
+    ["Cambia el camino de la reacción."], ["Proporciona un mecanismo alternativo con menor barrera.", "ΔH, que depende de reactivos y productos, no cambia."], "Reduce Eₐ");
+  nu("a11", 1, "Una reacción tiene ΔH = −50 kJ/mol y Eₐ(directa) = 30 kJ/mol. Calcula Eₐ(inversa) en kJ/mol.", "Eₐ inversa (kJ/mol) =", 80,
+    ["Eₐ(inv) = Eₐ(dir) − ΔH."], ["Eₐ(inv) = 30 − (−50) = 80 kJ/mol.", "Los productos están 50 kJ por debajo: hay que subir esos 50 más los 30."], "80 kJ/mol");
+  op("a12", 1, "Al aumentar la temperatura, la fracción de partículas con energía mayor que Eₐ…", "Fracción", ["aumenta", "disminuye", "no cambia", "se anula"], 0,
+    ["Piensa en la cola de la curva de Maxwell–Boltzmann."], ["La curva se ensancha y se aplana al subir T.", "El área a la derecha de Eₐ crece."], "Aumenta");
+  op("a13", 1, "En un mecanismo con varias etapas, la velocidad de la reacción global la fija…", "Etapa", ["la etapa más lenta", "la etapa más rápida", "la primera siempre", "la última siempre"], 0,
+    ["Como el tramo más estrecho de una tubería."], ["La etapa lenta es la de mayor Eₐ y limita todo el proceso."], "La etapa lenta");
+  op("a14", 1, "¿Cómo se llama una especie que se forma en una etapa de un mecanismo y se consume en una etapa posterior?", "Nombre", ["intermedio de reacción", "catalizador", "producto final", "estado de transición"], 0,
+    ["No aparece en la reacción global."], ["Aparece en un lado de una etapa y en el contrario de otra, y se cancela al sumar."], "Intermedio de reacción");
+  nu("a15", 1, "Para una reacción en fase gaseosa con v = k·[A]·[B], se reduce el volumen del recipiente a la mitad (misma T). ¿Por qué factor se multiplica la velocidad?", "Factor =", 4,
+    ["Al reducir V a la mitad, todas las concentraciones se duplican."], ["Concentraciones ×2.", "Orden total 2 → 2² = 4."], "×4");
+
+  // ---------------- ★★ ----------------
+  nu("b1", 2, "En 2 N₂O₅ → 4 NO₂ + O₂, la concentración de N₂O₅ baja de 0,600 a 0,420 mol/L en 40 s. Calcula la velocidad media de reacción (mol·L⁻¹·s⁻¹).", "v (mol/(L·s)) =", 0.00225,
+    ["Calcula primero la desaparición del N₂O₅ y luego divide entre su coeficiente."], ["Δ[N₂O₅]/Δt = (0,420 − 0,600)/40 = −0,0045 mol·L⁻¹·s⁻¹.", "v = 0,0045/2 = 0,00225 mol·L⁻¹·s⁻¹."], "2,25·10⁻³ mol·L⁻¹·s⁻¹");
+  ge("b2", 2, "En N₂ + 3 H₂ → 2 NH₃ la velocidad de reacción es 0,0030 mol·L⁻¹·s⁻¹. Calcula la velocidad de formación del NH₃ y la de desaparición del H₂.", [N("Formación de NH₃ (mol/(L·s)) =", 0.0060), N("Desaparición de H₂ (mol/(L·s)) =", 0.0090)],
+    ["Multiplica v por el coeficiente de cada especie."], ["NH₃: coeficiente 2 → 2 · 0,0030 = 0,0060.", "H₂: coeficiente 3 → 3 · 0,0030 = 0,0090 mol·L⁻¹·s⁻¹."], "NH₃: 6,0·10⁻³; H₂: 9,0·10⁻³ mol·L⁻¹·s⁻¹");
+  nu("b3", 2, "En dos experimentos con la misma [B], la concentración de A pasa de 0,10 a 0,30 mol/L y la velocidad inicial pasa de 1,0·10⁻³ a 9,0·10⁻³ mol·L⁻¹·s⁻¹. ¿Cuál es el orden respecto a A?", "Orden de A =", 2,
+    ["F = fⁿ."], ["f = 0,30/0,10 = 3 ; F = 9,0·10⁻³/1,0·10⁻³ = 9.", "3ⁿ = 9 → n = 2."], "n = 2");
+  nu("b4", 2, "Experimentos: (1) [A] = 0,10 y [B] = 0,10 mol/L, v₀ = 3,0·10⁻⁴; (2) [A] = 0,20 y [B] = 0,10, v₀ = 6,0·10⁻⁴; (3) [A] = 0,10 y [B] = 0,20, v₀ = 1,2·10⁻³ (mol·L⁻¹·s⁻¹). Calcula el orden total.", "Orden total =", 3,
+    ["Halla el orden de A con (1) y (2) y el de B con (1) y (3)."], ["(1)→(2): [A] ×2 y v ×2 → n = 1.", "(1)→(3): [B] ×2 y v ×4 → m = 2.", "Orden total = 1 + 2 = 3."], "3");
+  nu("b5", 2, "Con los datos del ejercicio anterior (v = k[A][B]²), calcula la constante k (L²·mol⁻²·s⁻¹).", "k =", 0.30,
+    ["Usa el experimento 1."], ["k = v/([A][B]²) = 3,0·10⁻⁴/(0,10 · 0,10²) = 3,0·10⁻⁴/1,0·10⁻³ = 0,30 L²·mol⁻²·s⁻¹."], "0,30 L²·mol⁻²·s⁻¹");
+  nu("b6", 2, "Con la ley v = 0,30·[A]·[B]² (unidades SI), calcula v cuando [A] = 0,40 y [B] = 0,30 mol/L.", "v (mol/(L·s)) =", 0.0108,
+    ["Sustituye en la ley."], ["v = 0,30 · 0,40 · 0,30² = 0,30 · 0,40 · 0,090 = 0,0108 mol·L⁻¹·s⁻¹."], "1,08·10⁻² mol·L⁻¹·s⁻¹");
+  nu("b7", 2, "Una reacción tiene k = 4,0·10⁻³ s⁻¹ a 300 K y Eₐ = 50 kJ/mol. Calcula k a 310 K (s⁻¹). Usa R = 8,314 J/(mol·K).", "k a 310 K (s⁻¹) =", 7.64e-3,
+    ["ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂), con Eₐ en J/mol."], ["(50 000/8,314)(1/300 − 1/310) = 6 014 · 1,0753·10⁻⁴ = 0,6467.", "k₂/k₁ = e^0,6467 = 1,909.", "k₂ = 1,909 · 4,0·10⁻³ = 7,64·10⁻³ s⁻¹."], "7,6·10⁻³ s⁻¹", 0.01);
+  nu("b8", 2, "La constante de una reacción es 1,5·10⁻³ s⁻¹ a 290 K y 6,0·10⁻³ s⁻¹ a 310 K. Calcula Eₐ en kJ/mol.", "Eₐ (kJ/mol) =", 51.8,
+    ["k₂/k₁ = 4."], ["ln 4 = 1,386 ; (1/290 − 1/310) = 2,2247·10⁻⁴ K⁻¹.", "Eₐ = 8,314 · 1,386/2,2247·10⁻⁴ = 5,18·10⁴ J/mol = 51,8 kJ/mol."], "51,8 kJ/mol", 0.01);
+  nu("b9", 2, "Una reacción endotérmica tiene ΔH = +45 kJ/mol y Eₐ(directa) = 85 kJ/mol. Calcula Eₐ(inversa) en kJ/mol.", "Eₐ inversa (kJ/mol) =", 40,
+    ["Eₐ(inv) = Eₐ(dir) − ΔH."], ["Eₐ(inv) = 85 − 45 = 40 kJ/mol.", "En una endotérmica, la inversa es más fácil que la directa."], "40 kJ/mol");
+  nu("b10", 2, "La constante de velocidad de una reacción vale 3,0·10⁻² L·mol⁻¹·s⁻¹. ¿Cuál es el orden total de la reacción?", "Orden total =", 2,
+    ["Mira las unidades de k."], ["Unidades L·mol⁻¹·s⁻¹ corresponden a (mol/L)^(1−n)·s⁻¹ con 1 − n = −1.", "n = 2."], "Orden total 2");
+  op("b11", 2, "Mecanismo: etapa 1 (lenta) A + B → X + C ; etapa 2 (rápida) X + B → D. ¿Cuál es la reacción global y la ley de velocidad?", "Global y ley",
+    ["A + 2 B → C + D ; v = k[A][B]", "A + B → C + D ; v = k[A][B]", "A + 2 B → C + D ; v = k[X][B]", "A + 2 B → C + D ; v = k[A][B]²"], 0,
+    ["Suma las etapas y cancela el intermedio. La ley sale de la etapa lenta."], ["Suma: A + B + X + B → X + C + D → A + 2 B → C + D (X se cancela).", "Etapa lenta (bimolecular): v = k[A][B]."], "A + 2 B → C + D ; v = k[A][B]");
+  nu("b12", 2, "Para v = k·[A]²·[B], la concentración de A se duplica y la de B se reduce a la mitad. ¿Por qué factor se multiplica v?", "Factor =", 2,
+    ["Multiplica los factores de cada reactivo."], ["A: 2² = 4. B: (1/2)¹ = 0,5.", "Total: 4 · 0,5 = 2."], "×2");
+  op("b13", 2, "Dos reacciones tienen la misma Eₐ(directa). La reacción 1 es muy exotérmica (ΔH = −120 kJ/mol) y la reacción 2 es poco exotérmica (ΔH = −10 kJ/mol). ¿Cuál tiene mayor Eₐ en el sentido inverso?", "Mayor Eₐ inversa", ["La reacción 1", "La reacción 2", "Es igual en ambas", "No se puede saber"], 0,
+    ["Eₐ(inv) = Eₐ(dir) − ΔH."], ["Eₐ(inv) = Eₐ(dir) + 120 en la reacción 1 y Eₐ(dir) + 10 en la 2.", "La 1 tiene los productos mucho más abajo: la barrera hacia atrás es mayor."], "La reacción 1");
+  op("b14", 2, "¿Cuál de estos cambios modifica la constante de velocidad de una reacción?", "Modifica k", ["Subir la temperatura", "Aumentar la presión parcial del reactivo", "Pulverizar el reactivo sólido", "Agitar la mezcla"], 0,
+    ["Mira qué cambia en Arrhenius."], ["k = A·e^(−Eₐ/RT) depende de T (y de Eₐ).", "Los demás cambios modifican la velocidad pero no la constante."], "Subir la temperatura");
+  nu("b15", 2, "Una reacción de primer orden tiene k = 0,0231 s⁻¹. Calcula su vida media (el tiempo en que la concentración se reduce a la mitad), t½ = ln 2 / k.", "t½ (s) =", 30,
+    ["ln 2 = 0,693."], ["t½ = 0,693/0,0231 = 30 s.", "En un primer orden t½ no depende de la concentración inicial."], "30 s", 0.01);
+  nu("b16", 2, "Para v = k·[A] con k = 2,0·10⁻³ s⁻¹, calcula v cuando [A] = 0,50 mol/L (mol·L⁻¹·s⁻¹).", "v (mol/(L·s)) =", 1.0e-3,
+    ["Primer orden: v = k[A]."], ["v = 2,0·10⁻³ · 0,50 = 1,0·10⁻³ mol·L⁻¹·s⁻¹."], "1,0·10⁻³ mol·L⁻¹·s⁻¹");
+
+  // ---------------- ★★★ ----------------
+  ge("c1", 3, "EvAU. Para A + B → C se obtuvieron las velocidades iniciales: (1) [A] = 0,10 y [B] = 0,10 mol/L, v₀ = 2,0·10⁻⁴; (2) [A] = 0,30 y [B] = 0,10, v₀ = 1,8·10⁻³; (3) [A] = 0,10 y [B] = 0,20, v₀ = 4,0·10⁻⁴; (4) [A] = 0,20 y [B] = 0,30, v₀ = 2,4·10⁻³ (mol·L⁻¹·s⁻¹). Halla el orden de A, el de B y k (en L²·mol⁻²·s⁻¹).",
+    [N("Orden de A =", 2), N("Orden de B =", 1), N("k =", 0.20)],
+    ["Para A usa (1)→(2); para B usa (1)→(3). Comprueba con (4)."], ["(1)→(2): [A] ×3 y v ×9 → n = 2. (1)→(3): [B] ×2 y v ×2 → m = 1.", "k = 2,0·10⁻⁴/(0,10² · 0,10) = 0,20 L²·mol⁻²·s⁻¹.", "Comprobación con (4): 0,20 · 0,20² · 0,30 = 2,4·10⁻³ ✓."], "n = 2, m = 1, k = 0,20 L²·mol⁻²·s⁻¹");
+  ge("c2", 3, "EvAU. Para A + B → productos: (1) [A] = 0,50 y [B] = 0,10 mol/L, v₀ = 8,0·10⁻⁴; (2) [A] = 1,00 y [B] = 0,10, v₀ = 8,0·10⁻⁴; (3) [A] = 0,50 y [B] = 0,30, v₀ = 7,2·10⁻³ (mol·L⁻¹·s⁻¹). Halla los órdenes de A y de B, la constante k (L·mol⁻¹·s⁻¹) y la velocidad cuando [B] = 0,25 mol/L.",
+    [N("Orden de A =", 0), N("Orden de B =", 2), N("k =", 0.080), N("v (mol/(L·s)) =", 0.0050)],
+    ["En (1)→(2) la velocidad no cambia."], ["(1)→(2): [A] ×2 y v ×1 → n = 0 (A no aparece en la ley).", "(1)→(3): [B] ×3 y v ×9 → m = 2.", "v = k[B]² → k = 8,0·10⁻⁴/0,10² = 0,080 L·mol⁻¹·s⁻¹ (orden total 2).", "v = 0,080 · 0,25² = 5,0·10⁻³ mol·L⁻¹·s⁻¹."], "n = 0, m = 2, k = 0,080, v = 5,0·10⁻³");
+  nu("c3", 3, "La constante de velocidad de una reacción es 2,0·10⁻⁵ s⁻¹ a 298 K y 8,0·10⁻⁵ s⁻¹ a 318 K. Calcula la energía de activación en kJ/mol.", "Eₐ (kJ/mol) =", 54.6,
+    ["k₂/k₁ = 4."], ["ln 4 = 1,386 ; (1/298 − 1/318) = 2,1105·10⁻⁴ K⁻¹.", "Eₐ = 8,314 · 1,386/2,1105·10⁻⁴ = 5,46·10⁴ J/mol = 54,6 kJ/mol."], "54,6 kJ/mol", 0.01);
+  nu("c4", 3, "Una reacción tiene Eₐ = 80 kJ/mol. ¿A qué temperatura (en K) hay que llevarla desde 300 K para que su constante de velocidad se triplique? (R = 8,314 J/(mol·K))", "T₂ (K) =", 310.6,
+    ["ln 3 = (Eₐ/R)(1/300 − 1/T₂); despeja 1/T₂."], ["ln 3 = 1,0986 ; Eₐ/R = 80 000/8,314 = 9 622 K.", "1/T₂ = 1/300 − 1,0986/9 622 = 0,0033333 − 0,00011417 = 0,0032191 K⁻¹.", "T₂ = 310,6 K (solo unos 10 K más)."], "310,6 K", 0.005);
+  nu("c5", 3, "Un catalizador reduce Eₐ de 100 a 70 kJ/mol. Suponiendo el mismo factor A, ¿cuántas veces aumenta k a 350 K? (R = 8,314 J/(mol·K))", "k_cat / k =", 3.0e4,
+    ["k_cat/k = e^(ΔEₐ/RT)."], ["ΔEₐ = 30 000 J/mol.", "30 000/(8,314 · 350) = 10,31.", "e^10,31 = 3,0·10⁴."], "≈ 3,0·10⁴ veces", 0.02);
+  nu("c6", 3, "Una reacción tiene ΔH = −80 kJ/mol y Eₐ(directa) = 120 kJ/mol. Con un catalizador, Eₐ(inversa) pasa a ser 150 kJ/mol. ¿Cuánto vale Eₐ(directa) con catalizador (kJ/mol)?", "Eₐ directa con cat. (kJ/mol) =", 70,
+    ["ΔH no cambia con el catalizador: Eₐ(dir) = Eₐ(inv) + ΔH."], ["Eₐ(dir, cat) = Eₐ(inv, cat) + ΔH = 150 + (−80) = 70 kJ/mol.", "Sin catalizador: Eₐ(inv) = 120 + 80 = 200; la rebaja es de 50 kJ/mol en ambos sentidos (200 → 150 y 120 → 70)."], "70 kJ/mol");
+  nu("c7", 3, "Mecanismo: (1) NO₂ + F₂ → NO₂F + F (lenta); (2) NO₂ + F → NO₂F (rápida). Si se triplica [NO₂] y se duplica [F₂], ¿por qué factor se multiplica la velocidad?", "Factor =", 6,
+    ["Escribe la ley de la etapa lenta."], ["Etapa lenta bimolecular: v = k[NO₂][F₂].", "Factor: 3¹ · 2¹ = 6."], "×6");
+  nu("c8", 3, "Una reacción con Eₐ = 75 kJ/mol se calienta de 298 K a 308 K. ¿Por qué factor aumenta la constante de velocidad?", "k₂ / k₁ =", 2.67,
+    ["Arrhenius con dos temperaturas."], ["(75 000/8,314)(1/298 − 1/308) = 9 021 · 1,0895·10⁻⁴ = 0,9829.", "e^0,9829 = 2,67."], "×2,67", 0.01);
+  ge("c9", 3, "Una reacción de primer orden respecto a A tiene [A]₀ = 0,500 mol/L; a los 20 s quedan 0,300 mol/L. Calcula k (s⁻¹, de ln[A] = ln[A]₀ − kt) y la concentración a los 50 s (mol/L).",
+    [N("k (s⁻¹) =", 0.02554, 0.01), N("[A] a 50 s (mol/L) =", 0.1394, 0.01)],
+    ["ln([A]₀/[A]) = kt."], ["k = ln(0,500/0,300)/20 = 0,5108/20 = 0,02554 s⁻¹.", "[A] = 0,500 · e^(−0,02554 · 50) = 0,500 · e^(−1,277) = 0,139 mol/L."], "k = 2,55·10⁻² s⁻¹ ; [A] = 0,139 mol/L");
+  nu("c10", 3, "La reacción 2 NO(g) + O₂(g) → 2 NO₂(g) tiene como ley experimental v = k·[NO]²·[O₂]. Si el volumen del recipiente se reduce a la tercera parte (misma T), ¿por qué factor se multiplica la velocidad?", "Factor =", 27,
+    ["Todas las concentraciones se triplican."], ["Concentraciones ×3.", "Orden total 3 → 3³ = 27."], "×27");
+  ge("c11", 3, "En 2 A → 3 B la concentración de B aumenta a razón de 0,045 mol·L⁻¹·s⁻¹ en un instante dado. Calcula la velocidad de reacción y la velocidad de desaparición de A. Si la reacción es de primer orden respecto a A con [A] = 0,30 mol/L en ese instante, calcula k (s⁻¹).",
+    [N("v (mol/(L·s)) =", 0.015), N("Desaparición de A (mol/(L·s)) =", 0.030), N("k (s⁻¹) =", 0.050)],
+    ["Divide entre 3 para v; multiplica por 2 para A."], ["v = 0,045/3 = 0,015 mol·L⁻¹·s⁻¹.", "Desaparición de A: 2 · 0,015 = 0,030 mol·L⁻¹·s⁻¹.", "v = k[A] → k = 0,015/0,30 = 0,050 s⁻¹."], "v = 0,015 ; −Δ[A]/Δt = 0,030 ; k = 0,050 s⁻¹");
+  nu("c12", 3, "Una reacción tiene k = 3,0·10⁻³ s⁻¹ a 20 °C y Eₐ = 65 kJ/mol. Calcula k a 40 °C (s⁻¹). (T en K = °C + 273.)", "k a 40 °C (s⁻¹) =", 0.0165,
+    ["Pasa a kelvin: 293 K y 313 K."], ["(65 000/8,314)(1/293 − 1/313) = 7 818 · 2,1807·10⁻⁴ = 1,705.", "k₂/k₁ = e^1,705 = 5,50 ; k₂ = 5,50 · 3,0·10⁻³ = 1,65·10⁻² s⁻¹."], "1,65·10⁻² s⁻¹", 0.01);
+  op("c13", 3, "Un estudiante propone para 2 NO₂ + F₂ → 2 NO₂F la ley v = k[NO₂]²[F₂] por los coeficientes. Experimentalmente la ley es v = k[NO₂][F₂]. ¿Cuál es la conclusión correcta?", "Conclusión",
+    ["Los coeficientes no dan los órdenes; la reacción transcurre por un mecanismo cuya etapa lenta tiene un solo NO₂", "El experimento está mal hecho", "La reacción es elemental", "El F₂ es un catalizador"], 0,
+    ["Piensa en reacciones elementales frente a mecanismos."], ["Si la global fuese una sola etapa, los órdenes serían 2 y 1.", "El orden experimental distinto demuestra que hay varias etapas y la lenta no incluye dos NO₂."], "No es elemental");
+  nu("c14", 3, "Al representar ln k frente a 1/T para una reacción se obtiene una recta de pendiente −7,2·10³ K. Calcula Eₐ en kJ/mol.", "Eₐ (kJ/mol) =", 59.9,
+    ["pendiente = −Eₐ/R."], ["Eₐ = −pendiente · R = 7 200 · 8,314 = 59 861 J/mol.", "Eₐ = 59,9 kJ/mol."], "59,9 kJ/mol", 0.01);
+  nu("c15", 3, "A 320 K una reacción tiene k = 5,4·10⁻³ s⁻¹ y Eₐ = 60 kJ/mol. Calcula el factor de frecuencia A (s⁻¹).", "A (s⁻¹) =", 3.36e7,
+    ["A = k·e^(Eₐ/RT)."], ["Eₐ/RT = 60 000/(8,314 · 320) = 22,55.", "e^22,55 = 6,23·10⁹ ; A = 5,4·10⁻³ · 6,23·10⁹ = 3,4·10⁷ s⁻¹."], "3,4·10⁷ s⁻¹", 0.02);
+  op("c16", 3, "El perfil de una reacción muestra que los productos están por encima de los reactivos y que la reacción inversa tiene menor Eₐ que la directa. Si se añade un catalizador…", "Con catalizador",
+    ["Disminuyen las dos Eₐ en la misma cantidad; ΔH sigue siendo positivo", "Solo disminuye la Eₐ directa", "ΔH pasa a ser negativo", "La reacción pasa a ser exotérmica"], 0,
+    ["El catalizador no cambia los niveles de reactivos y productos."], ["Los niveles de reactivos y productos son los mismos: ΔH no cambia.", "El camino nuevo baja la barrera en ambos sentidos en la misma cantidad."], "Bajan las dos Eₐ por igual; ΔH igual");
+
+  var ejercicios = E;
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Ecuación de velocidad y orden",
+      items: [
+        { label: "Velocidad de reacción", formula: "v = −(1/a)Δ[A]/Δt = (1/c)Δ[C]/Δt", cuando: "Pasar de una especie a otra.", ejemplo: "NH₃: 0,012 → v = 0,0060 mol·L⁻¹·s⁻¹ (÷ 2)." },
+        { label: "Ley de velocidad", formula: "v = k[A]ⁿ[B]ᵐ", cuando: "Los órdenes se miden.", ejemplo: "Duplicar [A] con n = 2 → ×4." },
+        { label: "Orden desde dos experimentos", formula: "F = fⁿ", cuando: "Solo cambia un reactivo.", ejemplo: "f = 3, F = 9 → n = 2." }
+      ],
+      nota: "Unidades de k: orden 1 → s⁻¹ · orden 2 → L·mol⁻¹·s⁻¹ · orden 3 → L²·mol⁻²·s⁻¹." },
+    { titulo: "Eₐ, ΔH y catalizador", ancha: true,
+      tabla: { cab: ["Magnitud", "Sin catalizador", "Con catalizador"], filas: [
+        ["Eₐ (directa)", "mayor", "menor"],
+        ["Eₐ (inversa)", "mayor", "menor (en la misma cantidad)"],
+        ["ΔH", "Eₐ(dir) − Eₐ(inv)", "no cambia"],
+        ["k y v", "menores", "mayores"],
+        ["K y rendimiento", "—", "no cambian"]
+      ] },
+      nota: "Eₐ(inversa) = Eₐ(directa) − ΔH. Subir T también acelera, pero por otra vía: más partículas con E ≥ Eₐ." },
+    { titulo: "Arrhenius",
+      items: [
+        { label: "Forma exponencial", formula: "k = A·e^(−Eₐ/RT)", cuando: "A tiene las unidades de k.", ejemplo: "R = 8,314 J·mol⁻¹·K⁻¹." },
+        { label: "Forma lineal", formula: "ln k = ln A − (Eₐ/R)(1/T)", cuando: "Gráfica ln k frente a 1/T.", ejemplo: "Pendiente = −Eₐ/R." },
+        { label: "Dos temperaturas", formula: "ln(k₂/k₁) = (Eₐ/R)(1/T₁ − 1/T₂)", cuando: "Calcular k₂ o Eₐ.", ejemplo: "Eₐ = 60 kJ/mol, 300 → 320 K: ×4,5." }
+      ],
+      nota: "T en kelvin, Eₐ en J/mol. Si sale Eₐ &lt; 0 o k₂ &lt; k₁ con T₂ &gt; T₁, revisa el signo." },
+    { titulo: "Mecanismos de reacción",
+      pasos: ["Suma las etapas: debe dar la <b>reacción global</b> (se cancelan los intermedios).", "La <b>etapa lenta</b> (mayor Eₐ) fija la ley de velocidad.", "Escribe la ley de esa etapa con los coeficientes como órdenes.", "<b>Intermedio</b>: se forma y se consume. <b>Catalizador</b>: se consume y se regenera.", "<b>Molecularidad</b> = partículas en una etapa (1, 2…); el orden global se mide."],
+      nota: "Un mecanismo se descarta si no suma la global o si su ley no coincide con la experimental." },
+    { titulo: "Errores típicos del tema", ancha: true,
+      errores: [
+        { mal: "Orden = suma de coeficientes", bien: "Los órdenes se miden (o salen de la etapa lenta)", por: "Solo en una reacción elemental coinciden." },
+        { mal: "Al subir [A] sube k", bien: "Sube v; k no cambia", por: "k solo depende de T y del catalizador." },
+        { mal: "El catalizador desplaza el equilibrio", bien: "Lo alcanza antes; K igual", por: "Baja Eₐ directa e inversa por igual." },
+        { mal: "Muy exotérmica = muy rápida", bien: "ΔH y Eₐ son independientes", por: "Mira la altura de la barrera." },
+        { mal: "v de reacción = Δ[producto]/Δt", bien: "Dividir entre el coeficiente", por: "La v de reacción es única." },
+        { mal: "Arrhenius con °C o kJ", bien: "T en K y Eₐ en J/mol", por: "Con R = 8,314 J/(mol·K)." },
+        { mal: "Molecularidad de la global", bien: "Solo se define para etapas elementales", por: "El orden global es experimental." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t5", { resumen: resumen, secciones: B.parte.q2t5a.secciones, nuevas: B.parte.q2t5b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 /* ============================================================
