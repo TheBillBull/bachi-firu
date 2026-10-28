@@ -10715,6 +10715,369 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 10 (Estudio y representación de funciones)
+   m2t10_estudio    (estudio guiado: la gráfica se construye paso a paso: dominio, cortes, asíntotas, extremos, inflexiones)
+   m2t10_ramas      (ramas infinitas: tabla de f(x), f(x)/x y f(x) − m·x para ver si hay asíntota o rama parabólica)
+   m2t10_fprima     (de la gráfica de f′ a las propiedades de f: signo, extremos, curvatura, inflexiones; luego se revela f)
+   m2t10_formula    (deducir la fórmula: parámetros que hay que ajustar para cumplir los datos de la gráfica)
+   m2t10_coherente  (elegir el esbozo coherente con una tabla de signos de f′ y f″)
+   Reutiliza los motores de Matemáticas I (B.lab.fun, B.lab.der). Las cifras se verifican con herramientas/verificar_mates2_t10.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, F = B.lab.fun, D = B.lab.der;
+  var fil = F.fil, pto = F.pto, etq = F.etq;
+  var T10 = B.lab.t10 = {};
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("m2t10-estilos")) return;
+    var s = document.createElement("style"); s.id = "m2t10-estilos";
+    s.textContent =
+      ".m10-paso{margin:8px 0 0;font-size:14.5px;line-height:1.5}" +
+      ".m10-paso b{color:var(--pen)}" +
+      ".m10-t{width:100%;border-collapse:collapse;font:14px var(--math);margin-top:8px}" +
+      ".m10-t th,.m10-t td{padding:4px 8px;border-bottom:1px solid var(--line,rgba(128,128,128,.25));text-align:right}" +
+      ".m10-t th{font-size:12px;color:var(--ink-faint);font-weight:600}" +
+      ".m10-cand{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}" +
+      ".m10-c{border:2px solid var(--line,rgba(128,128,128,.3));border-radius:12px;padding:6px;text-align:center;min-width:0}" +
+      ".m10-c.ok{border-color:var(--ok)}.m10-c.mal{border-color:var(--red)}" +
+      ".m10-c .chip-btn{margin-top:4px}" +
+      ".m10-tab{font-size:14px;line-height:1.55;margin:6px 0 0;padding:8px 12px;background:var(--sheet-2);border-radius:10px}" +
+      ".m10-cond{display:flex;gap:8px;align-items:baseline;font-size:14.5px;line-height:1.5;margin:3px 0}" +
+      ".m10-cond i{font-style:normal;font-weight:700;min-width:1.2em}" +
+      ".m10-cond.ok i{color:var(--ok)}.m10-cond.no i{color:var(--red)}" +
+      "@media(max-width:520px){.m10-cand{grid-template-columns:1fr}.m10-t{font-size:12.5px}.m10-t th,.m10-t td{padding:3px 4px}}";
+    document.head.appendChild(s);
+  })();
+
+  function n3(x) { return fmt(Math.round(x * 1e9) / 1e9, 3); }
+  function grande(v) { return !isFinite(v) ? (v > 0 ? "+∞" : "−∞") : Math.abs(v) >= 1e6 ? U.cient(v, 2) : fmt(v, 4); }
+  function boton(host, texto, alClic) { var b = U.boton(host, texto, alClic); return b; }
+
+  // ============================================================
+  // 1. ESTUDIO GUIADO
+  // ============================================================
+  var PE = T10.estudio = [
+    { t: "x²/(x − 1)", ex: "x^2/(x-1)", rg: [-5, 7, -9, 11], excl: [1],
+      dom: "ℝ − {1}", sim: "ninguna (f(−x) ≠ ±f(x))",
+      cor: "Eje Y: (0, 0) · Eje X: x² = 0 ⟹ (0, 0)", sig: "f ≤ 0 si x &lt; 1 · f &gt; 0 si x &gt; 1",
+      av: [1], rectas: [{ m: 1, n: 1 }], asi: "Vertical x = 1 · Oblicua y = x + 1 (en ±∞) · Horizontal: no",
+      ext: [{ x: 0, y: 0, t: "máx" }, { x: 2, y: 4, t: "mín" }], inf: [],
+      mon: "f′ = x(x − 2)/(x − 1)² · crece en (−∞, 0) y (2, +∞); decrece en (0, 1) y (1, 2) · máx (0, 0), mín (2, 4)",
+      cur: "f″ = 2/(x − 1)³ · cóncava en (−∞, 1), convexa en (1, +∞) · sin inflexiones" },
+    { t: "2x/(x² − 1)", ex: "2*x/(x^2-1)", rg: [-4, 4, -5, 5], excl: [-1, 1],
+      dom: "ℝ − {−1, 1}", sim: "impar: f(−x) = −f(x)",
+      cor: "(0, 0) en ambos ejes", sig: "− en (−∞, −1) · + en (−1, 0) · − en (0, 1) · + en (1, +∞)",
+      av: [-1, 1], rectas: [{ m: 0, n: 0 }], asi: "Verticales x = −1 y x = 1 · Horizontal y = 0 (en ±∞)",
+      ext: [], inf: [{ x: 0, y: 0 }],
+      mon: "f′ = −2(x² + 1)/(x² − 1)² &lt; 0 · decrece en cada tramo · sin extremos",
+      cur: "f″ = 4x(x² + 3)/(x² − 1)³ · cóncava en (−∞, −1) y (0, 1); convexa en (−1, 0) y (1, +∞) · inflexión (0, 0)" },
+    { t: "x·e^(−x)", ex: "x*e^(-x)", rg: [-1.5, 7, -4, 1], excl: [],
+      dom: "ℝ", sim: "ninguna",
+      cor: "(0, 0) en ambos ejes", sig: "f &lt; 0 si x &lt; 0 · f &gt; 0 si x &gt; 0",
+      av: [], rectas: [{ m: 0, n: 0, lado: "+" }], asi: "Horizontal y = 0 solo en +∞ · en −∞, f → −∞ y f(x)/x → +∞: rama parabólica",
+      ext: [{ x: 1, y: Math.exp(-1), t: "máx" }], inf: [{ x: 2, y: 2 * Math.exp(-2) }],
+      mon: "f′ = (1 − x)e<sup>−x</sup> · crece en (−∞, 1), decrece en (1, +∞) · máx (1, 1/e) ≈ (1; 0,368)",
+      cur: "f″ = (x − 2)e<sup>−x</sup> · cóncava en (−∞, 2), convexa en (2, +∞) · inflexión (2, 2/e²) ≈ (2; 0,271)" },
+    { t: "(ln x)/x", ex: "ln(x)/x", rg: [-1, 12, -3, 1], excl: [0],
+      dom: "(0, +∞)", sim: "no la hay (el dominio no es simétrico)",
+      cor: "Eje Y: no (0 ∉ Dom) · Eje X: ln x = 0 ⟹ (1, 0)", sig: "f &lt; 0 en (0, 1) · f &gt; 0 en (1, +∞)",
+      av: [0], rectas: [{ m: 0, n: 0, lado: "+" }], asi: "Vertical x = 0 (por la derecha, f → −∞) · Horizontal y = 0 en +∞",
+      ext: [{ x: Math.E, y: 1 / Math.E, t: "máx" }], inf: [{ x: Math.exp(1.5), y: 1.5 / Math.exp(1.5) }],
+      mon: "f′ = (1 − ln x)/x² · crece en (0, e), decrece en (e, +∞) · máx (e, 1/e) ≈ (2,718; 0,368)",
+      cur: "f″ = (2 ln x − 3)/x³ · cóncava en (0, e<sup>3/2</sup>), convexa en (e<sup>3/2</sup>, +∞) · inflexión ≈ (4,482; 0,335)" },
+    { t: "x·√(4 − x)", ex: "x*sqrt(4-x)", rg: [-5, 5, -10, 4], excl: [],
+      dom: "(−∞, 4]", sim: "ninguna",
+      cor: "Eje Y: (0, 0) · Eje X: x = 0 o x = 4 ⟹ (0, 0) y (4, 0)", sig: "f &lt; 0 si x &lt; 0 · f &gt; 0 en (0, 4)",
+      av: [], rectas: [], asi: "Sin verticales ni horizontales · en −∞, f → −∞ y f(x)/x → +∞ (rama parabólica) · en x = 4 termina con tangente vertical",
+      ext: [{ x: 8 / 3, y: 16 * Math.sqrt(3) / 9, t: "máx" }], inf: [],
+      mon: "f′ = (8 − 3x)/(2√(4 − x)) · crece en (−∞, 8/3), decrece en (8/3, 4) · máx (8/3, 16√3/9) ≈ (2,667; 3,079)",
+      cur: "f″ = (3x − 16)/(4(4 − x)<sup>3/2</sup>) &lt; 0 en todo el dominio · cóncava · sin inflexiones (16/3 ∉ Dom)" },
+    { t: "|x² − 4|", ex: "|x^2-4|", rg: [-4, 4, -1, 12], excl: [],
+      dom: "ℝ", sim: "par: f(−x) = f(x)",
+      cor: "Eje Y: (0, 4) · Eje X: (−2, 0) y (2, 0)", sig: "f ≥ 0 siempre",
+      av: [], rectas: [], asi: "Ninguna · en ±∞, f ≈ x² (rama parabólica)",
+      ext: [{ x: -2, y: 0, t: "mín" }, { x: 0, y: 4, t: "máx" }, { x: 2, y: 0, t: "mín" }], inf: [],
+      mon: "f′ = 2x si |x| &gt; 2 · f′ = −2x si |x| &lt; 2 · decrece en (−∞, −2) y (0, 2); crece en (−2, 0) y (2, +∞) · mín (±2, 0) (puntos angulares), máx (0, 4)",
+      cur: "f″ = 2 si |x| &gt; 2 (convexa) · f″ = −2 si |x| &lt; 2 (cóncava) · en x = ±2 no hay tangente (picos): no son inflexiones" },
+    { t: "eˣ/x", ex: "e^x/x", rg: [-5, 4, -6, 10], excl: [0],
+      dom: "ℝ − {0}", sim: "ninguna",
+      cor: "Ni eje Y (0 ∉ Dom) ni eje X (eˣ &gt; 0)", sig: "f &lt; 0 si x &lt; 0 · f &gt; 0 si x &gt; 0",
+      av: [0], rectas: [{ m: 0, n: 0, lado: "-" }], asi: "Vertical x = 0 (−∞ por la izquierda, +∞ por la derecha) · Horizontal y = 0 solo en −∞ · en +∞ rama parabólica",
+      ext: [{ x: 1, y: Math.E, t: "mín" }], inf: [],
+      mon: "f′ = (x − 1)eˣ/x² · decrece en (−∞, 0) y (0, 1); crece en (1, +∞) · mín (1, e) ≈ (1; 2,718)",
+      cur: "f″ = (x² − 2x + 2)eˣ/x³ (numerador siempre &gt; 0) · cóncava en (−∞, 0), convexa en (0, +∞) · sin inflexiones" }
+  ];
+  var PASOS_E = ["1. Dominio y simetría", "2. Cortes y signo", "3. Asíntotas", "4. Monotonía y extremos", "5. Curvatura e inflexiones", "6. La gráfica"];
+  B.w.m2t10_estudio = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Estudio guiado: la gráfica se construye paso a paso");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="m10-paso"></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, p: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), tit = cuerpo.querySelector(".m10-paso");
+    var bAnt = boton(ctl, "◀ Paso anterior", function () { if (st.p > 0) { st.p--; pinta(); } });
+    var bSig = boton(ctl, "Siguiente paso ▶", function () { if (st.p < 5) { st.p++; pinta(); } });
+    bSig.setAttribute("data-sig", "1");
+    var bTodo = boton(ctl, "Ir a la gráfica completa", function () { st.p = 5; pinta(); });
+    function pinta() {
+      var P = PE[st.i], r = F.leer(P.ex), p = st.p, f = r.g, i;
+      g.rango(P.rg[0], P.rg[1], P.rg[2], P.rg[3]); g.limpiar();
+      bAnt.disabled = p === 0; bSig.disabled = p === 5;
+      tit.innerHTML = "<b>" + PASOS_E[p] + "</b> · paso " + (p + 1) + " de 6";
+      var vx0 = P.rg[2], vx1 = P.rg[3];
+      P.excl.forEach(function (x) { g.segmento(x, vx0, x, vx1, { clase: "c-faint", dash: "2 5" }); });
+      if (p >= 1) P.cor && cortes(P, g, f);
+      if (p >= 2) {
+        P.av.forEach(function (x) { g.segmento(x, vx0, x, vx1, { clase: "c-red", dash: "7 5" }); etq(g, x, vx1, "x = " + n3(x), "c-red", 5, 14); });
+        P.rectas.forEach(function (q) {
+          var xa = q.lado === "+" ? Math.max(P.rg[0], P.rg[1] * 0.35) : P.rg[0], xb = q.lado === "-" ? Math.min(P.rg[1], P.rg[0] * 0.35) : P.rg[1];
+          if (q.lado === "+") xa = P.rg[0]; if (q.lado === "-") xb = P.rg[1];
+          g.segmento(xa, q.m * xa + q.n, xb, q.m * xb + q.n, { clase: "c-red", dash: "7 5" });
+        });
+      }
+      if (p >= 3) P.ext.forEach(function (e) {
+        var W = (P.rg[1] - P.rg[0]) * 0.06;
+        g.segmento(e.x - W, e.y, e.x + W, e.y, { clase: "c-ok" }); pto(g, e.x, e.y, "c-ok", false, 6);
+        etq(g, e.x, e.y, e.t, "c-ok", 8, e.t === "máx" ? -10 : 18);
+      });
+      if (p >= 4) P.inf.forEach(function (e) { pto(g, e.x, e.y, "c-pen", false, 6); etq(g, e.x, e.y, "inflexión", "c-pen", 8, -10); });
+      if (p >= 5) g.curva(f, { clase: "c-pen", n: 800 }).setAttribute("stroke-width", 3);
+      var h = fil("Dominio", P.dom, "pen") + fil("Simetría", P.sim, "pen");
+      if (p >= 1) h += fil("Cortes con los ejes", P.cor, "ok ancho") + fil("Signo de f", P.sig, "ok ancho");
+      if (p >= 2) h += fil("Asíntotas", P.asi, "red ancho");
+      if (p >= 3) h += fil("Monotonía y extremos", P.mon, "ok ancho");
+      if (p >= 4) h += fil("Curvatura e inflexiones", P.cur, "pen ancho");
+      lectura.innerHTML = h;
+      pie.innerHTML = p < 5 ? "Pulsa «Siguiente paso». En el último se dibuja la curva; antes, intenta imaginarla uniendo lo que ya hay: puntos, asíntotas (rojo) y tangentes horizontales (verde)." :
+        "La curva pasa por los cortes, se pega a las asíntotas, sube y baja entre los extremos y cambia de curvatura justo en las inflexiones.";
+    }
+    function cortes(P, g, f) {
+      var xs = P.rg;
+      var pts = [];
+      F.raices(f, xs[0], xs[1]).forEach(function (x) { if (isFinite(f(x))) pts.push([x, 0]); });
+      var y0 = f(0); if (isFinite(y0)) pts.push([0, y0]);
+      pts.forEach(function (q) { pto(g, q[0], q[1], "c-red", false, 5); });
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -5, xmax: 5, ymin: -5, ymax: 5, w: 600, h: 320, etx: "x", ety: "y", etiqueta: "Estudio guiado" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PE.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { st.i = +k; st.p = 0; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // 2. RAMAS INFINITAS
+  // ============================================================
+  var PRm = T10.ramas = [
+    { t: "(x² + 1)/(x − 1)", ex: "(x^2+1)/(x-1)", mas: { tipo: "oblicua", m: 1, n: 1 }, menos: { tipo: "oblicua", m: 1, n: 1 } },
+    { t: "√(x² + 1)", ex: "sqrt(x^2+1)", mas: { tipo: "oblicua", m: 1, n: 0 }, menos: { tipo: "oblicua", m: -1, n: 0 } },
+    { t: "(x³ + 1)/x²", ex: "(x^3+1)/x^2", mas: { tipo: "oblicua", m: 1, n: 0 }, menos: { tipo: "oblicua", m: 1, n: 0 } },
+    { t: "x·e^(−x)", ex: "x*e^(-x)", mas: { tipo: "horizontal", L: 0 }, menos: { tipo: "parabólica", dir: "eje Y" } },
+    { t: "eˣ", ex: "e^x", mas: { tipo: "parabólica", dir: "eje Y" }, menos: { tipo: "horizontal", L: 0 } },
+    { t: "ln x", ex: "ln(x)", mas: { tipo: "parabólica", dir: "eje X" }, menos: null }
+  ];
+  B.w.m2t10_ramas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Ramas infinitas: ¿asíntota o rama parabólica?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-lado class="chips"></div><div class="w-plot"></div><div class="m10-tabla"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, s: "mas" }, g, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), tabla = cuerpo.querySelector(".m10-tabla");
+    function pinta() {
+      var P = PRm[st.i], R = P[st.s], r = F.leer(P.ex), f = r.gi, sg = st.s === "mas" ? 1 : -1, rg;
+      if (!R) { st.s = "mas"; R = P.mas; sg = 1; }
+      rg = sg > 0 ? [-1, 12, -4, 8] : [-12, 1, -8, 4];
+      var yy = F.rangoY(r.g, rg[0], rg[1]); if (P.t === "ln x") yy = [-3, 4];
+      g.rango(rg[0], rg[1], Math.max(-12, yy[0]), Math.min(14, yy[1])); g.limpiar();
+      g.curva(r.g, { clase: "c-pen", n: 800 }).setAttribute("stroke-width", 3);
+      if (R.tipo === "oblicua") g.segmento(rg[0], R.m * rg[0] + R.n, rg[1], R.m * rg[1] + R.n, { clase: "c-red", dash: "7 5" });
+      if (R.tipo === "horizontal") g.horizontal(R.L, { clase: "c-red", dash: "7 5" });
+      var xs = [10, 100, 1000, 10000].map(function (v) { return sg * v; });
+      var cab = '<tr><th>x</th><th>f(x)</th><th>f(x)/x</th>' + (R.tipo === "oblicua" ? "<th>f(x) − (" + (R.m === 1 ? "" : R.m === -1 ? "−" : fmt(R.m, 0)) + "x)</th>" : "") + "</tr>";
+      var filas = xs.map(function (x) {
+        var v = f(x);
+        return "<tr><td>" + grande(x) + "</td><td>" + grande(v) + "</td><td>" + grande(v / x) + "</td>" + (R.tipo === "oblicua" ? "<td>" + grande(v - R.m * x) + "</td>" : "") + "</tr>";
+      }).join("");
+      tabla.innerHTML = '<table class="m10-t">' + cab + filas + "</table>";
+      var con, cl = "ok ancho";
+      if (R.tipo === "oblicua") con = "f(x)/x → " + n3(R.m) + " = m y f(x) − m·x → " + n3(R.n) + " = n. Asíntota oblicua <b>y = " + (R.m === 1 ? "" : R.m === -1 ? "−" : n3(R.m)) + "x" + (R.n === 0 ? "" : R.n > 0 ? " + " + n3(R.n) : " − " + n3(-R.n)) + "</b>.";
+      else if (R.tipo === "horizontal") con = "f(x) → " + n3(R.L) + ": asíntota horizontal <b>y = " + n3(R.L) + "</b> (y entonces f(x)/x → 0).";
+      else con = "f(x) crece sin límite y " + (P.t === "ln x" ? "f(x)/x → 0" : "f(x)/x → ∞") + ": <b>rama parabólica</b> en la dirección del " + R.dir + ". No hay asíntota.";
+      lectura.innerHTML = fil("Tipo de rama en " + (sg > 0 ? "+∞" : "−∞"), R.tipo, "pen") + fil("Conclusión", con, cl);
+      pie.innerHTML = "Receta: 1) ¿f(x) tiende a un número? Horizontal. 2) Si no, m = lím f(x)/x; si m es finito y no nulo, n = lím [f(x) − m·x]; si n es finito, oblicua. 3) Si no, rama parabólica.";
+      var bs = cuerpo.querySelector("[data-lado]");
+      bs.style.display = "";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 12, ymin: -4, ymax: 8, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Ramas infinitas" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRm.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { st.i = +k; if (!PRm[st.i][st.s]) { st.s = "mas"; ladoFichas(); } pinta(); });
+    function ladoFichas() { U.fichas(cuerpo.querySelector("[data-lado]"), [{ k: "mas", t: "x → +∞" }, { k: "menos", t: "x → −∞" }], st.s, function (k) { if (!PRm[st.i][k]) { ladoFichas(); return; } st.s = k; pinta(); }); }
+    ladoFichas();
+    pinta();
+  };
+
+  // ============================================================
+  // 3. DE LA GRÁFICA DE f′ A f
+  // ============================================================
+  var PF = T10.fprima = [
+    { t: "f′ = x² − 2x − 3", d: "x^2-2*x-3", f0: "x^3/3-x^2-3*x", X: 5, tang: [] },
+    { t: "f′ = (1 − x)e^(−x)", d: "(1-x)*e^(-x)", f0: "x*e^(-x)", X: 5, tang: [] },
+    { t: "f′ = 2x/(x² + 1)", d: "2*x/(x^2+1)", f0: "ln(x^2+1)", X: 5, tang: [] },
+    { t: "f′ = x³ − 2x", d: "x^3-2*x", f0: "x^4/4-x^2", X: 2.5, tang: [] },
+    { t: "f′ = x²  (cuidado)", d: "x^2", f0: "x^3/3", X: 3, tang: [0] },
+    { t: "f′ = −2x·e^(−x²)", d: "-2*x*e^(-x^2)", f0: "e^(-x^2)", X: 2.5, tang: [] }
+  ];
+  function tramos(g, A, Bm, pts, fnTxt) {
+    var xs = [A].concat(pts, [Bm]), out = [], k;
+    for (k = 0; k < xs.length - 1; k++) {
+      var m = (xs[k] + xs[k + 1]) / 2, v = g(m), s = v > 0 ? "+" : "−";
+      out.push({ a: xs[k], b: xs[k + 1], s: s });
+    }
+    return out;
+  }
+  B.w.m2t10_fprima = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Lee f a partir de la gráfica de f′");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot dr-g1"></div><div class="w-plot dr-g2"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, mostrar: false, C: 0 }, g1, g2, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sC;
+    var bM = boton(ctl, "Mostrar f", function () { st.mostrar = !st.mostrar; bM.textContent = st.mostrar ? "Ocultar f" : "Mostrar f"; pinta(); });
+    bM.setAttribute("data-mostrar", "1");
+    sC = U.slider(ctl, { et: "Constante en f(0)", min: -3, max: 3, step: 0.5, val: 0, on: function (v) { st.C = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var P = PF[st.i], d = F.leer(P.d).g, f0 = F.leer(P.f0).g, X = P.X, C = st.C;
+      var f = function (x) { return f0(x) + C; };
+      var zs = D.cambios(d, -X, X).map(function (e) { return e; });
+      var d2 = function (x) { return D.d1(d, x); };
+      var is = D.cambios(d2, -X, X);
+      var ypd = F.rangoY(d, -X, X);
+      g1.rango(-X, X, ypd[0], ypd[1]); g1.limpiar();
+      g1.zona(function (x) { return Math.max(0, d(x)); }, -X, X, { clase: "z-ok" });
+      g1.zona(function (x) { return Math.min(0, d(x)); }, -X, X, { clase: "z-pen" });
+      g1.curva(d, { clase: "c-red", n: 600 }).setAttribute("stroke-width", 3);
+      zs.forEach(function (e) { pto(g1, e.x, 0, "c-ok", false, 5); });
+      is.forEach(function (e) { pto(g1, e.x, d(e.x), "c-pen", false, 5); });
+      P.tang.forEach(function (x) { pto(g1, x, 0, "c-faint", false, 5); });
+      var yf = F.rangoY(f, -X, X);
+      g2.rango(-X, X, yf[0], yf[1]); g2.limpiar();
+      if (st.mostrar) {
+        g2.curva(f, { clase: "c-pen", n: 600 }).setAttribute("stroke-width", 3);
+        zs.forEach(function (e) { var y = f(e.x); pto(g2, e.x, y, "c-ok", false, 6); g2.segmento(e.x - X * 0.12, y, e.x + X * 0.12, y, { clase: "c-ok" }); });
+        is.forEach(function (e) { pto(g2, e.x, f(e.x), "c-pen", false, 6); });
+      } else {
+        g2.texto(0, (yf[0] + yf[1]) / 2, "¿Cómo será f? Léelo en la tabla y pulsa «Mostrar f»", { ancla: "middle", clase: "c-faint" });
+      }
+      var ps = tramos(d, -X, X, zs.map(function (e) { return e.x; })), ex = zs.map(function (e) {
+        return "x = " + n3(e.x) + (e.de > 0 ? ": máximo relativo" : ": mínimo relativo") + " (f′ pasa de " + (e.de > 0 ? "+ a −" : "− a +") + ")";
+      });
+      P.tang.forEach(function (x) { ex.push("x = " + n3(x) + ": f′ = 0 pero no cambia de signo: tangente horizontal, sin extremo"); });
+      var cur = tramos(d2, -X, X, is.map(function (e) { return e.x; })), inf = is.map(function (e) { return "x = " + n3(e.x) + (e.de > 0 ? " (f′ pasa de crecer a decrecer: de convexa a cóncava)" : " (f′ pasa de decrecer a crecer: de cóncava a convexa)"); });
+      function ints(arr, mas, menos) { return arr.map(function (q) { return "(" + grande(q.a === -X ? -Infinity : q.a) + ", " + grande(q.b === X ? Infinity : q.b) + "): " + (q.s === "+" ? mas : menos); }).join(" · "); }
+      lectura.innerHTML = fil("Signo de f′ ⟹ monotonía de f", ints(ps, "crece", "decrece"), "ok ancho") +
+        fil("Ceros de f′ ⟹ extremos de f", ex.join(" · ") || "ninguno", "pen ancho") +
+        fil("Crecimiento de f′ ⟹ curvatura de f", ints(cur, "convexa", "cóncava"), "ok ancho") +
+        fil("Extremos de f′ ⟹ inflexiones de f", inf.join(" · ") || "ninguna", "pen ancho");
+      pie.innerHTML = "Arriba, la gráfica de <b>f′</b> (verde: f′ &gt; 0; azul: f′ &lt; 0). Abajo, f: cambia la constante y verás que f ↑↓ pero conserva su forma (solo se desplaza). Los datos de f′ <b>no</b> dicen cuánto vale f(0).";
+    }
+    g1 = new B.Plot(cuerpo.querySelector(".dr-g1"), { xmin: -5, xmax: 5, ymin: -5, ymax: 5, w: 620, h: 200, etx: "x", ety: "f′", etiqueta: "Gráfica de f′" });
+    g2 = new B.Plot(cuerpo.querySelector(".dr-g2"), { xmin: -5, xmax: 5, ymin: -5, ymax: 5, w: 620, h: 200, etx: "x", ety: "f", etiqueta: "Gráfica de f" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PF.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { st.i = +k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // 4. DEDUCIR LA FÓRMULA A PARTIR DE LOS DATOS
+  // ============================================================
+  var PD = T10.formula = [
+    { t: "(ax + b)/(x + c)", txt: "f(x) = (a·x + b)/(x + c)",
+      pars: [{ n: "a", min: -5, max: 5, step: 1, v: 1 }, { n: "b", min: -6, max: 6, step: 1, v: 0 }, { n: "c", min: -5, max: 5, step: 1, v: 0 }],
+      f: function (x, p) { return (p[0] * x + p[1]) / (x + p[2]); }, rg: [-4, 6, -6, 8], sol: [3, -2, -2],
+      conds: [{ t: "Asíntota vertical x = 2", res: function (p) { return p[2] + 2; }, eq: "x + c = 0 en x = 2 ⟹ c = −2" },
+              { t: "Asíntota horizontal y = 3", res: function (p) { return p[0] - 3; }, eq: "lím f = a ⟹ a = 3" },
+              { t: "Pasa por (0, 1)", res: function (p) { return p[1] / p[2] - 1; }, eq: "f(0) = b/c = 1 ⟹ b = −2" }],
+      marcas: function (g, P) { g.vertical(2, { clase: "c-ok", dash: "5 5" }); g.horizontal(3, { clase: "c-ok", dash: "5 5" }); pto(g, 0, 1, "c-ok", false, 6); } },
+    { t: "x³ + ax² + bx + c", txt: "f(x) = x³ + a·x² + b·x + c",
+      pars: [{ n: "a", min: -9, max: 9, step: 1, v: 0 }, { n: "b", min: -12, max: 12, step: 1, v: 0 }, { n: "c", min: -6, max: 6, step: 1, v: 0 }],
+      f: function (x, p) { return x * x * x + p[0] * x * x + p[1] * x + p[2]; }, rg: [-1, 5, -4, 8], sol: [-6, 9, 1],
+      conds: [{ t: "Corta al eje Y en (0, 1)", res: function (p) { return p[2] - 1; }, eq: "f(0) = c = 1" },
+              { t: "Extremo relativo en x = 1", res: function (p) { return 3 + 2 * p[0] + p[1]; }, eq: "f′(1) = 3 + 2a + b = 0" },
+              { t: "Punto de inflexión en x = 2", res: function (p) { return 12 + 2 * p[0]; }, eq: "f″(2) = 12 + 2a = 0 ⟹ a = −6" }],
+      marcas: function (g) { pto(g, 0, 1, "c-ok", false, 6); g.vertical(1, { clase: "c-ok", dash: "5 5" }); g.vertical(2, { clase: "c-ok", dash: "5 5" }); } },
+    { t: "(ax + b)·eˣ", txt: "f(x) = (a·x + b)·eˣ",
+      pars: [{ n: "a", min: -3, max: 3, step: 0.5, v: 0 }, { n: "b", min: -3, max: 3, step: 1, v: 0 }],
+      f: function (x, p) { return (p[0] * x + p[1]) * Math.exp(x); }, rg: [-5, 3, -3, 4], sol: [0.5, -1],
+      conds: [{ t: "Pasa por (0, −1)", res: function (p) { return p[1] + 1; }, eq: "f(0) = b = −1" },
+              { t: "Tangente horizontal en x = 1", res: function (p) { return 2 * p[0] + p[1]; }, eq: "f′(x) = (ax + a + b)eˣ ⟹ f′(1) = (2a + b)e = 0 ⟹ a = 1/2" }],
+      marcas: function (g) { pto(g, 0, -1, "c-ok", false, 6); g.vertical(1, { clase: "c-ok", dash: "5 5" }); } },
+    { t: "a·ln x + b·x", txt: "f(x) = a·ln x + b·x",
+      pars: [{ n: "a", min: -4, max: 4, step: 1, v: 0 }, { n: "b", min: -4, max: 4, step: 1, v: 0 }],
+      f: function (x, p) { return p[0] * Math.log(x) + p[1] * x; }, rg: [-0.5, 6, -5, 3], sol: [2, -1],
+      conds: [{ t: "Pasa por (1, −1)", res: function (p) { return p[1] + 1; }, eq: "f(1) = b = −1" },
+              { t: "Extremo relativo en x = 2", res: function (p) { return p[0] / 2 + p[1]; }, eq: "f′(2) = a/2 + b = 0 ⟹ a = 2" }],
+      marcas: function (g) { pto(g, 1, -1, "c-ok", false, 6); g.vertical(2, { clase: "c-ok", dash: "5 5" }); } }
+  ];
+  B.w.m2t10_formula = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Deduce la fórmula a partir de los datos de la gráfica");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="m10-paso m10-txt"></div><div data-ctl></div><div class="w-plot"></div><div class="m10-conds"></div><p class="w-pie"></p>';
+    var st = { i: 0, p: [] }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), sl = [], conds = cuerpo.querySelector(".m10-conds"), pie = cuerpo.querySelector(".w-pie"), txt = cuerpo.querySelector(".m10-txt"), bSol;
+    function monta() {
+      ctl.innerHTML = ""; sl = [];
+      var P = PD[st.i]; st.p = P.pars.map(function (q) { return q.v; }); st.ver = false;
+      P.pars.forEach(function (q, k) {
+        sl.push(U.slider(ctl, { et: "<i>" + q.n + "</i>", min: q.min, max: q.max, step: q.step, val: q.v, on: function (v) { st.p[k] = v; pinta(); }, fmt: function (v) { return fmt(v, q.step < 1 ? 1 : 0); } }));
+      });
+      bSol = boton(ctl, "Ver el sistema y la solución", function () { st.ver = true; st.p = P.sol.slice(); sl.forEach(function (s, k) { s.set(st.p[k]); }); pinta(); });
+      bSol.setAttribute("data-solve", "1");
+    }
+    function pinta() {
+      var P = PD[st.i], p = st.p, ok = true;
+      g.rango(P.rg[0], P.rg[1], P.rg[2], P.rg[3]); g.limpiar();
+      P.marcas(g, P);
+      var res = P.conds.map(function (c) { var r = c.res(p); return isFinite(r) && Math.abs(r) < 1e-9; });
+      ok = res.every(function (v) { return v; });
+      g.curva(function (x) { return P.f(x, p); }, { clase: ok ? "c-ok" : "c-pen", n: 700 }).setAttribute("stroke-width", 3);
+      txt.innerHTML = P.txt + " &nbsp;con&nbsp; " + P.pars.map(function (q, k) { return "<b>" + q.n + " = " + fmt(p[k], q.step < 1 ? 1 : 0) + "</b>"; }).join(", ");
+      conds.innerHTML = P.conds.map(function (c, k) {
+        return '<div class="m10-cond ' + (res[k] ? "ok" : "no") + '"><i>' + (res[k] ? "✓" : "✗") + "</i><span>" + c.t + (st.ver ? " &nbsp;→&nbsp; <b>" + c.eq + "</b>" : "") + "</span></div>";
+      }).join("");
+      pie.innerHTML = ok ? "<b>¡Cumple todos los datos!</b> Cada dato es una ecuación: con tantas ecuaciones como parámetros, la solución es única." : "Cada dato (punto, asíntota, extremo, inflexión) da una ecuación para los parámetros. Ajusta los deslizadores hasta que los tres datos pasen a ✓, o pulsa el botón para ver el sistema.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -4, xmax: 6, ymin: -6, ymax: 8, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Deducir la fórmula" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PD.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { st.i = +k; monta(); pinta(); });
+    monta(); pinta();
+  };
+
+  // ============================================================
+  // 5. ESBOZO COHERENTE CON LA TABLA DE SIGNOS
+  // ============================================================
+  var PC = T10.coherente = [
+    { tabla: "f′ &gt; 0 en (−∞, −1) · f′ &lt; 0 en (−1, 1) · f′ &gt; 0 en (1, +∞)<br>f″ &lt; 0 en (−∞, 0) · f″ &gt; 0 en (0, +∞)", rg: [-3, 3, -4, 4],
+      cand: [{ ex: "x^3-3*x", ok: true, por: "Máximo en x = −1, mínimo en x = 1 y cambio de cóncava a convexa en 0: encaja con las dos filas." },
+             { ex: "-x^3+3*x", ok: false, por: "Tiene f′ &lt; 0 donde la tabla pide f′ &gt; 0 (máximo y mínimo intercambiados) y la curvatura al revés." },
+             { ex: "x^3+3*x", ok: false, por: "f′ = 3x² + 3 &gt; 0 siempre: no tiene extremos, pero la tabla exige un máximo en −1." }] },
+    { tabla: "Dominio ℝ − {1}<br>f′ &gt; 0 en (−∞, 0) · f′ &lt; 0 en (0, 1) y (1, 2) · f′ &gt; 0 en (2, +∞)<br>f″ &lt; 0 en (−∞, 1) · f″ &gt; 0 en (1, +∞)", rg: [-4, 6, -8, 10],
+      cand: [{ ex: "x^2/(1-x)", ok: false, por: "La asíntota está bien (x = 1), pero con 1 − x en el denominador la curvatura y los extremos se invierten: f′ &lt; 0 donde debería ser &gt; 0." },
+             { ex: "x^2/(x-1)", ok: true, por: "Máximo en (0, 0), mínimo en (2, 4), cóncava a la izquierda de la asíntota y convexa a la derecha." },
+             { ex: "x^2/(x+1)", ok: false, por: "Su asíntota vertical es x = −1, no x = 1: no respeta el dominio de la tabla." }] },
+    { tabla: "f′ &gt; 0 en (−∞, 1) · f′ &lt; 0 en (1, +∞)<br>f″ &lt; 0 en (−∞, 2) · f″ &gt; 0 en (2, +∞)<br>Asíntota horizontal y = 0 en +∞", rg: [-2, 7, -3, 1],
+      cand: [{ ex: "x*e^x", ok: false, por: "Su asíntota horizontal y = 0 está en −∞ y su extremo es un mínimo en x = −1: no encaja." },
+             { ex: "x*e^(-x)", ok: true, por: "Máximo en x = 1, inflexión en x = 2 y se pega al eje X en +∞." },
+             { ex: "-x*e^(-x)", ok: false, por: "Es la anterior reflejada: tiene un mínimo en x = 1 (f′ &lt; 0 antes y &gt; 0 después), al revés de la tabla." }] }
+  ];
+  B.w.m2t10_coherente = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "¿Cuál de estos esbozos es coherente con la tabla?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="m10-tab"></div><div class="m10-cand"></div><p class="w-pie"></p>';
+    var st = { i: 0 }, tab = cuerpo.querySelector(".m10-tab"), cand = cuerpo.querySelector(".m10-cand"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var P = PC[st.i]; tab.innerHTML = P.tabla; cand.innerHTML = ""; pie.innerHTML = "Elige el esbozo que cumple <b>todas</b> las filas de la tabla; si te equivocas, te explico qué fila incumple.";
+      P.cand.forEach(function (c, k) {
+        var d = document.createElement("div"); d.className = "m10-c"; cand.appendChild(d);
+        var pl = document.createElement("div"); pl.className = "w-plot"; d.appendChild(pl);
+        var gg = new B.Plot(pl, { xmin: P.rg[0], xmax: P.rg[1], ymin: P.rg[2], ymax: P.rg[3], w: 300, h: 220, etiqueta: "Esbozo " + "ABC".charAt(k) });
+        gg.curva(F.leer(c.ex).g, { clase: "c-pen", n: 500 }).setAttribute("stroke-width", 3);
+        var b = U.boton(d, "Elijo el " + "ABC".charAt(k), function () {
+          d.className = "m10-c " + (c.ok ? "ok" : "mal");
+          pie.innerHTML = (c.ok ? "<b>Correcto.</b> " : "<b>No.</b> ") + c.por;
+        });
+        b.setAttribute("data-c", c.ok ? "ok" : "mal");
+      });
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), PC.map(function (q, k) { return { k: String(k), t: "Tabla " + (k + 1) }; }), "0", function (k) { st.i = +k; pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de matrices (Matemáticas II, tema 1)
    motor B.lab.mt (fracciones exactas) + mm_producto · mm_potencias ·
    mm_gauss · mm_ecuacion · mm_rango
@@ -58515,6 +58878,686 @@
 
   B.registrar("mates2", "t9", {
     resumen: resumen, secciones: B.parte.m2t9a.secciones, nuevas: B.parte.m2t9b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 10: Estudio y representación de funciones
+   (parte A: se añade al final de las seis secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t10/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. El guion
+  secciones[0] =
+    "<h5>El guion completo, con lo que se pide y lo que suele fallar</h5>" +
+    "<p>En la EvAU de Madrid el enunciado casi nunca dice «estudia la función»; dice cosas como <i>«calcula las asíntotas, los intervalos de crecimiento y decrecimiento, los extremos relativos y esboza la gráfica»</i>. Cada apartado es un paso del guion. Hacerlos <b>siempre en el mismo orden</b> evita olvidos y, sobre todo, permite que unos pasos comprueben a otros.</p>" +
+    tabla(["Paso", "Qué calculas", "Error típico"], [
+      ["1. Dominio y simetría", "Dónde existe f; si f(−x) = ±f(x)", "Olvidar que un logaritmo pide argumento &gt; 0 o que una raíz pide radicando ≥ 0"],
+      ["2. Cortes y signo", "(0, f(0)); f(x) = 0; signo de f en cada tramo", "Dar como corte un valor que no está en el dominio"],
+      ["3. Asíntotas", "Verticales (en los bordes del dominio), horizontales y oblicuas, en +∞ y en −∞ por separado", "Dar una sola asíntota para +∞ y −∞ cuando son distintas"],
+      ["4. Monotonía y extremos", "Signo de f′; puntos con f′ = 0 o donde f′ no existe", "Llamar «extremo» a un punto con f′ = 0 en el que f′ no cambia de signo"],
+      ["5. Curvatura e inflexiones", "Signo de f″; puntos donde f″ cambia de signo", "Decir «inflexión» donde f″ = 0 pero no cambia de signo (x⁴ en 0)"],
+      ["6. Esbozo", "Juntar puntos, asíntotas, tangentes horizontales y curvatura", "Dibujar una curva que corta una asíntota vertical o que contradice la tabla de signos"]
+    ]) +
+    "<p>Este orden tiene lógica: el dominio dice <i>dónde</i> hay que buscar asíntotas verticales; los cortes y el signo dan puntos y regiones por donde pasa la curva; las asíntotas dicen <i>cómo se comporta en los bordes</i>; f′ da la forma entre puntos y f″ el detalle de cómo se curva. Al final, todo debe ser coherente: si el esbozo sube donde tu tabla dice que baja, hay un error en alguna parte.</p>" +
+    ojo("No hace falta dibujar con regla ni escala exacta: el examen valora que estén bien los <b>puntos notables</b> (con sus coordenadas), las <b>asíntotas</b>, los <b>intervalos</b> y que la curva sea coherente con ellos. Un esbozo claro con los datos escritos al lado vale más que un dibujo bonito sin datos.") +
+    "<p>Prueba el guion completo con el estudio guiado: cada pulsación añade un paso y la curva solo aparece al final, cuando ya tienes todos los datos.</p>" +
+    w("m2t10_estudio");
+
+  // ---------------------------------------------------------------- 2. Dominio y simetría
+  secciones[1] =
+    "<h5>Dominio según el tipo de función</h5>" +
+    tabla(["Función", "Dominio"], [
+      ["Polinomio, eˣ, sen x, cos x", "ℝ"],
+      ["Fracción P(x)/Q(x)", "ℝ salvo las raíces de Q (Q(x) = 0)"],
+      ["Raíz de índice par, √g(x)", "g(x) ≥ 0 (la raíz cúbica no impone nada)"],
+      ["Logaritmo, ln g(x)", "g(x) &gt; 0 (estrictamente)"],
+      ["Varias a la vez", "La intersección de todas las condiciones"]
+    ]) +
+    ejemplo("Raíz dentro de una fracción", "Halla el dominio de f(x) = √(x² − 4x)/(x − 1).",
+      ["Raíz: x² − 4x = x(x − 4) ≥ 0. Esta parábola (hacia arriba) es ≥ 0 fuera de las raíces: x ≤ 0 o x ≥ 4.",
+       "Denominador: x ≠ 1; pero x = 1 ya está fuera de la zona anterior (1 está entre 0 y 4).",
+       "Dom(f) = (−∞, 0] ∪ [4, +∞). <b>Ojo</b>: la condición del denominador no siempre quita algo nuevo."]) +
+    ejemplo("Logaritmo con una cuadrática", "Halla el dominio y la simetría de f(x) = ln(x² − 4).",
+      ["x² − 4 &gt; 0 ⟺ x &lt; −2 o x &gt; 2. Dom(f) = (−∞, −2) ∪ (2, +∞).",
+       "Este dominio es simétrico respecto al origen, así que tiene sentido preguntar por la paridad: f(−x) = ln((−x)² − 4) = ln(x² − 4) = f(x). Es <b>par</b>."]) +
+    "<h5>Simetría: lo primero que hay que mirar es el dominio</h5>" +
+    "<p>Si x está en el dominio, para que f sea par o impar también debe estarlo −x. Por eso f(x) = ln x o f(x) = √x <b>no pueden ser pares ni impares</b>: su dominio no es simétrico. Si lo es, se calcula f(−x) y se compara:</p>" +
+    tabla(["Resultado", "Simetría", "Qué ahorra"], [
+      ["f(−x) = f(x)", "Par: respecto al eje Y", "Estudias solo x ≥ 0 y reflejas"],
+      ["f(−x) = −f(x)", "Impar: respecto al origen", "Estudias solo x ≥ 0 y giras 180° respecto al origen"],
+      ["Ninguna", "Sin simetría", "Estudias todo el dominio"]
+    ]) +
+    ejemplo("Par, impar o ninguna", "Clasifica g(x) = x/(x² + 1), h(x) = eˣ + e<sup>−x</sup> y k(x) = x + eˣ.",
+      ["g(−x) = −x/(x² + 1) = −g(x): <b>impar</b>.",
+       "h(−x) = e<sup>−x</sup> + eˣ = h(x): <b>par</b> (es el coseno hiperbólico).",
+       "k(−x) = −x + e<sup>−x</sup>, que no es k(x) ni −k(x): <b>ninguna</b>. Basta comprobarlo con un valor: k(1) = 1 + e y k(−1) = −1 + 1/e, que no son iguales ni opuestos."]) +
+    "<p>Una función par o impar con asíntota en +∞ tiene la «misma» asíntota reflejada en −∞: ahórrate la mitad del trabajo.</p>";
+
+  // ---------------------------------------------------------------- 3. Cortes y signo
+  secciones[2] =
+    "<h5>El signo de f: la tabla de signos de una fracción</h5>" +
+    "<p>Una función continua solo puede cambiar de signo en un cero o en una discontinuidad (asíntota vertical). Por eso la tabla de signos de f = P/Q se hace así: <b>1)</b> marca en la recta real los ceros del numerador y los del denominador; <b>2)</b> en cada intervalo que queda, elige un número y calcula el signo (o usa el signo de cada factor); <b>3)</b> las raíces <i>dobles</i> no cambian el signo.</p>" +
+    ejemplo("Tabla de signos", "Estudia el signo de f(x) = (x + 1)(x − 3)/(x − 1).",
+      ["Ceros del numerador: x = −1 y x = 3. Cero del denominador: x = 1 (fuera del dominio). Intervalos: (−∞, −1), (−1, 1), (1, 3), (3, +∞).",
+       "x = −2: (−)(−)/(−) = <b>−</b> · x = 0: (+)(−)/(−) = <b>+</b> · x = 2: (+)(−)/(+) = <b>−</b> · x = 4: (+)(+)/(+) = <b>+</b>.",
+       "f &gt; 0 en (−1, 1) ∪ (3, +∞); f &lt; 0 en (−∞, −1) ∪ (1, 3). Cortes: (−1, 0), (3, 0) y (0, 3)."]) +
+    "<h5>Cuidado con los «huecos»: simplificar cambia el dominio</h5>" +
+    "<p>Si una raíz anula a la vez numerador y denominador, al simplificar la fracción el dominio original <b>no cambia</b>: sigue excluyendo esa raíz, pero allí <b>no hay asíntota vertical</b>, sino un hueco (discontinuidad evitable).</p>" +
+    ejemplo("Un hueco en la gráfica", "Estudia el dominio, los cortes y las asíntotas verticales de f(x) = (x² − x − 2)/(x² − 4).",
+      ["Dominio: x² − 4 ≠ 0, es decir x ≠ ±2. Dom(f) = ℝ − {−2, 2}.",
+       "Factorizando: f(x) = (x − 2)(x + 1)/((x − 2)(x + 2)) = (x + 1)/(x + 2) para x ≠ 2.",
+       "Cortes: eje Y, f(0) = 1/2 → (0, 1/2). Eje X: x = −1 → (−1, 0). El valor x = 2 <b>no</b> es corte: no está en el dominio.",
+       "x = −2 anula solo el denominador: <b>asíntota vertical</b> x = −2. En x = 2 el límite es (2 + 1)/(2 + 2) = 3/4: <b>hueco</b> en el punto (2, 3/4), sin asíntota."]);
+
+  // ---------------------------------------------------------------- 4. Asíntotas
+  secciones[3] =
+    "<h5>Recordatorio rápido: dónde buscar cada tipo</h5>" +
+    tabla(["Asíntota", "Dónde se busca", "Qué compruebas"], [
+      ["Vertical x = a", "En los puntos aislados que no están en el dominio y en los extremos abiertos del dominio", "lím<sub>x→a⁺</sub> f o lím<sub>x→a⁻</sub> f es ±∞"],
+      ["Horizontal y = L", "En +∞ y en −∞, por separado", "lím f(x) = L (finito)"],
+      ["Oblicua y = mx + n", "Solo si no hay horizontal en ese lado", "m = lím f(x)/x (finito y no nulo) y n = lím [f(x) − mx] (finito)"]
+    ]) +
+    ojo("Una función racional tiene a lo sumo <b>una</b> asíntota no vertical (la misma en +∞ y −∞). Con exponenciales, raíces o logaritmos pueden aparecer <b>dos distintas</b>: por eso hay que estudiar +∞ y −∞ por separado (ver el apartado de ramas infinitas).") +
+    ejemplo("Cómo se acerca a la asíntota", "Estudia las asíntotas de f(x) = x²/(x² − 4) y de qué lado se acerca la curva a cada una.",
+      ["Verticales: x² − 4 = 0 → x = ±2. Hay dos si el numerador no se anula ahí (4 ≠ 0).",
+       "Horizontal: lím<sub>x→±∞</sub> f = 1. Para saber el lado: f(x) − 1 = 4/(x² − 4), que es <b>positivo</b> para |x| grande: la curva está <b>por encima</b> de y = 1 en ambos extremos.",
+       "Lados en las verticales: en x = 2⁺ el denominador es positivo pequeño: f → +∞; en x = 2⁻, negativo pequeño: f → −∞. Por la simetría (f es par), en x = −2⁻: +∞ y en x = −2⁺: −∞."]);
+
+  // ---------------------------------------------------------------- 5. Monotonía
+  secciones[4] =
+    "<h5>Puntos críticos: dónde mirar</h5>" +
+    "<p>Los únicos puntos donde puede cambiar el sentido de variación de f son aquellos <b>del dominio</b> donde f′(x) = 0 <b>o donde f′ no existe</b> (picos del valor absoluto, uniones de funciones a trozos). Además hay que partir los intervalos de signo en los puntos que <i>no</i> están en el dominio (asíntotas): entre dos de ellos f′ puede mantener el signo pero la función no es «una sola pieza».</p>" +
+    "<p><b>Dos criterios para clasificar un punto crítico a:</b></p>" +
+    tabla(["Criterio", "Cómo se usa", "Cuándo falla"], [
+      ["Cambio de signo de f′", "f′ pasa de + a −: máximo · de − a +: mínimo · sin cambio: no hay extremo", "Casi nunca; es el más seguro"],
+      ["Segunda derivada", "f′(a) = 0 y f″(a) &gt; 0: mínimo · f″(a) &lt; 0: máximo", "Si f″(a) = 0 no decide (x⁴ tiene mínimo en 0, −x⁴ máximo, x³ ninguno): usa el signo de f′"]
+    ]) +
+    ejemplo("Dos extremos con exponencial", "Estudia la monotonía y los extremos de f(x) = x²e<sup>−x</sup>.",
+      ["f′(x) = 2xe<sup>−x</sup> − x²e<sup>−x</sup> = x(2 − x)e<sup>−x</sup>. Como e<sup>−x</sup> &gt; 0, el signo lo dan x y (2 − x).",
+       "f′ = 0 en x = 0 y x = 2. Signos: x &lt; 0: (−)(+) = −; 0 &lt; x &lt; 2: (+)(+) = +; x &gt; 2: (+)(−) = −.",
+       "Decrece en (−∞, 0), crece en (0, 2), decrece en (2, +∞). <b>Mínimo relativo</b> (0, 0) y <b>máximo relativo</b> (2, 4/e²) ≈ (2; 0,541)."]) +
+    ejemplo("Cuando f″ no decide", "Clasifica el punto crítico x = 0 de f(x) = x⁴.",
+      ["f′ = 4x³ = 0 en x = 0; f″ = 12x² y f″(0) = 0: el criterio de la segunda derivada no decide.",
+       "Signo de f′: x &lt; 0: 4x³ &lt; 0 (decrece); x &gt; 0: 4x³ &gt; 0 (crece). Cambia de − a +: <b>mínimo</b> en (0, 0)."]);
+
+  // ---------------------------------------------------------------- 6. Curvatura
+  secciones[5] =
+    "<h5>Qué significa de verdad f″ &gt; 0</h5>" +
+    "<p>f″ es la derivada de f′: mide cómo cambia la <b>pendiente</b>. Si f″ &gt; 0, la pendiente va aumentando: la gráfica se queda <i>por encima</i> de sus tangentes (convexa, ∪). Si f″ &lt; 0, la pendiente va disminuyendo: la gráfica queda <i>por debajo</i> de sus tangentes (cóncava, ∩). En un punto de inflexión la gráfica <b>atraviesa su tangente</b>. Mira las tres gráficas a la vez: ceros de f′ ↔ extremos de f; ceros de f″ ↔ inflexiones de f.</p>" +
+    w("tresgraficas") +
+    ojo("«Cóncava» y «convexa» se usan con sentido opuesto en distintos libros. En Madrid y en este curso: <b>convexa = ∪ = f″ &gt; 0</b>, <b>cóncava = ∩ = f″ &lt; 0</b>. Si dudas, en el examen escribe también «f″ &gt; 0 (forma de ∪)» y no habrá confusión.") +
+    "<h5>Cómo se clasifica un posible punto de inflexión</h5>" +
+    "<p>Los candidatos son los x con f″(x) = 0 (o donde f″ no existe pero sí existe tangente). Comprueba <b>siempre</b> que f″ cambia de signo; f″ = 0 solo no basta. Si f′(a) existe y f″(a) = 0 pero f‴(a) ≠ 0, hay inflexión en a.</p>" +
+    ejemplo("f″ = 0 sin inflexión", "Compara el punto x = 0 en f(x) = x⁴ y en g(x) = x³.",
+      ["f″ = 12x²: se anula en 0 pero es ≥ 0 a ambos lados: no cambia de signo. <b>No hay inflexión</b> (f es convexa en todo ℝ).",
+       "g″ = 6x: negativa a la izquierda y positiva a la derecha. Cambia de signo: <b>inflexión</b> en (0, 0), con tangente horizontal y = 0 que la curva atraviesa."]) +
+    ejemplo("Dos inflexiones con la campana de Gauss", "Halla los puntos de inflexión de f(x) = e<sup>−x²</sup>.",
+      ["f′ = −2xe<sup>−x²</sup>. f″ = −2e<sup>−x²</sup> + 4x²e<sup>−x²</sup> = (4x² − 2)e<sup>−x²</sup>.",
+       "f″ = 0 ⟺ x² = 1/2 ⟺ x = ±√2/2 ≈ ±0,707. El factor 4x² − 2 es positivo fuera de [−0,707; 0,707] y negativo dentro: cambia de signo en ambos.",
+       "Convexa en (−∞, −√2/2) y (√2/2, +∞); cóncava en el centro. Inflexiones en (±√2/2, e<sup>−1/2</sup>) ≈ (±0,707; 0,607)."]);
+
+  B.parte.m2t10a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 10: Estudio y representación de funciones
+   (parte B: secciones nuevas 7 a 13)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t10/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Funciones racionales: el estudio completo",
+      html:
+        "<p>Es el tipo que más cae. Toda la información sale de factorizar bien numerador y denominador y de dos derivadas con fracciones: <b>(u/v)′ = (u′v − uv′)/v²</b>. Una pista: en f′ y en f″ el denominador es siempre una potencia de v (v² y v³), luego su signo ya lo conoces; el trabajo está en el numerador.</p>" +
+        ejemplo("Estudio completo de una racional con asíntota oblicua", "Estudia f(x) = x²/(x − 1) y esboza su gráfica.",
+          ["<b>1. Dominio y simetría.</b> Dom(f) = ℝ − {1}. Sin simetría: f(−2) = −4/3 y f(2) = 4, que no son iguales ni opuestos.",
+           "<b>2. Cortes y signo.</b> f(0) = 0 y x² = 0 ⟹ el único corte es (0, 0). Como x² ≥ 0, el signo es el de (x − 1): f &lt; 0 si x &lt; 1 (salvo f(0) = 0) y f &gt; 0 si x &gt; 1.",
+           "<b>3. Asíntotas.</b> Vertical x = 1: lím<sub>x→1⁺</sub> = +∞ (1/0⁺) y lím<sub>x→1⁻</sub> = −∞. Dividiendo: x²/(x − 1) = x + 1 + 1/(x − 1), así que la oblicua es <b>y = x + 1</b>; la diferencia f − (x + 1) = 1/(x − 1) es positiva a la derecha (la curva va por encima) y negativa a la izquierda (por debajo).",
+           "<b>4. Monotonía.</b> f′ = [2x(x − 1) − x²]/(x − 1)² = (x² − 2x)/(x − 1)² = x(x − 2)/(x − 1)². Signo del numerador: + si x &lt; 0, − si 0 &lt; x &lt; 2, + si x &gt; 2. Crece en (−∞, 0) y (2, +∞); decrece en (0, 1) y (1, 2). <b>Máximo relativo (0, 0)</b>, <b>mínimo relativo (2, 4)</b>.",
+           "<b>5. Curvatura.</b> Como f = x + 1 + 1/(x − 1), f′ = 1 − 1/(x − 1)² y f″ = 2/(x − 1)³. Signo = el de (x − 1): cóncava en (−∞, 1), convexa en (1, +∞). Sin inflexiones (x = 1 no está en el dominio).",
+           "<b>6. Esbozo.</b> Por la izquierda, la curva viene de abajo junto a y = x + 1, sube cóncava hasta el máximo (0, 0) y baja hacia −∞ pegada a x = 1. Por la derecha sale de +∞ junto a x = 1, baja convexa hasta el mínimo (2, 4) y sube pegada a la oblicua."]) +
+        tabla(["Intervalo", "Signo de f′", "Signo de f″", "Forma de la curva"], [
+          ["(−∞, 0)", "+", "−", "sube, cóncava ↗∩"],
+          ["(0, 1)", "−", "−", "baja, cóncava ↘∩ (hacia −∞)"],
+          ["(1, 2)", "−", "+", "baja, convexa ↘∪ (desde +∞)"],
+          ["(2, +∞)", "+", "+", "sube, convexa ↗∪"]
+        ]) +
+        "<p>Esta <b>tabla de formas</b> (cuatro tipos: ↗∩, ↘∩, ↘∪, ↗∪) es la mejor ayuda para dibujar: en cada tramo sabes exactamente qué trozo de curva tienes que trazar. Compruébalo con el estudio guiado (elige la primera función).</p>" +
+        ejemplo("Racional par con dos asíntotas verticales", "Estudia la monotonía y la curvatura de f(x) = x²/(x² − 4).",
+          ["Dom = ℝ − {−2, 2}; es par. Corte: (0, 0). Asíntotas (ya vistas): x = ±2 e y = 1.",
+           "f′ = [2x(x² − 4) − x²·2x]/(x² − 4)² = −8x/(x² − 4)². El signo es el de −x: f′ &gt; 0 si x &lt; 0 y f′ &lt; 0 si x &gt; 0. Crece en (−∞, −2) y (−2, 0); decrece en (0, 2) y (2, +∞). <b>Máximo relativo (0, 0)</b>.",
+           "f″ = 8(3x² + 4)/(x² − 4)³. El numerador es siempre positivo, así que el signo es el de x² − 4: convexa si |x| &gt; 2 y cóncava si |x| &lt; 2. <b>No hay inflexiones</b> (±2 no están en el dominio).",
+           "Ojo: (0, 0) es máximo <i>relativo</i>, no absoluto (la función llega a +∞ junto a las asíntotas)."]) +
+        ojo("En una fracción, <b>no simplifiques antes de estudiar el dominio y las asíntotas</b>: si una raíz anula numerador y denominador, es un hueco (como en el ejemplo de f(x) = (x² − x − 2)/(x² − 4) de antes), no una asíntota. Y recuerda que puedes simplificar para derivar con más comodidad, siempre que luego excluyas ese punto.") +
+        "<p>Más ejemplos para practicar con el estudio guiado: 2x/(x² − 1) tiene dos verticales, una horizontal y una inflexión en el origen sin ningún extremo; mira cómo la tabla de formas lo explica.</p>"
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Funciones exponenciales y logarítmicas",
+      html:
+        "<p>Aquí aparecen los límites donde «gana el más fuerte». Con ellos se calculan casi todas las asíntotas y se resuelven los 0·∞ y ∞/∞:</p>" +
+        tabla(["Si x → +∞", "Resultado", "Quién gana"], [
+          ["xⁿ·e<sup>−x</sup> = xⁿ/eˣ", "0", "La exponencial gana a cualquier potencia"],
+          ["(ln x)/xⁿ", "0", "Cualquier potencia gana al logaritmo"],
+          ["eˣ/xⁿ", "+∞", "La exponencial gana"]
+        ]) +
+        tabla(["Si x → 0⁺", "Resultado", "Cómo se hace"], [
+          ["xⁿ·ln x (n &gt; 0)", "0", "Se escribe (ln x)/x<sup>−n</sup> y L'Hôpital"],
+          ["ln x", "−∞", "Da asíntota vertical x = 0 en f(x) = ln x o (ln x)/x"]
+        ]) +
+        ejemplo("Exponencial por polinomio", "Estudia f(x) = x·e<sup>−x</sup> y esboza su gráfica.",
+          ["<b>Dominio</b> ℝ. Sin simetría. <b>Cortes</b>: (0, 0) en ambos ejes. <b>Signo</b>: el de x (e<sup>−x</sup> &gt; 0).",
+           "<b>Asíntotas.</b> x → +∞: x/eˣ → 0 (L'Hôpital: 1/eˣ → 0), asíntota horizontal y = 0, con f &gt; 0 (por encima). x → −∞: f → −∞ y f(x)/x = e<sup>−x</sup> → +∞: <b>rama parabólica</b>, sin asíntota. No hay verticales (f es continua en ℝ).",
+           "<b>Monotonía.</b> f′ = e<sup>−x</sup> − xe<sup>−x</sup> = (1 − x)e<sup>−x</sup>. Crece en (−∞, 1), decrece en (1, +∞): <b>máximo relativo (1, 1/e)</b> ≈ (1; 0,368).",
+           "<b>Curvatura.</b> f″ = −e<sup>−x</sup> − (1 − x)e<sup>−x</sup> = (x − 2)e<sup>−x</sup>. Cóncava en (−∞, 2), convexa en (2, +∞): <b>inflexión (2, 2/e²)</b> ≈ (2; 0,271).",
+           "<b>Esbozo.</b> Sube desde −∞ (cóncava) hasta el máximo (1; 0,37), baja cóncava hasta la inflexión (2; 0,27), y desde ahí sigue bajando convexa, pegada al eje X por encima."]) +
+        ejemplo("Logaritmo dividido por x", "Estudia f(x) = (ln x)/x y esboza su gráfica.",
+          ["<b>Dominio</b> (0, +∞). <b>Cortes</b>: no corta al eje Y; ln x = 0 ⟹ (1, 0). <b>Signo</b>: f &lt; 0 en (0, 1), f &gt; 0 en (1, +∞).",
+           "<b>Asíntotas.</b> x → 0⁺: ln x → −∞ y x → 0⁺ ⟹ f → −∞: vertical <b>x = 0</b>. x → +∞: (ln x)/x → 0 (L'Hôpital: (1/x)/1): horizontal <b>y = 0</b> por encima.",
+           "<b>Monotonía.</b> f′ = (1 − ln x)/x². Se anula en ln x = 1, o sea x = e. Crece en (0, e), decrece en (e, +∞): <b>máximo (e, 1/e)</b> ≈ (2,718; 0,368).",
+           "<b>Curvatura.</b> f″ = [−(1/x)·x² − (1 − ln x)·2x]/x⁴ = (2 ln x − 3)/x³. Se anula en ln x = 3/2, o sea x = e<sup>3/2</sup> ≈ 4,482: cóncava en (0, e<sup>3/2</sup>) y convexa después. <b>Inflexión</b> (e<sup>3/2</sup>, 3/(2e<sup>3/2</sup>)) ≈ (4,482; 0,335)."]) +
+        ejemplo("Cuando no hay asíntota vertical aunque falte el 0", "Estudia f(x) = x·ln x.",
+          ["Dominio (0, +∞). En x = 0⁺: x·ln x es 0·(−∞); se pasa a (ln x)/(1/x) y L'Hôpital da (1/x)/(−1/x²) = −x → 0. <b>El límite es 0, finito: no hay asíntota vertical</b>; la curva termina en un punto abierto (0, 0).",
+           "Corte: ln x = 0 ⟹ (1, 0). Signo: f &lt; 0 en (0, 1), f &gt; 0 en (1, +∞).",
+           "f′ = ln x + 1 = 0 en x = 1/e: decrece en (0, 1/e), crece después: <b>mínimo (1/e, −1/e)</b> ≈ (0,368; −0,368). Además f′(x) → −∞ en 0⁺: la curva sale del origen con tangente vertical.",
+           "f″ = 1/x &gt; 0: convexa en todo el dominio, sin inflexiones. En +∞: f(x)/x = ln x → +∞, rama parabólica."]) +
+        ojo("El error más común: ver «0 no está en el dominio» y escribir «asíntota vertical x = 0». <b>Calcula siempre el límite lateral.</b> Con x·ln x, x²·ln x, x·e<sup>1/x</sup>… el límite en el borde puede ser finito, y entonces hay un punto abierto, no una asíntota.") +
+        "<p>Otra con exponencial para practicar (y que sirve de contraste con la anterior): eˣ/x tiene una asíntota vertical <i>y</i> una horizontal solo por un lado; compruébalo en el estudio guiado.</p>"
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Raíces y valor absoluto",
+      html:
+        "<h5>Raíces: dominio acotado y tangentes verticales</h5>" +
+        "<p>Con una raíz de índice par el dominio suele ser una semirrecta o una unión de ellas. En el extremo cerrado del dominio la función no tiene asíntota, pero puede tener una <b>tangente vertical</b>: pasa cuando f′ tiende a ±∞ al acercarte a ese extremo.</p>" +
+        ejemplo("Función con raíz", "Estudia f(x) = x·√(4 − x) y esboza su gráfica.",
+          ["<b>Dominio.</b> 4 − x ≥ 0 ⟹ (−∞, 4]. Sin simetría (el dominio no lo es). <b>Cortes</b>: f(0) = 0 → (0, 0); f(x) = 0 ⟹ x = 0 o x = 4 → (0, 0) y (4, 0). <b>Signo</b>: f &lt; 0 si x &lt; 0 y f &gt; 0 en (0, 4).",
+           "<b>Ramas.</b> No hay verticales (f es continua en su dominio). x → −∞: f → −∞ y f(x)/x = √(4 − x) → +∞: rama parabólica. No hay horizontales ni oblicuas.",
+           "<b>Monotonía.</b> f′ = √(4 − x) − x/(2√(4 − x)) = [2(4 − x) − x]/(2√(4 − x)) = (8 − 3x)/(2√(4 − x)). f′ = 0 ⟹ x = 8/3. Crece en (−∞, 8/3) y decrece en (8/3, 4). <b>Máximo relativo</b> (8/3, 16√3/9) ≈ (2,667; 3,079).",
+           "<b>Extremo del dominio.</b> Cuando x → 4⁻: f′ → (8 − 12)/(2·0⁺) = −∞. La gráfica llega a (4, 0) con <b>tangente vertical</b>, bajando.",
+           "<b>Curvatura.</b> f″ = (3x − 16)/(4(4 − x)<sup>3/2</sup>). En el dominio (x &lt; 4) el numerador es negativo y el denominador positivo: f″ &lt; 0, <b>cóncava</b> en todo el dominio. Sin inflexiones (x = 16/3 no está en el dominio)."]) +
+        "<h5>Valor absoluto: se escribe a trozos y se estudia cada trozo</h5>" +
+        "<p>Método: <b>(1)</b> halla dónde se anula lo de dentro de las barras; <b>(2)</b> escribe f a trozos (|g| = g donde g ≥ 0, −g donde g &lt; 0); <b>(3)</b> estudia cada trozo en su intervalo; <b>(4)</b> en los puntos de unión calcula las derivadas laterales: si no coinciden, hay un <b>punto angular</b> (que puede ser un extremo aunque f′ no exista). Una propiedad útil: como |g| ≥ 0, los puntos donde g cruza el eje X son <b>mínimos</b> de |g| (picos hacia abajo).</p>" +
+        ejemplo("Valor absoluto de una parábola", "Estudia f(x) = |x² − 4| y esboza su gráfica.",
+          ["x² − 4 ≥ 0 ⟺ |x| ≥ 2. Luego f(x) = x² − 4 si |x| ≥ 2, y f(x) = 4 − x² si |x| &lt; 2. Dominio ℝ; f es par; f ≥ 0.",
+           "Cortes: Y → (0, 4); X → x = ±2: (±2, 0).",
+           "f′ = 2x si |x| &gt; 2 y f′ = −2x si |x| &lt; 2. En x = 2: f′(2⁻) = −4 y f′(2⁺) = +4: <b>punto angular</b>; igual en x = −2 (derivadas laterales +4 y −4). Por tanto f′ no existe en ±2.",
+           "Signos: decrece en (−∞, −2) (f′ = 2x &lt; 0), crece en (−2, 0) (f′ = −2x &gt; 0), decrece en (0, 2) y crece en (2, +∞). <b>Mínimos</b> (±2, 0) (en los picos) y <b>máximo relativo</b> (0, 4).",
+           "Curvatura: f″ = 2 (convexa) si |x| &gt; 2 y f″ = −2 (cóncava) si |x| &lt; 2. En x = ±2 la curvatura cambia, pero no hay tangente (son picos): <b>no se consideran puntos de inflexión</b>. Sin asíntotas: f ≈ x² en ±∞."]) +
+        ejemplo("Logaritmo con valor absoluto", "Estudia f(x) = ln|x|.",
+          ["Dominio ℝ − {0}; f(−x) = ln|−x| = ln|x| = f(x): <b>par</b>. Para x &gt; 0 es ln x y para x &lt; 0 es ln(−x).",
+           "Cortes: ln|x| = 0 ⟹ |x| = 1: (−1, 0) y (1, 0). Asíntota vertical x = 0 (lím<sub>x→0</sub> ln|x| = −∞ por ambos lados). No hay horizontales: en ±∞, f → +∞ lentamente (rama parabólica).",
+           "f′ = 1/x: negativa en (−∞, 0) (decrece) y positiva en (0, +∞) (crece). No hay extremos, porque x = 0 no está en el dominio. f″ = −1/x² &lt; 0: cóncava en cada rama, sin inflexiones."]) +
+        ojo("El valor absoluto <b>no siempre</b> da un pico: |x²| = x² es derivable, y |x|·x = x|x| también lo es en 0. Hay pico solo donde lo de dentro corta al eje X <i>con pendiente distinta de cero</i> (y no está multiplicado por algo que se anule allí). Si dudas, calcula las dos derivadas laterales.")
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Ramas infinitas: asíntotas y ramas parabólicas",
+      html:
+        "<p>Para saber cómo se comporta f cuando x → +∞ (y por separado cuando x → −∞) se hace siempre esta secuencia, que cubre todos los casos:</p>" +
+        tabla(["Pregunta", "Si la respuesta es…", "Conclusión"], [
+          ["1. ¿lím f(x) = L finito?", "Sí", "Asíntota horizontal y = L"],
+          ["2. Si f → ±∞: m = lím f(x)/x", "m finito y m ≠ 0", "Posible oblicua: pasa a n"],
+          ["3. n = lím [f(x) − m·x]", "n finito", "Asíntota oblicua y = mx + n"],
+          ["", "n infinito", "Rama parabólica de pendiente m"],
+          ["2′. m = ±∞", "(f crece más rápido que x)", "Rama parabólica en la dirección del eje Y (como eˣ o x²)"],
+          ["2″. m = 0", "(f crece más lento que x)", "Rama parabólica en la dirección del eje X (como ln x o √x)"]
+        ]) +
+        ejemplo("Asíntota oblicua de una racional", "Halla la asíntota oblicua de f(x) = (x² + 1)/(x − 1).",
+          ["m = lím f(x)/x = lím (x² + 1)/(x² − x) = 1.",
+           "n = lím [f(x) − x] = lím [(x² + 1) − x(x − 1)]/(x − 1) = lím (x + 1)/(x − 1) = 1.",
+           "Asíntota <b>y = x + 1</b> en +∞ y en −∞. Con la división se ve igual: (x² + 1) = (x − 1)(x + 1) + 2, o sea f = x + 1 + 2/(x − 1)."]) +
+        ejemplo("Una raíz con dos comportamientos", "Estudia las ramas infinitas de f(x) = √(x² + x) − x.",
+          ["Dominio: x² + x ≥ 0 ⟺ x ≤ −1 o x ≥ 0.",
+           "<b>x → +∞.</b> Multiplicando por el conjugado: f = (x² + x − x²)/(√(x² + x) + x) = x/(√(x² + x) + x) → 1/2. <b>Asíntota horizontal y = 1/2</b>.",
+           "<b>x → −∞.</b> Aquí √(x² + x) = |x|·√(1 + 1/x) = −x√(1 + 1/x), de modo que f(x)/x = −√(1 + 1/x) − 1 → −2. Luego m = −2.",
+           "n = lím [f(x) + 2x] = lím [√(x² + x) + x] = lím x/(√(x² + x) − x) = lím x/(−2x) = −1/2 (la raíz vale ≈ −x). <b>Asíntota oblicua y = −2x − 1/2</b>.",
+           "Moraleja: una misma función puede tener una horizontal en +∞ y una oblicua en −∞. Hay que estudiar cada lado por separado, vigilando el signo de x al sacar x² de la raíz."]) +
+        "<h5>Ramas parabólicas: qué son y cuándo ocurren</h5>" +
+        "<p>Una rama parabólica es una rama infinita <b>sin asíntota</b> a la que la curva no se pega a ninguna recta. Hay dos clases: crece más deprisa que cualquier recta (eˣ, x²: la dirección es la del eje Y) o más despacio (ln x, √x: la dirección es la del eje X, la curva se «achata»). Ejemplos de arriba: x·e<sup>−x</sup> en −∞, x·ln x en +∞.</p>" +
+        "<p>Prueba con las seis funciones: la tabla numérica muestra f(x), f(x)/x y f(x) − m·x al alejarte, y la conclusión sale sola.</p>" +
+        w("m2t10_ramas") +
+        ojo("Para una <b>racional</b> no hace falta calcular límites: grado del numerador menor que el del denominador ⟹ y = 0; iguales ⟹ y = cociente de los coeficientes principales; el numerador un grado mayor ⟹ oblicua (se obtiene dividiendo); dos grados o más de diferencia ⟹ rama parabólica (no hay asíntota).")
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. Leer f a partir de la gráfica (o la fórmula) de f′",
+      html:
+        "<p>Un tipo de pregunta muy frecuente: te dan la gráfica de <b>f′</b> (no la de f) y piden crecimiento, extremos, curvatura o inflexiones de f. La clave es recordar lo que cada rasgo de f′ significa para f:</p>" +
+        tabla(["En la gráfica de f′", "Qué pasa en f"], [
+          ["f′ por encima del eje X (f′ &gt; 0)", "f crece"],
+          ["f′ por debajo del eje X (f′ &lt; 0)", "f decrece"],
+          ["f′ corta al eje X de + a −", "f tiene un <b>máximo relativo</b>"],
+          ["f′ corta al eje X de − a +", "f tiene un <b>mínimo relativo</b>"],
+          ["f′ toca al eje X sin cruzarlo", "f tiene tangente horizontal pero <b>no extremo</b>"],
+          ["f′ crece (pendiente de f′ positiva)", "f es convexa (f″ &gt; 0)"],
+          ["f′ decrece", "f es cóncava (f″ &lt; 0)"],
+          ["f′ tiene un máximo o un mínimo relativo", "f tiene un <b>punto de inflexión</b> (f″ = 0 y cambia de signo)"]
+        ]) +
+        ojo("La gráfica de f′ <b>no determina f del todo</b>: f queda fijada salvo una constante (si f es solución, f + 5 también). Sabrás cómo es la forma, pero no a qué altura está, salvo que te den un dato como f(0) = 1.") +
+        ejemplo("f′ es una parábola", "La gráfica de f′ es una parábola con cortes en x = −1 y x = 3 y vértice (1, −4). Estudia f y, sabiendo que f(0) = 0, encuentra su fórmula.",
+          ["La parábola es f′(x) = (x + 1)(x − 3) = x² − 2x − 3 (el vértice está en x = 1 y f′(1) = −4 ✓).",
+           "Signo de f′: positiva en (−∞, −1), negativa en (−1, 3), positiva en (3, +∞). f crece, decrece, crece: <b>máximo en x = −1</b> y <b>mínimo en x = 3</b>.",
+           "El vértice de f′ (su mínimo) está en x = 1: ahí f″ = 0 y cambia de signo: <b>inflexión en x = 1</b>. f es cóncava en (−∞, 1) (f′ decrece) y convexa en (1, +∞).",
+           "Integrando: f(x) = x³/3 − x² − 3x + C, y f(0) = 0 ⟹ C = 0. Valores: f(−1) = 5/3, f(3) = −9, f(1) = −11/3. Máximo (−1, 5/3), mínimo (3, −9), inflexión (1, −11/3)."]) +
+        ejemplo("f′ toca el eje pero no lo cruza", "Si f′(x) = x(x − 2)², ¿cuántos extremos relativos tiene f? ¿y puntos de inflexión?",
+          ["f′ = 0 en x = 0 y en x = 2 (doble). Signo de f′: x &lt; 0: (−)(+) = −; 0 &lt; x &lt; 2: (+)(+) = +; x &gt; 2: (+)(+) = +.",
+           "Cambia de signo solo en x = 0 (de − a +): <b>un único extremo, un mínimo en x = 0</b>. En x = 2 hay tangente horizontal pero f sigue creciendo: no es extremo.",
+           "f″ = (x − 2)² + 2x(x − 2) = (x − 2)(3x − 2). Ceros: x = 2/3 y x = 2, y en ambos f″ cambia de signo (+ , −, +): <b>dos inflexiones</b>. La de x = 2 tiene tangente horizontal."]) +
+        "<p>Prueba tú: elige una función de la lista, mira su f′ con las zonas de signo y escribe qué dice sobre f antes de pulsar «Mostrar f». Cambia la constante para comprobar que la forma no cambia, solo la altura.</p>" +
+        w("m2t10_fprima") +
+        "<h5>El camino de vuelta: de f a f′</h5>" +
+        "<p>Si te dan la gráfica de f y piden esbozar f′: los <b>extremos</b> de f son los <b>ceros</b> de f′; donde f crece, f′ está por encima del eje; los <b>puntos de inflexión</b> de f son los <b>extremos</b> de f′; una asíntota horizontal de f hace que f′ → 0; un pico de f (punto angular) es un salto o un punto sin valor en f′.</p>"
+    },
+    // -------------------------------------------------------------- 12
+    {
+      h: "12. Deducir la fórmula a partir de los datos de la gráfica",
+      html:
+        "<p>En muchos enunciados la función tiene parámetros (a, b, c…) y te dan datos de su gráfica. <b>Cada dato es una ecuación</b>. Traducciones habituales:</p>" +
+        tabla(["Dato de la gráfica", "Ecuación"], [
+          ["Pasa por el punto (p, q)", "f(p) = q"],
+          ["Tiene un extremo relativo en x = p (o tangente horizontal)", "f′(p) = 0"],
+          ["Tiene un extremo relativo en el punto (p, q)", "f′(p) = 0 <b>y</b> f(p) = q (dos ecuaciones)"],
+          ["Tiene un punto de inflexión en x = p", "f″(p) = 0 (y debe cambiar de signo)"],
+          ["Asíntota vertical x = p (racional)", "el denominador se anula en p y el numerador no"],
+          ["Asíntota horizontal y = L", "lím<sub>x→∞</sub> f(x) = L"],
+          ["Tangente de pendiente m en x = p", "f′(p) = m"]
+        ]) +
+        ejemplo("Una racional a partir de sus asíntotas", "f(x) = (ax + b)/(x + c) tiene asíntota vertical x = 2, asíntota horizontal y = 3 y pasa por (0, 1). Halla a, b y c.",
+          ["Vertical x = 2: el denominador se anula en x = 2, así que 2 + c = 0 ⟹ <b>c = −2</b>. (Después hay que comprobar que el numerador no se anula en 2.)",
+           "Horizontal: lím f = a (cociente de coeficientes de x) = 3 ⟹ <b>a = 3</b>.",
+           "Pasa por (0, 1): f(0) = b/c = b/(−2) = 1 ⟹ <b>b = −2</b>.",
+           "f(x) = (3x − 2)/(x − 2). Comprobación: en x = 2 el numerador vale 4 ≠ 0 ✓ (asíntota vertical auténtica)."]) +
+        ejemplo("Una cúbica con extremo e inflexión", "f(x) = x³ + ax² + bx + c corta al eje Y en (0, 1), tiene un extremo relativo en x = 1 y un punto de inflexión en x = 2. Halla a, b y c y clasifica el extremo.",
+          ["f(0) = c = 1 ⟹ <b>c = 1</b>.",
+           "f″ = 6x + 2a, f″(2) = 12 + 2a = 0 ⟹ <b>a = −6</b>.",
+           "f′ = 3x² + 2ax + b, f′(1) = 3 + 2a + b = 3 − 12 + b = 0 ⟹ <b>b = 9</b>.",
+           "f(x) = x³ − 6x² + 9x + 1 con f′ = 3(x − 1)(x − 3): x = 1 es un <b>máximo</b> (f(1) = 5) y además hay un mínimo en x = 3 (f(3) = 1). La inflexión es (2, 3), a mitad entre los dos extremos (en una cúbica siempre)."]) +
+        ejemplo("Con un logaritmo", "f(x) = a·ln x + b·x pasa por (1, −1) y tiene un extremo relativo en x = 2. Halla a y b y clasifícalo.",
+          ["f(1) = a·0 + b = −1 ⟹ <b>b = −1</b>. f′ = a/x + b, f′(2) = a/2 − 1 = 0 ⟹ <b>a = 2</b>.",
+           "f(x) = 2 ln x − x, f″ = −2/x² &lt; 0: el extremo es un <b>máximo</b>, (2, 2 ln 2 − 2) ≈ (2; −0,614)."]) +
+        "<p>Prueba tú: ajusta los deslizadores hasta que los tres datos pasen a ✓ (o pulsa el botón para ver el sistema). Verás que con tantas ecuaciones como parámetros la solución es única.</p>" +
+        w("m2t10_formula") +
+        ojo("Comprueba siempre el resultado con un dato <i>que no hayas usado</i> (un valor de f, el signo de f″ o una asíntota), y que las condiciones de existencia se cumplen (denominador no nulo, argumento del logaritmo positivo…). Un parámetro mal despejado suele delatarse así.")
+    },
+    // -------------------------------------------------------------- 13
+    {
+      h: "13. El dibujo final: coherencia con la tabla de signos",
+      html:
+        "<p>El esbozo es la parte que más puntúa y la que más se estropea por falta de coherencia. Antes de entregar, repasa esta lista:</p>" +
+        "<ol>" +
+        "<li><b>Puntos:</b> la curva pasa por todos los cortes y extremos, con sus coordenadas escritas.</li>" +
+        "<li><b>Asíntotas:</b> dibújalas (discontinuas) <i>antes</i> que la curva; la curva se acerca a ellas por el lado que calculaste y <b>nunca cruza una vertical</b>.</li>" +
+        "<li><b>Tangentes horizontales:</b> en cada máximo/mínimo la curva es horizontal (suavemente); en un pico no.</li>" +
+        "<li><b>Monotonía:</b> entre dos extremos consecutivos la curva es monótona, sin ondulaciones extra.</li>" +
+        "<li><b>Curvatura:</b> en cada intervalo respeta ∪ o ∩; cambia de tipo solo en las inflexiones.</li>" +
+        "<li><b>Signo:</b> la curva está por encima del eje X donde f &gt; 0 y por debajo donde f &lt; 0, y cruza el eje solo en los ceros.</li>" +
+        "</ol>" +
+        "<p>Truco: haz la <b>tabla de formas</b> (como la del ejemplo de x²/(x − 1)): para cada intervalo, uno de los cuatro trazos ↗∩, ↘∩, ↘∪, ↗∪. Con ella no puedes dibujar un tramo equivocado. Ahora practica la detección: dada una tabla de signos de f′ y f″, elige el esbozo que la cumple y lee la explicación de por qué los demás no valen.</p>" +
+        w("m2t10_coherente") +
+        ejemplo("Cómo se detecta una contradicción", "Un alumno dice que f(x) = x³ − 3x tiene un mínimo en x = −1 y un máximo en x = 1. ¿Qué dice la tabla?",
+          ["f′ = 3x² − 3 = 3(x − 1)(x + 1): positiva en (−∞, −1), negativa en (−1, 1), positiva en (1, +∞).",
+           "Si f′ pasa de + a − en x = −1, f deja de crecer para empezar a decrecer: ahí hay un <b>máximo</b>, no un mínimo. Y en x = 1 pasa de − a +: <b>mínimo</b>. El alumno los tiene intercambiados.",
+           "Valores: f(−1) = 2 (máximo) y f(1) = −2 (mínimo). Una buena comprobación rápida: el máximo relativo tiene que estar <i>más alto</i> que el mínimo contiguo."])
+    }
+  ];
+
+  B.parte.m2t10b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 10: Estudio y representación de funciones
+   (parte C: problemas EvAU, resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo;
+  function w(n, ref) { return H.w(n, ref && "mates2/t10/" + ref); }
+
+  var nuevas = B.parte.m2t10b.nuevas;
+
+  // ================================================================
+  //  SECCIONES FINALES (14 problemas EvAU, 15 errores, 16 autocomprobación)
+  // ================================================================
+  nuevas.push({
+    h: "14. Problemas tipo EvAU resueltos",
+    html:
+      "<p>Cinco problemas con el formato de la EvAU de Madrid: lee cada enunciado, intenta los apartados y compara con la solución desarrollada.</p>" +
+      ejemplo("Problema 1 · Estudio completo de una racional", "Sea f(x) = (x² + 1)/x. (a) Dominio, simetría y asíntotas. (b) Intervalos de crecimiento y decrecimiento y extremos relativos. (c) Curvatura. (d) Esboza la gráfica.",
+        ["<b>(a)</b> Dom(f) = ℝ − {0}. f(−x) = (x² + 1)/(−x) = −f(x): <b>impar</b>. No corta a los ejes (0 ∉ Dom y x² + 1 &gt; 0). Vertical: lím<sub>x→0⁺</sub> f = +∞ y lím<sub>x→0⁻</sub> f = −∞: <b>x = 0</b>. Como f = x + 1/x, la oblicua es <b>y = x</b> (diferencia 1/x: por encima a la derecha, por debajo a la izquierda).",
+         "<b>(b)</b> f′ = 1 − 1/x² = (x² − 1)/x². Ceros x = ±1. f′ &gt; 0 en (−∞, −1) y (1, +∞); f′ &lt; 0 en (−1, 0) y (0, 1). <b>Máximo relativo (−1, −2)</b> y <b>mínimo relativo (1, 2)</b>.",
+         "<b>(c)</b> f″ = 2/x³: negativa si x &lt; 0 (cóncava), positiva si x &gt; 0 (convexa). Sin inflexiones (x = 0 no está en el dominio).",
+         "<b>(d)</b> Rama derecha: viene de +∞ junto al eje Y, baja convexa hasta (1, 2) y sube pegada a y = x. Rama izquierda: es la reflexión respecto al origen (impar): viene de −∞ pegada a y = x, sube cóncava hasta (−1, −2) y cae hacia −∞ junto al eje Y. Observa que el máximo relativo (−1, −2) está <i>por debajo</i> del mínimo relativo (1, 2)."]) +
+      ejemplo("Problema 2 · Logaritmo por potencia", "Sea f(x) = x²·ln x. (a) Dominio y lím<sub>x→0⁺</sub> f(x). (b) Monotonía y extremos. (c) Curvatura e inflexión.",
+        ["<b>(a)</b> Dom = (0, +∞). Para el límite se escribe x² ln x = (ln x)/x<sup>−2</sup> (forma −∞/∞) y L'Hôpital: (1/x)/(−2x<sup>−3</sup>) = −x²/2 → 0. <b>El límite es 0</b>: no hay asíntota vertical.",
+         "<b>(b)</b> f′ = 2x ln x + x = x(2 ln x + 1). Como x &gt; 0, f′ = 0 ⟺ ln x = −1/2 ⟺ x = e<sup>−1/2</sup> ≈ 0,607. Decrece en (0, e<sup>−1/2</sup>) y crece después: <b>mínimo</b> en (e<sup>−1/2</sup>, −1/(2e)) ≈ (0,607; −0,184).",
+         "<b>(c)</b> f″ = 2 ln x + 2 + 1 = 2 ln x + 3 = 0 ⟺ x = e<sup>−3/2</sup> ≈ 0,223. Cóncava en (0, e<sup>−3/2</sup>) y convexa después: <b>inflexión</b> (e<sup>−3/2</sup>, −3/(2e³)) ≈ (0,223; −0,075). Curiosamente la inflexión está <i>antes</i> del mínimo."]) +
+      ejemplo("Problema 3 · Hallar parámetros con un extremo", "La función f(x) = (ax² + b)/x tiene un mínimo relativo en el punto (1, 2). Halla a y b y comprueba que es el que has estudiado antes.",
+        ["Dos datos para dos incógnitas. Pasa por (1, 2): f(1) = a + b = 2. Extremo en x = 1: f′ = a − b/x², f′(1) = a − b = 0.",
+         "Sumando: 2a = 2 ⟹ <b>a = 1, b = 1</b>. Es f(x) = (x² + 1)/x, la del problema 1, que sí tiene un mínimo relativo en (1, 2) (f″(1) = 2 &gt; 0) ✓."]) +
+      ejemplo("Problema 4 · Información de f a partir de f′", "La gráfica de f′ es la parábola f′(x) = x² − 4x. (a) Estudia monotonía y extremos de f. (b) Curvatura e inflexión. (c) Si f(0) = 1, halla f y el valor del mínimo relativo.",
+        ["<b>(a)</b> f′ = x(x − 4) &gt; 0 si x &lt; 0 o x &gt; 4 y &lt; 0 en (0, 4). f crece en (−∞, 0) y (4, +∞) y decrece en (0, 4): <b>máximo en x = 0</b>, <b>mínimo en x = 4</b>.",
+         "<b>(b)</b> f″ = 2x − 4 = 0 ⟹ x = 2 (el vértice de la parábola f′). f″ &lt; 0 si x &lt; 2 (cóncava) y &gt; 0 si x &gt; 2 (convexa): <b>inflexión en x = 2</b>.",
+         "<b>(c)</b> f(x) = x³/3 − 2x² + C y f(0) = C = 1. Entonces f(x) = x³/3 − 2x² + 1. Mínimo: f(4) = 64/3 − 32 + 1 = −29/3 ≈ −9,67. Además f(0) = 1 (máximo) y f(2) = 8/3 − 8 + 1 = −13/3 (en la inflexión)."]) +
+      ejemplo("Problema 5 · Con valor absoluto", "Estudia f(x) = x·|x − 2|: expresión a trozos, derivabilidad, monotonía, extremos y curvatura.",
+        ["A trozos: f(x) = x(2 − x) = −x² + 2x si x &lt; 2 y f(x) = x(x − 2) = x² − 2x si x ≥ 2. Corta a los ejes en (0, 0) y (2, 0); f &lt; 0 si x &lt; 0 y f &gt; 0 en el resto salvo f(2) = 0.",
+         "f′ = −2x + 2 si x &lt; 2 y f′ = 2x − 2 si x &gt; 2. En x = 2: f′(2⁻) = −2 y f′(2⁺) = 2 ⟹ <b>punto angular</b>, f no es derivable en 2.",
+         "Monotonía: crece en (−∞, 1) (−2x + 2 &gt; 0), decrece en (1, 2), crece en (2, +∞). <b>Máximo relativo (1, 1)</b> y <b>mínimo relativo (2, 0)</b> (en el pico).",
+         "Curvatura: f″ = −2 (cóncava) si x &lt; 2 y f″ = 2 (convexa) si x &gt; 2. El cambio de curvatura ocurre en el pico x = 2, donde no existe tangente: no se cuenta como inflexión. Sin asíntotas (rama parabólica en ambos extremos)."])
+  });
+
+  nuevas.push({
+    h: "15. ¿Qué falla aquí? Errores típicos",
+    html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+  });
+  nuevas.push({
+    h: "16. Autocomprobación del tema",
+    html: "<p>Test con explicación, tarjetas, una actividad de emparejar, otra de clasificar ramas infinitas y el orden del guion.</p>" +
+      w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+  });
+
+  // ================================================================
+  //  RESUMEN
+  // ================================================================
+  var resumen = [
+    "<b>Guion</b> (siempre en este orden): dominio y simetría → cortes y signo → asíntotas (+∞ y −∞ por separado) → f′: monotonía y extremos → f″: curvatura e inflexiones → esbozo coherente. Cada paso comprueba al anterior.",
+    "<b>Dominio</b>: raíz par ⟹ radicando ≥ 0; ln ⟹ argumento &gt; 0; fracción ⟹ denominador ≠ 0. Simetría: primero ¿es simétrico el dominio? Par: f(−x) = f(x); impar: f(−x) = −f(x). Una raíz común de numerador y denominador es un <b>hueco</b>, no una asíntota.",
+    "<b>Ramas infinitas</b>: lím f = L ⟹ horizontal; si no, m = lím f/x y n = lím (f − mx) ⟹ oblicua; si n = ∞, m = ±∞ o m = 0 ⟹ rama parabólica. Con raíces o exponenciales, +∞ y −∞ pueden dar cosas distintas. En el borde del dominio calcula el límite lateral: puede ser finito (x·ln x en 0⁺).",
+    "<b>f′</b>: f crece donde f′ &gt; 0. Los candidatos a extremo son f′ = 0 y los puntos donde f′ no existe (picos del valor absoluto); es extremo solo si f′ cambia de signo (de + a −: máximo; de − a +: mínimo). Si f″(a) = 0 el criterio de f″ no decide.",
+    "<b>f″</b>: convexa (∪) si f″ &gt; 0, cóncava (∩) si f″ &lt; 0. Inflexión: f″ = 0 <b>y cambia de signo</b> (x⁴ en 0 no; x³ en 0 sí). Picos (sin tangente) no son inflexiones.",
+    "<b>Leer f desde f′</b>: f′ &gt; 0 ⟹ f crece; ceros de f′ con cambio de signo ⟹ extremos de f; extremos de f′ ⟹ inflexiones de f; crece/decrece f′ ⟹ convexa/cóncava f. f queda determinada salvo una constante.",
+    "<b>Deducir la fórmula</b>: cada dato es una ecuación (pasa por un punto: f(p) = q; extremo: f′(p) = 0; inflexión: f″(p) = 0; asíntotas: límites). Tantas ecuaciones como parámetros; comprobar con un dato no usado.",
+    "<b>Esbozo</b>: puntos con coordenadas, asíntotas discontinuas, tangentes horizontales en extremos, tabla de formas (↗∩ ↘∩ ↘∪ ↗∪) y nunca cruzar una vertical."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«f(x) = x·ln x no tiene dominio en x = 0, luego x = 0 es una asíntota vertical». ¿Qué falla?",
+          op: ["Nada, está bien", "Hay que calcular el límite lateral: lím<sub>x→0⁺</sub> x ln x = 0 es finito, así que no hay asíntota vertical", "El dominio de x ln x es ℝ", "Falta mirar x = 1"], ok: 1,
+          porque: "Una asíntota vertical exige que el límite lateral sea ±∞. Aquí 0·(−∞) se resuelve con L'Hôpital y da 0: la curva termina en un punto abierto (0, 0)." },
+        { q: "«f′(0) = 0, luego f(x) = x³ tiene un mínimo en x = 0». ¿Qué falla?",
+          op: ["Nada, está bien", "f′ = 3x² es ≥ 0 a ambos lados: no cambia de signo, así que no hay extremo (hay una inflexión)", "x³ no es derivable en 0", "El mínimo está en x = 3"], ok: 1,
+          porque: "f′ = 0 solo da candidatos. Hay extremo cuando f′ cambia de signo. En x³, f′ = 3x² ≥ 0 siempre: f crece en todo ℝ y en 0 tiene tangente horizontal con inflexión." },
+        { q: "«f″(1) = 0, luego x = 1 es un punto de inflexión de f(x) = (x − 1)⁴». ¿Qué falla?",
+          op: ["Nada, está bien", "f″ = 12(x − 1)² ≥ 0 no cambia de signo: no hay inflexión (f es convexa en todo ℝ)", "f″ debería valer 1", "(x − 1)⁴ no tiene derivada segunda"], ok: 1,
+          porque: "Para que haya inflexión, f″ debe cambiar de signo. Con (x − 1)⁴ solo toca el 0, como x⁴ en el origen: es un mínimo." },
+        { q: "«f(x) = (x² − 1)/(x − 1) tiene asíntota vertical en x = 1 porque se anula el denominador». ¿Qué falla?",
+          op: ["Nada, está bien", "Al simplificar f = x + 1 (x ≠ 1): el límite en 1 es 2, finito. Es un hueco en (1, 2), no una asíntota", "La asíntota está en x = −1", "Es una asíntota horizontal"], ok: 1,
+          porque: "Si numerador y denominador se anulan a la vez hay que factorizar. Aquí x − 1 se cancela y f(x) → 2 cuando x → 1." },
+        { q: "«f(x) = √(x² + x) − x tiene la asíntota horizontal y = 1/2, y nada más». ¿Qué falla?",
+          op: ["Nada, está bien", "Solo es horizontal en +∞; en −∞ tiene la oblicua y = −2x − 1/2", "La horizontal es y = 1", "No tiene ninguna asíntota"], ok: 1,
+          porque: "Hay que estudiar +∞ y −∞ por separado: en −∞, √(x² + x) ≈ −x, y f ≈ −2x." },
+        { q: "«f′(x) = x(x − 2)² se anula en 0 y en 2, luego f tiene dos extremos relativos». ¿Qué falla?",
+          op: ["Nada, está bien", "En x = 2 el factor (x − 2)² no cambia de signo: solo x = 0 es extremo (un mínimo)", "Solo x = 2 es extremo", "f no tiene extremos"], ok: 1,
+          porque: "Una raíz doble de f′ no produce cambio de signo. En x = 2, f tiene tangente horizontal pero sigue creciendo." },
+        { q: "«f(x) = |x² − 4| tiene dos puntos de inflexión, en x = ±2, porque ahí cambia la curvatura». ¿Qué falla?",
+          op: ["Nada, está bien", "En x = ±2 hay picos (puntos angulares): f no tiene tangente allí, así que no se consideran inflexiones", "Los puntos de inflexión están en x = 0", "No cambia la curvatura"], ok: 1,
+          porque: "Un punto de inflexión necesita tangente (la gráfica la atraviesa). En x = ±2 las derivadas laterales son ±4: hay pico." },
+        { q: "«La gráfica de f′ tiene un mínimo en x = 1 con f′(1) = −4, luego f tiene un mínimo en x = 1». ¿Qué falla?",
+          op: ["Nada, está bien", "Un extremo de f′ es una inflexión de f; los extremos de f están en los ceros de f′", "f no tiene nada en x = 1", "f tiene un máximo en x = −4"], ok: 1,
+          porque: "El mínimo de f′ indica el punto donde f′ deja de decrecer y empieza a crecer: f″ cambia de − a +, o sea inflexión de f." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de estudio de funciones",
+      preguntas: [
+        { q: "El dominio de f(x) = ln(x² − 4) es", op: ["ℝ − {−2, 2}", "(−∞, −2) ∪ (2, +∞)", "[−2, 2]", "(2, +∞)"], ok: 1, porque: "El argumento debe ser estrictamente positivo: x² − 4 &gt; 0 ⟺ |x| &gt; 2." },
+        { q: "Si el dominio no es simétrico respecto del origen, f", op: ["es par", "es impar", "no puede ser par ni impar", "no está definida"], ok: 2, porque: "Para que f(−x) tenga sentido, −x debe estar en el dominio cuando lo está x." },
+        { q: "f(x) = (x² + 1)/x tiene como asíntota oblicua", op: ["y = x + 1", "y = x", "y = 1", "no tiene"], ok: 1, porque: "(x² + 1)/x = x + 1/x, y 1/x → 0." },
+        { q: "Si f′ pasa de positiva a negativa en x = a, f tiene en a", op: ["un mínimo relativo", "un máximo relativo", "una inflexión", "una asíntota"], ok: 1, porque: "f deja de crecer y empieza a decrecer: máximo relativo." },
+        { q: "Un punto de inflexión de f es un punto donde", op: ["f′ = 0", "f″ = 0 y f″ cambia de signo", "f = 0", "f″ &gt; 0"], ok: 1, porque: "Es donde cambia la curvatura: f″ = 0 y cambia de signo (x⁴ en 0 tiene f″ = 0 sin inflexión)." },
+        { q: "Si la gráfica de f′ tiene un máximo relativo en x = a, f tiene en a", op: ["un mínimo", "un máximo", "un punto de inflexión", "un cero"], ok: 2, porque: "f′ cambia de crecer a decrecer: f″ cambia de + a −, inflexión de f." },
+        { q: "lím<sub>x→+∞</sub> x·e<sup>−x</sup> vale", op: ["+∞", "1", "0", "−∞"], ok: 2, porque: "xe<sup>−x</sup> = x/eˣ; la exponencial gana a la potencia (L'Hôpital: 1/eˣ → 0)." },
+        { q: "f(x) = eˣ tiene en +∞", op: ["asíntota horizontal y = 0", "asíntota oblicua", "rama parabólica en la dirección del eje Y", "asíntota vertical"], ok: 2, porque: "f(x)/x = eˣ/x → +∞: crece más deprisa que cualquier recta, sin asíntota. (La asíntota y = 0 está en −∞.)" },
+        { q: "Para f(x) = x³ − 6x² + 9x + 1, f′(1) = 0 y f″(1) vale", op: ["−6 (máximo)", "6 (mínimo)", "0", "−3"], ok: 0, porque: "f″ = 6x − 12 ⟹ f″(1) = −6 &lt; 0: máximo, en (1, 5)." },
+        { q: "Una asíntota vertical de f(x) = (3x − 2)/(x − 2) es", op: ["x = 3", "x = 2", "x = 2/3", "no tiene"], ok: 1, porque: "El denominador se anula en x = 2 y el numerador vale 4 ≠ 0." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas del tema 10",
+      cartas: [
+        { a: "Orden del estudio completo", b: "Dominio y simetría · cortes y signo · asíntotas · f′ (monotonía, extremos) · f″ (curvatura, inflexiones) · esbozo." },
+        { a: "Asíntota horizontal", b: "lím<sub>x→±∞</sub> f(x) = L (finito). Estudia +∞ y −∞ por separado." },
+        { a: "Asíntota oblicua y = mx + n", b: "m = lím f(x)/x (finito, ≠ 0); n = lím [f(x) − mx] (finito)." },
+        { a: "Rama parabólica", b: "Rama infinita sin asíntota: f/x → ±∞ (eje Y, como eˣ) o f/x → 0 con f → ∞ (eje X, como ln x)." },
+        { a: "Hueco frente a asíntota vertical", b: "Si una raíz anula numerador y denominador, tras factorizar el límite es finito: hueco. Si solo anula el denominador: asíntota." },
+        { a: "Extremo relativo", b: "Punto crítico (f′ = 0 o no existe) donde f′ cambia de signo: + a − máximo, − a + mínimo." },
+        { a: "Punto de inflexión", b: "f″ = 0 (o tangente con f″ no definida) <b>y</b> f″ cambia de signo; la curva atraviesa su tangente." },
+        { a: "Convexa y cóncava", b: "Convexa (∪): f″ &gt; 0. Cóncava (∩): f″ &lt; 0." },
+        { a: "De f′ a f", b: "f′ &gt; 0: f crece · ceros con cambio de signo: extremos · extremos de f′: inflexiones de f." },
+        { a: "Cada dato, una ecuación", b: "Pasa por (p, q): f(p) = q · extremo en p: f′(p) = 0 · inflexión en p: f″(p) = 0." },
+        { a: "x·ln x en 0⁺", b: "Tiende a 0 (L'Hôpital): no hay asíntota vertical, hay un punto abierto en (0, 0)." },
+        { a: "Valor absoluto", b: "Se escribe a trozos; en los puntos de unión se calculan las derivadas laterales (picos)." }
+      ]
+    },
+    empar: {
+      titulo: "Función y su asíntota",
+      consigna: "Une cada función con su asíntota (la que se pide en +∞ si no se dice otra cosa).",
+      pares: [
+        ["3x/(x − 5)", "vertical x = 5 (y horizontal y = 3)"],
+        ["(4x² + 1)/(2x² − 3)", "horizontal y = 2"],
+        ["(x² + 3x)/(x − 1)", "oblicua y = x + 4"],
+        ["ln x / x", "horizontal y = 0 (y vertical x = 0)"],
+        ["√(x² + x) − x", "horizontal y = 1/2"],
+        ["(x² + 1)/(x − 1)", "oblicua y = x + 1"]
+      ]
+    },
+    clas: {
+      titulo: "Ramas infinitas",
+      consigna: "Clasifica el comportamiento de cada función cuando x → +∞.",
+      categorias: ["Asíntota horizontal", "Asíntota oblicua", "Rama parabólica"],
+      items: [
+        { t: "(2x² + 1)/(x² − 3)", c: 0 }, { t: "x·e<sup>−x</sup>", c: 0 }, { t: "(x − 1)/(x² + 1)", c: 0 },
+        { t: "(x² + 1)/(x − 1)", c: 1 }, { t: "(x³ + 1)/x²", c: 1 }, { t: "√(x² + 1)", c: 1 },
+        { t: "eˣ", c: 2 }, { t: "ln x", c: 2 }, { t: "x²", c: 2 }
+      ]
+    },
+    orden: {
+      titulo: "El guion del estudio de una función",
+      consigna: "Ordena los pasos del estudio completo.",
+      items: [
+        { t: "Dominio y simetría" }, { t: "Cortes con los ejes y signo de f" }, { t: "Asíntotas y ramas infinitas" },
+        { t: "Derivada primera: monotonía y extremos relativos" }, { t: "Derivada segunda: curvatura e inflexiones" }, { t: "Esbozo coherente con la tabla" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  function E(id, nivel, enunciado, check, pistas, pasos, resultado) { return { id: id, nivel: nivel, enunciado: enunciado, check: check, pistas: pistas, pasos: pasos, resultado: resultado }; }
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    E("a1", 1, "Halla los extremos finitos de los intervalos que forman el dominio de f(x) = √(x² − 6x + 8).", lista("extremos =", [2, 4]),
+      ["Radicando ≥ 0: parábola hacia arriba, fuera de las raíces."], ["x² − 6x + 8 = (x − 2)(x − 4) ≥ 0 ⟺ x ≤ 2 o x ≥ 4."], "Dom = (−∞, 2] ∪ [4, +∞)"),
+    E("a2", 1, "Clasifica la simetría de f(x) = x³/(x² + 1).", opcion("f es", ["Par", "Impar", "Ni par ni impar", "Par e impar a la vez"], 1),
+      ["Calcula f(−x)."], ["f(−x) = −x³/(x² + 1) = −f(x)."], "Impar"),
+    E("a3", 1, "Halla el punto de corte con el eje Y de f(x) = (x² − 9)/(x + 1) (da la ordenada).", num("f(0) =", -9),
+      ["Sustituye x = 0."], ["f(0) = (0 − 9)/(0 + 1) = −9."], "(0, −9)"),
+    E("a4", 1, "Halla los cortes con el eje X de f(x) = (x² − 5x + 6)/(x + 4).", lista("x =", [2, 3]),
+      ["Numerador igual a 0 (y denominador distinto de 0)."], ["x² − 5x + 6 = (x − 2)(x − 3): x = 2 y x = 3, y el denominador vale 6 y 7 ≠ 0."], "x = 2 y x = 3"),
+    E("a5", 1, "Halla la asíntota vertical de f(x) = 3x/(x − 5) (valor de x).", num("x =", 5),
+      ["Denominador igual a 0."], ["x − 5 = 0 ⟹ x = 5, y el numerador vale 15 ≠ 0."], "x = 5"),
+    E("a6", 1, "Halla la asíntota horizontal de f(x) = (4x² + 1)/(2x² − 3) (valor de y).", num("y =", 2),
+      ["Mismo grado: cociente de los coeficientes principales."], ["lím f = 4/2 = 2."], "y = 2"),
+    E("a7", 1, "Halla la asíntota oblicua y = mx + n de f(x) = (x² + 3x)/(x − 1).", [num("m =", 1), num("n =", 4)],
+      ["Divide los polinomios."], ["(x² + 3x) = (x − 1)(x + 4) + 4, así que f = x + 4 + 4/(x − 1).", "m = 1, n = 4."], "y = x + 4"),
+    E("a8", 1, "Estudia f(x) = x³ − 12x: da la abscisa del máximo relativo y el valor de f en él.", [num("x del máximo =", -2), num("f en el máximo =", 16)],
+      ["f′ = 3x² − 12."], ["f′ = 3(x − 2)(x + 2): + , −, +: máximo en x = −2.", "f(−2) = −8 + 24 = 16."], "Máximo (−2, 16)"),
+    E("a9", 1, "Estudia f(x) = x·eˣ: da la abscisa de su mínimo relativo y su valor (decimal).", [num("x del mínimo =", -1), num("f en el mínimo =", -0.367879, { ph: "−0,368" })],
+      ["f′ = (1 + x)eˣ."], ["f′ = 0 ⟹ x = −1; pasa de − a +: mínimo.", "f(−1) = −1/e ≈ −0,368."], "Mínimo (−1, −1/e)"),
+    E("a10", 1, "Halla la abscisa del punto de inflexión de f(x) = x³ − 6x².", num("x =", 2),
+      ["f″ = 6x − 12."], ["f″ = 0 ⟹ x = 2; f″ cambia de − a +."], "x = 2"),
+    E("a11", 1, "Halla el punto crítico de f(x) = (ln x)/x (valor decimal de x).", num("x =", 2.71828, { ph: "2,718" }),
+      ["f′ = (1 − ln x)/x²."], ["f′ = 0 ⟹ ln x = 1 ⟹ x = e."], "x = e ≈ 2,718"),
+    E("a12", 1, "¿Qué tipo de rama tiene f(x) = eˣ cuando x → +∞?", opcion("Rama", ["Asíntota horizontal", "Asíntota oblicua", "Rama parabólica en la dirección del eje Y", "Asíntota vertical"], 2),
+      ["Calcula f(x)/x."], ["eˣ/x → +∞: no hay oblicua; crece más rápido que cualquier recta."], "Rama parabólica (eje Y)"),
+    E("a13", 1, "f(x) = x⁴ − 4x³ tiene un único extremo relativo. ¿En qué x?", num("x =", 3),
+      ["f′ = 4x²(x − 3): el factor x² no cambia el signo."], ["f′ = 0 en x = 0 (raíz doble: no cambia de signo) y x = 3 (− a +): mínimo en x = 3."], "x = 3"),
+    E("a14", 1, "La derivada de f es f′(x) = (x − 1)(x + 2). ¿En qué x tiene f un máximo relativo?", num("x =", -2),
+      ["Signo de f′ a cada lado de las raíces."], ["f′ es + en (−∞, −2), − en (−2, 1), + en (1, +∞): máximo en x = −2 y mínimo en x = 1."], "x = −2"),
+    E("a15", 1, "Si la gráfica de f′ tiene un máximo relativo en x = a, ¿qué tiene f en a?", opcion("f tiene", ["Un máximo relativo", "Un mínimo relativo", "Un punto de inflexión", "Una asíntota vertical"], 2),
+      ["Un extremo de f′ es un cero de f″ con cambio de signo."], ["f″ pasa de + a −: cambio de curvatura."], "Punto de inflexión"),
+    // ---------------------------------------------------------------- ★★
+    E("b1", 2, "Para f(x) = x²/(x + 2): halla el valor del máximo relativo (que está en x = −4).", num("f(−4) =", -8),
+      ["Comprueba que f′(−4) = 0."], ["f′ = x(x + 4)/(x + 2)²: es + si x &lt; −4 y − en (−4, −2): pasa de + a − en x = −4.", "f(−4) = 16/(−2) = −8."], "(−4, −8)"),
+    E("b2", 2, "Halla la asíntota oblicua y = mx + n de f(x) = x²/(x + 2).", [num("m =", 1), num("n =", -2)],
+      ["Divide x² entre x + 2."], ["x² = (x + 2)(x − 2) + 4, así que f = x − 2 + 4/(x + 2).", "m = 1, n = −2."], "y = x − 2"),
+    E("b3", 2, "Para f(x) = x²/(x + 2), f″(x) = 8/(x + 2)³. ¿Cómo es f en (−∞, −2)?", opcion("En (−∞, −2) f es", ["Convexa", "Cóncava", "Lineal", "Depende del punto"], 1),
+      ["Signo de (x + 2)³ cuando x &lt; −2."], ["(x + 2)³ &lt; 0, así que f″ &lt; 0: cóncava."], "Cóncava"),
+    E("b4", 2, "Para f(x) = 2x/(x² + 1), halla el valor del máximo relativo.", num("máximo =", 1),
+      ["f′ = 2(1 − x²)/(x² + 1)²."], ["f′ = 0 ⟹ x = ±1; en x = 1 pasa de + a −: máximo.", "f(1) = 2/2 = 1."], "(1, 1)"),
+    E("b5", 2, "Para f(x) = 2x/(x² + 1), halla la mayor abscisa de sus inflexiones (decimal).", num("x =", 1.73205, { ph: "1,732" }),
+      ["f″ = 4x(x² − 3)/(x² + 1)³."], ["f″ = 0 ⟹ x = 0 o x = ±√3 (tres inflexiones, con cambio de signo en cada una)."], "x = √3 ≈ 1,732"),
+    E("b6", 2, "Halla la abscisa del punto de inflexión de f(x) = x·eˣ.", num("x =", -2),
+      ["f″ = (x + 2)eˣ."], ["f′ = (x + 1)eˣ, f″ = (x + 2)eˣ = 0 ⟹ x = −2, con cambio de signo."], "x = −2"),
+    E("b7", 2, "Halla la mayor abscisa de inflexión de f(x) = e<sup>−x²</sup> (decimal).", num("x =", 0.707107, { ph: "0,707" }),
+      ["f″ = (4x² − 2)e<sup>−x²</sup>."], ["4x² − 2 = 0 ⟹ x = ±√2/2 ≈ ±0,707."], "x = √2/2"),
+    E("b8", 2, "Halla la ordenada de esos puntos de inflexión de f(x) = e<sup>−x²</sup> (decimal).", num("f =", 0.606531, { ph: "0,607" }),
+      ["Sustituye x² = 1/2."], ["f = e<sup>−1/2</sup> ≈ 0,607."], "e<sup>−1/2</sup> ≈ 0,607"),
+    E("b9", 2, "Halla el valor mínimo relativo de f(x) = x·ln x (decimal).", num("mínimo =", -0.367879, { ph: "−0,368" }),
+      ["f′ = ln x + 1."], ["f′ = 0 ⟹ x = 1/e; f(1/e) = (1/e)(−1) = −1/e ≈ −0,368."], "−1/e ≈ −0,368"),
+    E("b10", 2, "Halla la abscisa de la inflexión de f(x) = ln(x² + 1) con x &gt; 0.", num("x =", 1),
+      ["f′ = 2x/(x² + 1)."], ["f″ = 2(1 − x²)/(x² + 1)² = 0 ⟹ x = ±1."], "x = 1"),
+    E("b11", 2, "Halla la ordenada de ese punto de inflexión de f(x) = ln(x² + 1) en x = 1 (decimal).", num("f(1) =", 0.693147, { ph: "0,693" }),
+      ["Sustituye x = 1."], ["f(1) = ln 2 ≈ 0,693."], "ln 2"),
+    E("b12", 2, "Halla la abscisa del máximo relativo de f(x) = x·√(4 − x) (decimal).", num("x =", 2.66667, { ph: "2,667" }),
+      ["f′ = (8 − 3x)/(2√(4 − x))."], ["f′ = 0 ⟹ x = 8/3."], "x = 8/3"),
+    E("b13", 2, "Halla el valor de ese máximo relativo de f(x) = x·√(4 − x) (decimal).", num("máximo =", 3.0792, { ph: "3,079" }),
+      ["f(8/3) = (8/3)·√(4/3)."], ["√(4/3) = 2/√3, y f = 16/(3√3) = 16√3/9 ≈ 3,079."], "16√3/9 ≈ 3,079"),
+    E("b14", 2, "¿Cuántos puntos angulares (picos) tiene la gráfica de f(x) = |x² − 4|?", num("picos =", 2),
+      ["Picos donde x² − 4 cruza el eje con pendiente no nula."], ["En x = ±2 las derivadas laterales valen ±4."], "2"),
+    E("b15", 2, "Halla el valor del máximo relativo de f(x) = x·|x − 2|.", num("máximo =", 1),
+      ["Para x &lt; 2: f = −x² + 2x."], ["f′ = −2x + 2 = 0 ⟹ x = 1; f(1) = 1."], "(1, 1)"),
+    E("b16", 2, "Halla la asíntota horizontal en +∞ de f(x) = √(x² + x) − x (valor de y).", num("y =", 0.5),
+      ["Multiplica y divide por el conjugado."], ["f = x/(√(x² + x) + x) → 1/2."], "y = 1/2"),
+    E("b17", 2, "Para esa misma función, halla la asíntota oblicua en −∞: y = mx + n.", [num("m =", -2), num("n =", -0.5)],
+      ["En −∞, √(x² + x) ≈ −x."], ["m = lím f/x = −2; n = lím (√(x² + x) + x) = −1/2."], "y = −2x − 1/2"),
+    E("b18", 2, "f(x) = (ax + b)/(x + c) tiene asíntota vertical x = −1, horizontal y = 2 y pasa por (0, 3). Halla a, b, c.", [num("a =", 2), num("b =", 3), num("c =", 1)],
+      ["Vertical: x + c = 0 en x = −1. Horizontal: a."], ["c = 1; a = 2.", "f(0) = b/c = 3 ⟹ b = 3."], "a = 2, b = 3, c = 1"),
+    E("b19", 2, "f(x) = ax³ + bx² tiene un mínimo relativo en (2, −4). Halla a, b y la abscisa de su inflexión.", [num("a =", 1), num("b =", -3), num("x de la inflexión =", 1)],
+      ["f′(2) = 0 y f(2) = −4."], ["12a + 4b = 0 ⟹ b = −3a; 8a + 4b = −4 ⟹ −4a = −4 ⟹ a = 1, b = −3.", "f″ = 6x − 6 = 0 ⟹ x = 1."], "a = 1, b = −3, inflexión en x = 1"),
+    E("b20", 2, "f(x) = (ax + b)eˣ pasa por (0, −1) y tiene tangente horizontal en x = 1. Halla a y b.", [num("a =", 0.5), num("b =", -1)],
+      ["f′ = (ax + a + b)eˣ."], ["f(0) = b = −1; f′(1) = (2a + b)e = 0 ⟹ a = 1/2."], "a = 1/2, b = −1"),
+    E("b21", 2, "Si f′(x) = x(x − 2)², ¿cuántos extremos relativos tiene f?", num("extremos =", 1),
+      ["Mira en qué raíces cambia de signo f′."], ["Solo cambia de signo en x = 0 (mínimo); x = 2 es raíz doble."], "1"),
+    E("b22", 2, "Si f′(x) = x³ − 3x², halla la mayor abscisa de inflexión de f.", num("x =", 2),
+      ["f″ = 3x² − 6x."], ["f″ = 3x(x − 2) = 0 ⟹ x = 0 y x = 2, con cambio de signo en ambos."], "x = 2"),
+    E("b23", 2, "Halla la asíntota oblicua y = x + n de f(x) = (x² + x + 1)/(x − 1) (valor de n).", num("n =", 2),
+      ["Divide."], ["x² + x + 1 = (x − 1)(x + 2) + 3 ⟹ f = x + 2 + 3/(x − 1)."], "n = 2"),
+    E("b24", 2, "Halla el valor del mínimo relativo de f(x) = (x² + x + 1)/(x − 1) (decimal).", num("mínimo =", 6.4641, { ph: "6,464" }),
+      ["f′ = (x² − 2x − 2)/(x − 1)²."], ["x² − 2x − 2 = 0 ⟹ x = 1 ± √3; el mínimo está en x = 1 + √3.", "f(1 + √3) = 3 + 2√3 ≈ 6,464."], "3 + 2√3 ≈ 6,464"),
+    E("b25", 2, "¿Cuántas asíntotas verticales tiene f(x) = (x² − 1)/(x² − 3x + 2)?", num("asíntotas =", 1),
+      ["Factoriza numerador y denominador."], ["f = (x − 1)(x + 1)/((x − 1)(x − 2)): en x = 1 hay hueco; solo x = 2 es asíntota."], "1"),
+    // ---------------------------------------------------------------- ★★★
+    E("c1", 3, "Para f(x) = x³/(x² − 1), halla la abscisa positiva del mínimo relativo (decimal).", num("x =", 1.73205, { ph: "1,732" }),
+      ["f′ = x²(x² − 3)/(x² − 1)²."], ["f′ = 0 en x = 0 (doble) y x = ±√3. El mínimo está en x = √3."], "x = √3"),
+    E("c2", 3, "Para esa misma función, halla el valor del mínimo relativo (decimal).", num("mínimo =", 2.59808, { ph: "2,598" }),
+      ["f(√3) = 3√3/2."], ["f(√3) = 3√3/(3 − 1) = 3√3/2 ≈ 2,598."], "3√3/2"),
+    E("c3", 3, "Para f(x) = x³/(x² − 1) se tiene f′(0) = 0. ¿Qué ocurre en x = 0?", opcion("En x = 0 hay", ["Un máximo relativo", "Un mínimo relativo", "Un punto de inflexión con tangente horizontal", "Nada especial"], 2),
+      ["f′ = x²(x² − 3)/(x² − 1)² y f″ = 2x(x² + 3)/(x² − 1)³."], ["f′ ≤ 0 a ambos lados: no cambia de signo (no hay extremo).", "f″ cambia de + a − en 0: inflexión."], "Inflexión con tangente horizontal"),
+    E("c4", 3, "Halla el valor del máximo relativo de f(x) = x²e<sup>−x</sup> (decimal).", num("máximo =", 0.541341, { ph: "0,541" }),
+      ["f′ = x(2 − x)e<sup>−x</sup>."], ["Máximo en x = 2: f(2) = 4/e² ≈ 0,541."], "4/e²"),
+    E("c5", 3, "Halla la mayor abscisa de inflexión de f(x) = x²e<sup>−x</sup> (decimal).", num("x =", 3.41421, { ph: "3,414" }),
+      ["f″ = (x² − 4x + 2)e<sup>−x</sup>."], ["x² − 4x + 2 = 0 ⟹ x = 2 ± √2; la mayor es 2 + √2 ≈ 3,414."], "x = 2 + √2"),
+    E("c6", 3, "Halla la abscisa del máximo de f(x) = (ln x)/x² (decimal).", num("x =", 1.64872, { ph: "1,649" }),
+      ["f′ = (1 − 2 ln x)/x³."], ["f′ = 0 ⟹ ln x = 1/2 ⟹ x = √e ≈ 1,649."], "x = √e"),
+    E("c7", 3, "Halla el valor de ese máximo de f(x) = (ln x)/x² (decimal).", num("máximo =", 0.18394, { ph: "0,184" }),
+      ["Sustituye x = √e."], ["f(√e) = (1/2)/e = 1/(2e) ≈ 0,184."], "1/(2e)"),
+    E("c8", 3, "Halla la abscisa del punto de inflexión de f(x) = (ln x)/x² (decimal).", num("x =", 2.30098, { ph: "2,301" }),
+      ["f″ = (6 ln x − 5)/x⁴."], ["6 ln x = 5 ⟹ x = e<sup>5/6</sup> ≈ 2,301."], "x = e<sup>5/6</sup>"),
+    E("c9", 3, "Halla la derivada lateral f′(0⁺) de f(x) = e<sup>−|x|</sup>.", num("f′(0⁺) =", -1),
+      ["Para x &gt; 0, f = e<sup>−x</sup>."], ["f′ = −e<sup>−x</sup> → −1. (Por la izquierda es +1: punto angular, máximo en (0, 1).)"], "−1"),
+    E("c10", 3, "Halla la pendiente m de la asíntota oblicua en −∞ de f(x) = √(x² + 1) − x.", num("m =", -2),
+      ["En −∞, √(x² + 1) ≈ −x."], ["f/x = (√(x² + 1) − x)/x → −1 − 1 = −2; n = lím (√(x² + 1) + x) = 0."], "y = −2x"),
+    E("c11", 3, "Para f(x) = √(x² + 1) − x se tiene f′ = x/√(x² + 1) − 1. ¿Cómo es f?", opcion("f es", ["Estrictamente creciente", "Estrictamente decreciente en ℝ", "Con un mínimo en x = 0", "Con un máximo en x = 0"], 1),
+      ["Compara |x| con √(x² + 1)."], ["x/√(x² + 1) &lt; 1 siempre, luego f′ &lt; 0."], "Decreciente (y convexa: f″ &gt; 0)"),
+    E("c12", 3, "f(x) = x + a/x tiene un mínimo relativo en x = 2 (con x &gt; 0). Halla a.", num("a =", 4),
+      ["f′ = 1 − a/x²."], ["f′(2) = 1 − a/4 = 0 ⟹ a = 4."], "a = 4"),
+    E("c13", 3, "Con ese valor de a, f(x) = x + 4/x: calcula el valor del mínimo relativo.", num("mínimo =", 4),
+      ["f(2) = 2 + 4/2."], ["f(2) = 4."], "(2, 4)"),
+    E("c14", 3, "f(x) = ax + b/x tiene un mínimo relativo en el punto (2, 4). Halla a y b.", [num("a =", 1), num("b =", 4)],
+      ["f′(2) = 0 y f(2) = 4."], ["a − b/4 = 0 ⟹ b = 4a; 2a + b/2 = 4 ⟹ 2a + 2a = 4 ⟹ a = 1, b = 4."], "a = 1, b = 4"),
+    E("c15", 3, "Halla el valor del mínimo relativo de f(x) = x²·ln x (decimal).", num("mínimo =", -0.18394, { ph: "−0,184" }),
+      ["f′ = x(2 ln x + 1)."], ["x = e<sup>−1/2</sup>; f = (1/e)(−1/2) = −1/(2e) ≈ −0,184."], "−1/(2e)"),
+    E("c16", 3, "Halla la abscisa de la inflexión de f(x) = x²·ln x (decimal).", num("x =", 0.22313, { ph: "0,223" }),
+      ["f″ = 2 ln x + 3."], ["2 ln x + 3 = 0 ⟹ x = e<sup>−3/2</sup> ≈ 0,223."], "x = e<sup>−3/2</sup>"),
+    E("c17", 3, "Si f′(x) = x² − 4x y f(0) = 1, halla el valor del mínimo relativo de f (decimal).", num("mínimo =", -9.66667, { ph: "−9,667" }),
+      ["Integra y usa f(0) = 1; el mínimo está donde f′ pasa de − a +."], ["f = x³/3 − 2x² + 1; mínimo en x = 4: f(4) = 64/3 − 32 + 1 = −29/3."], "−29/3 ≈ −9,667"),
+    E("c18", 3, "¿Cuántas asíntotas (verticales, horizontales y oblicuas) tiene en total f(x) = 2x/(x² − 1)?", num("asíntotas =", 3),
+      ["Verticales en x = ±1; en ±∞ el cociente tiende a 0."], ["x = −1, x = 1 e y = 0 (la misma en ±∞): 3."], "3"),
+    E("c19", 3, "Halla el valor del mínimo relativo de f(x) = eˣ/x (decimal).", num("mínimo =", 2.71828, { ph: "2,718" }),
+      ["f′ = (x − 1)eˣ/x²."], ["Mínimo en x = 1: f(1) = e."], "(1, e)"),
+    E("c20", 3, "f(x) = (x² − 1)/(x² + 1) es par. Halla la abscisa positiva de su inflexión (decimal).", num("x =", 0.57735, { ph: "0,577" }),
+      ["f″ = 4(1 − 3x²)/(x² + 1)³."], ["1 − 3x² = 0 ⟹ x = ±1/√3 ≈ ±0,577."], "x = 1/√3"),
+    E("c21", 3, "Halla la ordenada de esa inflexión en x = 1/√3 de f(x) = (x² − 1)/(x² + 1).", num("f =", -0.5),
+      ["Sustituye x² = 1/3."], ["f = (1/3 − 1)/(1/3 + 1) = (−2/3)/(4/3) = −1/2."], "−1/2")
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "El guion del estudio completo", ancha: true,
+      pasos: ["Dominio y simetría (¿es simétrico el dominio?).", "Cortes con los ejes y signo de f.", "Asíntotas en +∞ y en −∞, y verticales (límite lateral).", "f′: monotonía y extremos (¿cambia de signo?).", "f″: curvatura e inflexiones (¿cambia de signo?).", "Esbozo: puntos, asíntotas, tabla de formas ↗∩ ↘∩ ↘∪ ↗∪."],
+      nota: "Cada paso comprueba al anterior; una contradicción indica un error de cálculo." },
+    { titulo: "Ramas infinitas: receta", ancha: true,
+      tabla: { cab: ["Si…", "Entonces"], filas: [
+        ["lím f = L finito", "horizontal y = L"],
+        ["m = lím f/x finito ≠ 0 y n = lím (f − mx) finito", "oblicua y = mx + n"],
+        ["m = ±∞ (eˣ, x²)", "rama parabólica en la dirección del eje Y"],
+        ["m = 0 con f → ∞ (ln x, √x)", "rama parabólica en la dirección del eje X"],
+        ["límite lateral ±∞ en un borde", "asíntota vertical"]
+      ] },
+      nota: "Racional: grado de P frente al de Q. Con raíces y exponenciales, +∞ y −∞ por separado." },
+    { titulo: "Qué cuenta f′ sobre f", ancha: true,
+      tabla: { cab: ["En f′", "En f"], filas: [
+        ["f′ &gt; 0 / f′ &lt; 0", "crece / decrece"],
+        ["cero con cambio + a − / − a +", "máximo / mínimo"],
+        ["cero sin cambio de signo", "tangente horizontal, sin extremo"],
+        ["f′ crece / decrece", "convexa ∪ / cóncava ∩"],
+        ["f′ tiene un extremo", "inflexión de f"]
+      ] } },
+    { titulo: "Deducir parámetros",
+      pasos: ["Un dato = una ecuación.", "Pasa por (p, q): f(p) = q.", "Extremo en p: f′(p) = 0.", "Inflexión en p: f″(p) = 0.", "Asíntotas: límites.", "Resolver y comprobar con un dato no usado."],
+      nota: "Tantas ecuaciones como parámetros." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Asíntota vertical solo porque x = 0 no está en el dominio", bien: "Límite lateral: puede ser finito (x ln x)", por: "Entonces hay un punto abierto, no una asíntota." },
+        { mal: "f′ = 0 ⟹ extremo", bien: "Además f′ debe cambiar de signo", por: "x³ en 0 tiene f′ = 0 y ningún extremo." },
+        { mal: "f″ = 0 ⟹ inflexión", bien: "f″ debe cambiar de signo", por: "x⁴ en 0: f″ = 0 y es un mínimo." },
+        { mal: "Una sola asíntota para +∞ y −∞", bien: "Estudiarlas por separado", por: "√(x² + x) − x: horizontal en +∞, oblicua en −∞." },
+        { mal: "Cancelar (x − a) y dar asíntota en a", bien: "Es un hueco", por: "El límite en a es finito." },
+        { mal: "Curva que cruza la asíntota vertical", bien: "Nunca la cruza", por: "No está en el dominio." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t10", {
+    resumen: resumen, secciones: B.parte.m2t10a.secciones, nuevas: nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
