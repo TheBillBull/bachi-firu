@@ -109,6 +109,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Mates II t13 (≈6.500 palabras, 49 ejercicios, 2 interactivos nuevos + 5 de Mates I, 122 comprobaciones) | 202.772 (44 herramientas) | 16 min |
 | Mates II t14 (≈6.200 palabras, 46 ejercicios, 5 interactivos nuevos, 326 comprobaciones) | 213.121 (45 herramientas) | 16 min |
 | **Matemáticas II completa (14 temas), total agentes** | **3.104.566** | ≈4,5 h |
+| Filosofía t1 presocráticos + componente vista rápida (44 ej., 188 comprob.) | ≈170k tras el corte + parte previa (cortada por límite de uso) | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -175,3 +176,5 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct 13:20 UTC: Matemáticas II EMPIEZA** (el usuario pidió seguir solo; misma conversación para poder republicar sin coste). Estándar 4b también para Mates II. Instrucciones comunes del encargo en el scratchpad (copia en `herramientas/ENCARGO_COMUN_MATES2.txt`: plantilla §8 + 4b, motores de Mates I, verificador `verificar_mates2_tN.py`, e2e `e2e_mates2_tN.js`). En marcha: t1 y un agente corto que contrasta el formato oficial de la PAU de Química de Madrid para los simulacros sim6–sim8. Orden: t1→t14, de 2 en 2, puerta de 700.000 tokens por tema.
 **28-oct 18:15 UTC — PUNTO DE PARADA DEL USUARIO:** terminar Matemáticas II (t1–t14) y PARAR; no empezar otra asignatura sin que lo diga («tengo que comprobar cositas»). Límite de 5 h alcanzado a las ~16:00; reanudado 18:13 (t8 retomado desde WIP, t9 relanzado).
 **28-oct ~21:30 UTC: MATEMÁTICAS II CERRADA.** `comprobar_todo.sh` → «TODO CUADRA» (47 grupos; 24.100 comprobaciones de cifras). Publicado (dirección nueva). **PARADO por decisión del usuario**: no empezar otra asignatura hasta que lo diga. Posibles siguientes: simulacros de Mates II; Física II.
+
+- 28-oct 23:20 UTC: Filosofía t1 fusionado (componente `vistazo` en lab_0vistazo.js, API en GUIA_TEMA «Vista rápida»). Lanzados t2 y t3.
