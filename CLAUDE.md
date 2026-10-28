@@ -1,6 +1,6 @@
 # Bachi para Firu — instrucciones del proyecto
 
-Web de estudio de Bachillerato (Ciencias, Selectividad Madrid). `pagina.html` es el contenido original; la capa `ampliaciones/` añade teoría, simuladores, ejercicios, láminas y simulacros. Se genera con `sh build.sh`. Rama de trabajo: `claude/admiring-keller-1be6ou` (sin PR salvo que el usuario lo pida). Convenciones y API: `herramientas/GUIA_TEMA.md`. Estado y plan: `PLAN.md`.
+Web de estudio de Bachillerato (Ciencias, Selectividad Madrid). `pagina.html` es el contenido original; la capa `ampliaciones/` añade teoría, simuladores, ejercicios, láminas y simulacros. Se genera con `sh build.sh`. Rama de trabajo: `claude/admiring-keller-1be6ou`. **Web pública = GitHub Pages** (https://thebillbull.github.io/bachi-firu/, desde `main`): se actualiza con una PR de la rama de trabajo hacia `main` que fusiona el usuario; no lleva corrección con Claude (la página lo detecta sola). El artefacto privado de claude.ai es la versión con corrección. Detalles en `PLAN.md` §0. Convenciones y API: `herramientas/GUIA_TEMA.md`. Estado y plan: `PLAN.md`.
 
 ## Reglas permanentes
 - **Ampliar, no recortar**: la teoría original se desarrolla más; no se quita nada salvo errores conceptuales reales. Se puede tocar `pagina.html` si es lo más simple, con tal de no perder contenido; `herramientas/pruebas/e2e_regresion.js` debe seguir dando «todo coincide».
@@ -18,4 +18,4 @@ Sigue el protocolo de `PLAN.md` sección 11 (puertas de coste incluidas) sin esp
 1. Lee `PLAN.md` y `git status`/`git log -5` (¿hay trabajo sin fusionar en `.claude/worktrees/`?).
 2. Dile en 3–4 líneas qué tanda toca, cuántos agentes usarás y el coste estimado según la tabla de `PLAN.md`; **empieza sin más preguntas** salvo que haya una decisión real pendiente.
 3. Lanza como máximo 2 agentes nuevos con la plantilla de `PLAN.md`; fusiona sus ramas, regenera con `sh build.sh`, pasa regresión y verificaciones, haz commit y push.
-4. Publica **una vez** al cerrar la tanda (misma dirección, sin pasar `capabilities`), actualiza `PLAN.md` (estado y coste medido) y resume con cifras.
+4. Publica al cerrar la tanda: PR hacia `main` para la web pública (Pages) y, si se puede, el artefacto privado (ver `PLAN.md` §0), actualiza `PLAN.md` (estado y coste medido) y resume con cifras.

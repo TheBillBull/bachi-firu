@@ -18,7 +18,7 @@ Los temas vistos y los borradores de los ejercicios se guardan en el navegador d
 
 1. Editar `pagina.html` o los archivos de `ampliaciones/`.
 2. `sh build.sh`
-3. `git add -A && git commit && git push` — GitHub Pages se actualiza solo en un par de minutos.
+3. `git add -A && git commit && git push` — GitHub Pages (que sirve `main`) se actualiza solo en un par de minutos. Si se trabaja en la rama `claude/admiring-keller-1be6ou`, hay que fusionarla en `main` con una PR. La versión de Pages no tiene corrección con Claude: eso solo funciona en la página publicada en claude.ai.
 
 > Si la página se publica en claude.ai, usa `pagina-autonoma.html` (lleva todo incrustado en un solo archivo).
 
