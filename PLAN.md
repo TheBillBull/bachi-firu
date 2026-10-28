@@ -115,7 +115,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t4 Aristóteles (44 ej., 231 comprob.) | ≈161k | |
 | Filosofía t5 helenismo (42 ej., 193 comprob.) | ≈149k | |
 | Filosofía t6 San Agustín (45 ej., 230 comprob.) | ≈143k | |
-| Filosofía t7 Santo Tomás (44 ej., 243 comprob.) | ver notificación | |
+| Filosofía t7 Santo Tomás (44 ej., 243 comprob.) | ≈155k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
