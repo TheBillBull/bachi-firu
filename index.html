@@ -16412,6 +16412,160 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 11: Polímeros y macromoléculas
+   Dos simuladores:
+   q11_cadena (constructor de cadena: une monómeros por adición o por condensación; muestra qué se libera, la unidad repetida y la masa molar) ·
+   q11_red (entrecruzamiento: de termoplástico a elastómero y a termoestable)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+  function fil(r, v, c) { return U.lec(r, v, c); }
+  function d(x, n) { return (Math.round(x * Math.pow(10, n)) / Math.pow(10, n)).toFixed(n).replace(".", ",").replace("-", "−"); }
+  function miles(x) { var s = String(Math.round(x)), o = ""; while (s.length > 3) { o = " " + s.slice(-3) + o; s = s.slice(0, -3); } return s + o; }
+  function estilo() {
+    if (document.getElementById("q11-css")) return;
+    var s = document.createElement("style"); s.id = "q11-css";
+    s.textContent =
+      ".q11-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; font-size: 14px; }" +
+      ".q11-fila .q11-et { flex: 0 0 100%; font: 700 12px var(--body); text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }" +
+      ".q11-b { border: 1.5px solid var(--line); border-radius: 10px; padding: 6px 10px; background: var(--sheet-2); line-height: 1.3; font-family: var(--math); max-width: 100%; overflow-wrap: anywhere; }" +
+      ".q11-b.a { border-color: var(--pen); } .q11-b.b { border-color: var(--ok); } .q11-b.u { border-color: var(--ink-soft); }" +
+      ".q11-b small { display: block; font: 12px var(--body); color: var(--ink-soft); }" +
+      ".q11-op { color: var(--ink-soft); font-weight: 700; } .q11-agua { color: var(--red, var(--ink-soft)); font-weight: 700; }" +
+      ".q11-svg { width: 100%; height: auto; max-width: 560px; display: block; margin: 6px auto; } .q11-svg .cad { fill: none; stroke: var(--pen); stroke-width: 2.2; stroke-linejoin: round; }" +
+      ".q11-svg .pte { stroke: var(--red, #c0392b); stroke-width: 2.6; stroke-linecap: round; } .q11-svg .pun { fill: var(--red, #c0392b); }";
+    document.head.appendChild(s);
+  }
+
+  // ---------------- datos (masas atómicas del examen: C 12, H 1, O 16, N 14, Cl 35,5, F 19) ----------------
+  var AT = { C: 12, H: 1, O: 16, N: 14, Cl: 35.5, F: 19 };
+  function masa(c) { var m = 0; for (var k in c) m += AT[k] * c[k]; return m; }
+  var AD = {
+    pe: { t: "Eteno → PE", mon: "eteno", fm: "CH₂=CH₂", c: { C: 2, H: 4 }, u: "CH₂−CH₂", pol: "polietileno (PE)", uso: "bolsas, film, botellas, juguetes" },
+    pp: { t: "Propeno → PP", mon: "propeno", fm: "CH₂=CH−CH₃", c: { C: 3, H: 6 }, u: "CH₂−CH(CH₃)", pol: "polipropileno (PP)", uso: "envases, tapones, fibras, piezas de coche" },
+    pvc: { t: "Cloroeteno → PVC", mon: "cloroeteno (cloruro de vinilo)", fm: "CH₂=CHCl", c: { C: 2, H: 3, Cl: 1 }, u: "CH₂−CHCl", pol: "policloruro de vinilo (PVC)", uso: "tuberías, marcos de ventana, cables" },
+    ps: { t: "Estireno → PS", mon: "estireno (feniletileno)", fm: "CH₂=CH−C₆H₅", c: { C: 8, H: 8 }, u: "CH₂−CH(C₆H₅)", pol: "poliestireno (PS)", uso: "envases de yogur, bandejas, aislante (corcho blanco)" },
+    ptfe: { t: "Tetrafluoroeteno → PTFE", mon: "tetrafluoroeteno", fm: "CF₂=CF₂", c: { C: 2, F: 4 }, u: "CF₂−CF₂", pol: "politetrafluoroeteno (PTFE, teflón)", uso: "sartenes antiadherentes, juntas" },
+    pan: { t: "Acrilonitrilo → PAN", mon: "acrilonitrilo (propenonitrilo)", fm: "CH₂=CH−CN", c: { C: 3, H: 3, N: 1 }, u: "CH₂−CH(CN)", pol: "poliacrilonitrilo (PAN)", uso: "fibras acrílicas (jerséis, mantas)" },
+    pmma: { t: "Metacrilato → PMMA", mon: "metacrilato de metilo", fm: "CH₂=C(CH₃)−COOCH₃", c: { C: 5, H: 8, O: 2 }, u: "CH₂−C(CH₃)(COOCH₃)", pol: "polimetacrilato de metilo (PMMA, plexiglás)", uso: "metacrilato transparente, mamparas, lentes" }
+  };
+  var CO = {
+    nylon: { t: "Nailon 6,6", n: 2, m: [{ nom: "ácido hexanodioico", f: "HOOC−(CH₂)₄−COOH", c: { C: 6, H: 10, O: 4 } }, { nom: "hexano-1,6-diamina", f: "H₂N−(CH₂)₆−NH₂", c: { C: 6, H: 16, N: 2 } }],
+      u: "CO−(CH₂)₄−CO−NH−(CH₂)₆−NH", enlace: "amida (−CO−NH−)", pol: "nailon 6,6 (poliamida)", uso: "fibras textiles, cuerdas, medias, piezas mecánicas" },
+    pet: { t: "PET", n: 2, m: [{ nom: "ácido tereftálico", f: "HOOC−C₆H₄−COOH", c: { C: 8, H: 6, O: 4 } }, { nom: "etano-1,2-diol", f: "HO−CH₂−CH₂−OH", c: { C: 2, H: 6, O: 2 } }],
+      u: "CO−C₆H₄−CO−O−CH₂−CH₂−O", enlace: "éster (−COO−)", pol: "polietilentereftalato (PET, poliéster)", uso: "botellas, fibras de poliéster (ropa polar)" },
+    pla: { t: "PLA", n: 1, m: [{ nom: "ácido láctico", f: "HO−CH(CH₃)−COOH", c: { C: 3, H: 6, O: 3 } }],
+      u: "O−CH(CH₃)−CO", enlace: "éster (−COO−)", pol: "ácido poliláctico (PLA, poliéster biodegradable)", uso: "envases compostables, suturas, impresión 3D" },
+    pep: { t: "Péptido (glicina)", n: 1, m: [{ nom: "glicina (aminoácido)", f: "H₂N−CH₂−COOH", c: { C: 2, H: 5, N: 1, O: 2 } }],
+      u: "NH−CH₂−CO", enlace: "peptídico (−CO−NH−)", pol: "polipéptido (proteína)", uso: "proteínas: enzimas, colágeno, queratina" },
+    glu: { t: "Almidón o celulosa", n: 1, m: [{ nom: "glucosa", f: "C₆H₁₂O₆", c: { C: 6, H: 12, O: 6 } }],
+      u: "C₆H₁₀O₅", enlace: "glucosídico (C−O−C)", pol: "polisacárido (almidón o celulosa)", uso: "reserva de energía (almidón), pared vegetal (celulosa)" }
+  };
+  var MH2O = 18;
+  function datosCO(k, n) {   // masas y agua para n unidades repetidas
+    var P = CO[k], suma = 0, i; for (i = 0; i < P.m.length; i++) suma += masa(P.m[i].c);
+    var unidad = suma - P.n * MH2O, enlaces = P.n * n - 1;
+    return { suma: suma, unidad: unidad, enlaces: enlaces, mol: P.n * n, M: n * suma - enlaces * MH2O };
+  }
+
+  // ============================================================
+  // Q11_CADENA
+  // ============================================================
+  B.w.q11_cadena = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Constructor de cadenas: ¿qué se libera al unir los monómeros?");
+    cuerpo.innerHTML = '<div data-modo class="chips"></div><div data-sel class="chips"></div><div data-ctl></div><div class="q11-dib"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { modo: "ad", k: "pe", i: 20 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), dib = cuerpo.querySelector(".q11-dib"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var selHost = cuerpo.querySelector("[data-sel]");
+    function nDe(i) { return Math.round(Math.pow(10, i / 10)); }
+    U.slider(ctl, { et: "Unidades repetidas", min: 0, max: 40, step: 1, val: st.i, on: function (v) { st.i = v; pinta(); }, fmt: function (v) { return "n = " + miles(nDe(v)); } });
+    function blq(txt, cl, pie2) { return '<span class="q11-b ' + cl + ' mv q3f">' + txt + (pie2 ? "<small>" + pie2 + "</small>" : "") + "</span>"; }
+    function pinta() {
+      var n = nDe(st.i), h = "";
+      if (st.modo === "ad") {
+        var P = AD[st.k], Mm = masa(P.c), mostrar = Math.min(n, 3), j, cad = "";
+        h += '<div class="q11-fila"><span class="q11-et">Monómeros (con doble enlace)</span>';
+        for (j = 0; j < mostrar; j++) h += (j ? '<span class="q11-op">+</span>' : "") + blq(P.fm, "a");
+        h += (n > mostrar ? '<span class="q11-op">+ …</span>' : "") + "</div>";
+        for (j = 0; j < mostrar; j++) cad += P.u + (j < mostrar - 1 ? "−" : "");
+        h += '<div class="q11-fila"><span class="q11-et">Polímero (solo enlaces simples C−C)</span>' + blq("−" + cad + (n > mostrar ? "−…" : "−"), "u") + blq("−[" + P.u + "]<sub>n</sub>−", "u", "unidad repetida") + "</div>";
+        dib.innerHTML = h;
+        lectura.innerHTML = fil("Monómero", P.mon + ", M = " + d(Mm, 1) + " g/mol", "pen ancho") +
+          fil("Unidad repetida", "misma fórmula que el monómero: M = " + d(Mm, 1) + " g/mol", "") +
+          fil("Se libera", "nada: no se pierde ningún átomo", "ok") +
+          fil("M(polímero) = n · M(monómero)", miles(n * Mm) + " g/mol", "ok") +
+          fil("Polímero", P.pol, "ancho") + fil("Usos", P.uso, "ancho");
+        pie.innerHTML = "En la <b>adición</b> el doble enlace C=C se abre y cada carbono se une a un monómero vecino. Por eso <b>polímero = n · monómero</b>: la fórmula de la unidad repetida es la del monómero.";
+      } else {
+        var Q = CO[st.k], dc = datosCO(st.k, n), mm = Math.min(n, 2), r, s, nm = Q.m.length;
+        h += '<div class="q11-fila"><span class="q11-et">Monómeros (con dos grupos que reaccionan)</span>';
+        for (r = 0; r < mm; r++) for (s = 0; s < nm; s++) h += ((r || s) ? '<span class="q11-op">+</span>' : "") + blq(Q.m[s].f, s ? "b" : "a", Q.m[s].nom);
+        h += (n > mm ? '<span class="q11-op">+ …</span>' : "") + "</div>";
+        h += '<div class="q11-fila"><span class="q11-et">Polímero + moléculas pequeñas liberadas</span>' + blq("−[" + Q.u + "]<sub>n</sub>−", "u", "enlace " + Q.enlace) + '<span class="q11-op">+</span><span class="q11-agua">' + miles(dc.enlaces) + " H₂O</span></div>";
+        dib.innerHTML = h;
+        var sumTxt = Q.m.map(function (x) { return d(masa(x.c), 0); }).join(" + ");
+        lectura.innerHTML = fil("Monómeros", Q.m.map(function (x) { return x.nom + " (M = " + d(masa(x.c), 0) + ")"; }).join(" y "), "pen ancho") +
+          fil("Enlace que se forma", Q.enlace, "") +
+          fil("Se libera", "1 H₂O por cada enlace: " + miles(dc.enlaces) + (dc.enlaces === 1 ? " molécula de agua" : " moléculas de agua"), "red") +
+          fil("Unidad repetida", "M = " + sumTxt + " − " + (Q.n * MH2O) + " = " + d(dc.unidad, 0) + " g/mol", "") +
+          fil("M(polímero) ≈ n · M(unidad)", miles(n * dc.unidad) + " g/mol", "ok") +
+          fil("Polímero", Q.pol, "ancho") + fil("Usos", Q.uso, "ancho");
+        pie.innerHTML = "En la <b>condensación</b> cada enlace nuevo expulsa una molécula pequeña (aquí agua). Por eso <b>la unidad repetida pesa menos que los monómeros juntos</b>: " + (Q.n === 2 ? "se pierden 2 H₂O por unidad (una por cada enlace). " : "se pierde 1 H₂O por unidad. ") + "<small>(Con n pequeño, los dos extremos de la cadena añaden 18 g/mol a la masa exacta; se desprecia.)</small>";
+      }
+    }
+    function listaSel() {
+      var tab = st.modo === "ad" ? AD : CO;
+      U.fichas(selHost, Object.keys(tab).map(function (k) { return { k: k, t: tab[k].t }; }), st.k, function (k) { st.k = k; pinta(); });
+    }
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "ad", t: "Adición" }, { k: "co", t: "Condensación" }], st.modo, function (k) {
+      st.modo = k; st.k = k === "ad" ? "pe" : "nylon"; listaSel(); pinta();
+    });
+    listaSel(); pinta();
+  };
+
+  // ============================================================
+  // Q11_RED: entrecruzamiento
+  // ============================================================
+  var PUENTES = [140, 40, 240, 100, 200, 60, 260, 180], NCAD = 4;
+  var TIPOS = [
+    { max: 0, t: "Termoplástico", calor: "se reblandece y se funde; al enfriarse vuelve a endurecer", disolv: "se disuelve o se hincha en ciertos disolventes", estira: "se deforma y no recupera del todo", clase: "pen", reciclar: "reciclable fundiéndolo de nuevo" },
+    { max: 25, t: "Elastómero", calor: "no funde: se descompone si se calienta mucho", disolv: "solo se hincha", estira: "se estira mucho y recupera la forma al soltar", clase: "ok", reciclar: "difícil de reciclar" },
+    { max: 100, t: "Termoestable", calor: "no se reblandece ni funde: se carboniza", disolv: "no se disuelve", estira: "rígido y duro; se rompe antes que estirarse", clase: "red", reciclar: "no se puede refundir" }
+  ];
+  function tipoDe(p) { for (var i = 0; i < TIPOS.length; i++) if (p <= TIPOS[i].max) return TIPOS[i]; return TIPOS[TIPOS.length - 1]; }
+  function nPuentes(p) { return Math.round(p / 100 * PUENTES.length); }
+  B.w.q11_red = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Entrecruzamiento: de la cadena suelta a la red");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="q11-dib"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { p: 0 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), dib = cuerpo.querySelector(".q11-dib"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sl = U.slider(ctl, { et: "Entrecruzamiento", min: 0, max: 100, step: 5, val: st.p, on: function (v) { st.p = v; pinta(); }, fmt: function (v) { return d(v, 0) + " %"; } });
+    var PRE = [{ k: 0, t: "Polietileno" }, { k: 10, t: "Goma vulcanizada" }, { k: 40, t: "Ebonita" }, { k: 90, t: "Baquelita" }];
+    function pinta() {
+      var T = tipoDe(st.p), nb = nPuentes(st.p), c, g, x, svg = '<svg class="q11-svg" viewBox="0 0 300 140" role="img" aria-label="Cadenas de polímero con ' + (nb * (NCAD - 1)) + ' puentes">';
+      for (c = 0; c < NCAD; c++) {
+        var y0 = 20 + c * 34, pts = [];
+        for (x = 0; x <= 300; x += 10) pts.push(x + "," + (y0 + ((x / 10) % 2 ? -5 : 5)));
+        svg += '<polyline class="cad" points="' + pts.join(" ") + '"/>';
+      }
+      for (g = 0; g < NCAD - 1; g++) for (var j = 0; j < nb; j++) {
+        x = PUENTES[(j + g * 3) % PUENTES.length]; var ya = 25 + g * 34, yb = 59 + g * 34;
+        svg += '<line class="pte" x1="' + x + '" y1="' + ya + '" x2="' + x + '" y2="' + yb + '"/><circle class="pun" cx="' + x + '" cy="' + ya + '" r="3"/><circle class="pun" cx="' + x + '" cy="' + yb + '" r="3"/>';
+      }
+      dib.innerHTML = svg + "</svg>";
+      lectura.innerHTML = fil("Puentes entre cadenas", String(nb * (NCAD - 1)), "") + fil("Tipo", T.t, T.clase) +
+        fil("Al calentar", T.calor, "ancho") + fil("En disolvente", T.disolv, "ancho") + fil("Al estirar", T.estira, "ancho") + fil("Reciclado", T.reciclar, "ancho");
+      pie.innerHTML = "Los puentes (en rojo) son enlaces covalentes entre cadenas, por ejemplo los puentes de azufre de la vulcanización. <small>Los porcentajes son orientativos: sirven para ver la tendencia, no son medidas reales.</small>";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), PRE.map(function (x) { return { k: String(x.k), t: x.t }; }), "0", function (k) { st.p = +k; sl.set(st.p); pinta(); });
+    pinta();
+  };
+
+  B.lab.q11 = { AD: AD, CO: CO, AT: AT, masa: masa, datosCO: datosCO };
+})(window);
+
+/* ============================================================
    Bachi para Firu · Química II, tema 1 («La química y sus cálculos»)
    Cuatro laboratorios nuevos (el resto se reutiliza de FyQ I: lab_qmol_*.js):
      qq1_mapa      el mol como estación central: g · partículas · L de gas · mL de disolución
@@ -56637,6 +56791,663 @@
   ];
 
   B.registrar("quimica2", "t10", { resumen: resumen, secciones: B.parte.q2t10a.secciones, nuevas: B.parte.q2t10b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 11: Polímeros y macromoléculas
+   (parte A: se añade al final de las secciones originales 1 a 4)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t11/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Qué es un polímero
+  secciones[0] = env(
+    "<h5>El vocabulario que hay que dominar</h5>" +
+    "<ul>" +
+    "<li><b>Monómero</b>: la molécula pequeña de partida (eteno, cloroeteno, glucosa, un aminoácido…).</li>" +
+    "<li><b>Unidad repetida</b> (o «mero»): el trozo que se repite en la cadena. Se escribe entre corchetes con un subíndice <i>n</i>: −[CH₂−CH₂]<sub>n</sub>−.</li>" +
+    "<li><b>Grado de polimerización</b> (<i>n</i>): número de unidades repetidas de una cadena. En un plástico corriente es de miles.</li>" +
+    "<li><b>Masa molar del polímero</b>: M = n · M(unidad repetida). Como las cadenas de una muestra no son todas igual de largas, se habla siempre de una masa molar <b>media</b>.</li>" +
+    "</ul>" +
+    "<p>El nombre se forma con <b>poli-</b> + el monómero: poli(eteno) o polietileno, poli(cloroeteno) o policloruro de vinilo (PVC).</p>" +
+    ejemplo("Del polímero al grado de polimerización",
+      "Una muestra de polietileno tiene una masa molar media de 56 000 g/mol. ¿Cuántas unidades repetidas tiene cada cadena y cuántos átomos de carbono? (C = 12; H = 1)",
+      ["Unidad repetida: −CH₂−CH₂−, es decir, C₂H₄. M(unidad) = 2·12 + 4·1 = 28 g/mol.",
+       "n = M(polímero) / M(unidad) = 56 000 / 28 = <b>2 000 unidades</b>.",
+       "Cada unidad aporta 2 átomos de C: 2 000 · 2 = <b>4 000 átomos de carbono</b> en cada cadena."]) +
+    "<h5>¿Por qué un polímero se comporta distinto de una molécula pequeña?</h5>" +
+    "<p>Dos cadenas largas se tocan por <b>miles de puntos a la vez</b>. Cada contacto es una fuerza intermolecular muy débil (fuerzas de London, y enlaces de hidrógeno si hay grupos −NH o −OH), pero se suman: por eso los polímeros son sólidos a temperatura ambiente aunque el monómero sea un gas (el eteno es un gas; el polietileno, un sólido). Por la misma razón <b>no tienen un punto de fusión nítido</b>: se reblandecen en un intervalo de temperaturas, porque las cadenas son de longitudes distintas.</p>" +
+    "<h5>Cinco formas de clasificar los polímeros</h5>" +
+    tabla(["Criterio", "Tipos", "Ejemplos"], [
+      ["Origen", "naturales · sintéticos (· artificiales: naturales modificados)", "almidón, ADN · PVC, nailon · celofán, rayón (celulosa modificada)"],
+      ["Cómo se forman", "adición · condensación", "polietileno · nailon, PET"],
+      ["Monómeros distintos", "homopolímeros · copolímeros", "PE, PVC · SBR, ABS"],
+      ["Forma de las cadenas", "lineales · ramificadas · entrecruzadas (red)", "PE de alta densidad · PE de baja densidad · baquelita"],
+      ["Respuesta al calor", "termoplásticos · termoestables · elastómeros", "PE, PET · baquelita · caucho vulcanizado"]
+    ], "q3t") +
+    ojo("«Polímero» y «plástico» no son sinónimos: el almidón, la celulosa, las proteínas o el caucho natural son polímeros y no los llamamos plásticos. «Plástico» es un material moldeable, casi siempre sintético."));
+
+  // ---------------------------------------------------------------- 2. Adición
+  secciones[1] = env(
+    "<h5>Qué ocurre en la polimerización por adición</h5>" +
+    "<p>El monómero debe tener un <b>doble enlace C=C</b> (los alquenos y sus derivados, llamados «vinílicos»). El enlace π, el más débil, se abre, y cada uno de los dos carbonos se une a un carbono de un monómero vecino. Es la misma reacción de adición del Tema 10, pero repetida miles de veces y con otro monómero en lugar de H₂ o HBr:</p>" +
+    "<div class='formula-wrap'><div class='formula'>n CH₂=CHX → −[CH₂−CHX]<sub>n</sub>−</div></div>" +
+    "<p>No se pierde ni se gana ningún átomo: la <b>unidad repetida tiene la misma fórmula que el monómero</b>. En la industria se inicia con un <b>radical libre</b> (un peróxido que se rompe con calor) y la cadena crece en tres etapas:</p>" +
+    "<ul>" +
+    "<li><b>Iniciación</b>: un radical R• ataca el doble enlace de un monómero y deja un radical en el otro carbono.</li>" +
+    "<li><b>Propagación</b>: ese nuevo radical ataca a otro monómero, y así miles de veces; la cadena crece muy rápido.</li>" +
+    "<li><b>Terminación</b>: dos cadenas con radical se encuentran y se unen (o el radical se apaga con otro reactivo), y la cadena deja de crecer.</li>" +
+    "</ul>" +
+    "<p>En la EvAU nunca se pide el mecanismo radicalario: basta saber que <b>el doble enlace desaparece</b> y que la cadena queda con solo enlaces simples.</p>" +
+    w("q11_cadena") +
+    "<h5>Cómo se escribe la unidad repetida</h5>" +
+    "<p>Se dibujan los dos carbonos del doble enlace <b>en la cadena principal</b> y todo lo que cuelga (H, Cl, CH₃, C₆H₅…) como sustituyente. Es un error muy típico dejar el doble enlace en el polímero o poner los sustituyentes dentro de la cadena.</p>" +
+    tabla(["Monómero", "Unidad repetida", "Polímero", "Usos"], [
+      ["CH₂=CH₂ (eteno)", "−CH₂−CH₂−", "polietileno (PE)", "bolsas, botellas, film"],
+      ["CH₂=CH−CH₃ (propeno)", "−CH₂−CH(CH₃)−", "polipropileno (PP)", "envases, tapones, fibras"],
+      ["CH₂=CHCl (cloroeteno)", "−CH₂−CHCl−", "PVC", "tuberías, ventanas, cables"],
+      ["CH₂=CH−C₆H₅ (estireno)", "−CH₂−CH(C₆H₅)−", "poliestireno (PS)", "bandejas, aislante"],
+      ["CF₂=CF₂ (tetrafluoroeteno)", "−CF₂−CF₂−", "PTFE (teflón)", "antiadherente, juntas"],
+      ["CH₂=CH−CN (acrilonitrilo)", "−CH₂−CH(CN)−", "poliacrilonitrilo (PAN)", "fibras acrílicas"],
+      ["CH₂=C(CH₃)−COOCH₃", "−CH₂−C(CH₃)(COOCH₃)−", "PMMA (metacrilato)", "mamparas, lentes"]
+    ], "q3t") +
+    ejemplo("Cuántos monómeros hay en una cadena de PVC",
+      "Una cadena de PVC tiene una masa molar de 125 000 g/mol. ¿Cuántos monómeros de cloroeteno se han unido? ¿Cuántos átomos de cloro tiene la cadena? (C = 12; H = 1; Cl = 35,5)",
+      ["Monómero: CH₂=CHCl → M = 2·12 + 3·1 + 35,5 = 62,5 g/mol. En una adición la unidad repetida pesa lo mismo.",
+       "n = 125 000 / 62,5 = <b>2 000 monómeros</b>.",
+       "Cada unidad lleva 1 Cl: <b>2 000 átomos de cloro</b> por cadena (un 56,8 % de la masa: 35,5/62,5)."]) +
+    ejemplo("Masa de polímero que se obtiene",
+      "Se polimerizan 500 kg de propeno con un rendimiento del 90 %. ¿Qué masa de polipropileno se obtiene?",
+      ["En una adición no se pierde nada: 500 kg de monómero darían, como máximo, 500 kg de polímero (la masa se conserva).",
+       "Con un 90 % de rendimiento: 500 · 0,90 = <b>450 kg de polipropileno</b>."]) +
+    "<h5>Dienos y cauchos</h5>" +
+    "<p>Si el monómero tiene <b>dos</b> dobles enlaces (un dieno, como el buta-1,3-dieno o el isopreno), solo se usa uno por unión pero queda un doble enlace en cada unidad: el polímero conserva C=C. Esos dobles enlaces son los que después permiten <b>vulcanizar</b> el caucho con azufre (sección 6). El caucho natural es el poliisopreno.</p>" +
+    ojo("Si ves un polímero cuya cadena principal es solo de átomos de carbono unidos por enlaces simples, casi seguro viene de una <b>adición</b>. Si en la cadena aparecen −CO−NH−, −CO−O− u otros átomos distintos de C, viene de una <b>condensación</b>."));
+
+  // ---------------------------------------------------------------- 3. Condensación
+  secciones[2] = env(
+    "<h5>Qué hace falta para condensar una cadena</h5>" +
+    "<p>Cada monómero necesita <b>al menos dos grupos reactivos</b> (si tuviera uno solo, la reacción se pararía en una molécula, como en una esterificación normal). Hay dos tipos de combinación:</p>" +
+    "<ul>" +
+    "<li><b>Dos monómeros distintos</b>, cada uno con dos grupos iguales, que se alternan: un diácido + una diamina (nailon) o un diácido + un diol (PET).</li>" +
+    "<li><b>Un solo monómero con dos grupos distintos</b>: un aminoácido (−NH₂ y −COOH) o un hidroxiácido (−OH y −COOH, ácido láctico).</li>" +
+    "</ul>" +
+    "<p>Cada vez que reaccionan dos grupos se forma un enlace y se expulsa una molécula pequeña, casi siempre <b>agua</b> (a veces HCl o metanol). Los enlaces importantes son los que ya viste en el Tema 10:</p>" +
+    tabla(["Grupos que reaccionan", "Enlace formado", "Se libera", "Polímero"], [
+      ["−COOH + H₂N−", "amida: −CO−NH−", "H₂O", "nailon, proteínas (enlace peptídico), Kevlar"],
+      ["−COOH + HO−", "éster: −CO−O−", "H₂O", "PET, PLA, poliésteres"],
+      ["HO− + HO− de dos azúcares", "éter: C−O−C (enlace glucosídico)", "H₂O", "almidón, celulosa, glucógeno"]
+    ], "q3t") +
+    "<div class='formula-wrap'><div class='formula'>n HOOC−(CH₂)₄−COOH + n H₂N−(CH₂)₆−NH₂ → −[CO−(CH₂)₄−CO−NH−(CH₂)₆−NH]<sub>n</sub>− + (2n − 1) H₂O</div></div>" +
+    "<p>El «(2n − 1)» viene de contar enlaces: 2n monómeros en fila forman 2n − 1 uniones, y cada una libera una molécula de agua. Para n grande se aproxima a 2n, es decir, <b>2 H₂O por unidad repetida</b>.</p>" +
+    "<p>Vuelve al <b>constructor de cadenas</b> de la sección 2 y pulsa «Condensación»: elige nailon, PET, PLA, péptido o almidón, sube <i>n</i> y mira cómo crece el número de moléculas de agua liberadas y cómo la unidad repetida pesa menos que los monómeros juntos.</p>" +
+    ejemplo("Nailon 6,6: masa de polímero y de agua",
+      "Se hacen reaccionar 29,2 g de ácido hexanodioico (M = 146) con 23,2 g de hexano-1,6-diamina (M = 116). Si la reacción es completa, ¿qué masa de nailon 6,6 se forma y cuánta agua se libera? (H₂O = 18)",
+      ["n(ácido) = 29,2/146 = 0,200 mol; n(diamina) = 23,2/116 = 0,200 mol. Reaccionan mol a mol: no hay limitante.",
+       "Cada unidad repetida usa 1 ácido + 1 diamina y libera 2 H₂O: se forman 0,200 mol de unidades y 0,400 mol de H₂O.",
+       "Agua: 0,400 · 18 = <b>7,2 g</b>.",
+       "La masa se conserva: 29,2 + 23,2 − 7,2 = <b>45,2 g de nailon</b>. Comprobación: M(unidad) = 146 + 116 − 36 = 226; 0,200 · 226 = 45,2 g."]) +
+    ejemplo("Poliéster PET con rendimiento",
+      "Se parte de 100 kg de ácido tereftálico (M = 166) y un exceso de etano-1,2-diol (M = 62). Con un rendimiento del 85 %, ¿cuántos kg de PET se obtienen? (unidad repetida: M = 192)",
+      ["n(ácido) = 100 000 g / 166 = 602,4 mol (el diol está en exceso, el ácido es el limitante).",
+       "Cada mol de ácido da 1 mol de unidad repetida: 602,4 mol · 192 g/mol = 115,7 kg (teórico).",
+       "Con η = 85 %: 115,7 · 0,85 = <b>98,3 kg de PET</b>."]) +
+    ojo("Para que el polímero llegue a tener cadenas largas hace falta que haya <b>la misma cantidad</b> de los dos monómeros (proporción 1 : 1). Si sobra uno, las cadenas terminan pronto con ese monómero en los dos extremos y quedan cortas."));
+
+  // ---------------------------------------------------------------- 4. Naturales y sintéticos
+  secciones[3] = env(
+    "<h5>Los tres grandes biopolímeros</h5>" +
+    "<p>Los seres vivos fabrican sus polímeros por condensación y los rompen por <b>hidrólisis</b> (la reacción inversa, con agua y enzimas). La tabla resume lo que debes saber:</p>" +
+    tabla(["Biopolímero", "Monómero", "Enlace entre monómeros", "Función"], [
+      ["Polisacáridos: almidón, glucógeno, celulosa", "glucosa (C₆H₁₂O₆)", "glucosídico (C−O−C)", "reserva de energía (almidón, glucógeno), pared de las células vegetales (celulosa)"],
+      ["Proteínas", "α-aminoácidos (20 distintos)", "peptídico (−CO−NH−, una amida)", "enzimas, estructura (colágeno, queratina), transporte (hemoglobina)"],
+      ["Ácidos nucleicos: ADN, ARN", "nucleótidos (azúcar + fosfato + base)", "fosfodiéster (entre fosfato y azúcar)", "almacenar y transmitir la información genética"]
+    ], "q3t") +
+    "<h5>Polisacáridos: la misma glucosa, dos polímeros muy distintos</h5>" +
+    "<p>El almidón y la celulosa son cadenas de glucosa y tienen la misma unidad repetida (C₆H₁₀O₅), pero la glucosa se une con una orientación distinta: <b>α</b> en el almidón y <b>β</b> en la celulosa. Esa diferencia, aparentemente pequeña, hace que el almidón sea una espiral digerible por nuestras enzimas y la celulosa, en cambio, una fibra recta e indigerible para el ser humano. El glucógeno (reserva animal) es como el almidón pero más ramificado.</p>" +
+    "<div class='formula-wrap'><div class='formula'>n C₆H₁₂O₆ → (C₆H₁₀O₅)<sub>n</sub> + (n − 1) H₂O &nbsp;&nbsp;(la hidrólisis es la reacción inversa)</div></div>" +
+    ejemplo("Hidrólisis del almidón",
+      "Se hidrolizan por completo 16,2 g de almidón. ¿Cuántos gramos de glucosa se obtienen? (C = 12; H = 1; O = 16)",
+      ["M(unidad C₆H₁₀O₅) = 6·12 + 10 + 5·16 = 162 g/mol → 16,2 g son 0,100 mol de unidades.",
+       "Cada unidad recupera 1 H₂O al hidrolizarse: se consumen 0,100 mol de agua = 1,8 g.",
+       "Masa de glucosa = 16,2 + 1,8 = <b>18,0 g</b> (0,100 mol de glucosa × 180 g/mol)."]) +
+    "<h5>Proteínas: el enlace peptídico</h5>" +
+    "<p>Un α-aminoácido tiene un grupo amino (−NH₂) y un grupo ácido (−COOH) en el mismo carbono, más una cadena lateral R que lo distingue. El −COOH de uno reacciona con el −NH₂ de otro: se forma una <b>amida</b> (el <b>enlace peptídico</b>) y se libera agua. Con dos aminoácidos se obtiene un dipéptido; con tres, un tripéptido; con muchos, un polipéptido o proteína.</p>" +
+    "<div class='formula-wrap'><div class='formula'>H₂N−CHR−COOH<br>+ H₂N−CHR'−COOH<br>→ H₂N−CHR−CO−<br>NH−CHR'−COOH<br>+ H₂O</div></div>" +
+    ejemplo("Masa de un tripéptido",
+      "Calcula la masa molar del tripéptido Gly-Ala-Gly. Glicina: C₂H₅NO₂ (M = 75); alanina: C₃H₇NO₂ (M = 89). (H₂O = 18)",
+      ["Tres aminoácidos se unen con 3 − 1 = 2 enlaces peptídicos, y se liberan 2 H₂O.",
+       "M = 75 + 89 + 75 − 2·18 = 239 − 36 = <b>203 g/mol</b>."]) +
+    ojo("Con <i>n</i> aminoácidos hay <i>n</i> − 1 enlaces peptídicos y se liberan <i>n</i> − 1 moléculas de agua (no <i>n</i>). En una cadena lineal el primer aminoácido conserva su −NH₂ libre y el último su −COOH libre." ) +
+    "<h5>Ácidos nucleicos</h5>" +
+    "<p>Cada <b>nucleótido</b> tiene tres partes: un azúcar (desoxirribosa en el ADN, ribosa en el ARN), un grupo fosfato y una base nitrogenada (A, T, G, C en el ADN; en el ARN la T se sustituye por U, uracilo). Los nucleótidos se unen por <b>enlaces fosfodiéster</b>: el fosfato de uno se une al azúcar del siguiente, con pérdida de agua. El esqueleto azúcar−fosfato es siempre el mismo y la información está en la <b>secuencia de bases</b>, igual que un texto está en el orden de las letras. El ADN son dos cadenas enfrentadas, unidas por enlaces de hidrógeno entre bases (A con T, G con C).</p>" +
+    "<h5>El caucho natural</h5>" +
+    "<p>El látex del árbol del caucho es poliisopreno, un polímero de adición del 2-metilbuta-1,3-dieno (isopreno). Sin tratar es blando y pegajoso. En la sección 6 verás cómo la vulcanización lo convierte en un elastómero útil.</p>");
+
+  B.parte.q2t11a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 11: Polímeros y macromoléculas
+   (parte B: secciones nuevas 5 a 12)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t11/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 5. Monómero <-> polímero
+    {
+      h: "5. Del monómero al polímero y al revés",
+      html: env(
+        "<p>Es la pregunta más repetida del tema: te dan una unidad repetida y piden el monómero (o al revés). Hay dos métodos, uno para cada tipo de polimerización.</p>" +
+        "<h5>Polímero de adición → monómero</h5>" +
+        "<ol>" +
+        "<li>Mira la cadena principal: solo carbonos con enlaces simples.</li>" +
+        "<li>Toma <b>dos carbonos consecutivos</b> de la cadena (la unidad repetida) con todo lo que cuelga de ellos.</li>" +
+        "<li>Vuelve a escribir entre ellos un <b>doble enlace</b>: ese es el monómero.</li>" +
+        "</ol>" +
+        ejemplo("Dos monómeros a partir de dos unidades repetidas",
+          "Escribe el monómero de a) −[CH₂−CHF]<sub>n</sub>− y b) −[CH₂−C(CH₃)₂]<sub>n</sub>−. ¿Cuál es el nombre de cada uno?",
+          ["a) Los dos carbonos de la cadena son CH₂ y CHF. Se restablece el doble enlace: <b>CH₂=CHF</b>, fluoroeteno.",
+           "b) Los dos carbonos son CH₂ y C(CH₃)₂: <b>CH₂=C(CH₃)₂</b>, 2-metilpropeno (se llama poliisobutileno)."]) +
+        "<p><b>Excepción con dienos</b>: si la unidad repetida tiene <b>cuatro carbonos con un doble enlace en medio</b>, como −CH₂−CH=CH−CH₂−, el monómero era un dieno: buta-1,3-dieno (CH₂=CH−CH=CH₂). Con un grupo metilo colgando sale el isopreno.</p>" +
+        "<h5>Polímero de condensación → monómeros</h5>" +
+        "<ol>" +
+        "<li>Localiza los enlaces <b>amida</b> (−CO−NH−) o <b>éster</b> (−CO−O−) de la cadena.</li>" +
+        "<li><b>Rompe</b> cada enlace en el punto de unión (por el enlace C−N de la amida, por el C−O del éster).</li>" +
+        "<li>Devuelve el <b>agua</b>: pon un −OH al trozo con el C=O (queda −COOH) y un H al otro trozo (queda −NH₂ o −OH).</li>" +
+        "</ol>" +
+        ejemplo("Monómeros de un poliéster",
+          "El polímero −[O−CH₂−CH₂−O−CO−(CH₂)₂−CO]<sub>n</sub>− contiene enlaces éster. ¿De qué monómeros procede?",
+          ["Enlaces éster: −O−CO−. Se rompen por el enlace C−O: a un lado queda el trozo −O−CH₂−CH₂−O−, al otro −CO−(CH₂)₂−CO−.",
+           "Se devuelve el agua: el trozo del alcohol recupera dos H (HO−CH₂−CH₂−OH, <b>etano-1,2-diol</b>) y el del acilo recupera dos OH (HOOC−CH₂−CH₂−COOH, <b>ácido butanodioico</b>).",
+           "Es un poliéster: diol + diácido, como el PET."]) +
+        ejemplo("Un solo monómero",
+          "El nailon 6 tiene como unidad repetida −[NH−(CH₂)₅−CO]<sub>n</sub>−. ¿Cuál es el monómero?",
+          ["Un único enlace amida por unidad (−NH−CO−): hay un solo monómero con los dos extremos distintos.",
+           "Al romper la amida y devolver el agua, un extremo queda −NH₂ y el otro −COOH: <b>H₂N−(CH₂)₅−COOH</b>, ácido 6-aminohexanoico.",
+           "(En la industria se fabrica con un monómero cíclico, la caprolactama, pero el resultado es el mismo.)"]) +
+        "<h5>Monómeros → polímero</h5>" +
+        "<p>Sigue el camino inverso: primero decide si hay doble enlace C=C (adición) o dos grupos reactivos (condensación). En condensación, <b>anota el agua que sale</b>: si lo olvidas, la ecuación no está ajustada.</p>" +
+        w("emparejar", "emp1") +
+        w("orden", "orden1") +
+        ojo("Un error frecuente: dibujar el polímero de adición con el doble enlace dentro de la cadena. Si hay C=C en la unidad repetida, es porque el monómero tenía dos (un dieno), no porque «sobrase» uno.")
+      )
+    },
+    // ------------------------------------------------------------ 6. Estructura y propiedades
+    {
+      h: "6. Estructura y propiedades: termoplásticos, termoestables y elastómeros",
+      html: env(
+        "<h5>La forma de las cadenas lo explica casi todo</h5>" +
+        "<p>Dos plásticos con el mismo monómero (eteno) pueden ser muy distintos solo por cómo se organizan las cadenas:</p>" +
+        tabla(["Estructura", "Cómo son las cadenas", "Propiedades", "Ejemplo"], [
+          ["Lineal", "largas y rectas, se apilan juntas", "más denso, rígido y resistente", "polietileno de alta densidad (HDPE): botellas, tuberías"],
+          ["Ramificada", "con ramas que impiden apilarlas", "menos denso, blando y flexible", "polietileno de baja densidad (LDPE): bolsas, film"],
+          ["Entrecruzada (red)", "cadenas unidas entre sí por enlaces covalentes", "no funde, no se disuelve", "baquelita, vulcanizado"]
+        ], "q3t") +
+        "<h5>Tres comportamientos frente al calor</h5>" +
+        "<ul>" +
+        "<li><b>Termoplásticos</b>: cadenas lineales o ramificadas, unidas solo por fuerzas intermoleculares. Al calentar se <b>reblandecen y funden</b>, y al enfriar vuelven a endurecer: se pueden moldear una y otra vez y son <b>reciclables</b> fundiéndolos (PE, PP, PVC, PS, PET, nailon).</li>" +
+        "<li><b>Termoestables</b>: red tridimensional con muchos enlaces covalentes entre cadenas. Una vez moldeados <b>no se pueden fundir</b>: al calentar mucho se descomponen y carbonizan (baquelita, melamina de los mangos de sartén, resinas epoxi).</li>" +
+        "<li><b>Elastómeros</b>: cadenas largas y flexibles unidas por <b>pocos</b> puentes. Se estiran mucho y, al soltar, los puentes devuelven las cadenas a su sitio (caucho vulcanizado, neopreno, siliconas).</li>" +
+        "</ul>" +
+        w("q11_red") +
+        "<h5>La vulcanización</h5>" +
+        "<p>El caucho natural (poliisopreno) sin tratar es blando, pegajoso y se deforma para siempre. En 1839 Goodyear descubrió que calentarlo con <b>azufre</b> lo mejora: el azufre se une a los dobles enlaces que quedan en las cadenas y crea <b>puentes de azufre</b> entre ellas. Con un 1–3 % de azufre se obtiene un elastómero (neumáticos, gomas); con un 30 % queda un termoestable duro, la ebonita.</p>" +
+        "<h5>Copolímeros</h5>" +
+        "<p>Un <b>homopolímero</b> procede de un solo monómero (PE, PVC, PS). Un <b>copolímero</b> mezcla dos o más monómeros distintos en la misma cadena y combina sus propiedades: el <b>SBR</b> (estireno-butadieno) es el caucho de los neumáticos; el <b>ABS</b> (acrilonitrilo-butadieno-estireno) forma los LEGO® y las carcasas; el nailon 6,6 es, en rigor, un copolímero alternante de dos monómeros (diácido y diamina).</p>" +
+        ojo("Termoplástico no es «plástico blando» ni termoestable «plástico duro». Lo que decide es si <b>se puede volver a fundir</b> (termoplástico) o no (termoestable), y el elastómero se define por su capacidad de recuperar la forma tras estirarse.")
+      )
+    },
+    // ------------------------------------------------------------ 7. Sintéticos de interés
+    {
+      h: "7. Polímeros sintéticos de interés",
+      html: env(
+        "<p>Para cada polímero debes saber el monómero, el tipo de polimerización y un uso. Pero entender <b>por qué</b> sirve para eso te ahorra memoria.</p>" +
+        tabla(["Polímero", "Tipo", "Por qué sirve para…", "Usos"], [
+          ["PE (polietileno)", "adición", "solo C−C y C−H: apolar, flexible, no absorbe agua", "bolsas, botellas, juguetes, tuberías"],
+          ["PP (polipropileno)", "adición", "más rígido y más resistente al calor que el PE", "envases, tapones, textiles, parachoques"],
+          ["PVC", "adición", "el enlace C−Cl es polar: más rígido; con plastificante se vuelve flexible", "tuberías, ventanas, cables, suelos"],
+          ["PS (poliestireno)", "adición", "anillos voluminosos: rígido, transparente y quebradizo; espumado, aislante", "yogures, corcho blanco"],
+          ["PTFE (teflón)", "adición", "el enlace C−F es muy fuerte y los F protegen la cadena: inerte y antiadherente", "sartenes, juntas, cintas"],
+          ["PMMA (metacrilato)", "adición", "transparente y resistente al impacto", "mamparas, lentes, acuarios"],
+          ["Nailon 6,6", "condensación (poliamida)", "los grupos −CO−NH− forman enlaces de hidrógeno entre cadenas: fibras muy resistentes", "ropa, cuerdas, piezas mecánicas"],
+          ["PET", "condensación (poliéster)", "fuerte, transparente, impermeable a los gases", "botellas, fibras de poliéster"],
+          ["Kevlar (aramida)", "condensación (poliamida con anillos)", "cadenas rígidas con muchos enlaces de hidrógeno: más resistente que el acero a igual peso", "chalecos antibalas, cascos"],
+          ["Poliuretano", "poliadición (no libera nada)", "según el diol: espumas blandas (colchones) o rígidas (aislante)", "colchones, suelas, aislantes"],
+          ["Siliconas", "condensación (cadena Si−O)", "estables a temperaturas extremas; elastómeros", "juntas, moldes, prótesis"]
+        ], "q3t") +
+        w("clasificar", "clas1") +
+        ojo("Los polímeros de adición con C−C pueden verse como «cadenas de alcano» con sustituyentes: no se hidrolizan. Los de condensación (amida, éster) sí se rompen con agua, ácido o base, y eso los hace reciclables químicamente o biodegradables (sección 9).")
+      )
+    },
+    // ------------------------------------------------------------ 8. Cálculos
+    {
+      h: "8. Problemas numéricos con polímeros",
+      html: env(
+        "<p>Los problemas de polímeros son estequiometría de siempre con una ventaja: una cadena es una larga repetición. Se resuelven con cuatro herramientas:</p>" +
+        "<div class='formula-wrap'><div class='formula'>M(polímero) = n · M(unidad repetida)</div></div>" +
+        "<ul>" +
+        "<li><b>Adición</b>: M(unidad) = M(monómero). La masa del polímero es igual a la del monómero consumido (por el rendimiento).</li>" +
+        "<li><b>Condensación</b>: M(unidad) = M(monómeros) − (nº de H₂O que salen por unidad) · 18. La masa de polímero + la masa de agua liberada = masa de monómeros.</li>" +
+        "<li><b>Composición</b>: el % en masa de un elemento sale de la unidad repetida (no hace falta conocer n).</li>" +
+        "<li><b>Combustión</b>: se ajusta con la unidad repetida: (CH₂)<sub>n</sub> + 3n/2 O₂ → n CO₂ + n H₂O.</li>" +
+        "</ul>" +
+        ejemplo("Combustión de polietileno",
+          "Se quema por completo 1,00 kg de polietileno. Calcula las masas de CO₂ y de H₂O que se forman. (C = 12; H = 1; O = 16)",
+          ["La unidad repetida es CH₂ (M = 14 g/mol): (CH₂)<sub>n</sub> + 3n/2 O₂ → n CO₂ + n H₂O.",
+           "n(CH₂) = 1 000 / 14 = 71,43 mol.",
+           "CO₂: 71,43 · 44 = 3 143 g = <b>3,14 kg</b>. H₂O: 71,43 · 18 = 1 286 g = <b>1,29 kg</b>.",
+           "Comprobación: el O₂ consumido es 71,43 · 1,5 · 32 = 3 429 g; 1 000 + 3 429 = 4 429 g = 3 143 + 1 286. ✓"]) +
+        "<p>Un plástico se hace con petróleo y, al quemarse, devuelve su carbono a la atmósfera como CO₂: por cada kilo de polietileno, más de tres kilos de CO₂.</p>" +
+        ejemplo("Combustión de PVC: el problema del cloro",
+          "¿Qué masa de HCl se libera al quemar 1,00 kg de PVC? (C = 12; H = 1; Cl = 35,5)",
+          ["Unidad repetida: C₂H₃Cl (M = 62,5). Al arder, el cloro pasa a HCl: (C₂H₃Cl)<sub>n</sub> + 5n/2 O₂ → 2n CO₂ + n H₂O + n HCl.",
+           "n(unidad) = 1 000 / 62,5 = 16,0 mol → 16,0 mol de HCl.",
+           "m(HCl) = 16,0 · 36,5 = <b>584 g</b>. Es un gas corrosivo y tóxico: por eso el PVC no se quema sin filtros."]) +
+        ejemplo("Un copolímero: el SBR",
+          "El caucho SBR tiene, de media, 3 unidades de butadieno (C₄H₆, M = 54) por cada unidad de estireno (C₈H₈, M = 104). ¿Qué % en masa de estireno contiene?",
+          ["Masa de 3 butadieno + 1 estireno = 3 · 54 + 104 = 266 g.",
+           "% estireno = 104 / 266 · 100 = <b>39,1 %</b>."]) +
+        ejemplo("Masa molar media de una mezcla de cadenas",
+          "Una muestra tiene 50 cadenas de masa 10 000 g/mol y 50 cadenas de 30 000 g/mol. ¿Cuál es la masa molar media (por número de cadenas)?",
+          ["M media = (50 · 10 000 + 50 · 30 000) / 100 = 2 000 000 / 100 = <b>20 000 g/mol</b>.",
+           "Por esto se habla de una masa media: nunca todas las cadenas tienen la misma longitud."]) +
+        ojo("En un problema de condensación, la masa de polímero que sale es <b>menor</b> que la suma de las masas de los monómeros. Si tu resultado es mayor, te has olvidado del agua.")
+      )
+    },
+    // ------------------------------------------------------------ 9. Reciclaje e impacto
+    {
+      h: "9. Reciclaje, residuos e impacto ambiental",
+      html: env(
+        "<h5>Por qué los plásticos persisten</h5>" +
+        "<p>Los polímeros de adición solo tienen enlaces C−C y C−H, muy estables y apolares: ni el agua ni los microorganismos los atacan, y tardan siglos en degradarse. Los de condensación (poliésteres, poliamidas) tienen enlaces éster y amida que <b>sí se hidrolizan</b>, aunque despacio. Con la luz y la erosión, los plásticos se fragmentan en <b>microplásticos</b> (menos de 5 mm), que entran en las cadenas tróficas.</p>" +
+        "<h5>Qué se puede hacer con un residuo plástico</h5>" +
+        tabla(["Vía", "En qué consiste", "Ventajas e inconvenientes"], [
+          ["Reutilizar", "volver a usar el objeto", "la mejor opción: no hay que procesarlo"],
+          ["Reciclado mecánico", "triturar, lavar y fundir (solo termoplásticos) para moldear de nuevo", "barato, pero la calidad baja en cada ciclo y exige separar tipos de plástico"],
+          ["Reciclado químico", "despolimerizar con calor, agua o alcohol hasta recuperar monómeros (PET con glicol o metanol)", "recupera calidad original; más caro; aprovecha polímeros de condensación"],
+          ["Valorización energética", "quemarlos para producir energía", "recupera energía, pero emite CO₂ y, con PVC, HCl y dioxinas: exige depuración"],
+          ["Vertedero", "enterrarlos", "ocupa espacio y los plásticos permanecen siglos"]
+        ], "q3t") +
+        "<p>Las <b>tres R</b>: <b>R</b>educir, <b>R</b>eutilizar, <b>R</b>eciclar, por este orden de prioridad. Un termoestable (baquelita) o un elastómero entrecruzado no se pueden fundir: se aprovechan triturados como carga o se queman con recuperación de energía.</p>" +
+        "<h5>Los códigos de reciclado</h5>" +
+        "<p>En el fondo de los envases hay un triángulo con un número que indica el material:</p>" +
+        tabla(["Código", "Siglas", "Polímero", "Ejemplo"], [
+          ["1", "PET", "polietilentereftalato", "botella de agua"],
+          ["2", "HDPE", "polietileno de alta densidad", "garrafas, botes de champú"],
+          ["3", "PVC", "policloruro de vinilo", "tuberías, blísteres"],
+          ["4", "LDPE", "polietileno de baja densidad", "bolsas, film"],
+          ["5", "PP", "polipropileno", "tapones, envases de yogur"],
+          ["6", "PS", "poliestireno", "bandejas, vasos"],
+          ["7", "otros", "mezclas y policarbonato", "CDs, biberones antiguos"]
+        ], "q3t") +
+        w("emparejar", "emp2") +
+        "<h5>Bioplásticos y biodegradables: no es lo mismo</h5>" +
+        "<ul>" +
+        "<li><b>Bioplástico</b> = se fabrica a partir de materias primas renovables (maíz, caña de azúcar). El PLA se obtiene del ácido láctico de la fermentación del almidón.</li>" +
+        "<li><b>Biodegradable</b> = los microorganismos lo descomponen en un tiempo razonable (a CO₂, agua y biomasa). El PLA es biodegradable, pero en condiciones industriales de compostaje (60 °C), no en el campo.</li>" +
+        "<li>Un plástico puede ser bioplástico y no biodegradable (polietileno hecho con etanol de caña) o biodegradable de origen fósil.</li>" +
+        "</ul>" +
+        ejemplo("La huella de una botella",
+          "Una botella de PET pesa 24,0 g. Si se incinera, ¿cuántos gramos de CO₂ produce? (la unidad repetida es C₁₀H₈O₄, M = 192)",
+          ["PET: (C₁₀H₈O₄)<sub>n</sub> + 10n O₂ → 10n CO₂ + 4n H₂O (10 CO₂ + 4 H₂O contienen 24 átomos de O; la unidad aporta 4, así que faltan 20 O = 10 O₂).",
+           "n(unidad) = 24,0 / 192 = 0,125 mol → 10 · 0,125 = 1,25 mol de CO₂.",
+           "m(CO₂) = 1,25 · 44 = <b>55,0 g</b> (más de dos veces la masa de la botella)."]) +
+        w("clasificar", "clas3")
+      )
+    },
+    // ------------------------------------------------------------ 10. EvAU
+    {
+      h: "10. Cómo se pregunta en la EvAU",
+      html: env(
+        "<p>En Madrid, los polímeros suelen aparecer como un apartado dentro de una pregunta de química orgánica. Los formatos más típicos:</p>" +
+        tabla(["Qué piden", "Cómo se resuelve"], [
+          ["Escribe la reacción de polimerización del monómero X y di de qué tipo es", "Mira si hay C=C (adición) o grupos −COOH, −NH₂, −OH (condensación). Escribe n X → −[unidad]<sub>n</sub>−, y en condensación añade el agua."],
+          ["Identifica el monómero (o monómeros) del polímero", "Adición: dos C de la cadena + doble enlace. Condensación: rompe las amidas o ésteres y devuelve el agua (sección 5)."],
+          ["Diferencia entre polimerización por adición y condensación", "Adición: C=C se abre, no se libera nada, unidad = monómero. Condensación: dos grupos reaccionan, se libera H₂O, unidad &lt; suma de monómeros."],
+          ["Termoplástico, termoestable y elastómero", "Entrecruzamiento: ninguno, mucho, poco. Qué pasa al calentar. Un ejemplo de cada uno."],
+          ["Polímeros naturales: monómero, enlace y función", "Polisacárido (glucosa, glucosídico), proteína (aminoácido, peptídico), ácido nucleico (nucleótido, fosfodiéster)."],
+          ["Problema con masa molar, n o composición", "M = n · M(unidad); en condensación resta el agua (sección 8)."],
+          ["Impacto ambiental y reciclaje", "Persistencia (enlaces C−C), microplásticos, 3R, reciclado mecánico y químico, incineración y su CO₂ o HCl."]
+        ], "q3t") +
+        "<h5>Plantilla para las preguntas teóricas</h5>" +
+        "<ul>" +
+        "<li>Define con una frase y da <b>un ejemplo concreto con fórmulas</b>: «Polimerización por adición: ... Ejemplo: n CH₂=CH₂ → −[CH₂−CH₂]<sub>n</sub>−».</li>" +
+        "<li>Si preguntan una diferencia, hazla con dos columnas o dos frases paralelas (qué se rompe, qué se libera, tipo de monómero).</li>" +
+        "<li>Si piden <b>una ventaja y un inconveniente</b> de un plástico: durabilidad (ventaja) y persistencia ambiental (inconveniente), y relaciona la causa con el enlace C−C.</li>" +
+        "</ul>" +
+        "<h5>Lista de comprobación</h5>" +
+        "<ul>" +
+        "<li>¿Puse corchetes y el subíndice <i>n</i> en el polímero?</li>" +
+        "<li>En adición, ¿desapareció el doble enlace?</li>" +
+        "<li>En condensación, ¿escribí el agua (y bien ajustada, 2n − 1 o n − 1)?</li>" +
+        "<li>En problemas, ¿usé la masa de la <b>unidad repetida</b> y no la del monómero?</li>" +
+        "</ul>"
+      )
+    },
+    // ------------------------------------------------------------ 11. ¿Qué falla aquí?
+    {
+      h: "11. ¿Qué falla aquí? Errores típicos de polímeros",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    // ------------------------------------------------------------ 12. Autocomprobación
+    {
+      h: "12. Autocomprobación del tema",
+      html: "<p>Un test de diez preguntas, tarjetas para fijar definiciones y un juego de clasificar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarjetas1") + w("clasificar", "clas2")
+    }
+  ];
+
+  B.parte.q2t11b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 11: Polímeros y macromoléculas
+   (parte C: actividades, ejercicios, láminas y registro del tema)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Vocabulario</b>: monómero (molécula de partida), unidad repetida (la que se repite), grado de polimerización <i>n</i>. <b>M(polímero) = n · M(unidad repetida)</b>, siempre una masa media.",
+    "<b>Adición</b>: el monómero tiene C=C; el enlace π se abre, no se pierde ningún átomo y la unidad repetida es igual al monómero. n CH₂=CHX → −[CH₂−CHX]<sub>n</sub>−. PE, PP, PVC, PS, PTFE, PMMA.",
+    "<b>Condensación</b>: monómeros con dos grupos reactivos; cada enlace nuevo libera una molécula pequeña (H₂O). Amida (nailon, proteínas), éster (PET, PLA), glucosídico (almidón). Con <i>n</i> monómeros en una cadena se liberan <i>n</i> − 1 H₂O.",
+    "<b>Identificar el monómero</b>: adición, dos C de la cadena + doble enlace; condensación, rompe la amida o el éster y devuelve el agua (−COOH y −NH₂ o −OH).",
+    "<b>Biopolímeros</b>: polisacáridos (glucosa, enlace glucosídico), proteínas (α-aminoácidos, enlace peptídico), ácidos nucleicos (nucleótidos, enlace fosfodiéster).",
+    "<b>Estructura y propiedades</b>: termoplástico (cadenas sueltas, se funde y se recicla), termoestable (red, no se funde), elastómero (pocos puentes, se estira y recupera). Vulcanización: puentes de azufre.",
+    "<b>Cálculos</b>: condensación, M(unidad) = M(monómeros) − agua que sale. Masa de polímero + masa de agua = masa de monómeros. Combustión: (CH₂)<sub>n</sub> da 3,14 kg de CO₂ por kg; el PVC libera HCl.",
+    "<b>Medio ambiente</b>: los enlaces C−C son muy estables y los plásticos persisten siglos (microplásticos). 3R: reducir, reutilizar, reciclar. Reciclado mecánico (solo termoplásticos), químico (despolimerización) y energético."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«El polipropileno es −[CH₂=CH−CH₃]<sub>n</sub>−, así que el doble enlace se mantiene en el polímero.» ¿Qué falla?",
+          op: ["Nada", "En la polimerización por adición el doble enlace se abre: el polímero es −[CH₂−CH(CH₃)]<sub>n</sub>−, solo con enlaces simples", "El propeno no se puede polimerizar", "Es una condensación"], ok: 1,
+          porque: "El enlace π del C=C se usa para unir un monómero con el siguiente. La cadena queda con enlaces simples C−C." },
+        { q: "«En el nailon 6,6, la masa del polímero es igual a la suma de las masas del diácido y la diamina que reaccionan.» ¿Qué falla?",
+          op: ["Nada", "Se desprende agua en cada enlace: m(polímero) = m(monómeros) − m(agua liberada)", "La masa del polímero es mayor", "El nailon no libera nada"], ok: 1,
+          porque: "La condensación expulsa una molécula de agua en cada enlace amida. La masa total se conserva, pero parte de ella sale como agua." },
+        { q: "«Un tripéptido tiene tres enlaces peptídicos y libera tres moléculas de agua.» ¿Qué falla?",
+          op: ["Nada", "Tres aminoácidos forman 2 enlaces peptídicos y liberan 2 H₂O", "Libera cuatro", "No libera agua"], ok: 1,
+          porque: "En una cadena lineal de n unidades hay n − 1 uniones, cada una con una molécula de agua." },
+        { q: "«La baquelita es un termoplástico porque es un plástico duro, y se recicla fundiéndola.» ¿Qué falla?",
+          op: ["Nada", "Es un termoestable: red entrecruzada que no se funde, solo se descompone al calentar", "Es un elastómero", "Se recicla disolviéndola"], ok: 1,
+          porque: "Termoplástico y termoestable se distinguen por poder o no volver a fundirse, no por la dureza." },
+        { q: "«El monómero de −[CH₂−CHCl]<sub>n</sub>− es CH₃−CH₂Cl (cloroetano).» ¿Qué falla?",
+          op: ["Nada", "El monómero tiene doble enlace: CH₂=CHCl, cloroeteno", "El monómero es el diclorometano", "El monómero es el etino"], ok: 1,
+          porque: "En una adición se parte de un alqueno: se vuelve a poner el C=C entre los dos carbonos de la unidad repetida." },
+        { q: "«El almidón y la celulosa son polímeros distintos porque están hechos de monómeros distintos.» ¿Qué falla?",
+          op: ["Nada", "Los dos son polímeros de glucosa; cambia la orientación (α o β) del enlace glucosídico", "Uno es de aminoácidos", "Uno es un ácido nucleico"], ok: 1,
+          porque: "El almidón (α) y la celulosa (β) tienen la misma unidad C₆H₁₀O₅, pero las enzimas humanas solo rompen el enlace α." },
+        { q: "«Si 10,0 g de monómero polimerizan por adición con un rendimiento del 100 %, se forman menos de 10,0 g de polímero porque se pierde agua.» ¿Qué falla?",
+          op: ["Nada", "En la adición no se libera nada: se forman 10,0 g de polímero", "Se forman más de 10,0 g", "Se forma el doble"], ok: 1,
+          porque: "La adición conserva todos los átomos, sin producto secundario." },
+        { q: "«Los plásticos de adición se degradan rápido porque los microorganismos rompen los enlaces C−C.» ¿Qué falla?",
+          op: ["Nada", "Los enlaces C−C son muy estables y apolares: casi no se degradan, por eso persisten siglos", "Se degradan con el agua", "Solo se degradan en el mar"], ok: 1,
+          porque: "La resistencia de la cadena carbonada explica tanto su utilidad como su persistencia." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "El polietileno se obtiene por polimerización de…", op: ["adición del eteno", "condensación del etanol", "adición del etano", "condensación del etino"], ok: 0, porque: "El eteno tiene un doble enlace que se abre." },
+        { q: "La polimerización por condensación se caracteriza por…", op: ["liberar una molécula pequeña en cada unión", "abrir un doble enlace", "no cambiar la fórmula", "necesitar un solo monómero con C=C"], ok: 0, porque: "Casi siempre es agua." },
+        { q: "El enlace que une los aminoácidos en una proteína es…", op: ["peptídico (amida)", "glucosídico", "fosfodiéster", "éster"], ok: 0, porque: "−CO−NH−." },
+        { q: "El monómero de la celulosa y del almidón es…", op: ["glucosa", "fructosa", "un aminoácido", "un nucleótido"], ok: 0, porque: "Los dos son polisacáridos de glucosa." },
+        { q: "Un polímero que no se funde al calentar y se descompone es…", op: ["termoestable", "termoplástico", "elastómero siempre", "un copolímero"], ok: 0, porque: "Red entrecruzada." },
+        { q: "La vulcanización del caucho consiste en…", op: ["crear puentes de azufre entre cadenas", "añadir agua", "romper las cadenas", "oxidar el carbono"], ok: 0, porque: "El azufre une las cadenas por los dobles enlaces." },
+        { q: "El PVC procede del monómero…", op: ["CH₂=CHCl", "CH₃−CH₂Cl", "CH₂=CF₂", "CHCl=CHCl solo"], ok: 0, porque: "Cloroeteno (cloruro de vinilo)." },
+        { q: "Dos monómeros de diácido y diamina dan…", op: ["una poliamida (nailon)", "un poliéster", "un polisacárido", "una poliolefina"], ok: 0, porque: "Se forma el enlace amida." },
+        { q: "El número 1 del triángulo de reciclado corresponde a…", op: ["PET", "PVC", "PS", "PP"], ok: 0, porque: "Código 1 = PET." },
+        { q: "Un copolímero es un polímero formado por…", op: ["dos o más monómeros distintos", "un solo monómero", "monómeros naturales", "cadenas entrecruzadas siempre"], ok: 0, porque: "SBR, ABS." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: polímeros",
+      cartas: [
+        { a: "Monómero y unidad repetida", b: "Monómero: molécula pequeña de partida. Unidad repetida: el trozo que se repite en la cadena, −[ ]<sub>n</sub>−." },
+        { a: "M(polímero)", b: "M = n · M(unidad repetida). Siempre una masa media." },
+        { a: "Polimerización por adición", b: "Monómero con C=C; el enlace π se abre. No se libera nada: unidad repetida = monómero." },
+        { a: "Polimerización por condensación", b: "Monómeros con dos grupos reactivos; cada enlace libera una molécula pequeña (H₂O). La unidad pesa menos que los monómeros." },
+        { a: "Enlace peptídico", b: "−CO−NH− (amida) entre el −COOH de un aminoácido y el −NH₂ de otro. n aminoácidos → n − 1 enlaces y n − 1 H₂O." },
+        { a: "Almidón y celulosa", b: "Polímeros de glucosa (C₆H₁₀O₅). Enlace glucosídico α (almidón) o β (celulosa)." },
+        { a: "Nucleótido", b: "Azúcar + fosfato + base. Se unen por enlaces fosfodiéster. ADN: desoxirribosa; ARN: ribosa." },
+        { a: "Termoplástico, termoestable, elastómero", b: "Se funde y se recicla (PE, PET) · red, no se funde (baquelita) · pocos puentes, se estira y recupera (caucho vulcanizado)." },
+        { a: "Vulcanización", b: "Calentar caucho con azufre: puentes de S entre cadenas. Pocos: elastómero. Muchos: ebonita." },
+        { a: "Impacto ambiental de los plásticos", b: "Enlaces C−C estables: persisten siglos y forman microplásticos. 3R, reciclado mecánico y químico; quemar PVC libera HCl." }
+      ]
+    },
+    emp1: {
+      titulo: "Empareja polímero y monómero",
+      consigna: "Une cada unidad repetida con el monómero de partida.",
+      pares: [["−[CH₂−CH₂]−", "CH₂=CH₂ (eteno)"], ["−[CH₂−CHCl]−", "CH₂=CHCl (cloroeteno)"], ["−[CH₂−CH(C₆H₅)]−", "estireno"], ["−[CF₂−CF₂]−", "CF₂=CF₂"],
+        ["−[CH₂−CH(CH₃)]−", "propeno"], ["−[CH₂−CH(CN)]−", "acrilonitrilo"], ["−[NH−CH₂−CO]− (proteína)", "glicina (aminoácido)"], ["−[C₆H₁₀O₅]− (almidón)", "glucosa"]]
+    },
+    emp2: {
+      titulo: "Códigos de reciclado",
+      consigna: "Une el código con el plástico.",
+      pares: [["1", "PET"], ["2", "HDPE"], ["3", "PVC"], ["4", "LDPE"], ["5", "PP"], ["6", "PS"]]
+    },
+    orden1: {
+      titulo: "Ordena: monómeros de un polímero de condensación",
+      consigna: "Pon los pasos en el orden correcto.",
+      items: [
+        { t: "Localizar los enlaces amida o éster de la cadena", nota: "−CO−NH− o −CO−O−" },
+        { t: "Aislar una unidad repetida", nota: "de un enlace al siguiente" },
+        { t: "Romper cada enlace por el C−N o el C−O", nota: "separa los trozos" },
+        { t: "Devolver el agua: −OH al C=O y H al otro trozo", nota: "queda −COOH y −NH₂ o −OH" },
+        { t: "Nombrar los monómeros", nota: "diácido + diamina, diácido + diol o aminoácido" }
+      ]
+    },
+    clas1: {
+      titulo: "Adición o condensación",
+      consigna: "Toca cada polímero y luego su tipo de polimerización.",
+      categorias: ["Adición", "Condensación"],
+      items: [
+        { t: "Polietileno", c: 0 }, { t: "PVC", c: 0 }, { t: "Poliestireno", c: 0 }, { t: "PTFE (teflón)", c: 0 }, { t: "Polipropileno", c: 0 },
+        { t: "Nailon 6,6", c: 1 }, { t: "PET", c: 1 }, { t: "Proteína", c: 1 }, { t: "Almidón", c: 1 }, { t: "PLA", c: 1 }
+      ]
+    },
+    clas2: {
+      titulo: "Termoplástico, termoestable o elastómero",
+      consigna: "Clasifica cada material.",
+      categorias: ["Termoplástico", "Termoestable", "Elastómero"],
+      items: [
+        { t: "Polietileno", c: 0 }, { t: "PVC", c: 0 }, { t: "PET", c: 0 }, { t: "Nailon", c: 0 },
+        { t: "Baquelita", c: 1 }, { t: "Melamina (mangos)", c: 1 }, { t: "Resina epoxi", c: 1 },
+        { t: "Caucho vulcanizado", c: 2 }, { t: "Neopreno", c: 2 }, { t: "Silicona (juntas)", c: 2 }
+      ]
+    },
+    clas3: {
+      titulo: "¿Qué vía de tratamiento es?",
+      consigna: "Clasifica cada situación.",
+      categorias: ["Reciclado mecánico", "Reciclado químico", "Valorización energética"],
+      items: [
+        { t: "Triturar botellas de PE, fundirlas y moldear cubos", c: 0 }, { t: "Fundir plástico PP triturado para fabricar nuevos tapones", c: 0 },
+        { t: "Calentar PET con metanol para recuperar el diol y el diéster", c: 1 }, { t: "Hidrolizar nailon para recuperar sus monómeros", c: 1 },
+        { t: "Quemar plástico no reciclable para producir electricidad", c: 2 }, { t: "Usar neumáticos triturados como combustible en cementeras", c: 2 }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  var E = [];
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function n2(id, nivel, enun, c1, c2, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: [{ tipo: "num", etiqueta: c1[0], valor: c1[1] }, { tipo: "num", etiqueta: c2[0], valor: c2[1] }], pistas: pistas, pasos: pasos, resultado: res }); }
+
+  // ---------------- ★
+  op("a1", 1, "El PVC se forma a partir del cloroeteno, CH₂=CHCl, sin que se pierda ningún átomo. ¿Qué tipo de polimerización es?", "Tipo", ["Adición", "Condensación", "Hidrólisis", "Combustión"], 0,
+    ["¿Hay doble enlace en el monómero? ¿Se libera algo?"], ["Monómero con C=C y sin pérdida de átomos: adición."], "Adición");
+  op("a2", 1, "En la formación del nailon 6,6 a partir del diácido y la diamina, ¿qué molécula pequeña se libera en cada enlace?", "Molécula liberada", ["Agua", "Dióxido de carbono", "Hidrógeno", "Cloruro de hidrógeno"], 0,
+    ["Se forma una amida a partir de ácido y amina."], ["Ácido + amina → amida + H₂O."], "Agua");
+  op("a3", 1, "¿Cuál es el monómero del polipropileno?", "Monómero", ["Propeno", "Propano", "Propino", "Propan-1-ol"], 0,
+    ["Se parte de un alqueno de tres carbonos."], ["El polipropileno procede de CH₂=CH−CH₃."], "Propeno");
+  nu("a4", 1, "El poliestireno tiene n = 1 500 unidades de estireno (C₈H₈). Calcula su masa molar. (C = 12; H = 1)", "M (g/mol)", 156000,
+    ["M(unidad) = M(monómero) en una adición."], ["M(C₈H₈) = 8·12 + 8 = 104 g/mol.", "M = 1 500 · 104 = 156 000 g/mol."], "156 000 g/mol");
+  nu("a5", 1, "Un polietileno tiene una masa molar de 84 000 g/mol. ¿Cuántas unidades de eteno (M = 28) tiene? (C = 12; H = 1)", "n", 3000,
+    ["n = M(polímero)/M(unidad)."], ["n = 84 000/28 = 3 000."], "3 000 unidades");
+  op("a6", 1, "¿Cuál de estos materiales es un polímero natural?", "Natural", ["Almidón", "PVC", "Nailon", "Teflón"], 0,
+    ["Piensa en lo que fabrican las plantas."], ["El almidón lo fabrican las plantas; los demás son sintéticos."], "Almidón");
+  op("a7", 1, "¿Qué tipo de enlace une los aminoácidos de una proteína?", "Enlace", ["Peptídico", "Glucosídico", "Fosfodiéster", "Iónico"], 0,
+    ["Es una amida."], ["−CO−NH−: enlace peptídico."], "Peptídico");
+  op("a8", 1, "El monómero de la celulosa es…", "Monómero", ["Glucosa", "Fructosa", "Un aminoácido", "Eteno"], 0,
+    ["El mismo que el del almidón."], ["Celulosa y almidón están hechos de glucosa."], "Glucosa");
+  nu("a9", 1, "El teflón (PTFE) tiene n = 500 unidades de CF₂−CF₂. Calcula su masa molar. (C = 12; F = 19)", "M (g/mol)", 50000,
+    ["M(C₂F₄) = 100."], ["M(C₂F₄) = 2·12 + 4·19 = 100 g/mol.", "M = 500 · 100 = 50 000 g/mol."], "50 000 g/mol");
+  op("a10", 1, "¿Cuál de estos polímeros se puede fundir y moldear de nuevo?", "Se puede refundir", ["Un termoplástico", "Un termoestable", "Una red muy entrecruzada", "La ebonita"], 0,
+    ["No tiene enlaces covalentes entre cadenas."], ["Los termoplásticos solo tienen fuerzas intermoleculares entre cadenas."], "Un termoplástico");
+  op("a11", 1, "¿Qué plástico lleva el código de reciclado 1?", "Código 1", ["PET", "PVC", "PP", "PS"], 0,
+    ["Botellas de agua."], ["Código 1 = PET."], "PET");
+  nu("a12", 1, "Calcula la masa molar de la unidad repetida del PET sabiendo que se forma con ácido tereftálico (M = 166) y etano-1,2-diol (M = 62), con pérdida de 2 H₂O. (H₂O = 18)", "M unidad (g/mol)", 192,
+    ["Suma de monómeros menos el agua."], ["166 + 62 = 228.", "228 − 2·18 = 192 g/mol."], "192 g/mol");
+  op("a13", 1, "Un copolímero es un polímero…", "Copolímero", ["con dos o más monómeros distintos", "de un solo monómero", "siempre natural", "que no se puede reciclar"], 0,
+    ["«Co-» significa «junto»."], ["Se forma con más de un tipo de monómero, como el SBR."], "Con dos o más monómeros distintos");
+  op("a14", 1, "¿Qué debe tener un monómero para polimerizar por adición?", "Requisito", ["Un doble enlace C=C", "Un grupo −OH y un −COOH", "Un anillo aromático", "Un halógeno"], 0,
+    ["El enlace que se abre."], ["El C=C se abre y une los monómeros."], "Un doble enlace C=C");
+  nu("a15", 1, "Calcula la masa molar del dipéptido Gly-Gly. Glicina: M = 75. (H₂O = 18)", "M (g/mol)", 132,
+    ["Dos aminoácidos y un enlace."], ["2·75 = 150.", "Se libera 1 H₂O: 150 − 18 = 132 g/mol."], "132 g/mol");
+
+  // ---------------- ★★
+  n2("b1", 2, "(Tipo EvAU) Se hacen reaccionar 29,2 g de ácido hexanodioico (M = 146) con 23,2 g de hexano-1,6-diamina (M = 116) para formar nailon 6,6 con rendimiento del 100 %. Calcula la masa de nailon formada y la masa de agua liberada. (H₂O = 18)",
+    ["m nailon (g)", 45.2], ["m agua (g)", 7.2],
+    ["Cada unidad usa 1 ácido y 1 diamina y libera 2 H₂O.", "La masa se conserva."],
+    ["n(ácido) = 29,2/146 = 0,200 mol; n(diamina) = 23,2/116 = 0,200 mol.", "Agua: 0,400 mol · 18 = 7,2 g.", "Nailon = 29,2 + 23,2 − 7,2 = 45,2 g."], "45,2 g de nailon y 7,2 g de agua");
+  nu("b3", 2, "Se polimerizan 500 kg de propeno con un rendimiento del 90 %. ¿Qué masa de polipropileno se obtiene, en kg?", "m PP (kg)", 450,
+    ["En una adición no se libera nada."], ["La masa del polímero máxima es la del monómero: 500 kg.", "500 · 0,90 = 450 kg."], "450 kg");
+  nu("b4", 2, "Un PVC tiene una masa molar media de 87 500 g/mol. ¿Cuántas unidades de cloroeteno contiene? (C = 12; H = 1; Cl = 35,5)", "n", 1400,
+    ["M(CH₂=CHCl) = 62,5."], ["M(C₂H₃Cl) = 24 + 3 + 35,5 = 62,5 g/mol.", "n = 87 500/62,5 = 1 400."], "1 400 unidades");
+  nu("b5", 2, "Calcula la masa molar del tripéptido Ala-Ala-Ala. Alanina: M = 89. (H₂O = 18)", "M (g/mol)", 231,
+    ["Tres aminoácidos, dos enlaces peptídicos."], ["3·89 = 267.", "2 H₂O: 267 − 36 = 231 g/mol."], "231 g/mol");
+  nu("b6", 2, "Se hidrolizan por completo 32,4 g de almidón. ¿Cuántos gramos de glucosa se obtienen? (C = 12; H = 1; O = 16)", "m glucosa (g)", 36.0,
+    ["Cada unidad C₆H₁₀O₅ recupera una molécula de agua."], ["M(unidad) = 162 → 32,4 g = 0,200 mol de unidades.", "Se consumen 0,200 mol de H₂O = 3,6 g.", "Glucosa = 32,4 + 3,6 = 36,0 g."], "36,0 g");
+  nu("b7", 2, "Se queman 5,00 kg de polipropileno, (C₃H₆)<sub>n</sub>. ¿Cuántos kg de CO₂ se emiten? (C = 12; H = 1; O = 16)", "m CO₂ (kg)", 15.7,
+    ["La unidad C₃H₆ da 3 CO₂."], ["M(C₃H₆) = 42; n = 5 000/42 = 119,05 mol de unidades.", "CO₂ = 3 · 119,05 = 357,14 mol.", "m = 357,14 · 44 = 15 714 g = 15,7 kg."], "15,7 kg", 0.01);
+  nu("b8", 2, "Se queman 250 g de PVC. ¿Qué masa de HCl se libera? (C = 12; H = 1; Cl = 35,5)", "m HCl (g)", 146,
+    ["Cada unidad C₂H₃Cl libera 1 HCl."], ["M(unidad) = 62,5; n = 250/62,5 = 4,00 mol.", "m(HCl) = 4,00 · 36,5 = 146 g."], "146 g");
+  op("b9", 2, "El monómero del polímero −[CH₂−CHF]<sub>n</sub>− es…", "Monómero", ["CH₂=CHF", "CH₃−CH₂F", "CHF=CHF", "CH₂F−CH₂F"], 0,
+    ["Vuelve a poner el doble enlace entre los dos carbonos."], ["Los dos carbonos de la cadena son CH₂ y CHF.", "Se restablece el C=C: CH₂=CHF."], "CH₂=CHF");
+  op("b10", 2, "Un poliéster tiene unidad repetida −[O−CH₂−CH₂−O−CO−(CH₂)₄−CO]<sub>n</sub>−. ¿De qué monómeros procede?", "Monómeros", ["Etano-1,2-diol y ácido hexanodioico", "Etanol y ácido etanoico", "Etano-1,2-diamina y ácido hexanodioico", "Eteno y hexano"], 0,
+    ["Rompe los enlaces éster y devuelve el agua."], ["−O−CH₂−CH₂−O− viene del diol HO−CH₂−CH₂−OH.", "−CO−(CH₂)₄−CO− viene del ácido HOOC−(CH₂)₄−COOH (hexanodioico)."], "Etano-1,2-diol y ácido hexanodioico");
+  nu("b11", 2, "Un caucho SBR tiene 2 unidades de butadieno (C₄H₆, M = 54) por cada una de estireno (C₈H₈, M = 104). ¿Qué % en masa es estireno?", "% estireno", 49.1,
+    ["Masa del bloque: 2 butadieno + 1 estireno."], ["2·54 + 104 = 212 g.", "104/212 · 100 = 49,1 %."], "49,1 %");
+  nu("b12", 2, "Una cadena de PET tiene M = 38 400 g/mol (unidad repetida: 192 g/mol). ¿Cuántas unidades repetidas contiene?", "n", 200,
+    ["n = M/M(unidad)."], ["38 400/192 = 200."], "200 unidades");
+  op("b13", 2, "¿Cuál de estas sustancias NO puede dar un polímero por adición?", "No polimeriza por adición", ["Etano", "Eteno", "Cloroeteno", "Estireno"], 0,
+    ["Necesita C=C."], ["El etano solo tiene enlaces simples: no hay enlace π que abrir."], "Etano");
+  nu("b14", 2, "Se polimerizan 3,20 mol de cloroeteno por adición. ¿Cuántos gramos de PVC se obtienen si el rendimiento es del 100 %? (C = 12; H = 1; Cl = 35,5)", "m PVC (g)", 200,
+    ["M(monómero) = M(unidad)."], ["M(C₂H₃Cl) = 62,5.", "3,20 · 62,5 = 200 g."], "200 g");
+  n2("b15", 2, "Se polimerizan 180 g de ácido láctico (C₃H₆O₃, M = 90) para dar PLA (unidad C₃H₄O₂, M = 72) con rendimiento del 100 %. Calcula la masa de PLA y la de agua liberada. (H₂O = 18)",
+    ["m PLA (g)", 144], ["m agua (g)", 36],
+    ["Cada molécula de ácido pierde una de agua."],
+    ["n(ácido) = 180/90 = 2,00 mol → 2,00 mol de unidades.", "PLA = 2,00 · 72 = 144 g.", "Agua = 2,00 · 18 = 36 g. Comprobación: 144 + 36 = 180 g."], "144 g de PLA y 36 g de agua");
+  op("b16", 2, "En la vulcanización del caucho, ¿qué se forma entre las cadenas?", "Puentes", ["Puentes de azufre", "Enlaces de hidrógeno solo", "Enlaces iónicos", "Dobles enlaces nuevos"], 0,
+    ["Se calienta con azufre."], ["El azufre reacciona con los dobles enlaces y une las cadenas."], "Puentes de azufre");
+  nu("b17", 2, "Una muestra contiene 30 cadenas de 20 000 g/mol y 70 cadenas de 40 000 g/mol. ¿Cuál es su masa molar media por número de cadenas, en g/mol?", "M media (g/mol)", 34000,
+    ["Media ponderada por el número de cadenas."], ["(30·20 000 + 70·40 000)/100 = (600 000 + 2 800 000)/100 = 34 000 g/mol."], "34 000 g/mol");
+
+  // ---------------- ★★★
+  nu("c1", 3, "(Tipo EvAU) Se parten de 100 kg de ácido tereftálico (M = 166) y exceso de etano-1,2-diol (M = 62) para obtener PET (unidad repetida M = 192). Con un rendimiento del 85 %, calcula los kg de PET.", "m PET (kg)", 98.3,
+    ["El ácido es el limitante: 1 mol de ácido da 1 mol de unidad."], ["n(ácido) = 100 000/166 = 602,4 mol.", "Teórico = 602,4 · 192 = 115 663 g = 115,7 kg.", "Real = 115,7 · 0,85 = 98,3 kg."], "98,3 kg");
+  nu("c2", 3, "Una cadena de nailon 6,6 tiene M = 22 600 g/mol. La unidad repetida (M = 226) se forma con un diácido (M = 146) y una diamina (M = 116). ¿Cuántas unidades repetidas tiene?", "n", 100,
+    ["226 = 146 + 116 − 36."], ["n = 22 600/226 = 100 unidades repetidas."], "100 unidades");
+  nu("c3", 3, "Una proteína tiene una masa molar de 55 000 g/mol y la masa media de un residuo de aminoácido (aminoácido menos H₂O) es 110 g/mol. ¿Cuántos enlaces peptídicos tiene, aproximadamente?", "Enlaces", 499,
+    ["Residuos ≈ M/110; los enlaces son uno menos."], ["n = 55 000/110 = 500 residuos (aprox.).", "Enlaces peptídicos = n − 1 = 499."], "≈ 499", 0.02);
+  nu("c4", 3, "Calcula el porcentaje en masa de flúor del PTFE. (C = 12; F = 19)", "% F", 76,
+    ["Usa la unidad repetida C₂F₄."], ["M(C₂F₄) = 100.", "4·19/100 · 100 = 76 %."], "76 %");
+  nu("c5", 3, "Se queman 10,0 g de poliestireno, (C₈H₈)<sub>n</sub>. Calcula el volumen de CO₂ a 25 °C y 1 atm. (C = 12; H = 1; R = 0,082 atm·L/(mol·K))", "V (L)", 18.8,
+    ["Cada unidad da 8 CO₂."], ["n(unidad) = 10,0/104 = 0,09615 mol.", "n(CO₂) = 8 · 0,09615 = 0,7692 mol.", "V = nRT/p = 0,7692 · 0,082 · 298 / 1 = 18,8 L."], "18,8 L");
+  nu("c6", 3, "Un copolímero de cloroeteno (C₂H₃Cl, M = 62,5) y eteno (C₂H₄, M = 28) contiene un 40,0 % en masa de cloro. ¿Qué porcentaje de sus unidades son de cloroeteno (en moles)? (Cl = 35,5)", "% unidades de cloroeteno", 51.6,
+    ["Sea x las unidades de cloroeteno e y las de eteno."], ["35,5x = 0,400(62,5x + 28y) → 35,5x − 25x = 11,2y → 10,5x = 11,2y.", "x/y = 1,0667.", "Fracción = x/(x+y) = 1,0667/2,0667 = 0,516 → 51,6 %."], "51,6 %");
+  nu("c7", 3, "En un caucho vulcanizado hay 4 átomos de azufre por cada 100 unidades de isopreno (C₅H₈, M = 68). ¿Qué % en masa de azufre contiene? (S = 32)", "% S", 1.85,
+    ["Masa total = 100·68 + 4·32."], ["Isopreno: 100 · 68 = 6 800 g. Azufre: 4 · 32 = 128 g.", "% S = 128/(6 800 + 128) · 100 = 1,85 %."], "1,85 %");
+  op("c8", 3, "El nailon 6 tiene unidad repetida −[NH−(CH₂)₅−CO]<sub>n</sub>−. ¿Cuál es su monómero?", "Monómero", ["H₂N−(CH₂)₅−COOH", "HOOC−(CH₂)₄−COOH", "H₂N−(CH₂)₆−NH₂", "HO−(CH₂)₅−COOH"], 0,
+    ["Hay un solo tipo de enlace amida por unidad."], ["Se rompe la amida y se devuelve el agua: −NH₂ en un extremo y −COOH en el otro: ácido 6-aminohexanoico."], "H₂N−(CH₂)₅−COOH");
+  nu("c9", 3, "¿Cuántos kg de glucosa hacen falta para obtener 81,0 kg de almidón por condensación completa? (unidad C₆H₁₀O₅, M = 162; glucosa, M = 180)", "m glucosa (kg)", 90,
+    ["Cada unidad de almidón viene de una glucosa menos una H₂O."], ["81,0 kg / 162 = 0,500 kmol de unidades.", "Glucosa = 0,500 · 180 = 90,0 kg (y se liberan 9,0 kg de agua)."], "90,0 kg");
+  nu("c10", 3, "Un decapéptido se forma con 10 aminoácidos de masa molar media 128 g/mol. ¿Cuál es su masa molar? (H₂O = 18)", "M (g/mol)", 1118,
+    ["Nueve enlaces peptídicos."], ["10 · 128 = 1 280 g/mol.", "Se liberan 9 H₂O: 1 280 − 9 · 18 = 1 118 g/mol."], "1 118 g/mol");
+  nu("c11", 3, "Una cadena de ADN de 1 000 nucleótidos (M media de un nucleótido: 330 g/mol) se forma liberando una molécula de agua por cada enlace fosfodiéster. Calcula su masa molar, en g/mol.", "M (g/mol)", 312018,
+    ["Mil nucleótidos, 999 enlaces."], ["1 000 · 330 = 330 000 g/mol.", "Se liberan 999 H₂O: 999 · 18 = 17 982 g/mol.", "M = 330 000 − 17 982 = 312 018 g/mol."], "≈ 3,12·10⁵ g/mol", 0.01);
+  nu("c12", 3, "El ácido 6-aminohexanoico (M = 131) polimeriza a nailon 6. Una cadena de 200 monómeros, ¿qué masa molar tiene? (H₂O = 18)", "M (g/mol)", 22618,
+    ["200 monómeros, 199 enlaces."], ["200 · 131 = 26 200 g/mol.", "199 · 18 = 3 582 g/mol.", "M = 26 200 − 3 582 = 22 618 g/mol."], "22 618 g/mol", 0.01);
+  op("c13", 3, "El enlace que une los nucleótidos en una cadena de ADN es…", "Enlace", ["Fosfodiéster", "Peptídico", "Glucosídico", "De hidrógeno"], 0,
+    ["Une un fosfato con un azúcar."], ["El fosfato de un nucleótido se une al azúcar del siguiente por dos enlaces éster (fosfodiéster). Los enlaces de hidrógeno unen las dos cadenas entre sí, no los nucleótidos de una misma cadena."], "Fosfodiéster");
+  op("c14", 3, "¿Qué ventaja de los poliésteres y poliamidas frente al polietileno explica que puedan reciclarse químicamente?", "Ventaja", ["Tienen enlaces éster o amida que se pueden hidrolizar", "Tienen dobles enlaces C=C", "Son termoestables", "No contienen carbono"], 0,
+    ["Piensa en la reacción inversa a la condensación."], ["La hidrólisis rompe la amida o el éster y devuelve los monómeros; los enlaces C−C del polietileno no se rompen con agua."], "Tienen enlaces éster o amida que se pueden hidrolizar");
+
+  var ejercicios = E;
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Adición frente a condensación", ancha: true,
+      tabla: { cab: ["", "Adición", "Condensación"], filas: [
+        ["Monómero", "con C=C", "con dos grupos reactivos (−COOH, −NH₂, −OH)"],
+        ["Qué ocurre", "se abre el enlace π", "se forma un enlace y sale una molécula pequeña"],
+        ["Se libera", "nada", "H₂O (casi siempre)"],
+        ["Unidad repetida", "= monómero", "&lt; suma de monómeros"],
+        ["Cadena principal", "solo C−C", "con −CO−NH−, −CO−O−…"],
+        ["Ejemplos", "PE, PP, PVC, PS, PTFE", "nailon, PET, proteínas, almidón"]
+      ] },
+      nota: "Pregunta al polímero: ¿hay amidas o ésteres en la cadena? Entonces es de condensación." },
+    { titulo: "Polímeros sintéticos", ancha: true,
+      tabla: { cab: ["Polímero", "Monómero", "Usos"], filas: [
+        ["PE", "CH₂=CH₂", "bolsas, botellas"],
+        ["PP", "CH₂=CH−CH₃", "envases, tapones"],
+        ["PVC", "CH₂=CHCl", "tuberías, ventanas"],
+        ["PS", "CH₂=CH−C₆H₅", "bandejas, aislante"],
+        ["PTFE", "CF₂=CF₂", "antiadherente"],
+        ["Nailon 6,6", "diácido + diamina", "fibras, cuerdas"],
+        ["PET", "diácido + diol", "botellas, fibras"]
+      ] },
+      nota: "Los cuatro primeros solo cambian el sustituyente X de CH₂=CHX." },
+    { titulo: "Biopolímeros", ancha: true,
+      tabla: { cab: ["Biopolímero", "Monómero", "Enlace"], filas: [
+        ["Polisacárido", "glucosa", "glucosídico (C−O−C)"],
+        ["Proteína", "α-aminoácido", "peptídico (−CO−NH−)"],
+        ["Ácido nucleico", "nucleótido", "fosfodiéster"]
+      ] },
+      nota: "n unidades → n − 1 enlaces → n − 1 H₂O." },
+    { titulo: "Fórmulas del tema",
+      items: [
+        { label: "Masa molar", formula: "M = n · M(unidad)", cuando: "Cualquier polímero.", ejemplo: "n = 2 000 y 28 g/mol: 56 000 g/mol.", ojo: "Usa la unidad repetida, no el monómero, en condensación." },
+        { label: "Unidad (condensación)", formula: "M(unidad) = ΣM(monómeros) − k·18", cuando: "k = H₂O por unidad (2 en nailon y PET, 1 en péptido).", ejemplo: "146 + 116 − 36 = 226.", ojo: "Los extremos añaden 18, despreciable." },
+        { label: "Agua liberada", formula: "n − 1 (aminoácidos), 2n − 1 (diácido + diamina)", cuando: "Cadena lineal de n unidades.", ejemplo: "Tripéptido: 2 H₂O." },
+        { label: "Combustión", formula: "(CH₂)<sub>n</sub> + 3n/2 O₂ → n CO₂ + n H₂O", cuando: "Polietileno.", ejemplo: "1 kg PE: 3,14 kg CO₂." }
+      ],
+      nota: "Siempre masa media, porque las cadenas no son todas iguales." },
+    { titulo: "Errores típicos del tema", ancha: true,
+      errores: [
+        { mal: "Dibujar el doble enlace en el polímero de adición", bien: "−[CH₂−CHX]<sub>n</sub>− solo con enlaces simples", por: "El C=C se ha abierto." },
+        { mal: "Olvidar el agua en la condensación", bien: "Escribir (2n − 1) H₂O o n − 1 H₂O", por: "Cada enlace libera una molécula." },
+        { mal: "Tripéptido = 3 enlaces peptídicos", bien: "2 enlaces", por: "n − 1." },
+        { mal: "Masa del polímero de condensación = suma de monómeros", bien: "menos el agua", por: "Se conserva la masa total, no la del polímero." },
+        { mal: "Termoestable = plástico duro", bien: "red que no se refunde", por: "Se define por el calor." },
+        { mal: "Almidón y celulosa tienen monómeros distintos", bien: "los dos son de glucosa (α o β)", por: "Cambia la orientación del enlace." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t11", { resumen: resumen, secciones: B.parte.q2t11a.secciones, nuevas: B.parte.q2t11b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 /* ============================================================
