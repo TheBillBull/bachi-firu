@@ -70,6 +70,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Química II t2 completo (≈7.500 palabras, 46 ejercicios, 3 interactivos nuevos, 117 cifras) | 198.899 (56 herramientas) | 14 min |
 | Química II t4 completo (≈6.300 palabras, 46 ejercicios, 3 interactivos nuevos + 10 reutilizados, 259 comprobaciones) | 252.224 (67 herramientas) | 30 min |
 | **Tanda 1 de Química II (t1–t4), total agentes** | **784.268** | ≈71 min |
+| Química II t5 completo (≈7.800 palabras, 47 ejercicios, 5 interactivos nuevos, 660 comprobaciones) | 239.862 (75 herramientas) | 23 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -126,3 +127,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct:** tema 2 fusionado y validado. Solo queda el tema 4 en marcha.
 **28-oct ~01:15 UTC: TANDA 1 CERRADA.** Temas 1–4 fusionados y verificados; `comprobar_todo.sh` → «TODO CUADRA» (24 grupos; 17.531 comprobaciones de cifras). Arreglos en `comprobar_todo.sh`: la ruta de estudio solo se cuenta en temas con `resumen` (quimica2 t6 e historia_esp t7, del estándar antiguo, no la tienen a propósito) y se leen los recuentos de los verificadores de Química II. **Pendiente: publicar** (ver la nota de las 00:00 sobre la dirección). La tanda 2 (t5–t8) solo si el usuario lo pide; abrir conversación nueva para ella.
 **28-oct 08:10 UTC:** publicado en la dirección NUEVA https://claude.ai/artifact/PBj2wEg4PKUru2SyFq2T2c (el usuario pidió seguir solo; capacidades `sample` y `db` declaradas). Ojo: desde una conversación nueva, republicar en ella también exige leerla entera; si pasa, publicar en otra dirección nueva y anotarla aquí. Siguiente: tanda 2 (t5–t8) en una conversación nueva, el usuario ya la aprobó («continúa por tu cuenta»).
+**28-oct:** tanda 2 en marcha en la misma conversación (así se puede republicar en la dirección nueva sin releerla). t5 fusionado y validado; en marcha t7 y el refuerzo de t6; después t8.
