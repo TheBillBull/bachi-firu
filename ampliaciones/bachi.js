@@ -39560,6 +39560,611 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 2: Los sofistas y Sócrates
+   (parte A: teoría. Parte B, historia_fil_t02b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. «Giro antropológico»: no es que los presocráticos no hablaran de personas, es que cambia la pregunta central → tabla + ejemplo.
+   2. Relativismo de Protágoras (el hombre medida) y por qué NO es «todo vale» → ejemplo del viento + recuadro.
+   3. Sofistas ≠ un bloque: Protágoras (relativismo), Gorgias (escepticismo), Trasímaco/Calicles (ley del más fuerte) → tabla.
+   4. Physis frente a nomos (naturaleza frente a convención) y su efecto en la ética y la política → texto y ejemplo cotidiano.
+   5. Ironía y mayéutica: qué hace cada una y que son DOS fases → mini-diálogo resuelto + widget de ordenar.
+   6. «Solo sé que no sé nada»: la frase no es literal, y no es escepticismo; es ignorancia docta → comentario resuelto de Apología 21d.
+   7. Intelectualismo moral: «virtud es conocimiento», «nadie hace el mal a sabiendas» y la crítica de Aristóteles (akrasía).
+   8. La búsqueda de definiciones universales (qué es X): lo que Sócrates aporta al método (y lo que recoge Platón).
+   9. Juicio y muerte: acusaciones, contexto político (guerra y Treinta Tiranos), Critón y la coherencia → cronología ordenable.
+   10. Comparación sofistas–Sócrates (y puente a Platón) → tabla de oposiciones + pregunta abierta con rúbrica.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t2/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Giro antropológico
+  secciones[0] =
+    "<h5>Qué cambia y por qué cambia en Atenas</h5>" +
+    "<p>Los presocráticos (tema 1) preguntaban <em>«¿de qué está hecho el mundo?»</em>. Sofistas y Sócrates preguntan <em>«¿cómo debemos vivir?, ¿qué podemos saber?, ¿qué es lo justo?»</em>. No es que los primeros no se ocuparan de las personas ni que los segundos ignoraran la naturaleza, sino que <b>la pregunta central</b> pasa del cosmos al ser humano. Eso se llama <b>giro antropológico</b> (de <em>ánthropos</em>, «ser humano»).</p>" +
+    "<p>¿Por qué precisamente ahora y en Atenas? Porque la ciudad de la segunda mitad del siglo V a. C. es otra:</p>" +
+    "<ul><li><b>Democracia.</b> Con Pericles (h. 495–429 a. C.) los ciudadanos varones votan en la asamblea y pueden ser jueces. Para ganar un debate o un juicio hay que hablar bien: de pronto <b>saber argumentar da poder</b>.</li>" +
+    "<li><b>Imperio y comercio.</b> Tras las guerras médicas (490–479 a. C.) Atenas lidera una alianza de ciudades y atrae a visitantes de todo el Mediterráneo. Se conocen costumbres y leyes distintas.</li>" +
+    "<li><b>Crisis.</b> La guerra del Peloponeso contra Esparta (431–404 a. C.) acabará con la derrota ateniense. En tiempos de crisis se discute si las leyes y los valores son justos… o solo costumbres.</li></ul>" +
+    tabla(["", "Presocráticos (tema 1)", "Sofistas y Sócrates (tema 2)"], [
+      ["Pregunta central", "¿De qué está hecho el mundo? (arché)", "¿Qué es el ser humano, la virtud, la justicia?"],
+      ["Lugar", "Jonia e Italia (siglos VI–V a. C.)", "Atenas (siglo V a. C.)"],
+      ["Para qué se piensa", "Entender la naturaleza (physis)", "Saber vivir y convivir en la polis"],
+      ["Método", "Observar y razonar sobre el cosmos", "Debatir con otros: retórica y diálogo"]
+    ]) +
+    ejemplo("Un ejemplo para sentir el cambio", "Imagina que tu clase discute si es justo que el profesor castigue a todos por lo que hizo uno. ¿Qué tipo de pregunta es?", [
+      "No se resuelve mirando de qué está hecho el universo ni con un experimento.",
+      "Es una pregunta sobre <b>justicia</b>, y se resuelve dando razones y escuchando las del otro.",
+      "Ese es el terreno de los sofistas y de Sócrates: preguntas humanas que se deciden hablando."
+    ]) +
+    ojo("Error típico: decir que Sócrates «es el primer filósofo» o que antes «nadie se preguntaba por el ser humano». Lo correcto: los presocráticos ya eran filósofos (tema 1); con sofistas y Sócrates cambia el <b>objeto de estudio</b>, y por eso se habla de «periodo antropológico». Y Sócrates no es un sofista aunque conviva con ellos (se verá enseguida).");
+
+  // ---------------------------------------------------------------- 2. Sofistas
+  secciones[1] =
+    "<h5>Quiénes eran y qué vendían</h5>" +
+    "<p><em>Sophistés</em> significaba al principio «sabio, experto». Los sofistas eran <b>maestros itinerantes</b>, casi todos extranjeros (Protágoras era de Abdera, Gorgias de Leontinos, en Sicilia), que cobraban por enseñar a los jóvenes ricos de Atenas lo que más les convenía para triunfar en política: <b>retórica</b> (hablar bien y persuadir), argumentación, cultura general y «virtud política» (<em>areté</em>: saber gobernar la propia casa y la ciudad). Fueron los <b>primeros profesores profesionales</b>. No son un bloque homogéneo: no tenían una doctrina común, sino un oficio y una actitud.</p>" +
+    "<p>Un dato de contexto: la palabra «sofista» se hizo despectiva (sofisma = argumento engañoso) sobre todo por <b>Platón y Aristóteles</b>, que los criticaron. Lo que sabemos de ellos viene en gran parte de sus adversarios; conviene recordarlo al valorarlos.</p>" +
+    "<h5>Physis y nomos: naturaleza frente a convención</h5>" +
+    "<p>Su idea de fondo es una distinción entre <b>physis</b> (lo que es así por naturaleza, igual en todas partes: que el fuego queme) y <b>nomos</b> (lo que es así por <em>convención</em>: leyes, costumbres, normas). Los sofistas sostienen que <b>las leyes y la moral son nomos</b>, es decir, obra humana, que cambia de una ciudad a otra y por tanto puede discutirse y reformarse. Ejemplo cotidiano: en España se conduce por la derecha y en el Reino Unido por la izquierda; ninguna es «más verdadera», es una convención útil. Los sofistas extienden esta idea a lo justo y lo injusto.</p>" +
+    "<h5>Protágoras: «el hombre es la medida de todas las cosas»</h5>" +
+    "<p>Protágoras de Abdera (h. 490–420 a. C.) resume su postura en la frase que Platón recoge en el <em>Teeteto</em> (152a): <em>«El hombre es la medida de todas las cosas: de las que son, en cuanto que son; de las que no son, en cuanto que no son.»</em> Significa que <b>no hay una verdad independiente de quien juzga</b>: lo que a cada uno le parece verdadero, <em>es</em> verdadero para él. Esta postura se llama <b>relativismo</b> (y, aplicada al conocimiento, <b>subjetivismo</b>). Platón pone el ejemplo del viento: al mismo viento uno lo siente frío y otro templado; no se puede decir que uno se equivoque, el viento «es frío para quien lo siente frío».</p>" +
+    ejemplo("¿Relativismo es «todo vale»?", "Protágoras no dice que todas las opiniones sean igual de buenas. ¿Qué dice entonces?", [
+      "Dice que cada opinión es verdadera <b>para quien la tiene</b>; no existe un árbitro externo que decida quién acierta.",
+      "Pero según Platón añade que unas opiniones son <b>mejores</b> que otras: el médico no hace que lo que el enfermo siente sea «falso», sino que lo cambia a algo mejor.",
+      "Por eso el sofista no enseña «la verdad»: enseña a lograr que lo mejor sea aceptado como mejor (persuasión).",
+      "Conclusión: relativismo no es «todo es igual»; es «no hay verdad absoluta, solo perspectivas, y lo que cuenta es la utilidad y el acuerdo»."
+    ]) +
+    "<h5>Otros sofistas y tres posturas distintas</h5>" +
+    tabla(["Sofista", "Idea que debes recordar", "Nombre de la postura"], [
+      ["Protágoras (h. 490–420 a. C.)", "«El hombre es la medida de todas las cosas»: la verdad depende de cada sujeto.", "Relativismo (subjetivismo)"],
+      ["Gorgias (h. 483–375 a. C.)", "Su obra <em>Sobre el no-ser</em>: nada existe; si algo existiera no podríamos conocerlo; si pudiéramos conocerlo no podríamos comunicarlo. Maestro de la retórica.", "Escepticismo"],
+      ["Trasímaco y Calicles", "Lo justo es lo que conviene al más fuerte (Trasímaco, en la <em>República</em> I de Platón); las leyes las hacen los débiles para frenar a los fuertes (Calicles, en el <em>Gorgias</em>).", "Inmoralismo: la ley del más fuerte"]
+    ]) +
+    "<p>Trasímaco y Calicles aparecen como personajes en los diálogos de Platón: sus palabras exactas son de Platón, aunque reflejan posturas reales de la época.</p>" +
+    ojo("Error típico: meter a todos los sofistas en el mismo saco («los sofistas negaban la verdad y defendían la ley del más fuerte»). Protágoras es relativista; Gorgias, escéptico; solo algunos (Trasímaco, Calicles) defienden el derecho del fuerte. En un comentario, nombra al sofista concreto.") +
+    "<h5>Lo que aportaron, a pesar de las críticas</h5>" +
+    "<ul><li>Pusieron el <b>lenguaje y la argumentación</b> en el centro de la reflexión: nace la retórica y empieza la reflexión sobre el lenguaje.</li>" +
+    "<li>Plantearon la <b>crítica de las costumbres</b>: si las leyes son convenciones, se pueden mejorar. Es una semilla de ideas democráticas.</li>" +
+    "<li>Obligaron a la filosofía a responder una pregunta incómoda: <em>si no hay verdad, ¿qué distingue convencer con razones de manipular?</em> Esa pregunta mueve a Sócrates.</li></ul>" +
+    "<p>Prueba tú: clasifica estas frases según pertenezcan a los sofistas o a Sócrates.</p>" +
+    w("clasificar", "quien");
+
+  // ---------------------------------------------------------------- 3. Sócrates
+  secciones[2] =
+    "<h5>Una vida que es filosofía</h5>" +
+    "<p>Sócrates nació en Atenas en el 470 a. C. y murió en el 399 a. C. (470–399 a. C.). Hijo de un escultor (Sofronisco) y de una comadrona (Fenáreta), fue soldado en varias campañas de la guerra del Peloponeso y apenas ocupó cargos. No fundó escuela, no cobraba y <b>no escribió nada</b>: conversaba en el <em>ágora</em>, el gimnasio o los banquetes con quien quisiera. Para él filosofar era <em>una forma de vida</em>, no una asignatura.</p>" +
+    "<h5>El problema de las fuentes (el «problema socrático»)</h5>" +
+    "<p>Como no dejó escritos, solo lo conocemos por otros, y cada uno lo cuenta a su manera:</p>" +
+    tabla(["Fuente", "Cómo presenta a Sócrates"], [
+      ["Platón (427–347 a. C.), discípulo", "Diálogos de juventud (<em>Apología</em>, <em>Critón</em>, <em>Laques</em>…) cercanos al Sócrates histórico; después usa a Sócrates como portavoz de sus propias ideas."],
+      ["Jenofonte, discípulo", "<em>Recuerdos de Sócrates</em>: un hombre práctico, moralista y sensato."],
+      ["Aristófanes, comediógrafo", "<em>Las nubes</em> (423 a. C.): lo caricaturiza como un sofista que enseña a engañar."],
+      ["Aristóteles, discípulo de Platón", "Le atribuye dos aportaciones: los razonamientos inductivos y la definición universal."]
+    ]) +
+    "<p>Para la PAU: el Sócrates que interesa es el de los diálogos de juventud de Platón. Cuando haya duda, di «según Platón».</p>" +
+    "<h5>«Solo sé que no sé nada»: ignorancia docta</h5>" +
+    "<p>Según cuenta Platón en la <em>Apología</em> (21a–23b), un amigo de Sócrates, Querefonte, preguntó al oráculo de Delfos si había alguien más sabio que Sócrates, y la respuesta fue que no. Sócrates, extrañado (¡él sabía que no sabía nada importante!), fue interrogando a políticos, poetas y artesanos para refutar al oráculo. Descubrió que todos <b>creían saber lo que no sabían</b>, mientras que él, al menos, <b>sabía que no sabía</b>. Esa es su sabiduría: la <b>ignorancia docta</b> (reconocer la propia ignorancia). Es la versión socrática del lema de Delfos <em>«conócete a ti mismo»</em>: empezar por saber qué sabes y qué no.</p>" +
+    ojo("Dos matices de examen: (1) la fórmula «solo sé que no sé nada» <b>no aparece literal</b> en Platón; en la <em>Apología</em> 21d dice que, como no sabe, tampoco cree saber. (2) No es <b>escepticismo</b>: Sócrates sí cree que existen verdades morales (qué es lo justo o lo bueno) y que se pueden buscar. Lo que niega es que ya las tengamos.") +
+    "<h5>Sócrates frente a los sofistas</h5>" +
+    "<p>Ambos hablan de justicia, virtud y política y ambos usan el diálogo, así que desde fuera se parecen (por eso Aristófanes los confunde). Pero hay diferencias fundamentales:</p>" +
+    tabla(["", "Sofistas", "Sócrates"], [
+      ["¿Hay verdad moral?", "No hay verdad absoluta (relativismo, escepticismo)", "Sí hay verdad moral universal, que hay que buscar"],
+      ["¿Para qué se discute?", "Para persuadir y triunfar", "Para encontrar la verdad y mejorar el alma"],
+      ["¿Cobran?", "Sí, son profesores profesionales", "No; vive pobre y sin cobrar"],
+      ["¿Qué enseñan?", "Técnicas (retórica, argumentación)", "Nada: ayuda a otros a descubrir"],
+      ["Actitud ante el saber", "Se presentan como expertos", "Reconoce su ignorancia"]
+    ]) +
+    "<h5>La búsqueda de la definición universal</h5>" +
+    "<p>Cuando Sócrates pregunta <em>«¿qué es la valentía?»</em> no le sirve una lista de ejemplos («el soldado que no huye»): quiere <b>lo que todos los casos de valentía tienen en común</b>, una <b>definición universal</b>. Esto es lo que Aristóteles le reconoce y lo que Platón convertirá en teoría de las Ideas (tema 3). Para Sócrates la definición es lo que permite distinguir de verdad lo justo de lo injusto, frente a la mera opinión de cada uno.</p>" +
+    "<p>Une ahora a cada autor con su idea.</p>" +
+    w("emparejar", "conceptos");
+
+  // ---------------------------------------------------------------- 4. Método
+  secciones[3] =
+    "<h5>Un método para buscar entre dos</h5>" +
+    "<p>El método socrático es <b>dialógico</b> (se hace hablando con otro) y tiene <b>dos momentos</b> que no hay que confundir. A veces se les llama «parte negativa» (que destruye falsas certezas) y «parte positiva» (que ayuda a construir):</p>" +
+    tabla(["", "Ironía (parte negativa)", "Mayéutica (parte positiva)"], [
+      ["Qué hace", "Pregunta fingiendo no saber y muestra las contradicciones del interlocutor", "Con nuevas preguntas, ayuda a «dar a luz» una definición mejor"],
+      ["Resultado", "Aporía: el interlocutor reconoce que no sabe lo que creía saber", "Una comprensión más verdadera descubierta por el propio interlocutor"],
+      ["Tomado de…", "Fingir ignorancia (<em>eironeía</em>: disimular)", "El oficio de su madre: partera (<em>maieutiké</em>)"],
+      ["Idea de fondo", "Primero hay que liberarse de falsas certezas", "El saber ya está en el alma; no se «mete» desde fuera"]
+    ]) +
+    "<p>Por eso Sócrates dice que él no enseña: <b>no transmite doctrina</b>, ayuda a que cada uno encuentre la verdad. La mayéutica supone que todos tenemos la capacidad de razonar y de llegar a ideas verdaderas con la ayuda adecuada. (Platón lo desarrollará en la teoría de la reminiscencia, tema 3.)</p>" +
+    "<h5>Un mini-diálogo para verlo en marcha</h5>" +
+    "<p>Diálogo inventado, al estilo de los diálogos de juventud de Platón (<em>Laques</em>), con una alumna llamada Lucía:</p>" +
+    "<blockquote class='cita-fil'><b>Sócrates:</b> Lucía, tú que eres tan valiente: ¿qué es la valentía?<br><b>Lucía:</b> Es no huir cuando hay peligro.<br><b>Sócrates:</b> ¿Y un soldado que retrocede a propósito para atraer al enemigo a una trampa? ¿Es un cobarde?<br><b>Lucía:</b> No… eso es astucia. Entonces valentía es aguantar el miedo y seguir firme.<br><b>Sócrates:</b> ¿Y quien aguanta firme en una apuesta absurda y lo pierde todo por cabezonería? ¿Es valiente o temerario?<br><b>Lucía:</b> Temerario. Valentía es aguantar el miedo <em>cuando tiene sentido hacerlo</em>.<br><b>Sócrates:</b> Y saber cuándo tiene sentido, ¿no es una forma de conocimiento?<br><b>Lucía:</b> Pues… sí. La valentía parece que necesita saber qué es peligroso de verdad.</blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Ironía.</b> Sócrates finge no saber y pide una definición. Con los contraejemplos (la retirada táctica, la apuesta absurda), la primera definición de Lucía se cae.</li>" +
+    "<li><b>Mayéutica.</b> Con preguntas ordenadas, Lucía va construyendo una definición mejor, que Sócrates nunca le dicta.</li>" +
+    "<li><b>Resultado.</b> Se enlaza con su ética: la valentía depende del <em>conocimiento</em> (intelectualismo moral, siguiente sección).</li></ol>" +
+    ojo("Error típico: llamar «ironía» al hecho de burlarse. En Sócrates la ironía es <b>fingir ignorancia</b> para que el otro se examine; no es sarcasmo. Y otro error: pensar que la mayéutica enseña contenidos; lo que hace es ayudar a descubrirlos.") +
+    "<p>Ahora ordena los pasos de un diálogo socrático.</p>" +
+    w("orden", "dialogo");
+
+  // ---------------------------------------------------------------- 5. Ética y muerte
+  secciones[4] =
+    "<h5>Una ética del conocimiento: el intelectualismo moral</h5>" +
+    "<p>Para Sócrates lo más importante es <b>cuidar el alma</b> (<em>psyché</em>: la razón y la conciencia moral de cada uno), no la riqueza ni el prestigio. Una persona vive bien cuando su alma está bien, y eso da la <b>felicidad</b> (<em>eudaimonía</em>). De ahí su doctrina más conocida, el <b>intelectualismo moral</b>:</p>" +
+    "<ol><li><b>La virtud es conocimiento.</b> Ser justo o valiente consiste en saber qué es lo bueno.</li>" +
+    "<li><b>Nadie hace el mal a sabiendas.</b> Quien actúa mal lo hace por <b>ignorancia</b>, porque cree que eso le conviene.</li>" +
+    "<li><b>Conocer el bien basta para practicarlo.</b> Si de verdad lo supiéramos, actuaríamos en consecuencia.</li>" +
+    "<li><b>Cometer injusticia es peor que sufrirla</b> (Platón, <em>Gorgias</em>): porque daña el alma, que es lo más valioso.</li></ol>" +
+    tabla(["Pregunta", "Respuesta socrática"], [
+      ["¿Por qué alguien actúa mal?", "Por ignorancia: confunde lo que le parece bueno con lo que lo es."],
+      ["¿Cómo se hace uno mejor?", "Examinándose y buscando el saber («una vida sin examen no merece ser vivida», <em>Apología</em> 38a)."],
+      ["¿Qué es la felicidad?", "Tener el alma virtuosa: saber y vivir conforme al bien."]
+    ]) +
+    ejemplo("¿Y si alguien sabe lo que está bien y hace lo contrario?", "Piensa en alguien que sabe que fumar es malo y fuma. ¿Contradice a Sócrates?", [
+      "Para Sócrates, no lo sabe <em>de verdad</em>: tiene un saber superficial (lo ha oído), pero no está convencido de que le perjudique.",
+      "Si lo comprendiera plenamente, no lo haría: nadie elige a sabiendas lo que le daña.",
+      "<b>Crítica de Aristóteles</b>: eso ignora la <em>akrasía</em> (debilidad de la voluntad): a veces se sabe lo que es bueno y aun así las pasiones vencen. Es la objeción clásica."
+    ]) +
+    "<h5>El juicio y la muerte (399 a. C.)</h5>" +
+    "<p>Las razones fueron en parte políticas. Atenas, tras perder la guerra del Peloponeso (404 a. C.), sufrió el gobierno oligárquico de los Treinta Tiranos (404–403 a. C.); Critias, uno de ellos, había frecuentado a Sócrates, igual que Alcibíades, político polémico. Al restaurarse la democracia en 403 a. C., Sócrates era sospechoso para mucha gente. Además, su método había incomodado a políticos y poetas. Fue acusado por Meleto, Anito y Licón de <b>no creer en los dioses de la ciudad</b>, de <b>introducir nuevos dioses</b> (su «daimonion», una voz interior que le advertía) y de <b>corromper a la juventud</b>.</p>" +
+    "<p>Platón narra en la <em>Apología</em> su defensa. Un jurado de ciudadanos lo condenó a muerte; Sócrates no suplicó ni se retractó. Fue ejecutado bebiendo <b>cicuta</b> (399 a. C.). En el <em>Critón</em>, su amigo le ofrece una fuga: Sócrates se niega, porque ha vivido bajo las leyes de Atenas, y escapar sería romper el acuerdo con ellas. En el <em>Fedón</em> se narra su muerte serena, hablando de la inmortalidad del alma.</p>" +
+    ojo("Cuidado al comentar el <em>Critón</em>: Sócrates no dice que el veredicto fuera justo (lo considera injusto), sino que <b>no se responde a una injusticia con otra</b>: huir sería quebrantar las leyes. La coherencia entre lo que piensa y lo que hace es lo que convierte su muerte en el gran ejemplo moral de la filosofía antigua.") +
+    "<p>Por último, sitúa en el tiempo los hechos clave de esta historia.</p>" +
+    w("orden", "juicio");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Mapa del tema: sofistas, Sócrates y lo que viene después", html:
+    "<p>Aprende el tema como una conversación: los sofistas plantean un problema y Sócrates responde.</p>" +
+    "<ol><li><b>Atenas democrática</b> necesita saber hablar: llegan los sofistas.</li>" +
+    "<li><b>Sofistas</b>: la verdad y la moral son convención (nomos); lo que cuenta es persuadir. Relativismo (Protágoras), escepticismo (Gorgias), ley del más fuerte (Trasímaco).</li>" +
+    "<li><b>Sócrates</b>: sí hay verdad moral, y se busca dialogando. Ironía + mayéutica; definiciones universales.</li>" +
+    "<li><b>Ética</b>: virtud es conocimiento; nadie hace el mal a sabiendas.</li>" +
+    "<li><b>Muerte</b>: coherencia entre pensamiento y vida. Platón recogerá su legado.</li></ol>" +
+    tabla(["Tema", "Sofistas", "Sócrates"], [
+      ["Verdad", "Relativa (Protágoras) o inalcanzable (Gorgias)", "Existe y se busca; nadie la posee ya"],
+      ["Moral", "Convención; útil o del más fuerte", "Universal: el bien se puede conocer"],
+      ["Saber", "Técnica que se enseña y se cobra", "Se descubre dialogando (mayéutica)"],
+      ["Finalidad", "Triunfar y persuadir", "Cuidar el alma y ser feliz"]
+    ]) +
+    "<h5>Conexiones con el resto de la asignatura</h5>" +
+    tabla(["Idea de este tema", "Reaparece en…"], [
+      ["Definición universal («qué es X»)", "Platón (tema 3): las Ideas como esencias universales de lo justo, lo bello, lo bueno"],
+      ["Mayéutica y conocimiento «latente»", "Platón: reminiscencia. También Descartes (ideas innatas)"],
+      ["Intelectualismo moral y crítica de la akrasía", "Aristóteles (tema 4): la virtud también es hábito y voluntad, no solo saber"],
+      ["Relativismo de Protágoras", "Debates actuales sobre relativismo cultural y moral; Nietzsche (perspectivismo)"],
+      ["Coherencia entre vida y pensamiento", "Cínicos y estoicos (helenismo): la filosofía como forma de vida"],
+      ["Giro antropológico", "Toda la ética y la política posteriores (Platón, Aristóteles, Kant…)"]
+    ]) +
+    "<p>(El tema 3 sigue el hilo: Platón, discípulo de Sócrates, responde también a los sofistas con una teoría de las Ideas que asegura una verdad objetiva.)</p>" });
+
+  nuevas.push({ h: "7. Comentario de texto resuelto: Sócrates y la ignorancia (Apología, 21d)", html:
+    "<p>Texto muy breve para ejercitar el método de comentario (tema, ideas, relación con el autor, comparación y valoración).</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Platón, <em>Apología de Sócrates</em>, 21d; traducción española habitual, que varía levemente según la edición):<br><em>«Al marcharme, pensaba para mí: soy más sabio que este hombre; es posible que ninguno de los dos sepamos nada bello y bueno, pero este cree saber algo sin saberlo, mientras que yo, así como no sé, tampoco creo saber.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Platón, <em>Apología de Sócrates</em>: su versión de la defensa de Sócrates en el juicio de 399 a. C. Sócrates cuenta cómo, tras la respuesta del oráculo, examinó a un político con fama de sabio.</li>" +
+    "<li><b>2. Enuncia el tema.</b> La naturaleza del saber y de la ignorancia; la sabiduría como conciencia de la propia ignorancia.</li>" +
+    "<li><b>3. Idea principal.</b> Sócrates es más sabio que el político <b>en un solo punto</b>: no cree saber lo que no sabe, mientras que el otro sí.</li>" +
+    "<li><b>4. Ideas secundarias.</b> (a) Ninguno de los dos sabe lo «bello y bueno» (los valores). (b) La peor ignorancia es creer saber. (c) Sócrates no se presenta como poseedor de la verdad, sino como buscador.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Es la ignorancia docta, base de su método: la ironía parte de que el interlocutor cree saber, y le obliga a examinarse. Conecta con «conócete a ti mismo» y con el intelectualismo moral (si el mal viene de la ignorancia, el primer paso es reconocerla).</li>" +
+    "<li><b>6. Compara con otro autor.</b> Frente a los sofistas, que se presentan como expertos y niegan la verdad objetiva, Sócrates cree que hay verdad pero reconoce no tenerla: ni relativista ni dogmático. Frente a Gorgias (nada es cognoscible), no es escéptico. Y puede compararse con Descartes (la duda como punto de partida).</li>" +
+    "<li><b>7. Valora y concluye.</b> El texto resume el espíritu de la filosofía: preguntar antes que afirmar. Su vigencia es grande: la humildad intelectual sigue siendo condición del pensamiento crítico.</li></ol>" +
+    ojo("Errores típicos al comentar: (1) decir que Sócrates «no sabe nada y ya está» (no es escepticismo: busca la verdad); (2) olvidar que el pasaje se enmarca en la historia del oráculo de Delfos; (3) no relacionarlo con la ironía y la mayéutica; (4) citar «solo sé que no sé nada» como si fuera literal: es un resumen tradicional.") +
+    "<p>Para practicar, en los ejercicios tienes otro texto, el de Protágoras, con rúbrica para autoevaluarte.</p>" });
+
+  nuevas.push({ h: "8. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>Preguntas típicas y respuesta modelo en forma de esquema. Orden recomendado: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Explica el giro antropológico y el papel de los sofistas", "Respuesta modelo:", [
+      "<b>Definición.</b> Giro antropológico: la filosofía pasa de preguntarse por la naturaleza (presocráticos) a preguntarse por el ser humano, el conocimiento y la moral (siglo V a. C., Atenas).",
+      "<b>Sofistas.</b> Maestros itinerantes de retórica que cobran; relativismo (Protágoras: «el hombre, medida de todas las cosas»), escepticismo (Gorgias), ley del más fuerte (Trasímaco).",
+      "<b>Contexto.</b> Democracia ateniense: saber hablar da poder.",
+      "<b>Valoración.</b> Descubren el valor del lenguaje y de la crítica de las normas, pero se les reprocha vaciar de contenido la verdad y la moral."
+    ]) +
+    ejemplo("Pregunta 2. Compara a los sofistas y a Sócrates", "Respuesta modelo:", [
+      "<b>Coinciden</b> en que el centro de la filosofía es el ser humano y en que usan el diálogo.",
+      "<b>Difieren</b> en la verdad (relativa frente a universal), en la finalidad (persuadir frente a mejorar el alma) y en el saber (técnica que se vende frente a búsqueda compartida).",
+      "<b>Cierre.</b> Platón sistematizará la respuesta de Sócrates: las Ideas garantizan una verdad objetiva."
+    ]) +
+    ejemplo("Pregunta 3. Explica el método socrático y el intelectualismo moral", "Respuesta modelo:", [
+      "Método: diálogo; ironía (fingir ignorancia y mostrar contradicciones, hasta la aporía) y mayéutica (ayudar a dar a luz la definición).",
+      "Ética: virtud es conocimiento, nadie hace el mal a sabiendas; felicidad = alma virtuosa.",
+      "Relación: si el mal es ignorancia, el método (examinar creencias) es el camino de la virtud.",
+      "Crítica: Aristóteles y la akrasía."
+    ]) +
+    "<p>Para practicar, los ejercicios de nivel ★★★ traen una rúbrica con la que ver la nota que te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz2") + w("quiz", "errores") + w("tarjetas", "tarjetas2") });
+
+  B.parte.hf2a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 2 (parte B)
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t2.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "En la Atenas democrática del siglo V a. C. la filosofía pasa de la naturaleza al <b>ser humano</b> (giro antropológico).",
+    "Los <b>sofistas</b> enseñan retórica por dinero y defienden el relativismo: «el hombre es la medida de todas las cosas» (Protágoras).",
+    "<b>Sócrates</b> (470–399 a. C.) sostiene que sí hay verdad moral, que se busca dialogando: <b>ironía</b> y <b>mayéutica</b>.",
+    "Su ética es el <b>intelectualismo moral</b>: virtud es conocimiento. Murió por cicuta, coherente con lo que pensaba."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Sofistas y Sócrates · siglo V a. C.",
+    autores: [
+      { n: "Protágoras", f: "h. 490–420 a. C.", l: "Abdera (Tracia) → Atenas" },
+      { n: "Gorgias", f: "h. 483–375 a. C.", l: "Leontinos (Sicilia) → Atenas" },
+      { n: "Sócrates", f: "470–399 a. C.", l: "Atenas" }
+    ],
+    obras: ["Sobre el no-ser (Gorgias)", "Sócrates no escribió: lo conocemos por Platón (Apología, Critón, Fedón, Laques)"],
+    bloques: [
+      { t: "Contexto", frases: ["Atenas democrática: saber hablar da poder.", "<b>Giro antropológico</b>: de la naturaleza al ser humano.", "Guerra del Peloponeso (431–404 a. C.) y crisis de valores."] },
+      { t: "Los sofistas", frases: ["Maestros itinerantes de retórica que cobran.", "Las leyes y la moral son <b>nomos</b> (convención), no <b>physis</b>."], tabla: { cab: ["Sofista", "Postura"], filas: [["Protágoras", "relativismo"], ["Gorgias", "escepticismo"], ["Trasímaco", "ley del más fuerte"]] } },
+      { t: "Sócrates: el saber", frases: ["Hay verdad moral, pero nadie la posee ya.", "<b>Ignorancia docta</b>: sabe que no sabe.", "Busca definiciones universales («qué es X»)."] },
+      { t: "El método", frases: ["Es dialógico: se hace conversando."], tabla: { cab: ["Ironía", "Mayéutica"], filas: [["finge no saber", "ayuda a «parir» la idea"], ["muestra contradicciones", "construye una definición"], ["acaba en aporía", "descubre el interlocutor"]] } },
+      { t: "Ética", frases: ["<b>Intelectualismo moral</b>: virtud es conocimiento.", "Nadie hace el mal a sabiendas: el mal es ignorancia.", "La felicidad es cuidar el alma."] },
+      { t: "Juicio y muerte", frases: ["Acusado de impiedad y de corromper a la juventud.", "Condenado y ejecutado con cicuta (399 a. C.).", "Rechaza huir (<i>Critón</i>): coherencia con sus ideas."] }
+    ],
+    resumen: [
+      "La filosofía pasa de la <b>naturaleza</b> al <b>ser humano</b>.",
+      "Los sofistas dicen que la verdad es <b>relativa</b>; Sócrates, que hay <b>verdad moral</b> y que se busca dialogando.",
+      "Para Sócrates, <b>virtud es conocimiento</b> y el mal es ignorancia.",
+      "Su legado pasa a <b>Platón</b> (tema 3) y a <b>Aristóteles</b> (tema 4)."
+    ],
+    conecta: [
+      { con: "Presocráticos (T1):", rel: "estudiaban la naturaleza; ahora importa el ser humano." },
+      { con: "Platón (T3):", rel: "discípulo de Sócrates; responde a los sofistas con las Ideas." },
+      { con: "Aristóteles (T4):", rel: "critica el intelectualismo moral (akrasía)." },
+      { con: "Helenismo:", rel: "cínicos y estoicos retoman la filosofía como forma de vida." }
+    ],
+    claves: [
+      ["Giro antropológico", "paso de la naturaleza al ser humano como centro"],
+      ["Retórica", "arte de hablar para persuadir"],
+      ["Relativismo", "la verdad y la moral dependen de cada sujeto o cultura"],
+      ["Physis / nomos", "naturaleza frente a convención"],
+      ["Ignorancia docta", "saber que no se sabe"],
+      ["Ironía", "fingir ignorancia para que el otro se examine"],
+      ["Mayéutica", "arte de ayudar a «dar a luz» el saber"],
+      ["Aporía", "callejón sin salida: reconocer que no se sabe"],
+      ["Definición universal", "lo común a todos los casos de una virtud"],
+      ["Intelectualismo moral", "virtud es conocimiento; el mal es ignorancia"]
+    ],
+    cita: { txt: "Una vida sin examen no merece ser vivida.", autor: "Sócrates", obra: "Platón, Apología, 38a" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    quien: {
+      titulo: "¿Sofistas o Sócrates?",
+      consigna: "Toca una frase y después la categoría a la que pertenece.",
+      categorias: ["Sofistas", "Sócrates"],
+      items: [
+        { t: "Enseño retórica y cobro por mis clases", c: 0 },
+        { t: "«Solo busco la verdad conversando; no cobro nada»", c: 1 },
+        { t: "La verdad depende de cada persona", c: 0 },
+        { t: "Existe una definición universal de la justicia, aunque aún no la sepamos", c: 1 },
+        { t: "Las leyes son convenciones humanas (nomos)", c: 0 },
+        { t: "Mi sabiduría es saber que no sé", c: 1 },
+        { t: "Nadie obra mal a sabiendas", c: 1 },
+        { t: "Lo importante es persuadir al auditorio", c: 0 }
+      ]
+    },
+    conceptos: {
+      titulo: "Autor y concepto",
+      consigna: "Une cada autor con su idea.",
+      pares: [["Protágoras", "El hombre, medida de todas las cosas"], ["Gorgias", "Nada existe; si existiera, no sería cognoscible"], ["Trasímaco", "Lo justo es lo que conviene al más fuerte"], ["Sócrates", "Ignorancia docta y mayéutica"], ["Aristóteles", "Crítica del intelectualismo moral (akrasía)"]]
+    },
+    dialogo: {
+      titulo: "Un diálogo socrático",
+      consigna: "Ordena los pasos del método.",
+      items: [
+        { t: "Sócrates finge ignorancia y pregunta: «¿qué es la valentía?»" },
+        { t: "El interlocutor da una primera definición" },
+        { t: "Sócrates la prueba con un contraejemplo" },
+        { t: "El interlocutor reconoce que no sabía lo que creía saber (aporía)" },
+        { t: "Con nuevas preguntas, busca junto a él una definición mejor (mayéutica)" }
+      ]
+    },
+    juicio: {
+      titulo: "Cronología del final de Sócrates",
+      consigna: "Ordena de más antiguo a más reciente.",
+      items: [
+        { t: "431 a. C.: comienza la guerra del Peloponeso" },
+        { t: "423 a. C.: Aristófanes estrena <i>Las nubes</i>" },
+        { t: "404 a. C.: Atenas pierde la guerra; gobiernan los Treinta Tiranos" },
+        { t: "403 a. C.: se restaura la democracia" },
+        { t: "399 a. C.: juicio y muerte de Sócrates" }
+      ]
+    },
+    quiz2: {
+      titulo: "Test del tema 2",
+      preguntas: [
+        { q: "El giro antropológico consiste en…", op: ["pasar del estudio de la naturaleza al del ser humano", "negar que exista la naturaleza", "dejar de hacer filosofía", "volver al mito"], ok: 0, porque: "La pregunta central pasa de «¿de qué está hecho el mundo?» a «¿cómo debemos vivir?»." },
+        { q: "Los sofistas eran…", op: ["maestros itinerantes que cobraban por enseñar retórica", "sacerdotes del oráculo de Delfos", "soldados espartanos", "discípulos de Platón"], ok: 0, porque: "Fueron los primeros profesores profesionales; enseñaban a persuadir." },
+        { q: "«El hombre es la medida de todas las cosas» expresa…", op: ["el relativismo de Protágoras", "el escepticismo de Gorgias", "el intelectualismo moral de Sócrates", "la teoría de las Ideas"], ok: 0, porque: "Cada sujeto es el criterio de lo verdadero para sí." },
+        { q: "Physis y nomos se oponen como…", op: ["naturaleza y convención", "cuerpo y alma", "ser y no-ser", "razón y sentidos"], ok: 0, porque: "Los sofistas dicen que las leyes y la moral son nomos." },
+        { q: "La ironía socrática es…", op: ["fingir ignorancia para que el interlocutor se examine", "burlarse del interlocutor", "negar toda verdad", "dar una lección magistral"], ok: 0, porque: "Es la fase negativa del método." },
+        { q: "La mayéutica pretende…", op: ["ayudar al interlocutor a descubrir por sí mismo la verdad", "transmitir una doctrina cerrada", "ganar el debate", "cobrar por enseñar"], ok: 0, porque: "El saber ya está en el alma y se ayuda a «dar a luz»." },
+        { q: "«Virtud es conocimiento» significa que…", op: ["quien sabe de verdad qué es el bien lo practica", "las virtudes son innatas", "solo los sabios son felices en el Hades", "la virtud se compra"], ok: 0, porque: "Intelectualismo moral: el mal es ignorancia." },
+        { q: "Sócrates fue condenado por…", op: ["no creer en los dioses de la ciudad y corromper a la juventud", "traición a Esparta", "robo", "enseñar retórica por dinero"], ok: 0, porque: "Acusación de Meleto, Anito y Licón (399 a. C.)." },
+        { q: "En el Critón, Sócrates rechaza huir porque…", op: ["escapar sería quebrantar las leyes con las que ha vivido", "tiene miedo a morir", "cree que el juicio fue justo", "no hay lugar adonde ir"], ok: 0, porque: "No se devuelve injusticia con injusticia." },
+        { q: "La principal fuente sobre Sócrates es…", op: ["Platón, su discípulo", "el propio Sócrates", "Protágoras", "Parménides"], ok: 0, porque: "Sócrates no escribió nada." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta contiene una afirmación típicamente mal entendida. Elige la que es FALSA.",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["Sócrates cobraba por sus enseñanzas, como los sofistas", "Sócrates no dejó nada escrito", "Sócrates dialogaba en el ágora", "Sócrates bebió cicuta"], ok: 0, porque: "Una diferencia clave con los sofistas es que Sócrates no cobraba." },
+        { q: "¿Cuál es FALSA?", op: ["Sócrates era escéptico: negaba que existiera verdad moral", "Sócrates reconocía su ignorancia", "Sócrates buscaba definiciones universales", "Sócrates creía que se puede conocer el bien"], ok: 0, porque: "No es escepticismo: cree que hay verdad y que se busca." },
+        { q: "¿Cuál es FALSA?", op: ["La ironía socrática es burlarse del interlocutor", "La ironía finge ignorancia", "La ironía conduce a la aporía", "La mayéutica viene después de la ironía"], ok: 0, porque: "Ironía = fingir no saber, no sarcasmo." },
+        { q: "¿Cuál es FALSA?", op: ["Todos los sofistas defendían la ley del más fuerte", "Protágoras defendía el relativismo", "Gorgias era escéptico", "Trasímaco decía que lo justo conviene al más fuerte"], ok: 0, porque: "Solo algunos (Trasímaco, Calicles); no hay doctrina común." },
+        { q: "¿Cuál es FALSA?", op: ["Los presocráticos son posteriores a Sócrates", "Protágoras es anterior a Platón", "Sócrates es anterior a Aristóteles", "Platón fue discípulo de Sócrates"], ok: 0, porque: "Los presocráticos son anteriores (o ajenos) al giro de Sócrates." },
+        { q: "¿Cuál es FALSA?", op: ["Para Sócrates se puede obrar mal sabiendo con certeza qué es el bien", "Para Sócrates el mal es ignorancia", "Para Sócrates la virtud es conocimiento", "Para Sócrates cometer injusticia es peor que sufrirla"], ok: 0, porque: "Nadie obra mal a sabiendas; Aristóteles objetará con la akrasía." }
+      ]
+    },
+    tarjetas2: {
+      titulo: "Tarjetas del tema 2",
+      cartas: [
+        { a: "Giro antropológico", b: "Paso de la pregunta por la naturaleza a la pregunta por el ser humano (Atenas, s. V a. C.)" },
+        { a: "Sofistas", b: "Maestros itinerantes de retórica que cobran; relativismo" },
+        { a: "Retórica", b: "Arte de hablar y persuadir; poder en la democracia ateniense" },
+        { a: "Physis / nomos", b: "Naturaleza frente a convención; leyes y moral son nomos" },
+        { a: "Protágoras", b: "«El hombre es la medida de todas las cosas»: relativismo (h. 490–420 a. C.)" },
+        { a: "Gorgias", b: "Sobre el no-ser: nada existe, no sería cognoscible ni comunicable (escepticismo)" },
+        { a: "Trasímaco", b: "En la República: lo justo es lo que conviene al más fuerte" },
+        { a: "Sócrates", b: "470–399 a. C.; no escribió; dialoga; ignorancia docta; intelectualismo moral" },
+        { a: "Ignorancia docta", b: "Saber que no se sabe: punto de partida de la búsqueda" },
+        { a: "Ironía", b: "Fase negativa: fingir ignorancia y mostrar contradicciones" },
+        { a: "Mayéutica", b: "Fase positiva: ayudar a «dar a luz» la definición" },
+        { a: "Aporía", b: "Callejón sin salida: el interlocutor reconoce que no sabe" },
+        { a: "Intelectualismo moral", b: "Virtud es conocimiento; el mal es ignorancia" },
+        { a: "Akrasía", b: "Debilidad de la voluntad: Aristóteles la opone a Sócrates" },
+        { a: "Juicio de Sócrates (399 a. C.)", b: "Acusado de impiedad y de corromper a la juventud; cicuta" },
+        { a: "Critón", b: "Diálogo donde Sócrates rechaza huir: no se responde a la injusticia con injusticia" }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("hs1", 1, "El «giro antropológico» consiste en…",
+    ["pasar de preguntarse por la naturaleza a preguntarse por el ser humano", "dejar de usar la razón", "volver al mito", "estudiar solo los astros"], 0,
+    ["Los presocráticos preguntaban por el arché; sofistas y Sócrates, por el conocimiento, la moral y la política."]);
+  O("hs2", 1, "¿Dónde y cuándo tiene lugar el giro antropológico?",
+    ["En Atenas, en el siglo V a. C.", "En Mileto, en el siglo VI a. C.", "En Roma, en el siglo I a. C.", "En Alejandría, en el siglo III a. C."], 0,
+    ["La Atenas democrática del siglo V a. C. es el escenario."]);
+  O("hs3", 1, "¿Qué enseñaban sobre todo los sofistas?",
+    ["Retórica y argumentación", "Astronomía", "Teología", "Escultura"], 0,
+    ["Enseñaban a hablar y persuadir, útil en la asamblea y los tribunales."]);
+  O("hs4", 1, "¿Quién dijo que «el hombre es la medida de todas las cosas»?",
+    ["Protágoras", "Sócrates", "Gorgias", "Parménides"], 0,
+    ["Frase de Protágoras de Abdera, recogida por Platón en el Teeteto."]);
+  M("hs5", 1, "Empareja cada autor con su postura.", [
+    C("Protágoras", ["Relativismo", "Escepticismo", "Ley del más fuerte", "Ignorancia docta"], 0),
+    C("Gorgias", ["Relativismo", "Escepticismo", "Ley del más fuerte", "Ignorancia docta"], 1),
+    C("Trasímaco", ["Relativismo", "Escepticismo", "Ley del más fuerte", "Ignorancia docta"], 2),
+    C("Sócrates", ["Relativismo", "Escepticismo", "Ley del más fuerte", "Ignorancia docta"], 3)],
+    ["Protágoras: relativismo · Gorgias: escepticismo · Trasímaco: ley del más fuerte · Sócrates: ignorancia docta."],
+    "Protágoras–relativismo, Gorgias–escepticismo, Trasímaco–ley del más fuerte, Sócrates–ignorancia docta");
+  T("hs6", 1, "Completa: los sofistas decían que las leyes son convención, en griego ______ (frente a physis). Escribe el término.", "Término =", ["nomos"],
+    ["Nomos = convención, ley hecha por los humanos; physis = naturaleza."], "nomos");
+  T("hs7", 1, "Completa: el método de Sócrates para ayudar a «dar a luz» el conocimiento se llama ______. Escribe el término.", "Término =", ["mayéutica", "mayeutica"],
+    ["Mayéutica (arte de partear), por el oficio de su madre."], "mayéutica");
+  O("hs8", 1, "¿Qué sabemos sobre los escritos de Sócrates?",
+    ["No escribió nada; lo conocemos sobre todo por Platón", "Escribió la República", "Escribió el Teeteto", "Dejó su obra completa en Delfos"], 0,
+    ["Sócrates solo dialogaba; la fuente principal es Platón."]);
+  O("hs9", 1, "¿Cómo murió Sócrates?",
+    ["Bebiendo cicuta, condenado por un tribunal ateniense", "En la guerra del Peloponeso", "Desterrado en Esparta", "De viejo, en su casa"], 0,
+    ["Fue ejecutado con cicuta en el 399 a. C."]);
+  O("hs10", 1, "La retórica es…",
+    ["el arte de hablar y persuadir", "una rama de la geometría", "una religión", "un tipo de poesía"], 0,
+    ["Era la técnica estrella de los sofistas."]);
+  O("hs11", 1, "La ironía socrática consiste en…",
+    ["fingir ignorancia para que el interlocutor se examine", "reírse del otro", "negar la verdad", "contar un mito"], 0,
+    ["No es sarcasmo: es una táctica para que el otro cuestione sus certezas."]);
+  O("hs12", 1, "¿Qué orden cronológico (por nacimiento) es el correcto?",
+    ["Protágoras → Sócrates → Platón → Aristóteles", "Sócrates → Protágoras → Aristóteles → Platón", "Platón → Sócrates → Protágoras → Aristóteles", "Aristóteles → Platón → Sócrates → Protágoras"], 0,
+    ["Protágoras (h. 490), Sócrates (470), Platón (427), Aristóteles (384 a. C.)."]);
+  T("hs13", 1, "Completa: Sócrates nació y murió en la ciudad de ______.", "Ciudad =", ["Atenas"],
+    ["Sócrates vivió siempre en Atenas (470–399 a. C.)."], "Atenas");
+  O("hs14", 1, "«Physis» significa…", ["naturaleza", "ley", "retórica", "alma"], 0,
+    ["Physis = naturaleza; nomos = convención."]);
+
+  // ---- nivel 2
+  V("hs15", 2, "«Para Protágoras existe una verdad objetiva independiente de quien la juzga.»", false, [
+    "Al contrario: lo verdadero depende de cada sujeto, que es la medida de las cosas",
+    "Porque solo existe el agua",
+    "Porque Protágoras negaba la retórica",
+    "Porque coincide con Sócrates"], 0,
+    ["Es la posición de Sócrates, no la de Protágoras.", "Protágoras es relativista."], "Falso: para Protágoras la verdad es relativa");
+  V("hs16", 2, "«Sócrates, como los sofistas, cobraba por enseñar.»", false, [
+    "Sócrates no cobraba y vivía con poco; los sofistas sí eran profesores de pago",
+    "Porque Sócrates era muy rico",
+    "Porque no sabía hablar",
+    "Porque Sócrates era extranjero"], 0,
+    ["Una diferencia clave entre ambos."], "Falso: Sócrates no cobraba");
+  V("hs17", 2, "«Para Sócrates nadie hace el mal a sabiendas.»", true, [
+    "Quien obra mal lo hace por ignorancia: cree que eso le conviene",
+    "Porque el mal no existe",
+    "Porque todos son virtuosos por naturaleza",
+    "Porque los dioses lo impiden"], 0,
+    ["Es el núcleo del intelectualismo moral."], "Verdadero: el mal es ignorancia");
+  V("hs18", 2, "«Sócrates era escéptico: sostenía que no hay verdad moral que buscar.»", false, [
+    "Cree que hay verdades morales universales y que se buscan dialogando",
+    "Porque solo creía en el agua",
+    "Porque nunca dudaba",
+    "Porque era sofista"], 0,
+    ["Reconocer la ignorancia no es negar la verdad: es el punto de partida de la búsqueda."], "Falso: no es escéptico");
+  O("hs19", 2, "¿Cuál de estas cosas es nomos y no physis?",
+    ["La norma de circular por la derecha", "La caída de los cuerpos", "El ciclo de las estaciones", "Que el fuego queme"], 0,
+    ["Las normas sociales son convenciones humanas; lo demás es naturaleza."]);
+  O("hs20", 2, "La tesis de Gorgias en <em>Sobre el no-ser</em> es…",
+    ["nada existe; si existiera, no sería cognoscible; y si lo fuera, no sería comunicable", "el hombre es la medida de todas las cosas", "lo justo es lo que conviene al más fuerte", "virtud es conocimiento"], 0,
+    ["Es una forma radical de escepticismo."]);
+  O("hs21", 2, "¿Qué es la «ignorancia docta»?",
+    ["Saber que no se sabe, punto de partida para buscar", "No querer aprender", "Un conocimiento secreto", "Ignorar las leyes"], 0,
+    ["Sócrates es más sabio que otros solo en que no cree saber lo que no sabe."]);
+  O("hs22", 2, "La mayéutica supone que…",
+    ["el conocimiento está latente en cada persona y se ayuda a sacarlo con preguntas", "el maestro vierte su saber en el alumno", "la verdad no existe", "se aprende solo memorizando"], 0,
+    ["Como el oficio de partera: no da el hijo, ayuda a nacer."]);
+  M("hs23", 2, "¿Ironía o mayéutica?", [
+    C("Fingir ignorancia y mostrar contradicciones", ["Ironía", "Mayéutica"], 0),
+    C("Ayudar a dar a luz una definición mejor", ["Ironía", "Mayéutica"], 1),
+    C("Provocar la aporía", ["Ironía", "Mayéutica"], 0)],
+    ["La ironía destruye falsas certezas; la mayéutica construye."], "Ironía · Mayéutica · Ironía");
+  O("hs24", 2, "Trasímaco sostiene en la <em>República</em> I que…",
+    ["la justicia es lo que conviene al más fuerte", "la justicia es conocimiento", "la justicia no existe en Atenas", "la justicia es obra de los dioses"], 0,
+    ["Es la tesis de la ley del más fuerte."]);
+  O("hs25", 2, "Una «aporía» es…",
+    ["un callejón sin salida en el que se reconoce que no se sabe", "una definición perfecta", "un tipo de ley", "una fiesta ateniense"], 0,
+    ["Es el resultado de la ironía socrática."]);
+  O("hs26", 2, "¿Por qué se niega Sócrates a huir de la cárcel (<em>Critón</em>)?",
+    ["Porque escapar sería quebrantar las leyes con las que ha vivido", "Porque cree que la sentencia es justa", "Porque no tiene amigos", "Porque teme a la muerte"], 0,
+    ["Considera la sentencia injusta, pero no se responde a una injusticia con otra."]);
+  O("hs27", 2, "«Virtud es conocimiento» implica que…",
+    ["quien sabe de verdad qué es el bien lo practica", "la virtud es un don divino", "el conocimiento hace malos a los hombres", "la virtud es cuestión de suerte"], 0,
+    ["Conocer el bien es suficiente para obrar bien."]);
+  M("hs28", 2, "¿De quién es cada idea o frase?", [
+    C("«El hombre es la medida de todas las cosas.»", ["Protágoras", "Gorgias", "Sócrates", "Trasímaco"], 0),
+    C("«Nada existe.»", ["Protágoras", "Gorgias", "Sócrates", "Trasímaco"], 1),
+    C("«Una vida sin examen no merece ser vivida.»", ["Protágoras", "Gorgias", "Sócrates", "Trasímaco"], 2),
+    C("«Lo justo es lo que conviene al más fuerte.»", ["Protágoras", "Gorgias", "Sócrates", "Trasímaco"], 3)],
+    ["Cada frase resume la tesis de su autor."], "Protágoras, Gorgias, Sócrates, Trasímaco");
+  O("hs29", 2, "¿De qué fue acusado Sócrates?",
+    ["De no creer en los dioses de la ciudad y de corromper a la juventud", "De traición a Esparta", "De robar un templo", "De enseñar retórica por dinero"], 0,
+    ["Acusación de Meleto, Anito y Licón."]);
+
+  // ---- nivel 3
+  O("hs30", 3, "Texto: «El hombre es la medida de todas las cosas: de las que son, en cuanto que son; de las que no son, en cuanto que no son» (Protágoras). Su idea principal es…",
+    ["que cada sujeto es el criterio de verdad, de modo que la verdad es relativa", "que existe una verdad objetiva que debemos descubrir", "que todo es agua", "que nada existe"], 0,
+    ["Idea principal: relativismo (subjetivismo)."]);
+  O("hs31", 3, "Texto: «Yo, así como no sé, tampoco creo saber» (Platón, <em>Apología</em>, 21d). Su idea principal es…",
+    ["que la sabiduría de Sócrates es reconocer su ignorancia, a diferencia de quien cree saber sin saber", "que Sócrates lo sabe todo", "que nadie puede conocer nada", "que los dioses saben menos que él"], 0,
+    ["Ignorancia docta, punto de partida de la búsqueda."]);
+  O("hs32", 3, "Texto: «No se debe cometer injusticia ni devolver injusticia por injusticia» (idea del <em>Critón</em>). ¿Cómo se relaciona con el pensamiento de Sócrates?",
+    ["Es coherente con su tesis de que la injusticia daña el alma, que es lo más valioso", "Contradice su ética del conocimiento", "Muestra que defendía la ley del más fuerte", "Muestra que era relativista"], 0,
+    ["Cometer injusticia es peor que sufrirla: daña el alma."]);
+  O("hs33", 3, "¿Qué objeta Aristóteles al intelectualismo moral?",
+    ["Que existe la akrasía: se puede saber lo que es bueno y obrar mal por debilidad de la voluntad", "Que el mal no existe", "Que Sócrates no escribió", "Que la virtud es innata"], 0,
+    ["Aristóteles (Ética a Nicómaco VII) matiza que no basta con saber."]);
+  O("hs34", 3, "¿Cómo responde Platón a los sofistas, siguiendo a Sócrates?",
+    ["Defendiendo una verdad objetiva (las Ideas) accesible a la razón", "Aceptando el relativismo", "Negando toda filosofía", "Enseñando retórica por dinero"], 0,
+    ["Teoría de las Ideas (tema 3): verdad universal."]);
+  O("hs35", 3, "¿Por qué la mayéutica es incompatible con el relativismo de Protágoras?",
+    ["Porque la mayéutica supone que hay una verdad que se puede descubrir, y el relativismo la niega", "Porque la mayéutica es retórica", "Porque Protágoras no hablaba", "No es incompatible"], 0,
+    ["Dar a luz una definición implica que unas definiciones son mejores que otras."]);
+  O("hs36", 3, "Encuentra el error. ¿Cuál es FALSA?",
+    ["Gorgias fue discípulo de Sócrates", "Gorgias escribió Sobre el no-ser", "Gorgias fue un maestro de la retórica", "Gorgias nació en Sicilia"], 0,
+    ["Gorgias fue sofista, no discípulo de Sócrates."]);
+  O("hs37", 3, "Encuentra el error. ¿Cuál es FALSA?",
+    ["Sócrates defendía el relativismo moral", "Sócrates buscaba definiciones universales", "Sócrates practicaba la ironía", "Sócrates identificaba virtud y conocimiento"], 0,
+    ["Defendía una moral universal."]);
+  O("hs38", 3, "Encuentra el error. ¿Cuál es FALSA?",
+    ["Sócrates fue condenado por un tribunal espartano", "Fue acusado por Meleto, Anito y Licón", "Fue condenado en el 399 a. C.", "Bebió cicuta"], 0,
+    ["Lo juzgó un tribunal ateniense."]);
+  O("hs39", 3, "¿Qué comparten sofistas y Sócrates?",
+    ["Ambos hacen del ser humano y del diálogo el centro de su reflexión", "Ambos cobran", "Ambos son relativistas", "Ambos escribieron tratados"], 0,
+    ["Comparten el giro antropológico; difieren en la verdad y la finalidad."]);
+  O("hs40", 3, "¿Por qué prosperaron los sofistas en Atenas en el siglo V a. C.?",
+    ["Porque en la democracia saber hablar daba poder político", "Porque Atenas era una monarquía", "Porque no había leyes", "Porque Esparta lo exigió"], 0,
+    ["La asamblea y los tribunales exigían persuadir."]);
+  O("hs41", 3, "¿Qué ocurrió antes: los Treinta Tiranos o el juicio de Sócrates?",
+    ["Los Treinta Tiranos (404–403 a. C.), antes del juicio (399 a. C.)", "El juicio, antes que los Treinta Tiranos", "Ocurrieron el mismo año", "Los Treinta Tiranos fueron posteriores"], 0,
+    ["404–403 a. C. frente a 399 a. C."]);
+
+  R("hs42", "Compara a los sofistas y a Sócrates: verdad, método y finalidad. (Pregunta tipo PAU)", 9, [
+    { t: "Explica el giro antropológico y el contexto (Atenas, democracia)", p: 0.3 },
+    { t: "Sofistas: retórica, cobran, relativismo (Protágoras), escepticismo (Gorgias)", p: 0.5 },
+    { t: "Sócrates: verdad moral universal, ignorancia docta, definiciones", p: 0.5 },
+    { t: "Contrapone finalidad: persuadir/triunfar frente a mejorar el alma", p: 0.4 },
+    { t: "Señala qué comparten (el ser humano y el diálogo) y conecta con Platón", p: 0.3 }],
+    ["Contexto.", "Sofistas.", "Sócrates.", "Contraste.", "Cierre: Platón."], "Los sofistas son relativistas y persuaden; Sócrates busca la verdad moral dialogando");
+  R("hs43", "Explica el método socrático: ironía y mayéutica, con un ejemplo. (Pregunta tipo PAU)", 8, [
+    { t: "Define el método como dialógico y distingue las dos fases", p: 0.4 },
+    { t: "Ironía: fingir ignorancia, mostrar contradicciones, llegar a la aporía", p: 0.5 },
+    { t: "Mayéutica: ayudar a dar a luz una definición; el saber está latente", p: 0.5 },
+    { t: "Pone un ejemplo (p. ej., ¿qué es la valentía?)", p: 0.4 },
+    { t: "Relaciona con la ignorancia docta o con Platón", p: 0.2 }],
+    ["Dos fases.", "Ironía.", "Mayéutica.", "Ejemplo.", "Relación."], "Ironía para vaciar falsas certezas; mayéutica para construir la definición");
+  R("hs44", "Explica el intelectualismo moral de Sócrates y la crítica de Aristóteles. (Pregunta tipo PAU)", 8, [
+    { t: "Virtud es conocimiento; el mal es ignorancia", p: 0.5 },
+    { t: "Nadie obra mal a sabiendas; saber el bien basta para practicarlo", p: 0.5 },
+    { t: "Felicidad y cuidado del alma", p: 0.3 },
+    { t: "Crítica de Aristóteles: la akrasía", p: 0.5 },
+    { t: "Valoración personal o ejemplo cotidiano", p: 0.2 }],
+    ["Tesis.", "Consecuencias.", "Felicidad.", "Crítica.", "Valoración."], "Virtud es conocimiento; Aristóteles objeta con la akrasía");
+  R("hs45", "Comenta este texto: «El hombre es la medida de todas las cosas: de las que son, en cuanto que son; de las que no son, en cuanto que no son» (Protágoras, en Platón, <em>Teeteto</em> 152a). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: la verdad y el sujeto (relativismo)", p: 0.3 },
+    { t: "Idea principal: cada sujeto es criterio de lo verdadero", p: 0.4 },
+    { t: "Relaciona con el autor y con los sofistas: nomos, retórica, utilidad", p: 0.5 },
+    { t: "Compara con Sócrates (verdad universal) o Platón (Ideas)", p: 0.5 },
+    { t: "Contexto o valoración (democracia ateniense; relativismo actual)", p: 0.3 }],
+    ["Tema → idea → autor → comparación → valoración."], "Comentario de Protágoras, Teeteto 152a");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Sofistas frente a Sócrates", ancha: true,
+      tabla: { cab: ["", "Sofistas", "Sócrates"], filas: [
+        ["Verdad", "relativa o inalcanzable", "existe y se busca"],
+        ["Fin del diálogo", "persuadir y triunfar", "mejorar el alma"],
+        ["Enseñan", "técnicas (retórica); cobran", "nada; ayudan a descubrir; no cobra"],
+        ["Moral", "convención (nomos)", "universal; virtud es conocimiento"]
+      ] } },
+    { titulo: "Método socrático", ancha: true,
+      tabla: { cab: ["Ironía", "Mayéutica"], filas: [
+        ["finge no saber", "ayuda a «dar a luz»"],
+        ["muestra contradicciones", "construye una definición"],
+        ["acaba en aporía", "descubre el interlocutor"]
+      ] } },
+    { titulo: "Intelectualismo moral",
+      pasos: ["La virtud es conocimiento del bien.", "Quien conoce el bien lo practica.", "Nadie hace el mal a sabiendas.", "El mal es fruto de la ignorancia.", "Cuidar el alma es buscar el saber."],
+      nota: "Aristóteles objeta: la akrasía." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Sócrates era escéptico", bien: "Cree en la verdad moral y la busca", por: "La ignorancia docta es punto de partida." },
+        { mal: "Todos los sofistas defendían la ley del más fuerte", bien: "Protágoras, relativista; Gorgias, escéptico; Trasímaco, ley del más fuerte", por: "No hay doctrina común." },
+        { mal: "La ironía socrática es burlarse", bien: "Es fingir ignorancia para que el otro se examine", por: "No es sarcasmo." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t2", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf2a.secciones,
+    nuevas: B.parte.hf2a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Historia de la Filosofía · ampliaciones · Tema 3: Platón
    (parte A: teoría. Parte B, historia_fil_t03b.js: ejercicios, actividades, ficha de un vistazo y registro.)
 
