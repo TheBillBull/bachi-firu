@@ -2029,6 +2029,9 @@
 
   // Número escrito como lo haría un alumno: "1/2", "-3,5", "2√3", "π/2"
   Mate.numero = function (src) {
+    // notación científica cómoda: 7,07e-7 · 7,07E-7 · 7,07·10⁻⁷ (se pasa a 7,07·10^-7 antes de leer)
+    src = String(src).replace(/(\d)\s*[eE]\s*([+\-−]?\d+)(?![\d,.])/g, "$1·10^$2")
+      .replace(/10\s*([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)/g, function (m, e) { return "10^" + e.replace(/⁻/g, "-").replace(/⁺/g, "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, function (d) { return "⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(d); }); });
     var r = Mate.compilar(src);
     if (!r.ok) return NaN;
     if (/[a-df-z]/i.test(String(src).replace(/pi|sqrt|raiz|sen|sin|cos|tan|tg|ln|log|exp|abs|arc/gi, ""))) return NaN;
@@ -17284,6 +17287,257 @@
 
   B.lab = B.lab || {};
   B.lab.q5 = { REAC: REAC, TAB: TAB, MEC: MEC, concA: concA, conc: conc, vInst: vInst, fracMB: fracMB, R: R };
+})(window);
+
+/* ============================================================
+   Bachi para Firu · Química II, tema 6: Equilibrio químico (ampliación B)
+   Se suma a lab_equilibrio.js (eqtiempo, equilibrio), que ya cubre Q frente a K, Le Chatelier y la vuelta al equilibrio en el tiempo.
+   Aquí solo lo que faltaba:
+   q6_alfa      grado de disociación α frente al volumen (cuándo importa V y cuándo no)
+   q6_vanthoff  ln K frente a 1/T: pendiente = −ΔH/R (exotérmica / endotérmica)
+   q6_inerte    gas inerte a V constante y a P constante
+   q6_ks        solubilidad de una sal poco soluble y efecto del ion común
+   q6_precip    ¿precipita al mezclar? Q frente a Ks
+   El motor (B.lab.q6) no toca el DOM.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  function fil(r, v, c) { return U.lec(r, v, c); }
+  function cien(x, d) { return U.cient(x, d == null ? 2 : d); }
+  var R = 8.314;
+
+  // ---------- motor ----------
+  function biseccion(f, lo, hi) {            // f(lo) y f(hi) de signo contrario
+    var flo = f(lo), m, fm;
+    for (var i = 0; i < 200; i++) {
+      m = (lo + hi) / 2; fm = f(m);
+      if ((fm < 0) === (flo < 0)) { lo = m; flo = fm; } else hi = m;
+    }
+    return (lo + hi) / 2;
+  }
+  // esp = [{nu}] (nu<0 reactivos); n = moles; devuelve ln Q con concentraciones n/V
+  function lnQ(esp, n, V) {
+    var s = 0;
+    for (var i = 0; i < esp.length; i++) s += esp[i].nu * Math.log(Math.max(n[i] / V, 1e-300));
+    return s;
+  }
+  // avance ξ (mol) desde la mezcla n hasta Q = Kc
+  function avance(esp, n, V, Kc) {
+    var lo = -Infinity, hi = Infinity, i, lim;
+    for (i = 0; i < esp.length; i++) {
+      lim = -n[i] / esp[i].nu;
+      if (esp[i].nu > 0) lo = Math.max(lo, lim); else hi = Math.min(hi, lim);
+    }
+    var eps = 1e-12 * (isFinite(hi - lo) ? Math.max(1, hi - lo) : 1);
+    if (!isFinite(lo)) lo = -1e3; if (!isFinite(hi)) hi = 1e3;
+    var lk = Math.log(Kc);                       // V puede ser un número o una función del avance (P constante)
+    return biseccion(function (x) {
+      var s = 0, Vx = typeof V === "function" ? V(x) : V;
+      for (var j = 0; j < esp.length; j++) s += esp[j].nu * Math.log(Math.max(n[j] + esp[j].nu * x, 1e-300) / Vx);
+      return s - lk;
+    }, lo + eps, hi - eps);
+  }
+  function mezcla(esp, n, x) { return n.map(function (v, i) { return Math.max(0, v + esp[i].nu * x); }); }
+
+  // sales poco solubles: Ks = (m s)^m (n s)^n
+  var SAL = {
+    agcl: { t: "AgCl", cat: "Ag⁺", an: "Cl⁻", m: 1, n: 1, Ks: 1.8e-10 },
+    baso4: { t: "BaSO₄", cat: "Ba²⁺", an: "SO₄²⁻", m: 1, n: 1, Ks: 1.1e-10 },
+    pbi2: { t: "PbI₂", cat: "Pb²⁺", an: "I⁻", m: 1, n: 2, Ks: 7.1e-9 },
+    caf2: { t: "CaF₂", cat: "Ca²⁺", an: "F⁻", m: 1, n: 2, Ks: 3.9e-11 },
+    ag2cro4: { t: "Ag₂CrO₄", cat: "Ag⁺", an: "CrO₄²⁻", m: 2, n: 1, Ks: 1.1e-12 }
+  };
+  function sol0(S) { return Math.pow(S.Ks / (Math.pow(S.m, S.m) * Math.pow(S.n, S.n)), 1 / (S.m + S.n)); }
+  // solubilidad (mol/L) con concentración c de ion común (cat: catión o anión)
+  function solIon(S, c, ion) {
+    var cc = ion === "cat" ? c : 0, ca = ion === "an" ? c : 0, lk = Math.log(S.Ks);
+    return Math.exp(biseccion(function (ls) {
+      var s = Math.exp(ls);
+      return S.m * Math.log(S.m * s + cc) + S.n * Math.log(S.n * s + ca) - lk;
+    }, -60, 5));
+  }
+  function qProd(S, ccat, can) { return Math.pow(ccat, S.m) * Math.pow(can, S.n); }
+
+  B.lab = B.lab || {};
+  B.lab.q6 = { avance: avance, mezcla: mezcla, lnQ: lnQ, SAL: SAL, sol0: sol0, solIon: solIon, qProd: qProd };
+
+  // ============================================================
+  // Q6_ALFA: grado de disociación frente al volumen
+  // ============================================================
+  var DISO = {
+    pcl5: { t: "PCl₅ ⇌ PCl₃ + Cl₂", Kc: 0.0267, a: 1, esp: [{ n: "PCl₅", nu: -1 }, { n: "PCl₃", nu: 1 }, { n: "Cl₂", nu: 1 }], dn: 1 },
+    n2o4: { t: "N₂O₄ ⇌ 2 NO₂", Kc: 4.6e-3, a: 1, esp: [{ n: "N₂O₄", nu: -1 }, { n: "NO₂", nu: 2 }], dn: 1 },
+    hi: { t: "2 HI ⇌ H₂ + I₂", Kc: 0.0184, a: 2, esp: [{ n: "HI", nu: -2 }, { n: "H₂", nu: 1 }, { n: "I₂", nu: 1 }], dn: 0 }
+  };
+  function alfa(D, n0, V) {
+    var n = D.esp.map(function (e, i) { return i === 0 ? n0 : 0; });
+    var x = avance(D.esp, n, V, D.Kc), ne = mezcla(D.esp, n, x);
+    return { alfa: D.a * x / n0, ne: ne, c: ne.map(function (v) { return v / V; }) };
+  }
+  B.lab.q6.alfa = alfa; B.lab.q6.DISO = DISO;
+
+  B.w.q6_alfa = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Grado de disociación α: ¿importa el volumen?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><p class="eq-ec" data-ec></p><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { r: "pcl5", n0: 1, V: 10 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), ec = cuerpo.querySelector("[data-ec]");
+    U.slider(ctl, { et: "n₀ (mol)", min: 0.2, max: 2, step: 0.1, val: st.n0, on: function (v) { st.n0 = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl, { et: "V (L)", min: 1, max: 20, step: 0.5, val: st.V, on: function (v) { st.V = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 1, xmax: 20, ymin: 0, ymax: 1.05, w: 620, h: 280, etx: "V (L)", ety: "α", etiqueta: "Grado de disociación frente al volumen" });
+    function pinta() {
+      var D = DISO[st.r], a = alfa(D, st.n0, st.V);
+      ec.innerHTML = "K<sub>c</sub> = " + (D.Kc < 0.01 ? cien(D.Kc, 1) : fmt(D.Kc, 4)) + " · Δn(gas) = " + (D.dn > 0 ? "+" : "") + D.dn;
+      g.limpiar();
+      g.curva(function (V) { return alfa(D, st.n0, V).alfa; }, { clase: "c-pen", n: 80, x0: 1, x1: 20 }).setAttribute("stroke-width", 3);
+      g.punto(st.V, a.alfa, { r: 6, clase: "c-red" });
+      g.segmento(st.V, 0, st.V, a.alfa, { clase: "c-faint", dash: "4 4" });
+      var h = D.esp.map(function (e, i) { return fil("[" + e.n + "]", fmt(a.c[i], 4) + " M", i === 0 ? "red" : "pen"); }).join("");
+      lectura.innerHTML = fil("α", fmt(a.alfa * 100, 1) + " %", "ok") + h + fil("Comprobación: Q = K<sub>c</sub>", fmt(Math.exp(lnQ(D.esp, a.ne, st.V)), 5), "ancho");
+      pie.innerHTML = D.dn === 0
+        ? "Aquí Δn = 0: el volumen se cancela en K<sub>c</sub> y <b>α no depende de V</b> (la curva es plana)."
+        : "Δn = +1: al <b>aumentar V</b> (menos presión) el equilibrio se desplaza hacia el lado con más moles de gas y α sube. Con n₀ mayor, α baja.";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), [{ k: "pcl5", t: "PCl₅ ⇌ PCl₃ + Cl₂" }, { k: "n2o4", t: "N₂O₄ ⇌ 2 NO₂" }, { k: "hi", t: "2 HI ⇌ H₂ + I₂" }], st.r, function (k) { st.r = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q6_VANTHOFF: ln K frente a 1/T
+  // ============================================================
+  B.w.q6_vanthoff = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "La constante K frente a la temperatura");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var T1 = 300, st = { dH: -92, T2: 600 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sH = U.slider(ctl, { et: "ΔH (kJ/mol)", min: -150, max: 150, step: 2, val: st.dH, on: function (v) { st.dH = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    U.slider(ctl, { et: "T (K)", min: 250, max: 700, step: 10, val: st.T2, on: function (v) { st.T2 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 1.3, xmax: 4.1, ymin: -10, ymax: 10, w: 620, h: 300, etx: "1000/T (10⁻³ K⁻¹)", ety: "ln(K/K₃₀₀)", etiqueta: "ln K frente a 1/T" });
+    function pinta() {
+      var dH = st.dH, T2 = st.T2, x1 = 1000 / T1, x2 = 1000 / T2;
+      var f = function (x) { return -(dH / R) * (x - x1); };
+      var ymax = Math.max(1.5, Math.abs(f(1.3)), Math.abs(f(4.1))) * 1.1;
+      g.rango(1.3, 4.1, -ymax, ymax); g.limpiar();
+      g.curva(f, { clase: dH < 0 ? "c-pen" : "c-red", n: 20 }).setAttribute("stroke-width", 3);
+      g.segmento(1.3, 0, 4.1, 0, { clase: "c-faint", dash: "4 4" });
+      g.punto(x1, 0, { r: 6, clase: "c-faint" }); g.punto(x2, f(x2), { r: 6, clase: "c-ok" });
+      g.texto(x1, 0, "300 K", { dy: -10, ancla: "middle" }); g.texto(x2, f(x2), T2 + " K", { dy: f(x2) >= 0 ? 18 : -10, ancla: "middle" });
+      var rat = Math.exp(f(x2));
+      var tipo = dH < -0.5 ? "exotérmica" : dH > 0.5 ? "endotérmica" : "sin efecto térmico";
+      var ef = Math.abs(T2 - T1) < 1 ? "T igual: K no cambia" : (T2 > T1) === (dH > 0) ? (dH === 0 ? "K no cambia" : "K aumenta: más productos") : "K disminuye: más reactivos";
+      lectura.innerHTML = fil("Reacción", tipo, "pen") + fil("K(" + T2 + " K) / K(300 K)", rat < 1000 && rat > 0.001 ? fmt(rat, rat < 10 ? 3 : 1) : cien(rat, 2), "red") + fil("Pendiente = −ΔH/R", fmt(-dH * 1000 / R, 0) + " K", "ok") + fil("Al pasar de 300 K a " + T2 + " K", ef, "ancho");
+      pie.innerHTML = "ln(K₂/K₁) = −(ΔH/R)·(1/T₂ − 1/T₁). Exotérmica (ΔH &lt; 0): pendiente positiva en este eje, K <b>baja</b> al subir T. Endotérmica: K <b>sube</b>. Solo la temperatura cambia K.";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), [{ k: "-92", t: "NH₃ (ΔH = −92)" }, { k: "57", t: "N₂O₄ → 2 NO₂ (+57)" }, { k: "-9", t: "H₂ + I₂ (−9)" }, { k: "0", t: "ΔH = 0" }], "-92", function (k) { st.dH = +k; sH.set(+k); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q6_INERTE: gas inerte a V constante o a P constante
+  // ============================================================
+  var INER = {
+    nh3: { t: "N₂ + 3 H₂ ⇌ 2 NH₃", Kc: 0.08, V0: 2, ini: [1, 3, 0], esp: [{ n: "N₂", nu: -1 }, { n: "H₂", nu: -3 }, { n: "NH₃", nu: 2 }] },
+    pcl5: { t: "PCl₅ ⇌ PCl₃ + Cl₂", Kc: 0.0267, V0: 10, ini: [1, 0, 0], esp: [{ n: "PCl₅", nu: -1 }, { n: "PCl₃", nu: 1 }, { n: "Cl₂", nu: 1 }] },
+    hi: { t: "H₂ + I₂ ⇌ 2 HI", Kc: 54, V0: 2, ini: [1, 1, 0], esp: [{ n: "H₂", nu: -1 }, { n: "I₂", nu: -1 }, { n: "HI", nu: 2 }] }
+  };
+  function inerte(D, cond, nHe) {
+    var x0 = avance(D.esp, D.ini, D.V0, D.Kc), n1 = mezcla(D.esp, D.ini, x0), nt = n1.reduce(function (a, b) { return a + b; }, 0);
+    var V2 = cond === "P" ? D.V0 * (nt + nHe) / nt : D.V0;
+    var q2 = Math.exp(lnQ(D.esp, n1, V2) - Math.log(D.Kc));        // Q/K justo tras añadir el inerte
+    // a P constante el volumen sigue a los moles totales (con el inerte) mientras reacciona: V(ξ) = V₀·(n_t + n_He + Δn·ξ)/n_t
+    var dn = D.esp.reduce(function (a, e) { return a + e.nu; }, 0);
+    var Vx = cond === "P" ? function (x) { return D.V0 * (nt + nHe + dn * x) / nt; } : V2;
+    var x2 = avance(D.esp, n1, Vx, D.Kc), n2 = mezcla(D.esp, n1, x2);
+    return { n1: n1, n2: n2, V2: V2, Vf: typeof Vx === "function" ? Vx(x2) : V2, qk: q2 };
+  }
+  B.lab.q6.inerte = inerte; B.lab.q6.INER = INER;
+
+  B.w.q6_inerte = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Añadir un gas inerte: ¿a V o a P constante?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-cond class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { r: "nh3", c: "V", he: 3 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), cont = cuerpo.querySelector(".w-plot");
+    U.slider(ctl, { et: "He añadido (mol)", min: 0, max: 6, step: 0.5, val: st.he, on: function (v) { st.he = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function pinta() {
+      var D = INER[st.r], s = inerte(D, st.c, st.he), k = D.esp.length, ymax = 0;
+      s.n1.concat(s.n2).forEach(function (v) { ymax = Math.max(ymax, v); });
+      cont.innerHTML = "";
+      g = new B.Plot(cont, { xmin: 0, xmax: k, ymin: 0, ymax: ymax * 1.2 + 0.01, w: 620, h: 260, sinX: true, etx: "", ety: "n (mol)", etiqueta: "Moles de cada especie antes y después" });
+      D.esp.forEach(function (e, i) {
+        g.rect(i + 0.12, 0, i + 0.48, s.n1[i], { clase: "z-pen" }); g.rect(i + 0.52, 0, i + 0.88, s.n2[i], { clase: "z-ok" });
+        g.texto(i + 0.5, 0, e.n, { dy: -6, ancla: "middle", clase: "pen" });
+        g.texto(i + 0.3, s.n1[i], fmt(s.n1[i], 2), { dy: -4, ancla: "middle" }); g.texto(i + 0.7, s.n2[i], fmt(s.n2[i], 2), { dy: -4, ancla: "middle" });
+      });
+      var cambia = s.n2.some(function (v, i) { return Math.abs(v - s.n1[i]) > 0.0005; });
+      var sent = !cambia ? "ninguno" : s.qk < 1 ? "→ productos" : "← reactivos";
+      lectura.innerHTML = fil("V inicial ⟶ al añadir He ⟶ final", fmt(D.V0, 1) + " ⟶ " + fmt(s.V2, 2) + " ⟶ " + fmt(s.Vf, 2) + " L", "pen") + fil("Q / K<sub>c</sub> al añadir He", fmt(s.qk, 3), "red") + fil("Desplazamiento", sent, "ok");
+      pie.innerHTML = st.c === "V"
+        ? "<b>V constante:</b> el helio sube la presión total, pero no cambia las concentraciones de las demás sustancias. Q = K<sub>c</sub> y <b>no hay desplazamiento</b> (barras iguales)."
+        : "<b>P constante:</b> el recipiente se expande al meter helio. Las concentraciones bajan como si hubieras <em>disminuido la presión</em>: se favorece el lado con <b>más moles de gas</b> (si Δn = 0, nada).";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), [{ k: "nh3", t: "N₂ + 3 H₂ ⇌ 2 NH₃" }, { k: "pcl5", t: "PCl₅ ⇌ PCl₃ + Cl₂" }, { k: "hi", t: "H₂ + I₂ ⇌ 2 HI" }], st.r, function (k) { st.r = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-cond]"), [{ k: "V", t: "V constante" }, { k: "P", t: "P constante" }], st.c, function (k) { st.c = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q6_KS: solubilidad e ion común
+  // ============================================================
+  var SALES = Object.keys(SAL);
+  function chipsSal() { return SALES.map(function (k) { return { k: k, t: SAL[k].t }; }); }
+  B.w.q6_ks = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Solubilidad y efecto del ion común");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ion class="chips"></div><p class="eq-ec" data-ec></p><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { s: "agcl", ion: "an", p: 2 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), ec = cuerpo.querySelector("[data-ec]");
+    U.slider(ctl, { et: "[ion común] = 10<sup>−p</sup> M · p", min: 0, max: 5, step: 0.1, val: st.p, on: function (v) { st.p = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -5, xmax: 0, ymin: -8, ymax: -1, w: 620, h: 280, etx: "log [ion común]", ety: "log s", etiqueta: "Solubilidad frente a concentración del ion común" });
+    function pinta() {
+      var S = SAL[st.s], c = Math.pow(10, -st.p), s0 = sol0(S), s = solIon(S, c, st.ion), ionTxt = st.ion === "cat" ? S.cat : S.an;
+      ec.innerHTML = S.t + " ⇌ " + (S.m > 1 ? S.m : "") + S.cat + " + " + (S.n > 1 ? S.n : "") + S.an + " · K<sub>s</sub> = " + cien(S.Ks, 1);
+      g.rango(-5, 0, Math.floor(Math.log10(solIon(S, 1, st.ion))) - 0.5, Math.log10(s0) + 1.2); g.limpiar();
+      g.horizontal(Math.log10(s0), { clase: "c-faint", dash: "5 4" });
+      g.curva(function (x) { return Math.log10(solIon(S, Math.pow(10, x), st.ion)); }, { clase: "c-pen", n: 60, x0: -5, x1: 0 }).setAttribute("stroke-width", 3);
+      g.punto(-st.p, Math.log10(s), { r: 6, clase: "c-red" });
+      g.texto(-4.9, Math.log10(s0), "sin ion común", { dy: -8 });
+      lectura.innerHTML = fil("s sin ion común", cien(s0, 2) + " M", "pen") + fil("s con " + fmt(c, c < 0.01 ? 5 : 3) + " M de " + ionTxt, cien(s, 2) + " M", "red") + fil("Se disuelve ÷", fmt(s0 / s, s0 / s < 100 ? 1 : 0), "ok") +
+        fil("Comprobación: Q = K<sub>s</sub>", cien(qProd(S, S.m * s + (st.ion === "cat" ? c : 0), S.n * s + (st.ion === "an" ? c : 0)), 2), "ancho");
+      pie.innerHTML = "Añadir un ion que ya forma parte de la sal <b>desplaza el equilibrio de solubilidad hacia el sólido</b> (Le Chatelier): la sal se disuelve menos. K<sub>s</sub> no cambia, porque no cambia la temperatura.";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), chipsSal(), st.s, function (k) { st.s = k; renueva(); pinta(); });
+    function renueva() {
+      var S = SAL[st.s];
+      U.fichas(cuerpo.querySelector("[data-ion]"), [{ k: "cat", t: "ion común: " + S.cat }, { k: "an", t: "ion común: " + S.an }], st.ion, function (k) { st.ion = k; pinta(); });
+    }
+    renueva(); pinta();
+  };
+
+  // ============================================================
+  // Q6_PRECIP: ¿precipita al mezclar?
+  // ============================================================
+  B.w.q6_precip = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "¿Precipita al mezclar? Q frente a K<sub>s</sub>");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><p class="eq-ec" data-ec></p><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { s: "agcl", p1: 4, p2: 4, V1: 50, V2: 50 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), ec = cuerpo.querySelector("[data-ec]");
+    U.slider(ctl, { et: "p₁ ([catión] = 10<sup>−p</sup> M)", min: 1, max: 7, step: 0.1, val: st.p1, on: function (v) { st.p1 = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl, { et: "V₁ (mL)", min: 10, max: 200, step: 5, val: st.V1, on: function (v) { st.V1 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    U.slider(ctl, { et: "p₂ ([anión] = 10<sup>−p</sup> M)", min: 1, max: 7, step: 0.1, val: st.p2, on: function (v) { st.p2 = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    U.slider(ctl, { et: "V₂ (mL)", min: 10, max: 200, step: 5, val: st.V2, on: function (v) { st.V2 = v; pinta(); }, fmt: function (v) { return fmt(v, 0); } });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -18, xmax: 0, ymin: 0, ymax: 1, w: 620, h: 150, etx: "log₁₀ (producto de concentraciones)", sinY: true, etiqueta: "Q frente a Ks en escala logarítmica" });
+    function pinta() {
+      var S = SAL[st.s], V = st.V1 + st.V2, c1 = Math.pow(10, -st.p1) * st.V1 / V, c2 = Math.pow(10, -st.p2) * st.V2 / V;
+      var Q = qProd(S, c1, c2), lk = Math.log10(S.Ks), lq = Math.log10(Q), prec = Q > S.Ks * 1.0000001;
+      ec.innerHTML = S.t + " ⇌ " + (S.m > 1 ? S.m : "") + S.cat + " + " + (S.n > 1 ? S.n : "") + S.an + " · K<sub>s</sub> = " + cien(S.Ks, 1) + " · Q = [" + S.cat + "]" + (S.m > 1 ? "<sup>" + S.m + "</sup>" : "") + "[" + S.an + "]" + (S.n > 1 ? "<sup>" + S.n + "</sup>" : "");
+      g.limpiar();
+      g.rect(-18, 0, lk, 1, { clase: "z-ok" }); g.rect(lk, 0, 0, 1, { clase: "z-pen" });
+      g.vertical(lk, { clase: "c-ok" }).setAttribute("stroke-width", 3);
+      g.vertical(Math.max(-17.8, Math.max(-18, lq)), { clase: "c-red" }).setAttribute("stroke-width", 4);
+      g.texto(lk, 0.88, "Kₛ", { dx: -6, ancla: "end", clase: "ok" }); g.texto(Math.max(-17.5, lq), 0.55, "Q", { dx: lq < -9 ? 8 : -8, ancla: lq < -9 ? "start" : "end", clase: "red" });
+      g.texto(-17.8, 0.2, "no precipita", { clase: "ok" }); g.texto(-0.2, 0.2, "precipita", { ancla: "end", clase: "pen" });
+      lectura.innerHTML = fil("[" + S.cat + "] tras mezclar", cien(c1, 2) + " M", "pen") + fil("[" + S.an + "] tras mezclar", cien(c2, 2) + " M", "pen") + fil("Q", cien(Q, 2), "red") + fil("Q / K<sub>s</sub>", Q / S.Ks < 1000 ? fmt(Q / S.Ks, Q / S.Ks < 10 ? 2 : 1) : cien(Q / S.Ks, 2), "ok") +
+        fil("Veredicto", prec ? "Q &gt; K<sub>s</sub>: precipita" : Math.abs(Q / S.Ks - 1) < 1e-6 ? "Q = K<sub>s</sub>: saturada" : "Q &lt; K<sub>s</sub>: no precipita", "ancho");
+      pie.innerHTML = "Al mezclar, el volumen total es V₁ + V₂ y cada concentración se <b>diluye</b>: c' = c·V/(V₁ + V₂). Esa es la trampa clásica. Después se compara Q con K<sub>s</sub>: si Q &gt; K<sub>s</sub> se forma precipitado hasta que las concentraciones cumplen K<sub>s</sub>.";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), chipsSal(), st.s, function (k) { st.s = k; pinta(); });
+    pinta();
+  };
+
 })(window);
 
 /* ============================================================
@@ -51621,7 +51875,7 @@
 
 /* ============================================================
    Química II · ampliaciones
-   Tema 6: Equilibrio químico
+   Tema 6: Equilibrio químico (parte A)
    Lo original de pagina.html no se toca: esto se añade al final de cada
    sección, como secciones nuevas, ejercicios nuevos y bloques de lámina.
    ============================================================ */
@@ -51975,8 +52229,573 @@
       ] }
   ];
 
-  B.registrar("quimica2", "t6", { secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+  // el registro final lo hace quimica2_t06c.js, que junta las partes A, B y C
+  B.parte = B.parte || {};
+  B.parte.q2t6a = { secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina };
 
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 6: Equilibrio químico
+   (parte B: secciones nuevas 8 a 14; la parte A ya trae las secciones 5 a 7)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t6/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 8
+    {
+      h: "8. Kc y Kp con calma: presiones parciales, fracciones molares y Δn",
+      html: env(
+        "<h5>De dónde sale Kp = Kc·(RT)<sup>Δn</sup></h5>" +
+        "<p>Para un gas ideal, p·V = n·R·T, es decir, <b>p = c·R·T</b> (c = n/V es la concentración molar). Si escribes K con presiones parciales y sustituyes cada p por c·R·T, los factores R·T se acumulan: sale un (RT) por cada mol de gas de los productos y desaparece uno por cada mol de gas de los reactivos.</p>" +
+        "<div class='formula-wrap'><div class='formula'>K<sub>p</sub> = K<sub>c</sub>·(R·T)<sup>Δn</sup>  con  Δn = Σ coef. de los <u>gases</u> producto − Σ coef. de los <u>gases</u> reactivo</div></div>" +
+        "<p>Tres cosas que se piden o se suspenden en Selectividad: (1) en Δn <b>solo cuentan los gases</b> (los sólidos y los líquidos no); (2) T siempre en <b>kelvin</b>; (3) con R = 0,082 atm·L·mol⁻¹·K⁻¹ las presiones van en <b>atm</b> y las concentraciones en <b>mol/L</b>. En el examen, K se da y se pide <em>sin unidades</em>.</p>" +
+        tabla(["Reacción (todo gas salvo indicación)", "Δn", "¿K<sub>p</sub> = K<sub>c</sub>?"], [
+          ["N₂ + 3 H₂ ⇌ 2 NH₃", "2 − 4 = −2", "No: K<sub>p</sub> = K<sub>c</sub>(RT)⁻²"],
+          ["2 SO₂ + O₂ ⇌ 2 SO₃", "2 − 3 = −1", "No: K<sub>p</sub> = K<sub>c</sub>(RT)⁻¹"],
+          ["H₂ + I₂ ⇌ 2 HI", "2 − 2 = 0", "Sí: K<sub>p</sub> = K<sub>c</sub>"],
+          ["PCl₅ ⇌ PCl₃ + Cl₂", "2 − 1 = +1", "No: K<sub>p</sub> = K<sub>c</sub>(RT)"],
+          ["CaCO₃(s) ⇌ CaO(s) + CO₂(g)", "1 − 0 = +1", "No: solo cuenta el CO₂"],
+          ["C(s) + CO₂(g) ⇌ 2 CO(g)", "2 − 1 = +1", "No: el C sólido no cuenta"]
+        ], "q3t") +
+        "<h5>Presiones parciales y fracciones molares</h5>" +
+        "<p>En una mezcla de gases, la presión parcial de cada componente es <b>p<sub>i</sub> = x<sub>i</sub>·P<sub>total</sub></b>, con x<sub>i</sub> = n<sub>i</sub>/n<sub>total</sub> (ley de Dalton). Las presiones parciales suman la total. Cuando el problema da <em>moles y presión total</em>, este es el camino: calcula n<sub>total</sub> (¡suma solo los gases!), las fracciones molares y de ahí las p<sub>i</sub>.</p>" +
+        ejemplo("Ejemplo 1: de K<sub>p</sub> a K<sub>c</sub>", "En el equilibrio N₂ + 3 H₂ ⇌ 2 NH₃ a 500 K las presiones parciales son p(N₂) = 2,0 atm, p(H₂) = 3,0 atm y p(NH₃) = 1,0 atm. Calcula K<sub>p</sub> y K<sub>c</sub>.", [
+          "K<sub>p</sub> = " + fr("p(NH₃)²", "p(N₂)·p(H₂)³") + " = " + fr("1,0²", "2,0 · 3,0³") + " = " + fr("1", "54") + " = <b>0,0185</b>",
+          "Δn = 2 − (1 + 3) = −2, así que K<sub>p</sub> = K<sub>c</sub>(RT)⁻² y K<sub>c</sub> = K<sub>p</sub>·(RT)² con RT = 0,082·500 = 41 atm·L/mol",
+          "K<sub>c</sub> = " + fr("1", "54") + " · 41² = " + fr("1681", "54") + " = <b>31,1</b>",
+          "Comprobación de sentido: con Δn negativo y RT &gt; 1, K<sub>c</sub> sale mayor que K<sub>p</sub>. Es coherente."
+        ]) +
+        ejemplo("Ejemplo 2: con moles y presión total (ley de Dalton)", "En un recipiente a 400 K y presión total 3,0 atm hay en el equilibrio 2,0 mol de N₂O₄ y 4,0 mol de NO₂ (N₂O₄ ⇌ 2 NO₂). Calcula K<sub>p</sub> y K<sub>c</sub>.", [
+          "n<sub>total</sub> = 2,0 + 4,0 = 6,0 mol. Fracciones molares: x(N₂O₄) = 2/6 = 1/3 y x(NO₂) = 4/6 = 2/3.",
+          "Presiones parciales: p(N₂O₄) = 3,0·(1/3) = 1,0 atm y p(NO₂) = 3,0·(2/3) = 2,0 atm (suman 3,0 atm ✓).",
+          "K<sub>p</sub> = " + fr("p(NO₂)²", "p(N₂O₄)") + " = " + fr("2,0²", "1,0") + " = <b>4,0</b>",
+          "Δn = 2 − 1 = +1; RT = 0,082·400 = 32,8. K<sub>c</sub> = K<sub>p</sub>/(RT) = 4,0/32,8 = <b>0,122</b>"
+        ]) +
+        ojo("si el enunciado da el volumen y los moles, es más rápido trabajar con <b>K<sub>c</sub></b> (concentraciones) y pasar a K<sub>p</sub> al final; si da la presión total, trabaja con <b>fracciones molares y K<sub>p</sub></b> y pasa a K<sub>c</sub> al final. Mezclar moles con presiones en la misma fórmula es el error más repetido.")
+      )
+    },
+
+    // ------------------------------------------------------------ 9
+    {
+      h: "9. Problemas con tabla ICE y grado de disociación (estilo EvAU)",
+      html: env(
+        "<h5>Un método que sirve para casi todo</h5>" +
+        "<ol>" +
+        "<li><b>Ajusta</b> la reacción y escribe la expresión de K que te piden (K<sub>c</sub> o K<sub>p</sub>).</li>" +
+        "<li><b>Tabla ICE</b> en moles (o en mol/L si V cambia o piden concentraciones): inicial, cambio (−a·x, +b·x) y equilibrio.</li>" +
+        "<li>Usa el <b>dato del enunciado</b> para fijar x: moles de una sustancia en el equilibrio, α, presión total, valor de K…</li>" +
+        "<li>Pasa a <b>concentraciones</b> (n/V) o a <b>presiones parciales</b> (x<sub>i</sub>·P) y sustituye en K.</li>" +
+        "<li>Comprueba: ¿ningún mol sale negativo? ¿Q = K con tus números?</li>" +
+        "</ol>" +
+        "<h5>Grado de disociación α</h5>" +
+        "<p>α = moles disociados / moles iniciales (en tanto por uno; ×100 es el porcentaje). Se usa cuando una sola sustancia se descompone. Para una disociación de un mol de reactivo con n₀ moles iniciales en un volumen V, estas relaciones te ahorran la tabla en los exámenes (pero sabe deducirlas con ella):</p>" +
+        tabla(["Disociación", "K<sub>c</sub>", "K<sub>p</sub> (presión total P)", "n<sub>total</sub>"], [
+          ["A ⇌ B + C  (PCl₅ ⇌ PCl₃ + Cl₂)", fr("n₀α²", "V(1 − α)"), fr("α²·P", "1 − α²"), "n₀(1 + α)"],
+          ["A ⇌ 2 B  (N₂O₄ ⇌ 2 NO₂)", fr("4n₀α²", "V(1 − α)"), fr("4α²·P", "1 − α²"), "n₀(1 + α)"]
+        ], "q3t") +
+        "<p>Mira qué dicen: si Δn = 0 el volumen y la presión no aparecen y α no depende de ellos; si Δn = +1, <b>menos presión (más volumen) ⇒ α mayor</b>. Pruébalo:</p>" +
+        w("q6_alfa") +
+        ejemplo("Ejemplo 1: dato en forma de concentración de equilibrio", "Se introducen 0,10 mol de CO₂ y 0,10 mol de H₂ en un recipiente de 1,0 L a 1000 K, donde K<sub>c</sub> = 0,63 para CO₂ + H₂ ⇌ CO + H₂O. Calcula las concentraciones en el equilibrio y el porcentaje de CO₂ convertido.", [
+          "Tabla ICE (mol/L, V = 1,0 L):" + tabla(["", "CO₂", "H₂", "CO", "H₂O"], [["Inicial", "0,10", "0,10", "0", "0"], ["Cambio", "−x", "−x", "+x", "+x"], ["Equilibrio", "0,10 − x", "0,10 − x", "x", "x"]], "ice"),
+          "K<sub>c</sub> = " + fr("x²", "(0,10 − x)²") + " = 0,63. Es un cuadrado perfecto: " + fr("x", "0,10 − x") + " = √0,63 = 0,794",
+          "x = 0,794·(0,10 − x)  →  x(1 + 0,794) = 0,0794  →  <b>x = 0,0443 mol/L</b>",
+          "[CO] = [H₂O] = 0,0443 M y [CO₂] = [H₂] = 0,10 − 0,0443 = <b>0,0557 M</b>.  Convertido: 0,0443/0,10 = <b>44,3 %</b> del CO₂.",
+          "Como Δn = 0 el volumen no influye: con 10 L y los mismos moles la conversión sería idéntica."
+        ]) +
+        ejemplo("Ejemplo 2: α, presión total y las dos constantes", "En un recipiente cerrado se introduce 1,00 mol de PCl₅ y se calienta a 500 K. A la presión total de 1,0 atm el PCl₅ está disociado en un 50 % (PCl₅ ⇌ PCl₃ + Cl₂). Calcula K<sub>p</sub> y K<sub>c</sub>. ¿Cuánto vale α si la presión total sube hasta 4,0 atm?", [
+          "Con α = 0,50: moles en el equilibrio PCl₅ = 0,50, PCl₃ = 0,50, Cl₂ = 0,50; n<sub>total</sub> = 1,50 mol. Fracciones molares: 1/3 cada una; con P = 1,0 atm, cada p = 0,333 atm.",
+          "K<sub>p</sub> = " + fr("0,333·0,333", "0,333") + " = <b>0,333</b>  (con la fórmula: " + fr("α²P", "1 − α²") + " = " + fr("0,25", "0,75") + " ✓).",
+          "Δn = +1: K<sub>c</sub> = K<sub>p</sub>/(RT) = 0,333/(0,082·500) = 0,333/41 = <b>8,13·10⁻³</b>",
+          "A 4,0 atm (misma T, así que misma K<sub>p</sub>): " + fr("α²·4,0", "1 − α²") + " = 0,333  →  α² = 0,0833(1 − α²)  →  α² = " + fr("0,0833", "1,0833") + " = 0,0769  →  <b>α = 0,277</b> (27,7 %).",
+          "Es Le Chatelier en números: al aumentar la presión se favorece el lado con menos moles de gas (el PCl₅) y α baja de 0,50 a 0,28."
+        ]) +
+        ojo("el grado de disociación solo se define sobre <em>la sustancia que se descompone</em>. Si hay otras sustancias presentes desde el principio, α no se obtiene de la tabla «estándar»: escribe la tabla completa. Y cuando dudes de si puedes aproximar (1 − α ≈ 1), no lo hagas: resuelve la cuadrática, que es lo que el corrector espera.")
+      )
+    },
+
+    // ------------------------------------------------------------ 10
+    {
+      h: "10. Q en acción: predecir el sentido y calcular el nuevo equilibrio",
+      html: env(
+        "<h5>Q primero, siempre que haya duda</h5>" +
+        "<p>Q se escribe como K pero con las concentraciones <em>de ese momento</em>. Cuando un enunciado mezcla reactivos y productos desde el principio, <b>compara Q con K antes de montar la tabla</b>: te dice si x es positivo (a la derecha) o negativo (a la izquierda), y evita sorpresas con moles negativos.</p>" +
+        ejemplo("Ejemplo 1: ¿hacia dónde evoluciona?", "Para CO + H₂O ⇌ CO₂ + H₂ a cierta temperatura K<sub>c</sub> = 4,0. Se preparan tres mezclas (moles de CO, H₂O, CO₂, H₂ en el mismo recipiente): (a) 1,0 / 1,0 / 1,0 / 1,0; (b) 0,5 / 0,5 / 3,0 / 3,0; (c) 1,0 / 2,0 / 4,0 / 2,0. Indica el sentido de cada una.", [
+          "Como Δn = 0, V se cancela y Q se calcula con moles: Q = " + fr("n(CO₂)·n(H₂)", "n(CO)·n(H₂O)") + ".",
+          "(a) Q = " + fr("1·1", "1·1") + " = 1,0 &lt; 4,0 → evoluciona <b>hacia la derecha</b> (se forma CO₂ y H₂).",
+          "(b) Q = " + fr("3·3", "0,5·0,5") + " = 36 &gt; 4,0 → evoluciona <b>hacia la izquierda</b>.",
+          "(c) Q = " + fr("4·2", "1·2") + " = 4,0 = K<sub>c</sub> → <b>ya está en equilibrio</b>: no cambia nada."
+        ]) +
+        "<h5>Después de perturbar: nueva tabla ICE</h5>" +
+        "<p>Cuando añades o retiras una sustancia, la mezcla deja de estar en equilibrio. Para calcular el <b>nuevo equilibrio</b>: (1) el «inicial» de la nueva tabla es la composición del equilibrio anterior más (o menos) lo que has añadido; (2) la K es la misma (la temperatura no ha cambiado); (3) resuelves igual que siempre. Si lo que cambia es el volumen, además divide por el nuevo V.</p>" +
+        ejemplo("Ejemplo 2: añadir un reactivo", "En 1,0 L, 1,0 mol de H₂ y 1,0 mol de I₂ a 700 K alcanzan el equilibrio (K<sub>c</sub> = 54): [H₂] = [I₂] = 0,214 M y [HI] = 1,572 M. Se añade 1,0 mol de H₂ (sin cambiar V ni T). Calcula las nuevas concentraciones.", [
+          "Nuevo inicial: [H₂] = 0,214 + 1,0 = 1,214 · [I₂] = 0,214 · [HI] = 1,572.",
+          "Q = " + fr("1,572²", "1,214·0,214") + " = " + fr("2,471", "0,2598") + " = 9,5 &lt; 54 → el sistema va a la derecha (Le Chatelier: se «gasta» parte del H₂ añadido).",
+          "Tabla ICE: H₂ = 1,214 − x · I₂ = 0,214 − x · HI = 1,572 + 2x.  K<sub>c</sub> = " + fr("(1,572 + 2x)²", "(1,214 − x)(0,214 − x)") + " = 54",
+          "Desarrollando: 50x² − 83,4x + 11,56 = 0. De las dos raíces, solo vale la que cumple x &lt; 0,214 (si no, saldría un [I₂] negativo): <b>x = 0,152</b>.",
+          "Nuevo equilibrio: [H₂] = <b>1,062 M</b> · [I₂] = <b>0,062 M</b> · [HI] = <b>1,877 M</b>. Comprobación: 1,877²/(1,062·0,062) = 53,5 ≈ 54 ✓.",
+          "Observa lo que ha pasado: el I₂ casi ha desaparecido (de 0,214 a 0,062 M) y el HI ha subido. Añadir H₂ no cambia K, solo la posición."
+        ])
+      )
+    },
+
+    // ------------------------------------------------------------ 11
+    {
+      h: "11. Le Chatelier completo: presión, gas inerte, catalizador y temperatura",
+      html: env(
+        "<h5>La regla que lo ordena todo: calcula cómo cambia Q</h5>" +
+        "<p>Cualquier perturbación se analiza igual: ¿cambia Q o cambia K? Si cambia <b>Q</b> (concentración, volumen, presión), el sistema evoluciona hasta que Q vuelva a valer el mismo K. Si cambia <b>K</b> (solo la temperatura), el sistema evoluciona hasta el nuevo K.</p>" +
+        "<h5>Volumen y presión</h5>" +
+        "<p>Comprimir (V a la mitad) duplica todas las concentraciones. En Q aparece el factor 2 elevado a Δn: si Δn &lt; 0 (menos moles de gas en productos), Q <em>disminuye</em> y el sistema evoluciona hacia productos; si Δn &gt; 0, Q <em>aumenta</em> y evoluciona hacia reactivos; si Δn = 0, Q no cambia. Por ejemplo, para N₂O₄ ⇌ 2 NO₂ (Δn = +1) comprimir a la mitad hace Q = 2K: Q &gt; K, el sistema retrocede hacia el N₂O₄.</p>" +
+        "<h5>Gas inerte: depende de qué se mantenga constante</h5>" +
+        "<ul>" +
+        "<li><b>V y T constantes</b>: añadir un gas inerte sube la presión total, pero las concentraciones (y las presiones parciales) de las sustancias que reaccionan no cambian. Q = K: <b>no hay desplazamiento</b>.</li>" +
+        "<li><b>P y T constantes</b>: el recipiente se expande, V crece, las concentraciones bajan: equivale a <em>disminuir la presión</em>. Se favorece el lado con <b>más moles de gas</b>.</li>" +
+        "</ul>" +
+        w("q6_inerte") +
+        "<h5>Catalizador</h5>" +
+        "<p>Disminuye la energía de activación de la reacción directa <em>y</em> de la inversa en la misma proporción: se llega antes al equilibrio, pero <b>K y las concentraciones finales no cambian</b>. Es una pregunta de «verdadero o falso» muy habitual.</p>" +
+        "<h5>Temperatura: es lo único que cambia K</h5>" +
+        "<p>La ecuación de van't Hoff conecta K con la temperatura: ln(K₂/K₁) = −(ΔH/R)·(1/T₂ − 1/T₁). Con ΔH &lt; 0 (exotérmica), subir T <b>disminuye</b> K; con ΔH &gt; 0 (endotérmica) lo <b>aumenta</b>. Para una exotérmica y una endotérmica en el mismo gráfico de ln K frente a 1/T salen rectas de pendiente −ΔH/R, de signos contrarios. (En 2.º de Bachillerato la ecuación aparece pocas veces; lo que sí se pide siempre es el razonamiento cualitativo con ΔH.)</p>" +
+        w("q6_vanthoff") +
+        ejemplo("Ejemplo EvAU (cualitativo): el SO₂ y el SO₃", "El equilibrio 2 SO₂(g) + O₂(g) ⇌ 2 SO₃(g) tiene ΔH = −198 kJ. Razona, para cada cambio, hacia dónde se desplaza y si K cambia: (a) subir la temperatura; (b) aumentar la presión comprimiendo; (c) añadir un catalizador; (d) retirar SO₃; (e) añadir He a volumen constante.", [
+          "(a) Exotérmica: subir T favorece el sentido endotérmico (la inversa). Se desplaza hacia la <b>izquierda</b> y <b>K disminuye</b>.",
+          "(b) Δn = 2 − 3 = −1: la presión favorece el lado con menos moles de gas, los productos. Se desplaza a la <b>derecha</b>; K no cambia.",
+          "(c) <b>No se desplaza</b>: el equilibrio se alcanza antes, con las mismas concentraciones; K no cambia.",
+          "(d) Retirar producto hace Q &lt; K: se desplaza a la <b>derecha</b> para reponer SO₃; K no cambia.",
+          "(e) V y T constantes: las concentraciones no varían, Q = K. <b>No hay desplazamiento</b>."
+        ]) +
+        ejemplo("Ejemplo con números: K a otra temperatura", "Para N₂O₄ ⇌ 2 NO₂ (ΔH = +57,2 kJ) K<sub>c</sub> = 4,6·10⁻³ a 298 K. Calcula K<sub>c</sub> a 320 K.", [
+          "ln(K₂/K₁) = −" + fr("ΔH", "R") + "(" + fr("1", "T₂") + " − " + fr("1", "T₁") + ") = −" + fr("57200", "8,314") + "(" + fr("1", "320") + " − " + fr("1", "298") + ")",
+          "= −6880 · (3,125·10⁻³ − 3,356·10⁻³) = −6880·(−2,307·10⁻⁴) = +1,587",
+          "K₂/K₁ = e<sup>1,587</sup> = 4,89  →  K₂ = 4,6·10⁻³·4,89 = <b>2,25·10⁻²</b>",
+          "Coherente: endotérmica y T más alta ⇒ K aumenta (casi 5 veces con solo 22 K)."
+        ])
+      )
+    },
+
+    // ------------------------------------------------------------ 12
+    {
+      h: "12. Equilibrios heterogéneos con gases: presión de equilibrio y masa mínima",
+      html: env(
+        "<p>Cuando en el equilibrio hay <b>un único gas</b> y uno o varios sólidos, la presión de ese gas en el equilibrio es una <b>constante a cada temperatura</b>: es K<sub>p</sub>. No depende de cuánto sólido haya, con una condición: <b>tiene que haber algo de cada sólido</b>. Si el sólido se agota antes de llegar a esa presión, el equilibrio no se alcanza.</p>" +
+        ejemplo("Ejemplo 1: dos gases en la misma proporción", "En un recipiente se introduce NH₄HS(s), que se descompone: NH₄HS(s) ⇌ NH₃(g) + H₂S(g). En el equilibrio la presión total es 0,66 atm. Calcula K<sub>p</sub>.", [
+          "Los dos gases salen en cantidades iguales (mismo coeficiente y no había ninguno al principio), así que p(NH₃) = p(H₂S) = 0,66/2 = 0,33 atm.",
+          "K<sub>p</sub> = p(NH₃)·p(H₂S) = 0,33·0,33 = <b>0,109</b>. El sólido no aparece.",
+          "Si se aumenta el volumen, se descompone más sólido hasta recuperar esas presiones; si el sólido se acaba, la presión bajará y no habrá equilibrio."
+        ]) +
+        ejemplo("Ejemplo 2: ¿cuánto sólido se descompone?", "En un recipiente de 10 L a 800 °C (1073 K) se alcanza CaCO₃(s) ⇌ CaO(s) + CO₂(g) con p(CO₂) = 0,22 atm. Calcula K<sub>c</sub> y la masa de CaCO₃ que se ha descompuesto. M(CaCO₃) = 100,1 g/mol.", [
+          "K<sub>p</sub> = p(CO₂) = 0,22. Con Δn = +1: K<sub>c</sub> = K<sub>p</sub>/(RT) = 0,22/(0,082·1073) = 0,22/88,0 = <b>2,50·10⁻³</b> (= [CO₂]).",
+          "n(CO₂) = pV/RT = " + fr("0,22·10", "0,082·1073") + " = <b>0,0250 mol</b>.",
+          "Por cada mol de CO₂ se descompone 1 mol de CaCO₃: 0,0250 mol · 100,1 g/mol = <b>2,50 g</b> de CaCO₃ descompuestos.",
+          "Si solo hubiéramos puesto 1,0 g de CaCO₃ (0,0100 mol), se descompondría <em>todo</em> y la presión quedaría por debajo de 0,22 atm: no habría equilibrio."
+        ]) +
+        ojo("el valor de K<sub>p</sub> de un equilibrio heterogéneo se calcula solo con las presiones de los <em>gases</em>. Y cuidado con la «cantidad mínima de sólido»: es la que hace falta para llegar a la presión de equilibrio, no la que se pone «de más».")
+      )
+    },
+
+    // ------------------------------------------------------------ 13
+    {
+      h: "13. Solubilidad y producto de solubilidad (K<sub>s</sub>)",
+      html: env(
+        "<h5>Una sal poco soluble es un equilibrio heterogéneo</h5>" +
+        "<p>Cuando un sólido iónico poco soluble se disuelve hasta saturar la disolución, queda en equilibrio con sus iones: AgCl(s) ⇌ Ag⁺(aq) + Cl⁻(aq). Como el sólido no figura en la expresión, la constante solo contiene los iones y se llama <b>producto de solubilidad</b>: K<sub>s</sub> = [Ag⁺][Cl⁻]. Para una sal general A<sub>m</sub>B<sub>n</sub> ⇌ m A<sup>n+</sup> + n B<sup>m−</sup>:</p>" +
+        "<div class='formula-wrap'><div class='formula'>K<sub>s</sub> = [A<sup>n+</sup>]<sup>m</sup>·[B<sup>m−</sup>]<sup>n</sup></div></div>" +
+        "<p>La <b>solubilidad</b> s es la concentración (mol/L) de sal disuelta en la disolución saturada (también se da en g/L: divide entre la masa molar para pasar a mol/L). Con una tabla ICE, si se disuelven s mol/L de sal, aparecen m·s de catión y n·s de anión, y K<sub>s</sub> = (ms)<sup>m</sup>(ns)<sup>n</sup>:</p>" +
+        tabla(["Tipo de sal", "Ejemplos", "K<sub>s</sub> en función de s", "s"], [
+          ["AB", "AgCl, BaSO₄, CaCO₃", "s²", "√K<sub>s</sub>"],
+          ["AB₂ o A₂B", "PbI₂, CaF₂, Mg(OH)₂, Ag₂CrO₄", "4s³", "∛(K<sub>s</sub>/4)"],
+          ["AB₃ o A₃B", "Fe(OH)₃, Al(OH)₃", "27s⁴", "⁴√(K<sub>s</sub>/27)"],
+          ["A₂B₃ o A₃B₂", "Ca₃(PO₄)₂, Al₂S₃", "108s⁵", "⁵√(K<sub>s</sub>/108)"]
+        ], "q3t") +
+        ejemplo("Ejemplo 1: de K<sub>s</sub> a solubilidad", "K<sub>s</sub>(AgCl) = 1,8·10⁻¹⁰ y K<sub>s</sub>(PbI₂) = 7,1·10⁻⁹. Calcula la solubilidad de cada uno en mol/L y en g/L. M(AgCl) = 143,3; M(PbI₂) = 461,0 g/mol.", [
+          "AgCl ⇌ Ag⁺ + Cl⁻: K<sub>s</sub> = s². s = √(1,8·10⁻¹⁰) = <b>1,34·10⁻⁵ mol/L</b> → 1,34·10⁻⁵·143,3 = <b>1,92·10⁻³ g/L</b>.",
+          "PbI₂ ⇌ Pb²⁺ + 2 I⁻: [Pb²⁺] = s, [I⁻] = 2s, K<sub>s</sub> = s·(2s)² = 4s³. s = ∛(7,1·10⁻⁹/4) = ∛(1,775·10⁻⁹) = <b>1,21·10⁻³ mol/L</b> → 1,21·10⁻³·461,0 = <b>0,558 g/L</b>."
+        ]) +
+        ejemplo("Ejemplo 2: de solubilidad a K<sub>s</sub>", "La solubilidad del Ag₂CrO₄ en agua es 0,0216 g/L. Calcula su K<sub>s</sub>. M(Ag₂CrO₄) = 331,7 g/mol.", [
+          "s = 0,0216 / 331,7 = <b>6,51·10⁻⁵ mol/L</b>.",
+          "Ag₂CrO₄ ⇌ 2 Ag⁺ + CrO₄²⁻: [Ag⁺] = 2s, [CrO₄²⁻] = s. K<sub>s</sub> = (2s)²·s = 4s³ = 4·(6,51·10⁻⁵)³ = <b>1,10·10⁻¹²</b>."
+        ]) +
+        ojo("<b>No compares K<sub>s</sub> de sales con distinta estequiometría para decir cuál es más soluble.</b> K<sub>s</sub>(Ag₂CrO₄) = 1,1·10⁻¹² es unas 160 veces menor que K<sub>s</sub>(AgCl) = 1,8·10⁻¹⁰, pero la solubilidad del cromato (6,5·10⁻⁵ M) es casi 5 veces <em>mayor</em> que la del cloruro (1,3·10⁻⁵ M). Solo es válido comparar K<sub>s</sub> si las sales son del mismo tipo (AB con AB). En los demás casos, calcula s.") +
+        "<h5>Otras cuestiones que salen</h5>" +
+        "<p><b>Temperatura</b>: K<sub>s</sub> cambia con T (casi siempre aumenta al calentar, porque disolver suele ser endotérmico). <b>pH</b>: si el anión es básico (OH⁻, S²⁻, CO₃²⁻…), un ácido lo consume y la sal se disuelve más; por eso el Mg(OH)₂ se disuelve en ácido. Con hidróxidos puedes calcular el pH de la disolución saturada: Mg(OH)₂ tiene [OH⁻] = 2s, y de ahí pOH y pH (tema 7).</p>"
+      )
+    },
+
+    // ------------------------------------------------------------ 14
+    {
+      h: "14. Ion común y precipitación",
+      html: env(
+        "<h5>Efecto del ion común</h5>" +
+        "<p>Si a una disolución saturada de AgCl le añades NaCl (un ion Cl⁻ que ya forma parte de la sal), aumenta [Cl⁻] y, para mantener [Ag⁺][Cl⁻] = K<sub>s</sub>, tiene que disminuir [Ag⁺]: se forma más sólido. Es Le Chatelier aplicado a la solubilidad: <b>un ion común disminuye la solubilidad</b>. K<sub>s</sub> no cambia (solo cambia con la temperatura).</p>" +
+        "<p>Cómo se calcula: tabla ICE con el ion común ya presente en el estado inicial. Para AgCl en NaCl 0,10 M: [Cl⁻] = 0,10 + s, [Ag⁺] = s. Como s es minúscula, 0,10 + s ≈ 0,10 y entonces s ≈ K<sub>s</sub>/0,10. Mueve el deslizador y comprueba que la curva es una recta de pendiente −1 (para AB) en escala logarítmica:</p>" +
+        w("q6_ks") +
+        ejemplo("Ejemplo 1: AgCl en una disolución de NaCl", "Calcula la solubilidad del AgCl (K<sub>s</sub> = 1,8·10⁻¹⁰) en una disolución de NaCl 0,10 M y compárala con la del agua pura.", [
+          "En agua pura: s₀ = √(1,8·10⁻¹⁰) = 1,34·10⁻⁵ M.",
+          "Con ion común: K<sub>s</sub> = [Ag⁺][Cl⁻] = s·(0,10 + s) ≈ s·0,10 → <b>s = 1,8·10⁻¹⁰/0,10 = 1,8·10⁻⁹ M</b>.",
+          "Aproximación válida: s = 1,8·10⁻⁹ ≪ 0,10.",
+          "Se disuelve unas 7.500 veces menos que en agua pura (1,34·10⁻⁵/1,8·10⁻⁹ = 7,5·10³)."
+        ]) +
+        "<h5>¿Precipita o no? Q frente a K<sub>s</sub></h5>" +
+        "<p>Es el cociente de reacción de siempre, con los iones: <b>Q = [catión]<sup>m</sup>[anión]<sup>n</sup></b> con las concentraciones <em>justo después de mezclar</em>. Si Q &gt; K<sub>s</sub> → precipita; si Q = K<sub>s</sub> → disolución saturada; si Q &lt; K<sub>s</sub> → no precipita (sigue disuelto). La trampa clásica: al mezclar dos disoluciones, el volumen total es la suma y <b>cada concentración se diluye</b>: c' = c·V/(V₁ + V₂).</p>" +
+        w("q6_precip") +
+        ejemplo("Ejemplo 2: mezcla de dos disoluciones", "Se mezclan 50 mL de AgNO₃ 1,0·10⁻³ M con 50 mL de NaCl 1,0·10⁻⁴ M. ¿Precipita AgCl? (K<sub>s</sub> = 1,8·10⁻¹⁰)", [
+          "Volumen final 100 mL; cada concentración se reduce a la mitad: [Ag⁺] = 5,0·10⁻⁴ M y [Cl⁻] = 5,0·10⁻⁵ M.",
+          "Q = [Ag⁺][Cl⁻] = 5,0·10⁻⁴·5,0·10⁻⁵ = <b>2,5·10⁻⁸</b>.",
+          "Q = 2,5·10⁻⁸ &gt; K<sub>s</sub> = 1,8·10⁻¹⁰ (unas 140 veces mayor) → <b>sí precipita AgCl</b>."
+        ]) +
+        ejemplo("Ejemplo 3: con una sal AB₂", "Se mezclan 100 mL de Pb(NO₃)₂ 0,010 M con 100 mL de KI 0,010 M. ¿Precipita PbI₂? (K<sub>s</sub> = 7,1·10⁻⁹)", [
+          "Concentraciones tras mezclar (V = 200 mL): [Pb²⁺] = 5,0·10⁻³ M y [I⁻] = 5,0·10⁻³ M.",
+          "Q = [Pb²⁺][I⁻]² = 5,0·10⁻³·(5,0·10⁻³)² = <b>1,25·10⁻⁷</b> (el yoduro va <em>al cuadrado</em>).",
+          "Q = 1,25·10⁻⁷ &gt; 7,1·10⁻⁹ → <b>sí precipita</b> PbI₂."
+        ]) +
+        "<h5>Precipitación fraccionada</h5>" +
+        "<p>Si en una disolución hay dos aniones que forman sales poco solubles con el mismo catión y vas añadiendo el catión, precipita primero la sal que necesita <b>menos catión</b> para alcanzar su K<sub>s</sub>. No se decide mirando solo K<sub>s</sub>: hay que calcular la concentración mínima de catión en cada caso.</p>" +
+        ejemplo("Ejemplo 4: ¿cuál precipita primero?", "Una disolución contiene Cl⁻ 0,010 M y CrO₄²⁻ 0,010 M. Se añade AgNO₃ sólido poco a poco (sin variar el volumen). K<sub>s</sub>(AgCl) = 1,8·10⁻¹⁰; K<sub>s</sub>(Ag₂CrO₄) = 1,1·10⁻¹². ¿Qué sal precipita primero? ¿Qué [Cl⁻] queda cuando empieza a precipitar la otra?", [
+          "AgCl empieza a precipitar cuando [Ag⁺] = K<sub>s</sub>/[Cl⁻] = 1,8·10⁻¹⁰/0,010 = <b>1,8·10⁻⁸ M</b>.",
+          "Ag₂CrO₄ empieza cuando [Ag⁺]² = K<sub>s</sub>/[CrO₄²⁻] = 1,1·10⁻¹²/0,010 = 1,1·10⁻¹⁰ → [Ag⁺] = <b>1,05·10⁻⁵ M</b>.",
+          "AgCl necesita mucho menos Ag⁺: <b>precipita primero el AgCl</b> (aunque su K<sub>s</sub> sea mayor).",
+          "Cuando empieza a precipitar el cromato, [Ag⁺] = 1,05·10⁻⁵ M y entonces [Cl⁻] = 1,8·10⁻¹⁰/1,05·10⁻⁵ = <b>1,7·10⁻⁵ M</b>.",
+          "Eso es el 0,17 % del cloruro inicial (1,7·10⁻⁵/0,010): ya ha precipitado el 99,8 %. Así se separan los iones."
+        ]) +
+        ejemplo("Ejemplo 5: concentración mínima para que precipite", "¿A partir de qué pH precipita el Mg(OH)₂ en una disolución de Mg²⁺ 0,010 M? K<sub>s</sub>[Mg(OH)₂] = 1,8·10⁻¹¹.", [
+          "Precipita cuando Q = [Mg²⁺][OH⁻]² supera K<sub>s</sub>: [OH⁻]² = 1,8·10⁻¹¹/0,010 = 1,8·10⁻⁹.",
+          "[OH⁻] = √(1,8·10⁻⁹) = 4,24·10⁻⁵ M → pOH = 4,37 → <b>pH = 14 − 4,37 = 9,63</b>.",
+          "Por debajo de pH 9,63 no precipita; por encima, sí."
+        ])
+      )
+    }
+  ];
+
+  B.parte.q2t6b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 6: Equilibrio químico
+   (parte C: resumen, actividades, ejercicios, láminas y registro final de las partes A, B y C)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t6/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  var A = B.parte.q2t6a, P = B.parte.q2t6b;
+
+  var resumen = [
+    "<b>Equilibrio dinámico</b>: v directa = v inversa; las concentraciones son constantes, no iguales. K depende solo de la temperatura y dice <em>hasta dónde</em> llega la reacción, no lo rápida que es.",
+    "<b>K<sub>c</sub> y K<sub>p</sub></b>: productos entre reactivos, cada uno elevado a su coeficiente; sólidos y líquidos puros no figuran. K<sub>p</sub> = K<sub>c</sub>(RT)<sup>Δn</sup> con Δn solo de gases, T en K y R = 0,082 atm·L·mol⁻¹·K⁻¹. Presiones parciales: p<sub>i</sub> = x<sub>i</sub>·P.",
+    "<b>Operar con K</b>: invertir → 1/K; multiplicar coeficientes por n → Kⁿ; sumar reacciones → producto de las K.",
+    "<b>Tabla ICE</b>: inicial, cambio (−a·x, +b·x), equilibrio; pasa a mol/L (o a presiones parciales) antes de sustituir. Con α: moles disociados = n₀α. Si sale 2.º grado, resuélvelo (aproximar solo si x &lt; 5 %).",
+    "<b>Q frente a K</b>: Q &lt; K → hacia productos; Q &gt; K → hacia reactivos; Q = K → equilibrio. Tras una perturbación, el «inicial» de la nueva tabla es el equilibrio anterior modificado.",
+    "<b>Le Chatelier</b>: concentración y volumen/presión cambian Q (K igual); gas inerte a V constante no desplaza, a P constante equivale a bajar la presión; catalizador no desplaza; solo la temperatura cambia K (exotérmica: sube T → K baja; endotérmica: K sube).",
+    "<b>Equilibrio heterogéneo</b>: con un solo gas, K<sub>p</sub> = presión de ese gas; hace falta sólido suficiente para alcanzarla.",
+    "<b>Solubilidad y K<sub>s</sub></b>: K<sub>s</sub> = [catión]<sup>m</sup>[anión]<sup>n</sup>; AB: s = √K<sub>s</sub>; AB₂ o A₂B: s = ∛(K<sub>s</sub>/4). No compares K<sub>s</sub> de sales de distinta estequiometría: calcula s.",
+    "<b>Ion común y precipitación</b>: un ion común disminuye s (K<sub>s</sub> no cambia). Al mezclar, diluye primero (c·V/V<sub>total</sub>) y compara Q con K<sub>s</sub>: Q &gt; K<sub>s</sub> precipita. Precipita primero la sal que necesita menos catión."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = A.datos;
+  datos.tarjetas1 = {
+    titulo: "Tarjetas del tema",
+    cartas: [
+      { a: "Equilibrio químico", b: "Estado en que la velocidad de la reacción directa es igual a la de la inversa: las concentraciones no cambian, pero la reacción no se ha parado (es dinámico)." },
+      { a: "K<sub>c</sub>", b: "Cociente de las concentraciones de equilibrio de productos y reactivos, cada una elevada a su coeficiente. Sin sólidos ni líquidos puros. Solo depende de T." },
+      { a: "K<sub>p</sub> = K<sub>c</sub>(RT)<sup>Δn</sup>", b: "Δn = moles de gas de productos − moles de gas de reactivos. T en K; con R = 0,082, presiones en atm." },
+      { a: "Presión parcial", b: "p<sub>i</sub> = x<sub>i</sub>·P<sub>total</sub> = n<sub>i</sub>RT/V. Las parciales suman la total." },
+      { a: "Cociente de reacción Q", b: "Se calcula como K pero con las concentraciones de un instante cualquiera. Q &lt; K: hacia productos. Q &gt; K: hacia reactivos." },
+      { a: "Tabla ICE", b: "Inicial · Cambio (−a·x, +b·x) · Equilibrio. Se sustituye en K en concentraciones (n/V) o en presiones parciales." },
+      { a: "Grado de disociación α", b: "Fracción de moles iniciales que se han disociado: α = moles disociados / n₀. En PCl₅ ⇌ PCl₃ + Cl₂: K<sub>p</sub> = α²P/(1 − α²)." },
+      { a: "Le Chatelier", b: "Si se perturba un equilibrio, evoluciona en el sentido que contrarresta la perturbación. Se razona mejor comparando Q con K." },
+      { a: "Qué cambia K", b: "Solo la temperatura. Concentración, volumen, presión, gas inerte y catalizador no cambian K." },
+      { a: "Gas inerte", b: "A V y T constantes no desplaza el equilibrio. A P y T constantes el volumen crece y se favorece el lado con más moles de gas." },
+      { a: "Catalizador y equilibrio", b: "Acelera por igual los dos sentidos: se llega antes al equilibrio, pero K y las concentraciones finales no cambian." },
+      { a: "van't Hoff", b: "ln(K₂/K₁) = −(ΔH/R)(1/T₂ − 1/T₁). Exotérmica: K baja al subir T. Endotérmica: K sube." },
+      { a: "Equilibrio heterogéneo", b: "Con sólidos y gases: solo cuentan los gases. CaCO₃ ⇌ CaO + CO₂: K<sub>p</sub> = p(CO₂), una constante a cada T." },
+      { a: "Producto de solubilidad K<sub>s</sub>", b: "K<sub>s</sub> = [catión]<sup>m</sup>[anión]<sup>n</sup> de la disolución saturada. AB: K<sub>s</sub> = s². AB₂: K<sub>s</sub> = 4s³." },
+      { a: "Efecto del ion común", b: "Un ion que ya forma parte de la sal disminuye su solubilidad (Le Chatelier). K<sub>s</sub> no cambia." },
+      { a: "Precipitación", b: "Tras mezclar (¡con el volumen total!) se calcula Q con los iones. Q &gt; K<sub>s</sub>: precipita. Q = K<sub>s</sub>: saturada. Q &lt; K<sub>s</sub>: no precipita." }
+    ]
+  };
+
+  datos.errores2 = {
+    titulo: "Encuentra el error (2)",
+    intro: "Más razonamientos con trampa, ahora de K<sub>p</sub>, α, gas inerte y solubilidad.",
+    preguntas: [
+      { q: "«Para N₂O₄ ⇌ 2 NO₂ a 400 K, K<sub>p</sub> = K<sub>c</sub>(RT)⁻¹ porque hay un mol de N₂O₄.» ¿Qué falla?",
+        op: ["Nada", "Δn = 2 − 1 = +1, así que K<sub>p</sub> = K<sub>c</sub>(RT)<sup>+1</sup>", "Δn debería ser 2", "K<sub>p</sub> = K<sub>c</sub> siempre"], ok: 1,
+        porque: "Δn = moles de gas de productos − reactivos = 2 − 1 = +1, y el exponente es +1. Aquí K<sub>p</sub> &gt; K<sub>c</sub> numéricamente." },
+      { q: "En CaCO₃(s) ⇌ CaO(s) + CO₂(g), un alumno dice: «si pongo el doble de CaCO₃, la presión de CO₂ en el equilibrio será el doble». ¿Qué ocurre en realidad?",
+        op: ["Es correcto", "La presión de CO₂ es K<sub>p</sub>, la misma a esa temperatura, con tal de que quede algo de CaCO₃", "La presión se reduce a la mitad", "El CaO la compensa"], ok: 1,
+        porque: "K<sub>p</sub> = p(CO₂) y solo depende de T. La cantidad de sólido no altera la presión de equilibrio (mientras no se agote)." },
+      { q: "«A volumen constante añado helio; la presión total sube, así que el equilibrio N₂ + 3 H₂ ⇌ 2 NH₃ se desplaza hacia el NH₃.» ¿Qué falla?",
+        op: ["Nada", "Las presiones parciales y concentraciones de N₂, H₂ y NH₃ no cambian: Q sigue valiendo K y no hay desplazamiento", "El helio reacciona con el N₂", "El helio es un catalizador"], ok: 1,
+        porque: "Solo se desplaza si cambia Q. A V constante el gas inerte no modifica las concentraciones de las sustancias que reaccionan." },
+      { q: "Un alumno resuelve el grado de disociación de PCl₅ ⇌ PCl₃ + Cl₂ con K<sub>c</sub> = α²/(1 − α) en un recipiente de 10 L con 1 mol. ¿Qué falta?",
+        op: ["Nada", "Falta dividir por el volumen: K<sub>c</sub> = n₀α²/(V(1 − α)), porque Δn = +1", "Falta elevar al cuadrado", "α debería ir en el denominador"], ok: 1,
+        porque: "Las concentraciones son n/V. Con Δn ≠ 0 el volumen no se cancela y hay que usarlo." },
+      { q: "«K<sub>s</sub>(Ag₂CrO₄) = 1,1·10⁻¹² es menor que K<sub>s</sub>(AgCl) = 1,8·10⁻¹⁰, luego el Ag₂CrO₄ es menos soluble.» ¿Es correcto?",
+        op: ["Sí, siempre", "No: con distinta estequiometría hay que calcular s; aquí el cromato (6,5·10⁻⁵ M) es más soluble que el cloruro (1,3·10⁻⁵ M)", "Sí, pero solo a 25 °C", "No: K<sub>s</sub> no se puede comparar nunca"], ok: 1,
+        porque: "K<sub>s</sub> se puede comparar directamente solo entre sales del mismo tipo (AB con AB). Una sal A₂B tiene s = ∛(K<sub>s</sub>/4), con otra dependencia." },
+      { q: "Se mezclan 50 mL de AgNO₃ 2,0·10⁻³ M con 50 mL de NaCl 2,0·10⁻³ M y un alumno calcula Q = 2,0·10⁻³·2,0·10⁻³. ¿Qué error ha cometido?",
+        op: ["Ninguno", "No ha diluido: tras mezclar, cada concentración es la mitad (1,0·10⁻³ M)", "Debería sumar las concentraciones", "Debería usar K<sub>s</sub> en vez de Q"], ok: 1,
+        porque: "El volumen total es 100 mL, así que cada concentración se divide entre 2: Q = (1,0·10⁻³)² = 1,0·10⁻⁶." },
+      { q: "«Añadimos NaCl a una disolución saturada de AgCl; K<sub>s</sub> disminuye porque precipita AgCl.» ¿Qué falla?",
+        op: ["Nada", "K<sub>s</sub> no cambia (solo depende de T); lo que cambia es la cantidad de sal disuelta", "K<sub>s</sub> aumenta", "El NaCl es un catalizador"], ok: 1,
+        porque: "Al aumentar [Cl⁻] precipita algo de AgCl hasta que [Ag⁺][Cl⁻] vuelve a valer el mismo K<sub>s</sub>." },
+      { q: "Una reacción exotérmica con K<sub>c</sub> = 50 a 300 K. Un alumno afirma que a 500 K «K<sub>c</sub> será mayor, porque a más temperatura todo va más deprisa». ¿Qué falla?",
+        op: ["Nada", "Mezcla velocidad con equilibrio: en una exotérmica K disminuye al subir T", "K no depende de T", "Debería ser exactamente 50"], ok: 1,
+        porque: "Subir T acelera la reacción (cinética) pero, en una exotérmica, desplaza el equilibrio hacia reactivos y disminuye K." }
+    ]
+  };
+
+  datos.quiz2 = {
+    titulo: "Test final del tema",
+    preguntas: [
+      { q: "Para 2 SO₂ + O₂ ⇌ 2 SO₃, K<sub>p</sub> = 3,4 a 1000 K. ¿Cuánto vale K<sub>c</sub>? (RT = 82)",
+        op: ["3,4", "280", "0,041", "3,4·82²"], ok: 1,
+        porque: "Δn = −1: K<sub>c</sub> = K<sub>p</sub>·(RT) = 3,4·82 ≈ 280." },
+      { q: "¿Cuál de estas reacciones tiene K<sub>p</sub> = K<sub>c</sub>?",
+        op: ["PCl₅ ⇌ PCl₃ + Cl₂", "H₂ + Cl₂ ⇌ 2 HCl", "2 SO₂ + O₂ ⇌ 2 SO₃", "CaCO₃(s) ⇌ CaO(s) + CO₂(g)"], ok: 1,
+        porque: "Δn = 0 solo en la segunda (2 − 2)." },
+      { q: "A P y T constantes, ¿qué efecto tiene añadir un gas inerte a N₂ + 3 H₂ ⇌ 2 NH₃?",
+        op: ["Se desplaza hacia NH₃", "Se desplaza hacia N₂ y H₂", "No hay desplazamiento", "Cambia K"], ok: 1,
+        porque: "El volumen aumenta (menos presión parcial de cada gas): se favorece el lado con más moles de gas, los reactivos." },
+      { q: "En PCl₅ ⇌ PCl₃ + Cl₂ aumentamos el volumen a T constante. α…",
+        op: ["aumenta", "disminuye", "no cambia", "se hace cero"], ok: 0,
+        porque: "Δn = +1: menos presión favorece el lado con más moles de gas. K no cambia, pero α sube." },
+      { q: "Si Q = 20 y K<sub>c</sub> = 5, el sistema…",
+        op: ["evoluciona hacia productos", "evoluciona hacia reactivos", "ya está en equilibrio", "aumenta K"], ok: 1,
+        porque: "Q &gt; K: hay «demasiado producto»; retrocede." },
+      { q: "En un equilibrio heterogéneo con CO₂(g) como único gas, K<sub>p</sub> es…",
+        op: ["p(CO₂) elevada a su coeficiente", "p(CO₂) más las masas de sólidos", "una constante que depende de la cantidad de sólido", "siempre 1"], ok: 0,
+        porque: "Solo cuentan los gases; los sólidos no figuran." },
+      { q: "La solubilidad en mol/L de una sal AB₂ con K<sub>s</sub> = 4,0·10⁻¹² es…",
+        op: ["2,0·10⁻⁶", "1,0·10⁻⁴", "4,0·10⁻¹²", "1,0·10⁻⁶"], ok: 1,
+        porque: "K<sub>s</sub> = 4s³ → s³ = 1,0·10⁻¹² → s = 1,0·10⁻⁴ mol/L." },
+      { q: "Añadir Na₂SO₄ a una disolución saturada de BaSO₄ provoca…",
+        op: ["que aumente la solubilidad del BaSO₄", "que precipite algo de BaSO₄ (ion común)", "que aumente K<sub>s</sub>", "ningún cambio"], ok: 1,
+        porque: "El SO₄²⁻ añadido aumenta [SO₄²⁻]; para que [Ba²⁺][SO₄²⁻] siga valiendo K<sub>s</sub>, precipita BaSO₄." },
+      { q: "Al mezclar dos disoluciones, para decidir si hay precipitado se compara…",
+        op: ["K<sub>s</sub> con las concentraciones iniciales", "Q calculado tras la mezcla (concentraciones diluidas) con K<sub>s</sub>", "las masas molares", "los volúmenes de cada una"], ok: 1,
+        porque: "Q usa las concentraciones justo después de mezclar, ya diluidas por el volumen total." },
+      { q: "Una endotérmica tiene K<sub>c</sub> = 2 a 300 K. A 400 K, K<sub>c</sub> será…",
+        op: ["menor que 2", "igual a 2", "mayor que 2", "no se puede saber"], ok: 2,
+        porque: "Endotérmica: subir T favorece el sentido endotérmico (productos) y K aumenta." }
+    ]
+  };
+
+  datos.emp2 = {
+    titulo: "Fórmula ↔ significado",
+    consigna: "Une cada expresión con lo que permite calcular.",
+    pares: [
+      ["K<sub>p</sub> = K<sub>c</sub>(RT)<sup>Δn</sup>", "Pasar de concentraciones a presiones parciales"],
+      ["p<sub>i</sub> = x<sub>i</sub>·P", "Presión parcial de un gas de una mezcla"],
+      ["K<sub>s</sub> = s² (AB)", "Solubilidad s = √K<sub>s</sub>"],
+      ["K<sub>s</sub> = 4s³ (AB₂)", "Solubilidad s = ∛(K<sub>s</sub>/4)"],
+      ["Q &gt; K<sub>s</sub>", "Precipita la sal"],
+      ["ln(K₂/K₁) = −(ΔH/R)(1/T₂ − 1/T₁)", "Cambio de K con la temperatura"]
+    ]
+  };
+
+  datos.clas1 = {
+    titulo: "Efecto sobre 2 SO₂ + O₂ ⇌ 2 SO₃ (ΔH &lt; 0)",
+    consigna: "Toca cada cambio y después el efecto que produce sobre el equilibrio.",
+    categorias: ["Hacia SO₃ (derecha)", "Hacia SO₂ y O₂ (izquierda)", "No desplaza"],
+    items: [
+      { t: "Comprimir el recipiente", c: 0 }, { t: "Retirar SO₃", c: 0 }, { t: "Añadir O₂", c: 0 }, { t: "Enfriar", c: 0 },
+      { t: "Calentar", c: 1 }, { t: "Añadir SO₃", c: 1 }, { t: "Ampliar el volumen", c: 1 },
+      { t: "Añadir catalizador", c: 2 }, { t: "Añadir He a V constante", c: 2 }
+    ]
+  };
+
+  datos.orden1 = {
+    titulo: "Ordena la resolución de un problema de precipitación",
+    consigna: "Pon los pasos en el orden correcto.",
+    items: [
+      { t: "Escribe el equilibrio de solubilidad y la expresión de K<sub>s</sub>" },
+      { t: "Calcula el volumen total (V₁ + V₂)" },
+      { t: "Calcula las concentraciones de los iones tras mezclar: c·V/V<sub>total</sub>" },
+      { t: "Calcula Q con los exponentes de los coeficientes" },
+      { t: "Compara Q con K<sub>s</sub> y concluye si precipita" }
+    ]
+  };
+
+  // ================================================================
+  //  EJERCICIOS NUEVOS (34): ★ k1–k10 · ★★ k11–k23 y k25 · ★★★ k24 y k26–k34
+  // ================================================================
+  var E = [];
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function ge(id, nivel, enun, check, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: check, pistas: pistas, pasos: pasos, resultado: res }); }
+  function N(etq, val, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; return c; }
+
+  // ---------------- ★ ----------------
+  nu("k1", 1, "En el equilibrio N₂ + 3 H₂ ⇌ 2 NH₃ las presiones parciales son p(N₂) = 0,50 atm, p(H₂) = 1,5 atm y p(NH₃) = 0,30 atm. Calcula K<sub>p</sub>.", "K<sub>p</sub> =", 0.0533,
+    ["Productos entre reactivos, cada presión elevada a su coeficiente."],
+    ["K<sub>p</sub> = p(NH₃)² / (p(N₂)·p(H₂)³).", "= 0,30² / (0,50 · 1,5³) = 0,090 / (0,50 · 3,375) = 0,090 / 1,6875 = 0,0533."], "K<sub>p</sub> = 0,0533", 0.01);
+  nu("k2", 1, "Para 2 SO₂ + O₂ ⇌ 2 SO₃, K<sub>c</sub> = 280 a 1000 K. Calcula K<sub>p</sub> (R = 0,082 atm·L·mol⁻¹·K⁻¹).", "K<sub>p</sub> =", 3.41,
+    ["Calcula primero Δn (solo gases)."],
+    ["Δn = 2 − (2 + 1) = −1.", "RT = 0,082 · 1000 = 82.", "K<sub>p</sub> = K<sub>c</sub>(RT)⁻¹ = 280/82 = 3,41."], "K<sub>p</sub> = 3,41", 0.01);
+  op("k3", 1, "¿En cuál de estas reacciones coinciden K<sub>p</sub> y K<sub>c</sub>?", "Reacción", ["N₂ + 3 H₂ ⇌ 2 NH₃", "PCl₅ ⇌ PCl₃ + Cl₂", "H₂ + Cl₂ ⇌ 2 HCl", "CaCO₃(s) ⇌ CaO(s) + CO₂(g)"], 2,
+    ["Coinciden si Δn = 0."], ["Δn: −2, +1, 2 − 2 = 0, +1.", "Solo en H₂ + Cl₂ ⇌ 2 HCl es Δn = 0."], "H₂ + Cl₂ ⇌ 2 HCl");
+  ge("k4", 1, "Para H₂ + I₂ ⇌ 2 HI, K<sub>c</sub> = 54. En un instante hay [H₂] = 0,50 M, [I₂] = 0,50 M y [HI] = 2,0 M. Calcula Q e indica hacia dónde evoluciona.",
+    [N("Q =", 16), { tipo: "opcion", etiqueta: "Evoluciona", opciones: ["hacia los productos (→)", "hacia los reactivos (←)", "no evoluciona"], ok: 0 }],
+    ["Q = [HI]²/([H₂][I₂]). Compárala con 54."],
+    ["Q = 2,0² / (0,50·0,50) = 4,0/0,25 = 16.", "Q = 16 &lt; K<sub>c</sub> = 54 → hacia la derecha (se forma HI)."], "Q = 16 &lt; 54: hacia los productos");
+  nu("k5", 1, "En el equilibrio C(s) + CO₂(g) ⇌ 2 CO(g) se miden [CO] = 0,40 M y [CO₂] = 0,10 M. Calcula K<sub>c</sub>.", "K<sub>c</sub> =", 1.6,
+    ["El carbono es sólido: no aparece."],
+    ["K<sub>c</sub> = [CO]²/[CO₂] = 0,40²/0,10 = 0,16/0,10 = 1,6."], "K<sub>c</sub> = 1,6");
+  op("k6", 1, "Al añadir un catalizador a un sistema en equilibrio…", "Efecto", ["se desplaza hacia los productos", "se desplaza hacia los reactivos", "no cambia K ni las concentraciones finales; solo se llega antes", "aumenta K"], 2,
+    ["Piensa qué hace con las dos velocidades."], ["Reduce la energía de activación directa e inversa por igual.", "Por tanto no cambia K ni la posición; solo el tiempo de llegada."], "No cambia K ni la posición del equilibrio");
+  nu("k7", 1, "El producto de solubilidad del AgBr es 5,0·10⁻¹³. Calcula su solubilidad en agua (mol/L).", "s (mol/L) =", 7.07e-7,
+    ["AgBr ⇌ Ag⁺ + Br⁻: K<sub>s</sub> = s²."], ["K<sub>s</sub> = s·s = s².", "s = √(5,0·10⁻¹³) = 7,07·10⁻⁷ mol/L."], "s = 7,07·10⁻⁷ mol/L", 0.01);
+  nu("k8", 1, "La solubilidad del BaSO₄ en agua es 1,05·10⁻⁵ mol/L. Calcula su K<sub>s</sub>.", "K<sub>s</sub> =", 1.1025e-10,
+    ["BaSO₄ ⇌ Ba²⁺ + SO₄²⁻."], ["[Ba²⁺] = [SO₄²⁻] = s.", "K<sub>s</sub> = s² = (1,05·10⁻⁵)² = 1,10·10⁻¹⁰."], "K<sub>s</sub> = 1,10·10⁻¹⁰", 0.01);
+  nu("k9", 1, "Se introducen 2,0 mol de N₂O₄ en un recipiente. En el equilibrio N₂O₄ ⇌ 2 NO₂ hay 0,60 mol de NO₂. Calcula el grado de disociación α.", "α =", 0.15,
+    ["Por cada mol de N₂O₄ que se disocia salen 2 mol de NO₂."], ["Moles de N₂O₄ disociados = 0,60/2 = 0,30.", "α = 0,30/2,0 = 0,15 (15 %)."], "α = 0,15");
+  op("k10", 1, "La reacción 2 NO₂ (pardo) ⇌ N₂O₄ (incoloro) es exotérmica. Si se calienta el recipiente cerrado, el color…", "Color", ["se hace más pardo", "se hace más pálido", "no cambia", "se vuelve verde"], 0,
+    ["Calentar favorece el sentido endotérmico."], ["Directa exotérmica ⇒ la inversa (N₂O₄ → 2 NO₂) es endotérmica.", "Al calentar se favorece la inversa: aumenta el NO₂ pardo."], "Más pardo");
+
+  // ---------------- ★★ ----------------
+  nu("k11", 2, "En un recipiente de 2,0 L se introducen 0,80 mol de COCl₂ y se alcanza el equilibrio COCl₂ ⇌ CO + Cl₂ con 0,20 mol de CO. Calcula K<sub>c</sub>.", "K<sub>c</sub> =", 0.0333,
+    ["Tabla ICE en moles y luego divide entre V."],
+    ["Se disocian 0,20 mol: COCl₂ = 0,80 − 0,20 = 0,60 mol; CO = Cl₂ = 0,20 mol.", "Concentraciones (÷ 2,0 L): [COCl₂] = 0,30 M; [CO] = [Cl₂] = 0,10 M.", "K<sub>c</sub> = 0,10·0,10/0,30 = 0,0333."], "K<sub>c</sub> = 0,0333", 0.01);
+  nu("k12", 2, "Para PCl₅ ⇌ PCl₃ + Cl₂ se tiene K<sub>c</sub> = 0,0267 a 500 K. Calcula K<sub>p</sub> a esa temperatura.", "K<sub>p</sub> =", 1.09,
+    ["Δn = +1."], ["Δn = 2 − 1 = +1; RT = 0,082·500 = 41.", "K<sub>p</sub> = K<sub>c</sub>(RT) = 0,0267·41 = 1,09."], "K<sub>p</sub> = 1,09", 0.01);
+  ge("k13", 2, "Se mezclan 2,0 mol de CO y 1,0 mol de H₂O en un recipiente de 10 L. A cierta temperatura, K<sub>c</sub> = 4,0 para CO + H₂O ⇌ CO₂ + H₂. Calcula los moles de H₂ en el equilibrio y el porcentaje de H₂O que se ha convertido.",
+    [N("n(H₂) (mol) =", 0.845), N("% de H₂O convertido =", 84.5)],
+    ["Δn = 0: el volumen se cancela, puedes usar moles.", "Resuelve la cuadrática y quédate con x &lt; 1."],
+    ["Tabla (moles): CO = 2,0 − x · H₂O = 1,0 − x · CO₂ = x · H₂ = x.", "K<sub>c</sub> = x²/((2,0 − x)(1,0 − x)) = 4,0 → x² = 4(2 − 3x + x²) → 3x² − 12x + 8 = 0.", "x = (12 − √(144 − 96))/6 = (12 − 6,928)/6 = 0,845 (la otra raíz, 3,15, supera los moles de H₂O).", "n(H₂) = 0,845 mol; H₂O convertido = 0,845/1,0 = 84,5 %."], "n(H₂) = 0,845 mol · 84,5 %");
+  nu("k14", 2, "A 2,0 atm de presión total, el equilibrio N₂O₄ ⇌ 2 NO₂ contiene 0,60 mol de N₂O₄ y 0,80 mol de NO₂. Calcula K<sub>p</sub>.", "K<sub>p</sub> =", 1.524,
+    ["Fracciones molares y presiones parciales primero."],
+    ["n<sub>total</sub> = 1,40 mol. x(NO₂) = 0,80/1,40 = 0,571; x(N₂O₄) = 0,429.", "p(NO₂) = 2,0·0,571 = 1,143 atm; p(N₂O₄) = 2,0·0,429 = 0,857 atm.", "K<sub>p</sub> = 1,143²/0,857 = 1,52."], "K<sub>p</sub> = 1,52", 0.01);
+  ge("k15", 2, "Se introduce HI en un recipiente de 1,0 L con concentración inicial 1,00 M. A 700 K, para H₂ + I₂ ⇌ 2 HI es K<sub>c</sub> = 54. Calcula [H₂] y [HI] cuando se descompone: 2 HI ⇌ H₂ + I₂.",
+    [N("[H₂] (M) =", 0.107), N("[HI] (M) =", 0.786)],
+    ["La K de la reacción dada es la inversa de la del enunciado.", "Cuadrado perfecto: saca la raíz."],
+    ["Para 2 HI ⇌ H₂ + I₂: K′ = 1/54 = 0,0185.", "ICE: HI = 1,00 − 2x · H₂ = I₂ = x. K′ = x²/(1 − 2x)² → x/(1 − 2x) = √0,0185 = 0,136.", "x = 0,136(1 − 2x) → x(1 + 0,272) = 0,136 → x = 0,107.", "[H₂] = 0,107 M; [HI] = 1,00 − 0,214 = 0,786 M."], "[H₂] = 0,107 M · [HI] = 0,786 M");
+  nu("k16", 2, "En un recipiente se descompone NH₄Cl(s) ⇌ NH₃(g) + HCl(g). En el equilibrio la presión total es 1,0 atm. Calcula K<sub>p</sub>.", "K<sub>p</sub> =", 0.25,
+    ["Los dos gases tienen la misma presión parcial."], ["p(NH₃) = p(HCl) = 1,0/2 = 0,50 atm.", "K<sub>p</sub> = 0,50·0,50 = 0,25."], "K<sub>p</sub> = 0,25");
+  nu("k17", 2, "En un recipiente de 5,0 L a 1200 K se alcanza CaCO₃(s) ⇌ CaO(s) + CO₂(g) con p(CO₂) = 0,50 atm. ¿Cuál es la masa mínima de CaCO₃ (en g) que debe haberse puesto para llegar a ese equilibrio? M(CaCO₃) = 100,1 g/mol.", "m (g) =", 2.54,
+    ["Moles de CO₂ con la ecuación de los gases ideales."], ["n(CO₂) = pV/RT = 0,50·5,0/(0,082·1200) = 2,5/98,4 = 0,0254 mol.", "Se necesita al menos 0,0254 mol de CaCO₃ descompuesto: 0,0254·100,1 = 2,54 g.", "(Debe quedar algo sin descomponer, así que habría que poner un poco más.)"], "m = 2,54 g (mínimo)", 0.01);
+  nu("k18", 2, "Para N₂ + 3 H₂ ⇌ 2 NH₃ (ΔH = −92,2 kJ) K = 0,50 a 400 K. Calcula K a 500 K con la ecuación de van't Hoff (R = 8,314 J·mol⁻¹·K⁻¹).", "K(500 K) =", 1.954e-3,
+    ["ln(K₂/K₁) = −(ΔH/R)(1/T₂ − 1/T₁) con ΔH en J."], ["ΔH/R = −92200/8,314 = −11090 K.", "ln(K₂/K₁) = 11090·(1/500 − 1/400) = 11090·(−5,0·10⁻⁴) = −5,545.", "K₂/K₁ = e<sup>−5,545</sup> = 3,91·10⁻³ → K₂ = 0,50·3,91·10⁻³ = 1,95·10⁻³.", "Coherente: exotérmica y T más alta ⇒ K baja."], "K(500 K) = 1,95·10⁻³", 0.02);
+  nu("k19", 2, "Calcula la solubilidad (mol/L) del Ca(OH)₂ si K<sub>s</sub> = 5,5·10⁻⁶.", "s (mol/L) =", 0.01112,
+    ["Ca(OH)₂ ⇌ Ca²⁺ + 2 OH⁻: K<sub>s</sub> = s·(2s)²."], ["K<sub>s</sub> = 4s³ → s³ = 5,5·10⁻⁶/4 = 1,375·10⁻⁶.", "s = ∛(1,375·10⁻⁶) = 1,11·10⁻² mol/L."], "s = 1,11·10⁻² mol/L", 0.01);
+  nu("k20", 2, "La solubilidad del CaF₂ en agua es 0,0160 g/L. Calcula K<sub>s</sub>. M(CaF₂) = 78,07 g/mol.", "K<sub>s</sub> =", 3.443e-11,
+    ["Pasa a mol/L primero. CaF₂ ⇌ Ca²⁺ + 2 F⁻."], ["s = 0,0160/78,07 = 2,05·10⁻⁴ mol/L.", "K<sub>s</sub> = s·(2s)² = 4s³ = 4·(2,05·10⁻⁴)³ = 3,44·10⁻¹¹."], "K<sub>s</sub> = 3,44·10⁻¹¹", 0.02);
+  nu("k21", 2, "Calcula la solubilidad del BaSO₄ (K<sub>s</sub> = 1,1·10⁻¹⁰) en una disolución de Na₂SO₄ 0,020 M.", "s (mol/L) =", 5.5e-9,
+    ["El ion común es el sulfato: [SO₄²⁻] = 0,020 + s ≈ 0,020."], ["K<sub>s</sub> = [Ba²⁺][SO₄²⁻] = s·(0,020 + s) ≈ 0,020·s.", "s = 1,1·10⁻¹⁰/0,020 = 5,5·10⁻⁹ mol/L (mucho menor que en agua pura, 1,0·10⁻⁵)."], "s = 5,5·10⁻⁹ mol/L", 0.01);
+  ge("k22", 2, "Se mezclan 100 mL de AgNO₃ 2,0·10⁻³ M con 100 mL de NaCl 2,0·10⁻⁵ M. Calcula Q e indica si precipita AgCl (K<sub>s</sub> = 1,8·10⁻¹⁰).",
+    [N("Q =", 1.0e-8), { tipo: "opcion", etiqueta: "¿Precipita?", opciones: ["Sí", "No", "Queda justo saturada"], ok: 0 }],
+    ["Primero el volumen total y la dilución."],
+    ["Volumen total 200 mL: [Ag⁺] = 2,0·10⁻³/2 = 1,0·10⁻³ M; [Cl⁻] = 2,0·10⁻⁵/2 = 1,0·10⁻⁵ M.", "Q = 1,0·10⁻³·1,0·10⁻⁵ = 1,0·10⁻⁸.", "Q = 1,0·10⁻⁸ &gt; 1,8·10⁻¹⁰ → precipita."], "Q = 1,0·10⁻⁸ &gt; K<sub>s</sub>: precipita");
+  nu("k23", 2, "Calcula el pH de la disolución saturada de Mg(OH)₂ (K<sub>s</sub> = 1,8·10⁻¹¹).", "pH =", 10.52,
+    ["[OH⁻] = 2s."], ["K<sub>s</sub> = 4s³ → s = ∛(1,8·10⁻¹¹/4) = 1,65·10⁻⁴ M.", "[OH⁻] = 2s = 3,30·10⁻⁴ M → pOH = 3,48.", "pH = 14 − 3,48 = 10,52."], "pH = 10,52", 0.005);
+  ge("k25", 2, "En un recipiente de 2,0 L a 750 K hay 1,0 mol de N₂, 3,0 mol de H₂ y 0,20 mol de NH₃. Para N₂ + 3 H₂ ⇌ 2 NH₃ es K<sub>c</sub> = 0,080. Calcula Q e indica el sentido.",
+    [N("Q =", 5.93e-3, 0.01), { tipo: "opcion", etiqueta: "Evoluciona", opciones: ["hacia el NH₃ (→)", "hacia N₂ y H₂ (←)", "está en equilibrio"], ok: 0 }],
+    ["Concentraciones = moles/2,0 L."],
+    ["[N₂] = 0,50 M; [H₂] = 1,5 M; [NH₃] = 0,10 M.", "Q = 0,10²/(0,50·1,5³) = 0,010/1,6875 = 5,93·10⁻³.", "Q &lt; K<sub>c</sub> = 0,080 → evoluciona hacia la derecha (más NH₃)."], "Q = 5,93·10⁻³ &lt; K<sub>c</sub>: hacia el NH₃");
+
+  // ---------------- ★★★ ----------------
+  ge("k24", 3, "EvAU. A 1,0 atm de presión total, el N₂O₄ está disociado en un 20 % en N₂O₄ ⇌ 2 NO₂. Calcula K<sub>p</sub> y el grado de disociación a 4,0 atm (misma temperatura).",
+    [N("K<sub>p</sub> =", 0.1667), N("α a 4,0 atm =", 0.1015)],
+    ["Con n₀ = 1 mol: N₂O₄ = 1 − α, NO₂ = 2α, n<sub>total</sub> = 1 + α.", "K<sub>p</sub> = 4α²P/(1 − α²)."],
+    ["α = 0,20: N₂O₄ = 0,80 mol, NO₂ = 0,40 mol, total 1,20. p(N₂O₄) = 0,667 atm, p(NO₂) = 0,333 atm.", "K<sub>p</sub> = 0,333²/0,667 = 0,167.", "A 4,0 atm: 4α²·4,0/(1 − α²) = 0,167 → 16α² = 0,167(1 − α²) → α²(16 + 0,167) = 0,167 → α² = 0,01031 → α = 0,101.", "Mayor presión ⇒ menor α (Le Chatelier)."], "K<sub>p</sub> = 0,167 · α = 0,101");
+  ge("k26", 3, "En un recipiente de 10 L se introduce 1,0 mol de PCl₅ y, a 500 K, se disocia un 40 % (PCl₅ ⇌ PCl₃ + Cl₂). Se amplía el recipiente a 20 L sin cambiar la temperatura. Calcula el nuevo grado de disociación.",
+    N("α (20 L) =", 0.511),
+    ["Calcula K<sub>c</sub> con el primer dato y úsala en el segundo estado (misma T)."],
+    ["Primer estado: PCl₅ 0,60 mol, PCl₃ y Cl₂ 0,40 mol. K<sub>c</sub> = (0,040·0,040)/0,060 = 0,0267.", "Segundo estado, V = 20 L: K<sub>c</sub> = α²/(20(1 − α)) = 0,0267 → α² + 0,533α − 0,533 = 0.", "α = (−0,533 + √(0,284 + 2,133))/2 = (−0,533 + 1,555)/2 = 0,511.", "Al duplicar el volumen, α pasa de 0,40 a 0,51 (Δn = +1)."], "α = 0,51");
+  ge("k27", 3, "EvAU. Se introducen 2,0 mol de SO₃ en un recipiente de 5,0 L y se calientan a 1000 K: 2 SO₃ ⇌ 2 SO₂ + O₂. En el equilibrio hay 0,60 mol de SO₂. Calcula K<sub>c</sub>, K<sub>p</sub> y el grado de disociación.",
+    [N("K<sub>c</sub> =", 0.01102), N("K<sub>p</sub> =", 0.9036), N("α =", 0.30)],
+    ["Se forman 0,60 mol de SO₂: ¿cuántos de O₂ y cuántos de SO₃ quedan?"],
+    ["SO₃: 2,0 − 0,60 = 1,40 mol · SO₂ = 0,60 mol · O₂ = 0,30 mol.", "Concentraciones (÷ 5,0 L): [SO₃] = 0,28 M; [SO₂] = 0,12 M; [O₂] = 0,060 M.", "K<sub>c</sub> = [SO₂]²[O₂]/[SO₃]² = 0,12²·0,060/0,28² = 8,64·10⁻⁴/0,0784 = 0,0110.", "Δn = 3 − 2 = +1: K<sub>p</sub> = K<sub>c</sub>·RT = 0,0110·82 = 0,904.", "α = 0,60/2,0 = 0,30."], "K<sub>c</sub> = 0,0110 · K<sub>p</sub> = 0,904 · α = 0,30");
+  ge("k28", 3, "Para CO + H₂O ⇌ CO₂ + H₂, K<sub>c</sub> = 4,0. Se parte de 1,0 mol de cada una de las cuatro sustancias en un mismo recipiente. Calcula los moles de CO y de CO₂ en el equilibrio.",
+    [N("n(CO) =", 0.667), N("n(CO₂) =", 1.333)],
+    ["Q primero: ¿en qué sentido avanza?", "Δn = 0: trabaja con moles."],
+    ["Q = (1·1)/(1·1) = 1 &lt; 4: avanza hacia la derecha.", "CO = H₂O = 1 − x · CO₂ = H₂ = 1 + x.", "K<sub>c</sub> = (1 + x)²/(1 − x)² = 4 → (1 + x)/(1 − x) = 2 → 1 + x = 2 − 2x → x = 1/3.", "n(CO) = 1 − 1/3 = 0,667 mol; n(CO₂) = 1 + 1/3 = 1,333 mol."], "n(CO) = 0,667 mol · n(CO₂) = 1,333 mol");
+  ge("k29", 3, "Una disolución contiene Cl⁻ 0,010 M y Br⁻ 0,010 M. Se añade AgNO₃ sólido poco a poco. K<sub>s</sub>(AgCl) = 1,8·10⁻¹⁰; K<sub>s</sub>(AgBr) = 5,0·10⁻¹³. Calcula la [Ag⁺] a la que empieza a precipitar el AgBr y la [Br⁻] que queda cuando empieza a precipitar el AgCl.",
+    [N("[Ag⁺] inicio AgBr (M) =", 5.0e-11), N("[Br⁻] final (M) =", 2.78e-5)],
+    ["Precipita primero la que necesite menos Ag⁺.", "Cuando empieza el AgCl, [Ag⁺] = K<sub>s</sub>(AgCl)/[Cl⁻]."],
+    ["AgBr: [Ag⁺] = 5,0·10⁻¹³/0,010 = 5,0·10⁻¹¹ M. AgCl: [Ag⁺] = 1,8·10⁻¹⁰/0,010 = 1,8·10⁻⁸ M. Precipita primero el AgBr.", "Cuando empieza el AgCl, [Ag⁺] = 1,8·10⁻⁸ M y [Br⁻] = 5,0·10⁻¹³/1,8·10⁻⁸ = 2,78·10⁻⁵ M.", "Queda el 0,28 % del bromuro inicial: 99,7 % precipitado antes de que aparezca AgCl."], "5,0·10⁻¹¹ M · 2,78·10⁻⁵ M", 0.01);
+  nu("k30", 3, "Una disolución contiene Zn²⁺ 0,010 M. ¿A qué pH empieza a precipitar el Zn(OH)₂ (K<sub>s</sub> = 3,0·10⁻¹⁷)?", "pH =", 6.739,
+    ["Zn(OH)₂ ⇌ Zn²⁺ + 2 OH⁻: K<sub>s</sub> = [Zn²⁺][OH⁻]²."], ["[OH⁻]² = 3,0·10⁻¹⁷/0,010 = 3,0·10⁻¹⁵ → [OH⁻] = 5,48·10⁻⁸ M.", "pOH = 7,26 → pH = 14 − 7,26 = 6,74."], "pH = 6,74", 0.005);
+  nu("k31", 3, "Calcula la solubilidad del PbI₂ (K<sub>s</sub> = 7,1·10⁻⁹) en una disolución de KI 0,10 M.", "s (mol/L) =", 7.10e-7,
+    ["[Pb²⁺] = s; [I⁻] = 0,10 + 2s ≈ 0,10."], ["K<sub>s</sub> = s·(0,10 + 2s)² ≈ s·(0,10)² = 0,010·s.", "s = 7,1·10⁻⁹/0,010 = 7,1·10⁻⁷ mol/L (frente a 1,21·10⁻³ en agua: unas 1.700 veces menos).", "Aproximación válida: 2s ≈ 1,4·10⁻⁶ ≪ 0,10."], "s = 7,1·10⁻⁷ mol/L", 0.01);
+  nu("k32", 3, "El NH₃ se descompone: 2 NH₃ ⇌ N₂ + 3 H₂. Partiendo de 1,0 mol de NH₃, con α = 0,20 y presión total 2,0 atm, calcula K<sub>p</sub>.", "K<sub>p</sub> =", 0.01172,
+    ["Moles: NH₃ 1 − α · N₂ α/2 · H₂ 3α/2; n<sub>total</sub> = 1 + α."], ["NH₃ = 0,80; N₂ = 0,10; H₂ = 0,30; total = 1,20 mol.", "p: NH₃ = 2,0·0,80/1,20 = 1,333; N₂ = 0,1667; H₂ = 0,5 atm.", "K<sub>p</sub> = p(N₂)·p(H₂)³/p(NH₃)² = 0,1667·0,125/1,778 = 0,01172."], "K<sub>p</sub> = 0,0117", 0.01);
+  nu("k33", 3, "Para N₂O₄ ⇌ 2 NO₂ se miden K<sub>c</sub> = 4,6·10⁻³ a 298 K y K<sub>c</sub> = 0,142 a 350 K. Calcula ΔH de la reacción (kJ/mol) y razona su signo.", "ΔH (kJ/mol) =", 57.19,
+    ["ln(K₂/K₁) = −(ΔH/R)(1/T₂ − 1/T₁)."], ["ln(0,142/4,6·10⁻³) = ln 30,87 = 3,430.", "1/350 − 1/298 = −4,986·10⁻⁴ K⁻¹.", "ΔH = −R·3,430/(−4,986·10⁻⁴) = +57.200 J/mol = +57,2 kJ/mol.", "K aumenta con T ⇒ endotérmica (ΔH &gt; 0), como debe ser."], "ΔH = +57,2 kJ/mol", 0.015);
+  op("k34", 3, "EvAU. En N₂ + 3 H₂ ⇌ 2 NH₃, una vez alcanzado el equilibrio se añade helio manteniendo constantes la presión total y la temperatura. ¿Qué ocurre?", "Efecto", ["Se forma más NH₃", "Se descompone algo de NH₃ en N₂ y H₂", "No ocurre nada", "K aumenta"], 1,
+    ["Si P se mantiene, ¿qué pasa con el volumen?"], ["Para mantener P al añadir He, el volumen aumenta.", "Las concentraciones de N₂, H₂ y NH₃ disminuyen: equivale a bajar la presión.", "Se favorece el lado con más moles de gas: reactivos (4 frente a 2). Se descompone algo de NH₃. K no cambia."], "Se descompone algo de NH₃");
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = A.lamina.concat([
+    { titulo: "K<sub>c</sub>, K<sub>p</sub> y Q de un vistazo",
+      items: [
+        { label: "Constante", formula: "K<sub>c</sub> = [C]<sup>c</sup>[D]<sup>d</sup> / ([A]<sup>a</sup>[B]<sup>b</sup>)", cuando: "Concentraciones de equilibrio; sin sólidos ni líquidos puros.", ejemplo: "CaCO₃ ⇌ CaO + CO₂ → K<sub>c</sub> = [CO₂]." },
+        { label: "Con presiones", formula: "K<sub>p</sub> = K<sub>c</sub>(RT)<sup>Δn</sup>", cuando: "Δn solo de gases; T en K; R = 0,082.", ejemplo: "N₂ + 3 H₂ ⇌ 2 NH₃: Δn = −2." },
+        { label: "Presión parcial", formula: "p<sub>i</sub> = x<sub>i</sub>·P", cuando: "Mezcla de gases.", ejemplo: "2 mol de 6 a 3 atm → 1,0 atm." },
+        { label: "Cociente", formula: "Q &lt; K → →  ·  Q &gt; K → ←  ·  Q = K: equilibrio", cuando: "Mezcla fuera del equilibrio.", ejemplo: "Q = 16 &lt; 54: hacia HI." }
+      ],
+      nota: "Pregunta clave de cada problema: ¿K<sub>c</sub> o K<sub>p</sub>? ¿Datos en moles (÷ V) o en presiones?" },
+    { titulo: "Cómo se resuelve un problema de equilibrio", ancha: true,
+      pasos: [
+        "Reacción <b>ajustada</b> y expresión de K (sin sólidos).",
+        "Si mezclas desde el principio reactivos y productos, calcula <b>Q</b> y decide el sentido.",
+        "<b>Tabla ICE</b>: inicial, cambio (−a·x, +b·x), equilibrio.",
+        "Usa el <b>dato</b> (moles, α, presión total, K) para fijar x.",
+        "Pasa a <b>mol/L</b> (÷ V) o a <b>presiones parciales</b> (x<sub>i</sub>·P) y sustituye en K.",
+        "<b>Comprueba</b>: moles positivos y Q = K."
+      ],
+      nota: "Tras una perturbación, el «inicial» es el equilibrio anterior ± lo añadido; K no cambia salvo que cambie T." },
+    { titulo: "Solubilidad y K<sub>s</sub>", ancha: true,
+      tabla: { cab: ["Tipo", "K<sub>s</sub>", "s", "Ejemplo"], filas: [
+        ["AB", "s²", "√K<sub>s</sub>", "AgCl: s = 1,3·10⁻⁵ M"],
+        ["AB₂ / A₂B", "4s³", "∛(K<sub>s</sub>/4)", "PbI₂: s = 1,2·10⁻³ M"],
+        ["AB₃ / A₃B", "27s⁴", "⁴√(K<sub>s</sub>/27)", "Fe(OH)₃"],
+        ["A₂B₃ / A₃B₂", "108s⁵", "⁵√(K<sub>s</sub>/108)", "Ca₃(PO₄)₂"]
+      ] },
+      nota: "Ion común: s disminuye (K<sub>s</sub> igual). Precipita si Q &gt; K<sub>s</sub> con las concentraciones <b>tras diluir</b>. No compares K<sub>s</sub> de sales de distinto tipo." },
+    { titulo: "Temperatura, ΔH y K", ancha: true,
+      tabla: { cab: ["Reacción", "Subir T", "Efecto en K", "Rendimiento"], filas: [
+        ["Exotérmica (ΔH &lt; 0)", "favorece la inversa", "K disminuye", "baja"],
+        ["Endotérmica (ΔH &gt; 0)", "favorece la directa", "K aumenta", "sube"],
+        ["ΔH ≈ 0", "casi nada", "K casi igual", "casi igual"]
+      ] },
+      nota: "ln(K₂/K₁) = −(ΔH/R)(1/T₂ − 1/T₁). Catalizador, concentración, volumen y gas inerte nunca cambian K." }
+  ]);
+
+  // ================================================================
+  //  ENSAMBLADO: se reordenan las secciones (errores y autocomprobación al final, renumeradas)
+  // ================================================================
+  var base = A.nuevas, antes = [], errores, auto;
+  base.forEach(function (s) {
+    if (/^8\./.test(s.h)) errores = s; else if (/^9\./.test(s.h)) auto = s; else antes.push(s);
+  });
+  errores.h = "15. ¿Qué falla aquí? Errores típicos de equilibrio";
+  errores.html = errores.html + "<p>Y una segunda tanda, sobre K<sub>p</sub>, α, gas inerte y solubilidad:</p>" + w("quiz", "errores2");
+  auto.h = "16. Autocomprobación del tema";
+  auto.html = "<p>Ocho preguntas, diez más de repaso final, tarjetas, y tres juegos para fijar las ideas clave del tema.</p>" +
+    w("quiz", "quiz1") + w("emparejar", "emp1") + w("quiz", "quiz2") + w("tarjetas", "tarjetas1") + w("clasificar", "clas1") + w("emparejar", "emp2") + w("orden", "orden1");
+  var nuevas = antes.concat(P.nuevas, [errores, auto]);
+
+  B.registrar("quimica2", "t6", {
+    resumen: resumen,
+    secciones: A.secciones,
+    nuevas: nuevas,
+    datos: datos,
+    ejercicios: A.ejercicios.concat(E),
+    lamina: lamina
+  });
 })(window);
 
 /* ============================================================
