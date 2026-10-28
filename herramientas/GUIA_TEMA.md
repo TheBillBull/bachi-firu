@@ -69,3 +69,22 @@ Clases de color: `c-pen` (azul), `c-ok` (verde), `c-red`, `c-faint`; zonas `z-ok
 - No hagas más de un ciclo de capturas por widget; confía en las pruebas automáticas para móvil y errores.
 - Para terminar un tema basta con cumplir los objetivos de arriba y que todo pase; no pulir sin fin.
 - Los archivos generados (`bachi.js`, `index.html`, `pagina-autonoma.html`) no se commitean en ramas de trabajo.
+
+## Vista rápida («ficha de un vistazo», componente común `vistazo`)
+Se declara con **un objeto JS por tema** (`vistazo:` en `B.registrar`); se pinta en un solo sitio, `ampliaciones/lab_0vistazo.js` (`B.vistazo(datos)`), justo después de «En 1 minuto» (envuelve `B.cabecera`). Es un `<details>` plegable (abierto de entrada), 2–3 columnas en escritorio y 1 en móvil, usa los tokens de color (claro y oscuro) e imprime limpio: botón «Imprimir esta ficha» (solo la ficha) o Ctrl+P (se despliega sola). Estilos inyectados desde el propio JS. Ejemplo real: `historia_fil_t01b.js`; prueba: `herramientas/pruebas/e2e_historia_fil_t1.js`.
+```js
+vistazo: {
+  titulo: "Platón · 427–347 a. C.",                       // opcional, a la derecha del rótulo
+  autores: [{ n: "Platón", f: "427–347 a. C.", l: "Atenas" }],   // cabecera: nombre, fechas, lugar
+  obras: ["República", "Fedón"],                          // se muestran en cursiva
+  bloques: [                                              // 4–6 bloques, se numeran solos
+    { t: "Contexto", frases: ["Frase corta.", "Otra."] },
+    { t: "Teoría", frases: ["…"], tabla: { cab: ["Mundo sensible", "Mundo inteligible"], filas: [["cambia", "permanece"]] } }  // tabla de 2 columnas (cab opcional)
+  ],
+  resumen: ["Conclusión 1", "Conclusión 2"],              // cuadro destacado «En resumen · conclusiones»
+  conecta: [{ con: "Aristóteles (T4):", rel: "critica las Ideas." }],
+  claves: [["Idea", "definición de una línea"]],          // 6–10 términos para la PAU
+  cita: { txt: "Texto breve y fiel", autor: "Platón", obra: "República" }
+}
+```
+Reglas: frases cortas (≤ 15 palabras), ≤ 3 frases por bloque, sin párrafos; el HTML inline (`<b>`, `<i>`) está permitido. La ficha no debe contradecir la teoría (mismos términos y fechas): el verificador del tema lo comprueba.

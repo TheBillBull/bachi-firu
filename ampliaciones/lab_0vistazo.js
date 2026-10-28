@@ -26,7 +26,7 @@
     ".vz-obras { font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }",
     ".vz-obras b { display: block; font: 700 11px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 5px; }",
     ".vz-obras i { color: var(--ink); }",
-    ".vz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }",
+    ".vz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 12px; }",
     ".vz-bl { border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 13px 12px; background: var(--sheet); break-inside: avoid; }",
     ".vz-bl h4 { display: flex; align-items: center; gap: 9px; margin: 0 0 8px; font: 700 15px/1.25 var(--body); color: var(--ink); }",
     ".vz-bl h4 i { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--pen); color: var(--on-pen); display: grid; place-content: center; font: 700 13px/1 var(--body); font-style: normal; }",
