@@ -10735,6 +10735,411 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 5 (Puntos, rectas y planos en el espacio)
+   esp_rectas (dos rectas en 3D, con rangos) · esp_planos (recta-plano y plano-plano en 3D) ·
+   esp_formas (de una ecuación a otra, paso a paso).
+   Reutiliza el álgebra de vectores (B.lab.vec, tema 4) y las fracciones exactas (B.lab.mt, tema 1).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, V = B.lab.vec, T = B.lab.mt;
+  var E = B.lab.esp = {};
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("esp-estilos")) return;
+    var s = document.createElement("style"); s.id = "esp-estilos";
+    s.textContent =
+      ".esp-svg{touch-action:pan-y;cursor:grab}" +
+      ".esp-eqs{margin:8px 0 0;padding:0;list-style:none;font-size:14.5px;line-height:1.6}" +
+      ".esp-eqs li{padding:5px 0;border-top:1px solid var(--line,rgba(128,128,128,.25));overflow-wrap:anywhere}" +
+      ".esp-eqs li>b:first-child{display:block;font-size:12px;color:var(--ink-faint);font-weight:600}" +
+      ".esp-fila{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:6px 0}" +
+      ".esp-fila .esp-nom{font:700 16px var(--math);min-width:1.6em}" +
+      ".esp-fila input[type=number]{width:62px;padding:5px 6px;font:15px var(--math);border:1px solid var(--line,rgba(128,128,128,.4));border-radius:8px;background:var(--sheet-2);color:var(--ink)}" +
+      "@media(max-width:520px){.esp-fila input[type=number]{width:52px}.esp-eqs{font-size:13.5px}}";
+    document.head.appendChild(s);
+  })();
+
+  // ---------- utilidades ----------
+  function n2(x) { return fmt(Math.round(x * 1e9) / 1e9, 2).replace(/,00$/, "").replace(/(,\d)0$/, "$1"); }
+  function sg(n) { return n < 0 ? "−" + (-n) : String(n); }
+  function par(n) { return n < 0 ? "(−" + (-n) + ")" : String(n); }
+  function resta(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+  function mas(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+  function nulo(a) { return a[0] === 0 && a[1] === 0 && a[2] === 0; }
+  function det3(a, b, c) { return V.mixto(a, b, c); }
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = a % b; a = b; b = t; } return a; }
+  // simplifica un vector entero dividiendo por el mcd y deja la primera componente no nula positiva
+  function simp(v) {
+    var g = gcd(gcd(v[0], v[1]), v[2]); if (!g) return v.slice();
+    var w = v.map(function (x) { return x / g; }), k = w.filter(function (x) { return x !== 0; })[0];
+    return k < 0 ? w.map(function (x) { return -x; }) : w;
+  }
+  // término lineal a·x con signo, para ecuaciones del tipo Ax + By + Cz + D = 0
+  function eqPlano(n, d) { // n·X = d  →  "Ax + By + Cz + D = 0"
+    var s = "", nom = ["x", "y", "z"];
+    for (var i = 0; i < 3; i++) {
+      var a = n[i]; if (!a) continue;
+      s += (s ? (a < 0 ? " − " : " + ") : (a < 0 ? "−" : "")) + (Math.abs(a) === 1 ? "" : Math.abs(a)) + nom[i];
+    }
+    if (!s) s = "0";
+    return s + (d === 0 ? "" : (d > 0 ? " − " : " + ") + Math.abs(d)) + " = 0";
+  }
+  function pt(p) { return "(" + p.map(function (x) { return n2(x); }).join(", ") + ")"; }
+  function ptF(p) { return "(" + p.map(function (f) { return T.txt(f); }).join(", ") + ")"; }
+  E.simp = simp; E.eqPlano = eqPlano;
+
+  // ---------- vista 3D común (misma proyección que vec_3d del tema 4) ----------
+  var L = 4; // caja [-L, L]^3
+  function vista(cuerpo, plotEl, etiqueta) {
+    var st = { az: 35, el: 22 }, g;
+    g = new B.Plot(plotEl, { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 600, h: 400, limpio: true, etx: "", ety: "", etiqueta: etiqueta });
+    g.svg.classList.add("esp-svg");
+    var o = { st: st, g: g, azS: null, elS: null, pinta: function () {} };
+    function proy(p) {
+      var a = st.az * Math.PI / 180, e = st.el * Math.PI / 180;
+      var xr = p[0] * Math.cos(a) - p[1] * Math.sin(a), yr = p[0] * Math.sin(a) + p[1] * Math.cos(a);
+      return [xr, p[2] * Math.cos(e) - yr * Math.sin(e)];
+    }
+    o.P2 = proy;
+    o.seg = function (a, b, clase, dash) { var A = proy(a), Q = proy(b), s = g.segmento(A[0], A[1], Q[0], Q[1], { clase: clase || "c-faint" }); if (dash) s.setAttribute("stroke-dasharray", dash); return s; };
+    o.caja = function () {
+      var c = [-L, L], i, j, k;
+      for (i = 0; i < 2; i++) for (j = 0; j < 2; j++) {
+        o.seg([-L, c[i], c[j]], [L, c[i], c[j]], "c-faint", "2 5");
+        o.seg([c[i], -L, c[j]], [c[i], L, c[j]], "c-faint", "2 5");
+        o.seg([c[i], c[j], -L], [c[i], c[j], L], "c-faint", "2 5");
+      }
+      [[[L + 1, 0, 0], "x"], [[0, L + 1, 0], "y"], [[0, 0, L + 1], "z"]].forEach(function (e) {
+        o.seg([0, 0, 0], e[0], "c-faint"); var q = proy(e[0]); g.texto(q[0], q[1], e[1], { dx: 5, dy: -4, clase: "faint" });
+      });
+    };
+    // recta P + t·v recortada a la caja
+    o.recta = function (P, v, clase, nombre) {
+      var t0 = -1e9, t1 = 1e9, i;
+      for (i = 0; i < 3; i++) {
+        if (Math.abs(v[i]) < 1e-12) { if (Math.abs(P[i]) > L) return null; continue; }
+        var a = (-L - P[i]) / v[i], b = (L - P[i]) / v[i];
+        t0 = Math.max(t0, Math.min(a, b)); t1 = Math.min(t1, Math.max(a, b));
+      }
+      if (t0 >= t1) return null;
+      var A = [P[0] + t0 * v[0], P[1] + t0 * v[1], P[2] + t0 * v[2]], Q = [P[0] + t1 * v[0], P[1] + t1 * v[1], P[2] + t1 * v[2]];
+      var s = o.seg(A, Q, clase); s.setAttribute("stroke-width", "2.6");
+      if (nombre) { var q = proy(Q); g.texto(q[0], q[1], nombre, { dx: 8, dy: -8, clase: clase.replace("c-", "") }); }
+      return [A, Q];
+    };
+    // plano n·X = d recortado a la caja (polígono convexo)
+    o.plano = function (n, d, clase, nombre) {
+      var pts = [], c = [-L, L], i, j, k, a, b;
+      function arista(A, Bq) {
+        var fa = V.dot(n, A) - d, fb = V.dot(n, Bq) - d;
+        if (Math.abs(fa) < 1e-9) pts.push(A);
+        if (fa * fb < 0) { var t = fa / (fa - fb); pts.push([A[0] + t * (Bq[0] - A[0]), A[1] + t * (Bq[1] - A[1]), A[2] + t * (Bq[2] - A[2])]); }
+      }
+      for (i = 0; i < 2; i++) for (j = 0; j < 2; j++) {
+        arista([-L, c[i], c[j]], [L, c[i], c[j]]); arista([c[i], -L, c[j]], [c[i], L, c[j]]); arista([c[i], c[j], -L], [c[i], c[j], L]);
+      }
+      // quitar duplicados
+      var u = [];
+      pts.forEach(function (p) { if (!u.some(function (q) { return Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]) < 1e-6; })) u.push(p); });
+      if (u.length < 3) return null;
+      var cen = [0, 0, 0]; u.forEach(function (p) { cen = mas(cen, p); }); cen = cen.map(function (x) { return x / u.length; });
+      var e1 = resta(u[0], cen), e2 = V.cruz(n, e1);
+      u.sort(function (p, q) {
+        var pp = resta(p, cen), qq = resta(q, cen);
+        return Math.atan2(V.dot(pp, e2), V.dot(pp, e1)) - Math.atan2(V.dot(qq, e2), V.dot(qq, e1));
+      });
+      g.poligono(u.map(proy), { clase: clase, borde: "var(--ink-faint)" });
+      if (nombre) { var q2 = proy(u[0]); g.texto(q2[0], q2[1], nombre, { dx: 6, dy: -6, clase: "faint" }); }
+      return u;
+    };
+    o.punto = function (p, clase, nombre) {
+      var q = proy(p); g.punto(q[0], q[1], { r: 6, clase: clase }); if (nombre) g.texto(q[0], q[1], nombre, { dx: 9, dy: 15, clase: clase.replace("c-", "") });
+    };
+    o.mark = function (p, nombre) { var q = proy(p); g.punto(q[0], q[1], { r: 3.5, clase: "c-faint" }); if (nombre) g.texto(q[0], q[1], nombre, { dx: 6, dy: 13, clase: "faint" }); };
+    o.limites = function () { g.rangoIso(0, 0, 5.5); };
+    // controles de vista y arrastre
+    o.controles = function (ctl2) {
+      o.azS = U.slider(ctl2, { et: "Giro", etq: "Giro horizontal de la vista", min: -180, max: 180, step: 5, val: st.az, on: function (x) { st.az = x; o.pinta(); }, fmt: function (x) { return fmt(x, 0) + "°"; } });
+      o.elS = U.slider(ctl2, { et: "Altura", etq: "Altura de la vista", min: -80, max: 80, step: 5, val: st.el, on: function (x) { st.el = x; o.pinta(); }, fmt: function (x) { return fmt(x, 0) + "°"; } });
+      U.boton(ctl2, "Vista inicial", function () { st.az = 35; st.el = 22; o.azS.set(35); o.elS.set(22); o.pinta(); });
+      var d = null;
+      g.svg.addEventListener("pointerdown", function (ev) { d = { x: ev.clientX, y: ev.clientY, az: st.az, el: st.el, t: ev.pointerType }; try { g.svg.setPointerCapture(ev.pointerId); } catch (e) {} });
+      g.svg.addEventListener("pointermove", function (ev) {
+        if (!d) return;
+        st.az = Math.round(Math.max(-180, Math.min(180, d.az + (ev.clientX - d.x) * 0.6)) / 5) * 5; o.azS.set(st.az);
+        if (d.t !== "touch") { st.el = Math.round(Math.max(-80, Math.min(80, d.el + (ev.clientY - d.y) * 0.4)) / 5) * 5; o.elS.set(st.el); }
+        o.pinta();
+      });
+      var fin = function () { d = null; };
+      g.svg.addEventListener("pointerup", fin); g.svg.addEventListener("pointercancel", fin);
+    };
+    return o;
+  }
+
+  // ============================================================
+  // POSICIÓN RELATIVA DE DOS RECTAS
+  // r: A + t·u (fija)  ·  s: Q + λ·v (editable)
+  // ============================================================
+  var R_A = [1, 0, 0], R_U = [1, 1, 1];
+  var PRE_R = [
+    { k: "0", t: "Se cruzan", Q: [0, 1, 1], v: [1, -1, 0] },
+    { k: "1", t: "Se cortan", Q: [2, 1, 1], v: [1, -1, 0] },
+    { k: "2", t: "Paralelas", Q: [0, 1, 0], v: [2, 2, 2] },
+    { k: "3", t: "Coincidentes", Q: [2, 1, 1], v: [-1, -1, -1] }
+  ];
+  E.PRE_R = PRE_R; E.R_A = R_A; E.R_U = R_U;
+  // clasifica: devuelve { caso, r1, r2, d, AQ, punto }
+  E.dosRectas = function (A, u, Q, v) {
+    var AQ = resta(Q, A), r1 = V.rango([u, v]), r2 = V.rango([u, v, AQ]), d = det3(u, v, AQ), caso, punto = null;
+    if (r1 === 1) caso = r2 === 1 ? "coincidentes" : "paralelas";
+    else if (r2 === 2) caso = "secantes"; else caso = "cruzan";
+    if (caso === "secantes") {
+      var c = V.cruz(u, v), den = V.dot(c, c), num = V.dot(V.cruz(AQ, v), c);
+      punto = [0, 1, 2].map(function (i) { return T.add(T.F(A[i]), T.F(num * u[i], den)); });
+    }
+    return { caso: caso, r1: r1, r2: r2, d: d, AQ: AQ, punto: punto };
+  };
+
+  B.w.esp_rectas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Dos rectas en el espacio: ¿se cruzan o se cortan?");
+    cuerpo.innerHTML = '<div data-pre></div><div class="w-plot"></div><div data-ctl></div><div data-ctl2></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { Q: PRE_R[0].Q.slice(), v: PRE_R[0].v.slice() }, sls = {};
+    var lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), ctl2 = U.ctl(cuerpo.querySelector("[data-ctl2]"));
+    var vw = vista(cuerpo, cuerpo.querySelector(".w-plot"), "Dos rectas r y s en el espacio");
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE_R.map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) {
+      var p = PRE_R[+k]; st.Q = p.Q.slice(); st.v = p.v.slice();
+      ["Q", "v"].forEach(function (n) { sls[n].forEach(function (s, i) { s.set(st[n][i]); }); }); pinta();
+    });
+    ["Q", "v"].forEach(function (n) {
+      sls[n] = [0, 1, 2].map(function (i) {
+        return U.slider(ctl, { et: (n === "Q" ? "Q" : "v") + "<sub>" + "xyz"[i] + "</sub>", etq: (n === "Q" ? "Coordenada " : "Componente ") + "xyz"[i] + (n === "Q" ? " del punto Q de s" : " del director de s"), min: -3, max: 3, step: 1, val: st[n][i], on: function (x) { st[n][i] = x; pinta(); }, fmt: function (x) { return fmt(x, 0); } });
+      });
+    });
+    vw.controles(ctl2);
+    function pinta() {
+      var g = vw.g, c = E.dosRectas(R_A, R_U, st.Q, st.v), nuloV = nulo(st.v);
+      vw.limites(); g.limpiar(); vw.caja();
+      vw.recta(R_A, R_U, "c-pen", "r");
+      if (!nuloV) vw.recta(st.Q, st.v, "c-red", "s");
+      vw.mark(R_A, "A"); vw.mark(st.Q, "Q");
+      if (c.punto) vw.punto(c.punto.map(T.val), "c-ok", "P");
+      if (nuloV) { lectura.innerHTML = U.lec("Aviso", "v = (0, 0, 0) no es un vector director", "mal"); pie.innerHTML = "Un vector director no puede ser nulo: cambia alguna componente de v."; return; }
+      var col = { cruzan: "mal", secantes: "ok", paralelas: "", coincidentes: "" }[c.caso];
+      lectura.innerHTML =
+        U.lec("r", "A(1, 0, 0), u = (1, 1, 1)") + U.lec("s", "Q" + pt(st.Q) + ", v = " + pt(st.v)) +
+        U.lec("AQ = Q − A", pt(c.AQ)) +
+        U.lec("rango {u, v}", String(c.r1), c.r1 === 2 ? "ok" : "") + U.lec("rango {u, v, AQ}", String(c.r2), c.r2 === 3 ? "mal" : "ok") +
+        U.lec("det (u, v, AQ)", n2(c.d), c.d === 0 ? "ok" : "mal") +
+        U.lec("Posición", c.caso, col) + (c.punto ? U.lec("Punto de corte", ptF(c.punto), "ok") : "");
+      pie.innerHTML = {
+        cruzan: "<b>Se cruzan</b>: u y v no son paralelos (rango 2) y además u, v, AQ no son coplanarios (rango 3, det ≠ 0): las rectas no están en un mismo plano y nunca se tocan.",
+        secantes: "<b>Se cortan</b> en el punto verde: u y v no son paralelos (rango 2), pero u, v, AQ sí son coplanarios (rango 2, det = 0): están en un mismo plano.",
+        paralelas: "<b>Paralelas</b>: u y v son proporcionales (rango 1) y AQ no lo es con ellos (rango 2): mismas direcciones, rectas distintas.",
+        coincidentes: "<b>Coincidentes</b>: u, v y AQ son todos proporcionales (rango 1): es la misma recta con otra ecuación."
+      }[c.caso] + " Mueve los deslizadores de Q y v y gira la vista: una recta que parece cortar a la otra puede pasar por detrás.";
+    }
+    vw.pinta = pinta; pinta();
+  };
+
+  // ============================================================
+  // RECTA-PLANO y PLANO-PLANO
+  // ============================================================
+  var PRE_P = {
+    rp: [
+      { k: "0", t: "Secantes", n: [1, 1, 1], d: 3, v: [1, -1, 2] },
+      { k: "1", t: "Paralelos", n: [1, 1, 1], d: 5, v: [1, -1, 0] },
+      { k: "2", t: "Recta contenida", n: [1, 1, 1], d: 1, v: [1, -1, 0] },
+      { k: "3", t: "Perpendiculares", n: [1, 1, 1], d: 3, v: [1, 1, 1] }
+    ],
+    pp: [
+      { k: "0", t: "Secantes", n: [1, -1, 2], d: 2 },
+      { k: "1", t: "Paralelos", n: [2, 2, 2], d: 2 },
+      { k: "2", t: "Coincidentes", n: [2, 2, 2], d: 6 },
+      { k: "3", t: "Perpendiculares", n: [1, -1, 0], d: 0 }
+    ]
+  };
+  E.PRE_P = PRE_P;
+  var RP_P = [0, 0, 1]; // punto de la recta del modo recta-plano (para "contenida": n·P = 1 con d = 1)
+  var PP_N1 = [1, 1, 1], PP_D1 = 3;
+  E.rectaPlano = function (P, v, n, d) {
+    var vn = V.dot(v, n), pn = V.dot(P, n), caso, t = null;
+    if (vn !== 0) { caso = "secantes"; t = T.F(d - pn, vn); }
+    else caso = pn === d ? "contenida" : "paralelos";
+    return { vn: vn, pn: pn, caso: caso, t: t };
+  };
+  E.dosPlanos = function (n1, d1, n2v, d2) {
+    var r1 = V.rango([n1, n2v]);
+    var cr = V.cruz(n1, n2v), caso;
+    if (!nulo(cr)) caso = "secantes";
+    else { var coin = (n1[0] * d2 === n2v[0] * d1) && (n1[1] * d2 === n2v[1] * d1) && (n1[2] * d2 === n2v[2] * d1); caso = coin ? "coincidentes" : "paralelos"; }
+    return { r1: r1, caso: caso, dir: cr };
+  };
+
+  B.w.esp_planos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Recta y plano, o dos planos: cómo se cortan");
+    cuerpo.innerHTML = '<div data-modo></div><div data-pre></div><div class="w-plot"></div><div data-ctl></div><div data-ctl2></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var ref = host.getAttribute("data-ref") || "", m0 = /planos$/.test(ref) ? "pp" : "rp";
+    var st = { modo: m0, n: PRE_P[m0][0].n.slice(), d: PRE_P[m0][0].d, v: PRE_P.rp[0].v.slice() }, sls = {};
+    var lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), ctl2 = U.ctl(cuerpo.querySelector("[data-ctl2]"));
+    var vw = vista(cuerpo, cuerpo.querySelector(".w-plot"), "Recta y plano, o dos planos, en el espacio");
+    function aplica(p) { st.n = p.n.slice(); st.d = p.d; if (p.v) st.v = p.v.slice(); sync(); }
+    function sync() {
+      sls.n.forEach(function (s, i) { s.set(st.n[i]); }); sls.d.set(st.d); sls.v.forEach(function (s, i) { s.set(st.v[i]); });
+    }
+    function armaPre() {
+      U.fichas(cuerpo.querySelector("[data-pre]"), PRE_P[st.modo].map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) { aplica(PRE_P[st.modo][+k]); pinta(); });
+    }
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "rp", t: "Recta y plano" }, { k: "pp", t: "Dos planos" }], m0, function (k) {
+      st.modo = k; armaPre(); aplica(PRE_P[k][0]); armaVis(); pinta();
+    });
+    sls.v = [0, 1, 2].map(function (i) {
+      return U.slider(ctl, { et: "v<sub>" + "xyz"[i] + "</sub>", etq: "Componente " + "xyz"[i] + " del director de la recta", min: -3, max: 3, step: 1, val: st.v[i], on: function (x) { st.v[i] = x; pinta(); }, fmt: function (x) { return fmt(x, 0); } });
+    });
+    sls.n = [0, 1, 2].map(function (i) {
+      return U.slider(ctl, { et: "n<sub>" + "xyz"[i] + "</sub>", etq: "Componente " + "xyz"[i] + " de la normal del plano", min: -3, max: 3, step: 1, val: st.n[i], on: function (x) { st.n[i] = x; pinta(); }, fmt: function (x) { return fmt(x, 0); } });
+    });
+    sls.d = U.slider(ctl, { et: "d", etq: "Término independiente del plano n·X = d", min: -6, max: 6, step: 1, val: st.d, on: function (x) { st.d = x; pinta(); }, fmt: function (x) { return fmt(x, 0); } });
+    function armaVis() { // ocultar los deslizadores de v en modo dos planos
+      var labs = ctl.querySelectorAll("label");
+      Array.prototype.forEach.call(labs, function (l, i) { if (i < 3) l.style.display = st.modo === "rp" ? "" : "none"; });
+    }
+    vw.controles(ctl2);
+    function pinta() {
+      var g = vw.g, lec = "", nota = "";
+      vw.limites(); g.limpiar(); vw.caja();
+      if (nulo(st.n)) { lectura.innerHTML = U.lec("Aviso", "n = (0, 0, 0) no define un plano", "mal"); pie.innerHTML = "Un plano necesita un vector normal distinto de cero."; return; }
+      if (st.modo === "rp") {
+        if (nulo(st.v)) { lectura.innerHTML = U.lec("Aviso", "v = (0, 0, 0) no es un vector director", "mal"); pie.innerHTML = "Cambia alguna componente de v."; return; }
+        var c = E.rectaPlano(RP_P, st.v, st.n, st.d);
+        vw.plano(st.n, st.d, c.caso === "contenida" ? "z-ok" : "z-pen", "π");
+        vw.recta(RP_P, st.v, "c-red", "r"); vw.mark(RP_P, "P");
+        if (c.t) vw.punto([RP_P[0] + T.val(c.t) * st.v[0], RP_P[1] + T.val(c.t) * st.v[1], RP_P[2] + T.val(c.t) * st.v[2]], "c-ok", "X");
+        lec = U.lec("r", "P(0, 0, 1), v = " + pt(st.v)) + U.lec("π", eqPlano(st.n, st.d)) +
+          U.lec("v · n", String(c.vn), c.vn === 0 ? "ok" : "") + U.lec("¿P cumple π?", c.pn === st.d ? "sí (n·P = " + c.pn + ")" : "no (n·P = " + c.pn + " ≠ " + st.d + ")") +
+          U.lec("Posición", c.caso === "secantes" ? "secantes" : c.caso === "contenida" ? "la recta está contenida" : "paralelos (sin tocarse)", c.caso === "paralelos" ? "mal" : "ok") +
+          (c.t ? U.lec("Valor de t", T.txt(c.t)) + U.lec("Punto de corte", ptF([0, 1, 2].map(function (i) { return T.add(T.F(RP_P[i]), T.mul(c.t, T.F(st.v[i]))); })), "ok") : "");
+        nota = c.caso === "secantes" ? "<b>v · n ≠ 0</b>: la recta no es paralela al plano y lo atraviesa en un único punto (verde): se sustituye (P + t·v) en la ecuación del plano y se despeja t."
+          : c.caso === "contenida" ? "<b>v · n = 0</b> y P está en el plano: <b>toda</b> la recta está dentro del plano (verde)."
+          : "<b>v · n = 0</b> pero P no cumple la ecuación: la recta es paralela al plano y nunca lo toca. Cambia d hasta que n·P = d y pasará a estar contenida.";
+      } else {
+        var n2v = st.n, c2 = E.dosPlanos(PP_N1, PP_D1, n2v, st.d);
+        vw.plano(PP_N1, PP_D1, "z-pen", "π₁");
+        vw.plano(n2v, st.d, c2.caso === "coincidentes" ? "z-ok" : "z-red", "π₂");
+        if (c2.caso === "secantes") {
+          // punto de la recta intersección: resolver con z elegida entre las coordenadas libres
+          var cr = c2.dir, k = Math.abs(cr[0]) >= Math.abs(cr[1]) && Math.abs(cr[0]) >= Math.abs(cr[2]) ? 0 : Math.abs(cr[1]) >= Math.abs(cr[2]) ? 1 : 2;
+          var i1 = (k + 1) % 3, i2 = (k + 2) % 3, a11 = PP_N1[i1], a12 = PP_N1[i2], a21 = n2v[i1], a22 = n2v[i2], dt = a11 * a22 - a12 * a21;
+          var P0 = [0, 0, 0]; P0[i1] = (PP_D1 * a22 - a12 * st.d) / dt; P0[i2] = (a11 * st.d - PP_D1 * a21) / dt;
+          vw.recta(P0, cr, "c-ok", "r");
+        }
+        lec = U.lec("π₁", eqPlano(PP_N1, PP_D1)) + U.lec("π₂", eqPlano(n2v, st.d)) +
+          U.lec("rango de (n₁, n₂)", String(c2.r1), c2.r1 === 2 ? "ok" : "") +
+          U.lec("Posición", c2.caso, c2.caso === "paralelos" ? "mal" : "ok") +
+          (c2.caso === "secantes" ? U.lec("Recta común: director n₁ × n₂", pt(simp(c2.dir)), "ok") : "");
+        nota = c2.caso === "secantes" ? "Las normales <b>no son proporcionales</b>: los planos se cortan en una <b>recta</b> (verde), cuyo vector director es n₁ × n₂."
+          : c2.caso === "paralelos" ? "Las normales son proporcionales pero los términos independientes no siguen la proporción: planos <b>paralelos</b>, sin ningún punto común."
+          : "Todos los coeficientes (incluido el término independiente) son proporcionales: es el <b>mismo plano</b> escrito de otra forma.";
+      }
+      lectura.innerHTML = lec; pie.innerHTML = nota;
+    }
+    vw.pinta = pinta; armaPre(); armaVis(); pinta();
+  };
+
+  // ============================================================
+  // DE UNA ECUACIÓN A OTRA, paso a paso (recta y plano)
+  // ============================================================
+  // ecuaciones de la recta (P, v enteros) → { vect, param, cont, impl:[[n,d],[n,d]] }
+  E.formasRecta = function (P, v) {
+    var cr = [V.cruz(v, [1, 0, 0]), V.cruz(v, [0, 1, 0]), V.cruz(v, [0, 0, 1])].filter(function (n) { return !nulo(n); }), pl = [];
+    for (var i = 0; i < cr.length && pl.length < 2; i++) {
+      var ni = simp(cr[i]);
+      if (!pl.length || !nulo(V.cruz(pl[0][0], ni))) pl.push([ni, V.dot(ni, P)]);
+    }
+    return { impl: pl };
+  };
+  E.formasPlano = function (A, Bp, C) {
+    var u = resta(Bp, A), w = resta(C, A), n = V.cruz(u, w);
+    if (nulo(n)) return null;
+    var s = simp(n); return { u: u, w: w, n: n, ns: s, d: V.dot(s, A) };
+  };
+  function campos(el, nombre, vals, cb) {
+    el.innerHTML = '<span class="esp-nom">' + nombre + '</span>' + vals.map(function (x, i) {
+      return '<input type="number" step="1" value="' + x + '" aria-label="' + "xyz"[i] + ' de ' + nombre + '">';
+    }).join("");
+    Array.prototype.forEach.call(el.querySelectorAll("input"), function (inp, i) {
+      inp.addEventListener("input", function () { var x = Math.round(parseFloat(String(inp.value).replace(",", "."))); vals[i] = isFinite(x) ? x : 0; cb(); });
+    });
+    return el.querySelectorAll("input");
+  }
+  function cE(a, p, v) { // numerador (x − p) con signos limpios
+    return p === 0 ? a : "(" + a + (p > 0 ? " − " + p : " + " + (-p)) + ")";
+  }
+  B.w.esp_formas = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "De una ecuación a otra: recta y plano paso a paso");
+    cuerpo.innerHTML = '<div data-modo></div><div data-pre></div><div class="esp-fila" data-f1></div><div class="esp-fila" data-f2></div><div class="esp-fila" data-f3></div><ul class="esp-eqs"></ul><div class="lectura anch"></div><p class="w-pie"></p>';
+    var ref = host.getAttribute("data-ref") || "", st = { modo: /plano$/.test(ref) ? "p" : "r", P: [1, 2, 3], v: [2, 1, -1], A: [1, 0, 2], Bp: [2, 1, 2], C: [1, 1, 3] };
+    var lista = cuerpo.querySelector(".esp-eqs"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var f1 = cuerpo.querySelector("[data-f1]"), f2 = cuerpo.querySelector("[data-f2]"), f3 = cuerpo.querySelector("[data-f3]");
+    var PR = { r: [{ k: "0", t: "Ejemplo", P: [1, 2, 3], v: [2, 1, -1] }, { k: "1", t: "Con una componente 0", P: [1, 0, 2], v: [0, 3, 1] }, { k: "2", t: "Eje OZ", P: [0, 0, 0], v: [0, 0, 1] }],
+      p: [{ k: "0", t: "Ejemplo", A: [1, 0, 2], Bp: [2, 1, 2], C: [1, 1, 3] }, { k: "1", t: "Puntos en los ejes", A: [1, 0, 0], Bp: [0, 1, 0], C: [0, 0, 1] }, { k: "2", t: "Alineados (sin plano)", A: [1, 1, 1], Bp: [2, 2, 2], C: [3, 3, 3] }] };
+    var inps = [];
+    function monta() {
+      inps = [];
+      if (st.modo === "r") {
+        inps.push(campos(f1, "P =", st.P, pinta)); inps.push(campos(f2, "v =", st.v, pinta)); f3.innerHTML = ""; f3.style.display = "none";
+      } else {
+        inps.push(campos(f1, "A =", st.A, pinta)); inps.push(campos(f2, "B =", st.Bp, pinta)); f3.style.display = ""; inps.push(campos(f3, "C =", st.C, pinta));
+      }
+    }
+    function armaPre() {
+      U.fichas(cuerpo.querySelector("[data-pre]"), PR[st.modo].map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) {
+        var p = PR[st.modo][+k]; ["P", "v", "A", "Bp", "C"].forEach(function (n) { if (p[n]) st[n] = p[n].slice(); }); monta(); pinta();
+      });
+    }
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "r", t: "Recta" }, { k: "p", t: "Plano por tres puntos" }], st.modo, function (k) {
+      st.modo = k; var p = PR[k][0]; ["P", "v", "A", "Bp", "C"].forEach(function (n) { if (p[n]) st[n] = p[n].slice(); }); armaPre(); monta(); pinta();
+    });
+    function pinta() {
+      var L2 = [], lec = "", nota = "";
+      function it(t, h) { L2.push("<li><b>" + t + "</b>" + h + "</li>"); }
+      if (st.modo === "r") {
+        var P = st.P, v = st.v;
+        if (nulo(v)) { lista.innerHTML = ""; lectura.innerHTML = U.lec("Aviso", "v no puede ser nulo", "mal"); pie.innerHTML = ""; return; }
+        it("Vectorial", "(x, y, z) = (" + P.join(", ") + ") + t·(" + v.join(", ") + ")");
+        it("Paramétricas", "x = " + P[0] + (v[0] < 0 ? " − " : " + ") + (Math.abs(v[0]) === 1 ? "" : Math.abs(v[0])) + "t,&nbsp; y = " + P[1] + (v[1] < 0 ? " − " : " + ") + (Math.abs(v[1]) === 1 ? "" : Math.abs(v[1])) + "t,&nbsp; z = " + P[2] + (v[2] < 0 ? " − " : " + ") + (Math.abs(v[2]) === 1 ? "" : Math.abs(v[2])) + "t");
+        var nombres = ["x", "y", "z"], partes = [], extra = [];
+        for (var i = 0; i < 3; i++) {
+          var nu = P[i] === 0 ? nombres[i] : "(" + nombres[i] + (P[i] > 0 ? " − " + P[i] : " + " + (-P[i])) + ")";
+          if (v[i] === 0) extra.push(nombres[i] + " = " + P[i]); else partes.push(nu + " / " + par(v[i]));
+        }
+        it("Continua", partes.join(" = ") + (extra.length ? " &nbsp;con&nbsp; " + extra.join(", ") : "") + (extra.length ? "<br><span style='color:var(--ink-faint)'>Si una componente de v es 0 no se puede dividir: esa coordenada queda fija.</span>" : ""));
+        var f = E.formasRecta(P, v);
+        it("Implícita (dos planos)", f.impl.map(function (q) { return eqPlano(q[0], q[1]); }).join(" &nbsp;&nbsp;y&nbsp;&nbsp; "));
+        it("Cómo sale la implícita", "Se buscan dos vectores perpendiculares a v = " + pt(v) + " que no sean paralelos entre sí (por ejemplo n = v × i, v × j, v × k) y se impone que el plano pase por P: " +
+          f.impl.map(function (q, j) { return "n" + (j + 1) + " = " + pt(q[0]) + ", n" + (j + 1) + "·P = " + q[1]; }).join("; ") + ". Su producto vectorial n₁ × n₂ vuelve a dar la dirección de la recta: " + pt(simp(V.cruz(f.impl[0][0], f.impl[1][0]))) + ".");
+        lec = U.lec("Director v", pt(v)) + U.lec("Punto para t = 1", pt(mas(P, v))) + U.lec("n₁ × n₂ ∥ v", nulo(V.cruz(V.cruz(f.impl[0][0], f.impl[1][0]), v)) ? "sí" : "no", "ok");
+        nota = "Cambia P y v (enteros) y comprueba las cuatro formas de la misma recta.";
+      } else {
+        var p = E.formasPlano(st.A, st.Bp, st.C);
+        if (!p) { lista.innerHTML = ""; lectura.innerHTML = U.lec("Aviso", "A, B y C están alineados: no determinan un plano", "mal"); pie.innerHTML = "AB y AC son proporcionales, así que AB × AC = 0 (los puntos no son coplanarios con un cuarto cualquiera; hay infinitos planos que los contienen)."; return; }
+        it("Vectores", "AB = B − A = " + pt(p.u) + " · AC = C − A = " + pt(p.w));
+        it("Normal", "n = AB × AC = " + pt(p.n) + (p.ns.join() !== p.n.join() ? " ∥ " + pt(p.ns) + " (simplificado)" : ""));
+        it("Ecuación general", "n·(X − A) = 0 ⟹ " + eqPlano(p.ns, p.d));
+        it("Comprobación", "A: " + V.dot(p.ns, st.A) + " ✓ · B: " + V.dot(p.ns, st.Bp) + " ✓ · C: " + V.dot(p.ns, st.C) + " ✓ (los tres deben dar " + p.d + ")");
+        it("Paramétrica", "X = " + pt(st.A) + " + λ·" + pt(p.u) + " + μ·" + pt(p.w));
+        lec = U.lec("n", pt(p.ns)) + U.lec("Plano", eqPlano(p.ns, p.d), "ok");
+        nota = "Mueve los puntos (enteros). Si A, B y C están alineados, AB × AC = 0 y no hay un único plano.";
+      }
+      lista.innerHTML = L2.join(""); lectura.innerHTML = lec; pie.innerHTML = nota;
+    }
+    armaPre(); monta(); pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · mecánica I (Física y Química 1.º, tema 8: cinemática)
    motor B.lab.mec1 + f8_movil · f8_encuentro · f8_graficas · f8_caida
    ============================================================ */
@@ -52317,6 +52722,618 @@
 
   B.registrar("mates2", "t4", {
     resumen: resumen, secciones: B.parte.m2t4a.secciones, nuevas: B.parte.m2t4b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 5: Puntos, rectas y planos en el espacio
+   (parte A: se añade al final de las seis secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t5/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Determinar una recta
+  secciones[0] =
+    "<h5>Dos formas habituales de dar una recta</h5>" +
+    "<p>En los problemas, la recta casi nunca viene como «punto y vector». Lo normal es que te den <b>dos puntos</b> A y B (el vector director es entonces v = AB = B − A) o <b>dos planos</b> que se cortan. En ambos casos el primer paso es el mismo: <b>conseguir un punto y un vector director</b>; todo lo demás sale de ahí.</p>" +
+    ejemplo("Recta por dos puntos",
+      "Halla un punto y un vector director de la recta que pasa por A(1, −2, 3) y B(4, 0, −1). ¿Pertenece C(7, 2, −5) a la recta?",
+      ["Vector director: v = AB = B − A = (4 − 1, 0 − (−2), −1 − 3) = <b>(3, 2, −4)</b>. Como punto sirve A (o B).",
+       "Paramétricas: x = 1 + 3t, y = −2 + 2t, z = 3 − 4t.",
+       "¿Está C? Igualamos cada coordenada: 7 = 1 + 3t ⟹ t = 2; 2 = −2 + 2t ⟹ t = 2; −5 = 3 − 4t ⟹ t = 2. <b>Sale el mismo t en las tres</b>, luego C está en la recta (es el punto para t = 2).",
+       "Si C fuese (7, 2, −4), la tercera daría t = 7/4 ≠ 2 y no pertenecería."]) +
+    "<p><b>Regla para saber si un punto está en una recta:</b> se sustituye en las ecuaciones paramétricas y se despeja t en cada una; el punto pertenece si y solo si <b>el valor de t es el mismo en las tres</b> (o, en la continua, si las tres fracciones valen lo mismo).</p>" +
+    ojo("El vector director no es único: cualquier múltiplo no nulo de v sirve (también el opuesto). Dos ecuaciones distintas pueden describir la misma recta; para compararlas hay que mirar si los directores son proporcionales y si comparten un punto.");
+
+  // ---------------------------------------------------------------- 2. Ecuaciones de la recta
+  secciones[1] =
+    "<h5>La cuarta forma: la recta como intersección de dos planos</h5>" +
+    "<p>Una recta también se puede ver como el conjunto de puntos que cumplen <b>dos ecuaciones de plano a la vez</b> (los dos planos se cortan en esa recta). Es la ecuación <b>implícita</b> (o «general») de la recta:</p>" +
+    "<div class='formula-wrap'><div class='formula'>r: { A₁x + B₁y + C₁z + D₁ = 0 &nbsp;·&nbsp; A₂x + B₂y + C₂z + D₂ = 0 }</div></div>" +
+    "<p>Hay infinitos pares de planos que dan la misma recta (cualquier par de planos que la contengan). Es la forma más frecuente en los enunciados de la EvAU, y la que hay que saber <b>convertir</b>.</p>" +
+    "<h5>De la implícita a las demás (la conversión más pedida)</h5>" +
+    "<p>Si r viene como intersección de π₁ y π₂, un punto de r cumple las dos ecuaciones y su vector director es <b>perpendicular a las dos normales</b>: v = n₁ × n₂. Para el punto: se da un valor a una incógnita (la que deje un sistema 2×2 con solución) y se resuelven las otras dos. Otra forma, igual de válida: se toma una incógnita como parámetro (z = t) y se despejan x e y en función de t; así salen directamente las paramétricas.</p>" +
+    ejemplo("De implícita a paramétricas y continua",
+      "Pasa a paramétricas y a continua la recta r: x − 2y + z = 3, 2x + y − z = 0.",
+      ["Vector director: n₁ = (1, −2, 1), n₂ = (2, 1, −1). v = n₁ × n₂ = ((−2)(−1) − 1·1, 1·2 − 1·(−1), 1·1 − (−2)·2) = <b>(1, 3, 5)</b>.",
+       "Un punto: hacemos x = 0. Entonces −2y + z = 3 e y − z = 0 ⟹ z = y ⟹ −y = 3 ⟹ y = −3, z = −3. Punto <b>P(0, −3, −3)</b>.",
+       "Comprobación en las dos ecuaciones: 0 + 6 − 3 = 3 ✓ y 0 − 3 + 3 = 0 ✓.",
+       "Paramétricas: x = t, y = −3 + 3t, z = −3 + 5t.",
+       "Continua: " + fr("x", "1") + " = " + fr("y + 3", "3") + " = " + fr("z + 3", "5") + ".",
+       "Segunda comprobación: para t = 1 sale (1, 0, 2) y debe cumplir las dos ecuaciones: 1 − 0 + 2 = 3 ✓ y 2 + 0 − 2 = 0 ✓."]) +
+    "<h5>De la continua a la implícita</h5>" +
+    "<p>La continua es una cadena de igualdades; basta <b>tomarlas de dos en dos</b> y quitar denominadores. Cada pareja da un plano y las dos parejas dan la recta como intersección.</p>" +
+    ejemplo("De continua a implícita",
+      "Escribe como intersección de dos planos la recta " + fr("x − 1", "2") + " = " + fr("y + 1", "−1") + " = " + fr("z − 3", "3") + ".",
+      ["Primera con segunda, multiplicando en cruz: −(x − 1) = 2(y + 1) ⟹ −x + 1 = 2y + 2 ⟹ <b>x + 2y + 1 = 0</b>.",
+       "Segunda con tercera: 3(y + 1) = −(z − 3) ⟹ 3y + 3 = −z + 3 ⟹ <b>3y + z = 0</b>.",
+       "Comprobación: el punto P(1, −1, 3) cumple ambas: 1 − 2 + 1 = 0 ✓ y −3 + 3 = 0 ✓. Y n₁ × n₂ = (1, 2, 0) × (0, 3, 1) = (2, −1, 3), que es el director (2, −1, 3) de la recta ✓."]) +
+    "<h5>Cuando una componente del vector director es 0</h5>" +
+    "<p>Si v tiene una componente nula no se puede dividir entre ella. Esa coordenada <b>no cambia</b> (es constante) y se escribe aparte; las otras dos se igualan. Por ejemplo, la recta por P(1, 2, 3) con v = (2, 0, −1) es " + fr("x − 1", "2") + " = " + fr("z − 3", "−1") + ", &nbsp; <b>y = 2</b>. Ese «y = 2» ya es uno de los planos de la implícita (el plano horizontal en y), y el otro sale de la igualdad: x − 1 = −2(z − 3) ⟹ x + 2z − 7 = 0.</p>" +
+    w("esp_formas") +
+    ojo("«Continua» y «implícita» no son lo mismo: la continua es una cadena de <b>tres</b> fracciones iguales (que equivale a dos ecuaciones), la implícita son dos ecuaciones de plano. Y escribir «0» en un denominador es el error más habitual: hay que escribir esa coordenada aparte.");
+
+  // ---------------------------------------------------------------- 3. Determinar un plano
+  secciones[2] =
+    "<h5>Cuatro maneras de determinar un plano</h5>" +
+    "<p>Un plano queda fijado por cualquiera de estos datos (siempre se reduce a «un punto y dos vectores no paralelos», o «un punto y una normal»):</p>" +
+    tabla(["Datos", "Punto", "Vectores directores", "Normal"], [
+      ["Tres puntos A, B, C (no alineados)", "A", "AB y AC", "AB × AC"],
+      ["Una recta r y un punto Q fuera de ella", "el de r", "v<sub>r</sub> y PQ (P de r)", "v<sub>r</sub> × PQ"],
+      ["Dos rectas secantes (o paralelas)", "el de una", "v₁ y v₂ (si son paralelas: v y PQ)", "v₁ × v₂"],
+      ["Un punto P y la normal n", "P", "—", "n"]
+    ]) +
+    ejemplo("Plano que contiene a una recta y a un punto",
+      "Halla el plano que contiene a la recta r: x = 1 + t, y = 2t, z = 2 − t y al punto Q(2, 3, 1).",
+      ["De r: punto P(1, 0, 2) y director u = (1, 2, −1).",
+       "Segundo vector del plano: PQ = Q − P = (1, 3, −1). No es paralelo a u, así que Q no está en r.",
+       "Normal: n = u × PQ = (2·(−1) − (−1)·3, (−1)·1 − 1·(−1), 1·3 − 2·1) = <b>(1, 0, 1)</b>.",
+       "Plano: 1·(x − 1) + 0·(y − 0) + 1·(z − 2) = 0 ⟹ <b>x + z − 3 = 0</b>.",
+       "Comprobación con Q: 2 + 1 − 3 = 0 ✓. (Y con otro punto de r, t = 1: (2, 2, 1): 2 + 1 − 3 = 0 ✓.)"]) +
+    "<p>En el ejemplo no aparece la coordenada y: el plano x + z = 3 es <b>paralelo al eje OY</b>. Es una regla muy útil para comprobar: <i>si falta una variable en la ecuación general, el plano es paralelo al eje de esa variable</i>.</p>" +
+    ojo("Si los tres puntos están alineados (AB y AC son proporcionales, AB × AC = 0) no determinan un único plano: hay infinitos que los contienen. Y si el punto Q está en la recta, tampoco: la recta y el punto no determinan plano. Comprueba siempre que los vectores no sean paralelos.");
+
+  // ---------------------------------------------------------------- 4. Ecuaciones del plano
+  secciones[3] =
+    "<h5>Plano por tres puntos, con un determinante</h5>" +
+    "<p>Una forma rápida de escribir la ecuación general sin calcular la normal es imponer que el punto genérico X(x, y, z) sea <b>coplanario</b> con A, B y C, es decir, que el producto mixto de AX, AB y AC sea cero:</p>" +
+    "<div class='formula-wrap'><div class='formula'>| x − a₁ &nbsp; y − a₂ &nbsp; z − a₃ ; &nbsp; AB₁ &nbsp; AB₂ &nbsp; AB₃ ; &nbsp; AC₁ &nbsp; AC₂ &nbsp; AC₃ | = 0</div></div>" +
+    "<p>Desarrollar este determinante por la primera fila es exactamente lo mismo que (x − a₁, y − a₂, z − a₃)·(AB × AC) = 0.</p>" +
+    ejemplo("Plano por tres puntos, forma segmentaria",
+      "Halla el plano que pasa por A(1, 0, 0), B(0, 2, 0) y C(0, 0, 3).",
+      ["AB = (−1, 2, 0) y AC = (−1, 0, 3).",
+       "n = AB × AC = (2·3 − 0·0, 0·(−1) − (−1)·3, (−1)·0 − 2·(−1)) = <b>(6, 3, 2)</b>.",
+       "Plano: 6(x − 1) + 3y + 2z = 0 ⟹ <b>6x + 3y + 2z − 6 = 0</b>.",
+       "Dividiendo entre 6: x/1 + y/2 + z/3 = 1. Es la <b>forma segmentaria</b>: los denominadores (1, 2, 3) son los puntos donde el plano corta a los ejes."]) +
+    "<h5>De la ecuación general a puntos, vectores y paramétricas</h5>" +
+    "<p>Para pasar de Ax + By + Cz + D = 0 a la vectorial: <b>se buscan tres puntos</b> (dando valores a dos incógnitas y despejando la tercera) y se hace como «plano por tres puntos». Otra opción es poner dos incógnitas como parámetros (y = λ, z = μ) y despejar la otra: así salen las paramétricas directamente.</p>" +
+    ejemplo("De la general a las paramétricas",
+      "Escribe en paramétricas el plano π: x + 2y − z = 4.",
+      ["Se despeja x: x = 4 − 2y + z. Se toman y = λ, z = μ como parámetros.",
+       "<b>x = 4 − 2λ + μ, y = λ, z = μ</b>, es decir, X = (4, 0, 0) + λ(−2, 1, 0) + μ(1, 0, 1).",
+       "Comprobación: u × v = (−2, 1, 0) × (1, 0, 1) = (1·1 − 0·0, 0·1 − (−2)·1, 0 − 1·1) = (1, 2, −1), que es la normal (1, 2, −1) de π ✓.",
+       "Cortes con los ejes: y = z = 0 ⟹ x = 4; x = z = 0 ⟹ y = 2; x = y = 0 ⟹ z = −4."]) +
+    w("esp_formas", "plano") +
+    "<h5>Planos de ecuación sencilla</h5>" +
+    tabla(["Ecuación", "Qué plano es"], [
+      ["x = k, &nbsp; y = k, &nbsp; z = k", "perpendicular al eje X, Y, Z (paralelo a los planos coordenados YZ, XZ, XY)"],
+      ["z = 0 &nbsp; (y = 0, &nbsp; x = 0)", "el plano coordenado XY (XZ, YZ)"],
+      ["Falta una variable: Ax + By + D = 0", "paralelo al eje de la variable que falta (aquí, OZ)"],
+      ["Falta el término D: Ax + By + Cz = 0", "pasa por el origen"],
+      ["Ax + By + Cz + D = 0 y Ax + By + Cz + D′ = 0", "paralelos (misma normal)"]
+    ]) +
+    ojo("La normal (A, B, C) se lee <b>directamente</b> de la ecuación general. Pero si la ecuación está sin simplificar (por ejemplo 2x − 4y + 2z = 6), (2, −4, 2) y (1, −2, 1) son la misma dirección: puedes simplificar para trabajar con números pequeños sin cambiar el plano.");
+
+  // ---------------------------------------------------------------- 5. Posiciones relativas de dos rectas
+  secciones[4] =
+    "<h5>Método de los vectores: tres vectores y un determinante</h5>" +
+    "<p>Sean r (punto A, director u) y s (punto Q, director v). Se mira el vector AQ que une los puntos. Todo se decide con los <b>rangos</b> de {u, v} y de {u, v, AQ}:</p>" +
+    tabla(["Posición", "rango {u, v}", "rango {u, v, AQ}", "Lo que ocurre"], [
+      ["Coincidentes", "1", "1", "los tres vectores son proporcionales"],
+      ["Paralelas", "1", "2", "u ∥ v, pero AQ no es paralelo a ellos"],
+      ["Secantes (se cortan)", "2", "2", "u, v, AQ coplanarios: det(u, v, AQ) = 0"],
+      ["Se cruzan", "2", "3", "u, v, AQ no coplanarios: det(u, v, AQ) ≠ 0"]
+    ]) +
+    "<p>En la práctica: <b>primero</b> ¿u y v son proporcionales? Si no lo son (rango 2) basta calcular un único determinante: <b>0 ⟹ se cortan, distinto de 0 ⟹ se cruzan</b>. Si lo son, se mira si AQ también es proporcional.</p>" +
+    ejemplo("Los cuatro casos con una misma recta",
+      "Sea r la recta por A(1, 2, 3) con u = (1, −1, 2). Estudia la posición relativa de r y cada una de estas rectas: (a) s por Q(0, 1, 0), v = (2, 1, 1); (b) s por Q(0, 0, 4), v = (2, 1, 1); (c) s por Q(0, 0, 0), v = (−2, 2, −4); (d) s por Q(3, 0, 7), v = (−2, 2, −4).",
+      ["<b>(a)</b> u y v no son proporcionales (1/2 ≠ −1/1). AQ = (−1, −1, −3). det(u, v, AQ) = |1 −1 2 ; 2 1 1 ; −1 −1 −3| = −9 ≠ 0 ⟹ <b>se cruzan</b>.",
+       "<b>(b)</b> Mismo v. AQ = (−1, −2, 1). det = |1 −1 2 ; 2 1 1 ; −1 −2 1| = 0 ⟹ <b>se cortan</b>. El punto: r en t = 1 da (2, 1, 5) y s en λ = 1 da (0 + 2, 0 + 1, 4 + 1) = (2, 1, 5) ✓.",
+       "<b>(c)</b> v = −2u: son proporcionales (rango 1). AQ = (−1, −2, −3) no es proporcional a u = (1, −1, 2) (−1/1 ≠ −2/−1) ⟹ rango {u, v, AQ} = 2 ⟹ <b>paralelas</b>.",
+       "<b>(d)</b> v = −2u y AQ = (2, −2, 4) = 2u: los tres son proporcionales ⟹ <b>coincidentes</b>. (Q es el punto de r para t = 2.)"]) +
+    w("esp_rectas") +
+    "<h5>Método de los rangos con las rectas en implícita</h5>" +
+    "<p>Si r y s vienen como intersección de planos (cuatro ecuaciones con tres incógnitas), se escribe la matriz de coeficientes M (4×3) y la ampliada M* (4×4) y se compara el rango:</p>" +
+    tabla(["rango M", "rango M*", "Posición"], [
+      ["3", "3", "se cortan (un punto: el sistema tiene solución única)"],
+      ["3", "4", "se cruzan (sistema incompatible, directores no paralelos)"],
+      ["2", "2", "coincidentes (infinitas soluciones: una recta)"],
+      ["2", "3", "paralelas (sistema incompatible, directores paralelos)"]
+    ]) +
+    ejemplo("Dos rectas en implícita",
+      "Estudia r: x − y = 0, y − z = 0 y s: x + y = 2, x + z = 2.",
+      ["M = (1 −1 0 ; 0 1 −1 ; 1 1 0 ; 1 0 1). Con las tres primeras filas el determinante es |1 −1 0 ; 0 1 −1 ; 1 1 0| = 1·(0 + 1) + 1·(0 + 1) = 2 ≠ 0 ⟹ rango M = 3.",
+       "El sistema tiene solución: r da x = y = z = t, y en s: 2t = 2 ⟹ t = 1 (y x + z = 2 ✓). Luego rango M* = 3 también.",
+       "rango M = rango M* = 3 ⟹ <b>se cortan en el punto (1, 1, 1)</b>."]) +
+    ojo("Dos rectas del espacio pueden «parecer» cortarse en un dibujo y no hacerlo: sin coordenadas no se puede decidir, y por eso el método es siempre el determinante. Y recuerda: en el plano las rectas no paralelas siempre se cortan; <b>en el espacio, no</b> (se pueden cruzar).");
+
+  // ---------------------------------------------------------------- 6. Recta-plano y plano-plano
+  secciones[5] =
+    "<h5>Recta y plano con los rangos</h5>" +
+    "<p>Con la recta en implícita (dos planos) y el plano, se obtiene un sistema de 3 ecuaciones y 3 incógnitas: M es 3×3 y M* es 3×4.</p>" +
+    tabla(["rango M", "rango M*", "Posición", "Soluciones"], [
+      ["3", "3", "secantes", "un único punto"],
+      ["2", "2", "la recta está contenida en el plano", "infinitas (una recta)"],
+      ["2", "3", "paralelos (sin tocarse)", "ninguna"]
+    ]) +
+    "<p>Con la recta en paramétricas es todavía más corto: se sustituye (x, y, z) = P + t·v en la ecuación del plano y queda <b>una ecuación en t</b>. Si tiene una solución, esa es la posición del corte; si da 0 = 0 (cualquier t sirve), la recta está contenida; si da 0 = k ≠ 0, no hay corte (paralelos).</p>" +
+    ejemplo("Sustituir la recta en el plano",
+      "Estudia la recta r: x = 1 + 2t, y = −t, z = 3 + t y el plano π: x + y + z = 5.",
+      ["v = (2, −1, 1) y n = (1, 1, 1): v·n = 2 − 1 + 1 = 2 ≠ 0 ⟹ <b>secantes</b>.",
+       "Sustituyendo: (1 + 2t) + (−t) + (3 + t) = 5 ⟹ 4 + 2t = 5 ⟹ t = 1/2.",
+       "Punto de corte: (1 + 1, −1/2, 3 + 1/2) = <b>(2, −1/2, 7/2)</b>. Comprobación: 2 − 1/2 + 7/2 = 5 ✓."]) +
+    ejemplo("Tres resultados al sustituir",
+      "La recta r: x = 1 + t, y = 2 − t, z = t se estudia con tres planos distintos: π₁: x + y = 3, π₂: x + y = 5, π₃: x + y + z = 4.",
+      ["En π₁: (1 + t) + (2 − t) = 3 ⟹ 3 = 3, se cumple para todo t ⟹ <b>r está contenida en π₁</b>.",
+       "En π₂: 3 = 5, imposible ⟹ <b>r es paralela a π₂</b> (v·n = 1 − 1 + 0 = 0 y el punto (1, 2, 0) no cumple 3 = 5).",
+       "En π₃: 3 + t = 4 ⟹ t = 1 ⟹ <b>secantes</b> en el punto (2, 1, 1)."]) +
+    w("esp_planos") +
+    "<h5>Dos planos</h5>" +
+    "<p>Se comparan los coeficientes: si (A, B, C) y (A′, B′, C′) <b>no son proporcionales</b> ⟹ planos secantes, que se cortan en una recta de director n × n′. Si lo son, se mira también el término independiente: si <b>A/A′ = B/B′ = C/C′ = D/D′</b> son el mismo plano; si D no sigue la proporción, son paralelos.</p>" +
+    ejemplo("Recta de intersección de dos planos",
+      "Halla la recta que forman π₁: x + 2y − z = 1 y π₂: 2x − y + z = 4.",
+      ["Normales (1, 2, −1) y (2, −1, 1): no son proporcionales ⟹ secantes.",
+       "Director: n₁ × n₂ = (2·1 − (−1)(−1), (−1)·2 − 1·1, 1·(−1) − 2·2) = <b>(1, −3, −5)</b>.",
+       "Un punto: z = 0 ⟹ x + 2y = 1 y 2x − y = 4. De la segunda y = 2x − 4 ⟹ x + 4x − 8 = 1 ⟹ x = 9/5, y = −2/5. Punto (9/5, −2/5, 0).",
+       "Paramétricas: x = 9/5 + t, y = −2/5 − 3t, z = −5t. (Con t = 1/5 sale (2, −1, −1): 2 − 2 + 1 = 1 ✓ y 4 + 1 − 1 = 4 ✓.)"]) +
+    ojo("Un plano y una recta nunca «se cruzan»: solo pueden ser secantes, paralelos o la recta estar contenida. Cruzarse es cosa de dos rectas.");
+
+  B.parte.m2t5a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 5: Puntos, rectas y planos en el espacio
+   (parte B: secciones nuevas 7 a 12)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t5/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Tres planos: el sistema 3×3 en el espacio",
+      html:
+        "<p>Tres planos son tres ecuaciones con tres incógnitas: es el <b>teorema de Rouché-Frobenius</b> del Tema 3 visto en 3D. Si M es la matriz de coeficientes y M* la ampliada, el rango de cada una decide la posición. La clave para distinguir los casos con rango 2 o 1 es mirar <b>qué pares de planos son paralelos o coincidentes</b> (normales proporcionales).</p>" +
+        tabla(["rango M", "rango M*", "Sistema", "Posición de los tres planos"], [
+          ["3", "3", "compatible determinado", "se cortan en <b>un punto</b>"],
+          ["2", "2", "compatible indeterminado", "se cortan en <b>una recta</b> (un haz), o dos son coincidentes y el tercero los corta"],
+          ["2", "3", "incompatible", "no hay punto común: <b>prisma triangular</b> (se cortan dos a dos en rectas paralelas), o dos paralelos y un tercero que los corta"],
+          ["1", "1", "compatible indeterminado", "los tres planos son <b>coincidentes</b>"],
+          ["1", "2", "incompatible", "los tres son <b>paralelos</b> (o dos coincidentes y uno paralelo a ellos)"]
+        ]) +
+        "<p><b>Cómo diferenciar los casos con rango M = 2.</b> Si rango M = 2 y rango M* = 2, miras las normales: si ningún par de normales es proporcional, los tres planos pasan por una misma recta (haz); si hay un par proporcional (con la ecuación proporcional entera), esos dos son el mismo plano y el tercero lo corta. Si rango M = 2 y rango M* = 3, ocurre lo mismo con las normales: sin pares proporcionales es un prisma triangular; con un par proporcional (planos paralelos distintos) el tercero los corta a ambos.</p>" +
+        ejemplo("Un punto",
+          "Estudia la posición de π₁: x + y + z = 3, π₂: x − y + z = 1, π₃: x + y − z = 1.",
+          ["M = (1 1 1 ; 1 −1 1 ; 1 1 −1). det M = 1·(1 − 1) − 1·(−1 − 1) + 1·(1 + 1) = 0 + 2 + 2 = 4 ≠ 0 ⟹ rango M = rango M* = 3.",
+           "Se cortan en <b>un punto</b>. Restando π₁ − π₂: 2y = 2 ⟹ y = 1; π₁ − π₃: 2z = 2 ⟹ z = 1; y de π₁: x = 1. Punto (1, 1, 1)."]) +
+        ejemplo("Prisma triangular",
+          "Estudia π₁: x + y = 1, π₂: y + z = 1, π₃: x − z = 1.",
+          ["M = (1 1 0 ; 0 1 1 ; 1 0 −1): det M = 1·(−1 − 0) − 1·(0 − 1) + 0 = −1 + 1 = 0 ⟹ rango M = 2 (hay un menor 2×2 no nulo).",
+           "En la ampliada: π₁ − π₂ da x − z = 0, pero π₃ dice x − z = 1. Incompatible ⟹ rango M* = 3.",
+           "Ningún par de normales es proporcional ⟹ los planos se cortan <b>dos a dos</b> y no tienen punto común: <b>prisma triangular</b>."]) +
+        ejemplo("Un haz (una recta común)",
+          "Estudia π₁: x + y = 1, π₂: y + z = 1, π₃: x − z = 0.",
+          ["Es el mismo sistema, pero ahora π₃ = π₁ − π₂ (x − z = 0, términos independientes incluidos: 1 − 1 = 0). Entonces rango M = rango M* = 2.",
+           "Ningún par de normales es proporcional ⟹ <b>los tres planos pasan por una misma recta</b>: x = t, y = 1 − t, z = t."]) +
+        w("esp_planos", "planos") +
+        ojo("Con rango M = 2 y rango M* = 2 hay dos situaciones muy distintas (un haz o dos planos coincidentes). Mirar solo los rangos no basta: hay que mirar también si las normales son proporcionales.")
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Haces de planos",
+      html:
+        "<h5>Haz de planos paralelos</h5>" +
+        "<p>Todos los planos paralelos a π: Ax + By + Cz + D = 0 tienen la forma <b>Ax + By + Cz + k = 0</b> (misma normal, distinto término independiente). El valor de k se fija imponiendo que el plano pase por un punto.</p>" +
+        "<h5>Haz de planos secantes</h5>" +
+        "<p>Los planos que contienen a la recta r: π₁ = 0, π₂ = 0 son todos de la forma</p>" +
+        "<div class='formula-wrap'><div class='formula'>(A₁x + B₁y + C₁z + D₁) + λ·(A₂x + B₂y + C₂z + D₂) = 0</div></div>" +
+        "<p>(más el propio π₂, que se obtiene en el límite λ → ∞). Con una condición se calcula λ: que pase por un punto, que sea paralelo a un vector o a un eje, que sea perpendicular a otro plano… Es una alternativa al método «recta + punto» y suele ser más corta cuando la recta viene en implícita.</p>" +
+        ejemplo("Plano del haz que pasa por un punto",
+          "Halla el plano que contiene a la recta r: x + y − z = 1, 2x − y + z = 2 y pasa por el origen.",
+          ["Haz: (x + y − z − 1) + λ(2x − y + z − 2) = 0.",
+           "Origen (0, 0, 0): (−1) + λ(−2) = 0 ⟹ λ = −1/2.",
+           "Sustituimos y multiplicamos por 2: 2(x + y − z − 1) − (2x − y + z − 2) = 0 ⟹ 3y − 3z = 0 ⟹ <b>y − z = 0</b>.",
+           "Comprobación: sumando las dos ecuaciones de r sale 3x = 3, luego x = 1, y entonces la primera da y − z = 0. Todos los puntos de r cumplen y = z ✓."]) +
+        ejemplo("Plano del haz paralelo a un eje",
+          "Del haz (x + y − z − 1) + λ(x − y + z − 3) = 0, halla el plano paralelo al eje OZ.",
+          ["Agrupando: (1 + λ)x + (1 − λ)y + (−1 + λ)z − 1 − 3λ = 0. La normal es (1 + λ, 1 − λ, λ − 1).",
+           "Paralelo a OZ ⟺ normal perpendicular a (0, 0, 1) ⟺ coeficiente de z igual a 0 ⟹ λ − 1 = 0 ⟹ λ = 1.",
+           "Plano: 2x − 4 = 0 ⟹ <b>x = 2</b>. Es, efectivamente, paralelo a OZ (falta la variable z)."]) +
+        ojo("En el haz de la recta hay <b>infinitos planos</b>, pero el que se pide se determina con una sola condición. Si te dan dos condiciones, una de ellas sobra o el problema es incompatible. Y recuerda que el plano π₂ «se escapa» del haz: si el plano buscado resulta ser π₂, la ecuación con λ no lo encuentra.")
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Puntos alineados, coplanarios y otros problemas con puntos",
+      html:
+        "<h5>Tres puntos alineados</h5>" +
+        "<p>A, B y C están alineados si AB y AC son <b>proporcionales</b> (rango 1), es decir, AB × AC = 0. Con un parámetro se iguala la proporción coordenada a coordenada.</p>" +
+        ejemplo("Alineados con dos incógnitas",
+          "Halla m y n para que A(1, 0, 2), B(2, m, 4) y C(−1, 4, n) estén alineados.",
+          ["AB = (1, m, 2) y AC = (−2, 4, n − 2).",
+           "Proporcionales: −2/1 = 4/m = (n − 2)/2. De −2 = 4/m ⟹ m = −2. De −2 = (n − 2)/2 ⟹ n − 2 = −4 ⟹ n = −2.",
+           "Solución: <b>m = −2, n = −2</b>. Comprobación: AB = (1, −2, 2), AC = (−2, 4, −4) = −2·AB ✓."]) +
+        "<h5>Cuatro puntos coplanarios</h5>" +
+        "<p>A, B, C y D son coplanarios si [AB, AC, AD] = 0 (Tema 4). Equivale a que D cumpla la ecuación del plano ABC. Con un parámetro, es una ecuación en m.</p>" +
+        ejemplo("Coplanarios con parámetro",
+          "Halla m para que A(1, 0, 1), B(2, 1, 0), C(0, 1, 2) y D(m, 0, 3) sean coplanarios.",
+          ["AB = (1, 1, −1), AC = (−1, 1, 1), AD = (m − 1, −1, 2).",
+           "[AB, AC, AD] = |1 1 −1 ; −1 1 1 ; m−1 −1 2| = 1·(2 + 1) − 1·(−2 − (m − 1)) + (−1)·(1 − (m − 1)) = 3 + (m + 1) − (2 − m) = 2 + 2m.",
+           "2 + 2m = 0 ⟹ <b>m = −1</b>. Otra vía: n = AB × AC = (2, 0, 2), el plano ABC es x + z = 2, y D(m, 0, 3) lo cumple si m + 3 = 2, es decir, m = −1 ✓."]) +
+        "<h5>Cuarto vértice de un paralelogramo y simétrico de un punto</h5>" +
+        "<p>Si ABCD es un paralelogramo (vértices en orden), AB = DC, así que <b>D = A + C − B</b>. El <b>simétrico</b> de A respecto de un punto M es A′ = 2M − A (M es el punto medio de AA′). Son resultados que aparecen como parte de un problema mayor.</p>" +
+        ejemplo("Paralelogramo y simétrico",
+          "Dados A(1, 2, 3), B(2, 4, 3) y C(4, 5, 1), halla D para que ABCD sea un paralelogramo, y el simétrico de A respecto de M(0, 1, −1).",
+          ["D = A + C − B = (1 + 4 − 2, 2 + 5 − 4, 3 + 1 − 3) = <b>(3, 3, 1)</b>. Comprobación: AB = (1, 2, 0) = DC = (4 − 3, 5 − 3, 1 − 1) = (1, 2, 0) ✓.",
+           "A′ = 2M − A = (0 − 1, 2 − 2, −2 − 3) = <b>(−1, 0, −5)</b>. Comprobación: el punto medio de AA′ es (0, 1, −1) = M ✓."]) +
+        "<h5>Punto de una recta con una condición</h5>" +
+        "<p>Para hallar «el punto de r que cumple…», se escribe el punto genérico P(t) con las paramétricas y se impone la condición (que esté en un plano, que tenga una coordenada dada, que equidiste de dos puntos…): resulta una ecuación en t.</p>" +
+        ejemplo("Corte de una recta con un plano coordenado",
+          "Halla el punto en que la recta que pasa por A(1, 2, 3) con director v = (1, 1, −1) corta al plano XY.",
+          ["Punto genérico: (1 + t, 2 + t, 3 − t). El plano XY es z = 0.",
+           "3 − t = 0 ⟹ t = 3 ⟹ <b>(4, 5, 0)</b>."])
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Problemas con parámetro (estilo EvAU)",
+      html:
+        "<p>En Madrid es frecuente un apartado del tipo «estudia la posición relativa según el valor de m». El método es siempre el mismo: <b>calcular un determinante o un producto escalar que dependa de m, ver cuándo se anula y comprobar a mano los valores críticos</b>.</p>" +
+        tabla(["Pregunta", "Qué hay que calcular", "Se anula cuando…"], [
+          ["Dos rectas: ¿se cortan?", "det(u, v, AQ) en m", "se cortan (u, v no paralelos)"],
+          ["Recta y plano: ¿paralelos?", "v·n en m", "v·n = 0 ⟹ paralelos o contenida"],
+          ["Dos planos: ¿paralelos?", "proporcionalidad de (A, B, C, D)", "normales proporcionales"],
+          ["Tres planos", "det M en m, y los rangos en los valores críticos", "det = 0: estudiar M y M* aparte"],
+          ["Puntos coplanarios / alineados", "[AB, AC, AD] o proporcionalidad de AB y AC", "se cumple la condición"]
+        ]) +
+        ejemplo("Dos rectas con parámetro",
+          "Estudia según m la posición de r: A(0, 1, −1), u = (1, m, 2) y s: B(1, 0, 1), v = (2, 1, m).",
+          ["AB = (1, −1, 2). ¿Paralelas? u ∥ v exigiría 1/2 = m/1 = 2/m: la primera igualdad da m = 1/2 y la tercera m = 4, imposible a la vez. <b>Nunca son paralelas</b>; el rango de {u, v} es 2 siempre.",
+           "det(u, v, AB) = |1 m 2 ; 2 1 m ; 1 −1 2| = 1·(2 + m) − m·(4 − m) + 2·(−2 − 1) = m² − 3m − 4 = (m − 4)(m + 1).",
+           "Si <b>m = 4 o m = −1</b>: el determinante es 0 ⟹ se cortan. Si <b>m ≠ 4 y m ≠ −1</b>: se cruzan."]) +
+        ejemplo("Recta y plano con parámetro",
+          "Estudia según m la posición de r: x = 1 + t, y = 2 − t, z = t y π: 2x + my − z = 4.",
+          ["v = (1, −1, 1), n = (2, m, −1): v·n = 2 − m − 1 = 1 − m.",
+           "Si <b>m ≠ 1</b>: v·n ≠ 0 ⟹ secantes (siempre se cortan en un punto).",
+           "Si <b>m = 1</b>: v·n = 0. Se mira un punto de r, P(1, 2, 0): 2 + 2 − 0 = 4 ✓ cumple π ⟹ <b>la recta está contenida en el plano</b>. (Con este plano nunca son paralelos sin tocarse: depende de que el punto cumpla o no la ecuación.)"]) +
+        ejemplo("Tres planos con parámetro",
+          "Estudia según m: x + y + z = 1, x + my + z = 2, x + y + mz = 1.",
+          ["det M = |1 1 1 ; 1 m 1 ; 1 1 m| = 1·(m² − 1) − 1·(m − 1) + 1·(1 − m) = (m − 1)². Se anula solo para m = 1.",
+           "<b>m ≠ 1</b>: rango M = rango M* = 3 ⟹ los tres planos se cortan en un punto.",
+           "<b>m = 1</b>: los planos son x + y + z = 1, x + y + z = 2 y x + y + z = 1. Rango M = 1 y rango M* = 2 ⟹ incompatible: π₁ y π₃ son <b>coincidentes</b> y π₂ es <b>paralelo</b> a ellos."]) +
+        ojo("Cuando un determinante con parámetro se anula en un valor, <b>ese valor no está resuelto</b>: hay que sustituirlo y estudiar el caso a mano. Y no olvides la otra rama: el resto de valores de m. Una respuesta completa tiene siempre «si m = … entonces…, y si m ≠ …, entonces…».")
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. ¿Qué falla aquí? Errores típicos",
+      html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+    },
+    // -------------------------------------------------------------- 12
+    {
+      h: "12. Autocomprobación del tema",
+      html: "<p>Doce preguntas de test con explicación, tarjetas con las fórmulas, una actividad de emparejar, otra de clasificar y el orden correcto para resolver un problema de posiciones relativas.</p>" +
+        w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+    }
+  ];
+
+  B.parte.m2t5b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 5: Puntos, rectas y planos en el espacio
+   (parte C: resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr;
+
+  var resumen = [
+    "<b>Recta</b> = punto P + vector director v. Cuatro formas: vectorial X = P + t·v, paramétricas, continua (tres fracciones iguales; si una componente de v es 0 esa coordenada se escribe aparte) e <b>implícita</b> (intersección de dos planos, con director n₁ × n₂). Un punto está en la recta si el mismo t sirve en las tres coordenadas.",
+    "<b>Plano</b> = punto P + normal n (o dos directores u, v con n = u × v). General: Ax + By + Cz + D = 0 con n = (A, B, C). Por tres puntos: n = AB × AC. Si falta una variable el plano es paralelo a ese eje; si falta D pasa por el origen.",
+    "<b>Dos rectas</b> (A, u) y (Q, v): rango{u, v} y rango{u, v, AQ}. (1, 1) coincidentes · (1, 2) paralelas · (2, 2) se cortan (det = 0) · (2, 3) se cruzan (det ≠ 0). En implícita: rango M, rango M* con (3, 3) se cortan, (3, 4) se cruzan, (2, 2) coincidentes, (2, 3) paralelas.",
+    "<b>Recta y plano</b>: v·n ≠ 0 ⟹ secantes (un punto: se sustituye en t). v·n = 0 ⟹ paralelos o la recta contenida, según un punto cumpla o no el plano. <b>Dos planos</b>: normales no proporcionales ⟹ se cortan en una recta (n₁ × n₂); proporcionales ⟹ paralelos o coincidentes (mirar D).",
+    "<b>Tres planos</b> (Rouché): rg M = rg M* = 3 un punto · rg M = rg M* = 2 una recta (o dos coincidentes) · rg M = 2, rg M* = 3 prisma o dos paralelos y un tercero · rg 1 ⟹ coincidentes (1, 1) o paralelos (1, 2). Distingue los casos mirando qué normales son proporcionales.",
+    "<b>Haz de planos</b> por la recta π₁ = 0, π₂ = 0: π₁ + λπ₂ = 0, y una condición fija λ. Paralelos a π: Ax + By + Cz + k = 0. <b>Puntos</b>: alineados si AB ∥ AC; coplanarios si [AB, AC, AD] = 0; D = A + C − B cierra el paralelogramo; simétrico de A respecto de M: 2M − A.",
+    "<b>Con parámetro</b>: calcula un determinante o un producto escalar en m, iguala a 0, y <b>estudia a mano cada valor crítico</b>; da siempre también la respuesta para «el resto de valores de m»."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«Las rectas r y s no son paralelas, luego se cortan, como en el plano». ¿Qué falla?",
+          op: ["Nada, está bien", "En el espacio dos rectas no paralelas pueden cruzarse: hay que comprobar además que u, v y AQ sean coplanarios (det = 0)", "Solo se cortan si son perpendiculares", "Dos rectas no paralelas nunca se cortan"], ok: 1,
+          porque: "En ℝ³ hay cuatro posiciones. Que los directores no sean proporcionales descarta paralelas y coincidentes, pero quedan «se cortan» y «se cruzan». Lo decide el determinante det(u, v, AQ): 0 ⟹ se cortan; distinto de 0 ⟹ se cruzan." },
+        { q: "«La recta (x − 1)/2 = (y + 3)/0 = (z − 2)/5 tiene vector director (2, 0, 5) y se escribe así». ¿Qué falla?",
+          op: ["Nada", "No se puede dividir entre 0: se escribe (x − 1)/2 = (z − 2)/5, y = −3", "El director es (2, 3, 5)", "Habría que escribir y/0 = ∞"], ok: 1,
+          porque: "Un denominador 0 no tiene sentido. Una componente nula del director significa que esa coordenada es constante, y se escribe aparte (aquí, y = −3)." },
+        { q: "«El plano 2x − y + 3z = 6 tiene vector normal (2, −1, 3, 6)». ¿Qué falla?",
+          op: ["Nada", "La normal solo son los tres coeficientes (2, −1, 3); el 6 es el término independiente", "La normal es (−2, 1, −3)", "La normal es (6, 6, 6)"], ok: 1,
+          porque: "Un vector del espacio tiene tres componentes. n = (A, B, C): el término independiente D no interviene en la dirección del plano, solo en cuál de los planos paralelos es." },
+        { q: "«Los planos x + y + z = 1 y 2x + 2y + 2z = 2 son paralelos, porque sus normales son proporcionales». ¿Qué falla?",
+          op: ["Nada", "También el término independiente es proporcional (2/1): son el mismo plano, coincidentes", "Son secantes", "Son perpendiculares"], ok: 1,
+          porque: "Con normales proporcionales hay dos casos: si D sigue la misma proporción, los planos coinciden; si no, son paralelos. Aquí la segunda ecuación es 2 veces la primera." },
+        { q: "«v·n = 0, luego la recta y el plano son paralelos». ¿Qué falla?",
+          op: ["Nada", "Puede estar contenida: falta comprobar si un punto de la recta cumple la ecuación del plano", "v·n = 0 significa que se cortan", "v·n = 0 es imposible"], ok: 1,
+          porque: "v·n = 0 dice que la recta es paralela a la dirección del plano. Si además un punto de la recta está en el plano, toda la recta lo está. Solo si ese punto no cumple la ecuación hay paralelismo estricto." },
+        { q: "«Tres planos con rango M = 2 y rango M* = 3 se cortan en una recta». ¿Qué falla?",
+          op: ["Nada", "Rango M* = 3 > rango M implica sistema incompatible: no hay ningún punto común (prisma triangular, o dos paralelos)", "Se cortan en un punto", "Son coincidentes"], ok: 1,
+          porque: "Rouché-Frobenius: si rango M ≠ rango M*, el sistema es incompatible. Los tres planos no comparten ningún punto. Que se corten en una recta exigiría rango M = rango M* = 2." },
+        { q: "«El plano que contiene a A, B y C tiene normal AB + AC». ¿Qué falla?",
+          op: ["Nada", "La normal es el producto vectorial AB × AC, no la suma", "La normal es AB · AC", "Hace falta un cuarto punto"], ok: 1,
+          porque: "La suma AB + AC es otro vector del plano (una diagonal del paralelogramo), no perpendicular a él. La normal es AB × AC." },
+        { q: "«El vector director de la recta x + y = 1, y + z = 2 es (1, 1, 0) + (0, 1, 1) = (1, 2, 1)». ¿Qué falla?",
+          op: ["Nada", "El director es perpendicular a las dos normales: n₁ × n₂ = (1, 1, 0) × (0, 1, 1) = (1, −1, 1)", "El director es (1, 1, 2)", "Una recta implícita no tiene director"], ok: 1,
+          porque: "Las normales no son el director. El director es perpendicular a ambas, es decir, n₁ × n₂. Comprobación: (1, −1, 1)·(1, 1, 0) = 0 y (1, −1, 1)·(0, 1, 1) = 0." },
+        { q: "Para m = 3 el determinante de las dos rectas se anula; se contesta «se cortan para m = 3» sin más. ¿Qué falla?",
+          op: ["Nada", "Hay que comprobar que para ese m las rectas no sean paralelas ni coincidentes (rango de {u, v} = 2); si no, no «se cortan» en un solo punto", "Hay que elevar al cuadrado", "Se cortan para todo m"], ok: 1,
+          porque: "det = 0 con rango{u, v} = 2 significa se cortan, pero con u ∥ v el determinante también vale 0 (paralelas o coincidentes). Hay que mirar el rango de {u, v} antes de concluir." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de puntos, rectas y planos",
+      preguntas: [
+        { q: "El vector director de la recta que pasa por A(1, 2, 3) y B(4, 0, 5) es", op: ["(5, 2, 8)", "(3, −2, 2)", "(−3, 2, −2)", "(1, 2, 3)"], ok: 1, porque: "AB = B − A = (3, −2, 2). Su opuesto (−3, 2, −2) también sirve, pero es otra opción de la lista." },
+        { q: "Un vector normal del plano 3x − y + 2z − 7 = 0 es", op: ["(3, −1, 2)", "(3, −1, 2, −7)", "(−7, 3, −1)", "(3, 1, 2)"], ok: 0, porque: "(A, B, C) = (3, −1, 2)." },
+        { q: "Dos rectas con rango{u, v} = 2 y rango{u, v, AQ} = 3", op: ["se cortan", "se cruzan", "son paralelas", "coinciden"], ok: 1, porque: "Direcciones distintas y vectores no coplanarios: no están en un mismo plano y no se cortan." },
+        { q: "Si v·n = 0 y un punto de la recta no cumple la ecuación del plano, la recta y el plano son", op: ["secantes", "perpendiculares", "paralelos sin tocarse", "la recta está contenida"], ok: 2, porque: "v·n = 0: paralelos o contenida. Como el punto no está en el plano, no hay contacto." },
+        { q: "Los planos x + 2y − z = 3 y 2x + 4y − 2z = 5 son", op: ["coincidentes", "paralelos", "secantes", "perpendiculares"], ok: 1, porque: "Normales proporcionales, pero 5 ≠ 2·3: paralelos." },
+        { q: "El vector director de la recta intersección de dos planos es", op: ["n₁ + n₂", "n₁ · n₂", "n₁ × n₂", "n₁ − n₂"], ok: 2, porque: "Debe ser perpendicular a las dos normales." },
+        { q: "El plano z = 4 es", op: ["paralelo al plano XY", "perpendicular al plano XY", "paralelo al eje OZ", "el plano YZ"], ok: 0, porque: "Su normal (0, 0, 1) es la del plano XY: paralelo a él." },
+        { q: "El plano 2x + 3z = 6 es paralelo al eje", op: ["OX", "OY", "OZ", "ninguno"], ok: 1, porque: "Falta la variable y: el plano contiene la dirección (0, 1, 0)." },
+        { q: "Tres planos con rango M = rango M* = 2 y sin normales proporcionales se cortan en", op: ["un punto", "una recta", "el vacío", "un plano"], ok: 1, porque: "Sistema compatible indeterminado con un parámetro libre: una recta común." },
+        { q: "A, B, C están alineados si", op: ["AB · AC = 0", "AB × AC = 0", "|AB| = |AC|", "[AB, AC] = 1"], ok: 1, porque: "AB y AC paralelos ⟺ su producto vectorial es nulo." },
+        { q: "El plano que contiene a una recta r y a un punto Q de fuera tiene normal", op: ["v<sub>r</sub> × PQ (P de r)", "v<sub>r</sub> · PQ", "PQ", "v<sub>r</sub>"], ok: 0, porque: "Los dos vectores del plano son v<sub>r</sub> y PQ; su producto vectorial es la normal." },
+        { q: "El haz de planos paralelos a x − 2y + z = 5 es", op: ["x − 2y + z + k = 0", "kx − 2y + z = 5", "x − 2y + kz = 5", "(x − 2y + z) + k(x + y) = 0"], ok: 0, porque: "Misma normal, término independiente libre." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas de rectas y planos",
+      cartas: [
+        { a: "Ecuaciones de una recta", b: "Vectorial X = P + t·v · paramétricas · continua (x−p₁)/v₁ = (y−p₂)/v₂ = (z−p₃)/v₃ · implícita (dos planos)." },
+        { a: "Director de una recta en implícita", b: "v = n₁ × n₂ (perpendicular a las dos normales)." },
+        { a: "Ecuación general del plano", b: "Ax + By + Cz + D = 0, con n = (A, B, C). Por P y n: n·(X − P) = 0." },
+        { a: "Plano por tres puntos", b: "n = AB × AC. Equivale a | x−a₁ y−a₂ z−a₃ ; AB ; AC | = 0." },
+        { a: "Dos rectas: ¿qué miro?", b: "rango{u, v} y rango{u, v, AQ} (o det(u, v, AQ)): (1,1) coinciden, (1,2) paralelas, (2,2) se cortan, (2,3) se cruzan." },
+        { a: "Recta y plano", b: "v·n ≠ 0: un punto. v·n = 0: paralelos si P no cumple el plano; contenida si lo cumple." },
+        { a: "Dos planos", b: "Normales no proporcionales: recta (n₁ × n₂). Proporcionales: paralelos, o coincidentes si D también lo es." },
+        { a: "Tres planos", b: "rg M = rg M* = 3: punto · =2: recta · M=2, M*=3: sin puntos (prisma o dos paralelos) · rg 1: coincidentes o paralelos." },
+        { a: "Haz de planos", b: "π₁ + λπ₂ = 0 contiene a la recta π₁ = π₂ = 0. Un dato fija λ." },
+        { a: "Puntos alineados / coplanarios", b: "AB × AC = 0 / [AB, AC, AD] = 0." },
+        { a: "Plano con una variable que falta", b: "Es paralelo al eje de esa variable. Si falta D, pasa por el origen." },
+        { a: "Con parámetro", b: "Determinante o producto escalar en m; iguala a 0; estudia a mano los valores críticos y el resto." }
+      ]
+    },
+    empar: {
+      titulo: "Condición y posición",
+      consigna: "Une cada condición con la posición relativa que expresa.",
+      pares: [
+        ["rango{u, v} = 1 y rango{u, v, AQ} = 1", "Rectas coincidentes"],
+        ["rango{u, v} = 1 y rango{u, v, AQ} = 2", "Rectas paralelas"],
+        ["rango{u, v} = 2 y det(u, v, AQ) = 0", "Rectas que se cortan"],
+        ["rango{u, v} = 2 y det(u, v, AQ) ≠ 0", "Rectas que se cruzan"],
+        ["v·n ≠ 0", "Recta y plano secantes"],
+        ["Normales no proporcionales", "Planos que se cortan en una recta"],
+        ["rg M = 2, rg M* = 3, sin normales proporcionales", "Prisma triangular"]
+      ]
+    },
+    clas: {
+      titulo: "¿Cuántos puntos comunes?",
+      consigna: "Toca cada situación y elige cuántos puntos tienen en común.",
+      categorias: ["Ninguno", "Uno", "Infinitos"],
+      items: [
+        { t: "Dos rectas que se cruzan", c: 0 }, { t: "Dos rectas que se cortan", c: 1 }, { t: "Dos rectas paralelas", c: 0 },
+        { t: "Dos rectas coincidentes", c: 2 }, { t: "Recta y plano secantes", c: 1 }, { t: "Recta contenida en un plano", c: 2 },
+        { t: "Recta paralela a un plano (fuera de él)", c: 0 }, { t: "Dos planos secantes", c: 2 }, { t: "Dos planos paralelos", c: 0 },
+        { t: "Tres planos con rg M = rg M* = 3", c: 1 }, { t: "Tres planos en prisma triangular", c: 0 }
+      ]
+    },
+    orden: {
+      titulo: "Posición relativa de dos rectas",
+      consigna: "Ordena los pasos para estudiar dos rectas en el espacio.",
+      items: [
+        { t: "Obtener un punto y un vector director de cada recta (A, u) y (Q, v)" },
+        { t: "Comparar u y v: ¿son proporcionales?" },
+        { t: "Si no lo son: calcular det(u, v, AQ) (0: se cortan; distinto de 0: se cruzan)" },
+        { t: "Si lo son: ver si AQ también es proporcional a u (coincidentes) o no (paralelas)" },
+        { t: "Si se cortan, hallar el punto igualando las coordenadas (y comprobarlo en las dos rectas)" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  function vec(a, b, c) { return [num("x =", a), num("y =", b), num("z =", c)]; }
+  var POS = ["Se cortan", "Se cruzan", "Son paralelas", "Son coincidentes"];
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    { id: "p1", nivel: 1, enunciado: "Halla el vector director de la recta que pasa por A(1, 2, 3) y B(3, 0, −1), dividido para que su primera componente sea 1. Da (x, y, z).", check: vec(1, -1, -2),
+      pistas: ["v = AB = B − A; luego divide entre 2."], pasos: ["AB = (3 − 1, 0 − 2, −1 − 3) = (2, −2, −4).", "Dividiendo entre 2: (1, −1, −2)."], resultado: "(1, −1, −2)" },
+    { id: "p2", nivel: 1, enunciado: "La recta r es x = 2 − t, y = 1 + 3t, z = 4t. Halla el punto que corresponde a t = 2.", check: vec(0, 7, 8),
+      pistas: ["Sustituye t = 2 en las tres ecuaciones."], pasos: ["x = 2 − 2 = 0; y = 1 + 6 = 7; z = 8."], resultado: "(0, 7, 8)" },
+    { id: "p3", nivel: 1, enunciado: "El punto P(5, −7, 4) está en la recta (x − 1)/2 = (y + 1)/(−3) = (z − 2)/1. ¿Para qué valor del parámetro t (con x = 1 + 2t, y = −1 − 3t, z = 2 + t) se obtiene?", check: num("t =", 2),
+      pistas: ["Despeja t en una coordenada y comprueba con las otras."], pasos: ["5 = 1 + 2t ⟹ t = 2; −7 = −1 − 3t ⟹ t = 2; 4 = 2 + t ⟹ t = 2. Coincide en las tres."], resultado: "2" },
+    { id: "p4", nivel: 1, enunciado: "El plano pasa por P(1, 2, 3) y tiene normal n = (2, −1, 4). Escribe 2x − y + 4z + D = 0 y da D.", check: num("D =", -12),
+      pistas: ["Sustituye P en la ecuación."], pasos: ["2·1 − 2 + 4·3 + D = 0 ⟹ 12 + D = 0 ⟹ D = −12."], resultado: "−12" },
+    { id: "p5", nivel: 1, enunciado: "¿Cuál de estos puntos pertenece al plano 2x − y + 3z = 7?",
+      check: opcion("Punto", ["(1, 1, 2)", "(2, 1, 1)", "(3, 0, 0)", "(1, −1, 1)"], 0),
+      pistas: ["Sustituye cada uno en 2x − y + 3z."], pasos: ["(1, 1, 2): 2 − 1 + 6 = 7 ✓.", "Los demás dan 6, 6 y 6."], resultado: "(1, 1, 2)" },
+    { id: "p6", nivel: 1, enunciado: "El plano pasa por A(1, 0, 0), B(0, 1, 0) y C(0, 0, 1). Se escribe x + y + z + D = 0. Da D.", check: num("D =", -1),
+      pistas: ["Sustituye A."], pasos: ["AB = (−1, 1, 0), AC = (−1, 0, 1), AB × AC = (1, 1, 1).", "1 + D = 0 ⟹ D = −1."], resultado: "−1" },
+    { id: "p7", nivel: 1, enunciado: "Halla el vector director de r: x + y + z = 3, x − y + 2z = 0, con primera componente 3. Da (x, y, z).", check: vec(3, -1, -2),
+      pistas: ["n₁ × n₂ con n₁ = (1, 1, 1) y n₂ = (1, −1, 2)."], pasos: ["n₁ × n₂ = (1·2 − 1·(−1), 1·1 − 1·2, 1·(−1) − 1·1) = (3, −1, −2)."], resultado: "(3, −1, −2)" },
+    { id: "p8", nivel: 1, enunciado: "r pasa por P(1, 2, 3) con u = (1, −2, 4) y s pasa por el origen con v = (−2, 4, −8). Posición relativa:",
+      check: opcion("Posición", POS, 2),
+      pistas: ["v = −2u. ¿Está P en s?"], pasos: ["v = −2u: direcciones proporcionales.", "P = t·v ⟹ 1 = −2t ⟹ t = −1/2, pero 2 = 4t ⟹ t = 1/2. P no está en s ⟹ paralelas."], resultado: "Son paralelas" },
+    { id: "p9", nivel: 1, enunciado: "El plano paralelo al plano XY que pasa por (2, −1, 5) se escribe z + D = 0. Da D.", check: num("D =", -5),
+      pistas: ["Un plano paralelo a XY es z = constante."], pasos: ["z = 5 ⟹ z − 5 = 0 ⟹ D = −5."], resultado: "−5" },
+    { id: "p10", nivel: 1, enunciado: "Posición relativa de π₁: 2x − y + 3z = 1 y π₂: 4x − 2y + 6z = 5.",
+      check: opcion("Posición", ["Son coincidentes", "Son paralelos", "Se cortan en una recta", "Son perpendiculares"], 1),
+      pistas: ["Normales proporcionales; ¿lo es también el término independiente?"], pasos: ["(4, −2, 6) = 2·(2, −1, 3), pero 5 ≠ 2·1 ⟹ paralelos."], resultado: "Son paralelos" },
+    { id: "p11", nivel: 1, enunciado: "¿Están alineados A(1, 2, 3), B(3, 5, 7) y C(5, 8, 11)?",
+      check: opcion("Respuesta", ["Sí", "No"], 0),
+      pistas: ["Compara AB con AC."], pasos: ["AB = (2, 3, 4), AC = (4, 6, 8) = 2·AB ⟹ proporcionales ⟹ alineados."], resultado: "Sí" },
+    { id: "p12", nivel: 1, enunciado: "Halla el simétrico de A(1, 2, 3) respecto del punto M(0, 1, −1).", check: vec(-1, 0, -5),
+      pistas: ["A′ = 2M − A."], pasos: ["A′ = (0 − 1, 2 − 2, −2 − 3) = (−1, 0, −5)."], resultado: "(−1, 0, −5)" },
+    { id: "p13", nivel: 1, enunciado: "r: x + y = 3, y + z = 4. Halla su punto con x = 0.", check: vec(0, 3, 1),
+      pistas: ["Con x = 0, y = 3 y luego z = 4 − y."], pasos: ["0 + y = 3 ⟹ y = 3; 3 + z = 4 ⟹ z = 1."], resultado: "(0, 3, 1)" },
+    { id: "p14", nivel: 1, enunciado: "La recta r: (1, 1, 1) + t(1, −1, 0) y el plano π: x + y + z = 3. Posición relativa:",
+      check: opcion("Posición", ["Secantes", "Paralelos sin tocarse", "La recta está contenida en el plano", "Perpendiculares"], 2),
+      pistas: ["v·n y un punto de r."], pasos: ["v·n = 1 − 1 + 0 = 0.", "P(1, 1, 1): 1 + 1 + 1 = 3 ✓. Contenida."], resultado: "La recta está contenida" },
+    // ---------------------------------------------------------------- ★★
+    { id: "p15", nivel: 2, enunciado: "El plano por A(1, 2, 0), B(3, 1, 1) y C(0, 0, 2) tiene la forma y + z + D = 0. Da D.", check: num("D =", -2),
+      pistas: ["AB × AC = (0, −5, −5) ∥ (0, 1, 1)."], pasos: ["AB = (2, −1, 1), AC = (−1, −2, 2).", "AB × AC = (−2 + 2, −1 − 4, −4 − 1) = (0, −5, −5) ∥ (0, 1, 1).", "y + z + D = 0 con A: 2 + 0 + D = 0 ⟹ D = −2. Comprobación con C: 0 + 2 − 2 = 0 ✓."], resultado: "−2" },
+    { id: "p16", nivel: 2, enunciado: "Halla el punto con z = 0 de la recta r: x + y − z = 2, 2x − y + z = 1.", check: vec(1, 1, 0),
+      pistas: ["Con z = 0 queda un sistema 2×2."], pasos: ["x + y = 2 y 2x − y = 1 ⟹ sumando 3x = 3 ⟹ x = 1, y = 1.", "Comprobación: 1 + 1 − 0 = 2 ✓ y 2 − 1 + 0 = 1 ✓."], resultado: "(1, 1, 0)" },
+    { id: "p17", nivel: 2, enunciado: "La recta pasa por P(1, −1, 2) y es perpendicular al plano 2x − y + 3z = 4. Halla su punto con z = 8.", check: vec(5, -3, 8),
+      pistas: ["Su director es la normal del plano."], pasos: ["v = n = (2, −1, 3). Paramétricas: (1 + 2t, −1 − t, 2 + 3t).", "z = 2 + 3t = 8 ⟹ t = 2 ⟹ (5, −3, 8)."], resultado: "(5, −3, 8)" },
+    { id: "p18", nivel: 2, enunciado: "r pasa por P(1, 0, −1) con u = (2, 1, −1) y s por Q(0, 1, 2) con v = (1, −1, 3). Calcula det(u, v, PQ) (y decide si se cruzan).", check: num("det =", -18),
+      pistas: ["PQ = Q − P = (−1, 1, 3)."], pasos: ["det |2 1 −1 ; 1 −1 3 ; −1 1 3| = 2(−3 − 3) − 1(3 + 3) + (−1)(1 − 1) = −12 − 6 + 0 = −18.", "Distinto de 0 y u, v no proporcionales ⟹ se cruzan."], resultado: "−18" },
+    { id: "p19", nivel: 2, enunciado: "r pasa por el origen con u = (1, 2, 3) y s por Q(2, 2, 2) con v = (1, 0, −1). Se cortan; halla el punto.", check: vec(1, 2, 3),
+      pistas: ["(t, 2t, 3t) = (2 + λ, 2, 2 − λ)."], pasos: ["2t = 2 ⟹ t = 1. Entonces x = 1 = 2 + λ ⟹ λ = −1, y z = 3 = 2 − λ = 3 ✓.", "Punto (1, 2, 3)."], resultado: "(1, 2, 3)" },
+    { id: "p20", nivel: 2, enunciado: "Plano que contiene a la recta r (punto P(1, 2, 0), director u = (1, −1, 1)) y al punto Q(0, 0, 1). Se escribe x + By + Cz + D = 0. Da B, C y D.", check: [num("B =", -2), num("C =", -3), num("D =", 3)],
+      pistas: ["n = u × PQ con PQ = (−1, −2, 1)."], pasos: ["n = (−1·1 − 1·(−2), 1·(−1) − 1·1, 1·(−2) − (−1)(−1)) = (1, −2, −3).", "x − 2y − 3z + D = 0 con Q: −3 + D = 0 ⟹ D = 3. Comprobación con P: 1 − 4 − 0 + 3 = 0 ✓."], resultado: "B = −2, C = −3, D = 3" },
+    { id: "p21", nivel: 2, enunciado: "Plano paralelo a 2x − y + z = 5 que pasa por (1, 1, 1). Se escribe 2x − y + z + D = 0. Da D.", check: num("D =", -2),
+      pistas: ["Misma normal; D se fija con el punto."], pasos: ["2 − 1 + 1 + D = 0 ⟹ D = −2."], resultado: "−2" },
+    { id: "p22", nivel: 2, enunciado: "La recta de intersección de π₁: x + 2y − z = 1 y π₂: 2x − y + z = 4 corta al plano XY (z = 0). Halla el punto (puedes usar decimales).", check: vec(1.8, -0.4, 0),
+      pistas: ["Con z = 0: x + 2y = 1 y 2x − y = 4."], pasos: ["De la segunda y = 2x − 4. Entonces x + 4x − 8 = 1 ⟹ x = 9/5 = 1,8.", "y = 2·9/5 − 4 = −2/5 = −0,4."], resultado: "(1,8, −0,4, 0)" },
+    { id: "p23", nivel: 2, enunciado: "Resuelve el sistema (tres planos) x + y + z = 6, x − y + z = 2, 2x + y − z = 1 y da el punto común.", check: vec(1, 2, 3),
+      pistas: ["Resta las dos primeras."], pasos: ["Restando: 2y = 4 ⟹ y = 2. Entonces x + z = 4.", "Tercera: 2x + 2 − z = 1 ⟹ 2x − z = −1. Sumando con x + z = 4: 3x = 3 ⟹ x = 1, z = 3."], resultado: "(1, 2, 3)" },
+    { id: "p24", nivel: 2, enunciado: "Tres planos: x + y = 1, y + z = 1, x − z = 0. Su posición es:",
+      check: opcion("Posición", ["Se cortan en un punto", "Pasan por una misma recta", "Prisma triangular (sin puntos comunes)", "Son paralelos"], 1),
+      pistas: ["¿Es la tercera ecuación la resta de las dos primeras?"], pasos: ["π₁ − π₂: x − z = 0 = π₃, incluido el término independiente ⟹ rango M = rango M* = 2.", "Ninguna pareja de normales es proporcional ⟹ una recta común."], resultado: "Pasan por una misma recta" },
+    { id: "p25", nivel: 2, enunciado: "Del haz (x + y − 2) + k(y − z + 1) = 0, halla k para el plano que pasa por (2, 1, 0).", check: num("k =", -0.5),
+      pistas: ["Sustituye el punto."], pasos: ["(2 + 1 − 2) + k(1 − 0 + 1) = 0 ⟹ 1 + 2k = 0 ⟹ k = −1/2."], resultado: "−1/2" },
+    { id: "p26", nivel: 2, enunciado: "Halla m para que A(1, 2, 1), B(2, m, 3) y C(4, 0, 7) estén alineados (decimal o fracción).", check: num("m =", 4 / 3),
+      pistas: ["AB y AC proporcionales."], pasos: ["AB = (1, m − 2, 2), AC = (3, −2, 6) = 3·(1, −2/3, 2).", "m − 2 = −2/3 ⟹ m = 4/3."], resultado: "4/3" },
+    { id: "p27", nivel: 2, enunciado: "Dados A(0, 1, 2), B(3, 1, 4) y C(5, 4, 1), halla D para que ABCD sea un paralelogramo.", check: vec(2, 4, -1),
+      pistas: ["D = A + C − B."], pasos: ["D = (0 + 5 − 3, 1 + 4 − 1, 2 + 1 − 4) = (2, 4, −1).", "Comprobación: AB = (3, 0, 2) = DC = (5 − 2, 4 − 4, 1 + 1) = (3, 0, 2) ✓."], resultado: "(2, 4, −1)" },
+    { id: "p28", nivel: 2, enunciado: "Halla los puntos de corte del plano 2x − 3y + z = 6 con los ejes OX, OY y OZ (x, y y z de cada corte).", check: lista("Cortes", [-2, 3, 6], "los tres valores"),
+      pistas: ["Para el eje OX: y = z = 0."], pasos: ["OX: 2x = 6 ⟹ x = 3.", "OY: −3y = 6 ⟹ y = −2.", "OZ: z = 6."], resultado: "x = 3, y = −2, z = 6" },
+    { id: "p29", nivel: 2, enunciado: "Corte de la recta x = 1 + t, y = 2t, z = 1 − t con el plano x + y + z = 3.", check: vec(1.5, 1, 0.5),
+      pistas: ["Sustituye en el plano y despeja t."], pasos: ["(1 + t) + 2t + (1 − t) = 3 ⟹ 2 + 2t = 3 ⟹ t = 1/2.", "Punto (3/2, 1, 1/2)."], resultado: "(3/2, 1, 1/2)" },
+    { id: "p30", nivel: 2, enunciado: "Plano perpendicular a r: x = 1 + 2t, y = −t, z = 3t que pasa por (1, 1, 1). Se escribe 2x − y + 3z + D = 0. Da D.", check: num("D =", -4),
+      pistas: ["La normal del plano es el director de r."], pasos: ["n = (2, −1, 3). Con (1, 1, 1): 2 − 1 + 3 + D = 0 ⟹ D = −4."], resultado: "−4" },
+    { id: "p31", nivel: 2, enunciado: "¿Para qué valor de k son coincidentes π₁: x − 2y + 3z = 4 y π₂: 2x − 4y + 6z = k?", check: num("k =", 8),
+      pistas: ["π₂ debe ser el doble de π₁."], pasos: ["Los coeficientes de π₂ son el doble ⟹ k = 2·4 = 8."], resultado: "8" },
+    { id: "p32", nivel: 2, enunciado: "r: (x − 2)/3 = (y + 1)/2 = z/(−1). Halla el punto con y = 1.", check: vec(5, 1, -1),
+      pistas: ["Iguala cada fracción a t: y + 1 = 2t."], pasos: ["y + 1 = 2t = 2 ⟹ t = 1.", "x = 2 + 3 = 5; z = −1."], resultado: "(5, 1, −1)" },
+    // ---------------------------------------------------------------- ★★★
+    { id: "p33", nivel: 3, enunciado: "r pasa por A(1, 0, 0) con u = (1, 1, m) y s por B(0, 1, 1) con v = (2, −1, 1). Halla m para que se corten.", check: num("m =", 5),
+      pistas: ["AB = (−1, 1, 1); det(u, v, AB) = 0."], pasos: ["det |1 1 m ; 2 −1 1 ; −1 1 1| = 1(−1 − 1) − 1(2 + 1) + m(2 − 1) = m − 5.", "m = 5. Comprobación de que no son paralelas: u = (1, 1, 5) y v = (2, −1, 1) no son proporcionales (1/2 ≠ 1/(−1))."], resultado: "5" },
+    { id: "p34", nivel: 3, enunciado: "r: P(1, 0, 0), v = (1, −1, 2) y π: mx + y − z = m + 1. Halla m para que sean paralelos (sin contacto) y, para m = 4, el punto de corte.",
+      check: [num("m =", 3), num("x =", 2), num("y =", -1), num("z =", 2)],
+      pistas: ["v·n = m − 3. Para m = 4 sustituye (1 + t, −t, 2t)."], pasos: ["v·n = m − 1 − 2 = m − 3 = 0 ⟹ m = 3. P: 3 ≠ 4, no contenida ⟹ paralelos.", "m = 4: 4(1 + t) − t − 2t = 5 ⟹ 4 + t = 5 ⟹ t = 1 ⟹ (2, −1, 2)."], resultado: "m = 3; punto (2, −1, 2)" },
+    { id: "p35", nivel: 3, enunciado: "Halla m y k para que π₁: mx + 2y − z = 1 y π₂: 2x + 4y − 2z = k sean el mismo plano.", check: [num("m =", 1), num("k =", 2)],
+      pistas: ["Todos los coeficientes proporcionales."], pasos: ["Factor 2 en y y z ⟹ m·2 = 2 ⟹ m = 1; k = 2·1 = 2."], resultado: "m = 1, k = 2" },
+    { id: "p36", nivel: 3, enunciado: "x + y + mz = 1, x + my + z = 1, mx + y + z = 1. ¿Para qué valores de m (de menor a mayor) los tres planos NO se cortan en un único punto?", check: lista("m =", [-2, 1], "dos valores"),
+      pistas: ["det = −(m − 1)²(m + 2)."], pasos: ["det M = 3m − 2 − m³ = −(m − 1)²(m + 2).", "Se anula en m = 1 y m = −2: ahí no hay solución única."], resultado: "m = −2 y m = 1" },
+    { id: "p37", nivel: 3, enunciado: "En el sistema anterior, para m = −2, los tres planos forman:",
+      check: opcion("Posición", ["Un punto", "Una recta común", "Un prisma triangular (sin puntos comunes)", "Un único plano"], 2),
+      pistas: ["Suma las tres ecuaciones."], pasos: ["m = −2: x + y − 2z = 1, x − 2y + z = 1, −2x + y + z = 1. Sumando: 0 = 3, incompatible.", "rango M = 2, rango M* = 3, sin normales proporcionales ⟹ prisma triangular."], resultado: "Prisma triangular" },
+    { id: "p38", nivel: 3, enunciado: "Plano que contiene a r: P(1, 0, 1), u = (1, 1, 0) y es paralelo al vector v = (0, 1, 1). Se escribe x + By + Cz + D = 0. Da B, C y D.", check: [num("B =", -1), num("C =", 1), num("D =", -2)],
+      pistas: ["n = u × v."], pasos: ["n = (1·1 − 0·1, 0·0 − 1·1, 1·1 − 1·0) = (1, −1, 1).", "x − y + z + D = 0 con P: 1 − 0 + 1 + D = 0 ⟹ D = −2."], resultado: "B = −1, C = 1, D = −2" },
+    { id: "p39", nivel: 3, enunciado: "La recta pasa por P(1, 1, 1) y es paralela a los planos x + y + z = 1 y x − y = 0. Da su vector director con primera componente 1.", check: vec(1, 1, -2),
+      pistas: ["Es perpendicular a las dos normales."], pasos: ["n₁ × n₂ = (1, 1, 1) × (1, −1, 0) = (1·0 − 1·(−1), 1·1 − 1·0, 1·(−1) − 1·1) = (1, 1, −2)."], resultado: "(1, 1, −2)" },
+    { id: "p40", nivel: 3, enunciado: "Halla m para que A(1, 1, 0), B(2, 0, 1), C(0, 1, 1) y D(1, m, m) sean coplanarios (decimal o fracción).", check: num("m =", 2 / 3),
+      pistas: ["AB = (1, −1, 1), AC = (−1, 0, 1), AD = (0, m − 1, m)."], pasos: ["[AB, AC, AD] = 1(0 − (m − 1)) + 1(−m − 0) + 1(−(m − 1) − 0) = 2 − 3m.", "2 − 3m = 0 ⟹ m = 2/3."], resultado: "2/3" },
+    { id: "p41", nivel: 3, enunciado: "r: P(1, 0, 1), u = (1, 1, −1) y s: Q(2, 1, 0), v = (1, 0, 1) se cortan. Da el punto de corte y el plano que las contiene, x − 2y − z + D = 0 (da D).", check: [num("x =", 2), num("y =", 1), num("z =", 0), num("D =", 0)],
+      pistas: ["Q es el punto de r para t = 1."], pasos: ["r en t = 1: (2, 1, 0) = Q ⟹ corte (2, 1, 0).", "n = u × v = (1·1 − (−1)·0, (−1)·1 − 1·1, 1·0 − 1·1) = (1, −2, −1). Con P: 1 − 0 − 1 + D = 0 ⟹ D = 0."], resultado: "(2, 1, 0); D = 0" },
+    { id: "p42", nivel: 3, enunciado: "Del haz (x − y + z − 1) + k(2x + y − z − 2) = 0, halla k para que el plano sea paralelo al eje OX.", check: num("k =", -0.5),
+      pistas: ["El coeficiente de x debe ser 0."], pasos: ["Coeficiente de x: 1 + 2k = 0 ⟹ k = −1/2.", "El plano resultante es y − z = 0."], resultado: "−1/2" },
+    { id: "p43", nivel: 3, enunciado: "Las rectas paralelas r: P(1, 0, 0), u = (1, 1, 1) y s: Q(0, 1, 0), v = (2, 2, 2) están en un plano. Escríbelo como x + By + Cz + D = 0 y da B, C y D.", check: [num("B =", 1), num("C =", -2), num("D =", -1)],
+      pistas: ["Usa u y PQ = (−1, 1, 0)."], pasos: ["n = u × PQ = (1·0 − 1·1, 1·(−1) − 1·0, 1·1 − 1·(−1)) = (−1, −1, 2) ∥ (1, 1, −2).", "x + y − 2z + D = 0 con P: 1 + D = 0 ⟹ D = −1. Comprobación con Q: 1 − 1 = 0 ✓."], resultado: "B = 1, C = −2, D = −1" },
+    { id: "p44", nivel: 3, enunciado: "Tres planos con rango M = 2, rango M* = 3 y exactamente dos de ellos paralelos (normales proporcionales, planos distintos). Su posición es:",
+      check: opcion("Posición", ["Un prisma triangular", "Dos paralelos y un tercero que los corta", "Una recta común", "Un punto"], 1),
+      pistas: ["Un par de planos paralelos no tiene puntos comunes."], pasos: ["Sistema incompatible por los dos planos paralelos.", "El tercero, con normal distinta, corta a los dos paralelos en dos rectas paralelas."], resultado: "Dos paralelos y un tercero que los corta" },
+    { id: "p45", nivel: 3, enunciado: "Punto de r: (x − 1)/2 = (y + 1)/(−1) = (z − 3)/3 situado en el plano x + y + z = 9 (puedes usar decimales).", check: vec(4, -2.5, 7.5),
+      pistas: ["(1 + 2t, −1 − t, 3 + 3t)."], pasos: ["(1 + 2t) + (−1 − t) + (3 + 3t) = 3 + 4t = 9 ⟹ t = 3/2.", "Punto (4, −5/2, 15/2)."], resultado: "(4, −5/2, 15/2)" },
+    { id: "p46", nivel: 3, enunciado: "Halla m para que A(1, 0, 0), B(0, 1, 0), C(0, 0, 1) y D(m, m, m) sean coplanarios (decimal o fracción).", check: num("m =", 1 / 3),
+      pistas: ["El plano ABC es x + y + z = 1."], pasos: ["n = AB × AC = (1, 1, 1) ⟹ x + y + z = 1.", "D cumple: 3m = 1 ⟹ m = 1/3."], resultado: "1/3" }
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Ecuaciones de la recta",
+      tabla: { cab: ["Forma", "Expresión"], filas: [
+        ["Vectorial", "X = P + t·v"],
+        ["Paramétricas", "x = p₁ + tv₁, y = p₂ + tv₂, z = p₃ + tv₃"],
+        ["Continua", "(x − p₁)/v₁ = (y − p₂)/v₂ = (z − p₃)/v₃"],
+        ["Implícita", "A₁x + B₁y + C₁z + D₁ = 0 y A₂x + B₂y + C₂z + D₂ = 0"],
+        ["De implícita a vector", "v = n₁ × n₂; un punto, dando valor a una incógnita"]
+      ] },
+      nota: "Si una componente de v es 0, esa coordenada queda fija: nunca se divide entre 0." },
+    { titulo: "Ecuaciones del plano", ancha: true,
+      tabla: { cab: ["Datos", "Normal", "Ecuación"], filas: [
+        ["Punto P y normal n", "n", "n·(X − P) = 0"],
+        ["Punto P y directores u, v", "u × v", "X = P + λu + μv"],
+        ["Tres puntos A, B, C", "AB × AC", "| x−a₁ y−a₂ z−a₃ ; AB ; AC | = 0"],
+        ["Recta r y punto Q", "v<sub>r</sub> × PQ", "n·(X − Q) = 0"],
+        ["Dos rectas secantes", "v₁ × v₂", "n·(X − P) = 0"]
+      ] },
+      nota: "Falta una variable ⟹ paralelo a ese eje · falta D ⟹ pasa por el origen." },
+    { titulo: "Dos rectas: cuatro posiciones", ancha: true,
+      tabla: { cab: ["Posición", "rg{u, v}", "rg{u, v, AQ}", "det(u, v, AQ)"], filas: [
+        ["Coincidentes", "1", "1", "0"], ["Paralelas", "1", "2", "0"],
+        ["Se cortan", "2", "2", "0"], ["Se cruzan", "2", "3", "≠ 0"]
+      ] },
+      nota: "En implícita: (rg M, rg M*) = (3,3) cortan · (3,4) cruzan · (2,2) coinciden · (2,3) paralelas." },
+    { titulo: "Recta, plano y planos",
+      tabla: { cab: ["Caso", "Condición", "Resultado"], filas: [
+        ["Recta y plano", "v·n ≠ 0", "un punto"],
+        ["Recta y plano", "v·n = 0 y P ∈ π", "recta contenida"],
+        ["Recta y plano", "v·n = 0 y P ∉ π", "paralelos"],
+        ["Dos planos", "normales no prop.", "recta, v = n₁ × n₂"],
+        ["Dos planos", "normales prop., D no", "paralelos"],
+        ["Dos planos", "todo prop.", "coincidentes"]
+      ] } },
+    { titulo: "Tres planos (Rouché)", ancha: true,
+      tabla: { cab: ["rg M", "rg M*", "Posición"], filas: [
+        ["3", "3", "un punto"], ["2", "2", "una recta (haz) o dos coincidentes + otro"],
+        ["2", "3", "prisma triangular o dos paralelos + otro"], ["1", "1", "los tres coincidentes"], ["1", "2", "paralelos (o 2 coincidentes + 1 paralelo)"]
+      ] },
+      nota: "Para separar casos con el mismo rango, mira qué normales son proporcionales." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Dos rectas no paralelas se cortan", bien: "pueden cruzarse: comprobar det(u, v, AQ)", por: "En el espacio hay una posición más." },
+        { mal: "(x − 1)/2 = (y + 3)/0", bien: "y = −3 aparte", por: "No se divide entre 0." },
+        { mal: "La normal incluye el término independiente", bien: "n = (A, B, C)", por: "D no es una componente." },
+        { mal: "v·n = 0 ⟹ paralelos", bien: "o contenida: mira un punto", por: "Falta comprobar P." },
+        { mal: "Director = n₁ + n₂", bien: "n₁ × n₂", por: "Perpendicular a las dos normales." },
+        { mal: "det = 0 ⟹ se cortan (sin más)", bien: "descartar antes u ∥ v", por: "Si u ∥ v el det también es 0." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t5", {
+    resumen: resumen, secciones: B.parte.m2t5a.secciones, nuevas: B.parte.m2t5b.nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
