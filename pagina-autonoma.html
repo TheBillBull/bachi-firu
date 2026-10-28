@@ -13265,6 +13265,138 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 8 (Derivadas)
+   m2t8_trozos  (función a trozos con parámetros: ecuaciones de continuidad y de derivabilidad, y el valor que «empalma suave»)
+   m2t8_rolle   (teorema de Rolle: comprueba las tres hipótesis y marca los puntos c con tangente horizontal)
+   m2t8_hopital (L'Hôpital: tabla numérica de f/g y f′/g′ al acercarse al punto)
+   Reutiliza los motores de Matemáticas I (B.lab.fun, B.lab.der). Las cifras se verifican con herramientas/verificar_mates2_t8.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, F = B.lab.fun, D = B.lab.der;
+  var fil = F.fil, pto = F.pto;
+  var T8 = B.lab.t8 = {};
+
+  // ---------------- 1. Función a trozos con parámetros ----------------
+  // L y R: trozos izquierdo y derecho; dL, dR: sus derivadas; sol: valores que empalman suave
+  var PT = T8.trozos = [
+    { t: "Polinomio y logaritmo en x = 1", c: 1, par: ["a", "b"], v: [0, 0], sol: [-1, 3], rg: [-1, 3.5, -3, 5],
+      L: function (x, a, b) { return a * x * x + b * x; }, R: function (x) { return 2 + Math.log(x); },
+      dL: function (x, a, b) { return 2 * a * x + b; }, dR: function (x) { return 1 / x; },
+      txt: "ax² + bx si x ≤ 1 · 2 + ln x si x > 1", eq: "a + b = 2 (continuidad) · 2a + b = 1 (derivabilidad)" },
+    { t: "Exponencial y parábola en x = 0", c: 0, par: ["a", "b"], v: [0, 0], sol: [2, 1], rg: [-3, 2, -1, 8],
+      L: function (x, a) { return Math.exp(x) + a; }, R: function (x, a, b) { return x * x + b * x + 3; },
+      dL: function (x) { return Math.exp(x); }, dR: function (x, a, b) { return 2 * x + b; },
+      txt: "eˣ + a si x &lt; 0 · x² + bx + 3 si x ≥ 0", eq: "1 + a = 3 (continuidad) · 1 = b (derivabilidad)" },
+    { t: "Recta y parábola en x = 2", c: 2, par: ["a", "b"], v: [0, 0], sol: [4, -4], rg: [-1, 4, -9, 12],
+      L: function (x, a, b) { return a * x + b; }, R: function (x) { return x * x; },
+      dL: function (x, a) { return a; }, dR: function (x) { return 2 * x; },
+      txt: "ax + b si x ≤ 2 · x² si x &gt; 2", eq: "2a + b = 4 (continuidad) · a = 4 (derivabilidad)" },
+    { t: "Con valor absoluto: |x − 1|·(x + a)", c: 1, par: ["a"], v: [2], sol: [-1], rg: [-2, 3.5, -4, 6],
+      L: function (x, a) { return -(x - 1) * (x + a); }, R: function (x, a) { return (x - 1) * (x + a); },
+      dL: function (x, a) { return -(2 * x - 1 + a); }, dR: function (x, a) { return 2 * x - 1 + a; },
+      txt: "|x − 1|·(x + a)", eq: "continua siempre · −(1 + a) = 1 + a (derivabilidad)" }
+  ];
+  B.w.m2t8_trozos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Función a trozos: ¿para qué parámetros «empalma suave»?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, a: 0, b: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sa, sb, bt;
+    sa = U.slider(ctl, { et: "Parámetro <i>a</i>", min: -4, max: 4, step: 0.5, val: 0, on: function (v) { st.a = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    sb = U.slider(ctl, { et: "Parámetro <i>b</i>", min: -4, max: 4, step: 0.5, val: 0, on: function (v) { st.b = v; pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    bt = document.createElement("button"); bt.type = "button"; bt.className = "chip-btn"; bt.textContent = "Poner los valores que empalman"; bt.setAttribute("data-solve", "1"); ctl.appendChild(bt);
+    bt.onclick = function () { var P = PT[st.i]; st.a = P.sol[0]; sa.set(st.a); if (P.par.length > 1) { st.b = P.sol[1]; sb.set(st.b); } pinta(); };
+    function pinta() {
+      var P = PT[st.i], a = st.a, b = st.b, c = P.c;
+      sb.el.style.display = P.par.length > 1 ? "" : "none";
+      g.rango(P.rg[0], P.rg[1], P.rg[2], P.rg[3]); g.limpiar();
+      var Lc = P.L(c, a, b), Rc = P.R(c, a, b), dl = P.dL(c, a, b), dr = P.dR(c, a, b);
+      g.curva(function (x) { return x <= c ? P.L(x, a, b) : NaN; }, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 3);
+      g.curva(function (x) { return x > c ? P.R(x, a, b) : NaN; }, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 3);
+      var W = (P.rg[1] - P.rg[0]) * 0.3;
+      g.segmento(c - W, Lc - dl * W, c, Lc, { clase: "c-ok", dash: "6 4" });
+      g.segmento(c, Rc, c + W, Rc + dr * W, { clase: "c-red", dash: "6 4" });
+      pto(g, c, Lc, "c-ok", false, 6); pto(g, c, Rc, "c-red", Math.abs(Lc - Rc) > 1e-9, 6);
+      var cont = Math.abs(Lc - Rc) < 1e-9, der = cont && Math.abs(dl - dr) < 1e-9;
+      lectura.innerHTML = fil("Función", P.txt, "pen ancho") +
+        fil("Límite por la izquierda · por la derecha en x = " + fmt(c, 0), fmt(Lc, 3) + " · " + fmt(Rc, 3), cont ? "ok" : "red") +
+        fil("¿Continua?", cont ? "sí" : "no: hay un salto de " + fmt(Math.abs(Lc - Rc), 3), cont ? "ok" : "red") +
+        fil("Pendiente por la izquierda · por la derecha", fmt(dl, 3) + " · " + fmt(dr, 3), der ? "ok" : "red") +
+        fil("¿Derivable en x = " + fmt(c, 0) + "?", der ? "sí: f′(" + fmt(c, 0) + ") = " + fmt(dl, 3) : cont ? "no: es continua pero tiene un punto angular" : "no: ni siquiera es continua", der ? "ok ancho" : "red ancho");
+      pie.innerHTML = "Ecuaciones que hay que resolver: <b>" + P.eq + "</b>. Verde: tangente por la izquierda; rojo: por la derecha. Si coinciden, la gráfica empalma sin pico. Valores correctos: " +
+        P.par.map(function (n, k) { return "<b>" + n + " = " + fmt(P.sol[k], 1) + "</b>"; }).join(", ") + ".";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 3, ymin: -3, ymax: 5, w: 600, h: 320, etiqueta: "Función a trozos" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PT.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) {
+      st.i = +k; var P = PT[st.i]; st.a = P.v[0]; sa.set(st.a); if (P.par.length > 1) { st.b = P.v[1]; sb.set(st.b); } pinta();
+    });
+    pinta();
+  };
+
+  // ---------------- 2. Teorema de Rolle ----------------
+  var PR = T8.rolle = [
+    { t: "x² − 4x + 3 en [1, 3]", f: function (x) { return x * x - 4 * x + 3; }, a: 1, b: 3, rg: [0, 4, -2, 4], cont: true, der: true },
+    { t: "x³ − 3x en [0, √3]", f: function (x) { return x * x * x - 3 * x; }, a: 0, b: Math.sqrt(3), rg: [-0.5, 2.2, -3, 1.5], cont: true, der: true },
+    { t: "cos x en [0, 2π]", f: Math.cos, a: 0, b: 2 * Math.PI, rg: [-0.5, 6.8, -1.6, 1.6], cont: true, der: true },
+    { t: "|x| en [−1, 1]", f: Math.abs, a: -1, b: 1, rg: [-1.5, 1.5, -0.5, 1.6], cont: true, der: false, falla: "f no es derivable en x = 0 (punto angular)" },
+    { t: "x² en [0, 1]", f: function (x) { return x * x; }, a: 0, b: 1, rg: [-0.5, 1.5, -0.5, 1.5], cont: true, der: true, falla: "f(0) ≠ f(1)" },
+    { t: "1/x² en [−1, 1]", f: function (x) { return 1 / (x * x); }, a: -1, b: 1, rg: [-1.5, 1.5, -0.5, 6], cont: false, der: false, falla: "f no está definida (ni es continua) en x = 0" }
+  ];
+  B.w.m2t8_rolle = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Teorema de Rolle: las tres hipótesis y el punto c");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0 }, g, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var P = PR[st.i], f = P.f, a = P.a, b = P.b, fa = f(a), fb = f(b);
+      g.rango(P.rg[0], P.rg[1], P.rg[2], P.rg[3]); g.limpiar();
+      g.curva(f, { clase: "c-pen", n: 700 }).setAttribute("stroke-width", 3);
+      g.segmento(a, P.rg[2], a, P.rg[3], { clase: "c-faint", dash: "3 4" }); g.segmento(b, P.rg[2], b, P.rg[3], { clase: "c-faint", dash: "3 4" });
+      var igual = isFinite(fa) && isFinite(fb) && Math.abs(fa - fb) < 1e-9, ok = P.cont && P.der && igual;
+      var cs = ok ? D.cambios(function (x) { return D.d1(f, x); }, a + 1e-6, b - 1e-6, 1200).map(function (e) { return e.x; }) : [];
+      if (isFinite(fa)) pto(g, a, fa, "c-red", false, 6);
+      if (isFinite(fb)) pto(g, b, fb, "c-red", false, 6);
+      var W = (b - a) * 0.25;
+      cs.forEach(function (c) { var fc = f(c); g.segmento(c - W, fc, c + W, fc, { clase: "c-ok", dash: "6 4" }); pto(g, c, fc, "c-ok", false, 6); });
+      var sino = function (v) { return v ? "sí" : "no"; };
+      lectura.innerHTML = fil("1) Continua en [a, b]", sino(P.cont), P.cont ? "ok" : "red") + fil("2) Derivable en (a, b)", sino(P.der), P.der ? "ok" : "red") +
+        fil("3) f(a) = f(b)", isFinite(fa) && isFinite(fb) ? fmt(fa, 3) + " y " + fmt(fb, 3) + ": " + sino(igual) : "no se puede evaluar", igual ? "ok" : "red") +
+        fil("Puntos c con f′(c) = 0", ok ? cs.map(function (c) { return "c = " + fmt(c, 4); }).join(" · ") : "el teorema no se puede aplicar", ok ? "ok ancho" : "red ancho");
+      pie.innerHTML = ok ? "Se cumplen las tres hipótesis, así que existe al menos un c ∈ (a, b) con <b>f′(c) = 0</b> (tangente horizontal, en verde)." :
+        "<b>No se puede aplicar Rolle:</b> " + P.falla + ". Ojo: que falle una hipótesis no prueba que no haya tangente horizontal; solo que el teorema no la garantiza.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 4, ymin: -2, ymax: 4, w: 600, h: 300, etiqueta: "Teorema de Rolle" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PR.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; pinta(); });
+    pinta();
+  };
+
+  // ---------------- 3. L'Hôpital ----------------
+  var PH = T8.hopital = [
+    { t: "sen x / x  (x → 0)", f: Math.sin, g: function (x) { return x; }, df: Math.cos, dg: function () { return 1; }, tipo: "0/0", lim: "1", pasos: "cos x / 1 → 1", xs: [0.5, 0.1, 0.01, 0.001] },
+    { t: "(1 − cos x) / x²  (x → 0)", f: function (x) { return 1 - Math.cos(x); }, g: function (x) { return x * x; }, df: Math.sin, dg: function (x) { return 2 * x; }, tipo: "0/0", lim: "1/2", pasos: "sen x / 2x sigue siendo 0/0; otra vez: cos x / 2 → 1/2", xs: [0.5, 0.1, 0.01, 0.001] },
+    { t: "(eˣ − 1 − x) / x²  (x → 0)", f: function (x) { return Math.exp(x) - 1 - x; }, g: function (x) { return x * x; }, df: function (x) { return Math.exp(x) - 1; }, dg: function (x) { return 2 * x; }, tipo: "0/0", lim: "1/2", pasos: "(eˣ − 1)/2x sigue siendo 0/0; otra vez: eˣ / 2 → 1/2", xs: [0.5, 0.1, 0.01, 0.001] },
+    { t: "ln x / (x − 1)  (x → 1)", f: Math.log, g: function (x) { return x - 1; }, df: function (x) { return 1 / x; }, dg: function () { return 1; }, tipo: "0/0", lim: "1", pasos: "(1/x) / 1 → 1", xs: [1.5, 1.1, 1.01, 1.001] },
+    { t: "eˣ / x²  (x → +∞)", f: Math.exp, g: function (x) { return x * x; }, df: Math.exp, dg: function (x) { return 2 * x; }, tipo: "∞/∞", lim: "+∞", pasos: "eˣ/2x sigue siendo ∞/∞; otra vez: eˣ / 2 → +∞", xs: [5, 10, 20, 40] },
+    { t: "ln x / x  (x → +∞)", f: Math.log, g: function (x) { return x; }, df: function (x) { return 1 / x; }, dg: function () { return 1; }, tipo: "∞/∞", lim: "0", pasos: "(1/x) / 1 = 1/x → 0", xs: [10, 100, 1000, 10000] },
+    { t: "x·ln x  (x → 0⁺) = ln x / (1/x)", f: Math.log, g: function (x) { return 1 / x; }, df: function (x) { return 1 / x; }, dg: function (x) { return -1 / (x * x); }, tipo: "∞/∞", lim: "0", pasos: "(1/x) / (−1/x²) = −x → 0", xs: [0.5, 0.1, 0.01, 0.001] }
+  ];
+  B.w.m2t8_hopital = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "L'Hôpital: ¿f/g y f′/g′ se acercan al mismo número?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="lectura anch"></div><div data-tab></div><p class="w-pie"></p>';
+    var st = { i: 0 }, lectura = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector("[data-tab]"), pie = cuerpo.querySelector(".w-pie");
+    function n4(v) { return isFinite(v) ? (Math.abs(v) >= 1e5 ? v.toExponential(2).replace(".", ",") : fmt(v, 4)) : "—"; }
+    function pinta() {
+      var P = PH[st.i], filas = P.xs.map(function (x) {
+        return "<tr><td>" + fmt(x, 3) + "</td><td>" + n4(P.f(x) / P.g(x)) + "</td><td>" + n4(P.df(x) / P.dg(x)) + "</td></tr>";
+      }).join("");
+      lectura.innerHTML = fil("Indeterminación", P.tipo, "red") + fil("Límite (por L'Hôpital)", P.lim, "ok") + fil("Derivando arriba y abajo", P.pasos, "pen ancho");
+      tab.innerHTML = "<table class='lamina-table'><thead><tr><th>x</th><th>f(x)/g(x)</th><th>f′(x)/g′(x)</th></tr></thead><tbody>" + filas + "</tbody></table>";
+      pie.innerHTML = "Las dos columnas tienden al mismo valor (" + P.lim + "): eso es lo que garantiza el teorema <b>cuando el cociente de derivadas tiene límite</b>. Solo se aplica a 0/0 o ∞/∞; antes de derivar, comprueba la forma.";
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), PH.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · mecánica I (Física y Química 1.º, tema 8: cinemática)
    motor B.lab.mec1 + f8_movil · f8_encuentro · f8_graficas · f8_caida
    ============================================================ */
@@ -56731,6 +56863,704 @@
 
   B.registrar("mates2", "t7", {
     resumen: resumen, secciones: B.parte.m2t7a.secciones, nuevas: B.parte.m2t7b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 8: Derivadas
+   (parte A: se añade al final de las cinco secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t8/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Definición
+  secciones[0] =
+    "<h5>Las dos formas de la definición</h5>" +
+    "<p>La derivada de f en el punto a se puede escribir de dos maneras equivalentes. Si llamas h a lo que te alejas de a, o x al punto que se acerca a a:</p>" +
+    "<div class='formula-wrap'><div class='formula'>f′(a) = lim<sub>h→0</sub> [f(a + h) − f(a)] / h &nbsp;&nbsp;=&nbsp;&nbsp; lim<sub>x→a</sub> [f(x) − f(a)] / (x − a)</div></div>" +
+    "<p>El numerador es lo que sube (o baja) la función y el denominador lo que avanzas en x: el cociente es la <b>pendiente de la recta secante</b> que une los puntos (a, f(a)) y (a + h, f(a + h)). Al hacer h → 0 el segundo punto se acerca al primero y la secante gira hasta convertirse en la <b>tangente</b>; su pendiente es f′(a). Si el límite no existe o es infinito, la función no es derivable en a. Mira cómo la secante se acerca a la tangente al acercar B hacia A:</p>" +
+    w("secante") +
+    "<h5>Calcular una derivada con la definición</h5>" +
+    "<p>Te lo piden con frecuencia («calcula por la definición…»). El truco siempre es el mismo: sustituir, <b>simplificar la h del denominador</b> y solo entonces hacer h → 0 (al sustituir antes tendrías 0/0).</p>" +
+    ejemplo("Un polinomio", "Calcula por la definición f′(3) para f(x) = x².",
+      ["[f(3 + h) − f(3)]/h = [(3 + h)² − 9]/h = (9 + 6h + h² − 9)/h = (6h + h²)/h = 6 + h.",
+       "lim<sub>h→0</sub> (6 + h) = <b>6</b>. Coincide con 2x en x = 3 ✓."]) +
+    ejemplo("Una raíz: se racionaliza", "Calcula por la definición f′(4) para f(x) = √x.",
+      ["[√(4 + h) − 2]/h es 0/0. Multiplica y divide por el conjugado √(4 + h) + 2.",
+       "Numerador: (4 + h) − 4 = h. Queda h / [h·(√(4 + h) + 2)] = 1 / (√(4 + h) + 2).",
+       "lim<sub>h→0</sub> = 1/(2 + 2) = <b>1/4</b>. Coincide con 1/(2√x) en x = 4 ✓."]) +
+    ejemplo("Un cociente: se reducen fracciones", "Calcula por la definición f′(2) para f(x) = 1/x.",
+      ["[1/(2 + h) − 1/2]/h = [(2 − (2 + h)) / (2(2 + h))]/h = [−h / (2(2 + h))]/h = −1 / (2(2 + h)).",
+       "lim<sub>h→0</sub> = −1/4. Coincide con −1/x² en x = 2 ✓."]) +
+    "<h5>Reconocer una derivada escondida en un límite</h5>" +
+    "<p>Un truco que cae en la EvAU: ciertos límites <i>son</i> una derivada y se resuelven sin hacer cuentas, solo reconociendo la definición.</p>" +
+    ejemplo("Límites que son derivadas", "Calcula (a) lim<sub>x→1</sub> (x⁵ − 1)/(x − 1) y (b) lim<sub>h→0</sub> [sen(π/3 + h) − sen(π/3)]/h.",
+      ["(a) Es [f(x) − f(1)]/(x − 1) con f(x) = x⁵ (f(1) = 1). Vale f′(1) = 5·1⁴ = <b>5</b>.",
+       "(b) Es [f(a + h) − f(a)]/h con f = sen y a = π/3. Vale f′(π/3) = cos(π/3) = <b>1/2</b>."]) +
+    "<h5>Tangente y normal: lo que significa f′(a)</h5>" +
+    "<p>f′(a) es la <b>pendiente de la recta tangente</b> a la gráfica en el punto (a, f(a)). Con la ecuación punto–pendiente salen las dos rectas que más se piden:</p>" +
+    "<div class='formula-wrap'><div class='formula'>Tangente: y − f(a) = f′(a)·(x − a) &nbsp;&nbsp;·&nbsp;&nbsp; Normal: y − f(a) = −[1/f′(a)]·(x − a)</div></div>" +
+    "<p>La normal es la perpendicular a la tangente por el mismo punto (pendientes opuestas e inversas, m·m′ = −1). Si f′(a) = 0, la tangente es horizontal y la normal es la recta vertical x = a. Arrastra el punto y mira cómo cambia la pendiente:</p>" +
+    w("tangente") +
+    ejemplo("Tangente y normal en un punto", "Halla la tangente y la normal a f(x) = x² − 3x + 1 en x = 2.",
+      ["f(2) = 4 − 6 + 1 = −1. f′(x) = 2x − 3 ⟹ f′(2) = 1.",
+       "Tangente: y + 1 = 1·(x − 2) ⟹ <b>y = x − 3</b>.",
+       "Normal: pendiente −1/1 = −1 ⟹ y + 1 = −(x − 2) ⟹ <b>y = −x + 1</b>."]) +
+    ojo("f′(a) es un <b>límite</b>, no un cociente de derivadas ni «la derivada del cociente». Y al escribir la recta tangente, no sustituyas x = a en f′(x) por todas partes: la x que queda en (x − a) es la variable de la recta.");
+
+  // ---------------------------------------------------------------- 2. Reglas de suma, producto y cociente
+  secciones[1] =
+    "<h5>Más casos que conviene tener claros</h5>" +
+    "<ul>" +
+    "<li><b>Constante por función</b>: (k·u)′ = k·u′ (la constante sale fuera; no se deriva a 0).</li>" +
+    "<li><b>Inversa de una función</b>: (1/v)′ = −v′/v² (es el cociente con u = 1, u′ = 0).</li>" +
+    "<li><b>Producto de tres factores</b>: (u·v·w)′ = u′vw + uv′w + uvw′ (cada vez uno se deriva y los otros dos se copian).</li>" +
+    "<li><b>Cuidado con el producto</b>: (u·v)′ ≠ u′·v′. Es un error clásico: (x·eˣ)′ = (1 + x)eˣ, no 1·eˣ.</li>" +
+    "</ul>" +
+    ejemplo("Cociente y simplificación", "Deriva f(x) = (x² + 1)/(x − 3).",
+      ["u = x² + 1, u′ = 2x; v = x − 3, v′ = 1.",
+       "f′ = [2x(x − 3) − (x² + 1)·1]/(x − 3)² = (2x² − 6x − x² − 1)/(x − 3)² = <b>(x² − 6x − 1)/(x − 3)²</b>."]) +
+    ejemplo("Producto de tres factores", "Deriva f(x) = x·eˣ·sen x.",
+      ["f′ = 1·eˣ·sen x + x·eˣ·sen x + x·eˣ·cos x.",
+       "Sacando factor común: <b>f′(x) = eˣ(sen x + x sen x + x cos x)</b>."]) +
+    ejemplo("Cociente con logaritmo", "Deriva f(x) = x²/ln x.",
+      ["u = x², u′ = 2x; v = ln x, v′ = 1/x.",
+       "f′ = [2x·ln x − x²·(1/x)]/(ln x)² = (2x ln x − x)/(ln x)² = <b>x(2 ln x − 1)/(ln x)²</b>."]) +
+    ejemplo("La derivada de tan x sale de la del cociente", "Comprueba que (tan x)′ = 1 + tan² x.",
+      ["tan x = sen x / cos x. u = sen x, v = cos x.",
+       "f′ = [cos x·cos x − sen x·(−sen x)]/cos² x = (cos² x + sen² x)/cos² x = 1/cos² x.",
+       "Y 1/cos² x = (cos² x + sen² x)/cos² x = 1 + tan² x ✓. Las dos formas (<b>1/cos² x</b> y <b>1 + tan² x</b>) valen."]);
+
+  // ---------------------------------------------------------------- 3. Tabla de derivadas
+  secciones[2] =
+    "<h5>La tabla completa, ya con la regla de la cadena incluida</h5>" +
+    "<p>La tabla original da las derivadas de x. En la práctica casi nunca derivas «x», sino una función u(x) metida dentro. Por eso conviene aprender cada fila en su <b>forma compuesta</b> (la que lleva u′ detrás):</p>" +
+    tabla(["Función", "Derivada", "Compuesta (con u = u(x))"], [
+      ["k (constante)", "0", "0"],
+      ["xⁿ", "n·xⁿ⁻¹", "(uⁿ)′ = n·uⁿ⁻¹·u′"],
+      ["√x", "1/(2√x)", "(√u)′ = u′/(2√u)"],
+      ["1/x", "−1/x²", "(1/u)′ = −u′/u²"],
+      ["eˣ", "eˣ", "(eᵘ)′ = u′·eᵘ"],
+      ["aˣ", "aˣ·ln a", "(aᵘ)′ = u′·aᵘ·ln a"],
+      ["ln x", "1/x", "(ln u)′ = u′/u"],
+      ["sen x", "cos x", "(sen u)′ = u′·cos u"],
+      ["cos x", "−sen x", "(cos u)′ = −u′·sen u"],
+      ["tan x", "1 + tan² x = 1/cos² x", "(tan u)′ = u′(1 + tan² u)"],
+      ["arcsen x", "1/√(1 − x²)", "(arcsen u)′ = u′/√(1 − u²)"],
+      ["arccos x", "−1/√(1 − x²)", "(arccos u)′ = −u′/√(1 − u²)"],
+      ["arctan x", "1/(1 + x²)", "(arctan u)′ = u′/(1 + u²)"]
+    ]) +
+    "<p>Fíjate en dos regularidades que ayudan a memorizar: las derivadas de las <b>«co-»</b> (cos, arccos) llevan un signo menos, y las tres funciones inversas (arcsen, arccos, arctan) tienen derivadas <b>algebraicas</b> (sin trigonometría).</p>" +
+    ejemplo("Derivadas de arcos", "Deriva (a) f(x) = arctan(x²) y (b) g(x) = arcsen(2x).",
+      ["(a) u = x², u′ = 2x: f′(x) = 2x/(1 + (x²)²) = <b>2x/(1 + x⁴)</b>.",
+       "(b) u = 2x, u′ = 2: g′(x) = 2/√(1 − 4x²) (definida para |x| &lt; 1/2)."]) +
+    ejemplo("Una derivada que se simplifica sola", "Deriva f(x) = arctan((1 + x)/(1 − x)).",
+      ["u = (1 + x)/(1 − x); u′ = [(1 − x) + (1 + x)]/(1 − x)² = 2/(1 − x)².",
+       "1 + u² = [(1 − x)² + (1 + x)²]/(1 − x)² = (2 + 2x²)/(1 − x)².",
+       "f′ = u′/(1 + u²) = [2/(1 − x)²]·[(1 − x)²/(2 + 2x²)] = <b>1/(1 + x²)</b>. (Es la derivada de arctan x: las dos funciones difieren en una constante.)"]);
+
+  // ---------------------------------------------------------------- 4. Regla de la cadena
+  secciones[3] =
+    "<h5>Cómo derivar una compuesta larga sin perderse</h5>" +
+    "<p>Cuando hay varias funciones anidadas, trabaja <b>de fuera hacia dentro</b>: (1) identifica la función más exterior; (2) derívala dejando su interior intacto; (3) multiplica por la derivada del interior, que a su vez puede necesitar otra cadena. Dibuja mentalmente las «capas» como las de una cebolla: cada capa aporta un factor.</p>" +
+    ejemplo("Tres capas", "Deriva f(x) = [sen(2x + 1)]³.",
+      ["Capas: elevar al cubo → seno → 2x + 1.",
+       "f′ = 3·[sen(2x + 1)]²·cos(2x + 1)·2 = <b>6·sen²(2x + 1)·cos(2x + 1)</b>."]) +
+    ejemplo("Exponencial de un seno de un cuadrado", "Deriva f(x) = e<sup>sen(x²)</sup>.",
+      ["Capas: exponencial → seno → x².",
+       "f′ = e<sup>sen(x²)</sup>·cos(x²)·2x = <b>2x·cos(x²)·e<sup>sen(x²)</sup></b>."]) +
+    ejemplo("Arco tangente de una raíz", "Deriva f(x) = arctan(√x).",
+      ["u = √x, u′ = 1/(2√x). f′ = u′/(1 + u²) = [1/(2√x)]/(1 + x).",
+       "<b>f′(x) = 1/(2√x·(1 + x))</b>, para x &gt; 0."]) +
+    "<h5>Truco: simplificar antes de derivar</h5>" +
+    "<p>Con logaritmos conviene aplicar primero sus propiedades (ln(ab) = ln a + ln b, ln(a/b) = ln a − ln b, ln aⁿ = n ln a): derivas sumas de términos sencillos en lugar de una cadena enorme.</p>" +
+    ejemplo("Logaritmo de un cociente", "Deriva f(x) = ln[(x + 1)/(x − 1)].",
+      ["Sin simplificar saldría una cadena con cociente dentro. Mejor: f(x) = ln(x + 1) − ln(x − 1).",
+       "f′ = 1/(x + 1) − 1/(x − 1) = [(x − 1) − (x + 1)]/(x² − 1) = <b>−2/(x² − 1)</b>."]) +
+    ejemplo("Logaritmo de una raíz", "Deriva f(x) = ln √(x² + 1).",
+      ["f(x) = ½·ln(x² + 1). f′ = ½·2x/(x² + 1) = <b>x/(x² + 1)</b>."]) +
+    "<p>Practica con el derivador paso a paso: te pide la derivada de funciones compuestas y te explica cada capa.</p>" +
+    w("derivador") +
+    ojo("El error más frecuente en la EvAU es <b>olvidar el factor de dentro</b>: derivar sen(3x) como cos(3x) en lugar de 3cos(3x), o e^(x²) como e^(x²) sin el 2x. Antes de cerrar un ejercicio, pregúntate: ¿hay algo distinto de «x» dentro de cada función? Si sí, falta una u′.");
+
+  // ---------------------------------------------------------------- 5. Derivadas de orden superior
+  secciones[4] =
+    "<h5>Derivadas sucesivas: patrones que se repiten</h5>" +
+    "<p>Derivar varias veces suele hacerse con paciencia, pero a veces piden una <b>fórmula general</b> de la derivada n-ésima f<sup>(n)</sup>: se calculan las primeras, se detecta el patrón y se enuncia (la demostración rigurosa sería por inducción).</p>" +
+    tabla(["f(x)", "f′", "f″", "f‴", "Patrón"], [
+      ["e<sup>2x</sup>", "2e<sup>2x</sup>", "4e<sup>2x</sup>", "8e<sup>2x</sup>", "f<sup>(n)</sup> = 2ⁿ·e<sup>2x</sup>"],
+      ["ln x", "1/x", "−1/x²", "2/x³", "f<sup>(n)</sup> = (−1)ⁿ⁻¹(n − 1)!/xⁿ"],
+      ["sen x", "cos x", "−sen x", "−cos x", "se repite cada 4 derivadas"],
+      ["x·eˣ", "(x + 1)eˣ", "(x + 2)eˣ", "(x + 3)eˣ", "f<sup>(n)</sup> = (x + n)·eˣ"],
+      ["1/(1 − x)", "1/(1 − x)²", "2/(1 − x)³", "6/(1 − x)⁴", "f<sup>(n)</sup> = n!/(1 − x)ⁿ⁺¹"]
+    ]) +
+    ejemplo("Una derivada de orden alto", "Calcula la derivada décima de f(x) = x·eˣ en x = 0.",
+      ["Patrón: f<sup>(n)</sup>(x) = (x + n)eˣ (cada derivada suma 1 al paréntesis porque (eˣ)′ = eˣ).",
+       "f<sup>(10)</sup>(0) = (0 + 10)·e⁰ = <b>10</b>."]) +
+    ejemplo("Derivadas segundas con producto", "Calcula f′ y f″ para f(x) = x·e<sup>−x</sup>.",
+      ["f′ = e<sup>−x</sup> + x·(−e<sup>−x</sup>) = (1 − x)e<sup>−x</sup>.",
+       "f″ = −e<sup>−x</sup> + (1 − x)(−e<sup>−x</sup>) = (−1 − 1 + x)e<sup>−x</sup> = <b>(x − 2)e<sup>−x</sup></b>."]) +
+    "<p>Observa las tres gráficas a la vez: donde f′ es cero, f tiene tangente horizontal; donde f″ es positiva, f curva hacia arriba. Es la base de los Temas 9 y 10.</p>" +
+    w("tresgraficas");
+
+  B.parte.m2t8a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 8: Derivadas
+   (parte B: secciones nuevas 6 a 11)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t8/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 6
+    {
+      h: "6. Derivabilidad: derivadas laterales y funciones a trozos",
+      html:
+        "<p>Una función es derivable en a si existe (y es un número real) el límite de la definición. Como todo límite, existe solo si coinciden los <b>límites laterales</b>; aquí se llaman <b>derivadas laterales</b>:</p>" +
+        "<div class='formula-wrap'><div class='formula'>f′(a⁺) = lim<sub>h→0⁺</sub> [f(a + h) − f(a)]/h &nbsp;&nbsp;·&nbsp;&nbsp; f′(a⁻) = lim<sub>h→0⁻</sub> [f(a + h) − f(a)]/h</div></div>" +
+        "<p>f es derivable en a ⟺ f′(a⁺) = f′(a⁻) (y es finito). La derivada por la derecha es la pendiente que «sube» desde el punto hacia la derecha; por la izquierda, desde la izquierda. Si no coinciden, la gráfica tiene un pico.</p>" +
+        "<h5>Derivable ⟹ continua, pero no al revés</h5>" +
+        "<p>Si f es derivable en a, entonces es continua en a (si hubiera un salto, el cociente [f(a + h) − f(a)]/h se haría infinito). El recíproco es falso, y es una de las preguntas clásicas de teoría. Hay tres maneras de ser continua y no derivable:</p>" +
+        tabla(["Tipo de punto", "Ejemplo en x = 0", "Derivadas laterales", "Aspecto"], [
+          ["Punto angular", "|x|", "−1 y +1 (finitas y distintas)", "pico"],
+          ["Cúspide", "∛(x²)", "−∞ y +∞", "pico con tangente vertical"],
+          ["Tangente vertical", "∛x", "+∞ y +∞ (el mismo infinito)", "curva con tangente vertical, sin pico"]
+        ]) +
+        "<p>En los tres casos no hay derivada (la derivada tiene que ser un número real). Y, por supuesto, si hay un salto o un hueco la función ni siquiera es continua y tampoco es derivable. Prueba todos los casos:</p>" +
+        w("derivabilidad") +
+        "<h5>Funciones a trozos: el método de los dos pasos</h5>" +
+        "<p>Para estudiar f en el punto c donde se unen los trozos (o para hallar parámetros):</p>" +
+        "<ol>" +
+        "<li><b>Continuidad en c</b>: los dos límites laterales de f valen lo mismo que f(c). Cada trozo evaluado en c da el mismo número. (Primera ecuación.)</li>" +
+        "<li><b>Derivabilidad en c</b>: se deriva cada trozo y se evalúa en c; deben dar el mismo número. (Segunda ecuación.) Este atajo es válido cuando f ya es continua en c.</li>" +
+        "</ol>" +
+        "<p>Si hay dos parámetros, tendrás dos ecuaciones lineales: un sistema que se resuelve en dos líneas.</p>" +
+        ejemplo("Dos parámetros: polinomio y logaritmo", "Halla a y b para que f sea derivable en x = 1, con f(x) = ax² + bx si x ≤ 1 y f(x) = 2 + ln x si x &gt; 1.",
+          ["Continuidad en 1: a + b = 2 + ln 1 = 2.",
+           "Derivadas de los trozos: 2ax + b y 1/x. En x = 1: 2a + b = 1.",
+           "Restando: (2a + b) − (a + b) = 1 − 2 ⟹ <b>a = −1</b>, y b = 2 − a = <b>3</b>.",
+           "Entonces f′(1) = 1. Comprobación: −1 + 3 = 2 ✓ y 2(−1) + 3 = 1 ✓."]) +
+        ejemplo("Exponencial y parábola", "Halla a y b para que f(x) = eˣ + a (x &lt; 0), f(x) = x² + bx + 3 (x ≥ 0) sea derivable en x = 0.",
+          ["Continuidad: e⁰ + a = 0 + 0 + 3 ⟹ 1 + a = 3 ⟹ <b>a = 2</b>.",
+           "Derivadas: eˣ y 2x + b. En 0: 1 = b ⟹ <b>b = 1</b>.",
+           "f′(0) = 1."]) +
+        w("m2t8_trozos") +
+        "<h5>Con valor absoluto: se separa en trozos</h5>" +
+        "<p>Una función con |·| se reescribe como función a trozos según el signo de lo de dentro, y desde ahí se estudia igual. Los únicos puntos sospechosos son los que anulan lo que hay dentro del valor absoluto.</p>" +
+        ejemplo("Valor absoluto de una parábola", "Estudia la derivabilidad de f(x) = |x² − 4|.",
+          ["x² − 4 &lt; 0 en (−2, 2): f = 4 − x², f′ = −2x. Fuera de [−2, 2]: f = x² − 4, f′ = 2x.",
+           "En x = 2: f′(2⁻) = −4 y f′(2⁺) = +4. Distintas ⟹ <b>no derivable en x = 2</b> (punto angular). Por simetría, tampoco en x = −2.",
+           "En el resto de los puntos es derivable."]) +
+        ejemplo("Un parámetro dentro del valor absoluto", "Halla a para que f(x) = |x − 1|·(x + a) sea derivable en x = 1.",
+          ["f es continua siempre (producto de continuas). Para x &gt; 1: f = (x − 1)(x + a), f′(1⁺) = 1 + a.",
+           "Para x &lt; 1: f = −(x − 1)(x + a), f′(1⁻) = −(1 + a).",
+           "Derivable ⟺ 1 + a = −(1 + a) ⟺ 2(1 + a) = 0 ⟹ <b>a = −1</b>. Entonces f = (x − 1)|x − 1| y f′(1) = 0."]) +
+        "<h5>Cuidado con la derivada que existe pero no es continua</h5>" +
+        "<p>Para una función como f(x) = x²·sen(1/x) si x ≠ 0 y f(0) = 0, hay que ir a la definición en x = 0 (el atajo de «derivar cada trozo» no sirve porque la expresión de f′(x) no tiene límite en 0): f′(0) = lim<sub>h→0</sub> h² sen(1/h)/h = lim h·sen(1/h) = 0. Es derivable en 0 con f′(0) = 0, y sin embargo f′(x) = 2x sen(1/x) − cos(1/x) <b>no tiene límite</b> cuando x → 0: <i>una función puede ser derivable y tener derivada discontinua</i>.</p>" +
+        ojo("Para hallar parámetros no basta la derivabilidad: <b>primero la continuidad</b>. Una función a trozos con las derivadas de los trozos iguales en c pero con un salto no es derivable (ni continua) en c. Y no te olvides de comprobar a qué trozo pertenece el propio punto c (con ≤ o con &lt;) al evaluar f(c)."),
+    },
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Derivación logarítmica: funciones del tipo f(x)<sup>g(x)</sup>",
+      html:
+        "<p>Cuando la base y el exponente dependen de x, no sirve ni la regla de la potencia (que exige exponente constante) ni la de la exponencial (que exige base constante). La salida es <b>tomar logaritmos</b>, que convierte la potencia en un producto:</p>" +
+        "<div class='formula-wrap'><div class='formula'>y = f(x)<sup>g(x)</sup> &nbsp;⟹&nbsp; ln y = g(x)·ln f(x) &nbsp;⟹&nbsp; y′/y = g′·ln f + g·f′/f &nbsp;⟹&nbsp; <b>y′ = f<sup>g</sup>·(g′·ln f + g·f′/f)</b></div></div>" +
+        "<p>Pasos: (1) comprueba que f &gt; 0 (para poder tomar ln); (2) toma ln en los dos miembros; (3) deriva los dos lados — el izquierdo sale como y′/y por la regla de la cadena; (4) despeja y′ y sustituye y por su expresión original. Una forma equivalente: y = e<sup>g·ln f</sup> y deriva la exponencial.</p>" +
+        ejemplo("La clásica x<sup>x</sup>", "Deriva y = xˣ (x &gt; 0).",
+          ["ln y = x·ln x. Derivando: y′/y = 1·ln x + x·(1/x) = ln x + 1.",
+           "<b>y′ = xˣ(ln x + 1)</b>. Por ejemplo, y′(1) = 1 y y′(2) = 4(ln 2 + 1) ≈ 6,77."]) +
+        ejemplo("Exponente trigonométrico", "Deriva y = x<sup>sen x</sup> (x &gt; 0).",
+          ["ln y = sen x·ln x. Derivando: y′/y = cos x·ln x + sen x·(1/x).",
+           "<b>y′ = x<sup>sen x</sup>·(cos x·ln x + sen x/x)</b>."]) +
+        ejemplo("Base que es otra función", "Deriva y = (ln x)<sup>x</sup> (x &gt; 1).",
+          ["ln y = x·ln(ln x). Derivando: y′/y = ln(ln x) + x·[1/(x·ln x)] = ln(ln x) + 1/ln x.",
+           "<b>y′ = (ln x)ˣ·(ln(ln x) + 1/ln x)</b>."]) +
+        "<h5>El mismo truco para productos y cocientes enormes</h5>" +
+        "<p>Si tienes muchos factores y potencias, el logaritmo transforma productos en sumas y cocientes en restas, y es más cómodo que la regla del producto repetida:</p>" +
+        ejemplo("Producto y cociente de varios factores", "Calcula y′(1) para y = x²(x + 1)³/(x − 2)⁴.",
+          ["ln y = 2 ln x + 3 ln(x + 1) − 4 ln(x − 2) (con valor absoluto dentro si hace falta).",
+           "y′/y = 2/x + 3/(x + 1) − 4/(x − 2).",
+           "En x = 1: y(1) = 1·8/(−1)⁴ = 8 y y′/y = 2 + 3/2 − 4/(−1) = 7,5.",
+           "<b>y′(1) = 8·7,5 = 60</b>."]) +
+        ejemplo("Recta tangente a una función potencial-exponencial", "Halla la tangente a y = xˣ en x = 2.",
+          ["y(2) = 4 y y′(2) = 4(ln 2 + 1).",
+           "Tangente: y − 4 = 4(1 + ln 2)(x − 2) ⟹ <b>y = 4(1 + ln 2)x − 4 − 8 ln 2</b>  (≈ 6,77x − 9,55)."]) +
+        ojo("No derives xˣ como x·x^(x−1) (eso supone exponente constante) ni como xˣ·ln x (eso supone base constante). Lo correcto es la <b>suma de las dos</b>: xˣ·ln x + x·x^(x−1) = xˣ(ln x + 1). Si lo piensas bien, cada una de las dos reglas «equivocadas» es una de las dos mitades."),
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Recta tangente y normal: los problemas típicos",
+      html:
+        "<p>En la EvAU la derivada casi siempre se usa para escribir una recta tangente. Las preguntas se reducen a cuatro situaciones; saber cuál es la tuya es la mitad del ejercicio.</p>" +
+        "<h5>A. Tangente en un punto dado de la curva</h5>" +
+        "<p>Es la receta de la sección 1: y − f(a) = f′(a)(x − a).</p>" +
+        ejemplo("Tangente y normal con logaritmo", "Halla la tangente y la normal a f(x) = x·ln x en x = e.",
+          ["f(e) = e·1 = e. f′(x) = ln x + 1 ⟹ f′(e) = 2.",
+           "Tangente: y − e = 2(x − e) ⟹ <b>y = 2x − e</b>.",
+           "Normal: pendiente −1/2 ⟹ y − e = −½(x − e) ⟹ <b>y = −x/2 + 3e/2</b>."]) +
+        "<h5>B. Pendiente conocida o paralela/perpendicular a otra recta</h5>" +
+        "<p>Aquí no te dan el punto: te dan la <b>pendiente</b> m (o una recta paralela a la tangente, o perpendicular a ella). Se resuelve la ecuación <b>f′(x) = m</b>, cuyas soluciones son las abscisas de los puntos de tangencia. Recuerda: paralela ⟹ misma pendiente; perpendicular ⟹ pendiente m′ = −1/m.</p>" +
+        ejemplo("Tangentes paralelas a una recta", "¿En qué puntos de f(x) = x³ − 3x la tangente es paralela a y = 6x + 1? Escribe las tangentes.",
+          ["Pendiente 6: f′(x) = 3x² − 3 = 6 ⟹ x² = 3 ⟹ x = ±√3.",
+           "f(√3) = 3√3 − 3√3 = 0 y f(−√3) = 0. Puntos: <b>(√3, 0) y (−√3, 0)</b>.",
+           "Tangentes: y = 6(x − √3) = 6x − 6√3 e y = 6(x + √3) = 6x + 6√3."]) +
+        ejemplo("Tangente horizontal", "¿Dónde es horizontal la tangente de f(x) = x·e<sup>−x</sup>?",
+          ["Horizontal ⟺ f′(x) = 0. Con f′ = (1 − x)e<sup>−x</sup>: 1 − x = 0 (la exponencial nunca se anula) ⟹ x = 1.",
+           "Punto: <b>(1, 1/e)</b>, y la tangente es y = 1/e."]) +
+        "<h5>C. Tangente que pasa por un punto que no está en la curva</h5>" +
+        "<p>Este es el que más cuesta. Ahora el punto de tangencia es la <b>incógnita</b>, t. La tangente en t es y = f(t) + f′(t)(x − t); le obligas a pasar por el punto exterior (x₀, y₀) y resuelves en t.</p>" +
+        ejemplo("Tangentes a una parábola desde un punto exterior", "Halla las rectas tangentes a y = x² que pasan por P(1, −3).",
+          ["Tangente en t: y = t² + 2t(x − t) (f(t) = t², f′(t) = 2t).",
+           "Que pase por P: −3 = t² + 2t(1 − t) = 2t − t² ⟹ t² − 2t − 3 = 0 ⟹ <b>t = 3 o t = −1</b>.",
+           "t = 3: y = 9 + 6(x − 3) = <b>6x − 9</b>. t = −1: y = 1 − 2(x + 1) = <b>−2x − 1</b>.",
+           "Comprobación en P(1, −3): 6 − 9 = −3 ✓ y −2 − 1 = −3 ✓."]) +
+        ejemplo("Tangente a y = ln x que pasa por el origen", "Halla la tangente a y = ln x que pasa por el origen.",
+          ["Tangente en t: y = ln t + (x − t)/t.",
+           "Por (0, 0): 0 = ln t − 1 ⟹ ln t = 1 ⟹ t = e.",
+           "Pendiente 1/e: <b>y = x/e</b>."]) +
+        "<h5>D. Tangente que corta a los ejes</h5>" +
+        "<p>Una vez escrita la tangente, sus cortes con los ejes salen igualando x = 0 (ordenada en el origen) e y = 0 (abscisa en el origen); con ellos se calcula el área del triángulo que forma con los ejes, otra pregunta habitual.</p>" +
+        ejemplo("Corte de la normal con el eje X", "Halla dónde corta al eje X la normal a f(x) = eˣ en x = 0.",
+          ["f(0) = 1, f′(0) = 1 ⟹ normal de pendiente −1: y − 1 = −x ⟹ y = 1 − x.",
+           "y = 0 ⟹ <b>x = 1</b>: corta al eje X en el punto (1, 0)."]) +
+        w("tangente"),
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Teoremas de Rolle y del valor medio",
+      html:
+        "<p>Son dos teoremas de <b>existencia</b>: dicen que hay un punto con cierta propiedad pero no dónde está. En la EvAU se pregunta casi siempre lo mismo: «¿se cumplen las hipótesis? Si sí, calcula el c».</p>" +
+        "<h5>Teorema de Rolle</h5>" +
+        "<div class='formula-wrap'><div class='formula'>f continua en [a, b] · f derivable en (a, b) · f(a) = f(b) &nbsp;⟹&nbsp; existe c ∈ (a, b) con <b>f′(c) = 0</b></div></div>" +
+        "<p>Geométricamente: si sales y vuelves a la misma altura, en algún punto intermedio la tangente es horizontal (en un máximo o un mínimo relativo). Fíjate en las tres hipótesis por separado: continuidad en el intervalo <i>cerrado</i>, derivabilidad en el <i>abierto</i> y mismas alturas en los extremos. Si falla una, el teorema no se puede aplicar (aunque la conclusión pueda cumplirse por casualidad).</p>" +
+        w("m2t8_rolle") +
+        ejemplo("Aplicar Rolle y hallar c", "Comprueba que f(x) = x³ − 6x² + 9x cumple el teorema de Rolle en [0, 3] y halla c.",
+          ["Polinomio: continuo y derivable en todo ℝ. f(0) = 0 y f(3) = 27 − 54 + 27 = 0 ✓ (f(a) = f(b)).",
+           "f′(x) = 3x² − 12x + 9 = 3(x − 1)(x − 3) = 0 ⟹ x = 1 o x = 3.",
+           "Solo x = 1 está en el intervalo abierto (0, 3) ⟹ <b>c = 1</b>."]) +
+        ejemplo("Rolle que no se puede aplicar", "¿Se puede aplicar Rolle a f(x) = |x − 1| en [0, 2]?",
+          ["Continua en [0, 2] ✓. f(0) = 1 = f(2) ✓.",
+           "Pero f no es derivable en x = 1 ∈ (0, 2) (punto angular) ✗. <b>No se puede aplicar</b>, y de hecho no hay ningún c con f′(c) = 0 (f′ vale −1 a la izquierda y +1 a la derecha)."]) +
+        "<h5>Teorema del valor medio (de Lagrange)</h5>" +
+        "<div class='formula-wrap'><div class='formula'>f continua en [a, b] · f derivable en (a, b) &nbsp;⟹&nbsp; existe c ∈ (a, b) con <b>f′(c) = [f(b) − f(a)]/(b − a)</b></div></div>" +
+        "<p>Geométricamente: hay un punto donde la tangente es paralela a la cuerda (secante) que une los extremos. Rolle es el caso particular en que la cuerda es horizontal. Se usa igual: compruebas hipótesis, calculas la pendiente de la cuerda y resuelves f′(c) = ese número, quedándote con las soluciones del intervalo <i>abierto</i>.</p>" +
+        w("valormedio") +
+        ejemplo("Valor medio con logaritmo", "Halla el c del teorema del valor medio para f(x) = ln x en [1, e].",
+          ["Continua y derivable en [1, e] (x &gt; 0).",
+           "Pendiente de la cuerda: [ln e − ln 1]/(e − 1) = 1/(e − 1).",
+           "f′(c) = 1/c = 1/(e − 1) ⟹ <b>c = e − 1 ≈ 1,718</b>, que está en (1, e) ✓."]) +
+        ejemplo("Valor medio con un cubo", "Halla c para f(x) = x³ en [1, 3].",
+          ["Cuerda: (27 − 1)/(3 − 1) = 13.",
+           "f′(c) = 3c² = 13 ⟹ c = ±√(13/3) ≈ ±2,082. Solo c ≈ 2,082 está en (1, 3). <b>c = √(13/3)</b>."]) +
+        "<h5>Para qué sirven (más allá de calcular c)</h5>" +
+        "<ul>" +
+        "<li><b>Contar raíces</b>: junto a Bolzano. Bolzano asegura que hay una raíz; Rolle asegura que <i>no hay más de una</i>: si hubiera dos raíces, entre ellas f′ se anularía.</li>" +
+        "<li><b>Acotar cantidades</b>: con el valor medio, |sen b − sen a| = |cos c|·|b − a| ≤ |b − a|.</li>" +
+        "<li><b>Funciones con f′ = 0</b>: si f′ = 0 en todo un intervalo, f es constante (el valor medio da f(b) − f(a) = 0 para cualquier a y b).</li>" +
+        "</ul>" +
+        ejemplo("Exactamente una raíz real", "Demuestra que x³ + 3x − 1 = 0 tiene exactamente una raíz real.",
+          ["f(x) = x³ + 3x − 1 es continua. f(0) = −1 &lt; 0 y f(1) = 3 &gt; 0 ⟹ (Bolzano) hay al menos una raíz en (0, 1).",
+           "Supón que hubiera dos, α &lt; β. Rolle en [α, β] daría un c con f′(c) = 0.",
+           "Pero f′(x) = 3x² + 3 ≥ 3 &gt; 0 para todo x. Contradicción ⟹ <b>la raíz es única</b>."]) +
+        ejemplo("A lo sumo una raíz en un intervalo", "Demuestra que x³ − 3x + 1 = 0 tiene exactamente una raíz en (−1, 1).",
+          ["g(x) = x³ − 3x + 1: g(−1) = 3 &gt; 0 y g(1) = −1 &lt; 0 ⟹ (Bolzano) al menos una raíz en (−1, 1).",
+           "g′(x) = 3x² − 3 = 3(x² − 1) &lt; 0 en (−1, 1): si hubiera dos raíces, Rolle daría g′(c) = 0 en (−1, 1), imposible. <b>Exactamente una.</b>"]) +
+        ojo("Los tres «es continua / es derivable / f(a) = f(b)» hay que <b>escribirlos</b> en el examen: el corrector da puntos por comprobar las hipótesis. Y recuerda que el teorema da la existencia de c, pero a veces hay varios (se piden «todos»), y que solo valen los que están en el intervalo <b>abierto</b>."),
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Regla de L'Hôpital",
+      html:
+        "<p>Es la herramienta para resolver límites con las indeterminaciones <b>0/0</b> o <b>∞/∞</b>. Si f(x) y g(x) cumplen las condiciones (ambas tienden a 0, o ambas a ∞, y son derivables cerca del punto con g′ ≠ 0):</p>" +
+        "<div class='formula-wrap'><div class='formula'>lim f(x)/g(x) = lim f′(x)/g′(x) &nbsp;&nbsp;(si el segundo límite existe, finito o infinito)</div></div>" +
+        "<p>Se derivan <b>por separado</b> numerador y denominador (no es la regla del cociente). Si tras derivar sigue la indeterminación, se repite. Vale con x → a, x → a⁺, x → a⁻ y x → ±∞.</p>" +
+        ejemplo("0/0 aplicada dos veces", "Calcula lim<sub>x→0</sub> (eˣ − 1 − x)/x².",
+          ["Para x = 0: numerador 1 − 1 − 0 = 0 y denominador 0 ⟹ 0/0.",
+           "Derivando: (eˣ − 1)/(2x) es otra vez 0/0.",
+           "Derivando otra vez: eˣ/2 → <b>1/2</b>."]) +
+        ejemplo("0/0 aplicada tres veces", "Calcula lim<sub>x→0</sub> (sen x − x)/x³.",
+          ["0/0 ⟹ (cos x − 1)/(3x²), de nuevo 0/0 ⟹ (−sen x)/(6x), de nuevo 0/0 ⟹ (−cos x)/6 → <b>−1/6</b>."]) +
+        ejemplo("∞/∞ con un polinomio y un logaritmo", "Calcula lim<sub>x→+∞</sub> (2x² + ln x)/(x² + x).",
+          ["∞/∞ ⟹ (4x + 1/x)/(2x + 1), de nuevo ∞/∞ ⟹ (4 − 1/x²)/2 → <b>2</b>."]) +
+        w("m2t8_hopital") +
+        "<h5>Las otras indeterminaciones: se reducen a un cociente</h5>" +
+        tabla(["Forma", "Cómo se pasa a 0/0 o ∞/∞"], [
+          ["0 · ∞", "f·g = f/(1/g): se pone uno de los factores en el denominador como inverso"],
+          ["∞ − ∞", "se saca común denominador (o se multiplica por el conjugado) para tener una sola fracción"],
+          ["1<sup>∞</sup>, 0⁰, ∞⁰", "se toma logaritmo: ln L = lim g·ln f (que sale 0·∞); luego L = e<sup>(ese límite)</sup>"]
+        ]) +
+        ejemplo("0 · ∞", "Calcula lim<sub>x→0⁺</sub> x·ln x.",
+          ["Es 0·(−∞). Se escribe ln x / (1/x), que es −∞/+∞ (tipo ∞/∞).",
+           "Derivando: (1/x)/(−1/x²) = −x → <b>0</b>."]) +
+        ejemplo("∞ − ∞", "Calcula lim<sub>x→0</sub> [1/x − 1/(eˣ − 1)].",
+          ["Común denominador: (eˣ − 1 − x)/[x(eˣ − 1)], que es 0/0.",
+           "Derivando: (eˣ − 1)/(eˣ − 1 + x·eˣ) sigue siendo 0/0.",
+           "Derivando otra vez: eˣ/(eˣ + eˣ + x·eˣ) = 1/(2 + x) → <b>1/2</b>."]) +
+        ejemplo("Indeterminación 1<sup>∞</sup>", "Calcula lim<sub>x→+∞</sub> (1 + 2/x)ˣ.",
+          ["Es 1<sup>∞</sup>. ln L = lim x·ln(1 + 2/x) = lim ln(1 + 2/x)/(1/x) (0/0).",
+           "Derivando: [(−2/x²)/(1 + 2/x)]/(−1/x²) = 2/(1 + 2/x) → 2.",
+           "ln L = 2 ⟹ <b>L = e²</b>."]) +
+        ejemplo("Indeterminación 1<sup>∞</sup> con coseno", "Calcula lim<sub>x→0</sub> (cos x)<sup>1/x²</sup>.",
+          ["ln L = lim ln(cos x)/x² (0/0). Derivando: (−tan x)/(2x) (0/0).",
+           "Derivando otra vez: −(1 + tan² x)/2 → −1/2. Luego <b>L = e<sup>−1/2</sup> = 1/√e ≈ 0,607</b>."]) +
+        "<h5>Con parámetros: lo que exige «el límite sea finito»</h5>" +
+        ejemplo("Un parámetro para que el límite exista", "Halla a para que lim<sub>x→0</sub> (cos x + ax² − 1)/x⁴ sea finito y calcula el límite.",
+          ["Es 0/0. Derivando: (−sen x + 2ax)/(4x³), otra vez 0/0. Derivando: (−cos x + 2a)/(12x²).",
+           "Para x → 0 el numerador tiende a −1 + 2a; para que el cociente tenga límite finito, el numerador tiene que anularse: <b>a = 1/2</b>.",
+           "Entonces (−cos x + 1)/(12x²) es 0/0 ⟹ sen x/(24x) ⟹ cos x/24 → <b>1/24</b>."]) +
+        ojo("Tres fallos clásicos: (1) <b>derivar sin comprobar</b> la indeterminación (si el límite no es 0/0 ni ∞/∞, L'Hôpital da un resultado falso); (2) usar la <b>regla del cociente</b> en vez de derivar arriba y abajo por separado; (3) creer que «si f′/g′ no tiene límite, entonces f/g tampoco»: eso es falso. Por ejemplo lim<sub>x→∞</sub> (x + sen x)/x = 1, pero (1 + cos x)/1 no tiene límite; L'Hôpital no dice nada en ese caso."),
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. Estrategia de examen: qué se pregunta y cómo contestar",
+      html:
+        "<p>Lo que cuesta de este tema no es derivar: es <b>elegir la herramienta</b>. Esta tabla relaciona la frase del enunciado con el método.</p>" +
+        tabla(["Si el enunciado dice…", "Haz…"], [
+          ["«Calcula por la definición f′(a)»", "Sustituye en [f(a + h) − f(a)]/h, simplifica la h (conjugado, común denominador) y haz h → 0"],
+          ["«Estudia la derivabilidad en x = c» (a trozos)", "Continuidad en c; luego f′(c⁻) y f′(c⁺) con las derivadas de cada trozo"],
+          ["«Halla a y b para que sea derivable»", "Ecuación de continuidad + ecuación de derivadas iguales = sistema"],
+          ["«Función con |·|»", "Separa en trozos según el signo de lo de dentro; los puntos dudosos son los ceros"],
+          ["«y = f(x)<sup>g(x)</sup>»", "Derivación logarítmica: ln y = g·ln f"],
+          ["«Tangente en el punto de abscisa a»", "y = f(a) + f′(a)(x − a)"],
+          ["«Tangente paralela/perpendicular a una recta», «de pendiente m»", "Resuelve f′(x) = m (o −1/m) y localiza el punto"],
+          ["«Tangente desde un punto exterior»", "Punto de tangencia t incógnita; la tangente en t pasa por el punto"],
+          ["«¿Se puede aplicar Rolle / el valor medio?»", "Escribe las hipótesis (continua, derivable, f(a) = f(b)) y comprueba una a una; luego resuelve f′(c) = 0 (o = pendiente de la cuerda) en (a, b) abierto"],
+          ["«Demuestra que tiene una única raíz»", "Bolzano para existir, Rolle (o signo de f′) para unicidad"],
+          ["«Calcula el límite» con 0/0 o ∞/∞", "L'Hôpital, tantas veces como haga falta, comprobando la forma cada vez"]
+        ]) +
+        "<h5>Errores que se pagan caros</h5>" +
+        "<ul>" +
+        "<li>Aplicar la regla del producto como (uv)′ = u′v′.</li>" +
+        "<li>Olvidar la derivada del interior en la regla de la cadena.</li>" +
+        "<li>Derivar xˣ como una potencia o como una exponencial, sin logaritmos.</li>" +
+        "<li>Dar por derivable una función a trozos solo porque las derivadas de los trozos coinciden, sin verificar la continuidad.</li>" +
+        "<li>Aceptar un c de Rolle o del valor medio que está fuera del intervalo (o en un extremo).</li>" +
+        "<li>Usar L'Hôpital cuando el límite no es indeterminado.</li>" +
+        "<li>Confundir «tangente» con «normal» (pendiente m con −1/m).</li>" +
+        "</ul>"
+    }
+  ];
+
+  B.parte.m2t8b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 8: Derivadas
+   (parte C: problemas EvAU, resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo;
+  function w(n, ref) { return H.w(n, ref && "mates2/t8/" + ref); }
+
+  var nuevas = B.parte.m2t8b.nuevas;
+
+  // ================================================================
+  //  SECCIONES FINALES (12 problemas EvAU, 13 errores, 14 autocomprobación)
+  // ================================================================
+  nuevas.push({
+    h: "12. Problemas tipo EvAU resueltos",
+    html:
+      "<p>Tres problemas completos, con el tipo de apartados que se mezclan en el examen.</p>" +
+      ejemplo("Problema 1: función a trozos con exponencial",
+        "Sea f(x) = e<sup>ax</sup> si x ≤ 0 y f(x) = 1 + bx + x² si x &gt; 0. (a) Halla la relación entre a y b para que f sea derivable en x = 0. (b) Con a = b = 2, escribe la recta tangente en x = 0. (c) Con a = b = −1, ¿existe f″(0)?",
+        ["(a) Continuidad: por la izquierda e⁰ = 1; por la derecha 1 + 0 + 0 = 1. Se cumple siempre. Derivadas: a·e<sup>ax</sup> → a en x = 0; b + 2x → b. Derivable ⟺ <b>a = b</b>.",
+         "(b) f(0) = 1, f′(0) = 2 ⟹ <b>y = 1 + 2x</b>.",
+         "(c) Con a = b = −1: f′(x) = −e<sup>−x</sup> (x ≤ 0), −1 + 2x (x &gt; 0). f″ por la izquierda: e<sup>−x</sup> → 1; por la derecha: 2. Como 1 ≠ 2, <b>no existe f″(0)</b>: f es derivable en 0 pero no dos veces."]) +
+      ejemplo("Problema 2: estudio con tangente y límite",
+        "Sea f(x) = x²·e<sup>−x</sup>. (a) Halla los puntos de tangente horizontal. (b) Escribe la tangente en x = 1. (c) Calcula lim<sub>x→+∞</sub> f(x).",
+        ["(a) f′ = 2x·e<sup>−x</sup> − x²·e<sup>−x</sup> = x(2 − x)e<sup>−x</sup> = 0 ⟹ x = 0 o x = 2. Puntos: <b>(0, 0) y (2, 4/e²)</b>.",
+         "(b) f(1) = 1/e y f′(1) = 1·1·e⁻¹ = 1/e ⟹ y − 1/e = (1/e)(x − 1) ⟹ <b>y = x/e</b> (pasa por el origen).",
+         "(c) x²/eˣ es ∞/∞. L'Hôpital: 2x/eˣ (∞/∞), otra vez: 2/eˣ → <b>0</b>."]) +
+      ejemplo("Problema 3: Rolle y valor medio",
+        "Sea f(x) = ln(1 + x²). (a) Comprueba que cumple Rolle en [−1, 1] y halla c. (b) Halla el c del valor medio en [0, 1].",
+        ["(a) 1 + x² &gt; 0, luego f es continua y derivable en ℝ. f(−1) = ln 2 = f(1) ✓. f′(x) = 2x/(1 + x²) = 0 ⟹ <b>c = 0</b> ∈ (−1, 1).",
+         "(b) Cuerda: [f(1) − f(0)]/1 = ln 2. f′(c) = 2c/(1 + c²) = ln 2 ⟹ (ln 2)c² − 2c + ln 2 = 0 ⟹ c = [1 ± √(1 − ln² 2)]/ln 2.",
+         "Con ln 2 ≈ 0,6931: c ≈ 0,4028 o c ≈ 2,4826. Solo el primero está en (0, 1): <b>c ≈ 0,403</b>."])
+  });
+
+  nuevas.push({
+    h: "13. ¿Qué falla aquí? Errores típicos",
+    html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+  });
+  nuevas.push({
+    h: "14. Autocomprobación del tema",
+    html: "<p>Test con explicación, tarjetas, una actividad de emparejar, otra de clasificar y el orden del método para funciones a trozos.</p>" +
+      w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+  });
+
+  // ================================================================
+  //  RESUMEN
+  // ================================================================
+  var resumen = [
+    "<b>Definición</b>: f′(a) = lim [f(a + h) − f(a)]/h = lim [f(x) − f(a)]/(x − a): pendiente de la tangente (límite de las secantes). Se calcula simplificando la h antes de hacer h → 0. <b>Tangente</b>: y = f(a) + f′(a)(x − a); <b>normal</b>: pendiente −1/f′(a).",
+    "<b>Reglas</b>: (u ± v)′, (uv)′ = u′v + uv′, (u/v)′ = (u′v − uv′)/v², cadena (f∘g)′ = f′(g)·g′. Tabla compuesta: (eᵘ)′ = u′eᵘ, (ln u)′ = u′/u, (sen u)′ = u′cos u, (arctan u)′ = u′/(1 + u²), (arcsen u)′ = u′/√(1 − u²). Simplifica los logaritmos antes de derivar.",
+    "<b>Derivabilidad</b>: derivable ⟺ f′(a⁻) = f′(a⁺) finitas. Derivable ⟹ continua (no al revés: punto angular, cúspide, tangente vertical). A trozos: primero continuidad en el punto de unión, luego derivadas de los trozos iguales. Con |·|: separar en trozos.",
+    "<b>Derivación logarítmica</b> para f(x)<sup>g(x)</sup> y productos/cocientes grandes: ln y = g·ln f ⟹ y′ = f<sup>g</sup>(g′ln f + g·f′/f).",
+    "<b>Tangentes</b>: en un punto (y − f(a) = f′(a)(x − a)); de pendiente m o paralela a una recta (resolver f′(x) = m); desde un punto exterior (el punto de tangencia es la incógnita t).",
+    "<b>Rolle</b>: continua en [a, b], derivable en (a, b), f(a) = f(b) ⟹ ∃c con f′(c) = 0. <b>Valor medio</b>: ∃c con f′(c) = [f(b) − f(a)]/(b − a). Escribe las hipótesis y quédate con los c del intervalo abierto. Con Bolzano: existencia y unicidad de raíces.",
+    "<b>L'Hôpital</b>: solo 0/0 o ∞/∞; se deriva arriba y abajo por separado, repitiendo si hace falta. 0·∞ y ∞ − ∞ → una fracción; 1<sup>∞</sup>, 0⁰, ∞⁰ → logaritmos."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«(x·eˣ)′ = 1·eˣ = eˣ». ¿Qué falla?",
+          op: ["Nada, está bien", "La derivada de un producto no es el producto de las derivadas: (uv)′ = u′v + uv′, y sale (1 + x)eˣ", "Falta dividir por x", "La derivada de eˣ es x·eˣ"], ok: 1,
+          porque: "Con u = x y v = eˣ: u′v + uv′ = eˣ + x·eˣ = (1 + x)eˣ. Compruébalo en x = 1: la pendiente real es (1 + 1)e = 2e, no e." },
+        { q: "«Para derivar sen(3x) escribo cos(3x)». ¿Qué falla?",
+          op: ["Nada, está bien", "Falta el factor de dentro (regla de la cadena): (sen 3x)′ = 3·cos(3x)", "Es −cos(3x)", "Es sen(3)"], ok: 1,
+          porque: "La función de fuera es sen u (derivada cos u) y hay que multiplicar por la derivada de lo de dentro, u′ = 3." },
+        { q: "«f(x) = |x| es derivable en 0 porque es continua en 0». ¿Qué falla?",
+          op: ["Nada, es derivable", "Continua no implica derivable: las derivadas laterales valen −1 y +1", "|x| no es continua en 0", "Es derivable pero con derivada 0"], ok: 1,
+          porque: "Derivable ⟹ continua, pero no al revés. En 0 hay un punto angular: f′(0⁻) = −1 ≠ f′(0⁺) = 1." },
+        { q: "«f(x) = x² si x ≤ 1 y f(x) = 2x + 1 si x &gt; 1. Las derivadas de los trozos valen lo mismo en 1 (2 y 2), así que es derivable». ¿Qué falla?",
+          op: ["Nada, está bien", "No es continua en 1 (x² vale 1 y 2x + 1 vale 3): sin continuidad no hay derivabilidad", "Hay que derivar dos veces", "El trozo derecho no es derivable"], ok: 1,
+          porque: "Primero hay que comprobar la continuidad: por la izquierda f(1) = 1 y por la derecha el límite es 3. Hay un salto, y entonces no es derivable aunque las derivadas de los trozos coincidan." },
+        { q: "«(xˣ)′ = x·x^(x−1) = xˣ». ¿Qué falla?",
+          op: ["Nada", "La base y el exponente dependen de x: hay que derivar con logaritmos y sale xˣ(ln x + 1)", "Es xˣ·ln x", "Es x·xˣ"], ok: 1,
+          porque: "La regla de la potencia vale solo con exponente constante. Con ln y = x ln x: y′/y = ln x + 1." },
+        { q: "«lim<sub>x→0</sub> (x² + 1)/(x) es 0/0 así que, por L'Hôpital, vale lim 2x/1 = 0». ¿Qué falla?",
+          op: ["Nada", "No es una indeterminación 0/0: el numerador vale 1, no 0, y el límite no existe finito", "Hay que derivar tres veces", "Falta una constante"], ok: 1,
+          porque: "En x = 0 el numerador es 1 y el denominador 0: no es indeterminado (el límite es ±∞, según el lado). Aplicar L'Hôpital sin comprobar la forma da un resultado falso." },
+        { q: "«Rolle en f(x) = x² en [0, 1] da c con f′(c) = 0, que es c = 0.» ¿Qué falla?",
+          op: ["Nada", "No se cumple f(0) = f(1) (0 ≠ 1) y c = 0 no está en el intervalo abierto", "f no es derivable", "Hay que usar [−1, 1]"], ok: 1,
+          porque: "Rolle exige f(a) = f(b). Aquí f(0) = 0 ≠ 1 = f(1); la conclusión (tangente horizontal en (0, 1)) además es falsa: f′(c) = 2c = 0 solo en c = 0, que no está en el abierto." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de derivadas",
+      preguntas: [
+        { q: "f′(a) es el límite de", op: ["f(a + h)/h", "[f(a + h) − f(a)]/h cuando h → 0", "f(a + h) − f(a)", "[f(a + h) + f(a)]/h"], ok: 1, porque: "Es la pendiente de la secante que se hace tangente al acercar el segundo punto al primero." },
+        { q: "La derivada de ln(x² + 1) es", op: ["1/(x² + 1)", "2x/(x² + 1)", "2x·ln(x² + 1)", "(x² + 1)/2x"], ok: 1, porque: "(ln u)′ = u′/u con u = x² + 1, u′ = 2x." },
+        { q: "La derivada de arctan(2x) es", op: ["2/(1 + 4x²)", "1/(1 + 4x²)", "2/(1 + 2x)", "1/(1 + 2x)²"], ok: 0, porque: "(arctan u)′ = u′/(1 + u²) con u = 2x." },
+        { q: "Una función continua en a pero con derivadas laterales −2 y 3 en a", op: ["es derivable en a", "tiene en a un punto angular: no es derivable", "es discontinua en a", "tiene tangente horizontal"], ok: 1, porque: "Las derivadas laterales no coinciden: pico (punto angular)." },
+        { q: "Para f(x) = xˣ, f′(1) vale", op: ["0", "1", "e", "ln 1"], ok: 1, porque: "f′ = xˣ(ln x + 1); en x = 1: 1·(0 + 1) = 1." },
+        { q: "La recta normal a la gráfica en un punto con f′(a) = 4 tiene pendiente", op: ["4", "−4", "1/4", "−1/4"], ok: 3, porque: "Perpendicular a la tangente: m′ = −1/m = −1/4." },
+        { q: "El teorema de Rolle exige", op: ["continua en [a, b] y f(a) = f(b), sin más", "continua en [a, b], derivable en (a, b) y f(a) = f(b)", "derivable en [a, b] y f(a) ≠ f(b)", "f′ continua"], ok: 1, porque: "Las tres hipótesis: continuidad en el cerrado, derivabilidad en el abierto, mismas alturas." },
+        { q: "lim<sub>x→0</sub> (sen x − x)/x³ vale", op: ["0", "−1/6", "1/6", "no existe"], ok: 1, porque: "Tres veces L'Hôpital: (cos x − 1)/3x², (−sen x)/6x, (−cos x)/6 → −1/6." },
+        { q: "Si lim f′/g′ no existe, entonces lim f/g", op: ["tampoco existe", "puede existir: L'Hôpital no dice nada", "vale 0", "vale ∞"], ok: 1, porque: "L'Hôpital es una implicación en un solo sentido; por ejemplo (x + sen x)/x → 1 aunque (1 + cos x) no tenga límite." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas de derivadas",
+      cartas: [
+        { a: "Definición de derivada", b: "f′(a) = lim [f(a + h) − f(a)]/h = lim [f(x) − f(a)]/(x − a)." },
+        { a: "Tangente y normal en x = a", b: "Tangente: y = f(a) + f′(a)(x − a). Normal: pendiente −1/f′(a)." },
+        { a: "(u·v)′ y (u/v)′", b: "u′v + uv′  ·  (u′v − uv′)/v²." },
+        { a: "Regla de la cadena", b: "(f∘g)′ = f′(g(x))·g′(x): de fuera hacia dentro, un factor por capa." },
+        { a: "(arctan u)′, (arcsen u)′", b: "u′/(1 + u²)  ·  u′/√(1 − u²)." },
+        { a: "(tan x)′", b: "1 + tan² x = 1/cos² x." },
+        { a: "Derivada de f(x)^g(x)", b: "f^g·(g′ ln f + g·f′/f). Se obtiene con ln y = g ln f." },
+        { a: "Derivabilidad en un punto", b: "f′(a⁻) = f′(a⁺) finitas. Derivable ⟹ continua." },
+        { a: "Derivabilidad de una función a trozos", b: "1.º continuidad en el punto de unión; 2.º derivadas de los trozos iguales allí." },
+        { a: "Tres formas de ser continua y no derivable", b: "Punto angular (|x|), cúspide (∛x²), tangente vertical (∛x)." },
+        { a: "Teorema de Rolle", b: "Continua en [a, b], derivable en (a, b), f(a) = f(b) ⟹ ∃c ∈ (a, b): f′(c) = 0." },
+        { a: "Teorema del valor medio", b: "Continua en [a, b], derivable en (a, b) ⟹ ∃c: f′(c) = [f(b) − f(a)]/(b − a)." },
+        { a: "L'Hôpital", b: "0/0 o ∞/∞: lim f/g = lim f′/g′ (si existe). Se deriva arriba y abajo por separado." },
+        { a: "Indeterminación 1^∞, 0⁰, ∞⁰", b: "Logaritmo: ln L = lim g·ln f (0·∞), se pasa a cociente y L = e^(límite)." }
+      ]
+    },
+    empar: {
+      titulo: "Función y derivada",
+      consigna: "Une cada función con su derivada.",
+      pares: [
+        ["arctan x²", "2x/(1 + x⁴)"],
+        ["ln(x² + 1)", "2x/(x² + 1)"],
+        ["x·eˣ", "(1 + x)eˣ"],
+        ["xˣ", "xˣ(ln x + 1)"],
+        ["tan x", "1 + tan² x"],
+        ["√(2x + 1)", "1/√(2x + 1)"]
+      ]
+    },
+    clas: {
+      titulo: "¿Derivable en x = 0?",
+      consigna: "Toca cada función y di si es derivable en x = 0.",
+      categorias: ["Derivable en 0", "No derivable en 0"],
+      items: [
+        { t: "x·|x|", c: 0 }, { t: "|x|", c: 1 }, { t: "∛x", c: 1 }, { t: "∛(x²)", c: 1 },
+        { t: "x²", c: 0 }, { t: "e^|x|", c: 1 }, { t: "|x|³", c: 0 }, { t: "|sen x|", c: 1 }
+      ]
+    },
+    orden: {
+      titulo: "Parámetros para que una función a trozos sea derivable",
+      consigna: "Ordena los pasos del método.",
+      items: [
+        { t: "Identificar el punto c donde se unen los trozos" },
+        { t: "Imponer continuidad en c: los dos trozos valen lo mismo en c" },
+        { t: "Derivar cada trozo por separado" },
+        { t: "Imponer que las derivadas coincidan en c" },
+        { t: "Resolver el sistema de las dos ecuaciones para los parámetros" },
+        { t: "Comprobar sustituyendo los valores obtenidos en ambas condiciones" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function ex(et, e, dom, ph) { var c = { tipo: "expr", etiqueta: et, expr: e }; if (dom) c.dom = dom; if (ph) c.ph = ph; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    { id: "d1", nivel: 1, enunciado: "Calcula por la definición f′(2) para f(x) = x² − 3x.", check: num("f′(2) =", 1),
+      pistas: ["Escribe [f(2 + h) − f(2)]/h y simplifica la h."], pasos: ["f(2) = −2; f(2 + h) = (2 + h)² − 3(2 + h) = −2 + h + h².", "Cociente: (h + h²)/h = 1 + h → 1."], resultado: "f′(2) = 1" },
+    { id: "d2", nivel: 1, enunciado: "Calcula por la definición f′(1) para f(x) = x³.", check: num("f′(1) =", 3),
+      pistas: ["(1 + h)³ = 1 + 3h + 3h² + h³."], pasos: ["[(1 + h)³ − 1]/h = (3h + 3h² + h³)/h = 3 + 3h + h².", "Límite: 3."], resultado: "f′(1) = 3" },
+    { id: "d3", nivel: 1, enunciado: "Calcula lim<sub>h→0</sub> [sen(π/6 + h) − sen(π/6)]/h (decimal).", check: num("límite =", 0.8660254, { ph: "0,866" }),
+      pistas: ["Es la derivada de sen x en π/6."], pasos: ["Es f′(π/6) con f = sen.", "cos(π/6) = √3/2 ≈ 0,866."], resultado: "√3/2 ≈ 0,866" },
+    { id: "d4", nivel: 1, enunciado: "Deriva f(x) = x³·ln x.", check: ex("f′(x) =", "3x^2*ln(x)+x^2", [0.3, 5], "puedes usar ln(x)"),
+      pistas: ["Regla del producto."], pasos: ["u = x³, v = ln x.", "f′ = 3x² ln x + x³/x = 3x² ln x + x²."], resultado: "f′(x) = 3x² ln x + x²" },
+    { id: "d5", nivel: 1, enunciado: "Deriva f(x) = (2x + 1)/(x − 1).", check: ex("f′(x) =", "-3/(x-1)^2", [-3, 0.5]),
+      pistas: ["Cociente: (u′v − uv′)/v²."], pasos: ["u′v − uv′ = 2(x − 1) − (2x + 1) = −3.", "f′ = −3/(x − 1)²."], resultado: "f′(x) = −3/(x − 1)²" },
+    { id: "d6", nivel: 1, enunciado: "Deriva f(x) = x·e<sup>3x</sup>.", check: ex("f′(x) =", "(3*x+1)*e^(3*x)", [-2, 2]),
+      pistas: ["Producto y cadena en la exponencial."], pasos: ["f′ = e<sup>3x</sup> + x·3e<sup>3x</sup> = (1 + 3x)e<sup>3x</sup>."], resultado: "f′(x) = (3x + 1)e<sup>3x</sup>" },
+    { id: "d7", nivel: 1, enunciado: "Deriva f(x) = sen(x²).", check: ex("f′(x) =", "2*x*cos(x^2)", [-3, 3], "puedes usar cos(x^2)"),
+      pistas: ["Función de fuera: seno. De dentro: x²."], pasos: ["f′ = cos(x²)·2x."], resultado: "f′(x) = 2x·cos(x²)" },
+    { id: "d8", nivel: 1, enunciado: "Deriva f(x) = ln(x² + 1).", check: ex("f′(x) =", "2*x/(x^2+1)", [-3, 3]),
+      pistas: ["(ln u)′ = u′/u."], pasos: ["u = x² + 1, u′ = 2x."], resultado: "f′(x) = 2x/(x² + 1)" },
+    { id: "d9", nivel: 1, enunciado: "Deriva f(x) = √(2x + 1).", check: ex("f′(x) =", "1/sqrt(2*x+1)", [0, 5], "puedes usar sqrt(…)"),
+      pistas: ["(√u)′ = u′/(2√u)."], pasos: ["u = 2x + 1, u′ = 2.", "f′ = 2/(2√(2x + 1)) = 1/√(2x + 1)."], resultado: "f′(x) = 1/√(2x + 1)" },
+    { id: "d10", nivel: 1, enunciado: "Recta tangente a f(x) = x² − 3x + 1 en x = 2. Escríbela como y = mx + n.", check: [num("m =", 1), num("n =", -3)],
+      pistas: ["f(2) = −1; f′(2) = 2·2 − 3."], pasos: ["f′(2) = 1, f(2) = −1.", "y + 1 = x − 2 ⟹ y = x − 3."], resultado: "y = x − 3" },
+    { id: "d11", nivel: 1, enunciado: "Recta normal a f(x) = x² − 3x + 1 en x = 2. Escríbela como y = mx + n.", check: [num("m =", -1), num("n =", 1)],
+      pistas: ["Pendiente de la normal: −1/f′(2)."], pasos: ["m = −1.", "y + 1 = −(x − 2) ⟹ y = −x + 1."], resultado: "y = −x + 1" },
+    { id: "d12", nivel: 1, enunciado: "Calcula f″(1) para f(x) = x⁴ − 3x².", check: num("f″(1) =", 6),
+      pistas: ["Deriva dos veces."], pasos: ["f′ = 4x³ − 6x, f″ = 12x² − 6.", "f″(1) = 6."], resultado: "f″(1) = 6" },
+    { id: "d13", nivel: 1, enunciado: "¿Qué es cierto de f(x) = |x| en x = 0?",
+      check: opcion("Elige", ["Es continua pero no derivable", "Es derivable pero no continua", "Es derivable y continua", "No es continua ni derivable"], 0),
+      pistas: ["Compara las derivadas laterales."], pasos: ["|x| es continua en todo ℝ.", "Pendientes −1 por la izquierda y +1 por la derecha: no derivable en 0."], resultado: "Continua pero no derivable" },
+    { id: "d14", nivel: 1, enunciado: "Deriva f(x) = arctan(2x).", check: ex("f′(x) =", "2/(1+4*x^2)", [-3, 3]),
+      pistas: ["(arctan u)′ = u′/(1 + u²)."], pasos: ["u = 2x, u′ = 2.", "f′ = 2/(1 + 4x²)."], resultado: "f′(x) = 2/(1 + 4x²)" },
+    { id: "d15", nivel: 1, enunciado: "Deriva f(x) = eˣ/x.", check: ex("f′(x) =", "(x-1)*e^x/x^2", [0.3, 5]),
+      pistas: ["Cociente."], pasos: ["(eˣ·x − eˣ·1)/x² = (x − 1)eˣ/x²."], resultado: "f′(x) = (x − 1)eˣ/x²" },
+    { id: "d16", nivel: 1, enunciado: "Calcula lim<sub>x→2</sub> (x⁴ − 16)/(x − 2) reconociendo una derivada.", check: num("límite =", 32),
+      pistas: ["Es [f(x) − f(2)]/(x − 2) con f(x) = x⁴."], pasos: ["f(2) = 16, así que es f′(2).", "f′(x) = 4x³ ⟹ f′(2) = 32."], resultado: "32" },
+    // ---------------------------------------------------------------- ★★
+    { id: "d17", nivel: 2, enunciado: "Calcula f′(2) para f(x) = xˣ (decimal).", check: num("f′(2) =", 6.7725887, { ph: "6,77" }),
+      pistas: ["Derivación logarítmica: f′ = xˣ(ln x + 1)."], pasos: ["f′(x) = xˣ(ln x + 1).", "f′(2) = 4(ln 2 + 1) ≈ 6,7726."], resultado: "4(1 + ln 2) ≈ 6,77" },
+    { id: "d18", nivel: 2, enunciado: "Calcula f′(π/2) para f(x) = x<sup>sen x</sup>.", check: num("f′(π/2) =", 1),
+      pistas: ["f′ = x<sup>sen x</sup>(cos x ln x + sen x/x)."], pasos: ["En x = π/2: sen = 1, cos = 0, así que f = π/2.", "f′ = (π/2)(0 + 1/(π/2)) = 1."], resultado: "f′(π/2) = 1" },
+    { id: "d19", nivel: 2, enunciado: "Calcula y′(1) para y = x²(x + 1)³/(x − 2)⁴ (derivación logarítmica).", check: num("y′(1) =", 60),
+      pistas: ["y′/y = 2/x + 3/(x + 1) − 4/(x − 2); y(1) = 8."], pasos: ["y′/y en 1 = 2 + 1,5 + 4 = 7,5.", "y′(1) = 8·7,5 = 60."], resultado: "60" },
+    { id: "d20", nivel: 2, enunciado: "f(x) = ax² + bx si x ≤ 1; f(x) = 2 + ln x si x &gt; 1. Halla a y b para que sea derivable en x = 1.", check: [num("a =", -1), num("b =", 3)],
+      pistas: ["Continuidad: a + b = 2. Derivada: 2a + b = 1."], pasos: ["Restando: a = −1.", "b = 2 − a = 3."], resultado: "a = −1, b = 3" },
+    { id: "d21", nivel: 2, enunciado: "f(x) = eˣ + a si x &lt; 0; f(x) = x² + bx + 3 si x ≥ 0. Halla a y b para que sea derivable en 0.", check: [num("a =", 2), num("b =", 1)],
+      pistas: ["Continuidad: 1 + a = 3. Derivada: 1 = b."], pasos: ["a = 2.", "b = 1."], resultado: "a = 2, b = 1" },
+    { id: "d22", nivel: 2, enunciado: "f(x) = x² si x ≤ 1; f(x) = ax + b si x &gt; 1. Halla a y b para que sea derivable en x = 1.", check: [num("a =", 2), num("b =", -1)],
+      pistas: ["Continuidad: 1 = a + b. Derivada: 2 = a."], pasos: ["a = 2.", "b = 1 − a = −1."], resultado: "a = 2, b = −1" },
+    { id: "d23", nivel: 2, enunciado: "Para f(x) = |x² − 4|, calcula las derivadas laterales en x = 2.", check: [num("f′(2⁻) =", -4), num("f′(2⁺) =", 4)],
+      pistas: ["Cerca de 2 por la izquierda x² − 4 &lt; 0, así que f = 4 − x²."], pasos: ["Izquierda: f = 4 − x², f′ = −2x → −4.", "Derecha: f = x² − 4, f′ = 2x → 4. No derivable."], resultado: "−4 y 4" },
+    { id: "d24", nivel: 2, enunciado: "Halla a para que f(x) = |x − 1|·(x + a) sea derivable en x = 1.", check: num("a =", -1),
+      pistas: ["Compara f′(1⁺) = 1 + a con f′(1⁻) = −(1 + a)."], pasos: ["1 + a = −(1 + a) ⟹ a = −1."], resultado: "a = −1" },
+    { id: "d25", nivel: 2, enunciado: "Halla las abscisas de los puntos de f(x) = x³ − 3x donde la tangente es paralela a y = 6x + 1.", check: lista("x =", [Math.sqrt(3), -Math.sqrt(3)], "dos valores separados por comas (decimales)"),
+      pistas: ["Resuelve f′(x) = 6."], pasos: ["3x² − 3 = 6 ⟹ x² = 3.", "x = ±√3 ≈ ±1,732."], resultado: "x = ±√3" },
+    { id: "d26", nivel: 2, enunciado: "Halla las abscisas de los puntos de tangencia de las rectas tangentes a y = x² que pasan por P(1, −3).", check: lista("t =", [3, -1]),
+      pistas: ["Tangente en t: y = t² + 2t(x − t). Que pase por P."], pasos: ["−3 = t² + 2t(1 − t) = 2t − t².", "t² − 2t − 3 = 0 ⟹ t = 3 o t = −1."], resultado: "t = 3 y t = −1" },
+    { id: "d27", nivel: 2, enunciado: "Tangente a f(x) = x·ln x en x = e, escrita como y = mx + n.", check: [num("m =", 2), num("n =", -Math.E, { ph: "−2,718…" })],
+      pistas: ["f′ = ln x + 1."], pasos: ["f(e) = e, f′(e) = 2.", "y − e = 2(x − e) ⟹ y = 2x − e."], resultado: "y = 2x − e" },
+    { id: "d28", nivel: 2, enunciado: "Aplica Rolle a f(x) = x³ − 6x² + 9x en [0, 3] y halla c.", check: num("c =", 1),
+      pistas: ["f(0) = f(3) = 0. Resuelve f′(c) = 0 en (0, 3)."], pasos: ["f′ = 3(x − 1)(x − 3).", "x = 1 está en (0, 3); x = 3 no."], resultado: "c = 1" },
+    { id: "d29", nivel: 2, enunciado: "Halla el c del teorema del valor medio para f(x) = ln x en [1, e] (decimal).", check: num("c =", Math.E - 1, { ph: "1,718" }),
+      pistas: ["Pendiente de la cuerda: 1/(e − 1)."], pasos: ["f′(c) = 1/c = 1/(e − 1).", "c = e − 1 ≈ 1,718."], resultado: "c = e − 1" },
+    { id: "d30", nivel: 2, enunciado: "Halla el c del teorema del valor medio para f(x) = x³ en [1, 3] (decimal).", check: num("c =", Math.sqrt(13 / 3), { ph: "2,08" }),
+      pistas: ["Cuerda: (27 − 1)/2 = 13."], pasos: ["3c² = 13 ⟹ c = ±√(13/3).", "Solo el positivo está en (1, 3): c ≈ 2,082."], resultado: "c = √(13/3) ≈ 2,082" },
+    { id: "d31", nivel: 2, enunciado: "Calcula lim<sub>x→0</sub> (sen x − x)/x³ (decimal).", check: num("límite =", -1 / 6, { ph: "−0,1667" }),
+      pistas: ["Tres veces L'Hôpital."], pasos: ["(cos x − 1)/3x² → (−sen x)/6x → (−cos x)/6."], resultado: "−1/6" },
+    { id: "d32", nivel: 2, enunciado: "Calcula lim<sub>x→0</sub> (e<sup>2x</sup> − 1 − 2x)/x².", check: num("límite =", 2),
+      pistas: ["Dos veces L'Hôpital."], pasos: ["(2e<sup>2x</sup> − 2)/2x → 4e<sup>2x</sup>/2 = 2."], resultado: "2" },
+    { id: "d33", nivel: 2, enunciado: "Calcula lim<sub>x→+∞</sub> (x³ + 5x)/(2x³ − ln x).", check: num("límite =", 0.5),
+      pistas: ["∞/∞; también vale dividir por x³."], pasos: ["(3x² + 5)/(6x² − 1/x) → ... → 1/2."], resultado: "1/2" },
+    { id: "d34", nivel: 2, enunciado: "Calcula lim<sub>x→0⁺</sub> (sen x)ˣ.", check: num("límite =", 1),
+      pistas: ["Forma 0⁰: logaritmo, x·ln(sen x) = ln(sen x)/(1/x)."], pasos: ["L'Hôpital: (cos x/sen x)/(−1/x²) = −x² cos x/sen x → 0.", "ln L = 0 ⟹ L = 1."], resultado: "1" },
+    { id: "d35", nivel: 2, enunciado: "Calcula lim<sub>x→+∞</sub> (1 + 3/x)<sup>2x</sup> (decimal).", check: num("límite =", Math.exp(6), { ph: "403,4" }),
+      pistas: ["Forma 1<sup>∞</sup>."], pasos: ["ln L = lim 2x·ln(1 + 3/x) = lim 2·ln(1 + 3/x)/(1/x) → 6.", "L = e⁶ ≈ 403,43."], resultado: "e⁶ ≈ 403,43" },
+    // ---------------------------------------------------------------- ★★★
+    { id: "d36", nivel: 3, enunciado: "Calcula lim<sub>x→0</sub> (cos 2x)<sup>1/x²</sup> (decimal).", check: num("límite =", Math.exp(-2), { ph: "0,1353" }),
+      pistas: ["1<sup>∞</sup>: ln L = lim ln(cos 2x)/x²."], pasos: ["Derivando: (−2 tan 2x)/(2x) = −tan 2x/x → −2 (se puede repetir L'Hôpital).", "L = e<sup>−2</sup> ≈ 0,1353."], resultado: "e⁻² ≈ 0,1353" },
+    { id: "d37", nivel: 3, enunciado: "Halla a para que lim<sub>x→0</sub> (eˣ − 1 − ax)/x² sea finito.", check: num("a =", 1),
+      pistas: ["Tras la primera derivada: (eˣ − a)/(2x). El numerador debe valer 0 en x = 0."], pasos: ["e⁰ − a = 0 ⟹ a = 1.", "Entonces el límite es 1/2."], resultado: "a = 1" },
+    { id: "d38", nivel: 3, enunciado: "Halla a para que lim<sub>x→0</sub> [ln(1 + x) − ax]/x² sea finito y calcula ese límite (decimal).", check: [num("a =", 1), num("límite =", -0.5)],
+      pistas: ["Primera derivada: (1/(1 + x) − a)/(2x)."], pasos: ["Numerador en 0: 1 − a = 0 ⟹ a = 1.", "Con a = 1: [1/(1 + x) − 1]/(2x) = −1/(2(1 + x)) → −1/2."], resultado: "a = 1, límite −1/2" },
+    { id: "d39", nivel: 3, enunciado: "Sea f(x) = x²·sen(1/x) si x ≠ 0 y f(0) = 0. ¿Cuál es cierta?",
+      check: opcion("Elige", ["f es derivable en 0 y f′(0) = 0", "f no es continua en 0", "f no es derivable en 0 porque f′(x) no tiene límite", "f′(0) = 1"], 0),
+      pistas: ["Usa la definición: h² sen(1/h)/h = h·sen(1/h)."], pasos: ["f′(0) = lim h·sen(1/h) = 0 (h → 0 y |sen| ≤ 1).", "Aunque f′(x) = 2x sen(1/x) − cos(1/x) no tiene límite en 0."], resultado: "Derivable en 0 con f′(0) = 0" },
+    { id: "d40", nivel: 3, enunciado: "La tangente a y = ln x que pasa por el origen: halla su pendiente (decimal) y la abscisa del punto de tangencia.", check: [num("m =", 1 / Math.E, { ph: "0,3679" }), num("x =", Math.E, { ph: "2,718" })],
+      pistas: ["Tangente en t: y = ln t + (x − t)/t. Que pase por (0, 0)."], pasos: ["0 = ln t − 1 ⟹ t = e.", "Pendiente 1/e ≈ 0,368."], resultado: "m = 1/e, x = e" },
+    { id: "d41", nivel: 3, enunciado: "Calcula f′(1) para f(x) = (1 + x²)ˣ (decimal).", check: num("f′(1) =", 2 * (Math.log(2) + 1), { ph: "3,386" }),
+      pistas: ["f′ = f·[ln(1 + x²) + x·2x/(1 + x²)]."], pasos: ["f(1) = 2.", "f′(1) = 2(ln 2 + 1) ≈ 3,386."], resultado: "2(1 + ln 2) ≈ 3,386" },
+    { id: "d42", nivel: 3, enunciado: "¿Cuántas raíces reales tiene x³ − 3x + 1 = 0 en (−1, 1)? (Usa Bolzano y Rolle.)", check: num("Número =", 1),
+      pistas: ["g(−1) = 3, g(1) = −1; mira el signo de g′ en (−1, 1)."], pasos: ["Bolzano: al menos una.", "g′ = 3(x² − 1) &lt; 0 en (−1, 1): si hubiera dos, Rolle daría g′(c) = 0. Exactamente una."], resultado: "1 raíz" },
+    { id: "d43", nivel: 3, enunciado: "Halla a para que f(x) = x³ − 3x² + ax cumpla las hipótesis de Rolle en [0, 2], y el mayor de los c que da el teorema (decimal).", check: [num("a =", 2), num("c =", 1 + Math.sqrt(3) / 3, { ph: "1,577" })],
+      pistas: ["f(0) = 0: pide f(2) = 0. Luego resuelve f′(c) = 0."], pasos: ["f(2) = 8 − 12 + 2a = 0 ⟹ a = 2.", "f′ = 3x² − 6x + 2 = 0 ⟹ x = 1 ± √3/3.", "Los dos están en (0, 2); el mayor es 1 + √3/3 ≈ 1,577."], resultado: "a = 2, c ≈ 1,577" },
+    { id: "d44", nivel: 3, enunciado: "Calcula la derivada décima de f(x) = x·eˣ en x = 0.", check: num("f⁽¹⁰⁾(0) =", 10),
+      pistas: ["Deriva dos o tres veces y busca el patrón (x + n)eˣ."], pasos: ["f⁽ⁿ⁾ = (x + n)eˣ.", "En 0 con n = 10: 10."], resultado: "10" },
+    { id: "d45", nivel: 3, enunciado: "La normal a f(x) = eˣ en x = 0 corta al eje X en un punto. Halla su abscisa.", check: num("x =", 1),
+      pistas: ["Pendiente de la normal: −1/f′(0) = −1."], pasos: ["Normal: y = 1 − x.", "y = 0 ⟹ x = 1."], resultado: "x = 1" },
+    { id: "d46", nivel: 3, enunciado: "Deriva y simplifica f(x) = arctan[(1 + x)/(1 − x)].", check: ex("f′(x) =", "1/(1+x^2)", [-0.9, 0.9]),
+      pistas: ["u′ = 2/(1 − x)²; 1 + u² = (2 + 2x²)/(1 − x)²."], pasos: ["f′ = u′/(1 + u²) = 2/(2 + 2x²) = 1/(1 + x²)."], resultado: "f′(x) = 1/(1 + x²)" },
+    { id: "d47", nivel: 3, enunciado: "La tangente a f(x) = 1/x en x = 1 forma con los ejes un triángulo. Calcula su área.", check: num("Área =", 2),
+      pistas: ["f(1) = 1, f′(1) = −1: tangente y = 2 − x."], pasos: ["Corta a los ejes en (2, 0) y (0, 2).", "Área = ½·2·2 = 2."], resultado: "Área = 2" }
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Derivadas con la cadena incluida", ancha: true,
+      tabla: { cab: ["Función", "Derivada"], filas: [
+        ["uⁿ", "n·uⁿ⁻¹·u′"], ["√u", "u′/(2√u)"], ["eᵘ", "u′·eᵘ"], ["aᵘ", "u′·aᵘ·ln a"], ["ln u", "u′/u"],
+        ["sen u · cos u", "u′ cos u · −u′ sen u"], ["tan u", "u′(1 + tan² u)"],
+        ["arcsen u · arctan u", "u′/√(1 − u²) · u′/(1 + u²)"], ["u^v", "u^v·(v′ ln u + v·u′/u)"]
+      ] },
+      nota: "Siempre: «de fuera hacia dentro», y un factor u′ por cada capa." },
+    { titulo: "Funciones a trozos: método",
+      pasos: ["Punto de unión c.", "Continuidad: trozo izquierdo(c) = trozo derecho(c).", "Derivar cada trozo.", "Derivadas iguales en c.", "Resolver el sistema.", "Comprobar."],
+      nota: "Sin continuidad no hay derivabilidad." },
+    { titulo: "Tres formas de no ser derivable", ancha: true,
+      tabla: { cab: ["Tipo", "Ejemplo", "Derivadas laterales"], filas: [
+        ["Punto angular", "|x|", "−1 y +1"], ["Cúspide", "∛(x²)", "−∞ y +∞"],
+        ["Tangente vertical", "∛x", "+∞ y +∞"], ["Salto", "función discontinua", "no hay derivada"]
+      ] } },
+    { titulo: "Rolle, valor medio y L'Hôpital", ancha: true,
+      tabla: { cab: ["Resultado", "Hipótesis", "Conclusión"], filas: [
+        ["Rolle", "continua [a, b], derivable (a, b), f(a) = f(b)", "∃c: f′(c) = 0"],
+        ["Valor medio", "continua [a, b], derivable (a, b)", "∃c: f′(c) = [f(b) − f(a)]/(b − a)"],
+        ["L'Hôpital", "0/0 o ∞/∞, f′/g′ con límite", "lim f/g = lim f′/g′"]
+      ] },
+      nota: "Los c deben estar en el intervalo abierto." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "(uv)′ = u′v′", bien: "u′v + uv′", por: "La derivada de un producto no es el producto de derivadas." },
+        { mal: "(sen 3x)′ = cos 3x", bien: "3 cos 3x", por: "Falta la derivada de lo de dentro." },
+        { mal: "(xˣ)′ = x·xˣ⁻¹", bien: "xˣ(ln x + 1)", por: "Base y exponente variables: logaritmos." },
+        { mal: "Derivables porque las derivadas de los trozos coinciden", bien: "Primero la continuidad", por: "Un salto impide la derivabilidad." },
+        { mal: "L'Hôpital sin mirar la forma", bien: "Solo con 0/0 o ∞/∞", por: "Si no, el resultado puede ser falso." },
+        { mal: "c fuera del intervalo abierto", bien: "c ∈ (a, b)", por: "Los extremos no valen." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t8", {
+    resumen: resumen, secciones: B.parte.m2t8a.secciones, nuevas: nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
