@@ -73,6 +73,8 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Química II t5 completo (≈7.800 palabras, 47 ejercicios, 5 interactivos nuevos, 660 comprobaciones) | 239.862 (75 herramientas) | 23 min |
 | Química II t7 completo (≈8.100 palabras, 48 ejercicios, 6 simuladores nuevos, 972 comprobaciones) | 296.666 (87 herramientas) | 29 min |
 | Química II t6 refuerzo (≈3.800 palabras, 34 ejercicios nuevos → 44, 5 interactivos nuevos, 363 comprobaciones) | 249.717 (87 herramientas) | 26 min |
+| Química II t8 completo (≈8.160 palabras, 52 ejercicios, 5 interactivos nuevos, 543 comprobaciones) | 276.356 (54 herramientas) | 23 min |
+| **Tanda 2 de Química II (t5–t8), total agentes** | **1.062.601** | ≈101 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -132,3 +134,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct:** tanda 2 en marcha en la misma conversación (así se puede republicar en la dirección nueva sin releerla). t5 fusionado y validado; en marcha t7 y el refuerzo de t6; después t8.
 **28-oct:** t7 fusionado y validado; en marcha t6 (refuerzo) y t8. Nota: el corrector lee `1e-5` como e^−5; en Química II las potencias se escriben `1,03*10^-4`.
 **28-oct:** t6 reforzado, fusionado y validado (`quimica2_t06.js` pasó a `quimica2_t06a.js`, mismo contenido). `Mate.numero` (grafica.js) acepta ahora notación científica (`7,07e-7`, `7,07·10⁻⁷`); efecto lateral conocido: en Mates, «2e-1» se lee como 0,2 y no como 2·e−1 (escribir «2*e-1»). Mates I y FyQ I siguen aceptando todas sus respuestas. Solo queda t8 en marcha.
+**28-oct:** t8 fusionado y validado: tanda 2 terminada. Tanda 3 en marcha en la misma conversación: t9 y t10; después t11 y los 3 simulacros (no existe aún `quimica2_t99_simulacros.js`; tomar de modelo `fyq1_t99_simulacros.js`).
