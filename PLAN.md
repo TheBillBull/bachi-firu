@@ -110,6 +110,8 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Mates II t14 (≈6.200 palabras, 46 ejercicios, 5 interactivos nuevos, 326 comprobaciones) | 213.121 (45 herramientas) | 16 min |
 | **Matemáticas II completa (14 temas), total agentes** | **3.104.566** | ≈4,5 h |
 | Filosofía t1 presocráticos + componente vista rápida (44 ej., 188 comprob.) | ≈170k tras el corte + parte previa (cortada por límite de uso) | |
+| Filosofía t2 sofistas y Sócrates (45 ej., 196 comprob.) | ≈159k | |
+| Filosofía t3 Platón (44 ej., 184 comprob.) | ≈139k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -178,3 +180,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 **28-oct ~21:30 UTC: MATEMÁTICAS II CERRADA.** `comprobar_todo.sh` → «TODO CUADRA» (47 grupos; 24.100 comprobaciones de cifras). Publicado (dirección nueva). **PARADO por decisión del usuario**: no empezar otra asignatura hasta que lo diga. Posibles siguientes: simulacros de Mates II; Física II.
 
 - 28-oct 23:20 UTC: Filosofía t1 fusionado (componente `vistazo` en lab_0vistazo.js, API en GUIA_TEMA «Vista rápida»). Lanzados t2 y t3.
+- 28-oct: Filosofía t2 y t3 fusionados. Lanzados t4 y t5.
