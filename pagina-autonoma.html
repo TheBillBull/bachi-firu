@@ -17888,6 +17888,452 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 8: Oxidación-reducción
+   Cinco simuladores:
+   q8_ajusta (ajuste ion-electrón paso a paso, medio ácido y básico) · q8_escala (potenciales estándar: ¿reacciona?, fem, ΔG°)
+   q8_pila (pila galvánica configurable: ánodo, cátodo, puente salino, electrones e iones) · q8_valora (valoraciones redox)
+   q8_faraday (electrólisis: masa, tiempo e intensidad; cubas en serie)
+   Comparten datos: los potenciales de la escala son los de la pila, y la reacción global sale de sumar semirreacciones.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+  var F = 96500, RT = 0.0592;                       // F = 96 500 C/mol (el dato de los exámenes); 0,0592 = 2,303·RT/F a 25 °C
+  function fil(r, v, c) { return U.lec(r, v, c); }
+  function d(x, n) { return (Math.round(x * Math.pow(10, n)) / Math.pow(10, n)).toFixed(n).replace(".", ",").replace("-", "−"); }
+  function sg(x, n) { return (x > 0 ? "+" : "") + d(x, n); }
+  function cs(x, n) {                                // notación científica con coma: 3,86·10⁻⁴
+    if (x === 0 || !isFinite(x)) return d(x, 2);
+    var e = Math.floor(Math.log10(Math.abs(x)));
+    if (e >= -2 && e <= 4) return d(x, Math.max(0, (n == null ? 3 : n + 1) - 1 - e));
+    return d(x / Math.pow(10, e), n == null ? 2 : n) + "·10" + U.sup(e);
+  }
+  function mcd(a, b) { return b ? mcd(b, a % b) : a; }
+  function mcm(a, b) { return a * b / mcd(a, b); }
+  function sel(host, etiqueta, opciones, actual, alElegir) {
+    var l = document.createElement("label"); l.className = "bx-campo q8-selector";
+    l.innerHTML = '<span class="bx-et">' + etiqueta + '</span><select aria-label="' + etiqueta.replace(/<[^>]+>/g, "") + '">' +
+      opciones.map(function (o) { return '<option value="' + o.k + '"' + (o.k === actual ? " selected" : "") + ">" + o.t + "</option>"; }).join("") + "</select>";
+    host.appendChild(l);
+    var s = l.querySelector("select"); s.addEventListener("change", function () { alElegir(s.value); });
+    return { el: l, set: function (k) { s.value = k; } };
+  }
+  function estilo() {
+    if (document.getElementById("q8-css")) return;
+    var s = document.createElement("style"); s.id = "q8-css";
+    s.textContent =
+      ".q8-selector select { font: 500 15px/1.3 var(--body); color: var(--ink); background: var(--sheet); border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 8px; max-width: 100%; }" +
+      ".q8-selector { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); flex-wrap: wrap; }" +
+      ".q8-svg { width: 100%; height: auto; display: block; max-width: 560px; margin: 6px auto; }" +
+      ".q8-svg text { font: 700 15px var(--body); fill: var(--ink); } .q8-svg text.sm { font-weight: 600; font-size: 14px; fill: var(--ink-soft); }" +
+      ".q8-svg text.pen { fill: var(--pen); } .q8-svg text.red { fill: var(--red); } .q8-svg text.ok { fill: var(--ok); }" +
+      ".q8-vaso { fill: none; stroke: var(--ink-faint); stroke-width: 3; stroke-linejoin: round; }" +
+      ".q8-liq { fill: var(--pen); fill-opacity: .14; } .q8-liq.b { fill: var(--red); fill-opacity: .12; }" +
+      ".q8-elec { fill: var(--ink-faint); stroke: var(--ink); stroke-width: 1.5; } .q8-elec.pt { fill: var(--sheet-2); }" +
+      ".q8-dep { fill: var(--red); fill-opacity: .55; stroke: var(--red); stroke-width: 1.2; } .q8-fant { fill: none; stroke: var(--ink-faint); stroke-width: 1.5; stroke-dasharray: 4 3; }" +
+      ".q8-hilo { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; } .q8-hilo.off { stroke-dasharray: 2 7; stroke: var(--ink-faint); }" +
+      ".q8-puente { fill: none; stroke-width: 15; stroke-linejoin: round; stroke: var(--ink-faint); } .q8-puente2 { fill: none; stroke-width: 10; stroke-linejoin: round; stroke: var(--sheet-2); }" +
+      ".q8-volt { fill: var(--sheet); stroke: var(--ink); stroke-width: 2.5; }" +
+      ".q8-fe { fill: var(--red); } .q8-fa { fill: var(--pen); } .q8-fc { fill: var(--ok); }" +
+      ".q8-pasos { margin: 10px 0 0; } .q8-paso { border-left: 4px solid var(--pen); background: var(--sheet-2); border-radius: 4px 10px 10px 4px; padding: 7px 12px; margin: 8px 0; font-size: 15px; line-height: 1.5; }" +
+      ".q8-paso b.t { display: block; font: 700 13px var(--body); color: var(--pen); } .q8-paso .mv { font: 500 16px/1.7 var(--math); }" +
+      ".q8-paso.fin { border-left-color: var(--ok); } .q8-paso.fin b.t { color: var(--ok); }" +
+      ".q8-esc { margin: 8px 0 0; display: grid; gap: 2px; } .q8-fila { display: grid; grid-template-columns: minmax(96px, 1.1fr) 52px minmax(0, 2fr); gap: 6px; align-items: center; font: 600 13px var(--body); padding: 1px 4px; border-radius: 6px; }" +
+      ".q8-fila.ox { background: var(--red-soft); } .q8-fila.re { background: var(--ok-soft); }" +
+      ".q8-fila .e { text-align: right; color: var(--ink-soft); } .q8-bar { position: relative; height: 10px; } .q8-bar i { position: absolute; top: 1px; height: 8px; border-radius: 3px; background: var(--ink-faint); }" +
+      ".q8-bar i.p { background: var(--pen); } .q8-bar i.n { background: var(--red); opacity: .8; } .q8-bar:before { content: ''; position: absolute; left: var(--cero); top: -3px; width: 1.5px; height: 16px; background: var(--ink); }" +
+      "@media (max-width: 520px) { .q8-fila { grid-template-columns: minmax(80px, 1.3fr) 44px minmax(0, 1.2fr); font-size: 12px; } }";
+    document.head.appendChild(s);
+  }
+
+  // ------------------------------------------------------------
+  // Pares redox (potenciales estándar de reducción a 25 °C, en V; ox + n e⁻ → red)
+  // ------------------------------------------------------------
+  var PARES = [
+    { k: "li", t: "Li⁺/Li", E: -3.04, n: 1, ox: [[1, "Li⁺"]], red: [[1, "Li"]], el: "metal" },
+    { k: "na", t: "Na⁺/Na", E: -2.71, n: 1, ox: [[1, "Na⁺"]], red: [[1, "Na"]], el: "metal" },
+    { k: "mg", t: "Mg²⁺/Mg", E: -2.37, n: 2, ox: [[1, "Mg²⁺"]], red: [[1, "Mg"]], el: "metal" },
+    { k: "al", t: "Al³⁺/Al", E: -1.66, n: 3, ox: [[1, "Al³⁺"]], red: [[1, "Al"]], el: "metal" },
+    { k: "zn", t: "Zn²⁺/Zn", E: -0.76, n: 2, ox: [[1, "Zn²⁺"]], red: [[1, "Zn"]], el: "metal" },
+    { k: "fe", t: "Fe²⁺/Fe", E: -0.44, n: 2, ox: [[1, "Fe²⁺"]], red: [[1, "Fe"]], el: "metal" },
+    { k: "ni", t: "Ni²⁺/Ni", E: -0.25, n: 2, ox: [[1, "Ni²⁺"]], red: [[1, "Ni"]], el: "metal" },
+    { k: "pb", t: "Pb²⁺/Pb", E: -0.13, n: 2, ox: [[1, "Pb²⁺"]], red: [[1, "Pb"]], el: "metal" },
+    { k: "h", t: "H⁺/H₂", E: 0.00, n: 2, ox: [[2, "H⁺"]], red: [[1, "H₂"]], el: "gas" },
+    { k: "cu", t: "Cu²⁺/Cu", E: 0.34, n: 2, ox: [[1, "Cu²⁺"]], red: [[1, "Cu"]], el: "metal" },
+    { k: "i", t: "I₂/I⁻", E: 0.54, n: 2, ox: [[1, "I₂"]], red: [[2, "I⁻"]], el: "inerte" },
+    { k: "fe3", t: "Fe³⁺/Fe²⁺", E: 0.77, n: 1, ox: [[1, "Fe³⁺"]], red: [[1, "Fe²⁺"]], el: "inerte" },
+    { k: "ag", t: "Ag⁺/Ag", E: 0.80, n: 1, ox: [[1, "Ag⁺"]], red: [[1, "Ag"]], el: "metal" },
+    { k: "no3", t: "NO₃⁻/NO", E: 0.96, n: 3, ox: [[1, "NO₃⁻"], [4, "H⁺"]], red: [[1, "NO"], [2, "H₂O"]], el: "inerte" },
+    { k: "br", t: "Br₂/Br⁻", E: 1.07, n: 2, ox: [[1, "Br₂"]], red: [[2, "Br⁻"]], el: "inerte" },
+    { k: "cr", t: "Cr₂O₇²⁻/Cr³⁺", E: 1.33, n: 6, ox: [[1, "Cr₂O₇²⁻"], [14, "H⁺"]], red: [[2, "Cr³⁺"], [7, "H₂O"]], el: "inerte" },
+    { k: "cl", t: "Cl₂/Cl⁻", E: 1.36, n: 2, ox: [[1, "Cl₂"]], red: [[2, "Cl⁻"]], el: "inerte" },
+    { k: "mn", t: "MnO₄⁻/Mn²⁺", E: 1.51, n: 5, ox: [[1, "MnO₄⁻"], [8, "H⁺"]], red: [[1, "Mn²⁺"], [4, "H₂O"]], el: "inerte" },
+    { k: "f", t: "F₂/F⁻", E: 2.87, n: 2, ox: [[1, "F₂"]], red: [[2, "F⁻"]], el: "inerte" }
+  ];
+  var PORK = {}; PARES.forEach(function (p) { PORK[p.k] = p; });
+  var PILA_K = ["mg", "al", "zn", "fe", "ni", "pb", "h", "cu", "ag", "fe3"];
+
+  // Suma de semirreacciones: c = el par que se reduce, a = el par que se oxida. Devuelve la reacción global ajustada.
+  function combina(c, a) {
+    var L = mcm(c.n, a.n), mc = L / c.n, ma = L / a.n, izq = {}, der = {}, orden = [];
+    function add(m, lista, mult) { lista.forEach(function (p) { m[p[1]] = (m[p[1]] || 0) + p[0] * mult; if (orden.indexOf(p[1]) < 0) orden.push(p[1]); }); }
+    if (a.el === "metal") { add(izq, a.red, ma); add(der, a.ox, ma); add(izq, c.ox, mc); add(der, c.red, mc); }   // metal que se oxida primero: Zn + Cu²⁺ ⟶ Zn²⁺ + Cu
+    else { add(izq, c.ox, mc); add(der, c.red, mc); add(izq, a.red, ma); add(der, a.ox, ma); }
+    Object.keys(izq).forEach(function (k) { if (der[k]) { var m = Math.min(izq[k], der[k]); izq[k] -= m; der[k] -= m; } });
+    var g = 0; [izq, der].forEach(function (m) { Object.keys(m).forEach(function (k) { if (m[k]) g = mcd(g, m[k]); }); });
+    g = g || 1;
+    function lado(m) {
+      var ks = orden.filter(function (k) { return m[k] > 0; });
+      ["H⁺", "OH⁻", "H₂O"].forEach(function (x) { var i = ks.indexOf(x); if (i >= 0) { ks.splice(i, 1); ks.push(x); } });
+      return ks.map(function (k) { var c = m[k] / g; return (c === 1 ? "" : c + " ") + k; }).join(" + ");
+    }
+    var ci = {}, cd = {}; Object.keys(izq).forEach(function (k) { if (izq[k]) ci[k] = izq[k] / g; }); Object.keys(der).forEach(function (k) { if (der[k]) cd[k] = der[k] / g; });
+    return { L: L, mc: mc, ma: ma, texto: lado(izq) + " ⟶ " + lado(der), izq: ci, der: cd, ne: L / g };
+  }
+  function semi(p, sentido) {                        // texto de una semirreacción: "red" (reducción) u "oxi" (oxidación)
+    function lado(l) { return l.map(function (x) { return (x[0] === 1 ? "" : x[0] + " ") + x[1]; }).join(" + "); }
+    return sentido === "red" ? lado(p.ox) + " + " + p.n + " e⁻ ⟶ " + lado(p.red) : lado(p.red) + " ⟶ " + lado(p.ox) + " + " + p.n + " e⁻";
+  }
+
+  // ============================================================
+  // Q8_ESCALA: potenciales estándar y predicción
+  // ============================================================
+  var RAPIDOS = [
+    { k: "a", t: "Zn en HCl", c: "h", a: "zn" }, { k: "b", t: "Cu en HCl", c: "h", a: "cu" }, { k: "c", t: "Fe desplaza Cu²⁺", c: "cu", a: "fe" },
+    { k: "d", t: "Cu desplaza Zn²⁺", c: "zn", a: "cu" }, { k: "e", t: "Cu en HNO₃", c: "no3", a: "cu" }, { k: "f", t: "Cl₂ con Br⁻", c: "cl", a: "br" },
+    { k: "g", t: "I₂ con Br⁻", c: "i", a: "br" }
+  ];
+  B.w.q8_escala = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "La escala de potenciales: ¿reacciona o no?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="q8-esc" data-esc></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { c: "cu", a: "zn" }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), esc = cuerpo.querySelector("[data-esc]"),
+      lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sc, sa;
+    var op = PARES.map(function (p) { return { k: p.k, t: p.t }; });
+    sc = sel(ctl, "Se reduce (oxidante):", op, st.c, function (k) { st.c = k; pinta(); });
+    sa = sel(ctl, "Se oxida (reductor, forma reducida de):", op, st.a, function (k) { st.a = k; pinta(); });
+    function pinta() {
+      var c = PORK[st.c], a = PORK[st.a], E = c.E - a.E, ok = E > 0;
+      // filas de la escala, de más oxidante (arriba) a menos
+      var cero = 3.2 / 6.1 * 100;
+      var filas = PARES.slice().sort(function (x, y) { return y.E - x.E; }).map(function (p) {
+        var cls = p.k === st.c ? " ox" : (p.k === st.a ? " re" : ""), w = Math.abs(p.E) / 6.1 * 100;
+        var barra = p.E >= 0 ? '<i class="p" style="left:' + cero + '%;width:' + w + '%"></i>' : '<i class="n" style="left:' + (cero - w) + '%;width:' + w + '%"></i>';
+        return '<div class="q8-fila' + cls + '"><span>' + p.t + '</span><span class="e">' + sg(p.E, 2) + ' V</span><span class="q8-bar" style="--cero:' + cero + '%">' + barra + "</span></div>";
+      });
+      esc.innerHTML = filas.join("");
+      if (c.k === a.k) {
+        lectura.innerHTML = fil("Resultado", "elige dos pares distintos", "ancho");
+        pie.innerHTML = "Arriba: los oxidantes más fuertes (potencial alto). Abajo: los reductores más fuertes (potencial muy negativo)."; return;
+      }
+      var r = combina(c, a), n = r.L, G0 = -n * F * E / 1000, logK = n * E / RT;
+      var rev = combina(a, c);
+      lectura.innerHTML = fil("E° de la pila = E°(cátodo) − E°(ánodo)", sg(c.E, 2) + " − (" + sg(a.E, 2) + ") = " + sg(E, 2) + " V", ok ? "ok" : "red") +
+        fil("¿Espontánea?", ok ? "sí: E° > 0" : "no: E° < 0 (sería espontánea la inversa)", ok ? "ok" : "red") +
+        fil("Reacción global" + (ok ? "" : " (inversa, la espontánea)"), ok ? r.texto : rev.texto, "ancho") +
+        fil("n (electrones)", String(n), "") + fil("ΔG° = −n·F·E°", sg(G0, 0) + " kJ", ok ? "ok" : "red") + fil("log K = n·E°/0,0592", d(logK, 1), "");
+      pie.innerHTML = "<b>Regla rápida:</b> reacciona el oxidante <span style='color:var(--red)'>(fila roja)</span> con el reductor <span style='color:var(--ok)'>(fila verde)</span> si la fila roja está <b>más arriba</b> que la verde. " +
+        "Aquí: " + c.t + " (" + sg(c.E, 2) + " V) " + (ok ? "está por encima de " : "está por debajo de ") + a.t + " (" + sg(a.E, 2) + " V).";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), RAPIDOS.map(function (r) { return { k: r.k, t: r.t }; }), "", function (k) {
+      var r = RAPIDOS.filter(function (x) { return x.k === k; })[0]; st.c = r.c; st.a = r.a; sc.set(r.c); sa.set(r.a); pinta();
+    });
+    pinta();
+  };
+
+  // ============================================================
+  // Q8_PILA: pila galvánica configurable
+  // ============================================================
+  function ionSol(p) { return p.el === "metal" ? p.ox[0][1] + " 1 M" : (p.el === "gas" ? "H⁺ 1 M" : p.red[0][1] + ", " + p.ox[0][1] + " 1 M"); }
+  function notAnodo(p) {
+    if (p.el === "metal") return p.red[0][1] + "(s) | " + p.ox[0][1] + "(1 M)";
+    if (p.el === "gas") return "Pt | H₂(1 atm) | H⁺(1 M)";
+    return "Pt | Fe²⁺(1 M), Fe³⁺(1 M)";
+  }
+  function notCatodo(p) {
+    if (p.el === "metal") return p.ox[0][1] + "(1 M) | " + p.red[0][1] + "(s)";
+    if (p.el === "gas") return "H⁺(1 M) | H₂(1 atm) | Pt";
+    return "Fe³⁺(1 M), Fe²⁺(1 M) | Pt";
+  }
+  B.w.q8_pila = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Monta tu pila: ánodo, cátodo, electrones e iones");
+    cuerpo.innerHTML = '<div data-ctl></div><div data-chips class="chips"></div><svg class="q8-svg" viewBox="0 0 520 335" role="img" aria-label="Esquema de una pila galvánica"></svg><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { x: "zn", y: "cu", puente: true }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), svg = cuerpo.querySelector("svg"),
+      lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var op = PILA_K.map(function (k) { return { k: k, t: PORK[k].t }; });
+    sel(ctl, "Semicelda 1:", op, st.x, function (k) { st.x = k; pinta(); });
+    sel(ctl, "Semicelda 2:", op, st.y, function (k) { st.y = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-chips]"), [{ k: "1", t: "Con puente salino" }, { k: "0", t: "Sin puente salino" }], "1", function (k) { st.puente = k === "1"; pinta(); });
+    function flecha(x, y, dir, cls) { var s = 7 * dir; return '<polygon class="' + cls + '" points="' + (x + s) + "," + y + " " + (x - s) + "," + (y - 6) + " " + (x - s) + "," + (y + 6) + '"/>'; }
+    function pinta() {
+      var p1 = PORK[st.x], p2 = PORK[st.y];
+      if (p1.k === p2.k) { svg.innerHTML = '<text x="260" y="170" text-anchor="middle">Elige dos semiceldas distintas</text>'; lectura.innerHTML = fil("fem", "0 V: sin diferencia de potencial", "ancho"); pie.innerHTML = ""; return; }
+      var c = p1.E > p2.E ? p1 : p2, a = c === p1 ? p2 : p1, E = c.E - a.E, on = st.puente;
+      var r = combina(c, a), s = "";
+      // vasos y líquidos
+      s += '<rect class="q8-liq b" x="32" y="175" width="176" height="108"/><rect class="q8-liq" x="312" y="175" width="176" height="108"/>';
+      s += '<path class="q8-vaso" d="M30 150 V285 H210 V150"/><path class="q8-vaso" d="M310 150 V285 H490 V150"/>';
+      // electrodos
+      function elect(cx, p, esAnodo) {
+        var h = "";
+        if (p.el === "metal") {
+          if (esAnodo) h += '<rect class="q8-fant" x="' + (cx - 10) + '" y="95" width="20" height="160"/><rect class="q8-elec" x="' + (cx - 6) + '" y="95" width="12" height="160"/>';
+          else h += '<rect class="q8-elec" x="' + (cx - 10) + '" y="95" width="20" height="160"/><rect class="q8-dep" x="' + (cx - 15) + '" y="178" width="30" height="77"/>';
+        } else h += '<rect class="q8-elec pt" x="' + (cx - 10) + '" y="95" width="20" height="160"/>';
+        if (p.el === "gas") for (var i = 0; i < 4; i++) h += '<circle class="q8-fant" cx="' + (cx + (esAnodo ? -22 : 22) + (i % 2) * 6) + '" cy="' + (225 - i * 17) + '" r="4"/>';
+        return h;
+      }
+      s += elect(120, a, true) + elect(400, c, false);
+      s += '<text class="sm" x="138" y="118">' + (a.el === "metal" ? a.red[0][1] : "Pt") + '</text><text class="sm" x="418" y="118">' + (c.el === "metal" ? c.red[0][1] : "Pt") + "</text>";
+      // cable y voltímetro
+      s += '<path class="q8-hilo" d="M120 95 V45 H232 M288 45 H400 V95"/><circle class="q8-volt" cx="260" cy="45" r="28"/>';
+      s += '<text x="260" y="44" text-anchor="middle" style="font-size:16px">' + (on ? d(E, 2) : "0,00") + '</text><text class="sm" x="260" y="60" text-anchor="middle" style="font-size:12px">voltios</text>';
+      if (on) {
+        s += flecha(180, 45, 1, "q8-fe") + flecha(345, 45, 1, "q8-fe") + '<text class="red" x="180" y="32" text-anchor="middle">e⁻</text><text class="red" x="345" y="32" text-anchor="middle">e⁻</text>';
+      }
+      // puente salino
+      if (on) {
+        s += '<path class="q8-puente" d="M165 218 V130 H355 V218"/><path class="q8-puente2" d="M165 218 V130 H355 V218"/>';
+        s += '<text class="pen" x="168" y="118">⟵ aniones</text><text class="ok" x="354" y="118" text-anchor="end">cationes ⟶</text>';
+      } else {
+        s += '<path class="q8-puente" style="stroke-dasharray:3 8;opacity:.5" d="M165 218 V130 H355 V218"/><text class="red" x="260" y="118" text-anchor="middle">puente retirado: circuito abierto</text>';
+      }
+      // rótulos
+      s += '<text class="red" x="120" y="304" text-anchor="middle">ÁNODO (−)</text><text class="ok" x="400" y="304" text-anchor="middle">CÁTODO (+)</text>';
+      s += '<text class="sm" x="120" y="322" text-anchor="middle">' + ("oxidación · " + (a.el === "metal" ? "se disuelve" : (a.el === "gas" ? "se consume H₂" : "Pt inerte"))) + '</text><text class="sm" x="400" y="322" text-anchor="middle">' +
+        ("reducción · " + (c.el === "metal" ? "se deposita" : (c.el === "gas" ? "burbujea H₂" : "Pt inerte"))) + "</text>";
+      s += '<text class="sm" x="68" y="274" text-anchor="middle">' + ionSol(a).split(" 1 M")[0].split(", ")[0] + '</text><text class="sm" x="445" y="274" text-anchor="middle">' + ionSol(c).split(" 1 M")[0].split(", ")[0] + "</text>";
+      svg.innerHTML = s;
+      var G = -r.L * F * E / 1000;
+      lectura.innerHTML = fil("Ánodo (−): oxidación", semi(a, "oxi"), "red") + fil("Cátodo (+): reducción", semi(c, "red"), "ok") +
+        fil("Reacción global", r.texto, "ancho") + fil("Notación de la pila", notAnodo(a) + " ‖ " + notCatodo(c), "ancho") +
+        fil("fem = E°cátodo − E°ánodo", sg(c.E, 2) + " − (" + sg(a.E, 2) + ") = " + d(E, 2) + " V", "pen") + fil("ΔG° = −n·F·E°", sg(G, 0) + " kJ/mol (n = " + r.L + ")", "pen") +
+        fil("Electrones", "del " + (a.el === "metal" ? a.red[0][1] : "Pt (ánodo)") + " al " + (c.el === "metal" ? c.red[0][1] : "Pt (cátodo)") + " por el cable", "ancho") +
+        fil("Estado", on ? "funciona: circula corriente" : "no circula corriente: sin puente se acumula carga en cada vaso y la reacción se detiene", on ? "ok" : "red");
+      pie.innerHTML = "El ánodo es el polo <b>negativo</b> (ahí se liberan los electrones); el cátodo, el <b>positivo</b>. El puente salino cierra el circuito: los <b>aniones van hacia el ánodo</b> y los <b>cationes hacia el cátodo</b>. " +
+        "El de potencial mayor siempre es el cátodo, aunque lo pongas en la semicelda 1.";
+    }
+    pinta();
+  };
+
+  // ============================================================
+  // Q8_AJUSTA: ion-electrón paso a paso
+  // ============================================================
+  function S(f, el, nEl, O, H, q, nox) { return { f: f, el: el, nEl: nEl, O: O, H: H, q: q, nox: nox }; }
+  var SP = {
+    mno4: S("MnO₄⁻", "Mn", 1, 4, 0, -1, 7), mn2: S("Mn²⁺", "Mn", 1, 0, 0, 2, 2), mno2: S("MnO₂", "Mn", 1, 2, 0, 0, 4),
+    fe2: S("Fe²⁺", "Fe", 1, 0, 0, 2, 2), fe3: S("Fe³⁺", "Fe", 1, 0, 0, 3, 3),
+    cr2o7: S("Cr₂O₇²⁻", "Cr", 2, 7, 0, -2, 6), cr3: S("Cr³⁺", "Cr", 1, 0, 0, 3, 3),
+    c2o4: S("C₂O₄²⁻", "C", 2, 4, 0, -2, 3), co2: S("CO₂", "C", 1, 2, 0, 0, 4),
+    h2o2: S("H₂O₂", "O", 2, 2, 2, 0, -1), o2: S("O₂", "O", 2, 2, 0, 0, 0),
+    cu: S("Cu", "Cu", 1, 0, 0, 0, 0), cu2: S("Cu²⁺", "Cu", 1, 0, 0, 2, 2), no3: S("NO₃⁻", "N", 1, 3, 0, -1, 5), no: S("NO", "N", 1, 1, 0, 0, 2),
+    cl: S("Cl⁻", "Cl", 1, 0, 0, -1, -1), cl2: S("Cl₂", "Cl", 2, 0, 0, 0, 0), clo: S("ClO⁻", "Cl", 1, 1, 0, -1, 1),
+    i: S("I⁻", "I", 1, 0, 0, -1, -1), i2: S("I₂", "I", 2, 0, 0, 0, 0)
+  };
+  // cada semirreacción: izq → der con los coeficientes del átomo principal (ca, cb)
+  function H1(a, b, ca, cb) { return { izq: SP[a], der: SP[b], ca: ca, cb: cb }; }
+  var REACCIONES = [
+    { k: "mnfe", t: "MnO₄⁻ + Fe²⁺", medio: "ácido", red: H1("mno4", "mn2", 1, 1), oxi: H1("fe2", "fe3", 1, 1), nota: "la valoración clásica con permanganato" },
+    { k: "crfe", t: "Cr₂O₇²⁻ + Fe²⁺", medio: "ácido", red: H1("cr2o7", "cr3", 1, 2), oxi: H1("fe2", "fe3", 1, 1), nota: "dicromato: cada Cr gana 3 e⁻ y hay dos Cr" },
+    { k: "mnox", t: "MnO₄⁻ + C₂O₄²⁻", medio: "ácido", red: H1("mno4", "mn2", 1, 1), oxi: H1("c2o4", "co2", 1, 2), nota: "oxalato: se oxida a CO₂ y suelta 2 e⁻" },
+    { k: "mnh2o2", t: "MnO₄⁻ + H₂O₂", medio: "ácido", red: H1("mno4", "mn2", 1, 1), oxi: H1("h2o2", "o2", 1, 1), nota: "el agua oxigenada hace de reductor (O: −1 → 0)" },
+    { k: "cuno3", t: "Cu + NO₃⁻", medio: "ácido", red: H1("no3", "no", 1, 1), oxi: H1("cu", "cu2", 1, 1), nota: "el cobre se disuelve en HNO₃ (no en HCl)" },
+    { k: "mncl", t: "MnO₄⁻ + Cl⁻", medio: "ácido", red: H1("mno4", "mn2", 1, 1), oxi: H1("cl", "cl2", 2, 1), nota: "dos Cl⁻ forman una molécula de Cl₂" },
+    { k: "cri", t: "Cr₂O₇²⁻ + I⁻", medio: "ácido", red: H1("cr2o7", "cr3", 1, 2), oxi: H1("i", "i2", 2, 1), nota: "dos I⁻ forman una molécula de I₂" },
+    { k: "mno2cl", t: "MnO₂ + Cl⁻", medio: "ácido", red: H1("mno2", "mn2", 1, 1), oxi: H1("cl", "cl2", 2, 1), nota: "así se prepara cloro en el laboratorio" },
+    { k: "mni", t: "MnO₄⁻ + I⁻", medio: "básico", red: H1("mno4", "mno2", 1, 1), oxi: H1("i", "i2", 2, 1), nota: "en medio básico el Mn solo llega a MnO₂" },
+    { k: "cl2", t: "Cl₂ + OH⁻ (dismutación)", medio: "básico", red: H1("cl2", "cl", 1, 2), oxi: H1("cl2", "clo", 1, 2), nota: "el mismo Cl₂ se reduce y se oxida a la vez" }
+  ];
+  function nox(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n); }
+  // ajusta una semirreacción: devuelve las etapas (cada una con los extras de cada lado) y el estado final
+  function ajustaMedia(h, medio) {
+    var L = { H2O: 0, Hp: 0, OH: 0, e: 0 }, R = { H2O: 0, Hp: 0, OH: 0, e: 0 }, et = [];
+    function copia() { return { L: JSON.parse(JSON.stringify(L)), R: JSON.parse(JSON.stringify(R)) }; }
+    et.push(copia());
+    var OL = h.ca * h.izq.O, OR = h.cb * h.der.O, HL = h.ca * h.izq.H, HR = h.cb * h.der.H, QL = h.ca * h.izq.q, QR = h.cb * h.der.q;
+    if (OL > OR) R.H2O += OL - OR; else L.H2O += OR - OL;
+    et.push(copia());
+    HL += 2 * L.H2O; HR += 2 * R.H2O;
+    if (HL > HR) R.Hp += HL - HR; else L.Hp += HR - HL;
+    et.push(copia());
+    QL += L.Hp; QR += R.Hp;
+    if (QL > QR) L.e += QL - QR; else R.e += QR - QL;
+    et.push(copia());
+    if (medio === "básico") {
+      L.OH += R.Hp; R.OH += L.Hp; L.H2O += L.Hp; R.H2O += R.Hp; L.Hp = 0; R.Hp = 0;
+      var m = Math.min(L.H2O, R.H2O); L.H2O -= m; R.H2O -= m;
+      et.push(copia());
+    }
+    return { et: et, ne: L.e + R.e, L: L, R: R };
+  }
+  function ladoTxt(sp, c, ex) {
+    var t = [];
+    function term(n, f) { return (n === 1 ? "" : n + " ") + f; }
+    if (c) t.push(term(c, sp.f));
+    if (ex.H2O) t.push(term(ex.H2O, "H₂O")); if (ex.Hp) t.push(term(ex.Hp, "H⁺")); if (ex.OH) t.push(term(ex.OH, "OH⁻")); if (ex.e) t.push(term(ex.e, "e⁻"));
+    return t.join(" + ");
+  }
+  function rxTxt(h, ex) { return ladoTxt(h.izq, h.ca, ex.L) + " ⟶ " + ladoTxt(h.der, h.cb, ex.R); }
+  // suma de dos semirreacciones ya ajustadas, con multiplicadores
+  function sumaTotal(R, ar, ao, m1, m2) {
+    var izq = {}, der = {}, ord = [];
+    function add(m, k, v) { if (!v) return; m[k] = (m[k] || 0) + v; if (ord.indexOf(k) < 0) ord.push(k); }
+    function aporta(h, a, mu) {
+      add(izq, h.izq.f, h.ca * mu); add(der, h.der.f, h.cb * mu);
+      add(izq, "H₂O", a.L.H2O * mu); add(der, "H₂O", a.R.H2O * mu); add(izq, "H⁺", a.L.Hp * mu); add(der, "H⁺", a.R.Hp * mu);
+      add(izq, "OH⁻", a.L.OH * mu); add(der, "OH⁻", a.R.OH * mu);
+    }
+    aporta(R.red, ar, m1); aporta(R.oxi, ao, m2);
+    Object.keys(izq).forEach(function (k) { if (der[k]) { var m = Math.min(izq[k], der[k]); izq[k] -= m; der[k] -= m; } });
+    var g = 0; [izq, der].forEach(function (m) { Object.keys(m).forEach(function (k) { if (m[k]) g = mcd(g, m[k]); }); }); g = g || 1;
+    function lado(m) {
+      var ks = ord.filter(function (k) { return m[k] > 0; });
+      ["H⁺", "OH⁻", "H₂O"].forEach(function (x) { var i = ks.indexOf(x); if (i >= 0) { ks.splice(i, 1); ks.push(x); } });
+      return ks.map(function (k) { var c = m[k] / g; return (c === 1 ? "" : c + " ") + k; }).join(" + ");
+    }
+    var ci = {}, cd = {}; Object.keys(izq).forEach(function (k) { if (izq[k]) ci[k] = izq[k] / g; }); Object.keys(der).forEach(function (k) { if (der[k]) cd[k] = der[k] / g; });
+    return { texto: lado(izq) + " ⟶ " + lado(der), izq: ci, der: cd, g: g };
+  }
+  function resuelve(R) {
+    var ar = ajustaMedia(R.red, R.medio), ao = ajustaMedia(R.oxi, R.medio), L = mcm(ar.ne, ao.ne), m1 = L / ar.ne, m2 = L / ao.ne;
+    return { ar: ar, ao: ao, L: L, m1: m1, m2: m2, tot: sumaTotal(R, ar.et[ar.et.length - 1], ao.et[ao.et.length - 1], m1, m2) };
+  }
+  B.w.q8_ajusta = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Ajustador ion-electrón, paso a paso");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="q8-pasos"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { k: "mnfe", n: 1 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), pasos = cuerpo.querySelector(".q8-pasos"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var bSig = U.boton(ctl, "Siguiente paso ▶", function () { st.n++; pinta(); }), bTodo = U.boton(ctl, "Ver todos los pasos", function () { st.n = 99; pinta(); }), bRei = U.boton(ctl, "↺ Reiniciar", function () { st.n = 1; pinta(); });
+    function R() { return REACCIONES.filter(function (r) { return r.k === st.k; })[0]; }
+    function pinta() {
+      var r = R(), z = resuelve(r), base = r.medio === "básico", p = [], red = r.red, oxi = r.oxi;
+      var etR = z.ar.et, etO = z.ao.et, fR = etR[etR.length - 1], fO = etO[etO.length - 1];
+      function par(t, cuerpoHtml, cls) { p.push('<div class="q8-paso' + (cls ? " " + cls : "") + '"><b class="t">' + t + '</b><span class="mv q3f">' + cuerpoHtml + "</span></div>"); }
+      par("1. Números de oxidación: ¿quién cambia?",
+        red.izq.el + ": " + nox(red.izq.nox) + " ⟶ " + nox(red.der.nox) + " (baja " + (red.izq.nox - red.der.nox) + " por átomo): <b>" + red.izq.f + " se reduce</b>, es el oxidante.<br>" +
+        oxi.izq.el + ": " + nox(oxi.izq.nox) + " ⟶ " + nox(oxi.der.nox) + " (sube " + (oxi.der.nox - oxi.izq.nox) + " por átomo): <b>" + oxi.izq.f + " se oxida</b>, es el reductor. Medio <b>" + r.medio + "</b>.");
+      par("2. Escribe las dos semirreacciones y ajusta el átomo que cambia",
+        "Reducción: " + rxTxt(red, etR[0]) + "<br>Oxidación: " + rxTxt(oxi, etO[0]));
+      par("3. Ajusta el oxígeno con H₂O", "Reducción: " + rxTxt(red, etR[1]) + "<br>Oxidación: " + rxTxt(oxi, etO[1]));
+      par("4. Ajusta el hidrógeno con H⁺", "Reducción: " + rxTxt(red, etR[2]) + "<br>Oxidación: " + rxTxt(oxi, etO[2]));
+      par("5. Ajusta la carga con electrones", "Reducción: " + rxTxt(red, etR[3]) + "  (" + z.ar.ne + " e⁻)<br>Oxidación: " + rxTxt(oxi, etO[3]) + "  (" + z.ao.ne + " e⁻)");
+      if (base) par("6. Medio básico: convierte los H⁺ en agua con OH⁻",
+        "Sumo a los dos lados tantos OH⁻ como H⁺ haya (H⁺ + OH⁻ ⟶ H₂O) y simplifico el agua repetida.<br>Reducción: " + rxTxt(red, fR) + "<br>Oxidación: " + rxTxt(oxi, fO));
+      var k = base ? 7 : 6;
+      par(k + ". Iguala los electrones ganados y perdidos", "Reducción ×" + z.m1 + "  (" + z.ar.ne + "·" + z.m1 + " = " + z.L + " e⁻)<br>Oxidación ×" + z.m2 + "  (" + z.ao.ne + "·" + z.m2 + " = " + z.L + " e⁻)");
+      par((k + 1) + ". Suma, cancela los e⁻ y simplifica", "<b>" + z.tot.texto + "</b>");
+      // comprobación
+      par((k + 2) + ". Comprueba átomos y carga", "Se conserva cada elemento y la carga neta es la misma a ambos lados: " + cargaTot(z.tot, "izq") + " = " + cargaTot(z.tot, "der") + ".", "fin");
+      var total = p.length, mostrar = Math.min(st.n, total);
+      pasos.innerHTML = p.slice(0, mostrar).join("");
+      bSig.disabled = bTodo.disabled = mostrar >= total;
+      lectura.innerHTML = mostrar >= total ? fil("Ecuación iónica ajustada", z.tot.texto, "ancho ok") + fil("Electrones que se intercambian", String(z.L / z.tot.g), "") : fil("Paso", mostrar + " de " + total, "");
+      pie.innerHTML = r.t + " · medio " + r.medio + ": " + r.nota + ". Pulsa «Siguiente paso» para ir viendo cada etapa.";
+    }
+    function cargaTot(tot, lado) {
+      var q = { "Mn²⁺": 2, "Fe³⁺": 3, "Fe²⁺": 2, "MnO₄⁻": -1, "Cr₂O₇²⁻": -2, "Cr³⁺": 3, "C₂O₄²⁻": -2, "Cu²⁺": 2, "NO₃⁻": -1, "Cl⁻": -1, "I⁻": -1, "ClO⁻": -1, "H⁺": 1, "OH⁻": -1 }, s = 0;
+      Object.keys(tot[lado]).forEach(function (k) { s += (q[k] || 0) * tot[lado][k]; });
+      return (s > 0 ? "+" : s < 0 ? "−" : "") + Math.abs(s);
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), REACCIONES.map(function (r) { return { k: r.k, t: r.t }; }), st.k, function (k) { st.k = k; st.n = 1; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q8_VALORA: valoraciones redox
+  // ============================================================
+  var VALORA = {
+    mnfe: { t: "MnO₄⁻ con Fe²⁺", tit: "MnO₄⁻", ne_t: 5, an: "Fe²⁺", ne_a: 1, M: 55.85, ec: "MnO₄⁻ + 5 Fe²⁺ + 8 H⁺ ⟶ Mn²⁺ + 5 Fe³⁺ + 4 H₂O", fin: "el primer exceso de MnO₄⁻ deja la disolución rosa-violeta" },
+    mnox: { t: "MnO₄⁻ con C₂O₄²⁻", tit: "MnO₄⁻", ne_t: 5, an: "C₂O₄²⁻", ne_a: 2, M: 88.02, ec: "2 MnO₄⁻ + 5 C₂O₄²⁻ + 16 H⁺ ⟶ 2 Mn²⁺ + 10 CO₂ + 8 H₂O", fin: "rosa persistente (el Mn²⁺ formado actúa de catalizador)" },
+    mnh2o2: { t: "MnO₄⁻ con H₂O₂", tit: "MnO₄⁻", ne_t: 5, an: "H₂O₂", ne_a: 2, M: 34.01, ec: "2 MnO₄⁻ + 5 H₂O₂ + 6 H⁺ ⟶ 2 Mn²⁺ + 5 O₂ + 8 H₂O", fin: "rosa persistente: el agua oxigenada se desprende como O₂" },
+    crfe: { t: "Cr₂O₇²⁻ con Fe²⁺", tit: "Cr₂O₇²⁻", ne_t: 6, an: "Fe²⁺", ne_a: 1, M: 55.85, ec: "Cr₂O₇²⁻ + 6 Fe²⁺ + 14 H⁺ ⟶ 2 Cr³⁺ + 6 Fe³⁺ + 7 H₂O", fin: "el dicromato no es autoindicador: se usa un indicador redox (difenilamina)" }
+  };
+  B.w.q8_valora = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Valoración redox: de los mL gastados a la concentración");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="q8-pasos"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { k: "mnfe", c: 0.02, v: 18.4, va: 20 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), pasos = cuerpo.querySelector(".q8-pasos"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "Concentración del valorante", min: 0.01, max: 0.1, step: 0.005, val: st.c, on: function (v) { st.c = v; pinta(); }, fmt: function (v) { return d(v, 3) + " mol/L"; } });
+    U.slider(ctl, { et: "Volumen gastado", min: 5, max: 40, step: 0.1, val: st.v, on: function (v) { st.v = v; pinta(); }, fmt: function (v) { return d(v, 1) + " mL"; } });
+    U.slider(ctl, { et: "Muestra valorada", min: 5, max: 50, step: 1, val: st.va, on: function (v) { st.va = v; pinta(); }, fmt: function (v) { return d(v, 0) + " mL"; } });
+    function pinta() {
+      var V = VALORA[st.k], nt = st.c * st.v, ne = nt * V.ne_t, na = ne / V.ne_a, ca = na / st.va, razon = V.ne_t / V.ne_a;
+      pasos.innerHTML =
+        '<div class="q8-paso"><b class="t">1. Reacción ajustada</b><span class="mv q3f">' + V.ec + "</span></div>" +
+        '<div class="q8-paso"><b class="t">2. Moles de valorante (n = C·V)</b><span class="mv q3f">' + d(st.c, 3) + " mol/L · " + d(st.v, 1) + " mL = <b>" + d(nt, 3) + " mmol de " + V.tit + "</b></span></div>" +
+        '<div class="q8-paso"><b class="t">3. Electrones (cada ' + V.tit + " gana " + V.ne_t + " e⁻)</b><span class=\"mv q3f\">" + d(nt, 3) + " · " + V.ne_t + " = <b>" + d(ne, 3) + " mmol de e⁻</b></span></div>" +
+        '<div class="q8-paso"><b class="t">4. Moles de ' + V.an + " (cada uno cede " + V.ne_a + " e⁻)</b><span class=\"mv q3f\">" + d(ne, 3) + " / " + V.ne_a + " = <b>" + d(na, 3) + " mmol de " + V.an + "</b>  (razón " + d(razon, 2) + " : 1)</span></div>" +
+        '<div class="q8-paso fin"><b class="t">5. Concentración de la muestra</b><span class="mv q3f">' + d(na, 3) + " mmol / " + d(st.va, 0) + " mL = <b>" + d(ca, 4) + " mol/L</b> de " + V.an + "</span></div>";
+      lectura.innerHTML = fil("[" + V.an + "]", d(ca, 4) + " mol/L", "ok") + fil("Concentración en masa", d(ca * V.M, 2) + " g/L", "ok") + fil("Razón de moles", d(razon, 2) + " " + V.an + " por " + V.tit, "") +
+        fil("Punto final", V.fin, "ancho");
+      pie.innerHTML = "Punto de equivalencia: moles de e⁻ cedidos = moles de e⁻ ganados. Con los coeficientes de la ecuación ajustada llegas al mismo resultado (razón " + d(razon, 2) + " : 1).";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(VALORA).map(function (k) { return { k: k, t: VALORA[k].t }; }), st.k, function (k) { st.k = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q8_FARADAY: electrólisis, masa, tiempo e intensidad; cubas en serie
+  // ============================================================
+  var SUST = [
+    { k: "cu", t: "Cu (de Cu²⁺)", sem: "Cu²⁺ + 2 e⁻ ⟶ Cu", M: 63.5, n: 2, gas: false },
+    { k: "ag", t: "Ag (de Ag⁺)", sem: "Ag⁺ + e⁻ ⟶ Ag", M: 107.9, n: 1, gas: false },
+    { k: "al", t: "Al (de Al³⁺)", sem: "Al³⁺ + 3 e⁻ ⟶ Al", M: 27.0, n: 3, gas: false },
+    { k: "zn", t: "Zn (de Zn²⁺)", sem: "Zn²⁺ + 2 e⁻ ⟶ Zn", M: 65.4, n: 2, gas: false },
+    { k: "ni", t: "Ni (de Ni²⁺)", sem: "Ni²⁺ + 2 e⁻ ⟶ Ni", M: 58.7, n: 2, gas: false },
+    { k: "au", t: "Au (de Au³⁺)", sem: "Au³⁺ + 3 e⁻ ⟶ Au", M: 197.0, n: 3, gas: false },
+    { k: "na", t: "Na (de NaCl fundido)", sem: "Na⁺ + e⁻ ⟶ Na", M: 23.0, n: 1, gas: false },
+    { k: "cl2", t: "Cl₂ (ánodo, de Cl⁻)", sem: "2 Cl⁻ ⟶ Cl₂ + 2 e⁻", M: 71.0, n: 2, gas: true },
+    { k: "h2", t: "H₂ (cátodo, de H⁺)", sem: "2 H⁺ + 2 e⁻ ⟶ H₂", M: 2.0, n: 2, gas: true },
+    { k: "o2", t: "O₂ (ánodo, del agua)", sem: "2 H₂O ⟶ O₂ + 4 H⁺ + 4 e⁻", M: 32.0, n: 4, gas: true }
+  ];
+  var SK = {}; SUST.forEach(function (s) { SK[s.k] = s; });
+  B.w.q8_faraday = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Calculadora de Faraday: masa, tiempo o intensidad");
+    cuerpo.innerHTML = '<div data-inc class="chips"></div><div data-ser class="chips"></div><div data-ctl></div><div class="q8-pasos"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { inc: "m", s1: "cu", s2: "ag", serie: false, I: 2, tm: 60, m: 1.5 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), pasos = cuerpo.querySelector(".q8-pasos"),
+      lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sI, sT, sM, sc2;
+    var op = SUST.map(function (s) { return { k: s.k, t: s.t }; });
+    sel(ctl, "Se produce:", op, st.s1, function (k) { st.s1 = k; pinta(); });
+    sI = U.slider(ctl, { et: "Intensidad", min: 0.1, max: 10, step: 0.1, val: st.I, on: function (v) { st.I = v; pinta(); }, fmt: function (v) { return d(v, 1) + " A"; } });
+    sT = U.slider(ctl, { et: "Tiempo", min: 1, max: 240, step: 1, val: st.tm, on: function (v) { st.tm = v; pinta(); }, fmt: function (v) { return d(v, 0) + " min"; } });
+    sM = U.slider(ctl, { et: "Masa", min: 0.1, max: 30, step: 0.1, val: st.m, on: function (v) { st.m = v; pinta(); }, fmt: function (v) { return d(v, 1) + " g"; } });
+    sc2 = sel(ctl, "Segunda cuba en serie:", op, st.s2, function (k) { st.s2 = k; pinta(); });
+    function pinta() {
+      var s = SK[st.s1], t = st.tm * 60, m, I, T, pasosH = "", q;
+      sI.el.style.display = st.inc === "i" ? "none" : ""; sT.el.style.display = st.inc === "t" ? "none" : ""; sM.el.style.display = st.inc === "m" ? "none" : "";
+      sc2.el.style.display = st.serie ? "" : "none";
+      if (st.inc === "m") { I = st.I; T = t; m = s.M * I * T / (s.n * F); }
+      else if (st.inc === "t") { I = st.I; m = st.m; T = m * s.n * F / (s.M * I); }
+      else { m = st.m; T = t; I = m * s.n * F / (s.M * T); }
+      q = I * T;
+      var ne = q / F, nmol = ne / s.n;
+      pasosH += '<div class="q8-paso"><b class="t">Semirreacción</b><span class="mv q3f">' + s.sem + "  (n = " + s.n + " e⁻ por " + (s.gas ? "molécula" : "átomo") + ")</span></div>";
+      pasosH += '<div class="q8-paso"><b class="t">Ley de Faraday</b><span class="mv q3f">m = M·I·t / (n·F) = ' + d(s.M, 1) + " · " + d(I, 3) + " · " + d(T, 0) + " / (" + s.n + " · 96 500) = <b>" + d(m, 3) + " g</b></span></div>";
+      pasosH += '<div class="q8-paso"><b class="t">Camino por moles</b><span class="mv q3f">Q = I·t = ' + d(q, 0) + " C → n(e⁻) = Q/F = " + cs(ne, 3) + " mol → n(" + s.t.split(" ")[0] + ") = " + cs(nmol, 3) + " mol</span></div>";
+      var extra = "";
+      if (s.gas) extra = fil("Volumen del gas (1 atm, 25 °C)", d(nmol * 0.082 * 298, 3) + " L", "ok");
+      if (st.serie) {
+        var s2 = SK[st.s2], m2 = q / F / s2.n * s2.M;
+        pasosH += '<div class="q8-paso fin"><b class="t">Segunda cuba (misma intensidad y tiempo: misma carga)</b><span class="mv q3f">m₂ = M·Q / (n·F) = ' + d(s2.M, 1) + " · " + d(q, 0) + " / (" + s2.n + " · 96 500) = <b>" + d(m2, 3) + " g</b></span></div>";
+        extra += fil("Masa en la 2.ª cuba", d(m2, 3) + " g", "ok") + fil("m₂/m₁ = (M₂/n₂)/(M₁/n₁)", d(m2 / m, 3), "");
+      }
+      pasos.innerHTML = pasosH;
+      lectura.innerHTML = fil("Masa", d(m, 3) + " g", st.inc === "m" ? "ok" : "") + fil("Tiempo", d(T, 0) + " s (" + d(T / 60, 2) + " min · " + d(T / 3600, 3) + " h)", st.inc === "t" ? "ok" : "") +
+        fil("Intensidad", d(I, 3) + " A", st.inc === "i" ? "ok" : "") + fil("Carga Q = I·t", d(q, 0) + " C", "") + fil("Electrones", cs(ne, 3) + " mol", "") + fil("Moles de sustancia", cs(nmol, 3) + " mol", "") + extra;
+      pie.innerHTML = "1 mol de electrones transporta <b>96 500 C</b>. Con la misma carga, cada cuba en serie produce la masa que corresponde a su M/n (masa equivalente).";
+    }
+    U.fichas(cuerpo.querySelector("[data-inc]"), [{ k: "m", t: "Calcular la masa" }, { k: "t", t: "Calcular el tiempo" }, { k: "i", t: "Calcular la intensidad" }], "m", function (k) { st.inc = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-ser]"), [{ k: "0", t: "Una cuba" }, { k: "1", t: "Dos cubas en serie" }], "0", function (k) { st.serie = k === "1"; pinta(); });
+    pinta();
+  };
+
+  B.lab.q8 = { PARES: PARES, combina: combina, REACCIONES: REACCIONES, resuelve: resuelve, VALORA: VALORA, SUST: SUST, F: F, PILA_K: PILA_K, notAnodo: notAnodo, notCatodo: notCatodo };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de rectas (Matemáticas I, tema 8)
    motor B.lab.recta + recta2p · ecgeneral · posiciones · distpunto
    mediatriz · ptosnotables · region
@@ -53534,6 +53980,745 @@
   ];
 
   B.registrar("quimica2", "t7", { resumen: resumen, secciones: B.parte.q2t7a.secciones, nuevas: B.parte.q2t7b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 8: Oxidación-reducción
+   (parte A: se añade al final de las secciones originales 1 a 4)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t8/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Número de oxidación
+  secciones[0] = env(
+    "<h5>Qué es (y qué no es) el número de oxidación</h5>" +
+    "<p>El número de oxidación (n.º ox.) es una <b>contabilidad</b>: la carga que tendría un átomo si todos los electrones de cada enlace se asignaran al átomo más electronegativo. No es la carga real (en el H₂SO₄ no hay ningún S⁶⁺ suelto), pero sirve para <b>seguir los electrones</b> en una reacción: si el n.º ox. de un átomo cambia, ese átomo ha ganado o perdido electrones (en un enlace covalente, los ha acercado o alejado).</p>" +
+    "<h5>Reglas, por orden de prioridad</h5>" +
+    tabla(["Regla", "Valor", "Ejemplos"], [
+      ["Elemento libre (solo átomos iguales)", "0", "Fe, O₂, H₂, S₈, Cl₂, P₄"],
+      ["Ion monoatómico", "su carga", "Na⁺ = +1, Al³⁺ = +3, Cl⁻ = −1, S²⁻ = −2"],
+      ["Flúor en cualquier compuesto", "−1", "HF, OF₂, SF₆"],
+      ["Metales alcalinos y alcalinotérreos; Al", "+1, +2, +3", "NaCl, CaSO₄, Al₂O₃"],
+      ["Hidrógeno", "+1 (−1 en hidruros metálicos)", "H₂O: +1 · NaH, CaH₂: −1"],
+      ["Oxígeno", "−2 (−1 en peróxidos; +2 en OF₂)", "CO₂: −2 · H₂O₂, Na₂O₂: −1"],
+      ["Suma en una molécula neutra", "0", "H₂SO₄: 2(+1) + x + 4(−2) = 0"],
+      ["Suma en un ion poliatómico", "la carga del ion", "SO₄²⁻: x + 4(−2) = −2"]
+    ], "q3t") +
+    "<p>Se aplican en este orden: primero lo que es seguro (F, metales, luego H y O) y al final se despeja el átomo que queda. El elemento «raro» (Mn, Cr, S, N, Cl…) es el que tiene el n.º ox. que buscas.</p>" +
+    ejemplo("Ejemplo resuelto: tres números de oxidación de examen", "Calcula el n.º ox. de (a) Mn en KMnO₄, (b) Cr en Cr₂O₇²⁻, (c) N en NH₄⁺.", [
+      "<b>(a)</b> K = +1, O = −2: (+1) + x + 4(−2) = 0 → x = <b>+7</b>.",
+      "<b>(b)</b> Hay dos Cr, así que 2x + 7(−2) = −2 → 2x = +12 → x = <b>+6</b>. (Cuidado: no es +12; es el valor <b>por átomo</b> de Cr.)",
+      "<b>(c)</b> H = +1 y la suma debe ser la carga del ion, +1: x + 4(+1) = +1 → x = <b>−3</b>."
+    ]) +
+    "<h5>Cuando las reglas «fallan»: las excepciones que sí caen</h5>" +
+    "<ul>" +
+    "<li><b>Peróxidos</b> (H₂O₂, Na₂O₂, BaO₂): contienen el grupo O–O y el O vale −1. En el H₂O₂, 2(+1) + 2x = 0 → x = −1.</li>" +
+    "<li><b>Hidruros metálicos</b> (NaH, CaH₂, LiAlH₄): el H es más electronegativo que el metal y vale −1.</li>" +
+    "<li><b>OF₂</b>: el flúor manda y el oxígeno vale +2.</li>" +
+    "<li><b>Valores fraccionarios</b>: en el Fe₃O₄, 3x + 4(−2) = 0 → x = +8/3. No es un error: es la media de dos Fe³⁺ y un Fe²⁺ (FeO·Fe₂O₃).</li>" +
+    "<li><b>Compuestos con azufre</b>: en el S₂O₃²⁻ (tiosulfato), 2x + 3(−2) = −2 → x = +2 (media de dos S distintos).</li>" +
+    "<li><b>Compuestos orgánicos</b>: el C no tiene un valor fijo; en CH₄ vale −4, en CH₃OH −2, en HCHO 0, en HCOOH +2 y en CO₂ +4. Oxidar es ir de −4 hacia +4 (más O, menos H).</li>" +
+    "</ul>" +
+    tabla(["Elemento", "Estados de oxidación frecuentes en problemas"], [
+      ["Mn", "+7 (MnO₄⁻), +6 (MnO₄²⁻), +4 (MnO₂), +2 (Mn²⁺)"],
+      ["Cr", "+6 (Cr₂O₇²⁻, CrO₄²⁻), +3 (Cr³⁺), 0"],
+      ["N", "+5 (NO₃⁻), +4 (NO₂), +2 (NO), +1 (N₂O), 0 (N₂), −3 (NH₃, NH₄⁺)"],
+      ["S", "+6 (SO₄²⁻, H₂SO₄), +4 (SO₂, SO₃²⁻), 0 (S), −2 (H₂S, S²⁻)"],
+      ["Cl", "+7 (ClO₄⁻), +5 (ClO₃⁻), +1 (ClO⁻), 0 (Cl₂), −1 (Cl⁻)"],
+      ["Fe", "+3 (Fe³⁺), +2 (Fe²⁺), 0"],
+      ["C", "+4 (CO₂, CO₃²⁻), +2 (CO), 0, −4 (CH₄)"]
+    ], "q3t") +
+    ojo("El n.º ox. se escribe con el signo delante (<b>+6</b>), la carga de un ion con el signo detrás (<b>6+</b> o Cr⁶⁺). Un átomo con n.º ox. +6 <b>no tiene por qué existir como ion</b> Cr⁶⁺: en el Cr₂O₇²⁻ la carga real del Cr es mucho menor, pero la contabilidad vale igual.")
+  );
+
+  // ---------------------------------------------------------------- 2. Oxidación y reducción
+  secciones[1] = env(
+    "<h5>Reducción y oxidación: una pareja inseparable</h5>" +
+    "<p>Los electrones no pueden quedarse flotando: los que pierde una sustancia los gana otra. Por eso es imposible una oxidación sin reducción, y por eso el número total de electrones perdidos siempre es igual al de ganados. Una forma fácil de recordarlo (y de no confundir oxidante con reductor):</p>" +
+    tabla(["", "Qué le pasa", "n.º ox.", "Papel en la reacción"], [
+      ["<b>Oxidación</b>", "pierde e⁻", "sube", "es el <b>reductor</b> (reduce a otro)"],
+      ["<b>Reducción</b>", "gana e⁻", "baja", "es el <b>oxidante</b> (oxida a otro)"]
+    ]) +
+    "<p>El oxidante «oxida» a otra sustancia <b>quitándole</b> electrones, y por eso él mismo se reduce. Al revés con el reductor. Una sustancia no es oxidante o reductora «en sí»: lo es <b>frente a otra</b> (la tabla de potenciales lo ordena).</p>" +
+    "<h5>Semirreacciones y pares redox</h5>" +
+    "<p>Cada proceso se escribe como una <b>semirreacción</b>, con los electrones visibles: Zn → Zn²⁺ + 2 e⁻ (oxidación) y Cu²⁺ + 2 e⁻ → Cu (reducción). La forma oxidada y la reducida de una misma especie forman un <b>par redox</b> (Zn²⁺/Zn, Cu²⁺/Cu). En cada par, <b>la forma oxidada es el oxidante</b> y <b>la reducida es el reductor</b>: el Cu²⁺ oxida y el Zn reduce.</p>" +
+    ejemplo("Ejemplo resuelto: identificar quién es quién", "En la reacción 2 Al + 3 Cu²⁺ → 2 Al³⁺ + 3 Cu, indica semirreacciones, oxidante, reductor y electrones intercambiados.", [
+      "El Al pasa de 0 a +3: <b>se oxida</b> (pierde 3 e⁻): Al → Al³⁺ + 3 e⁻. Es el <b>reductor</b>.",
+      "El Cu pasa de +2 a 0: <b>se reduce</b> (gana 2 e⁻): Cu²⁺ + 2 e⁻ → Cu. El Cu²⁺ es el <b>oxidante</b>.",
+      "Para igualar los electrones: 2·(Al → Al³⁺ + 3 e⁻) y 3·(Cu²⁺ + 2 e⁻ → Cu): en total <b>6 e⁻</b> que salen del aluminio y entran al cobre."
+    ]) +
+    "<h5>Oxidantes y reductores habituales</h5>" +
+    tabla(["Oxidantes (se reducen)", "Producto típico", "Reductores (se oxidan)", "Producto típico"], [
+      ["MnO₄⁻ (medio ácido)", "Mn²⁺", "Fe²⁺", "Fe³⁺"],
+      ["MnO₄⁻ (medio básico)", "MnO₂", "I⁻", "I₂"],
+      ["Cr₂O₇²⁻ (medio ácido)", "Cr³⁺", "C₂O₄²⁻ (oxalato)", "CO₂"],
+      ["HNO₃ diluido", "NO", "metales (Cu, Zn…)", "su catión"],
+      ["HNO₃ concentrado", "NO₂", "H₂O₂ (frente a oxidantes fuertes)", "O₂"],
+      ["Cl₂, Br₂, O₂", "Cl⁻, Br⁻, H₂O u OH⁻", "SO₂, SO₃²⁻", "SO₄²⁻"],
+      ["H₂O₂ (frente a reductores)", "H₂O", "H₂, C, CO", "H₂O, CO₂"]
+    ], "q3t") +
+    "<h5>Sustancias que pueden hacer de las dos cosas</h5>" +
+    "<p>Un átomo en un estado de oxidación <b>intermedio</b> puede subir o bajar: el Fe²⁺ (entre Fe y Fe³⁺), el SO₂ (entre S y SO₄²⁻) o el H₂O₂ (O = −1, entre −2 y 0). Frente a un oxidante fuerte se comportan como reductores; frente a un reductor fuerte, como oxidantes. En cambio el estado más alto (MnO₄⁻, Mn +7) <b>solo puede reducirse</b> y el más bajo (I⁻, −1) <b>solo oxidarse</b>.</p>" +
+    "<h5>Dismutación y comproporción</h5>" +
+    "<p>En una <b>dismutación</b>, una misma especie se oxida y se reduce a la vez: Cl₂ + 2 OH⁻ → Cl⁻ + ClO⁻ + H₂O (el Cl pasa de 0 a −1 y de 0 a +1). Es la reacción de la lejía. La <b>comproporción</b> es la inversa: dos especies del mismo elemento en estados distintos dan una sola (IO₃⁻ + 5 I⁻ + 6 H⁺ → 3 I₂ + 3 H₂O: I +5 e I −1 acaban en 0).</p>" +
+    ojo("«Se oxida» no siempre significa «se combina con oxígeno». Ese es el origen histórico de la palabra, pero la definición válida es <b>perder electrones</b> (subir el n.º ox.). El Zn se oxida en Zn + Cu²⁺ aunque no haya oxígeno por ningún lado.")
+  );
+
+  // ---------------------------------------------------------------- 3. Ajuste por ion-electrón
+  secciones[2] = env(
+    "<h5>El método, con más detalle</h5>" +
+    "<p>Se trabaja con <b>iones tal como existen en disolución</b> (MnO₄⁻, Fe²⁺, Cr₂O₇²⁻…), sin los iones espectadores (K⁺, SO₄²⁻, Cl⁻ que no cambian). El orden importa; si lo cambias, los errores se acumulan:</p>" +
+    "<ol>" +
+    "<li><b>Números de oxidación</b>: encuentra qué dos especies cambian y escribe cada semirreacción con ellas (reducción y oxidación).</li>" +
+    "<li><b>Átomo que cambia</b>: ajústalo (Cr₂O₇²⁻ → 2 Cr³⁺; 2 I⁻ → I₂).</li>" +
+    "<li><b>Oxígeno</b>: añade H₂O al lado donde falte.</li>" +
+    "<li><b>Hidrógeno</b>: añade H⁺ al lado donde falte.</li>" +
+    "<li><b>Carga</b>: añade e⁻ al lado más positivo (los electrones tienen carga −1). Si has hecho bien los pasos, queda <b>la reducción con e⁻ a la izquierda y la oxidación con e⁻ a la derecha</b>.</li>" +
+    "<li><b>Medio básico</b> (solo si el enunciado lo dice): por cada H⁺ añade un OH⁻ en <b>los dos lados</b>; H⁺ + OH⁻ forman H₂O; simplifica el agua que quede repetida.</li>" +
+    "<li><b>Multiplica</b> cada semirreacción para igualar los electrones, <b>suma</b> y simplifica (e⁻ y especies repetidas).</li>" +
+    "<li><b>Comprueba</b> átomos y carga a cada lado.</li>" +
+    "</ol>" +
+    w("q8_ajusta") +
+    ejemplo("Ejemplo resuelto: dicromato y hierro(II) en medio ácido", "Ajusta Cr₂O₇²⁻ + Fe²⁺ → Cr³⁺ + Fe³⁺ (medio ácido).", [
+      "<b>N.º ox.</b>: Cr +6 → +3 (se reduce, 3 e⁻ por átomo); Fe +2 → +3 (se oxida, 1 e⁻).",
+      "<b>Reducción</b>: Cr₂O₇²⁻ → 2 Cr³⁺. O: 7 a la izquierda → 7 H₂O a la derecha. H: 14 a la derecha → 14 H⁺ a la izquierda. Carga: izquierda (−2 + 14) = +12; derecha +6 → 6 e⁻ a la izquierda: <b>Cr₂O₇²⁻ + 14 H⁺ + 6 e⁻ → 2 Cr³⁺ + 7 H₂O</b>.",
+      "<b>Oxidación</b>: <b>Fe²⁺ → Fe³⁺ + e⁻</b>.",
+      "Igualar electrones: la oxidación ×6. Suma: <b>Cr₂O₇²⁻ + 14 H⁺ + 6 Fe²⁺ → 2 Cr³⁺ + 6 Fe³⁺ + 7 H₂O</b>.",
+      "Comprueba: carga izquierda −2 + 14 + 12 = +24; derecha 6 + 18 = +24. ✔."
+    ]) +
+    ejemplo("Ejemplo resuelto: permanganato y oxalato, y por qué salen coeficientes 2 y 5", "Ajusta MnO₄⁻ + C₂O₄²⁻ → Mn²⁺ + CO₂ (medio ácido).", [
+      "<b>Reducción</b> (Mn +7 → +2): MnO₄⁻ + 8 H⁺ + 5 e⁻ → Mn²⁺ + 4 H₂O.",
+      "<b>Oxidación</b> (C +3 → +4, dos C): C₂O₄²⁻ → 2 CO₂ + 2 e⁻ (el oxígeno ya está ajustado: 4 = 4).",
+      "Mínimo común múltiplo de 5 y 2 = 10: reducción ×2 y oxidación ×5.",
+      "Suma: <b>2 MnO₄⁻ + 16 H⁺ + 5 C₂O₄²⁻ → 2 Mn²⁺ + 8 H₂O + 10 CO₂</b>. Carga: −2 + 16 − 10 = +4 a la izquierda; +4 a la derecha ✔."
+    ]) +
+    ejemplo("Ejemplo resuelto: medio básico (permanganato y yoduro)", "Ajusta MnO₄⁻ + I⁻ → MnO₂ + I₂ en medio básico.", [
+      "Primero se ajusta <b>como si fuera ácido</b>. Reducción: MnO₄⁻ + 4 H⁺ + 3 e⁻ → MnO₂ + 2 H₂O. Oxidación: 2 I⁻ → I₂ + 2 e⁻.",
+      "Para pasar a medio básico sumo <b>4 OH⁻ a cada lado</b> de la reducción: los 4 H⁺ + 4 OH⁻ de la izquierda se convierten en 4 H₂O, y la derecha gana 4 OH⁻: MnO₄⁻ + 4 H₂O + 3 e⁻ → MnO₂ + 2 H₂O + 4 OH⁻. Simplifico el agua: <b>MnO₄⁻ + 2 H₂O + 3 e⁻ → MnO₂ + 4 OH⁻</b>.",
+      "MCM de 3 y 2 = 6: reducción ×2, oxidación ×3. Suma: <b>2 MnO₄⁻ + 4 H₂O + 6 I⁻ → 2 MnO₂ + 3 I₂ + 8 OH⁻</b>.",
+      "Comprueba: O: 8 + 4 = 12 = 4 + 8 ✔; H: 8 = 8 ✔; carga: −2 − 6 = −8 = −8 ✔."
+    ]) +
+    "<h5>De la ecuación iónica a la molecular</h5>" +
+    "<p>Cuando el enunciado da la reacción con sales (<b>KMnO₄ + FeSO₄ + H₂SO₄ → MnSO₄ + Fe₂(SO₄)₃ + K₂SO₄ + H₂O</b>), se ajusta la parte iónica y después se «reponen» los iones espectadores: los coeficientes que ya tienes pasan a las sales y, para el resto de iones, se ajusta <b>por tanteo</b> en este orden: metales, no metales (S, Cl…), H y O.</p>" +
+    ejemplo("Ejemplo resuelto: ecuación molecular", "Ajusta KMnO₄ + FeSO₄ + H₂SO₄ → MnSO₄ + Fe₂(SO₄)₃ + K₂SO₄ + H₂O.", [
+      "Ecuación iónica (medio ácido): MnO₄⁻ + 5 Fe²⁺ + 8 H⁺ → Mn²⁺ + 5 Fe³⁺ + 4 H₂O.",
+      "Para tener Fe₂(SO₄)₃ hacen falta un número <b>par</b> de Fe: duplicamos todo → 2 MnO₄⁻ + 10 Fe²⁺ + 16 H⁺ → 2 Mn²⁺ + 10 Fe³⁺ + 8 H₂O.",
+      "Reponemos los espectadores: 2 KMnO₄ + 10 FeSO₄ + 8 H₂SO₄ → 2 MnSO₄ + 5 Fe₂(SO₄)₃ + K₂SO₄ + 8 H₂O. Los 2 K⁺ aparecen como 1 K₂SO₄.",
+      "Comprueba los sulfatos: izquierda 10 + 8 = 18; derecha 2 + 15 + 1 = 18 ✔. Y el oxígeno: 8 + 40 + 32 = 80 = 8 + 60 + 4 + 8 ✔."
+    ]) +
+    ejemplo("Ejemplo resuelto: el cobre y el ácido nítrico diluido", "Ajusta Cu + HNO₃ → Cu(NO₃)₂ + NO + H₂O.", [
+      "Reducción: NO₃⁻ + 4 H⁺ + 3 e⁻ → NO + 2 H₂O. Oxidación: Cu → Cu²⁺ + 2 e⁻.",
+      "MCM de 3 y 2 = 6: reducción ×2 y oxidación ×3 → 2 NO₃⁻ + 8 H⁺ + 3 Cu → 2 NO + 4 H₂O + 3 Cu²⁺.",
+      "Molecular: los 3 Cu²⁺ necesitan 6 NO₃⁻ de acompañamiento (no cambian). Total de HNO₃: 8 (los 8 H⁺) → <b>3 Cu + 8 HNO₃ → 3 Cu(NO₃)₂ + 2 NO + 4 H₂O</b>.",
+      "Se comprueba el nitrógeno: 8 = 6 + 2 ✔. De los 8 HNO₃, solo 2 actúan de oxidante; los otros 6 hacen de «ácido» (aportan los nitratos de la sal)."
+    ]) +
+    ojo("Tres errores que cuestan puntos: (1) poner e⁻ en el lado equivocado — comprueba que la reducción tiene los e⁻ a la izquierda; (2) multiplicar una semirreacción pero olvidarse de multiplicar <b>también los H⁺ y el H₂O</b>; (3) en medio básico, dejar H⁺ en la ecuación final. Si hay H⁺, no es básico.")
+  );
+
+  // ---------------------------------------------------------------- 4. Pilas
+  secciones[3] = env(
+    "<h5>La pila Daniell: qué ocurre en cada vaso</h5>" +
+    "<p>Si metes una barra de Zn en una disolución de CuSO₄, el Zn se disuelve y el cobre se deposita: hay reacción, pero toda la energía se pierde en calor. Una <b>pila</b> hace lo mismo <b>separando las dos semirreacciones</b> en dos vasos: los electrones, obligados a viajar por un cable, hacen trabajo eléctrico. En la pila Daniell, el vaso de la izquierda contiene una barra de Zn en ZnSO₄ 1 M, y el de la derecha una barra de Cu en CuSO₄ 1 M.</p>" +
+    "<ul>" +
+    "<li><b>Ánodo (−)</b>: Zn → Zn²⁺ + 2 e⁻. La barra se va disolviendo y pierde masa; la disolución se enriquece en cationes Zn²⁺.</li>" +
+    "<li><b>Cátodo (+)</b>: Cu²⁺ + 2 e⁻ → Cu. El cobre se deposita sobre la barra, que gana masa; la disolución se empobrece en cationes Cu²⁺.</li>" +
+    "<li><b>Cable</b>: los electrones van del ánodo al cátodo. La corriente convencional, al revés.</li>" +
+    "<li><b>Puente salino</b> (tubo en U con KNO₃, KCl o Na₂SO₄ en gel): compensa la carga. Sin él, el vaso del ánodo se carga positivamente y el del cátodo negativamente, y la pila se para casi al instante. Los <b>aniones</b> del puente van hacia el <b>ánodo</b> y los <b>cationes</b> hacia el <b>cátodo</b>.</li>" +
+    "</ul>" +
+    w("q8_pila") +
+    "<h5>Cómo se escribe una pila: notación abreviada</h5>" +
+    "<p>Una barra vertical | separa fases distintas (sólido | disolución) y una doble barra ‖ representa el puente salino. Por convención, el <b>ánodo (oxidación) se escribe a la izquierda</b> y el cátodo (reducción) a la derecha:</p>" +
+    "<div class='formula-wrap'><div class='formula'>Zn(s) | Zn²⁺(1 M) ‖ Cu²⁺(1 M) | Cu(s)</div></div>" +
+    "<p>Cuando una semicelda no tiene un metal que sirva de electrodo (H⁺/H₂, Fe³⁺/Fe²⁺, MnO₄⁻/Mn²⁺), se usa un electrodo <b>inerte</b> de Pt: <b>Pt | H₂(1 atm) | H⁺(1 M) ‖ Cu²⁺(1 M) | Cu(s)</b>. El platino no participa; solo recoge o cede los electrones.</p>" +
+    ejemplo("Ejemplo resuelto: una pila completa", "Se monta una pila con un electrodo de Al en Al³⁺ 1 M y otro de Ag en Ag⁺ 1 M. Escribe las semirreacciones, la reacción global, la notación y la fem (E°(Al³⁺/Al) = −1,66 V; E°(Ag⁺/Ag) = +0,80 V).", [
+      "El de potencial mayor (Ag⁺/Ag, +0,80 V) se reduce: es el <b>cátodo</b>. El otro (Al) se oxida: <b>ánodo</b>.",
+      "Ánodo (oxidación): Al → Al³⁺ + 3 e⁻. Cátodo (reducción): Ag⁺ + e⁻ → Ag.",
+      "Igualo electrones: la plata ×3. Global: <b>Al + 3 Ag⁺ → Al³⁺ + 3 Ag</b> (3 e⁻ intercambiados).",
+      "Notación: <b>Al(s) | Al³⁺(1 M) ‖ Ag⁺(1 M) | Ag(s)</b>.",
+      "fem = E°cátodo − E°ánodo = 0,80 − (−1,66) = <b>2,46 V</b>. Nota: el potencial de la plata <b>no se multiplica por 3</b> al ajustar: los potenciales son intensivos."
+    ]) +
+    "<p>Recuerda dos pistas para no equivocarte con los polos: <b>ánodo y oxidación empiezan por vocal</b>, cátodo y reducción por consonante; y en una pila el ánodo es el polo negativo (de él salen los electrones) mientras que el cátodo es el positivo.</p>" +
+    ojo("Los signos del ánodo y el cátodo <b>se invierten en una cuba electrolítica</b> (ánodo +, cátodo −), pero lo que se oxida sigue siendo el ánodo y lo que se reduce el cátodo. Lo veremos en el apartado de electrólisis.")
+  );
+
+  B.parte.q2t8a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 8: Oxidación-reducción
+   (parte B: secciones nuevas 5 a 12)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t8/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 5. Potenciales
+    {
+      h: "5. Potenciales estándar de reducción: predecir si hay reacción",
+      html: env(
+        "<h5>Una escala para ordenar oxidantes y reductores</h5>" +
+        "<p>No hay forma de medir el potencial de <b>un</b> electrodo solo; se mide siempre la diferencia entre dos. Por eso se elige un cero: el <b>electrodo estándar de hidrógeno</b> (Pt | H₂, 1 atm | H⁺, 1 M), al que se asigna E° = 0,00 V. El <b>potencial estándar de reducción</b> E° de un par es la fem de la pila formada con el electrodo de hidrógeno (a 25 °C, 1 M, 1 atm), escrito siempre como <b>reducción</b>: forma oxidada + n e⁻ → forma reducida.</p>" +
+        "<ul>" +
+        "<li><b>E° alto y positivo</b> (F₂, MnO₄⁻, Cl₂): la forma oxidada se reduce con ganas → <b>oxidante fuerte</b>. Su forma reducida es un reductor muy débil.</li>" +
+        "<li><b>E° muy negativo</b> (Li, Na, Mg, Al): la forma oxidada casi nunca se reduce → la forma reducida es un <b>reductor fuerte</b>.</li>" +
+        "</ul>" +
+        w("q8_escala") +
+        "<h5>La regla de las tres líneas</h5>" +
+        "<ol>" +
+        "<li>Para cada par, escribe su E° de reducción (de la tabla).</li>" +
+        "<li>El par con <b>E° mayor</b> se reduce (cátodo); el otro se oxida (ánodo; se invierte la semirreacción, pero <b>no se cambia el signo del potencial en la fórmula</b>).</li>" +
+        "<li><b>E°<sub>pila</sub> = E°<sub>cátodo</sub> − E°<sub>ánodo</sub></b>. Si E° &gt; 0, la reacción es <b>espontánea</b> tal como la has escrito; si E° &lt; 0, es espontánea la inversa.</li>" +
+        "</ol>" +
+        tabla(["Par (oxidante / reductor)", "E° (V)", "Par", "E° (V)"], [
+          ["Li⁺/Li", "−3,04", "Cu²⁺/Cu", "+0,34"],
+          ["Na⁺/Na", "−2,71", "I₂/I⁻", "+0,54"],
+          ["Mg²⁺/Mg", "−2,37", "Fe³⁺/Fe²⁺", "+0,77"],
+          ["Al³⁺/Al", "−1,66", "Ag⁺/Ag", "+0,80"],
+          ["Zn²⁺/Zn", "−0,76", "NO₃⁻/NO (ácido)", "+0,96"],
+          ["Fe²⁺/Fe", "−0,44", "Br₂/Br⁻", "+1,07"],
+          ["Ni²⁺/Ni", "−0,25", "Cr₂O₇²⁻/Cr³⁺ (ácido)", "+1,33"],
+          ["Pb²⁺/Pb", "−0,13", "Cl₂/Cl⁻", "+1,36"],
+          ["2 H⁺/H₂", "0,00", "MnO₄⁻/Mn²⁺ (ácido)", "+1,51"]
+        ], "q3t") +
+        ejemplo("Ejemplo resuelto: ¿se disuelve en HCl?", "Con los datos de la tabla, razona si el Zn y el Cu se disuelven en una disolución de HCl 1 M.", [
+          "En HCl diluido el único oxidante posible es el H⁺ (par H⁺/H₂, E° = 0,00 V): el Cl⁻ no se reduce.",
+          "<b>Zn</b>: Zn + 2 H⁺ → Zn²⁺ + H₂. E° = E°(H⁺/H₂) − E°(Zn²⁺/Zn) = 0,00 − (−0,76) = <b>+0,76 V</b> &gt; 0 → <b>sí se disuelve</b>, y se desprende H₂.",
+          "<b>Cu</b>: Cu + 2 H⁺ → Cu²⁺ + H₂. E° = 0,00 − 0,34 = <b>−0,34 V</b> &lt; 0 → <b>no reacciona</b>.",
+          "Regla práctica: <b>los metales con E° negativo (por debajo del hidrógeno) se disuelven en ácidos no oxidantes</b>; los de E° positivo, no."
+        ]) +
+        ejemplo("Ejemplo resuelto: desplazamientos de metales", "¿Se deposita cobre al meter un clavo de hierro en CuSO₄? ¿Y plata al meter una barra de cobre en AgNO₃?", [
+          "Hierro y Cu²⁺: el oxidante es el Cu²⁺ (+0,34 V) y el reductor es el Fe (−0,44 V). E° = 0,34 − (−0,44) = <b>+0,78 V</b> &gt; 0: <b>sí</b>, Fe + Cu²⁺ → Fe²⁺ + Cu. Es el «clavo que se cubre de cobre».",
+          "Cobre y Ag⁺: Cu + 2 Ag⁺ → Cu²⁺ + 2 Ag. E° = 0,80 − 0,34 = <b>+0,46 V</b> &gt; 0: <b>sí</b>. Se forma plata sobre el cobre y la disolución se vuelve azul (Cu²⁺).",
+          "Regla: un metal desplaza de sus disoluciones a los iones de todos los metales que están <b>por encima</b> de él en la tabla (E° mayor)."
+        ]) +
+        "<h5>Espontaneidad: ΔG° y la constante de equilibrio</h5>" +
+        "<p>El potencial es la forma eléctrica de la energía libre. Si la pila produce <b>n</b> moles de electrones por mol de reacción, el trabajo eléctrico máximo es n·F·E° y:</p>" +
+        "<div class='formula-wrap'><div class='formula'>ΔG° = −n·F·E° &nbsp;&nbsp;&nbsp; (F = 96 500 C/mol)</div></div>" +
+        "<p>Si E° &gt; 0, ΔG° &lt; 0: espontánea. La constante de equilibrio sale de ΔG° = −R·T·ln K, o directamente, a 25 °C: <b>log K = n·E°/0,0592</b>. Cuanto mayor es E°, mayor es K.</p>" +
+        ejemplo("Ejemplo resuelto: ΔG° y K de la pila Daniell", "Calcula ΔG° y K para Zn + Cu²⁺ → Zn²⁺ + Cu (E°(Cu²⁺/Cu) = +0,34 V; E°(Zn²⁺/Zn) = −0,76 V).", [
+          "E° = 0,34 − (−0,76) = <b>1,10 V</b>; n = 2 electrones.",
+          "ΔG° = −n·F·E° = −2 · 96 500 · 1,10 = −212 300 J = <b>−212 kJ</b>.",
+          "log K = n·E°/0,0592 = 2 · 1,10/0,0592 = 37,2 → <b>K ≈ 1,4·10³⁷</b>: el equilibrio está desplazado totalmente hacia los productos."
+        ]) +
+        ojo("Dos reglas que se pierden mucho: (1) <b>E° no se multiplica por los coeficientes</b> al ajustar (es una propiedad intensiva; lo que sí cambia es n, y por tanto ΔG°). (2) Un E° &gt; 0 dice <b>que</b> la reacción es espontánea, no <b>que sea rápida</b>: algunos metales con E° &lt; 0 no atacan al ácido por estar pasivados (óxido protector, como el Al) o por cinética.") +
+        ejemplo("Ejemplo resuelto: ácidos oxidantes", "¿Se disuelve el cobre en ácido nítrico diluido? (E°(NO₃⁻/NO) = +0,96 V)", [
+          "Aquí el oxidante no es el H⁺, sino el <b>anión NO₃⁻</b> en medio ácido: NO₃⁻ + 4 H⁺ + 3 e⁻ → NO + 2 H₂O, E° = +0,96 V.",
+          "E° = 0,96 − 0,34 = <b>+0,62 V</b> &gt; 0: <b>sí se disuelve</b>, pero sin desprender H₂: 3 Cu + 2 NO₃⁻ + 8 H⁺ → 3 Cu²⁺ + 2 NO + 4 H₂O.",
+          "La misma lógica explica por qué el Cu se disuelve en HNO₃ pero no en HCl. La plata (E° = 0,80) también se disuelve en HNO₃: 0,96 − 0,80 = +0,16 V."
+        ])
+      )
+    },
+    // ------------------------------------------------------------ 6. Valoraciones redox
+    {
+      h: "6. Valoraciones redox: permanganato y dicromato",
+      html: env(
+        "<h5>La misma idea que una valoración ácido-base</h5>" +
+        "<p>Una valoración redox mide la concentración de un reductor (o de un oxidante) añadiendo desde una bureta otra disolución de concentración conocida hasta el <b>punto de equivalencia</b>: los electrones cedidos por uno son exactamente los ganados por el otro. El cálculo es estequiometría con la ecuación <b>ajustada</b>.</p>" +
+        tabla(["Valorante", "Se reduce a", "e⁻ por ion", "Indicador / punto final"], [
+          ["MnO₄⁻ (KMnO₄), medio ácido", "Mn²⁺ (casi incoloro)", "5", "él mismo (autoindicador): el primer exceso da color rosa-violeta persistente"],
+          ["Cr₂O₇²⁻ (K₂Cr₂O₇), medio ácido", "Cr³⁺ (verde)", "6", "indicador redox (difenilamina, que vira a violeta)"],
+          ["I₂ / S₂O₃²⁻ (yodometría)", "I⁻ / S₄O₆²⁻", "2 / 1", "almidón (azul con I₂)"]
+        ], "q3t") +
+        w("q8_valora") +
+        "<h5>Receta en cuatro pasos</h5>" +
+        "<ol><li><b>Ecuación ajustada</b> (ion-electrón, medio ácido casi siempre con H₂SO₄; no con HCl, que el MnO₄⁻ oxidaría a Cl₂).</li>" +
+        "<li><b>Moles de valorante</b>: n = C·V (con V en litros).</li>" +
+        "<li><b>Moles del analito</b> con los coeficientes (o con los electrones: n<sub>e⁻</sub> es igual en los dos).</li>" +
+        "<li><b>Concentración</b>: moles/volumen de muestra (¡y deshacer la dilución si la hubo!).</li></ol>" +
+        ejemplo("Ejemplo resuelto: hierro(II) con permanganato", "Se valoran 20,0 mL de una disolución de FeSO₄ acidulada con H₂SO₄; se gastan 18,4 mL de KMnO₄ 0,0200 mol/L. Calcula la concentración de Fe²⁺.", [
+          "Ecuación: MnO₄⁻ + 5 Fe²⁺ + 8 H⁺ → Mn²⁺ + 5 Fe³⁺ + 4 H₂O.",
+          "Moles de permanganato: 0,0200 · 0,0184 = <b>3,68·10⁻⁴ mol</b>.",
+          "Por la estequiometría (1 : 5): moles de Fe²⁺ = 5 · 3,68·10⁻⁴ = <b>1,84·10⁻³ mol</b>.",
+          "[Fe²⁺] = 1,84·10⁻³ / 0,0200 = <b>0,0920 mol/L</b> (equivale a 0,0920 · 55,85 = 5,14 g/L)."
+        ]) +
+        ejemplo("Ejemplo resuelto: agua oxigenada", "Se diluyen 10,0 mL de agua oxigenada comercial hasta 100 mL. De esa disolución se toman 25,0 mL y se valoran en medio ácido con KMnO₄ 0,0150 mol/L, gastando 21,6 mL. Halla la concentración (mol/L y g/L) del agua oxigenada comercial.", [
+          "Ecuación: 2 MnO₄⁻ + 5 H₂O₂ + 6 H⁺ → 2 Mn²⁺ + 5 O₂ + 8 H₂O (relación 2 : 5).",
+          "n(MnO₄⁻) = 0,0150 · 0,0216 = 3,24·10⁻⁴ mol → n(H₂O₂) = (5/2) · 3,24·10⁻⁴ = <b>8,10·10⁻⁴ mol</b> en 25,0 mL.",
+          "[H₂O₂] en la disolución diluida = 8,10·10⁻⁴ / 0,0250 = 0,0324 mol/L.",
+          "Se diluyó 10 veces (10 mL → 100 mL): [H₂O₂] comercial = <b>0,324 mol/L</b> → 0,324 · 34,01 = <b>11,0 g/L</b>."
+        ]) +
+        ejemplo("Ejemplo resuelto: patrón primario y riqueza de un mineral", "(a) Una muestra de 0,2500 g de oxalato de sodio, Na₂C₂O₄ (M = 134,0 g/mol), pura, consume 18,7 mL de KMnO₄ en medio ácido. ¿Concentración del KMnO₄? (b) Una muestra de 0,5000 g de mineral de hierro, disuelta toda en Fe²⁺, consume 26,1 mL de K₂Cr₂O₇ 0,0167 mol/L. ¿Qué % de Fe contiene?", [
+          "<b>(a)</b> n(C₂O₄²⁻) = 0,2500/134,0 = 1,866·10⁻³ mol. Relación 2 MnO₄⁻ : 5 C₂O₄²⁻ → n(MnO₄⁻) = (2/5) · 1,866·10⁻³ = 7,46·10⁻⁴ mol. [MnO₄⁻] = 7,46·10⁻⁴/0,0187 = <b>0,0399 mol/L</b>.",
+          "<b>(b)</b> Cr₂O₇²⁻ + 6 Fe²⁺ + 14 H⁺ → 2 Cr³⁺ + 6 Fe³⁺ + 7 H₂O. n(Cr₂O₇²⁻) = 0,0167 · 0,0261 = 4,36·10⁻⁴ mol → n(Fe²⁺) = 6 · 4,36·10⁻⁴ = 2,62·10⁻³ mol.",
+          "Masa de Fe = 2,62·10⁻³ · 55,85 = 0,146 g → riqueza = 0,146/0,5000 · 100 = <b>29,2 %</b>."
+        ]) +
+        ojo("Con permanganato se acidula con <b>H₂SO₄</b>, nunca con HCl (el Cl⁻ se oxidaría y gastarías más permanganato) ni con HNO₃ (oxidaría al analito). Y el color aparece <b>en el primer exceso</b>: la última gota es la que da el rosa.")
+      )
+    },
+    // ------------------------------------------------------------ 7. Electrólisis
+    {
+      h: "7. Electrólisis: forzar lo que no es espontáneo",
+      html: env(
+        "<h5>Una pila al revés</h5>" +
+        "<p>En una <b>cuba electrolítica</b> se aplica con un generador una diferencia de potencial <b>mayor</b> que la fem de la pila correspondiente, para obligar a que ocurra la reacción redox contraria a la espontánea (E° &lt; 0). Se consume energía eléctrica para producir cambio químico; en la pila ocurre lo inverso.</p>" +
+        tabla(["", "Pila galvánica", "Cuba electrolítica"], [
+          ["Reacción", "espontánea (ΔG° &lt; 0, E° &gt; 0)", "forzada (ΔG° &gt; 0, E° &lt; 0)"],
+          ["Energía", "química → eléctrica", "eléctrica → química"],
+          ["Ánodo (oxidación)", "polo <b>−</b>", "polo <b>+</b> (conectado al + del generador)"],
+          ["Cátodo (reducción)", "polo <b>+</b>", "polo <b>−</b> (conectado al − del generador)"],
+          ["Dispositivo", "dos vasos y puente salino", "un solo recipiente, un generador"],
+          ["Electrones", "van del ánodo al cátodo por el cable", "van del ánodo al cátodo, empujados por el generador"]
+        ], "q3t") +
+        "<p>Lo que <b>nunca cambia</b>: el ánodo es donde ocurre la oxidación y el cátodo donde ocurre la reducción, y los electrones siempre circulan del ánodo al cátodo por el circuito externo. Solo cambia la polaridad (quién es + y quién −).</p>" +
+        "<h5>Qué se produce en cada electrodo</h5>" +
+        "<ul>" +
+        "<li><b>Sal fundida</b> (NaCl fundido): solo hay Na⁺ y Cl⁻. Cátodo: Na⁺ + e⁻ → Na. Ánodo: 2 Cl⁻ → Cl₂ + 2 e⁻. Se necesitan más de 4,07 V (E° = −2,71 − 1,36).</li>" +
+        "<li><b>Disolución acuosa</b>: el agua compite. En el cátodo se reduce lo que tenga <b>mayor E°</b> (el H₂O, E ≈ −0,41 V a pH 7, antes que Na⁺, K⁺, Ca²⁺ o Al³⁺; en cambio Cu²⁺, Ag⁺ se reducen antes que el agua). En el ánodo se oxida lo que tenga <b>menor E°</b>: Cl⁻, Br⁻, I⁻ o el agua (que da O₂).</li>" +
+        "<li><b>NaCl(aq)</b> (proceso cloro-álcali): cátodo, 2 H₂O + 2 e⁻ → H₂ + 2 OH⁻; ánodo, 2 Cl⁻ → Cl₂ + 2 e⁻. Quedan Na⁺ y OH⁻ en disolución: se obtiene <b>NaOH</b>, H₂ y Cl₂.</li>" +
+        "<li><b>Agua</b> (con un poco de H₂SO₄ o Na₂SO₄ para que conduzca): cátodo, 2 H⁺ + 2 e⁻ → H₂; ánodo, 2 H₂O → O₂ + 4 H⁺ + 4 e⁻. Siempre sale <b>el doble de volumen de H₂ que de O₂</b>.</li>" +
+        "<li><b>Electrodos activos</b> (refinado del cobre): con ánodo de cobre impuro, es el propio Cu del ánodo el que se oxida (Cu → Cu²⁺ + 2 e⁻) y se deposita Cu puro en el cátodo. Con una pieza de metal como cátodo se logra <b>galvanoplastia</b> (cromado, niquelado, plateado).</li>" +
+        "<li><b>Aluminio</b>: se obtiene por electrólisis de Al₂O₃ fundido (en criolita), no en disolución, porque en agua se reduciría antes el H₂O que el Al³⁺ (E° = −1,66 V).</li>" +
+        "</ul>" +
+        ejemplo("Ejemplo resuelto: ¿qué se descarga primero?", "Una disolución acuosa de CuCl₂ se electroliza con electrodos inertes. Indica las semirreacciones, la reacción global y el voltaje mínimo (E°(Cu²⁺/Cu) = +0,34 V; E°(Cl₂/Cl⁻) = +1,36 V).", [
+          "Cátodo (−): se reduce el Cu²⁺ (E° = 0,34 V, mayor que el del agua): Cu²⁺ + 2 e⁻ → Cu.",
+          "Ánodo (+): se oxida el Cl⁻: 2 Cl⁻ → Cl₂ + 2 e⁻.",
+          "Global: <b>CuCl₂ → Cu + Cl₂</b>. E° = 0,34 − 1,36 = <b>−1,02 V</b>: no es espontánea y hay que aplicar <b>más de 1,02 V</b>."
+        ]) +
+        ojo("En una electrólisis, <b>el ánodo es el polo positivo</b>, y es el que atrae a los aniones (a eso debe su nombre). Es el error más repetido al pasar de las pilas a las cubas.")
+      )
+    },
+    // ------------------------------------------------------------ 8. Faraday
+    {
+      h: "8. Las leyes de Faraday: cuánto, cuánto tiempo y con qué intensidad",
+      html: env(
+        "<h5>La carga de un mol de electrones</h5>" +
+        "<p>La corriente es carga que pasa por segundo: <b>Q = I·t</b> (culombios = amperios · segundos). Un electrón transporta 1,602·10⁻¹⁹ C, así que un mol de electrones transporta <b>F = 96 485 C ≈ 96 500 C</b> (el faraday). Faraday descubrió que la cantidad de sustancia que se transforma en un electrodo es <b>proporcional a la carga</b> que ha pasado, y que con la misma carga se transforman cantidades proporcionales a la masa equivalente (M/n) de cada sustancia.</p>" +
+        "<div class='formula-wrap'><div class='formula'>m = M·I·t / (n·F) &nbsp;&nbsp;&nbsp; n(sustancia) = I·t / (n·F)</div></div>" +
+        "<p>donde <b>M</b> es la masa molar de lo que se deposita o desprende, <b>n</b> los electrones por unidad (Cu²⁺ → Cu: 2; Ag⁺ → Ag: 1; Al³⁺ → Al: 3; 2 Cl⁻ → Cl₂: 2) e <b>I·t</b> la carga. En problemas hay que pasar siempre el tiempo a <b>segundos</b>.</p>" +
+        w("q8_faraday") +
+        "<h5>Método único: de la carga a los gramos</h5>" +
+        "<ol><li>Carga: Q = I·t (t en s).</li><li>Moles de electrones: Q/F.</li><li>Moles de sustancia: moles de e⁻ / n (de la semirreacción).</li><li>Masa (M) o volumen del gas (pV = nRT).</li></ol>" +
+        ejemplo("Ejemplo resuelto: calcular la masa", "¿Qué masa de cobre se deposita al pasar 3,0 A durante 40 min por una disolución de CuSO₄? (M(Cu) = 63,5 g/mol)", [
+          "Cu²⁺ + 2 e⁻ → Cu (n = 2). Tiempo: 40 min = 2400 s. Carga: Q = 3,0 · 2400 = 7200 C.",
+          "Moles de e⁻: 7200/96 500 = 0,0746 mol → moles de Cu: 0,0746/2 = 0,0373 mol.",
+          "Masa: 0,0373 · 63,5 = <b>2,37 g</b> (o directamente: 63,5 · 3,0 · 2400/(2 · 96 500))."
+        ]) +
+        ejemplo("Ejemplo resuelto: calcular el tiempo, y también la intensidad", "(a) ¿Cuánto tarda una corriente de 2,50 A en depositar 5,00 g de plata de una disolución de AgNO₃? (b) ¿Qué intensidad hace falta para obtener 10,0 g de Al en 2 horas a partir de Al³⁺? (M(Ag) = 107,9; M(Al) = 27,0)", [
+          "<b>(a)</b> Ag⁺ + e⁻ → Ag (n = 1). Moles de Ag: 5,00/107,9 = 0,04634 mol → moles de e⁻ = 0,04634 mol → Q = 0,04634 · 96 500 = 4472 C. Tiempo: t = Q/I = 4472/2,50 = <b>1789 s ≈ 29,8 min</b>.",
+          "<b>(b)</b> Al³⁺ + 3 e⁻ → Al (n = 3). Moles de Al: 10,0/27,0 = 0,3704 mol → moles de e⁻ = 3 · 0,3704 = 1,111 mol → Q = 1,111 · 96 500 = 107 200 C. Tiempo: 2 h = 7200 s. Intensidad: I = Q/t = 107 200/7200 = <b>14,9 A</b>."
+        ]) +
+        ejemplo("Ejemplo resuelto: gases en una electrólisis", "Se electroliza agua con una corriente de 5,0 A durante 30 min. Calcula los volúmenes de H₂ y de O₂ recogidos a 25 °C y 1 atm (R = 0,082 atm·L/(mol·K)).", [
+          "Q = 5,0 · 1800 = 9000 C → moles de e⁻ = 9000/96 500 = 0,0933 mol.",
+          "Cátodo: 2 H⁺ + 2 e⁻ → H₂ → n(H₂) = 0,0933/2 = 0,0466 mol. Ánodo: 2 H₂O → O₂ + 4 H⁺ + 4 e⁻ → n(O₂) = 0,0933/4 = 0,0233 mol.",
+          "V = nRT/p: V(H₂) = 0,0466 · 0,082 · 298/1 = <b>1,14 L</b>; V(O₂) = 0,0233 · 0,082 · 298 = <b>0,570 L</b>. El H₂ tiene el doble de volumen, como dice la fórmula H₂O."
+        ]) +
+        "<h5>Cubas en serie</h5>" +
+        "<p>Si varias cubas están conectadas <b>en serie</b>, la intensidad es la misma en todas y, como el tiempo también, <b>pasa la misma carga</b> por cada una. Los moles de electrones son iguales; lo que cambia es cuánto produce cada una con ellos:</p>" +
+        "<div class='formula-wrap'><div class='formula'>m₁ / m₂ = (M₁/n₁) / (M₂/n₂)</div></div>" +
+        ejemplo("Ejemplo resuelto: dos cubas en serie", "Una cuba con CuSO₄ y otra con AgNO₃ están en serie. En la primera se depositan 1,00 g de cobre. ¿Cuánta plata se deposita en la segunda?", [
+          "Moles de Cu: 1,00/63,5 = 0,01575 mol → moles de e⁻ = 2 · 0,01575 = 0,0315 mol (los mismos que pasan por la segunda cuba).",
+          "Ag⁺ + e⁻ → Ag: moles de Ag = 0,0315 mol → masa = 0,0315 · 107,9 = <b>3,40 g</b>.",
+          "Con la fórmula: m(Ag) = 1,00 · (107,9/1)/(63,5/2) = 3,40 g ✔."
+        ]) +
+        ojo("Las trampas de Faraday: (1) el tiempo debe ir en <b>segundos</b>; (2) <b>n</b> es el nº de electrones <b>por átomo depositado</b>, no el del ion (Fe³⁺ → Fe: 3; Fe²⁺ → Fe: 2); (3) para gases, M y n son de la molécula (O₂: 4 e⁻; Cl₂: 2 e⁻; H₂: 2 e⁻); (4) la masa que sale es la <b>teórica</b>: con un rendimiento del 90 % se depositaría el 90 %.")
+      )
+    },
+    // ------------------------------------------------------------ 9. Aplicaciones y corrosión
+    {
+      h: "9. Pilas comerciales, combustible y corrosión",
+      html: env(
+        "<h5>Pilas y baterías que usas a diario</h5>" +
+        tabla(["Dispositivo", "Ánodo (−)", "Cátodo (+)", "Voltaje", "Notas"], [
+          ["Pila seca / alcalina", "Zn", "MnO₂ (grafito)", "≈ 1,5 V", "no recargable; la alcalina usa KOH en lugar de NH₄Cl"],
+          ["Acumulador de plomo", "Pb", "PbO₂", "≈ 2,0 V por celda (6 celdas: 12 V)", "recargable: al cargarse funciona como cuba electrolítica"],
+          ["Ion-litio", "Li intercalado en grafito", "óxido de Co o de Fe y Li", "≈ 3,6 V", "alta densidad de energía; recargable"],
+          ["Pila de combustible H₂/O₂", "H₂ → 2 H⁺ + 2 e⁻", "O₂ + 4 H⁺ + 4 e⁻ → 2 H₂O", "≈ 1,23 V", "se alimenta continuamente; el único residuo es agua"]
+        ]) +
+        ejemplo("Ejemplo resuelto: la pila de combustible", "La reacción global es 2 H₂ + O₂ → 2 H₂O. Con E°(O₂/H₂O) = +1,23 V y E°(H⁺/H₂) = 0 V, calcula la fem y el ΔG° por mol de O₂.", [
+          "Cátodo: O₂ + 4 H⁺ + 4 e⁻ → 2 H₂O (1,23 V). Ánodo: 2 H₂ → 4 H⁺ + 4 e⁻ (0,00 V).",
+          "fem = 1,23 − 0,00 = <b>1,23 V</b>; n = 4 electrones por mol de O₂.",
+          "ΔG° = −4 · 96 500 · 1,23 = −474 780 J ≈ <b>−475 kJ</b> por mol de O₂ (el calor de formación del agua da −2 · 237 = −474 kJ: coincide)."
+        ]) +
+        "<h5>Corrosión del hierro: una pila que se monta sola</h5>" +
+        "<p>El hierro se oxida en presencia de oxígeno y <b>agua</b>. Sobre la superficie se forman micropilas: en una zona (el ánodo) el hierro se disuelve, Fe → Fe²⁺ + 2 e⁻; los electrones viajan por el propio metal hasta otra zona (el cátodo) donde se reduce el oxígeno disuelto, O₂ + 2 H₂O + 4 e⁻ → 4 OH⁻ (E° = +0,40 V). El agua con sales (mar, carreteras con sal) actúa de puente salino. Los productos se oxidan después a óxido férrico hidratado, Fe₂O₃·nH₂O, la herrumbre, que es porosa y no protege.</p>" +
+        tabla(["Protección", "Cómo funciona", "Qué pasa si se raya"], [
+          ["Pintura / grasa", "aísla del O₂ y el agua", "el hierro desprotegido se oxida"],
+          ["Galvanizado (recubrir con Zn)", "barrera + <b>protección catódica</b>: el Zn (−0,76 V) se oxida antes que el Fe (−0,44 V)", "<b>sigue protegiendo</b>: el Zn actúa de ánodo de sacrificio"],
+          ["Estañado (latas, Sn −0,14 V)", "barrera", "el Fe (−0,44 V) es más reductor que el Sn: se oxida <b>más rápido</b> que sin recubrimiento"],
+          ["Ánodo de sacrificio (Mg o Zn atornillado)", "se oxida en lugar del Fe (cascos de barcos, tuberías enterradas)", "hay que reponerlo"],
+          ["Pasivación (Al, acero inoxidable)", "capa de óxido muy fina y adherente (Al₂O₃, Cr₂O₃)", "se regenera sola con el oxígeno"]
+        ]) +
+        "<p>Criterio general: un metal protege a otro si tiene <b>E° menor</b> (es más reductor), porque será él quien se oxide. Por eso el Zn protege al Fe y el Sn no.</p>"
+      )
+    },
+    // ------------------------------------------------------------ 10. EvAU
+    {
+      h: "10. Cómo se responde en la EvAU",
+      html: env(
+        "<h5>Qué te piden y por dónde empezar</h5>" +
+        tabla(["Si el problema dice…", "Empieza por…", "Fórmula o método"], [
+          ["«ajusta por el método del ion-electrón»", "n.º ox. → semirreacciones", "agua → H⁺ → e⁻ (→ OH⁻ si básico) → ×e⁻ → suma"],
+          ["«¿es espontánea?» / «¿se disuelve en…?» / «¿desplaza a…?»", "E° de cada par", "E° = E°cátodo − E°ánodo &gt; 0"],
+          ["«pila», «ánodo», «cátodo», «notación»", "el mayor E° es el cátodo", "ánodo(−) | ion ‖ ion | cátodo(+)"],
+          ["«fem de la pila» / «ΔG°» / «K»", "E° de la pila", "ΔG° = −nFE° · log K = nE°/0,0592"],
+          ["«valoración con KMnO₄ / K₂Cr₂O₇»", "ecuación ajustada", "moles valorante → razón → [analito]"],
+          ["«electrólisis», «cuba», «masa depositada»", "semirreacción del electrodo", "m = M·I·t/(n·F)"],
+          ["«cubas en serie»", "misma carga", "m₁/m₂ = (M₁/n₁)/(M₂/n₂)"],
+          ["«corrosión», «proteger el hierro»", "comparar E° con el Fe", "menor E° → protege"]
+        ], "q3t") +
+        ejemplo("Problema tipo EvAU completo", "Se construye una pila con una barra de Zn en ZnSO₄ 1 M y otra de Ag en AgNO₃ 1 M, unidas por un puente salino. Datos: E°(Zn²⁺/Zn) = −0,76 V; E°(Ag⁺/Ag) = +0,80 V; M(Zn) = 65,4; M(Ag) = 107,9. (a) Semirreacciones, reacción global y notación. (b) fem. (c) ¿Qué masa de Ag se deposita cuando se disuelven 0,50 g de Zn? (d) ¿Hacia dónde van los electrones y los iones del puente?", [
+          "<b>(a)</b> La Ag⁺/Ag tiene el E° mayor: cátodo (reducción). Zn: ánodo. Ánodo: Zn → Zn²⁺ + 2 e⁻. Cátodo: 2 (Ag⁺ + e⁻ → Ag). Global: <b>Zn + 2 Ag⁺ → Zn²⁺ + 2 Ag</b>. Notación: <b>Zn(s) | Zn²⁺(1 M) ‖ Ag⁺(1 M) | Ag(s)</b>.",
+          "<b>(b)</b> fem = 0,80 − (−0,76) = <b>1,56 V</b>.",
+          "<b>(c)</b> n(Zn) = 0,50/65,4 = 7,65·10⁻³ mol. Por cada Zn se depositan 2 Ag: n(Ag) = 1,53·10⁻² mol → m = 1,53·10⁻² · 107,9 = <b>1,65 g</b>.",
+          "<b>(d)</b> Los electrones van por el cable del <b>Zn (ánodo, −) a la Ag (cátodo, +)</b>. En el puente, los <b>aniones</b> (p. ej. NO₃⁻) van hacia el vaso del <b>Zn</b> y los <b>cationes</b> (K⁺) hacia el de la <b>Ag</b>."
+        ]) +
+        "<h5>Lista de comprobación antes de entregar</h5>" +
+        "<ul>" +
+        "<li>¿Los e⁻ de la reducción están a la izquierda y los de la oxidación a la derecha?</li>" +
+        "<li>¿Átomos <b>y carga</b> coinciden a los dos lados?</li>" +
+        "<li>¿Usé E° <b>de reducción</b> y resté cátodo − ánodo (no al revés)?</li>" +
+        "<li>¿El tiempo está en s, el volumen en L y la masa en g?</li>" +
+        "<li>¿Dije qué electrodo es el ánodo, cuál el cátodo y su polaridad (distinta en pila que en cuba)?</li>" +
+        "</ul>"
+      )
+    },
+    // ------------------------------------------------------------ 11. ¿Qué falla aquí?
+    {
+      h: "11. ¿Qué falla aquí? Errores típicos de oxidación-reducción",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente en los exámenes. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    // ------------------------------------------------------------ 12. Autocomprobación
+    {
+      h: "12. Autocomprobación del tema",
+      html: "<p>Un test de doce preguntas, tarjetas para fijar definiciones y juegos: emparejar, ordenar y clasificar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarjetas1") + w("emparejar", "emp1") + w("orden", "orden1") + w("orden", "orden2") + w("clasificar", "clas1") + w("clasificar", "clas2")
+    }
+  ];
+
+  B.parte.q2t8b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 8: Oxidación-reducción
+   (parte C: actividades, ejercicios, láminas y registro del tema)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>N.º ox.</b>: carga «contable»: elementos libres 0; F −1; H +1 (−1 en hidruros); O −2 (−1 en peróxidos); la suma es 0 en una molécula y la carga del ion en un ion. <b>Oxidación</b> = pierde e⁻ (n.º ox. sube; es el <b>reductor</b>). <b>Reducción</b> = gana e⁻ (baja; es el <b>oxidante</b>).",
+    "<b>Ion-electrón</b>: semirreacciones → átomo que cambia → H₂O (O) → H⁺ (H) → e⁻ (carga) → (medio básico: +OH⁻ en los dos lados) → igualar e⁻ → sumar y simplificar → comprobar átomos y carga.",
+    "<b>Pila</b>: reacción espontánea; <b>ánodo (−)</b> oxidación, <b>cátodo (+)</b> reducción; electrones por el cable del ánodo al cátodo; el puente salino lleva aniones al ánodo y cationes al cátodo. Notación: ánodo | ion ‖ ion | cátodo.",
+    "<b>Potenciales</b>: E° de reducción; cátodo = el de mayor E°. <b>E°pila = E°cát − E°án</b>. Si E° &gt; 0 hay reacción. ΔG° = −n·F·E° (F = 96 500 C/mol); log K = n·E°/0,0592. E° no se multiplica por coeficientes. Un metal con E° &lt; 0 se disuelve en ácidos no oxidantes (H⁺); el Cu y la Ag necesitan HNO₃.",
+    "<b>Valoración redox</b>: ecuación ajustada → n = C·V del valorante → moles del analito por la razón estequiométrica → [analito] = n/V (deshaciendo diluciones). El MnO₄⁻ (5 e⁻) es autoindicador.",
+    "<b>Cuba electrolítica</b>: reacción forzada (E° &lt; 0); ánodo (+) oxidación, cátodo (−) reducción. En agua compiten el H₂O y los iones: en el cátodo se reduce el de mayor E°, en el ánodo se oxida el de menor E°.",
+    "<b>Faraday</b>: Q = I·t (t en s); n(e⁻) = Q/F; <b>m = M·I·t/(n·F)</b>. En serie pasa la misma carga: m₁/m₂ = (M₁/n₁)/(M₂/n₂). Gases: pV = nRT. <b>Corrosión</b>: protege el metal de menor E° (Zn sí; Sn no)."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«En el H₂O₂, el oxígeno tiene n.º ox. −2, como siempre.» ¿Qué falla?",
+          op: ["Nada", "En los peróxidos el O vale −1 (2(+1) + 2x = 0)", "Vale +2", "Vale 0"], ok: 1,
+          porque: "El −2 es el valor habitual, pero en los peróxidos (grupo O–O) es −1. Por eso el H₂O₂ puede oxidarse (a O₂) o reducirse (a H₂O)." },
+        { q: "«En Zn + Cu²⁺ → Zn²⁺ + Cu, el Cu²⁺ se oxida porque pasa de Cu²⁺ a Cu.» ¿Qué falla?",
+          op: ["Nada", "Baja de +2 a 0: gana electrones, es una reducción (el Cu²⁺ es el oxidante)", "El Zn se reduce", "No es una reacción redox"], ok: 1,
+          porque: "Reducción = ganar electrones = bajar el n.º ox. El Cu²⁺ se reduce y el Zn se oxida." },
+        { q: "«Ajusto MnO₄⁻ → Mn²⁺ así: MnO₄⁻ + 8 H⁺ → Mn²⁺ + 4 H₂O, y ya está.» ¿Qué falla?",
+          op: ["Nada", "Falta ajustar la carga: son necesarios 5 e⁻ a la izquierda (+7 frente a +2)", "Sobran los H⁺", "El O no está ajustado"], ok: 1,
+          porque: "Átomos sí, pero la carga no: izquierda −1 + 8 = +7; derecha +2. Se añaden 5 e⁻ a la izquierda." },
+        { q: "«En medio básico, la semirreacción lleva H⁺ y se deja así.» ¿Qué falla?",
+          op: ["Nada", "En medio básico no puede haber H⁺: se convierten en H₂O sumando OH⁻ a los dos lados", "Hay que usar siempre H⁺", "Debe tener solo OH⁻ a la izquierda"], ok: 1,
+          porque: "Se ajusta como si fuera ácido y luego se añaden tantos OH⁻ como H⁺ en ambos miembros (H⁺ + OH⁻ → H₂O)." },
+        { q: "«En la pila Zn|Cu, el cátodo es el Zn porque es el polo negativo.» ¿Qué falla?",
+          op: ["Nada", "El polo negativo es el ánodo, donde se oxida el Zn; el cátodo (reducción, +) es el Cu", "El cátodo es el que se oxida", "Los dos son iguales"], ok: 1,
+          porque: "En una pila: ánodo = oxidación = polo negativo; cátodo = reducción = polo positivo." },
+        { q: "«Para 2 Ag⁺ + Zn → 2 Ag + Zn²⁺, E° = 2·(0,80) − (−0,76) = 2,36 V.» ¿Qué falla?",
+          op: ["Nada", "El potencial no se multiplica por los coeficientes: E° = 0,80 − (−0,76) = 1,56 V", "Se debe sumar siempre", "El Zn es el cátodo"], ok: 1,
+          porque: "E° es una propiedad intensiva: no depende de cuántas veces ajustes la semirreacción. Lo que cambia con el ajuste es n (y por tanto ΔG°)." },
+        { q: "«E° = −0,34 V para Cu + 2 H⁺ → Cu²⁺ + H₂, luego el Cu se disuelve y desprende H₂.» ¿Qué falla?",
+          op: ["Nada", "E° negativo indica que NO es espontánea: el Cu no se disuelve en HCl", "El Cu sí reacciona porque está en medio ácido", "Falta un electrón"], ok: 1,
+          porque: "E° &lt; 0 ⇒ ΔG° &gt; 0 ⇒ no es espontánea. El Cu solo se disuelve en ácidos oxidantes (HNO₃, H₂SO₄ concentrado)." },
+        { q: "«En una electrólisis el ánodo es el polo negativo, como en la pila.» ¿Qué falla?",
+          op: ["Nada", "En la cuba el ánodo es el polo positivo (aunque siga siendo donde ocurre la oxidación)", "El ánodo es siempre el polo negativo", "En la cuba no hay ánodo"], ok: 1,
+          porque: "La definición (ánodo = oxidación) no cambia; lo que se invierte es la polaridad, impuesta por el generador." },
+        { q: "«Con 2,0 A durante 30 min, Q = 2,0 · 30 = 60 C.» ¿Qué falla?",
+          op: ["Nada", "El tiempo debe ir en segundos: Q = 2,0 · 1800 = 3600 C", "Q se mide en amperios", "Hay que dividir por 30"], ok: 1,
+          porque: "Q = I·t con t en segundos (1 A = 1 C/s)." },
+        { q: "«La lata de conserva (Sn) y el hierro galvanizado (Zn) protegen igual cuando se rayan.» ¿Qué falla?",
+          op: ["Nada", "El Zn (E° menor que el Fe) sigue protegiendo; el Sn (E° mayor que el Fe) acelera la corrosión del hierro expuesto", "El Sn protege mejor", "Ninguno protege si se raya"], ok: 1,
+          porque: "El metal con E° menor actúa de ánodo y se oxida en lugar del hierro (Zn: −0,76 &lt; Fe: −0,44). El Sn (−0,14) es más noble que el Fe: el Fe se oxida más rápido." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "El n.º ox. del Cr en K₂Cr₂O₇ es…", op: ["+6", "+12", "+7", "+3"], ok: 0, porque: "2(+1) + 2x + 7(−2) = 0 → x = +6 por átomo de Cr." },
+        { q: "En 2 Mg + O₂ → 2 MgO, el agente oxidante es…", op: ["O₂", "Mg", "MgO", "ninguno"], ok: 0, porque: "El O₂ se reduce (0 → −2) y por eso oxida al Mg." },
+        { q: "En la semirreacción de reducción MnO₄⁻ → Mn²⁺ (ácido), los electrones…", op: ["están a la izquierda, 5 e⁻", "están a la derecha, 5 e⁻", "están a la izquierda, 7 e⁻", "no aparecen"], ok: 0, porque: "MnO₄⁻ + 8 H⁺ + 5 e⁻ → Mn²⁺ + 4 H₂O: la reducción gana electrones." },
+        { q: "En una pila, los electrones circulan por el cable…", op: ["del ánodo al cátodo", "del cátodo al ánodo", "del puente salino al ánodo", "no circulan"], ok: 0, porque: "En el ánodo se produce la oxidación y los electrones van hacia el cátodo, donde se reducen." },
+        { q: "El puente salino sirve para…", op: ["cerrar el circuito iónico y compensar cargas", "que pasen los electrones", "aumentar la fem", "oxidar el cátodo"], ok: 0, porque: "Los aniones migran al ánodo y los cationes al cátodo: así se mantienen neutras las disoluciones." },
+        { q: "La fem de una pila con E°(cátodo) = +0,34 V y E°(ánodo) = −0,13 V es…", op: ["0,47 V", "0,21 V", "−0,47 V", "0,13 V"], ok: 0, porque: "0,34 − (−0,13) = 0,47 V." },
+        { q: "¿Cuál de los metales se disuelve en HCl diluido?", op: ["Fe (−0,44 V)", "Cu (+0,34 V)", "Ag (+0,80 V)", "Au (+1,50 V)"], ok: 0, porque: "Solo los de E° negativo (por debajo del H⁺/H₂) desplazan al hidrógeno." },
+        { q: "Si E° de una reacción es positivo, entonces ΔG° es…", op: ["negativo", "positivo", "cero", "depende de la masa"], ok: 0, porque: "ΔG° = −nFE°: signo contrario a E°; la reacción es espontánea." },
+        { q: "En una cuba electrolítica de NaCl fundido, en el cátodo se obtiene…", op: ["Na", "Cl₂", "H₂", "O₂"], ok: 0, porque: "Na⁺ + e⁻ → Na en el cátodo (−); el Cl⁻ se oxida a Cl₂ en el ánodo (+)." },
+        { q: "Una corriente de 2 A durante 965 s transporta…", op: ["1930 C", "482,5 C", "965 C", "2 C"], ok: 0, porque: "Q = I·t = 2 · 965 = 1930 C = 0,02 mol de e⁻." },
+        { q: "En dos cubas en serie, lo que es igual en las dos es…", op: ["la carga que las atraviesa", "la masa depositada", "el volumen de gas", "el nº de electrones por átomo"], ok: 0, porque: "La misma intensidad durante el mismo tiempo: misma carga. Las masas dependen de M/n." },
+        { q: "Un recubrimiento de Zn protege al hierro aunque esté rayado porque…", op: ["el Zn tiene menor E° y se oxida antes (ánodo de sacrificio)", "el Zn es más caro", "el Zn tiene mayor E°", "forma un aislante"], ok: 0, porque: "E°(Zn²⁺/Zn) = −0,76 V &lt; E°(Fe²⁺/Fe) = −0,44 V: el Zn es el reductor más fuerte." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: oxidación-reducción",
+      cartas: [
+        { a: "Oxidación y reducción", b: "Oxidación: pierde e⁻ (n.º ox. sube). Reducción: gana e⁻ (baja). Siempre juntas y con los mismos e⁻ perdidos y ganados." },
+        { a: "Oxidante y reductor", b: "Oxidante: se reduce (quita e⁻ al otro). Reductor: se oxida (cede e⁻). El oxidante es la forma oxidada del par; el reductor, la reducida." },
+        { a: "Reglas del n.º de oxidación", b: "Libre 0; F −1; H +1 (−1 en hidruros); O −2 (−1 en peróxidos); suma = 0 (molécula) o la carga (ion)." },
+        { a: "Ion-electrón (orden)", b: "Semirreacciones → H₂O (O) → H⁺ (H) → e⁻ (carga) → [OH⁻ si básico] → igualar e⁻ → sumar → comprobar." },
+        { a: "Ánodo y cátodo", b: "Ánodo = oxidación; cátodo = reducción. Pila: ánodo −, cátodo +. Cuba: ánodo +, cátodo −. Los e⁻ van del ánodo al cátodo." },
+        { a: "Puente salino", b: "Cierra el circuito: aniones hacia el ánodo, cationes hacia el cátodo. Sin él, la pila se para por acumulación de carga." },
+        { a: "fem de una pila", b: "E°pila = E°cátodo − E°ánodo (los dos como reducción). El cátodo es el par con mayor E°. No se multiplica por coeficientes." },
+        { a: "Espontaneidad y K", b: "ΔG° = −n·F·E° (F = 96 500 C/mol). log K = n·E°/0,0592. E° &gt; 0 ⇒ espontánea." },
+        { a: "Leyes de Faraday", b: "Q = I·t; n(e⁻) = Q/F; m = M·I·t/(n·F). t en segundos. En serie, misma carga: m₁/m₂ = (M₁/n₁)/(M₂/n₂)." },
+        { a: "Corrosión y protección", b: "El Fe se oxida (ánodo) y el O₂ se reduce (cátodo) en presencia de agua. Protege el metal de menor E° (Zn, Mg); el Sn solo es barrera." }
+      ]
+    },
+    emp1: {
+      titulo: "Empareja par redox y potencial",
+      consigna: "Une cada par con su potencial estándar de reducción.",
+      pares: [["Zn²⁺/Zn", "−0,76 V"], ["Fe²⁺/Fe", "−0,44 V"], ["H⁺/H₂", "0,00 V"], ["Cu²⁺/Cu", "+0,34 V"], ["Ag⁺/Ag", "+0,80 V"], ["Cl₂/Cl⁻", "+1,36 V"], ["MnO₄⁻/Mn²⁺", "+1,51 V"], ["Al³⁺/Al", "−1,66 V"]]
+    },
+    orden1: {
+      titulo: "Ordena el ajuste ion-electrón",
+      consigna: "Pon los pasos en el orden correcto.",
+      items: [
+        { t: "Calcular los n.º de oxidación y separar las dos semirreacciones", nota: "quién se oxida y quién se reduce" },
+        { t: "Ajustar el átomo que cambia", nota: "p. ej. Cr₂O₇²⁻ → 2 Cr³⁺" },
+        { t: "Ajustar el oxígeno con H₂O", nota: "donde falte" },
+        { t: "Ajustar el hidrógeno con H⁺", nota: "donde falte" },
+        { t: "Ajustar la carga con electrones", nota: "e⁻ a la izquierda en la reducción" },
+        { t: "Igualar los electrones, sumar y simplificar", nota: "× el MCM" },
+        { t: "Comprobar átomos y carga", nota: "a los dos lados" }
+      ]
+    },
+    orden2: {
+      titulo: "Ordena un problema de Faraday",
+      consigna: "Pon los pasos de «masa depositada» en el orden correcto.",
+      items: [
+        { t: "Pasar el tiempo a segundos", nota: "1 h = 3600 s" },
+        { t: "Calcular la carga Q = I·t", nota: "en culombios" },
+        { t: "Moles de electrones = Q/F", nota: "F = 96 500 C/mol" },
+        { t: "Moles de sustancia = moles de e⁻ / n", nota: "n de la semirreacción" },
+        { t: "Masa = moles · M", nota: "o volumen del gas con pV = nRT" }
+      ]
+    },
+    clas1: {
+      titulo: "Oxidante o reductor fuerte",
+      consigna: "Toca cada especie y después su carácter (por su posición en la tabla).",
+      categorias: ["Oxidante fuerte (E° alto)", "Reductor fuerte (E° muy negativo)"],
+      items: [
+        { t: "MnO₄⁻ (ácido)", c: 0 }, { t: "Cl₂", c: 0 }, { t: "Cr₂O₇²⁻ (ácido)", c: 0 }, { t: "F₂", c: 0 },
+        { t: "Li", c: 1 }, { t: "Na", c: 1 }, { t: "Mg", c: 1 }, { t: "Al", c: 1 }
+      ]
+    },
+    clas2: {
+      titulo: "¿Se disuelve en HCl 1 M?",
+      consigna: "Con los potenciales de la tabla: toca cada metal y decide.",
+      categorias: ["Se disuelve (desprende H₂)", "No reacciona"],
+      items: [
+        { t: "Zn", c: 0 }, { t: "Mg", c: 0 }, { t: "Fe", c: 0 }, { t: "Al", c: 0 }, { t: "Pb", c: 0 },
+        { t: "Cu", c: 1 }, { t: "Ag", c: 1 }, { t: "Au", c: 1 }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  var E = [];
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function ge(id, nivel, enun, check, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: check, pistas: pistas, pasos: pasos, resultado: res }); }
+  var DAT = "Datos: F = 96 500 C/mol. ";
+  var EP = "E°: Al³⁺/Al −1,66 V; Zn²⁺/Zn −0,76 V; Fe²⁺/Fe −0,44 V; H⁺/H₂ 0,00 V; Cu²⁺/Cu +0,34 V; Ag⁺/Ag +0,80 V. ";
+
+  // ---------------- ★
+  nu("c1", 1, "Calcula el número de oxidación del Mn en el K₂MnO₄.", "n.º ox. del Mn =", 6,
+    ["K = +1, O = −2; la suma es 0."], ["2(+1) + x + 4(−2) = 0.", "x = 8 − 2 = +6."], "+6", 0.01);
+  nu("c2", 1, "Calcula el número de oxidación del N en el HNO₃.", "n.º ox. del N =", 5,
+    ["H = +1, O = −2."], ["(+1) + x + 3(−2) = 0.", "x = +5."], "+5", 0.01);
+  nu("c3", 1, "Calcula el número de oxidación del C en el ion carbonato, CO₃²⁻.", "n.º ox. del C =", 4,
+    ["La suma es la carga del ion, −2."], ["x + 3(−2) = −2.", "x = +4."], "+4", 0.01);
+  op("c4", 1, "¿Cuál es el número de oxidación del oxígeno en el H₂O₂ (agua oxigenada)?", "n.º ox. del O", ["−1", "−2", "0", "+1"], 0,
+    ["Es un peróxido: el grupo O–O."], ["H = +1: 2(+1) + 2x = 0.", "x = −1."], "−1");
+  op("c5", 1, "En la reacción Zn + Cu²⁺ → Zn²⁺ + Cu, ¿cuál es el agente oxidante?", "Oxidante", ["Cu²⁺", "Zn", "Zn²⁺", "Cu"], 0,
+    ["El oxidante es el que se reduce."], ["El Cu²⁺ pasa de +2 a 0: se reduce.", "Por eso oxida al Zn: es el agente oxidante."], "Cu²⁺");
+  op("c6", 1, "En 2 Na + Cl₂ → 2 NaCl, ¿cuál es el agente reductor?", "Reductor", ["Na", "Cl₂", "NaCl", "Cl⁻"], 0,
+    ["El reductor es el que se oxida."], ["El Na pasa de 0 a +1: pierde electrones, se oxida.", "Es el reductor."], "Na");
+  nu("c7", 1, "¿Cuántos electrones pierde cada átomo de Al al pasar a Al³⁺?", "electrones =", 3,
+    ["Mira la carga del ion."], ["Al → Al³⁺ + 3 e⁻."], "3", 0.01);
+  nu("c8", 1, "En la semirreacción de reducción MnO₄⁻ → Mn²⁺ en medio ácido, ¿cuántos H⁺ hacen falta (coeficiente)?", "coef. de H⁺ =", 8,
+    ["Para ajustar los 4 O del permanganato con 4 H₂O."], ["MnO₄⁻ → Mn²⁺ + 4 H₂O.", "4 H₂O contienen 8 H, que se aportan con 8 H⁺."], "8", 0.01);
+  nu("c9", 1, "Calcula la fem de la pila Zn|Zn²⁺ ‖ Cu²⁺|Cu. " + EP, "fem (V) =", 1.10,
+    ["fem = E°cátodo − E°ánodo; el cátodo es el de mayor E°."], ["Cátodo: Cu (+0,34). Ánodo: Zn (−0,76).", "0,34 − (−0,76) = 1,10 V."], "1,10 V", 0.01);
+  op("c10", 1, "En una pila galvánica, el ánodo es…", "Ánodo", ["el polo negativo, donde ocurre la oxidación", "el polo positivo, donde ocurre la oxidación", "el polo negativo, donde ocurre la reducción", "el polo positivo, donde ocurre la reducción"], 0,
+    ["Los electrones salen de él."], ["Ánodo = oxidación = los e⁻ se liberan allí → polo negativo."], "Polo negativo, oxidación");
+  op("c11", 1, "¿Se disuelve el cobre (E° = +0,34 V) en HCl 1 M? (E°(H⁺/H₂) = 0,00 V)", "¿Se disuelve?", ["No: E° = 0,00 − 0,34 &lt; 0", "Sí: desprende H₂", "Sí: desprende Cl₂", "Solo si se calienta"], 0,
+    ["Compara el E° del Cu con el del H⁺."], ["Cu + 2 H⁺ → Cu²⁺ + H₂: E° = 0,00 − 0,34 = −0,34 V.", "Negativo: no es espontánea."], "No reacciona");
+  nu("c12", 1, "Calcula ΔG° (en kJ) para una reacción con n = 2 y E° = 1,10 V. " + DAT, "ΔG° (kJ) =", -212.3,
+    ["ΔG° = −n·F·E°."], ["ΔG° = −2 · 96 500 · 1,10 = −212 300 J.", "= −212,3 kJ."], "−212,3 kJ", 0.01);
+  nu("c13", 1, "Calcula la carga (en C) que pasa por un circuito con 2,0 A durante 10 min.", "Q (C) =", 1200,
+    ["Pasa los minutos a segundos."], ["10 min = 600 s.", "Q = 2,0 · 600 = 1200 C."], "1200 C", 0.01);
+  nu("c14", 1, "¿Cuántos moles de electrones transportan 4825 C? " + DAT, "n(e⁻) (mol) =", 0.05,
+    ["n = Q/F."], ["n = 4825/96 500 = 0,0500 mol."], "0,0500 mol", 0.01);
+  nu("c15", 1, "¿Qué masa de cobre se deposita (Cu²⁺ + 2 e⁻ → Cu) con 0,20 mol de electrones? (M(Cu) = 63,5)", "m (g) =", 6.35,
+    ["Cada Cu necesita 2 e⁻."], ["Moles de Cu: 0,20/2 = 0,10 mol.", "m = 0,10 · 63,5 = 6,35 g."], "6,35 g", 0.01);
+  op("c16", 1, "En una cuba electrolítica, el ánodo es…", "Ánodo en la cuba", ["el polo positivo, donde ocurre la oxidación", "el polo negativo, donde ocurre la oxidación", "el polo positivo, donde ocurre la reducción", "el polo negativo, donde ocurre la reducción"], 0,
+    ["El generador impone la polaridad."], ["La definición no cambia: ánodo = oxidación.", "Pero ahora está conectado al polo + del generador."], "Polo positivo, oxidación");
+
+  // ---------------- ★★
+  nu("d1", 2, "Calcula el número de oxidación del S en el ion tiosulfato, S₂O₃²⁻.", "n.º ox. del S =", 2,
+    ["Hay dos átomos de S."], ["2x + 3(−2) = −2.", "2x = 4 → x = +2."], "+2", 0.01);
+  nu("d2", 2, "Calcula el número de oxidación del Fe en el Fe₃O₄ (puede ser fraccionario; escribe el decimal).", "n.º ox. del Fe =", 2.667,
+    ["3x + 4(−2) = 0."], ["3x = 8.", "x = 8/3 = +2,67 (media de dos Fe³⁺ y un Fe²⁺)."], "+8/3 ≈ +2,67", 0.01);
+  nu("d3", 2, "¿Cuántos electrones se ganan en la semirreacción Cr₂O₇²⁻ + 14 H⁺ + n e⁻ → 2 Cr³⁺ + 7 H₂O?", "n =", 6,
+    ["Cada Cr baja de +6 a +3."], ["Cada Cr gana 3 e⁻; hay 2 Cr.", "Carga: izquierda −2 + 14 − n = +6 → n = 6."], "6", 0.01);
+  nu("d4", 2, "Al ajustar MnO₄⁻ + Fe²⁺ + H⁺ → Mn²⁺ + Fe³⁺ + H₂O, ¿cuál es el coeficiente del Fe²⁺?", "coef. de Fe²⁺ =", 5,
+    ["El Mn gana 5 e⁻ y cada Fe pierde 1."], ["Reducción: MnO₄⁻ + 8 H⁺ + 5 e⁻ → Mn²⁺ + 4 H₂O.", "Oxidación ×5: 5 Fe²⁺ → 5 Fe³⁺ + 5 e⁻."], "5", 0.01);
+  nu("d5", 2, "Calcula la fem de la pila Al|Al³⁺ ‖ Ag⁺|Ag. " + EP, "fem (V) =", 2.46,
+    ["No multipliques los potenciales."], ["0,80 − (−1,66) = 2,46 V."], "2,46 V", 0.01);
+  nu("d6", 2, "Calcula la fem de una pila Mg|Mg²⁺ ‖ Cu²⁺|Cu (E°(Mg²⁺/Mg) = −2,37 V; E°(Cu²⁺/Cu) = +0,34 V).", "fem (V) =", 2.71,
+    ["fem = E°cátodo − E°ánodo."], ["0,34 − (−2,37) = 2,71 V."], "2,71 V", 0.01);
+  op("d7", 2, "¿Puede el Fe³⁺ oxidar al I⁻ a I₂? (E°(Fe³⁺/Fe²⁺) = +0,77 V; E°(I₂/I⁻) = +0,54 V)", "¿Reacciona?", ["Sí: E° = 0,77 − 0,54 = +0,23 V", "No: E° = 0,54 − 0,77 &lt; 0", "Sí, pero solo en medio básico", "No, el yoduro no se oxida nunca"], 0,
+    ["El oxidante es el Fe³⁺: ¿está por encima del I₂?"], ["2 Fe³⁺ + 2 I⁻ → 2 Fe²⁺ + I₂.", "E° = 0,77 − 0,54 = +0,23 V &gt; 0."], "Sí, espontánea (+0,23 V)");
+  op("d8", 2, "Entre Al, Zn, Cu y Ag (en forma de metal), ¿cuál es el reductor más fuerte? " + EP, "Reductor más fuerte", ["Al", "Zn", "Cu", "Ag"], 0,
+    ["El reductor más fuerte tiene el E° más negativo."], ["Al³⁺/Al: −1,66 V es el más bajo."], "Aluminio");
+  nu("d9", 2, "Se hace pasar una corriente de 3,0 A durante 40 min por una disolución de CuSO₄. ¿Qué masa de Cu se deposita? " + DAT + "M(Cu) = 63,5.", "m (g) =", 2.37,
+    ["Tiempo en segundos; n = 2."], ["Q = 3,0 · 2400 = 7200 C.", "m = 63,5 · 7200/(2 · 96 500) = 2,37 g."], "2,37 g", 0.01);
+  nu("d10", 2, "¿Cuántos segundos hacen falta para depositar 5,00 g de Ag de AgNO₃ con una corriente de 2,50 A? " + DAT + "M(Ag) = 107,9.", "t (s) =", 1789,
+    ["Ag⁺ + e⁻ → Ag: n = 1."], ["n(Ag) = 5,00/107,9 = 0,04634 mol = n(e⁻).", "Q = 0,04634 · 96 500 = 4472 C; t = 4472/2,50 = 1789 s."], "1789 s (29,8 min)", 0.01);
+  nu("d11", 2, "Se valoran 25,0 mL de una disolución de Fe²⁺ con KMnO₄ 0,0100 mol/L en medio ácido y se gastan 20,0 mL. ¿Cuál es la [Fe²⁺] (mol/L)?", "[Fe²⁺] (mol/L) =", 0.04,
+    ["MnO₄⁻ + 5 Fe²⁺ + 8 H⁺ → Mn²⁺ + 5 Fe³⁺ + 4 H₂O."], ["n(MnO₄⁻) = 0,0100 · 0,0200 = 2,00·10⁻⁴ mol.", "n(Fe²⁺) = 5 · 2,00·10⁻⁴ = 1,00·10⁻³ mol.", "[Fe²⁺] = 1,00·10⁻³/0,0250 = 0,0400 mol/L."], "0,0400 mol/L", 0.01);
+  nu("d12", 2, "Calcula log K a 25 °C para Zn + Cu²⁺ → Zn²⁺ + Cu (E° = 1,10 V; n = 2).", "log K =", 37.16,
+    ["log K = n·E°/0,0592."], ["log K = 2 · 1,10/0,0592 = 37,2."], "log K = 37,2 (K ≈ 10³⁷)", 0.01);
+  nu("d13", 2, "Se electroliza agua con 5,0 A durante 30 min. ¿Qué volumen de H₂ (en L) se recoge a 25 °C y 1 atm? " + DAT + "R = 0,082 atm·L/(mol·K).", "V(H₂) (L) =", 1.14,
+    ["2 H⁺ + 2 e⁻ → H₂."], ["Q = 5,0 · 1800 = 9000 C → n(e⁻) = 0,0933 mol → n(H₂) = 0,0466 mol.", "V = 0,0466 · 0,082 · 298 = 1,14 L."], "1,14 L", 0.01);
+  op("d14", 2, "Se electroliza una disolución acuosa de NaCl con electrodos inertes. ¿Qué se desprende en el cátodo?", "Cátodo", ["H₂", "Na", "Cl₂", "O₂"], 0,
+    ["El Na⁺ no se reduce en agua."], ["Cátodo (−): 2 H₂O + 2 e⁻ → H₂ + 2 OH⁻ (el agua se reduce antes que el Na⁺).", "En el ánodo sale Cl₂."], "H₂ (y OH⁻ en la disolución)");
+  nu("d15", 2, "Calcula la fem de la pila Cu|Cu²⁺ ‖ Ag⁺|Ag. " + EP, "fem (V) =", 0.46,
+    ["Cátodo: el de mayor E°."], ["0,80 − 0,34 = 0,46 V."], "0,46 V", 0.01);
+  op("d16", 2, "Se electroliza una disolución acuosa de CuCl₂ con electrodos inertes. ¿Qué se obtiene en el ánodo?", "Ánodo", ["Cl₂", "Cu", "H₂", "Cl⁻ no cambia"], 0,
+    ["En el ánodo se oxida el anión."], ["Ánodo (+): 2 Cl⁻ → Cl₂ + 2 e⁻.", "El Cu se deposita en el cátodo."], "Cl₂");
+  nu("d17", 2, "Calcula ΔG° (kJ) de la pila Al|Al³⁺ ‖ Ag⁺|Ag (E° = 2,46 V). Reacción: Al + 3 Ag⁺ → Al³⁺ + 3 Ag. " + DAT, "ΔG° (kJ) =", -712.2,
+    ["¿Cuántos electrones se intercambian en la reacción ajustada?"], ["n = 3.", "ΔG° = −3 · 96 500 · 2,46 = −712 170 J = −712 kJ."], "−712 kJ", 0.01);
+  nu("d18", 2, "En la reacción Cr₂O₇²⁻ + 6 Fe²⁺ + x H⁺ → 2 Cr³⁺ + 6 Fe³⁺ + 7 H₂O, ¿cuánto vale x?", "x =", 14,
+    ["Cuenta los H de los 7 H₂O."], ["7 H₂O contienen 14 H; vienen de los H⁺.", "x = 14 (la carga también cuadra: −2 + 14 + 12 = +24 = 6 + 18)."], "14", 0.01);
+
+  // ---------------- ★★★
+  ge("e1", 3, "Se monta una pila con Zn en ZnSO₄ 1 M y Ag en AgNO₃ 1 M (E°(Zn²⁺/Zn) = −0,76 V; E°(Ag⁺/Ag) = +0,80 V; M(Zn) = 65,4; M(Ag) = 107,9). Calcula (a) la fem y (b) la masa de Ag que se deposita mientras se disuelven 0,50 g de Zn.",
+    [{ tipo: "num", etiqueta: "fem (V) =", valor: 1.56 }, { tipo: "num", etiqueta: "m(Ag) (g) =", valor: 1.65 }],
+    ["Zn + 2 Ag⁺ → Zn²⁺ + 2 Ag."], ["(a) 0,80 − (−0,76) = 1,56 V.", "(b) n(Zn) = 0,50/65,4 = 7,65·10⁻³ mol; n(Ag) = 2 · 7,65·10⁻³ = 1,53·10⁻² mol.", "m = 1,53·10⁻² · 107,9 = 1,65 g."], "1,56 V; 1,65 g");
+  nu("e2", 3, "Se disuelven 0,2500 g de oxalato de sodio puro, Na₂C₂O₄ (M = 134,0 g/mol), en medio ácido y se valoran con KMnO₄, gastando 18,7 mL. Calcula la concentración (mol/L) del KMnO₄.", "[KMnO₄] (mol/L) =", 0.0399,
+    ["2 MnO₄⁻ + 5 C₂O₄²⁻ + 16 H⁺ → 2 Mn²⁺ + 10 CO₂ + 8 H₂O."], ["n(C₂O₄²⁻) = 0,2500/134,0 = 1,866·10⁻³ mol.", "n(MnO₄⁻) = (2/5) · 1,866·10⁻³ = 7,46·10⁻⁴ mol.", "C = 7,46·10⁻⁴/0,0187 = 0,0399 mol/L."], "0,0399 mol/L", 0.01);
+  nu("e3", 3, "Una muestra de 0,5000 g de mineral de hierro se disuelve y todo el hierro pasa a Fe²⁺. Se valora con K₂Cr₂O₇ 0,0167 mol/L en medio ácido y se gastan 26,1 mL. ¿Qué porcentaje de hierro tiene el mineral? (M(Fe) = 55,85)", "% de Fe =", 29.2,
+    ["Cr₂O₇²⁻ + 6 Fe²⁺ + 14 H⁺ → 2 Cr³⁺ + 6 Fe³⁺ + 7 H₂O."], ["n(Cr₂O₇²⁻) = 0,0167 · 0,0261 = 4,36·10⁻⁴ mol.", "n(Fe) = 6 · 4,36·10⁻⁴ = 2,62·10⁻³ mol → 0,146 g.", "% = 0,146/0,5000 · 100 = 29,2 %."], "29,2 %", 0.01);
+  nu("e4", 3, "Se diluyen 10,0 mL de agua oxigenada hasta 100 mL. De la disolución diluida se toman 25,0 mL y se valoran con KMnO₄ 0,0150 mol/L en medio ácido, gastando 21,6 mL. Calcula la concentración del agua oxigenada original en g/L (M(H₂O₂) = 34,01).", "[H₂O₂] (g/L) =", 11.0,
+    ["2 MnO₄⁻ + 5 H₂O₂ + 6 H⁺ → 2 Mn²⁺ + 5 O₂ + 8 H₂O. No olvides la dilución."], ["n(MnO₄⁻) = 0,0150 · 0,0216 = 3,24·10⁻⁴ mol → n(H₂O₂) = 8,10·10⁻⁴ mol en 25 mL.", "0,0324 mol/L en la diluida; × 10 = 0,324 mol/L.", "0,324 · 34,01 = 11,0 g/L."], "11,0 g/L", 0.01);
+  nu("e5", 3, "Dos cubas electrolíticas, una con CuSO₄ y otra con AgNO₃, están conectadas en serie. En la primera se depositan 1,00 g de Cu. ¿Cuántos gramos de Ag se depositan en la segunda? (M(Cu) = 63,5; M(Ag) = 107,9)", "m(Ag) (g) =", 3.40,
+    ["Pasa la misma carga por las dos."], ["n(e⁻) = 2 · 1,00/63,5 = 0,0315 mol.", "n(Ag) = 0,0315 mol (n = 1).", "m = 0,0315 · 107,9 = 3,40 g."], "3,40 g", 0.01);
+  nu("e6", 3, "¿Qué intensidad (en A) hace falta para depositar 10,0 g de Al de una sal de Al³⁺ en 2,00 horas? " + DAT + "M(Al) = 27,0.", "I (A) =", 14.9,
+    ["Al³⁺ + 3 e⁻ → Al."], ["n(Al) = 0,3704 mol → n(e⁻) = 1,111 mol → Q = 107 200 C.", "t = 7200 s; I = 107 200/7200 = 14,9 A."], "14,9 A", 0.01);
+  ge("e7", 3, "Se electroliza una disolución acuosa de NaCl con una corriente de 10,0 A durante 1,00 h. Calcula (a) los moles de electrones, y (b) el volumen de Cl₂ (L) a 25 °C y 1 atm. " + DAT + "R = 0,082 atm·L/(mol·K).",
+    [{ tipo: "num", etiqueta: "n(e⁻) (mol) =", valor: 0.373 }, { tipo: "num", etiqueta: "V(Cl₂) (L) =", valor: 4.56 }],
+    ["2 Cl⁻ → Cl₂ + 2 e⁻."], ["Q = 10,0 · 3600 = 36 000 C; n(e⁻) = 36 000/96 500 = 0,373 mol.", "n(Cl₂) = 0,373/2 = 0,1865 mol.", "V = 0,1865 · 0,082 · 298 = 4,56 L."], "0,373 mol; 4,56 L");
+  nu("e8", 3, "El aluminio se obtiene por electrólisis de Al₂O₃ fundido. ¿Cuántos segundos hacen falta para obtener 1,00 kg de Al con una corriente de 50 000 A? " + DAT + "M(Al) = 27,0.", "t (s) =", 214.4,
+    ["Al³⁺ + 3 e⁻ → Al; 1000 g."], ["n(Al) = 1000/27,0 = 37,04 mol → n(e⁻) = 111,1 mol.", "Q = 111,1 · 96 500 = 1,072·10⁷ C; t = Q/I = 214 s."], "214 s (3,6 min)", 0.01);
+  ge("e9", 3, "Para Cu + 2 Ag⁺ → Cu²⁺ + 2 Ag calcula (a) ΔG° (kJ) y (b) log K a 25 °C (E°(Ag⁺/Ag) = +0,80 V; E°(Cu²⁺/Cu) = +0,34 V). " + DAT,
+    [{ tipo: "num", etiqueta: "ΔG° (kJ) =", valor: -88.8 }, { tipo: "num", etiqueta: "log K =", valor: 15.54 }],
+    ["n = 2; E° = 0,46 V."], ["ΔG° = −2 · 96 500 · 0,46 = −88 780 J = −88,8 kJ.", "log K = 2 · 0,46/0,0592 = 15,5."], "−88,8 kJ; log K = 15,5");
+  nu("e10", 3, "Una pila Pt|H₂(1 atm)|H⁺(1 M) ‖ Cu²⁺(1 M)|Cu funciona hasta consumirse 1,00 L de H₂ medido a 25 °C y 1 atm. ¿Qué masa de Cu se deposita? (M(Cu) = 63,5; R = 0,082 atm·L/(mol·K))", "m(Cu) (g) =", 2.60,
+    ["H₂ + Cu²⁺ → 2 H⁺ + Cu: relación 1 : 1."], ["n(H₂) = pV/RT = 1,00/(0,082 · 298) = 0,0409 mol.", "n(Cu) = 0,0409 mol → m = 0,0409 · 63,5 = 2,60 g."], "2,60 g", 0.01);
+  nu("e11", 3, "Se niquela una pieza de 50 cm² de superficie con una corriente de 3,0 A durante 20 min (Ni²⁺ + 2 e⁻ → Ni). Calcula el espesor de la capa en micrómetros (densidad del Ni = 8,9 g/cm³; M = 58,7). " + DAT, "espesor (μm) =", 24.6,
+    ["Masa → volumen (m/d) → espesor = V/superficie."], ["m = 58,7 · 3,0 · 1200/(2 · 96 500) = 1,095 g.", "V = 1,095/8,9 = 0,1230 cm³.", "Espesor = 0,1230/50 = 2,46·10⁻³ cm = 24,6 μm."], "24,6 μm", 0.01);
+  nu("e12", 3, "Una pila formada por un electrodo de Cu (E° = +0,34 V) y otro desconocido X (que actúa de ánodo) tiene una fem de 1,10 V. ¿Cuánto vale E°(X²⁺/X)?", "E°(X) (V) =", -0.76,
+    ["fem = E°cátodo − E°ánodo."], ["1,10 = 0,34 − E°(X).", "E°(X) = 0,34 − 1,10 = −0,76 V (es el Zn)."], "−0,76 V", 0.01);
+  ge("e13", 3, "Ajusta Cu + HNO₃ → Cu(NO₃)₂ + NO + H₂O. Escribe los coeficientes de Cu, HNO₃, Cu(NO₃)₂, NO y H₂O (en este orden).",
+    { tipo: "lista", etiqueta: "Coeficientes:", valores: [3, 8, 3, 2, 4] },
+    ["Reducción: NO₃⁻ + 4 H⁺ + 3 e⁻ → NO + 2 H₂O; oxidación: Cu → Cu²⁺ + 2 e⁻."], ["×2 y ×3: 2 NO₃⁻ + 8 H⁺ + 3 Cu → 2 NO + 4 H₂O + 3 Cu²⁺.", "Molecular: 3 Cu + 8 HNO₃ → 3 Cu(NO₃)₂ + 2 NO + 4 H₂O.", "N: 8 = 6 + 2 ✔."], "3, 8, 3, 2, 4");
+  op("e14", 3, "Una lata de conserva (hierro recubierto de estaño) se raya y queda el hierro al descubierto. Con E°(Sn²⁺/Sn) = −0,14 V y E°(Fe²⁺/Fe) = −0,44 V, ¿qué ocurre?", "Corrosión", ["El Fe se oxida más rápido (actúa de ánodo)", "El Sn protege al Fe", "No pasa nada", "Se oxida el Sn"], 0,
+    ["¿Quién tiene menor E°?"], ["El Fe (−0,44) es más reductor que el Sn (−0,14): se oxida el Fe.", "El estaño solo protege como barrera; rayado, acelera la corrosión."], "El Fe se corroe más deprisa");
+  op("e15", 3, "Se electroliza una disolución acuosa con Cu²⁺ y Na⁺. ¿Qué se deposita primero en el cátodo? (E° Cu²⁺/Cu = +0,34 V; Na⁺/Na = −2,71 V)", "Cátodo", ["Cu", "Na", "H₂ y Na a la vez", "Ninguno"], 0,
+    ["Se reduce primero lo de mayor E°."], ["0,34 &gt; −0,41 (agua) &gt; −2,71.", "Se deposita Cu; el Na⁺ ni se reduce."], "Cobre");
+  nu("e16", 3, "Calcula la fem de la pila Pt|Fe²⁺, Fe³⁺ ‖ Cr₂O₇²⁻, H⁺, Cr³⁺|Pt (E°(Cr₂O₇²⁻/Cr³⁺) = +1,33 V; E°(Fe³⁺/Fe²⁺) = +0,77 V).", "fem (V) =", 0.56,
+    ["Cátodo: el dicromato."], ["Cátodo: Cr₂O₇²⁻ (+1,33). Ánodo: Fe²⁺ → Fe³⁺ (+0,77).", "1,33 − 0,77 = 0,56 V."], "0,56 V", 0.01);
+  nu("e17", 3, "¿Qué volumen (mL) de K₂Cr₂O₇ 0,100 mol/L, en medio ácido, oxida todo el Fe²⁺ de 25,0 mL de FeSO₄ 0,200 mol/L?", "V (mL) =", 8.33,
+    ["Cr₂O₇²⁻ + 6 Fe²⁺ → 2 Cr³⁺ + 6 Fe³⁺ (en medio ácido)."], ["n(Fe²⁺) = 0,200 · 0,0250 = 5,00·10⁻³ mol.", "n(Cr₂O₇²⁻) = 5,00·10⁻³/6 = 8,33·10⁻⁴ mol.", "V = 8,33·10⁻⁴/0,100 = 8,33·10⁻³ L = 8,33 mL."], "8,33 mL", 0.01);
+  nu("e18", 3, "La lejía se fabrica con la dismutación Cl₂ + 2 OH⁻ → Cl⁻ + ClO⁻ + H₂O. ¿Qué volumen de Cl₂ (L, a 25 °C y 1 atm) hace falta para obtener 100 mL de una disolución de NaClO 0,10 mol/L? (R = 0,082 atm·L/(mol·K))", "V(Cl₂) (L) =", 0.244,
+    ["Relación Cl₂ : ClO⁻ = 1 : 1."], ["n(ClO⁻) = 0,10 · 0,100 = 0,0100 mol = n(Cl₂).", "V = 0,0100 · 0,082 · 298/1 = 0,244 L."], "0,244 L", 0.01);
+
+  var ejercicios = E;
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Redox: fórmulas del tema",
+      items: [
+        { label: "N.º de oxidación", formula: "Σ n.º ox. = carga total (0 en una molécula)", cuando: "H +1, O −2 (peróxidos −1), metales +, F −1.", ejemplo: "H₂SO₄: 2(+1) + x + 4(−2) = 0 → S = +6.", ojo: "En el Cr₂O₇²⁻ hay 2 Cr: 2x − 14 = −2." },
+        { label: "fem y espontaneidad", formula: "E°pila = E°cátodo − E°ánodo", cuando: "Los dos E° son de reducción.", ejemplo: "Cu y Zn: 0,34 − (−0,76) = 1,10 V.", ojo: "No se multiplica por los coeficientes." },
+        { label: "Energía libre y K", formula: "ΔG° = −n·F·E° · log K = n·E°/0,0592", cuando: "F = 96 500 C/mol; 25 °C.", ejemplo: "n = 2, E° = 1,10 V: ΔG° = −212 kJ." },
+        { label: "Faraday", formula: "Q = I·t · m = M·I·t / (n·F)", cuando: "t en segundos.", ejemplo: "3 A, 40 min, Cu: 2,37 g.", ojo: "n = e⁻ por átomo depositado." },
+        { label: "Valoración redox", formula: "C₁V₁ · (e⁻ del valorante) = C₂V₂ · (e⁻ del analito)", cuando: "Equivalencia: e⁻ cedidos = e⁻ ganados.", ejemplo: "MnO₄⁻ (5 e⁻) con Fe²⁺ (1 e⁻): razón 1 : 5." }
+      ],
+      nota: "Gases en la electrólisis: pV = nRT con n = moles de e⁻ / (e⁻ por molécula)." },
+    { titulo: "¿Qué tipo de problema es?", ancha: true,
+      tabla: { cab: ["Datos", "Método"], filas: [
+        ["reactivos con cambios de n.º ox.", "ion-electrón: H₂O, H⁺, e⁻ (+ OH⁻)"],
+        ["dos pares y E°", "cátodo = mayor E°; E° = cát − án; ΔG° = −nFE°"],
+        ["«se disuelve en ácido» / «desplaza»", "E° &gt; 0 con H⁺ (o NO₃⁻)"],
+        ["mL gastados, C del valorante", "n = C·V → razón → [analito]"],
+        ["intensidad, tiempo, masa", "Q = I·t → n(e⁻) → m"],
+        ["varias cubas", "misma Q: m ∝ M/n"],
+        ["recubrimiento de hierro", "menor E° que el Fe: protege"]
+      ] },
+      nota: "Escribe siempre las semirreacciones; el signo de E° lo da la tabla, no la dirección." },
+    { titulo: "Pila frente a cuba", ancha: true,
+      tabla: { cab: ["", "Pila", "Cuba electrolítica"], filas: [
+        ["reacción", "espontánea (E° &gt; 0)", "forzada (E° &lt; 0)"],
+        ["ánodo", "oxidación, polo −", "oxidación, polo +"],
+        ["cátodo", "reducción, polo +", "reducción, polo −"],
+        ["energía", "química → eléctrica", "eléctrica → química"],
+        ["electrones", "ánodo → cátodo", "ánodo → cátodo"]
+      ] },
+      nota: "Siempre: ánodo = oxidación, cátodo = reducción. Solo se invierten las polaridades." },
+    { titulo: "Escala de potenciales (25 °C, 1 M)", ancha: true,
+      tabla: { cab: ["Par", "E° (V)", "Par", "E° (V)"], filas: [
+        ["Li⁺/Li", "−3,04", "Cu²⁺/Cu", "+0,34"],
+        ["Na⁺/Na", "−2,71", "I₂/I⁻", "+0,54"],
+        ["Mg²⁺/Mg", "−2,37", "Fe³⁺/Fe²⁺", "+0,77"],
+        ["Al³⁺/Al", "−1,66", "Ag⁺/Ag", "+0,80"],
+        ["Zn²⁺/Zn", "−0,76", "Br₂/Br⁻", "+1,07"],
+        ["Fe²⁺/Fe", "−0,44", "Cr₂O₇²⁻/Cr³⁺", "+1,33"],
+        ["Pb²⁺/Pb", "−0,13", "Cl₂/Cl⁻", "+1,36"],
+        ["H⁺/H₂", "0,00", "MnO₄⁻/Mn²⁺", "+1,51"]
+      ] },
+      nota: "Arriba (E° alto): oxidantes fuertes. Abajo (E° muy negativo): reductores fuertes. Reacciona el oxidante con el reductor que está por debajo de él." },
+    { titulo: "Errores típicos del tema", ancha: true,
+      errores: [
+        { mal: "H₂O₂: O = −2", bien: "O = −1 (peróxido)", por: "Hay un enlace O–O." },
+        { mal: "Cr₂O₇²⁻: Cr = +12", bien: "Cr = +6 por átomo", por: "Se divide entre 2." },
+        { mal: "Ajustar sin cargas", bien: "Añadir e⁻ para igualar la carga", por: "Átomos y carga." },
+        { mal: "H⁺ en medio básico", bien: "OH⁻ en los dos lados y H⁺ + OH⁻ → H₂O", por: "Medio básico sin H⁺." },
+        { mal: "E° = 2·E°(Ag) − E°(Zn)", bien: "E° = E°(Ag) − E°(Zn)", por: "Propiedad intensiva." },
+        { mal: "Cátodo: polo − (también en la pila)", bien: "Pila: cátodo +; cuba: cátodo −", por: "Cambia la polaridad." },
+        { mal: "Q = I · t(min)", bien: "Q = I · t(s)", por: "Culombios = A·s." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t8", { resumen: resumen, secciones: B.parte.q2t8a.secciones, nuevas: B.parte.q2t8b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 </script>
