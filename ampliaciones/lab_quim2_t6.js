@@ -40,10 +40,10 @@
     }
     var eps = 1e-12 * (isFinite(hi - lo) ? Math.max(1, hi - lo) : 1);
     if (!isFinite(lo)) lo = -1e3; if (!isFinite(hi)) hi = 1e3;
-    var lk = Math.log(Kc);
+    var lk = Math.log(Kc);                       // V puede ser un número o una función del avance (P constante)
     return biseccion(function (x) {
-      var s = 0;
-      for (var j = 0; j < esp.length; j++) s += esp[j].nu * Math.log(Math.max(n[j] + esp[j].nu * x, 1e-300) / V);
+      var s = 0, Vx = typeof V === "function" ? V(x) : V;
+      for (var j = 0; j < esp.length; j++) s += esp[j].nu * Math.log(Math.max(n[j] + esp[j].nu * x, 1e-300) / Vx);
       return s - lk;
     }, lo + eps, hi - eps);
   }
@@ -151,8 +151,11 @@
     var x0 = avance(D.esp, D.ini, D.V0, D.Kc), n1 = mezcla(D.esp, D.ini, x0), nt = n1.reduce(function (a, b) { return a + b; }, 0);
     var V2 = cond === "P" ? D.V0 * (nt + nHe) / nt : D.V0;
     var q2 = Math.exp(lnQ(D.esp, n1, V2) - Math.log(D.Kc));        // Q/K justo tras añadir el inerte
-    var x2 = avance(D.esp, n1, V2, D.Kc), n2 = mezcla(D.esp, n1, x2);
-    return { n1: n1, n2: n2, V2: V2, qk: q2 };
+    // a P constante el volumen sigue a los moles totales (con el inerte) mientras reacciona: V(ξ) = V₀·(n_t + n_He + Δn·ξ)/n_t
+    var dn = D.esp.reduce(function (a, e) { return a + e.nu; }, 0);
+    var Vx = cond === "P" ? function (x) { return D.V0 * (nt + nHe + dn * x) / nt; } : V2;
+    var x2 = avance(D.esp, n1, Vx, D.Kc), n2 = mezcla(D.esp, n1, x2);
+    return { n1: n1, n2: n2, V2: V2, Vf: typeof Vx === "function" ? Vx(x2) : V2, qk: q2 };
   }
   B.lab.q6.inerte = inerte; B.lab.q6.INER = INER;
 
@@ -173,7 +176,7 @@
       });
       var cambia = s.n2.some(function (v, i) { return Math.abs(v - s.n1[i]) > 0.0005; });
       var sent = !cambia ? "ninguno" : s.qk < 1 ? "→ productos" : "← reactivos";
-      lectura.innerHTML = fil("Volumen", fmt(D.V0, 1) + " L ⟶ " + fmt(s.V2, 2) + " L", "pen") + fil("Q / K<sub>c</sub> al añadir He", fmt(s.qk, 3), "red") + fil("Desplazamiento", sent, "ok");
+      lectura.innerHTML = fil("V inicial ⟶ al añadir He ⟶ final", fmt(D.V0, 1) + " ⟶ " + fmt(s.V2, 2) + " ⟶ " + fmt(s.Vf, 2) + " L", "pen") + fil("Q / K<sub>c</sub> al añadir He", fmt(s.qk, 3), "red") + fil("Desplazamiento", sent, "ok");
       pie.innerHTML = st.c === "V"
         ? "<b>V constante:</b> el helio sube la presión total, pero no cambia las concentraciones de las demás sustancias. Q = K<sub>c</sub> y <b>no hay desplazamiento</b> (barras iguales)."
         : "<b>P constante:</b> el recipiente se expande al meter helio. Las concentraciones bajan como si hubieras <em>disminuido la presión</em>: se favorece el lado con <b>más moles de gas</b> (si Δn = 0, nada).";
