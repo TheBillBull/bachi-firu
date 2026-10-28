@@ -42024,6 +42024,558 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 6: San Agustín y la patrística
+   (parte A: teoría. Parte B, historia_fil_t06b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Qué es la patrística y por qué nace (apologética, Padres, siglos II–VIII) → sección 1 + tabla de posturas ante la filosofía.
+   2. Platonismo cristiano: Agustín «bautiza» a Platón (Ideas = ideas en la mente de Dios) → sección nueva 6 + mapa.
+   3. «Si fallor, sum»: no es el cogito de Descartes (Agustín sigue hacia Dios, Descartes hacia el método) → sección 2 (ojo).
+   4. «Cree para entender»: la fe no sustituye a la razón; no es «cree sin pensar» → sección 3 + errores.
+   5. El mal como privación, no como cosa; mal moral frente a mal físico; libre albedrío → sección 4 + clasificar.
+   6. Gracia y libertad: la polémica con Pelagio → sección nueva 8.
+   7. Dos ciudades y la historia lineal (cíclica griega frente a lineal cristiana); no son «Iglesia» y «Estado» → sección 5 + clasificar.
+   8. El tiempo en las Confesiones (distentio animi) y la iluminación → secciones nuevas 6 y 7.
+   9. Comparaciones rentables: Platón, Descartes, Tomás de Aquino → sección nueva 9.
+   10. Comentario de texto: los dos amores (Ciudad de Dios XIV, 28) → comentario resuelto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t6/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. La patrística
+  secciones[0] =
+    "<h5>Por qué nace la patrística</h5>" +
+    "<p>Hasta ahora (temas 1 a 5) la filosofía es griega y pagana. Pero en los primeros siglos de nuestra era una religión nueva, el <b>cristianismo</b>, se extiende por todo el Imperio romano. Los cristianos se encuentran con dos problemas muy prácticos: (1) tienen que <b>defenderse</b> ante las acusaciones de los paganos y ante las autoridades, y (2) tienen que <b>explicar</b> a gente culta, educada en la filosofía griega, qué creen. Para las dos cosas necesitan argumentos, y los argumentos los tenía la filosofía. De ahí nace la <b>patrística</b>: el pensamiento de los <b>Padres de la Iglesia</b>, los autores cristianos de los primeros siglos cuya autoridad reconoció la Iglesia.</p>" +
+    "<h5>Cronología mínima para situarse</h5>" +
+    "<ul><li><b>313:</b> el Edicto de Milán permite practicar el cristianismo en el Imperio. <b>380:</b> el emperador Teodosio lo convierte en religión oficial.</li>" +
+    "<li><b>354–430:</b> vida de San Agustín, justo en el momento en que el cristianismo pasa de religión perseguida a religión dominante.</li>" +
+    "<li><b>410:</b> los visigodos de Alarico saquean Roma. <b>476:</b> cae el Imperio romano de Occidente (para muchos autores, el comienzo de la Edad Media).</li>" +
+    "<li><b>Siglo XIII:</b> Tomás de Aquino (1225–1274) cierra el gran periodo escolástico (tema 7).</li></ul>" +
+    "<h5>Tres actitudes ante la filosofía griega</h5>" +
+    "<p>No todos los Padres pensaron igual sobre la filosofía pagana. Conviene distinguir tres posturas, porque el comentario de la PAU suele pedir que se sitúe a Agustín entre ellas:</p>" +
+    tabla(["Postura", "Qué dice", "Ejemplo"], [
+      ["<b>Rechazo</b>", "La fe basta; la filosofía pagana solo trae errores.", "Tertuliano (hacia 160–220): «¿Qué tiene que ver Atenas con Jerusalén?» (fórmula habitual)"],
+      ["<b>Aprovechamiento</b>", "Lo verdadero de la filosofía griega ya pertenecía a la verdad cristiana; hay que usarlo.", "Justino (siglo II): los filósofos conocieron una semilla del Logos."],
+      ["<b>Síntesis</b>", "Se construye una filosofía cristiana, sobre todo con el platonismo.", "<b>San Agustín</b> (354–430)"]
+    ]) +
+    ojo("«Patrística» no es el nombre de una doctrina, sino de un <b>periodo</b> (siglos II–VIII) y de un tipo de autores (los Padres). Dentro de él hay Padres griegos (Clemente de Alejandría, Orígenes) y Padres latinos (Ambrosio, Jerónimo, Agustín). Agustín es el más influyente de todos.");
+
+  // ---------------------------------------------------------------- 2. De la duda a la fe
+  secciones[1] =
+    "<h5>El camino de Agustín, paso a paso</h5>" +
+    "<p>Agustín cuenta su propia vida en las <i>Confesiones</i> (hacia 400), la primera gran autobiografía filosófica de Occidente. No es solo un relato: es un ejemplo de cómo se busca la verdad.</p>" +
+    "<ul><li><b>354: nace en Tagaste</b> (norte de África, hoy Argelia). Su madre, Mónica, era cristiana; su padre, Patricio, pagano.</li>" +
+    "<li><b>Joven retórico en Cartago.</b> Lee el <i>Hortensio</i> de Cicerón y se despierta en él el amor a la sabiduría.</li>" +
+    "<li><b>Unos nueve años maniqueo.</b> El maniqueísmo explicaba el mundo como lucha de dos principios, el bien y el mal. Lo abandona decepcionado.</li>" +
+    "<li><b>Escepticismo.</b> Duda de que se pueda alcanzar alguna verdad segura (recuerda el escepticismo del tema 5).</li>" +
+    "<li><b>Milán:</b> escucha al obispo Ambrosio y lee a los <b>neoplatónicos</b>; entiende que Dios puede ser espiritual y no un cuerpo.</li>" +
+    "<li><b>386: conversión; 387: bautismo.</b> Vuelve a África, es ordenado sacerdote y hacia el 395 es <b>obispo de Hipona</b>. Muere en 430, con la ciudad asediada por los vándalos.</li></ul>" +
+    "<h5>Cómo vence a la duda</h5>" +
+    "<p>Los escépticos decían: «quizá te engañas siempre». Agustín contesta con un razonamiento muy sencillo: <b>para engañarse hay que existir</b>. Por eso <i>si fallor, sum</i> («si me equivoco, existo»). Es una verdad que ni siquiera el escéptico puede discutir: si dudas, piensas; si piensas, existes. Y además de que existo, sé que vivo y que entiendo; son tres certezas inmediatas (<b>ser, vivir, entender</b>).</p>" +
+    ojo("Se parece al «pienso, luego existo» de Descartes, pero <b>no es lo mismo</b>. Descartes usa la certeza del yo como <b>punto de partida del método</b> para reconstruir todo el saber. Agustín la usa para <b>vencer al escepticismo</b> y, a partir de ella, ascender hacia <b>Dios</b>, que es la Verdad. En un examen, di «es un precedente» y explica la diferencia.");
+
+  // ---------------------------------------------------------------- 3. Fe y razón
+  secciones[2] =
+    "<h5>Dos mitades de una misma fórmula</h5>" +
+    "<p>Agustín repite una fórmula de dos partes: <i>«intellege ut credas, crede ut intelligas»</i>, es decir, «entiende para creer, cree para entender» (paráfrasis habitual). Las dos mitades son necesarias:</p>" +
+    "<ul><li><b>Entiende para creer:</b> la razón prepara el camino. Uno no cree en lo que no sabe ni lo que significa; se necesita razonar para comprender de qué se habla y qué se acepta.</li>" +
+    "<li><b>Cree para entender:</b> la fe abre el camino. Hay verdades (Dios, el alma, el sentido de la vida) a las que la razón sola llega mal y tarde, y aceptarlas por fe ilumina y orienta la búsqueda.</li></ul>" +
+    ejemplo("Una comparación cotidiana", "Confías para comprender", [
+      "Cuando empiezas a estudiar una asignatura difícil, aceptas al principio lo que dice la profesora (confías), y solo después, trabajando, <b>comprendes por qué</b> es cierto.",
+      "Sin esa confianza inicial no avanzarías; pero la confianza no te dispensa de pensar: el objetivo es entender.",
+      "Algo parecido propone Agustín con la fe: <b>punto de partida</b>, no sustituto de la razón."
+    ]) +
+    "<h5>Qué consecuencias tiene</h5>" +
+    "<p>(1) Defiende que la filosofía <b>sirve</b> al cristiano: la razón explica y defiende la fe. (2) Pero fija una <b>jerarquía</b>: si hay conflicto aparente, la fe tiene la última palabra, porque su fuente es Dios mismo. Tomás de Aquino (tema 7) será más optimista con la razón natural; Agustín subraya su necesidad de ayuda.</p>" +
+    ojo("«Cree para entender» <b>no</b> significa «cree y no pienses». Significa que la fe pide pensar. Y tampoco es una prueba: es un <b>método</b>. Una frase típica de examen: «la fe precede y la razón profundiza».");
+
+  // ---------------------------------------------------------------- 4. El mal
+  secciones[3] =
+    "<h5>Tres tipos de mal</h5>" +
+    "<p>Para entender la respuesta de Agustín conviene distinguir de qué mal se habla:</p>" +
+    tabla(["Tipo", "Qué es", "Ejemplo"], [
+      ["<b>Mal físico</b>", "Sufrimiento o daño natural", "Una enfermedad, un terremoto"],
+      ["<b>Mal moral</b>", "Daño causado por una elección libre", "Mentir, robar, hacer daño a alguien"],
+      ["<b>Mal metafísico</b>", "Imperfección por ser criatura y no Dios", "Las cosas finitas se acaban"]
+    ]) +
+    "<h5>Por qué el mal no es «una cosa»</h5>" +
+    "<p>Agustín venía del maniqueísmo, donde el mal era una sustancia, un principio tan real como el bien. Al convertirse, defiende lo contrario: <b>todo lo que existe, en cuanto existe, es bueno</b>, porque lo ha creado un Dios bueno. El mal no es una cosa, sino una <b>privación</b> (<i>privatio boni</i>): como un agujero en un queso, no existe por sí mismo, sino por faltar algo que debería estar. La ceguera no es «algo» en el ojo, es la falta de vista.</p>" +
+    "<h5>El mal moral viene de la voluntad</h5>" +
+    "<p>Si el mal es falta de bien, ¿de dónde sale el mal moral? Del uso que hacemos de la <b>libertad</b>. Dios nos da el libre albedrío para que podamos amarle de verdad, y el libre albedrío es un bien, aunque se pueda <b>usar mal</b>. Cuando la voluntad prefiere un bien menor (el placer, el poder) a un bien mayor (Dios), aparece el pecado: no se elige «el mal» como tal, se elige <b>un bien inferior</b> en lugar de otro superior. En cuanto al mal físico, Agustín lo relaciona con el pecado original y con el orden del conjunto.</p>" +
+    ojo("Error típico: decir que «Dios crea el mal» o que «Agustín niega que el mal exista». Ni lo uno ni lo otro: el mal <b>existe como falta</b>, y el mal moral procede de la voluntad libre de las criaturas, no de Dios.");
+
+  // ---------------------------------------------------------------- 5. La Ciudad de Dios
+  secciones[4] =
+    "<h5>Por qué escribe el libro</h5>" +
+    "<p>Tras el saqueo de Roma (410), los paganos dijeron: «Roma cayó por abandonar a sus dioses». Agustín contesta con <i>La Ciudad de Dios</i> (escrita entre 413 y 426), una obra enorme en 22 libros. Primero rebate a los paganos (Roma ya había sufrido desgracias antes de Cristo), y después explica el <b>sentido de toda la historia</b>.</p>" +
+    "<h5>Las dos ciudades</h5>" +
+    "<p>Agustín no habla de dos Estados, sino de dos formas de vida, que se mezclan en esta vida y solo se separarán al final. Lo que las distingue es el <b>amor</b>:</p>" +
+    tabla(["", "Ciudad de Dios", "Ciudad terrena"], [
+      ["¿Qué ama?", "A Dios, hasta olvidarse de sí", "A sí misma, hasta despreciar a Dios"],
+      ["¿Qué busca?", "Paz y bienes eternos", "Poder, gloria y bienes materiales"],
+      ["¿Quiénes la forman?", "Los que viven según Dios", "Los que viven según sí mismos"]
+    ]) +
+    ojo("Las dos ciudades <b>no son</b> «la Iglesia» y «el Estado romano». Dentro de la Iglesia puede haber ciudadanos de la ciudad terrena, y fuera de ella personas buenas. La frontera la marca el amor, y solo Dios la ve del todo.") +
+    "<h5>Una historia con dirección</h5>" +
+    "<p>Para los griegos el tiempo solía ser un <b>círculo</b>: todo se repite. Para Agustín (y para el cristianismo) la historia es una <b>línea</b>: empieza con la Creación, tiene un momento central (la Encarnación) y termina en el Juicio Final. Cada acontecimiento ocurre una vez y tiene sentido dentro del plan de Dios. Esta idea de <b>progreso con sentido</b> influirá después en la filosofía de la historia occidental.</p>" +
+    "<p>Sobre la política, Agustín no desprecia al Estado: lo considera necesario para mantener la paz terrena, pero sin el valor absoluto que le daba la polis griega. Un Estado sin justicia, dice, se parece a una banda de ladrones a gran escala.</p>";
+
+  // ---------------------------------------------------------------- Secciones nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Verdad, Ideas e iluminación: el platonismo cristiano", html:
+    "<p>Agustín no inventó una filosofía desde cero: tomó la de Platón y los neoplatónicos y la <b>reinterpretó</b>. Hay dos cambios importantes:</p>" +
+    "<ul><li><b>Las Ideas están en la mente de Dios.</b> Para Platón existían en un mundo aparte (tema 3). Para Agustín son los <b>modelos eternos</b> según los cuales Dios crea el mundo. Así se evita tener «dos mundos» independientes: las Ideas dependen de Dios.</li>" +
+    "<li><b>La iluminación divina.</b> ¿Cómo conocemos verdades eternas (2 + 2 = 4, lo justo) si somos limitados y cambiantes? Porque Dios <b>ilumina</b> la mente, igual que el sol ilumina las cosas para que las veamos. El maestro humano solo ayuda desde fuera; el verdadero Maestro es interior.</li></ul>" +
+    ejemplo("Comparación Platón – Agustín", "Qué se conserva y qué cambia", [
+      "<b>Se conserva:</b> hay verdades eternas y necesarias, por encima del mundo cambiante.",
+      "<b>Cambia el lugar:</b> en vez de un mundo de Ideas independiente, las Ideas están en Dios.",
+      "<b>Cambia el modo de conocer:</b> en vez de recordar (reminiscencia), la mente es iluminada por Dios.",
+      "<b>Consecuencia:</b> buscar la verdad es, al final, buscar a Dios."
+    ]) +
+    "<p>Por eso Agustín propone un camino <b>hacia dentro</b>: «no salgas fuera; vuelve a ti mismo; en el interior del hombre habita la verdad» (<i>De vera religione</i>; paráfrasis de la traducción habitual). Y su frase más famosa, al comienzo de las <i>Confesiones</i>, resume el sentido de esa búsqueda: «nos hiciste para ti, y nuestro corazón está inquieto hasta que descanse en ti» (traducción habitual).</p>" +
+    ojo("El alma, para Agustín, es de naturaleza espiritual y superior al cuerpo, a la manera platónica. Pero Agustín defiende, contra algunos neoplatónicos, que el cuerpo es <b>bueno</b> y que habrá resurrección. No es un dualismo que desprecie el cuerpo.") });
+
+  nuevas.push({ h: "7. El tiempo: «si nadie me lo pregunta, lo sé»", html:
+    "<p>En el libro XI de las <i>Confesiones</i>, Agustín pregunta qué es el tiempo. Su respuesta más conocida es una confesión de perplejidad (paráfrasis habitual): si nadie me lo pregunta, lo sé; si quiero explicárselo al que me lo pregunta, no lo sé.</p>" +
+    "<h5>El problema</h5>" +
+    "<p>El pasado ya no existe, el futuro todavía no existe y el presente, si fuera una raya sin duración, se desvanecería. Entonces, ¿cómo mide el tiempo?</p>" +
+    "<h5>Su solución: el tiempo está en el alma</h5>" +
+    "<p>Agustín responde que el tiempo se vive en la mente (<i>distentio animi</i>, el «estiramiento» del alma): hay un <b>presente de las cosas pasadas</b> (la memoria), un <b>presente de las cosas presentes</b> (la atención) y un <b>presente de las cosas futuras</b> (la espera). Por eso podemos medir el tiempo.</p>" +
+    tabla(["Tiempo", "Cómo está en el alma"], [
+      ["Pasado", "Memoria"], ["Presente", "Atención"], ["Futuro", "Espera (expectación)"]]) +
+    "<p>Además, Dios está fuera del tiempo: lo ha creado con el mundo. Antes de la Creación no había un «antes». Dios vive en una <b>eternidad</b>, un presente sin sucesión.</p>" +
+    ojo("No digas que Agustín «niega el tiempo». Dice que el tiempo es real pero es una realidad que se experimenta en el alma, y que no existía antes de la Creación.") });
+
+  nuevas.push({ h: "8. Gracia y libertad: la polémica con Pelagio", html:
+    "<p>Hacia el año 411 Agustín se enfrenta a Pelagio, un monje de origen británico. La discusión es importante porque obliga a aclarar cuánto puede la libertad humana.</p>" +
+    tabla(["", "Pelagio", "Agustín"], [
+      ["El pecado original", "No daña la naturaleza humana", "Debilita la voluntad de todos los hombres"],
+      ["Salvarse", "Depende sobre todo del esfuerzo propio", "Necesita la <b>gracia</b> de Dios"],
+      ["La libertad", "Basta para elegir el bien", "Es libre, pero herida y necesitada de ayuda"]
+    ]) +
+    "<p>Agustín no niega la libertad (había defendido el libre albedrío contra los maniqueos). Lo que afirma es que, después del pecado original, la voluntad humana sola no basta para hacer el bien de manera constante; la <b>gracia</b> es un don gratuito que la sana y la ayuda. Sus ideas sobre la gracia y la predestinación serán después muy discutidas (por ejemplo, en la Reforma).</p>" +
+    ojo("Mensaje de síntesis para el examen: contra los maniqueos, Agustín defiende la <b>libertad</b>; contra Pelagio, la necesidad de la <b>gracia</b>. No son contradictorias: la libertad humana existe, pero necesita ayuda.") });
+
+  nuevas.push({ h: "9. Mapa del tema: Agustín y los demás autores", html:
+    "<p>En la PAU se pide relacionar al autor con otros. Las comparaciones más rentables con Agustín son estas:</p>" +
+    tabla(["Autor", "Relación con Agustín"], [
+      ["Platón (T3)", "Su gran fuente. Agustín conserva las verdades eternas, pero pone las Ideas en la mente de Dios y sustituye la reminiscencia por la iluminación."],
+      ["Aristóteles (T4)", "Lo conoce poco directamente; será Tomás de Aquino quien lo cristianice."],
+      ["Escepticismo (T5)", "Agustín pasó por esa etapa y la supera con «si fallor, sum»."],
+      ["Tomás de Aquino (T7)", "Le sigue: Agustín es platónico e insiste en la iluminación; Tomás parte de Aristóteles y de los sentidos."],
+      ["Descartes (T9)", "Precedente en la certeza del yo pensante; pero Agustín va hacia Dios y Descartes construye un método."],
+      ["Kant (T12)", "Distinto marco: Kant limita la razón para dejar sitio a la fe, mientras Agustín quiere que la fe oriente la razón."]
+    ]) +
+    "<h5>Cuadro-resumen: lo que sostiene Agustín</h5>" +
+    tabla(["Ámbito", "Tesis de Agustín"], [
+      ["Conocimiento", "Contra el escepticismo, «si fallor, sum»; la verdad se encuentra en el interior, con iluminación divina."],
+      ["Fe y razón", "«Entiende para creer, cree para entender»: se necesitan."],
+      ["Realidad", "Dios crea de la nada; las Ideas son ideas de Dios; todo lo creado es bueno."],
+      ["Mal y libertad", "El mal es privación de bien; el mal moral viene del libre albedrío; la gracia ayuda a la voluntad herida."],
+      ["Historia y sociedad", "Dos ciudades según el amor; historia lineal con sentido; el Estado sin justicia es un bandidaje."]
+    ]) });
+
+  nuevas.push({ h: "10. Comentario de texto resuelto: los dos amores", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (San Agustín, <em>La Ciudad de Dios</em>, libro XIV, cap. 28; traducción española habitual, abreviada, que varía según la edición):<br><em>«Dos amores fundaron, pues, dos ciudades: el amor propio hasta el desprecio de Dios, la terrena; el amor de Dios hasta el desprecio de sí, la celestial.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Agustín de Hipona (354–430), <i>La Ciudad de Dios</i> (413–426), escrita tras el saqueo de Roma (410) para responder a quienes culpaban al cristianismo.</li>" +
+    "<li><b>2. Tema.</b> El origen de las dos ciudades que forman la historia humana.</li>" +
+    "<li><b>3. Idea principal.</b> Lo que distingue a las dos ciudades no es la raza ni el Estado, sino el <b>amor</b> que orienta la vida: amor a sí mismo (ciudad terrena) o amor a Dios (Ciudad de Dios).</li>" +
+    "<li><b>4. Términos e ideas secundarias.</b> (a) «Amor»: lo que ordena la voluntad hacia algún bien. (b) «Desprecio de Dios / de sí»: orientaciones extremas, no sentimientos pasajeros. (c) «Ciudades»: comunidades de personas unidas por lo que aman; se mezclan en la historia y se separarán en el Juicio Final.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Enlaza con su idea de la historia lineal con sentido, con el libre albedrío (el amor depende de la voluntad) y con su ética del amor ordenado: amar cada cosa según su valor, a Dios sobre todas.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con Platón (T3): también ordena la ciudad según el bien del alma, pero Agustín no cree que ninguna ciudad terrena pueda realizar la ciudad ideal. Con Aristóteles (T4): la polis tiene como fin el bien vivir; para Agustín, el fin último está más allá de la polis.</li>" +
+    "<li><b>7. Valora y concluye.</b> Aporta una mirada crítica al poder: ningún Estado es la meta. Pero puede interpretarse de modos muy distintos (política y religión); su peligro es identificar ciudad terrena con los «otros».</li></ol>" +
+    ojo("Errores típicos: (1) decir que la Ciudad de Dios es la Iglesia y la ciudad terrena el Estado; (2) olvidar que el criterio es el <b>amor</b>; (3) no mencionar la historia lineal; (4) comparar con Platón sin explicar qué cambia.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. El problema del mal en San Agustín", "Respuesta modelo:", [
+      "<b>Planteamiento.</b> Si Dios es bueno y todopoderoso, ¿de dónde viene el mal?",
+      "<b>Mal como privación.</b> No es una sustancia, sino falta de bien (<i>privatio boni</i>); todo lo que existe es bueno.",
+      "<b>Mal moral y libre albedrío.</b> Procede de la voluntad que prefiere un bien inferior; la libertad es un bien.",
+      "<b>Relación.</b> Contra los maniqueos; luego, contra Pelagio, la gracia.",
+      "<b>Conclusión.</b> Dios no es responsable del mal moral."
+    ]) +
+    ejemplo("Pregunta 2. Fe y razón", "Respuesta modelo:", [
+      "<b>Fórmula.</b> «Entiende para creer, cree para entender».",
+      "<b>Explicación.</b> La fe es punto de partida y la razón profundiza, explica y defiende.",
+      "<b>Relación.</b> Platonismo cristiano; después Tomás de Aquino distinguirá más ambos campos."
+    ]) +
+    ejemplo("Pregunta 3. La Ciudad de Dios", "Respuesta modelo:", [
+      "<b>Contexto.</b> Saqueo de Roma (410); responde a los paganos.",
+      "<b>Dos ciudades.</b> Distintas por el amor: a Dios o a sí mismo.",
+      "<b>Historia.</b> Lineal: Creación, Encarnación, Juicio Final; frente a la visión cíclica griega.",
+      "<b>Valoración.</b> Influencia en la filosofía de la historia; el Estado como instrumento de paz."
+    ]) +
+    ejemplo("Pregunta 4. Comparación con Descartes", "Respuesta modelo:", [
+      "<b>Parecido.</b> «Si fallor, sum» y «pienso, luego existo»: la duda prueba la existencia del pensante.",
+      "<b>Diferencia.</b> Agustín lo usa contra el escepticismo y para llegar a Dios; Descartes lo usa como fundamento de un método."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Une, clasifica y ordena</h5>" +
+    w("clasificar", "ciudades") + w("emparejar", "posturas") + w("orden", "camino") +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf6a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 6 (parte B): San Agustín y la patrística
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t6.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Los <b>Padres de la Iglesia</b> (siglos II–VIII) usan la filosofía griega para defender y explicar el cristianismo; el más importante es <b>Agustín de Hipona</b> (354–430).",
+    "Contra el escepticismo, <i>si fallor, sum</i>; fe y razón se necesitan: «entiende para creer, cree para entender».",
+    "El <b>mal</b> no es una sustancia, sino <b>privación de bien</b>; el mal moral procede del <b>libre albedrío</b>.",
+    "En <i>La Ciudad de Dios</i>, dos amores forman dos ciudades y la historia es <b>lineal</b>, con sentido."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "San Agustín · 354–430",
+    autores: [{ n: "Agustín de Hipona", f: "354–430", l: "Tagaste (África); Cartago, Roma, Milán; obispo de Hipona" }],
+    obras: ["Confesiones", "Sobre el libre albedrío", "La Trinidad", "La Ciudad de Dios"],
+    bloques: [
+      { t: "Contexto: la patrística", frases: ["Padres de la Iglesia, siglos II–VIII: defienden el cristianismo con filosofía.", "Agustín vive el paso del cristianismo a religión oficial (380).", "Roma es saqueada en <b>410</b>: escribe <i>La Ciudad de Dios</i>."],
+        tabla: { cab: ["Postura ante la filosofía", "Ejemplo"], filas: [["rechazo", "Tertuliano"], ["aprovechamiento", "Justino"], ["síntesis", "Agustín"]] } },
+      { t: "Conocimiento: de la duda a la verdad", frases: ["Etapa escéptica; la supera con <i>si fallor, sum</i>.", "Las Ideas de Platón pasan a la <b>mente de Dios</b>.", "Conocemos las verdades eternas por <b>iluminación</b> divina."] },
+      { t: "Fe y razón", frases: ["«Entiende para creer, cree para entender».", "La fe es punto de partida; la razón profundiza.", "No son enemigas: son etapas de un mismo camino."] },
+      { t: "El mal y la libertad", frases: ["El mal no es una cosa: es <b>privación de bien</b>.", "El mal moral nace del <b>libre albedrío</b> mal usado.", "Contra Pelagio, necesita la <b>gracia</b>."],
+        tabla: { cab: ["Contra los maniqueos", "Contra Pelagio"], filas: [["defiende la libertad", "defiende la gracia"], ["el mal no es sustancia", "el pecado hiere la voluntad"]] } },
+      { t: "El tiempo", frases: ["Pasado, presente y futuro se viven en el alma.", "Memoria, atención y espera (<i>distentio animi</i>).", "Dios crea el tiempo con el mundo y vive en la eternidad."] },
+      { t: "Historia y sociedad", frases: ["Dos ciudades según el <b>amor</b>: a Dios o a sí mismo.", "Historia <b>lineal</b>: Creación, Encarnación, Juicio Final.", "El Estado sin justicia es un bandidaje."],
+        tabla: { cab: ["Ciudad de Dios", "Ciudad terrena"], filas: [["amor a Dios", "amor a sí mismo"], ["paz eterna", "poder y gloria"]] } }
+    ],
+    resumen: [
+      "La <b>verdad</b> se halla en el interior y viene de Dios: platonismo cristiano.",
+      "<b>Fe y razón</b> se necesitan: la fe orienta, la razón comprende.",
+      "El <b>mal</b> es falta de bien; el mal moral viene de la <b>voluntad libre</b>.",
+      "La historia es <b>lineal</b> y la mueve el <b>amor</b>: dos ciudades."
+    ],
+    conecta: [
+      { con: "Platón (T3):", rel: "su fuente; las Ideas pasan a la mente de Dios." },
+      { con: "Escepticismo (T5):", rel: "lo supera con <i>si fallor, sum</i>." },
+      { con: "Tomás de Aquino (T7):", rel: "le sigue; cambia a Platón por Aristóteles." },
+      { con: "Descartes (T9):", rel: "precedente de la certeza del yo pensante." }
+    ],
+    claves: [
+      ["Patrística", "pensamiento de los Padres de la Iglesia (siglos II–VIII)"],
+      ["Si fallor, sum", "«si me equivoco, existo»: la duda prueba la existencia"],
+      ["Iluminación", "Dios ilumina la mente para conocer verdades eternas"],
+      ["Cree para entender", "la fe es punto de partida de la razón"],
+      ["Privación de bien", "el mal no es una cosa, sino falta de bien"],
+      ["Libre albedrío", "capacidad de elegir entre el bien y el mal"],
+      ["Gracia", "ayuda gratuita de Dios a la voluntad herida"],
+      ["Dos ciudades", "ciudad de Dios y ciudad terrena, separadas por el amor"],
+      ["Historia lineal", "tiene principio, sentido y fin, no se repite"],
+      ["Distentio animi", "el tiempo se vive en el alma: memoria, atención y espera"]
+    ],
+    cita: { txt: "Nos hiciste para ti, y nuestro corazón está inquieto hasta que descanse en ti.", autor: "Agustín de Hipona", obra: "Confesiones, I, 1 (traducción habitual)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    ciudades: {
+      titulo: "¿Ciudad de Dios o ciudad terrena?",
+      consigna: "Toca cada rasgo y después la ciudad a la que corresponde.",
+      categorias: ["Ciudad de Dios", "Ciudad terrena"],
+      items: [
+        { t: "Amor a Dios hasta el desprecio de sí", c: 0 },
+        { t: "Amor a sí mismo hasta el desprecio de Dios", c: 1 },
+        { t: "Busca la paz y los bienes eternos", c: 0 },
+        { t: "Busca el poder y la gloria", c: 1 },
+        { t: "Vive según Dios", c: 0 },
+        { t: "Vive según sí mismo", c: 1 }
+      ]
+    },
+    posturas: {
+      titulo: "Ante la filosofía griega",
+      consigna: "Une cada autor con su actitud ante la filosofía pagana.",
+      pares: [["Tertuliano", "Rechazo"], ["Justino", "Aprovechamiento"], ["Agustín", "Síntesis con el platonismo"]]
+    },
+    camino: {
+      titulo: "El camino de Agustín",
+      consigna: "Ordena de más antiguo a más reciente.",
+      items: [
+        { t: "354: nace en Tagaste" },
+        { t: "386: se convierte en Milán" },
+        { t: "410: los visigodos saquean Roma" },
+        { t: "413–426: escribe La Ciudad de Dios" },
+        { t: "430: muere en Hipona" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 6",
+      preguntas: [
+        { q: "La patrística es el pensamiento de…", op: ["los Padres de la Iglesia", "los sofistas", "los escolásticos del siglo XIII", "los humanistas"], ok: 0, porque: "Del latín <i>pater</i>: los Padres de la Iglesia, siglos II–VIII." },
+        { q: "San Agustín fue obispo de…", op: ["Hipona", "Milán", "Roma", "Atenas"], ok: 0, porque: "Hipona, en el norte de África." },
+        { q: "«Si fallor, sum» significa…", op: ["si me equivoco, existo", "creo para entender", "el mal es una privación", "pienso, luego dudo"], ok: 0, porque: "Para engañarse hay que existir." },
+        { q: "Para Agustín, las Ideas de Platón están…", op: ["en la mente de Dios", "en un mundo aparte", "en la materia", "solo en el lenguaje"], ok: 0, porque: "Son los modelos eternos según los que Dios crea." },
+        { q: "La iluminación divina explica…", op: ["cómo conocemos verdades eternas", "el origen del mal", "la caída de Roma", "el paso del tiempo"], ok: 0, porque: "Dios ilumina la mente, como el sol los objetos." },
+        { q: "Para Agustín, el mal es…", op: ["privación de bien", "una sustancia creada por Dios", "un principio eterno rival de Dios", "una ilusión"], ok: 0, porque: "Es ausencia de un bien debido, como la ceguera." },
+        { q: "El mal moral procede…", op: ["del uso del libre albedrío", "de la materia", "de Dios", "del cuerpo"], ok: 0, porque: "La voluntad prefiere un bien inferior." },
+        { q: "Contra Pelagio, Agustín defiende…", op: ["la necesidad de la gracia", "que el pecado no daña a nadie", "el escepticismo", "el maniqueísmo"], ok: 0, porque: "La voluntad herida necesita la ayuda de Dios." },
+        { q: "Las dos ciudades se distinguen por…", op: ["el amor", "la raza", "la riqueza", "el territorio"], ok: 0, porque: "Amor a Dios o amor a sí mismo." },
+        { q: "La visión de la historia de Agustín es…", op: ["lineal, con sentido", "cíclica", "sin sentido", "regresiva sin fin"], ok: 0, porque: "Creación, desarrollo, Juicio Final." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre Agustín es FALSA?", op: ["Fue discípulo directo de Platón", "Vivió entre 354 y 430", "Fue obispo de Hipona", "Escribió las Confesiones"], ok: 0, porque: "Platón murió en 347 a. C.; Agustín nació más de setecientos años después." },
+        { q: "¿Cuál de estas afirmaciones sobre «cree para entender» es FALSA?", op: ["Significa que hay que creer sin pensar", "La fe es punto de partida", "La razón profundiza la fe", "Fe y razón se complementan"], ok: 0, porque: "La fe pide pensar: es un método, no una renuncia a la razón." },
+        { q: "¿Cuál de estas afirmaciones sobre el mal es FALSA?", op: ["Dios creó el mal como una sustancia", "El mal es privación de bien", "El mal moral viene del libre albedrío", "Todo lo que existe es bueno en cuanto existe"], ok: 0, porque: "Para Agustín el mal no es una sustancia ni lo crea Dios." },
+        { q: "¿Cuál de estas afirmaciones sobre las dos ciudades es FALSA?", op: ["La Ciudad de Dios es la Iglesia y la terrena el Estado", "Se distinguen por el amor", "Se mezclan en la historia", "Se separarán al final"], ok: 0, porque: "No coinciden con instituciones: las separa el amor." },
+        { q: "¿Cuál de estas afirmaciones sobre el tiempo es FALSA?", op: ["Antes de la Creación ya pasaba el tiempo", "Dios está fuera del tiempo", "El tiempo se vive en el alma", "La historia no se repite"], ok: 0, porque: "Dios crea el tiempo con el mundo: no hay un «antes»." },
+        { q: "¿Cuál de estas afirmaciones sobre «si fallor, sum» es FALSA?", op: ["Es idéntico al cogito de Descartes en su uso", "Es una respuesta al escepticismo", "Precede al «pienso, luego existo»", "Para engañarse hay que existir"], ok: 0, porque: "Es un precedente, pero Agustín lo usa contra el escepticismo y para llegar a Dios." },
+        { q: "¿Cuál de estas afirmaciones sobre las Ideas es FALSA?", op: ["Para Agustín viven en un mundo aparte", "Para Platón viven en el mundo inteligible", "Para Agustín están en la mente de Dios", "Para Agustín se conocen por iluminación"], ok: 0, porque: "Las coloca en la mente de Dios." },
+        { q: "¿Cuál de estas afirmaciones sobre la gracia es FALSA?", op: ["Agustín niega la libertad humana", "Contra Pelagio, la voluntad necesita ayuda", "La gracia es un don gratuito", "Contra los maniqueos defiende el libre albedrío"], ok: 0, porque: "No la niega: dice que está herida y necesita la gracia." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: San Agustín",
+      cartas: [
+        { a: "Patrística", b: "Pensamiento de los Padres de la Iglesia (siglos II–VIII)." },
+        { a: "Confesiones", b: "Autobiografía filosófica de Agustín (hacia 400)." },
+        { a: "Maniqueísmo", b: "Doctrina de dos principios eternos, el bien y el mal. Agustín la siguió y la abandonó." },
+        { a: "Si fallor, sum", b: "«Si me equivoco, existo»: respuesta al escepticismo." },
+        { a: "Iluminación", b: "Dios ilumina la mente para conocer las verdades eternas." },
+        { a: "Cree para entender", b: "La fe es punto de partida; la razón profundiza." },
+        { a: "Privación de bien", b: "El mal no es una cosa, sino la falta de un bien debido." },
+        { a: "Libre albedrío", b: "Capacidad de elegir; es un bien aunque pueda usarse mal." },
+        { a: "Gracia", b: "Ayuda gratuita de Dios a la voluntad herida (contra Pelagio)." },
+        { a: "La Ciudad de Dios", b: "Obra escrita entre 413 y 426 tras el saqueo de Roma (410)." },
+        { a: "Dos ciudades", b: "Ciudad de Dios y ciudad terrena, según el amor que las mueve." },
+        { a: "Historia lineal", b: "Creación, Encarnación y Juicio Final: la historia no se repite." },
+        { a: "Distentio animi", b: "El tiempo se vive en el alma: memoria, atención y espera." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("pa1", 1, "¿Dónde nació San Agustín?", ["Tagaste", "Hipona", "Milán", "Atenas"], 0,
+    ["Nació en 354 en Tagaste, en el norte de África. Hipona fue la ciudad de la que fue obispo."]);
+  O("pa2", 1, "¿Cómo se llama la obra en la que Agustín cuenta su propia vida y su búsqueda?", ["Confesiones", "La Ciudad de Dios", "República", "Ética a Nicómaco"], 0,
+    ["Las <i>Confesiones</i> (hacia 400) son su autobiografía filosófica."]);
+  O("pa3", 1, "¿En qué año saquearon Roma los visigodos, hecho que motivó <i>La Ciudad de Dios</i>?", ["410", "313", "476", "1274"], 0,
+    ["410. El 313 es el Edicto de Milán; el 476, la caída del Imperio de Occidente."]);
+  O("pa4", 1, "La palabra «patrística» viene del latín <i>pater</i>, que significa…", ["padre", "ciudad", "razón", "tiempo"], 0,
+    ["Padres de la Iglesia."]);
+  O("pa5", 1, "¿De qué ciudad fue obispo San Agustín?", ["Hipona", "Roma", "Cartago", "Alejandría"], 0,
+    ["Fue obispo de Hipona hacia el 395 y murió allí en 430."]);
+  T("pa6", 1, "Completa: «si fallor, ______» («si me equivoco, existo»).", "Palabra latina =", ["sum"],
+    ["<i>Sum</i> = «existo»."], "sum");
+  M("pa7", 1, "Empareja cada obra con su tema principal.", [
+    C("Confesiones", ["Autobiografía y búsqueda de la verdad", "Filosofía de la historia", "Lógica"], 0),
+    C("La Ciudad de Dios", ["Autobiografía y búsqueda de la verdad", "Filosofía de la historia", "Lógica"], 1)],
+    ["<i>Confesiones</i>: su vida; <i>La Ciudad de Dios</i>: el sentido de la historia."], "Confesiones–autobiografía, Ciudad de Dios–historia");
+  O("pa8", 1, "El maniqueísmo, doctrina que Agustín siguió y abandonó, defendía…", ["dos principios eternos, el bien y el mal", "un solo Dios creador", "que no existe el mal", "que todo es agua"], 0,
+    ["Explicaba el mundo como una lucha de dos principios."]);
+  T("pa9", 1, "Completa: para Agustín, el mal es una ______ de bien.", "Término =", ["privación", "privacion"],
+    ["<i>Privatio boni</i>."], "privación");
+  O("pa10", 1, "La visión de la historia que introduce el cristianismo es…", ["lineal", "cíclica", "eterna repetición", "sin sentido"], 0,
+    ["Tiene principio, desarrollo y final."]);
+  O("pa11", 1, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Platón → Agustín → Tomás de Aquino", "Agustín → Platón → Tomás de Aquino", "Tomás de Aquino → Agustín → Platón", "Platón → Tomás de Aquino → Agustín"], 0,
+    ["Platón (427–347 a. C.), Agustín (354–430), Tomás de Aquino (1225–1274)."], "Platón → Agustín → Tomás de Aquino");
+  O("pa12", 1, "¿Qué filósofo griego es la principal influencia de Agustín?", ["Platón", "Epicuro", "Demócrito", "Diógenes"], 0,
+    ["Platón y los neoplatónicos."]);
+  O("pa13", 1, "¿Qué obispo de Milán influyó en la conversión de Agustín?", ["Ambrosio", "Pelagio", "Justino", "Tertuliano"], 0,
+    ["Ambrosio de Milán."]);
+  O("pa14", 1, "La fórmula «entiende para creer, cree para entender» trata de…", ["la relación entre fe y razón", "el problema del mal", "el tiempo", "la política"], 0,
+    ["Fe y razón se necesitan."]);
+
+  // ---- nivel 2
+  V("pa15", 2, "«Para Agustín, el mal es una sustancia creada por Dios.»", false, [
+    "Es falso: el mal es privación de bien, no una sustancia", "Es falso: el mal no existe de ningún modo", "Es verdad: Dios crea todo, también el mal", "Es verdad: porque Dios es todopoderoso"], 0,
+    ["Todo lo que existe es bueno; el mal es falta."]);
+  V("pa16", 2, "«Para Agustín, fe y razón se complementan.»", true, [
+    "Es verdad: la fe orienta y la razón profundiza", "Es verdad: porque la razón es superflua", "Es verdad: porque la fe es inútil", "Es verdad: porque son enemigas"], 0,
+    ["«Entiende para creer, cree para entender»."]);
+  V("pa17", 2, "«El «si fallor, sum» de Agustín es exactamente igual, en su uso, al «pienso, luego existo» de Descartes.»", false, [
+    "Es falso: es un precedente, pero Agustín lo usa contra el escepticismo y para llegar a Dios", "Es falso: Agustín no habló de la duda", "Es verdad: Descartes lo copió palabra por palabra", "Es verdad: ambos construyen un método geométrico"], 0,
+    ["Parecido en la certeza del pensante; distinta finalidad."]);
+  V("pa18", 2, "«Para Agustín, las dos ciudades se distinguen por el amor.»", true, [
+    "Es verdad: amor a Dios frente a amor a sí mismo", "Es verdad: porque se distinguen por la riqueza", "Es verdad: porque una es Roma", "Es verdad: porque una es pagana por su territorio"], 0,
+    ["Dos amores fundaron dos ciudades."]);
+  V("pa19", 2, "«La Ciudad de Dios es la Iglesia y la ciudad terrena es el Estado.»", false, [
+    "Es falso: se distinguen por el amor, no por instituciones", "Es falso: Agustín no habla de ciudades", "Es verdad: así lo dice Agustín", "Es verdad: la Iglesia es el único poder"], 0,
+    ["En ambas instituciones hay personas de las dos ciudades."]);
+  V("pa20", 2, "«Para Agustín el libre albedrío es un bien, aunque pueda usarse mal.»", true, [
+    "Es verdad: es un don valioso que hace posible amar libremente", "Es verdad: porque no puede usarse mal", "Es verdad: porque el mal es una sustancia", "Es verdad: porque Dios no es libre"], 0,
+    ["El mal moral es un mal uso de un bien."]);
+  V("pa21", 2, "«Agustín defiende una visión cíclica del tiempo, como los griegos.»", false, [
+    "Es falso: defiende una historia lineal, con principio y fin", "Es falso: niega el tiempo", "Es verdad: todo se repite eternamente", "Es verdad: por influencia de Heráclito"], 0,
+    ["Creación, Encarnación y Juicio Final."]);
+  O("pa22", 2, "¿Qué cambia Agustín respecto a las Ideas de Platón?", ["Las sitúa en la mente de Dios", "Niega que existan verdades eternas", "Las identifica con la materia", "Las reduce a nombres"], 0,
+    ["Conserva las verdades eternas, pero las hace depender de Dios."]);
+  O("pa23", 2, "La «iluminación divina» sirve para explicar…", ["cómo conocemos verdades eternas", "el origen del mal", "por qué cae Roma", "cómo se mide la distancia"], 0,
+    ["Dios ilumina la mente, igual que el sol ilumina los objetos."]);
+  O("pa24", 2, "¿Qué consecuencia tuvo para Agustín abandonar el maniqueísmo?", ["Defender que el mal no es una sustancia", "Negar la libertad", "Aceptar dos principios", "Rechazar la filosofía"], 0,
+    ["El maniqueísmo veía el mal como principio real; Agustín lo ve como falta."]);
+  O("pa25", 2, "Según Agustín, el mal moral se hace posible por…", ["el uso del libre albedrío", "la materia", "la voluntad de Dios", "el destino ciego"], 0,
+    ["La voluntad elige un bien inferior."]);
+  O("pa26", 2, "¿Dónde se «mide» el tiempo, según las <i>Confesiones</i>?", ["En el alma (memoria, atención, espera)", "En los astros", "En la materia", "Solo en el reloj"], 0,
+    ["<i>Distentio animi</i>."]);
+  O("pa27", 2, "¿Contra quiénes escribe <i>La Ciudad de Dios</i> en primer lugar?", ["Los paganos que culpaban al cristianismo de la caída de Roma", "Los escépticos", "Los sofistas", "Los epicúreos"], 0,
+    ["Tras el saqueo de 410."]);
+  O("pa28", 2, "En la polémica con Pelagio, Agustín defiende…", ["la necesidad de la gracia", "que la voluntad basta siempre", "que no hay pecado original", "el escepticismo"], 0,
+    ["La voluntad herida necesita la gracia."]);
+  O("pa29", 2, "Tertuliano (¿qué tiene que ver Atenas con Jerusalén?) representa la actitud de…", ["rechazo de la filosofía pagana", "síntesis con el platonismo", "aprovechamiento del Logos", "escepticismo"], 0,
+    ["Frente a la síntesis de Agustín."]);
+  O("pa30", 2, "¿Cuál es el sentido de que Dios cree el tiempo con el mundo?", ["Que antes de la Creación no hay un «antes»", "Que el tiempo no existe", "Que el mundo es eterno", "Que el tiempo es circular"], 0,
+    ["Dios vive en la eternidad, sin sucesión."]);
+
+  // ---- nivel 3
+  O("pa31", 3, "Texto: «Nos hiciste para ti, y nuestro corazón está inquieto hasta que descanse en ti» (<i>Confesiones</i>, I, 1). Su idea principal es…",
+    ["que el ser humano está hecho para Dios y no encuentra reposo sin él", "que el corazón humano es feliz con los placeres", "que Dios no existe", "que el tiempo es circular"], 0,
+    ["Tema: la búsqueda de Dios como sentido de la vida."]);
+  O("pa32", 3, "Texto: «Si me engaño, existo» (<i>La Ciudad de Dios</i>, XI, 26). Su idea principal es…",
+    ["que la propia existencia es una certeza que ni el escéptico puede negar", "que todo es dudoso", "que el cuerpo es malo", "que Dios no existe"], 0,
+    ["Respuesta al escepticismo."]);
+  O("pa33", 3, "¿Por qué el «si fallor, sum» no es exactamente el «cogito» cartesiano?",
+    ["Porque Agustín lo usa contra el escepticismo para ascender a Dios, y Descartes como punto de partida de un método", "Porque Descartes lo escribió antes", "Porque Agustín no hablaba de la duda", "Porque son idénticos"], 0,
+    ["Mismo descubrimiento, distinta finalidad."]);
+  O("pa34", 3, "Una alumna escribe: «Para Agustín Dios creó el mal para poner a prueba a los hombres». ¿Qué matiz es correcto?",
+    ["El mal no es creado: es privación de bien, y el mal moral viene de la voluntad libre", "Tiene razón", "El mal lo crea la materia", "El mal es una ilusión"], 0,
+    ["Dios no crea el mal."]);
+  O("pa35", 3, "¿Qué diferencia a Agustín de Tertuliano ante la filosofía griega?",
+    ["Agustín la aprovecha y la reinterpreta (platonismo); Tertuliano la rechaza", "Agustín la rechaza", "Los dos son iguales", "Tertuliano es neoplatónico"], 0,
+    ["Síntesis frente a rechazo."]);
+  O("pa36", 3, "¿Por qué es novedosa la visión lineal del tiempo de Agustín frente a la griega?",
+    ["Porque da a la historia un principio, un sentido y un final", "Porque niega la historia", "Porque repite los ciclos", "Porque elimina a Dios"], 0,
+    ["Los griegos solían pensar en ciclos."]);
+  O("pa37", 3, "Frente a la reminiscencia platónica, Agustín explica el conocimiento de las verdades eternas mediante…",
+    ["la iluminación divina", "la experiencia sensible", "el azar", "la herencia"], 0,
+    ["Dios es el Maestro interior."]);
+  M("pa38", 3, "Empareja cada tiempo con su forma de vivirse en el alma.", [
+    C("Pasado", ["Memoria", "Atención", "Espera"], 0),
+    C("Presente", ["Memoria", "Atención", "Espera"], 1),
+    C("Futuro", ["Memoria", "Atención", "Espera"], 2)],
+    ["Memoria, atención y espera."], "Pasado–memoria, presente–atención, futuro–espera");
+  M("pa39", 3, "Empareja cada autor con su idea.", [
+    C("Platón", ["Ideas en un mundo aparte", "Ideas en la mente de Dios", "Certeza del yo como punto de partida del método"], 0),
+    C("Agustín", ["Ideas en un mundo aparte", "Ideas en la mente de Dios", "Certeza del yo como punto de partida del método"], 1),
+    C("Descartes", ["Ideas en un mundo aparte", "Ideas en la mente de Dios", "Certeza del yo como punto de partida del método"], 2)],
+    ["Platón: Ideas separadas; Agustín: en Dios; Descartes: cogito como fundamento."], "Platón–mundo aparte, Agustín–mente de Dios, Descartes–método");
+  O("pa40", 3, "¿Qué sostienen Agustín y Pelagio sobre el pecado original?",
+    ["Agustín: debilita la voluntad de todos; Pelagio: no daña la naturaleza humana", "Los dos lo niegan", "Pelagio: lo hereda todo el mundo; Agustín: no existe", "No tratan de ello"], 0,
+    ["De ahí la discusión sobre la gracia."]);
+  R("pa41", "Explica el problema del mal en San Agustín y su solución. Valórala críticamente. (Pregunta tipo PAU)", 9, [
+    { t: "Plantea el problema: Dios bueno y todopoderoso frente al mal", p: 0.3 },
+    { t: "Explica el mal como privación de bien, no como sustancia (contra el maniqueísmo)", p: 0.5 },
+    { t: "Explica el mal moral como mal uso del libre albedrío", p: 0.5 },
+    { t: "Menciona el valor de la libertad y la gracia (Pelagio)", p: 0.3 },
+    { t: "Valoración crítica (¿explica el mal físico?)", p: 0.4 }],
+    ["Planteamiento.", "Privación de bien.", "Libre albedrío.", "Libertad y gracia.", "Valoración."], "El mal es falta de bien; el mal moral nace del libre albedrío");
+  R("pa42", "Explica la relación entre fe y razón según San Agustín y sitúa su postura ante la filosofía griega. (Pregunta tipo PAU)", 8, [
+    { t: "Cita la fórmula «entiende para creer, cree para entender»", p: 0.4 },
+    { t: "Explica que la fe es punto de partida y la razón profundiza", p: 0.5 },
+    { t: "Aclara que no significa «creer sin pensar»", p: 0.3 },
+    { t: "Sitúa a Agustín entre el rechazo (Tertuliano) y la síntesis (platonismo cristiano)", p: 0.5 },
+    { t: "Relaciona con Platón o con Tomás de Aquino", p: 0.3 }],
+    ["Fórmula.", "Fe y razón.", "Aclaración.", "Posturas.", "Relación."], "La fe orienta, la razón comprende");
+  R("pa43", "Explica la teoría de las dos ciudades y la concepción de la historia de San Agustín. (Pregunta tipo PAU)", 8, [
+    { t: "Contexto: saqueo de Roma (410) y fin de la obra", p: 0.4 },
+    { t: "Dos ciudades definidas por el amor, no por instituciones", p: 0.5 },
+    { t: "Historia lineal frente a visión cíclica griega", p: 0.5 },
+    { t: "Papel del Estado: paz terrena y justicia", p: 0.3 },
+    { t: "Valoración o influencia posterior", p: 0.3 }],
+    ["Contexto.", "Dos ciudades.", "Historia lineal.", "Estado.", "Valoración."], "Dos amores, dos ciudades, una historia con sentido");
+  R("pa44", "Comenta este texto: «Dos amores fundaron, pues, dos ciudades: el amor propio hasta el desprecio de Dios, la terrena; el amor de Dios hasta el desprecio de sí, la celestial» (San Agustín, <i>La Ciudad de Dios</i>, XIV, 28; traducción habitual, abreviada). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: el origen de las dos ciudades", p: 0.3 },
+    { t: "Idea principal: el amor es el criterio que las distingue", p: 0.4 },
+    { t: "Aclara términos: amor, desprecio, ciudad (no son Iglesia y Estado)", p: 0.4 },
+    { t: "Relaciona con el autor: historia lineal, libre albedrío, amor ordenado", p: 0.5 },
+    { t: "Compara con Platón o Aristóteles", p: 0.3 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario de los dos amores");
+  R("pa45", "Explica la respuesta de Agustín al escepticismo y su teoría del conocimiento (verdad interior e iluminación), y compárala con Platón o con Descartes. (Pregunta tipo PAU)", 8, [
+    { t: "Expone el escepticismo previo y el «si fallor, sum»", p: 0.5 },
+    { t: "Explica las certezas: ser, vivir, entender", p: 0.2 },
+    { t: "Explica las Ideas en la mente de Dios y la iluminación", p: 0.5 },
+    { t: "Compara con Platón (reminiscencia) o con Descartes (cogito)", p: 0.5 },
+    { t: "Valoración", p: 0.3 }],
+    ["Escepticismo.", "Certezas.", "Iluminación.", "Comparación.", "Valoración."], "La duda prueba la existencia; la verdad está en el interior y viene de Dios");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Posturas ante la filosofía griega", ancha: true,
+      tabla: { cab: ["Autor", "Postura"], filas: [
+        ["Tertuliano", "rechazo"],
+        ["Justino", "aprovechamiento (semilla del Logos)"],
+        ["Agustín", "síntesis con el platonismo"]
+      ] } },
+    { titulo: "Platón y Agustín", ancha: true,
+      tabla: { cab: ["", "Platón", "Agustín"], filas: [
+        ["Las Ideas", "mundo inteligible aparte", "en la mente de Dios"],
+        ["Conocer", "recordar (reminiscencia)", "iluminación divina"],
+        ["Meta", "contemplar el Bien", "descansar en Dios"]
+      ] } },
+    { titulo: "El mal según Agustín", ancha: true,
+      tabla: { cab: ["Tipo", "Origen"], filas: [
+        ["Mal metafísico", "limitación de lo creado"],
+        ["Mal moral", "mal uso del libre albedrío"],
+        ["Mal en sí", "no es sustancia: privación de bien"]
+      ] } },
+    { titulo: "El tiempo en el alma",
+      pasos: ["Pasado: memoria.", "Presente: atención.", "Futuro: espera."],
+      nota: "Dios crea el tiempo con el mundo y vive en la eternidad." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "«Cree para entender» es creer sin pensar", bien: "La fe es punto de partida y pide pensar", por: "Fe y razón se complementan." },
+        { mal: "Dios creó el mal", bien: "El mal es privación de bien", por: "El mal moral viene del libre albedrío." },
+        { mal: "Ciudad de Dios = Iglesia", bien: "Se distinguen por el amor", por: "Hay personas de ambas ciudades en todas partes." },
+        { mal: "Si fallor, sum es igual al cogito", bien: "Es un precedente con otro uso", por: "Agustín va hacia Dios; Descartes, al método." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t6", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf6a.secciones,
+    nuevas: B.parte.hf6a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Matemáticas I · ampliaciones · Tema 1: Números reales
    Lo original de pagina.html no se toca: esto se añade al final de cada
    sección, como secciones nuevas, ejercicios nuevos y bloques de lámina.
