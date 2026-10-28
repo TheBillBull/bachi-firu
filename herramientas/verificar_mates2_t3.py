@@ -16,7 +16,12 @@ import sympy as sp
 from sympy import Matrix as M, Rational as R, symbols, eye
 
 datos = json.load(open(sys.argv[1]))
-sim = json.load(open(sys.argv[2]))
+# El volcado de los simuladores se genera aquí si no se pasa (así funciona también desde comprobar_todo.sh,
+# que pasa otro JSON como segundo argumento).
+import os, subprocess
+_raiz = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+sim = json.loads(subprocess.run(['node', os.path.join(_raiz, 'herramientas', 'volcar_mates2_t3.js')],
+                                capture_output=True, text=True, check=True, cwd=_raiz).stdout)
 T3 = datos['ampl']['mates2']['t3']
 ej = {e['id']: e for e in T3['ejercicios']}
 ok = 0
