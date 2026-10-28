@@ -112,6 +112,8 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t1 presocráticos + componente vista rápida (44 ej., 188 comprob.) | ≈170k tras el corte + parte previa (cortada por límite de uso) | |
 | Filosofía t2 sofistas y Sócrates (45 ej., 196 comprob.) | ≈159k | |
 | Filosofía t3 Platón (44 ej., 184 comprob.) | ≈139k | |
+| Filosofía t4 Aristóteles (44 ej., 231 comprob.) | ≈161k | |
+| Filosofía t5 helenismo (42 ej., 193 comprob.) | ≈149k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -181,3 +183,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 
 - 28-oct 23:20 UTC: Filosofía t1 fusionado (componente `vistazo` en lab_0vistazo.js, API en GUIA_TEMA «Vista rápida»). Lanzados t2 y t3.
 - 28-oct: Filosofía t2 y t3 fusionados. Lanzados t4 y t5.
+- 28/29-oct: Filosofía t4 y t5 fusionados. Lanzados t6 y t7. Pendiente cotejar con edición los fragmentos citados de memoria (Epicuro, Epicteto).
