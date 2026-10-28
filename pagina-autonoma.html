@@ -18491,6 +18491,407 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 9: Química de los compuestos del carbono
+   Seis simuladores (el resto del tema reutiliza los de FyQ I: q7_constructor, q7_nombrar, q7_reto, q7_quiral, q7_isomeria,
+   q7_insaturacion, q7_serie y q4_empirica):
+   q2t9_prioridad (¿qué grupo da el sufijo?) · q2t9_nombre (nombra: éster, amida, nitrilo, éter, halogenados…)
+   q2t9_hibrida (hibridación de cada carbono) · q2t9_cistrans (¿existe isomería geométrica?)
+   q2t9_espejo (carbono quiral: imagen especular, giro y superposición) · q2t9_fuerzas (fuerzas intermoleculares y punto de ebullición)
+   Se apoyan en el motor B.lab.org de FyQ I (grafo SMILES y dibujo).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  B.lab = B.lab || {};
+  var Q = B.lab.q9 = {};
+
+  function azar(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function mezcla(a) { var b = a.slice(), i, j, t; for (i = b.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+  function O() { return B.lab.org; }
+  function d1(x) { return (Math.round(x * 10) / 10).toFixed(1).replace(".", ",").replace("-", "−"); }
+
+  function estilo() {
+    if (document.getElementById("q9-css")) return;
+    var s = document.createElement("style"); s.id = "q9-css";
+    s.textContent =
+      ".q9-esc { display: grid; gap: 4px; margin: 8px 0 2px; }" +
+      ".q9-esc div { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center; padding: 3px 8px; border: 1.5px solid var(--line); border-radius: 8px; font: 500 13.5px var(--body); color: var(--ink-soft); background: var(--sheet-2); }" +
+      ".q9-esc div b { font: 700 13px var(--math); color: var(--ink-faint); }" +
+      ".q9-esc div.hay { color: var(--ink); border-color: var(--pen); }" +
+      ".q9-esc div.hay b { color: var(--pen); }" +
+      ".q9-esc div.mand { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--sheet)); color: var(--ink); }" +
+      ".q9-esc div.mand b { color: var(--ok); }" +
+      ".q9-sel { display: inline-flex; align-items: center; gap: 5px; font: 600 13px var(--body); color: var(--ink-soft); }" +
+      ".q9-sel select { font: 500 15px var(--body); color: var(--ink); background: var(--sheet); border: 1.5px solid var(--line); border-radius: 8px; padding: 4px 6px; }" +
+      ".q9-sels { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 6px 0; }" +
+      ".q9-barras { margin: 8px 0 0; display: grid; gap: 5px; }" +
+      ".q9-fila { display: grid; grid-template-columns: minmax(96px, 150px) 1fr 62px; align-items: center; gap: 8px; padding: 2px 4px; border-radius: 8px; border: 1.5px solid transparent; font: 600 13.5px var(--body); cursor: pointer; background: none; color: var(--ink); text-align: left; }" +
+      ".q9-fila.sel { border-color: var(--pen); background: var(--sheet-2); }" +
+      ".q9-fila .q9-pista { display: block; height: 18px; border-radius: 5px; min-width: 3px; }" +
+      ".q9-fila .q9-t { text-align: right; font-family: var(--math); }" +
+      ".q9-L { background: var(--ink-faint); } .q9-D { background: var(--ok); } .q9-H { background: var(--red); }" +
+      ".q9-leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 500 12.5px var(--body); color: var(--ink-soft); margin: 6px 0 0; }" +
+      ".q9-leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }" +
+      "@media (max-width: 560px) { .q9-fila { grid-template-columns: 88px 1fr 54px; font-size: 12.5px; } }";
+    document.head.appendChild(s);
+  }
+
+  // ------------------------------------------------------------------------------------------------
+  // Banco de moléculas (SMILES simplificado de B.lab.org). grupos: el primero es el principal (el que da el sufijo).
+  // ------------------------------------------------------------------------------------------------
+  var ESCALA = ["ácido carboxílico", "éster", "amida", "nitrilo", "aldehído", "cetona", "alcohol", "amina"];
+  var SUF = { "ácido carboxílico": "ácido …oico", "éster": "…oato de …ilo", "amida": "…amida", "nitrilo": "…nitrilo", "aldehído": "…al", "cetona": "…ona", "alcohol": "…ol", "amina": "…amina" };
+  Q.ESCALA = ESCALA;
+  Q.MOLS = [
+    { s: "CC(O)CC(=O)O", n: "ácido 3-hidroxibutanoico", g: ["ácido carboxílico", "alcohol"], d: ["ácido 2-hidroxibutanoico", "3-carboxibutan-2-ol", "ácido 1-hidroxibutan-3-oico"] },
+    { s: "CC(=O)CC(=O)O", n: "ácido 3-oxobutanoico", g: ["ácido carboxílico", "cetona"], d: ["ácido 2-oxobutanoico", "3-carboxibutan-2-ona", "ácido butan-3-ona-oico"] },
+    { s: "OCCC=O", n: "3-hidroxipropanal", g: ["aldehído", "alcohol"], d: ["1-hidroxipropan-3-al", "3-oxopropan-1-ol", "3-hidroxipropanona"] },
+    { s: "CC(=O)CCO", n: "4-hidroxibutan-2-ona", g: ["cetona", "alcohol"], d: ["1-hidroxibutan-3-ona", "3-oxobutan-1-ol", "4-hidroxibutanal"] },
+    { s: "CC(N)CO", n: "2-aminopropan-1-ol", g: ["alcohol", "amina"], d: ["1-aminopropan-2-ol", "1-hidroxipropan-2-amina", "3-aminopropan-2-ol"] },
+    { s: "NCCC(=O)O", n: "ácido 3-aminopropanoico", g: ["ácido carboxílico", "amina"], d: ["ácido 2-aminopropanoico", "ácido 1-aminopropan-3-oico", "3-aminopropan-1-ol"] },
+    { s: "N#CCCC(=O)O", n: "ácido 3-cianopropanoico", g: ["ácido carboxílico", "nitrilo"], d: ["ácido 4-cianobutanoico", "3-carboxipropanonitrilo", "ácido 2-cianopropanoico"] },
+    { s: "C=CCO", n: "prop-2-en-1-ol", g: ["alcohol", "doble enlace"], d: ["prop-1-en-3-ol", "3-hidroxipropeno", "prop-2-en-1-al"] },
+    { s: "C=CC(=O)C", n: "but-3-en-2-ona", g: ["cetona", "doble enlace"], d: ["but-1-en-3-ona", "3-oxobut-1-eno", "but-3-en-2-ol"] },
+    { s: "OCC(=O)C", n: "1-hidroxipropan-2-ona", g: ["cetona", "alcohol"], d: ["3-hidroxipropan-2-ona", "2-oxopropan-1-ol", "1-hidroxipropanal"] },
+    { s: "CC(O)C(=O)C", n: "3-hidroxibutan-2-ona", g: ["cetona", "alcohol"], d: ["2-hidroxibutan-3-ona", "2-oxobutan-3-ol", "3-hidroxibutanal"] },
+    { s: "CC(N)C(=O)O", n: "ácido 2-aminopropanoico", g: ["ácido carboxílico", "amina"], d: ["ácido 3-aminopropanoico", "ácido 1-aminopropanoico", "2-aminopropan-1-ol"] },
+    { s: "CC(C)C(O)CC=O", n: "3-hidroxi-4-metilpentanal", g: ["aldehído", "alcohol"], d: ["3-hidroxi-2-metilpentanal", "4-metil-3-hidroxipentanal", "4-hidroxi-3-metilpentanal"] },
+    { s: "CC(=O)OCC", n: "etanoato de etilo", g: ["éster"], d: ["propanoato de metilo", "etanoato de metilo", "ácido butanoico"] },
+    { s: "CCC(=O)OC", n: "propanoato de metilo", g: ["éster"], d: ["metanoato de propilo", "etanoato de etilo", "butanoato de metilo"] },
+    { s: "CC(=O)OC", n: "etanoato de metilo", g: ["éster"], d: ["metanoato de etilo", "etanoato de etilo", "propanoato de metilo"] },
+    { s: "CCCC(=O)OCC", n: "butanoato de etilo", g: ["éster"], d: ["etanoato de butilo", "propanoato de etilo", "butanoato de metilo"] },
+    { s: "CC(=O)N", n: "etanamida", g: ["amida"], d: ["etanamina", "metanamida", "etanonitrilo"] },
+    { s: "CCC(=O)N", n: "propanamida", g: ["amida"], d: ["propan-1-amina", "etanamida", "propanonitrilo"] },
+    { s: "CC(C)C(N)=O", n: "2-metilpropanamida", g: ["amida"], d: ["3-metilpropanamida", "butanamida", "N-metilpropanamida"] },
+    { s: "CC#N", n: "etanonitrilo", g: ["nitrilo"], d: ["metanonitrilo", "etanamida", "etanamina"] },
+    { s: "CC(C)C#N", n: "2-metilpropanonitrilo", g: ["nitrilo"], d: ["3-metilpropanonitrilo", "butanonitrilo", "2-cianopropano"] },
+    { s: "CCOCC", n: "etoxietano", g: ["éter"], d: ["metoxipropano", "etoxipropano", "butan-1-ol"] },
+    { s: "COCC", n: "metoxietano", g: ["éter"], d: ["etoximetano", "metoxipropano", "etanol"] },
+    { s: "CC(Cl)C", n: "2-cloropropano", g: ["derivado halogenado"], d: ["1-cloropropano", "2-clorobutano", "propan-2-cloro"] },
+    { s: "CCC(C)Br", n: "2-bromobutano", g: ["derivado halogenado"], d: ["3-bromobutano", "1-bromobutano", "2-bromo-2-metilpropano"] },
+    { s: "C=CCCl", n: "3-cloroprop-1-eno", g: ["derivado halogenado", "doble enlace"], d: ["1-cloroprop-2-eno", "2-cloroprop-1-eno", "1-cloropropano"] },
+    { s: "OC(=O)CC(=O)O", n: "ácido propanodioico", g: ["ácido carboxílico"], d: ["ácido etanodioico", "ácido butanodioico", "ácido propan-1,3-dioico"] },
+    { s: "CC(O)CO", n: "propano-1,2-diol", g: ["alcohol"], d: ["propan-1,2-diol", "propano-1,2-ol", "propano-2,3-diol"] },
+    { s: "CCNC", n: "N-metiletanamina", g: ["amina"], d: ["N-etilmetanamina", "N-metilpropanamina", "etanamida"] }
+  ];
+
+  function famDe(s) { return s; }
+  // todas las moléculas con al menos dos funciones distintas (para el juego de prioridad)
+  function poli() { return Q.MOLS.filter(function (m) { return m.g.length >= 2 && m.g[0] !== m.g[1]; }); }
+
+  function dibujaMol(cuerpo, spec, etq) {
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -2, xmax: 6, ymin: -2.2, ymax: 2.6, w: 560, h: 210, limpio: true, etiqueta: etq || "Molécula" });
+    return g;
+  }
+
+  // ================================================================
+  //  q2t9_prioridad: elige el grupo que manda
+  // ================================================================
+  B.w.q2t9_prioridad = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Entrénate", "¿Qué grupo funcional da el sufijo?");
+    cuerpo.innerHTML = '<div class="w-plot"></div><div class="q7-cond lectura anch"></div><p class="w-pie q9-pregunta"></p><div class="q7-ops" data-ops></div><p class="q7-res" aria-live="polite"></p><div class="q9-esc" data-esc></div><div class="ctl q7-acc"></div>';
+    var g = dibujaMol(cuerpo), ops = cuerpo.querySelector("[data-ops]"), res = cuerpo.querySelector(".q7-res"), cond = cuerpo.querySelector(".q7-cond"), esc = cuerpo.querySelector("[data-esc]"), preg = cuerpo.querySelector(".q9-pregunta");
+    var st = { m: null, hecho: false, ok: 0, total: 0 }, banco = poli();
+    function pintaEscala(marca, mand) {
+      esc.innerHTML = ESCALA.map(function (f, i) { return '<div class="' + (f === mand ? "mand" : marca.indexOf(f) >= 0 ? "hay" : "") + '"><b>' + (i + 1) + "</b><span>" + f + (f === mand ? " ← manda: sufijo " + SUF[f] : marca.indexOf(f) >= 0 ? " (prefijo)" : "") + "</span></div>"; }).join("");
+    }
+    function nuevo() {
+      var x = azar(banco), G = O().grafoDeSmiles(x.s);
+      st.m = x; st.hecho = false; res.className = "q7-res"; res.textContent = "";
+      O().dibujaGrafo(g, G, { min: 1.7 });
+      cond.innerHTML = U.lec("Fórmula molecular", B.lab.org.formulaMolecular(O().cuentaGrafo(G)), "pen");
+      preg.textContent = "Esta molécula tiene más de un grupo. Toca el que, según la escala de prioridad, se nombra como sufijo.";
+      var lista = mezcla(x.g.slice());
+      ops.innerHTML = lista.map(function (t) { return '<button type="button" class="chip-btn q7-op" data-t="' + t + '">' + t + "</button>"; }).join("");
+      pintaEscala([], "");
+    }
+    ops.addEventListener("click", function (e) {
+      var b = e.target.closest(".q7-op"); if (!b || st.hecho) return;
+      var ok = b.getAttribute("data-t") === st.m.g[0]; st.total++; if (ok) st.ok++; st.hecho = true;
+      b.classList.add(ok ? "bien" : "mal");
+      Array.prototype.forEach.call(ops.querySelectorAll(".q7-op"), function (x) { if (x.getAttribute("data-t") === st.m.g[0]) x.classList.add("bien"); });
+      res.className = "q7-res " + (ok ? "ok" : "mal");
+      res.innerHTML = (ok ? "<b>✓ Correcto.</b> " : "<b>✗ No.</b> ") + "Es <b>" + st.m.n + "</b>: manda el grupo «" + st.m.g[0] + "» y los demás pasan a prefijo. Llevas " + st.ok + " de " + st.total + ".";
+      pintaEscala(st.m.g, st.m.g[0]);
+    });
+    U.boton(cuerpo.querySelector(".q7-acc"), "Siguiente molécula", nuevo, "btn-comprobar");
+    nuevo();
+  };
+
+  // ================================================================
+  //  q2t9_nombre: nombra moléculas con todas las funciones
+  // ================================================================
+  B.w.q2t9_nombre = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Entrénate", "Nombra la molécula");
+    cuerpo.innerHTML = '<div class="w-plot"></div><div class="q7-cond lectura anch"></div><div class="q7-ops" data-ops></div><p class="q7-res" aria-live="polite"></p><div class="ctl q7-acc"></div><p class="w-pie">Pasos: 1) localiza el grupo de mayor prioridad; 2) cadena más larga que lo contiene; 3) numera para dar al grupo el localizador más bajo; 4) prefijos por orden alfabético.</p>';
+    var g = dibujaMol(cuerpo), ops = cuerpo.querySelector("[data-ops]"), res = cuerpo.querySelector(".q7-res"), cond = cuerpo.querySelector(".q7-cond");
+    var st = { m: null, hecho: false, ok: 0, total: 0 };
+    function nuevo() {
+      var x = azar(Q.MOLS), G = O().grafoDeSmiles(x.s);
+      st.m = x; st.hecho = false; res.className = "q7-res"; res.textContent = "";
+      O().dibujaGrafo(g, G, { min: 1.7 });
+      cond.innerHTML = U.lec("Fórmula molecular", O().formulaMolecular(O().cuentaGrafo(G)), "pen") + U.lec("Familia", x.g[0] === "doble enlace" ? "alqueno" : x.g[0], "");
+      var lista = mezcla(x.d.slice(0, 3).concat([x.n]));
+      ops.innerHTML = lista.map(function (t) { return '<button type="button" class="chip-btn q7-op" data-t="' + t + '">' + t + "</button>"; }).join("");
+    }
+    ops.addEventListener("click", function (e) {
+      var b = e.target.closest(".q7-op"); if (!b || st.hecho) return;
+      var ok = b.getAttribute("data-t") === st.m.n; st.total++; if (ok) st.ok++; st.hecho = true;
+      b.classList.add(ok ? "bien" : "mal");
+      Array.prototype.forEach.call(ops.querySelectorAll(".q7-op"), function (x) { if (x.getAttribute("data-t") === st.m.n) x.classList.add("bien"); });
+      res.className = "q7-res " + (ok ? "ok" : "mal");
+      res.innerHTML = (ok ? "<b>✓ Correcto.</b> " : "<b>✗ No.</b> ") + "Es <b>" + st.m.n + "</b>. Llevas " + st.ok + " de " + st.total + ".";
+    });
+    U.boton(cuerpo.querySelector(".q7-acc"), "Siguiente molécula", nuevo, "btn-comprobar");
+    nuevo();
+  };
+
+  // ================================================================
+  //  q2t9_hibrida: hibridación de cada carbono
+  // ================================================================
+  Q.HIB = [
+    { t: "etano", s: "CC", nota: "Cada C tiene 4 enlaces σ: tetraédrico, 109,5°. Rotación libre." },
+    { t: "eteno", s: "C=C", nota: "Cada C: 3 σ + 1 π. Molécula plana, 120°. El π impide girar." },
+    { t: "etino", s: "C#C", nota: "Cada C: 2 σ + 2 π. Lineal, 180°." },
+    { t: "propeno", s: "C=CC", nota: "Los dos C del doble enlace son sp²; el CH₃ es sp³." },
+    { t: "propino", s: "CC#C", nota: "Los C del triple enlace son sp; el CH₃, sp³." },
+    { t: "propadieno", s: "C=C=C", nota: "El C central, con dos dobles enlaces, es sp (lineal); los extremos, sp²." },
+    { t: "but-1-en-3-ino", s: "C=CC#C", nota: "Mezcla de las tres: =CH₂ y =CH– (sp²), –C≡CH (sp)." },
+    { t: "propanal", s: "CCC=O", nota: "El C del grupo C=O es sp² (plano, 120°): igual que en un alqueno." },
+    { t: "propanona", s: "CC(=O)C", nota: "El C del carbonilo es sp²; los dos CH₃ son sp³." },
+    { t: "ácido etanoico", s: "CC(=O)O", nota: "El C del –COOH es sp² (3 σ + 1 π); el CH₃, sp³." },
+    { t: "etanonitrilo", s: "CC#N", nota: "El C del –C≡N es sp (lineal); el CH₃, sp³." },
+    { t: "but-2-eno", s: "CC=CC", nota: "Dos C sp² en el doble enlace y dos CH₃ sp³." }
+  ];
+  Q.hibDe = function (G) {
+    // devuelve para cada átomo C: { sigma, pi, h: "sp3"|"sp2"|"sp" }
+    var ord = G.a.map(function () { return []; });
+    G.b.forEach(function (e) { ord[e.i].push(e.o); ord[e.j].push(e.o); });
+    return G.a.map(function (at, i) {
+      if (at.e !== "C") return null;
+      var vecinos = ord[i].length + at.h, pi = ord[i].reduce(function (s, o) { return s + (o - 1); }, 0);
+      return { sigma: vecinos, pi: pi, h: vecinos === 4 ? "sp3" : vecinos === 3 ? "sp2" : "sp" };
+    });
+  };
+  var HNOM = { sp3: "sp³", sp2: "sp²", sp: "sp" }, HCLS = { sp3: "c-pen", sp2: "c-ok", sp: "c-red" }, HTXT = { sp3: "pen", sp2: "ok", sp: "red" };
+  var HANG = { sp3: "109,5°", sp2: "120°", sp: "180°" }, HGEO = { sp3: "tetraédrica", sp2: "plana triangular", sp: "lineal" };
+  B.w.q2t9_hibrida = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Hibridación de cada carbono");
+    cuerpo.innerHTML = '<div data-mol class="chips"></div><div class="w-plot"></div><div class="lectura anch"></div><div class="ctl q7-acc"></div><p class="w-pie"></p>';
+    var st = { k: 0, ver: false }, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), boton;
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -2, xmax: 6, ymin: -2.2, ymax: 2.6, w: 560, h: 210, limpio: true, etiqueta: "Molécula con cada carbono coloreado según su hibridación" });
+    function pinta() {
+      var x = Q.HIB[st.k], G = O().grafoDeSmiles(x.s), H = Q.hibDe(G), cuenta = { sp3: 0, sp2: 0, sp: 0 }, sig = 0, pi = 0;
+      O().dibujaGrafo(g, G, { min: 1.7 });
+      G.b.forEach(function (e) { sig += 1; pi += e.o - 1; });
+      G.a.forEach(function (at) { sig += at.h; });
+      H.forEach(function (h, i) {
+        if (!h) return;
+        cuenta[h.h]++;
+        if (st.ver) { g.punto(G.a[i].x, G.a[i].y, { r: 14, clase: HCLS[h.h] }).setAttribute("fill-opacity", "0.22"); g.texto(G.a[i].x, G.a[i].y, HNOM[h.h], { ancla: "middle", dy: -19, clase: HTXT[h.h] }); }
+        else g.punto(G.a[i].x, G.a[i].y, { r: 14, clase: "c-faint" }).setAttribute("fill-opacity", "0.15");
+      });
+      var fm = O().formulaMolecular(O().cuentaGrafo(G));
+      lectura.innerHTML = U.lec("Molécula", "<span class='q7-nombre'>" + x.t + "</span> · " + fm, "ok ancho") +
+        U.lec("Enlaces σ · π", sig + " σ · " + pi + " π", "pen") +
+        (st.ver ? U.lec("Carbonos sp³ / sp² / sp", cuenta.sp3 + " / " + cuenta.sp2 + " / " + cuenta.sp, "") : U.lec("Carbonos", H.filter(Boolean).length, ""));
+      pie.innerHTML = st.ver ? x.nota + " <b>Regla:</b> cuenta los átomos unidos al C (con los H): 4 → sp³ · 3 → sp² · 2 → sp." : "Antes de mirar: ¿cuántos átomos rodean a cada carbono? 4 → sp³, 3 → sp², 2 → sp. Pulsa «Mostrar hibridación» para comprobarlo.";
+      if (boton) boton.textContent = st.ver ? "Ocultar hibridación" : "Mostrar hibridación";
+    }
+    U.fichas(cuerpo.querySelector("[data-mol]"), Q.HIB.map(function (m, i) { return { k: String(i), t: m.t }; }), "0", function (k) { st.k = +k; st.ver = false; pinta(); });
+    boton = U.boton(cuerpo.querySelector(".q7-acc"), "Mostrar hibridación", function () { st.ver = !st.ver; pinta(); }, "btn-comprobar");
+    pinta();
+  };
+
+  // ================================================================
+  //  q2t9_cistrans: ¿cuándo hay isomería geométrica?
+  // ================================================================
+  var SUS = { H: { t: "H", c: "faint" }, CH3: { t: "CH₃", c: "pen" }, Cl: { t: "Cl", c: "ok" }, Br: { t: "Br", c: "red" }, OH: { t: "OH", c: "red" } };
+  var SUS_ORD = ["H", "CH3", "Cl", "Br", "OH"];
+  Q.CT = [
+    { t: "but-2-eno", v: ["H", "CH3", "H", "CH3"], nota: "cis-but-2-eno: Teb 3,7 °C · trans-but-2-eno: 0,9 °C." },
+    { t: "propeno", v: ["H", "H", "H", "CH3"], nota: "CH₂=CH–CH₃: el C1 lleva dos H iguales, así que no hay isomería cis-trans." },
+    { t: "1,2-dicloroeteno", v: ["H", "Cl", "H", "Cl"], nota: "cis: Teb 60,3 °C (polar, μ ≠ 0) · trans: 47,5 °C (apolar, los dipolos se anulan)." },
+    { t: "1,1-dicloroeteno", v: ["Cl", "Cl", "H", "H"], nota: "Dos Cl en el mismo carbono: no hay isomería geométrica." },
+    { t: "1-bromo-1-cloroeteno", v: ["Br", "Cl", "H", "H"], nota: "El C1 tiene Br y Cl (distintos) pero el C2 tiene dos H: no existe cis-trans." },
+    { t: "1-bromo-2-cloroeteno", v: ["H", "Br", "H", "Cl"], nota: "Los dos carbonos tienen dos grupos distintos: existen dos isómeros (se nombran con Z/E)." },
+    { t: "2-metilbut-2-eno", v: ["CH3", "CH3", "H", "CH3"], nota: "El C2 lleva dos CH₃ iguales: no hay isomería geométrica." }
+  ];
+  Q.hayCT = function (v) { return v[0] !== v[1] && v[2] !== v[3]; };
+  B.w.q2t9_cistrans = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "¿Existe isomería cis-trans?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="q9-sels" data-sels></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { v: Q.CT[0].v.slice(), pre: 0 }, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sels = cuerpo.querySelector("[data-sels]"), selects = [];
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -6, xmax: 6, ymin: -2.4, ymax: 2.4, w: 600, h: 240, limpio: true, etiqueta: "Los dos isómeros posibles del alqueno" });
+    g.rangoIso(0, 0.1, 2.4);
+    var ETQ = ["C2 arriba", "C2 abajo", "C3 arriba", "C3 abajo"];
+    ETQ.forEach(function (e, i) {
+      var l = document.createElement("label"); l.className = "q9-sel";
+      l.innerHTML = e + '<select aria-label="' + e + '">' + SUS_ORD.map(function (k) { return '<option value="' + k + '">' + SUS[k].t + "</option>"; }).join("") + "</select>";
+      sels.appendChild(l); var s = l.querySelector("select"); selects.push(s);
+      s.value = st.v[i];
+      s.addEventListener("change", function () { st.v[i] = s.value; st.pre = -1; Array.prototype.forEach.call(cuerpo.querySelectorAll("[data-pre] .chip-btn"), function (c) { c.classList.remove("on"); }); pinta(); });
+    });
+    function molecula(cx, v, rot) {
+      // v = [a(arriba izq), b(abajo izq), c(arriba der), d(abajo der)]
+      var L = 0.7, dx = 0.62, dy = 1.0, x1 = cx - L, x2 = cx + L;
+      [-0.09, 0.09].forEach(function (o) { g.segmento(x1, o, x2, o, { clase: "c-ink" }).setAttribute("stroke-width", 2.4); });
+      g.texto(x1, 0, "C", { ancla: "end", dx: -6, dy: 5, clase: "faint" }); g.texto(x2, 0, "C", { ancla: "start", dx: 6, dy: 5, clase: "faint" });
+      var pos = [[x1 - dx, dy, v[0]], [x1 - dx, -dy, v[1]], [x2 + dx, dy, v[2]], [x2 + dx, -dy, v[3]]];
+      pos.forEach(function (p, i) {
+        var xo = i < 2 ? x1 : x2, yo = 0, ux = p[0] - xo, uy = p[1] - yo, ln = Math.hypot(ux, uy);
+        g.segmento(xo + ux / ln * 0.12, yo + uy / ln * 0.12, p[0] - ux / ln * 0.3, p[1] - uy / ln * 0.3, { clase: "c-ink" }).setAttribute("stroke-width", 2.2);
+        g.texto(p[0], p[1], SUS[p[2]].t, { ancla: "middle", dy: p[1] > 0 ? 0 : 12, clase: SUS[p[2]].c });
+      });
+    }
+    function pinta() {
+      var v = st.v, hay = Q.hayCT(v), w2 = [v[0], v[1], v[3], v[2]];
+      g.limpiar(); g.rangoIso(0, 0.1, 2.4);
+      if (hay) {
+        molecula(-3.1, v); molecula(3.1, w2);
+        g.segmento(0, -2.1, 0, 2.1, { clase: "c-faint", dash: "4 4" });
+      } else molecula(0, v);
+      // nombres cis/trans si hay un grupo repetido en ambos carbonos
+      var etq1 = "", etq2 = "", compartido = null;
+      if (hay) {
+        [v[0], v[1]].forEach(function (a) { if ((a === v[2] || a === v[3]) && (compartido === null || (compartido === "H" && a !== "H"))) compartido = a; });
+        if (compartido !== null) {
+          var ia = v[0] === compartido ? 0 : 1, ic = v[2] === compartido ? 0 : 1;
+          etq1 = ia === ic ? "cis" : "trans"; etq2 = ia === ic ? "trans" : "cis";
+          g.texto(-3.1, -2.0, etq1, { ancla: "middle", clase: "pen" }); g.texto(3.1, -2.0, etq2, { ancla: "middle", clase: "pen" });
+        }
+      }
+      var razon = hay ? "sí: cada carbono del doble enlace tiene dos grupos distintos" : (v[0] === v[1] ? "no: el C2 tiene dos grupos iguales (" + SUS[v[0]].t + " y " + SUS[v[1]].t + ")" : "no: el C3 tiene dos grupos iguales (" + SUS[v[2]].t + " y " + SUS[v[3]].t + ")");
+      lectura.innerHTML = U.lec("¿Isomería geométrica?", razon, hay ? "ok ancho" : "red ancho") +
+        U.lec("Isómeros", hay ? "2" + (etq1 ? " · " + etq1 + " y " + etq2 : " · se nombran con Z/E") : "1", "pen");
+      pie.innerHTML = st.pre >= 0 ? Q.CT[st.pre].nota : "Condición: <b>cada</b> carbono del doble enlace debe llevar dos sustituyentes <b>distintos</b>. Si uno de los dos carbonos repite el sustituyente, el intercambio no da una molécula nueva.";
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), Q.CT.map(function (m, i) { return { k: String(i), t: m.t }; }), "0", function (k) {
+      st.pre = +k; st.v = Q.CT[st.pre].v.slice(); selects.forEach(function (s, i) { s.value = st.v[i]; }); pinta();
+    });
+    pinta();
+  };
+
+  // ================================================================
+  //  q2t9_espejo: carbono quiral, imagen especular y superposición
+  // ================================================================
+  var POS = [[-1, 1, 0], [1, 1, 0], [1, -1, 1], [-1, -1, -1]];     // arriba-izq, arriba-dcha, abajo-dcha (cuña), abajo-izq (línea discontinua)
+  Q.ESP = [
+    { t: "CHFClBr", g: ["H", "F", "Cl", "Br"], nota: "Cuatro grupos distintos: el C es quiral y existen dos enantiómeros." },
+    { t: "ácido láctico", g: ["H", "OH", "CH₃", "COOH"], nota: "El ácido 2-hidroxipropanoico: C2 con H, OH, CH₃ y COOH. El del músculo cansado es el enantiómero L-(+)." },
+    { t: "alanina", g: ["H", "NH₂", "CH₃", "COOH"], nota: "Los aminoácidos naturales (salvo la glicina) son quirales; en las proteínas solo aparece el enantiómero L." },
+    { t: "butan-2-ol", g: ["H", "OH", "CH₃", "CH₂CH₃"], nota: "C2 con H, OH, CH₃ y etilo: quiral. Los dos enantiómeros tienen el mismo punto de ebullición (99,5 °C)." },
+    { t: "CH₂ClBr", g: ["H", "H", "Cl", "Br"], nota: "Dos H iguales: el carbono NO es quiral. La imagen en el espejo es la misma molécula." }
+  ];
+  function det3(a, b, c) { return a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0]); }
+  Q.quiralidad = function (pos) {      // pos[i] = coordenadas del grupo i; signo del triple producto (a−d, b−d, c−d)
+    var d = pos[3], f = function (p) { return [p[0] - d[0], p[1] - d[1], p[2] - d[2]]; };
+    return det3(f(pos[0]), f(pos[1]), f(pos[2])) > 0 ? 1 : -1;
+  };
+  B.w.q2t9_espejo = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Imagen en el espejo: ¿se pueden superponer?");
+    cuerpo.innerHTML = '<div data-mol class="chips"></div><div class="w-plot"></div><div class="lectura anch"></div><div class="ctl q7-acc"></div><p class="w-pie"></p>';
+    var st = { k: 0, giro: false, canje: false }, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), acc = cuerpo.querySelector(".q7-acc");
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -6, xmax: 6, ymin: -2.4, ymax: 2.4, w: 600, h: 240, limpio: true, etiqueta: "Molécula A, espejo y molécula B" });
+    function molecula(cx, pos, nombres, rotulo) {
+      var orden = [0, 1, 3, 2];          // primero las que van al fondo, la cuña al final
+      orden.forEach(function (i) {
+        var p = pos[i], px = cx + p[0] * 0.95, py = p[1] * 0.85, z = p[2], ux = px - cx, uy = py, ln = Math.hypot(ux, uy), ex = px - ux / ln * 0.42, ey = py - uy / ln * 0.42, sx = cx + ux / ln * 0.1, sy = uy / ln * 0.1, s;
+        if (z > 0) {         // cuña: triángulo lleno que se ensancha hacia el observador
+          var nx = -uy / ln * 0.17, ny = ux / ln * 0.17;
+          s = g.poligono([[sx, sy], [ex + nx, ey + ny], [ex - nx, ey - ny]], { clase: "z-pen" }); s.style.fill = "var(--ink)"; s.style.stroke = "var(--ink)"; s.style.fillOpacity = "1";
+        } else {
+          s = g.segmento(sx, sy, ex, ey, { clase: "c-ink" }); s.setAttribute("stroke-width", 2.4);
+          if (z < 0) s.setAttribute("stroke-dasharray", "3 3");
+        }
+        g.texto(px, py, nombres[i], { ancla: "middle", dy: py > 0 ? 0 : 12, clase: nombres[i] === "H" ? "faint" : "pen" });
+      });
+      g.texto(cx, 0, "C", { ancla: "middle", dy: 5, clase: "red" });
+      g.texto(cx, -2.2, rotulo, { ancla: "middle", clase: "faint" });
+    }
+    function pinta() {
+      var x = Q.ESP[st.k], A = POS.map(function (p) { return p.slice(); }), nom = x.g.slice();
+      // B = imagen especular de A (x → −x); opcionalmente girada 180° alrededor del eje vertical ((x,z) → (−x,−z)); opcionalmente con dos grupos canjeados
+      var Bp = A.map(function (p) { return [-p[0], p[1], p[2]]; });
+      if (st.giro) Bp = Bp.map(function (p) { return [-p[0], p[1], -p[2]]; });
+      if (st.canje) { var t = Bp[2]; Bp[2] = Bp[3]; Bp[3] = t; }
+      var iguales = nom[0] === nom[1] || nom[1] === nom[2] || nom[0] === nom[2] || nom[0] === nom[3] || nom[1] === nom[3] || nom[2] === nom[3];
+      var misma = iguales || Q.quiralidad(A) === Q.quiralidad(Bp);
+      g.limpiar(); g.rangoIso(0, 0, 2.4);
+      molecula(-3.2, A, nom, "A");
+      g.segmento(0, -2.1, 0, 2.1, { clase: "c-faint", dash: "4 4" });
+      molecula(3.2, Bp, nom, st.giro || st.canje ? "B transformada" : "B (espejo de A)");
+      lectura.innerHTML = U.lec("¿C quiral?", iguales ? "no (grupos repetidos)" : "sí (4 grupos distintos)", iguales ? "red" : "ok") +
+        U.lec("¿B se superpone con A?", misma ? "sí: es la misma molécula" : "no: es su enantiómero", misma ? "ok ancho" : "red ancho");
+      pie.innerHTML = x.nota + (iguales ? "" : (st.giro && !st.canje ? " Tras girar B 180° los grupos de arriba coinciden, pero abajo la cuña y la línea discontinua siguen cruzadas: no hay forma de superponerlas sin romper enlaces." : st.canje ? " Intercambiar dos grupos convierte un enantiómero en el otro: ahora B coincide (o no) con A según cuántos intercambios hayas hecho." : " Un enantiómero y su imagen especular son como las manos: no coinciden por mucho que los gires."));
+    }
+    U.fichas(cuerpo.querySelector("[data-mol]"), Q.ESP.map(function (m, i) { return { k: String(i), t: m.t }; }), "0", function (k) { st.k = +k; st.giro = false; st.canje = false; pinta(); });
+    U.boton(acc, "Girar B 180° (eje vertical)", function () { st.giro = !st.giro; pinta(); }, "btn-comprobar");
+    U.boton(acc, "Intercambiar dos grupos de B", function () { st.canje = !st.canje; pinta(); }, "btn-comprobar");
+    U.boton(acc, "Volver al espejo", function () { st.giro = false; st.canje = false; pinta(); });
+    pinta();
+  };
+
+  // ================================================================
+  //  q2t9_fuerzas: fuerzas intermoleculares y punto de ebullición
+  //  f: L = solo London · D = dipolo permanente · H = puente de hidrógeno
+  // ================================================================
+  Q.FZ = [
+    { t: "M ≈ 60 g/mol", c: [
+      { n: "butano", s: "CCCC", pe: -0.5, f: "L", x: "Solo fuerzas de London: molécula apolar." },
+      { n: "metoxietano", s: "COCC", pe: 7.4, f: "D", x: "Éter: dipolo débil, sin O–H, no forma puentes de H consigo mismo." },
+      { n: "propanal", s: "CCC=O", pe: 48.0, f: "D", x: "C=O polar: atracciones dipolo–dipolo; sin O–H." },
+      { n: "propanona", s: "CC(=O)C", pe: 56.1, f: "D", x: "C=O polar: dipolo–dipolo; sin O–H." },
+      { n: "propan-1-ol", s: "CCCO", pe: 97.2, f: "H", x: "O–H: puentes de hidrógeno entre moléculas." },
+      { n: "ác. etanoico", s: "CC(=O)O", pe: 118.1, f: "H", x: "–COOH: puentes de H (forma dímeros), los más fuertes del grupo." }
+    ] },
+    { t: "M ≈ 72–74 g/mol", c: [
+      { n: "éter dietílico", s: "CCOCC", pe: 34.6, f: "D", x: "Éter: poca polaridad, sin puentes de H." },
+      { n: "pentano", s: "CCCCC", pe: 36.1, f: "L", x: "Apolar: solo London (algo más fuertes por la mayor superficie)." },
+      { n: "butanal", s: "CCCC=O", pe: 74.8, f: "D", x: "Carbonilo: dipolo–dipolo." },
+      { n: "butanona", s: "CCC(=O)C", pe: 79.6, f: "D", x: "Carbonilo: dipolo–dipolo." },
+      { n: "butan-1-ol", s: "CCCCO", pe: 117.7, f: "H", x: "O–H: puentes de hidrógeno." },
+      { n: "ác. propanoico", s: "CCC(=O)O", pe: 141.1, f: "H", x: "–COOH: puentes de H y dímeros." }
+    ] },
+    { t: "Ramificación (C₅H₁₂)", c: [
+      { n: "pentano", s: "CCCCC", pe: 36.1, f: "L", x: "Cadena lineal: mayor superficie de contacto, mayores fuerzas de London." },
+      { n: "2-metilbutano", s: "CC(C)CC", pe: 27.8, f: "L", x: "Un CH₃ lateral: molécula más compacta." },
+      { n: "neopentano", s: "CC(C)(C)C", pe: 9.5, f: "L", x: "Casi esférica: mínimo contacto entre moléculas, el menor punto de ebullición." }
+    ] },
+    { t: "Alcohol frente a éter (C₂H₆O)", c: [
+      { n: "dimetil éter", s: "COC", pe: -24.8, f: "D", x: "Sin O–H: no hay puentes de hidrógeno. Es un gas a temperatura ambiente." },
+      { n: "etanol", s: "CCO", pe: 78.4, f: "H", x: "O–H: puentes de hidrógeno. Mismo número de átomos, 100 °C más de punto de ebullición." }
+    ] }
+  ];
+  var FNOM = { L: "London (apolar)", D: "dipolo–dipolo", H: "puentes de hidrógeno" };
+  B.w.q2t9_fuerzas = function (host) {
+    estilo();
+    var cuerpo = B.caja(host, "Pruébalo", "Fuerzas intermoleculares y punto de ebullición");
+    cuerpo.innerHTML = '<div data-set class="chips"></div><div class="q9-barras" data-bar></div><div class="q9-leyenda"><span><i class="q9-L"></i>solo London</span><span><i class="q9-D"></i>dipolo–dipolo</span><span><i class="q9-H"></i>puentes de H</span></div><div class="lectura anch" data-lec></div><div class="w-plot"></div><p class="w-pie"></p>';
+    var st = { s: 0, i: 0 }, bar = cuerpo.querySelector("[data-bar]"), lec = cuerpo.querySelector("[data-lec]"), pie = cuerpo.querySelector(".w-pie");
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -2, xmax: 6, ymin: -2.2, ymax: 2.6, w: 560, h: 190, limpio: true, etiqueta: "Molécula seleccionada" });
+    function masa(c) { var cc = O().cuentaGrafo(O().grafoDeSmiles(c.s)), M = 12.011 * cc.C + 1.008 * cc.H + 15.999 * cc.O; return M; }
+    function pinta() {
+      var S = Q.FZ[st.s], C = S.c[st.i], pes = S.c.map(function (c) { return c.pe; }), mn = Math.min.apply(null, pes), mx = Math.max.apply(null, pes), rg = (mx - mn) || 1;
+      bar.innerHTML = S.c.map(function (c, j) {
+        return '<button type="button" class="q9-fila' + (j === st.i ? " sel" : "") + '" data-j="' + j + '"><span>' + c.n + '</span><span><span class="q9-pista q9-' + c.f + '" style="width:' + (6 + 94 * (c.pe - mn) / rg) + '%"></span></span><span class="q9-t">' + d1(c.pe) + " °C</span></button>";
+      }).join("");
+      O().dibujaGrafo(g, O().grafoDeSmiles(C.s), { min: 1.7 });
+      lec.innerHTML = U.lec("Compuesto", "<span class='q7-nombre'>" + C.n + "</span>", "ok ancho") + U.lec("Masa molar", fmt(masa(C), 1) + " g/mol", "") + U.lec("Fuerza dominante", FNOM[C.f], C.f === "H" ? "red" : C.f === "D" ? "ok" : "pen");
+      pie.innerHTML = C.x;
+    }
+    bar.addEventListener("click", function (e) { var b = e.target.closest("[data-j]"); if (!b) return; st.i = +b.getAttribute("data-j"); pinta(); });
+    U.fichas(cuerpo.querySelector("[data-set]"), Q.FZ.map(function (m, i) { return { k: String(i), t: m.t }; }), "0", function (k) { st.s = +k; st.i = 0; pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de rectas (Matemáticas I, tema 8)
    motor B.lab.recta + recta2p · ecgeneral · posiciones · distpunto
    mediatriz · ptosnotables · region
@@ -54876,6 +55277,670 @@
   ];
 
   B.registrar("quimica2", "t8", { resumen: resumen, secciones: B.parte.q2t8a.secciones, nuevas: B.parte.q2t8b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 9: Química de los compuestos del carbono
+   (parte A: se añade al final de las secciones originales 1 a 4)
+   Reutiliza de FyQ I: q7_insaturacion, q7_constructor, q7_nombrar, q7_reto, q7_isomeria, q7_quiral
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t9/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Repaso: el carbono, su hibridación y los hidrocarburos
+  secciones[0] = env(
+    "<h5>Por qué el carbono es tan especial</h5>" +
+    "<p>El carbono (Z = 6, 1s² 2s² 2p²) forma <b>cuatro enlaces covalentes</b>. Tiene una electronegatividad intermedia (2,5), así que ni cede ni capta electrones con facilidad: <b>comparte</b>. Sus enlaces C–C son fuertes y se unen entre sí formando cadenas, ramificaciones y ciclos; además se enlaza con H, O, N y halógenos. Esa combinación explica que existan más de diez millones de compuestos orgánicos: con los mismos pocos elementos, cambia el esqueleto, cambia el grupo funcional y cambia la disposición en el espacio.</p>" +
+    "<h5>Hibridación: la geometría alrededor de cada carbono</h5>" +
+    "<p>Para explicar que el metano tiene cuatro enlaces idénticos a 109,5° se recurre a la <b>hibridación</b>: el orbital 2s y los 2p se mezclan y dan orbitales híbridos equivalentes. Lo que necesitas en un examen es una regla corta: <b>cuenta los átomos unidos al carbono</b> (hidrógenos incluidos).</p>" +
+    tabla(["Átomos unidos al C", "Hibridación", "Enlaces del C", "Ángulo y forma", "Ejemplo"], [
+      ["4", "sp³", "4 σ", "109,5° · tetraédrico", "CH₄, CH₃–CH₃, CH₃–OH"],
+      ["3", "sp²", "3 σ + 1 π", "120° · plano triangular", "CH₂=CH₂, CH₃–CHO, –COOH"],
+      ["2", "sp", "2 σ + 2 π", "180° · lineal", "HC≡CH, CH₃–C≡N, CH₂=C=CH₂ (C central)"]
+    ], "q3t") +
+    "<p>Un <b>enlace σ</b> (frontal, a lo largo del eje) lo tiene todo enlace; un <b>enlace π</b> (lateral, por solapamiento de orbitales p sin hibridar) solo aparece en los enlaces dobles (1 σ + 1 π) y triples (1 σ + 2 π). El π es más débil y más reactivo que el σ, y <b>impide el giro</b> alrededor del enlace: de ahí la isomería cis-trans de la sección 4. Al aumentar el orden del enlace, el C–C se acorta: 154 pm (simple), 134 pm (doble), 120 pm (triple).</p>" +
+    w("q2t9_hibrida") +
+    ejemplo("Ejemplo resuelto: hibridación y enlaces del propanal", "Indica la hibridación de cada carbono del propanal, CH₃–CH₂–CHO, y cuántos enlaces σ y π tiene la molécula.", [
+      "<b>CH₃</b> (C1): unido a 3 H y 1 C → 4 átomos → <b>sp³</b>.",
+      "<b>CH₂</b> (C2): 2 H + 2 C → 4 átomos → <b>sp³</b>.",
+      "<b>CHO</b> (C3): 1 H + 1 C + 1 O (doble enlace: cuenta como un átomo vecino) → 3 átomos → <b>sp²</b>, plano y a 120°.",
+      "Enlaces: C–H: 3 + 2 + 1 = 6 σ; C–C: 2 σ; C=O: 1 σ + 1 π. Total: <b>9 σ y 1 π</b>."
+    ]) +
+    "<h5>Cómo se escribe una molécula: cuatro tipos de fórmula</h5>" +
+    tabla(["Fórmula", "Qué dice", "Ejemplo (butan-2-ol)"], [
+      ["Molecular", "Qué átomos y cuántos", "C₄H₁₀O"],
+      ["Semidesarrollada", "Cómo están unidos los carbonos y los grupos (la que más se usa)", "CH₃–CH(OH)–CH₂–CH₃"],
+      ["Desarrollada", "Todos los enlaces, uno por uno", "(cada C–H y C–C dibujado)"],
+      ["Esquelética", "Solo el esqueleto en zigzag: cada vértice y cada extremo es un C con los H necesarios", "una línea quebrada con un –OH en el segundo vértice"]
+    ], "q3t") +
+    "<p>En la esquelética no se escriben ni los C ni los H unidos a C; sí se escriben los heteroátomos (O, N, Cl…) y los H que van pegados a ellos (como en el –OH). Los H de cada carbono se deducen: tantos como falten hasta 4 enlaces.</p>" +
+    "<h5>Los hidrocarburos de un vistazo</h5>" +
+    tabla(["Familia", "Fórmula general (acíclicos)", "Enlaces C–C", "Sufijo", "Ejemplo"], [
+      ["Alcanos", "CₙH₂ₙ₊₂", "solo simples (sp³)", "-ano", "propano, CH₃CH₂CH₃"],
+      ["Alquenos", "CₙH₂ₙ", "un doble", "-eno", "propeno, CH₂=CH–CH₃"],
+      ["Alquinos", "CₙH₂ₙ₋₂", "un triple", "-ino", "propino, CH≡C–CH₃"],
+      ["Cicloalcanos", "CₙH₂ₙ", "solo simples, en anillo", "ciclo…ano", "ciclohexano, C₆H₁₂"],
+      ["Aromáticos", "—", "anillo con enlaces deslocalizados", "—", "benceno, C₆H₆ (sección 7)"]
+    ], "q3t") +
+    "<h5>Grado de insaturación: cuántos «enlaces o ciclos» faltan</h5>" +
+    "<p>Un alcano acíclico tiene el máximo de hidrógenos posible (2n + 2). Cada doble enlace o cada ciclo quita 2 H; cada triple enlace, 4. El <b>grado de insaturación</b> (o número de insaturaciones) cuenta esas «pérdidas» a partir de la fórmula molecular:</p>" +
+    "<div class='formula-wrap'><div class='formula'>DI = (2C + 2 + N − H − X) / 2</div></div>" +
+    "<p>(X = halógenos; el oxígeno no cuenta). DI = 0 es saturado y acíclico; DI = 1, un doble enlace o un ciclo; DI = 2, un triple o dos dobles, o un doble y un ciclo…; el benceno, C₆H₆, tiene DI = 4 (tres dobles enlaces y un ciclo).</p>" +
+    w("q7_insaturacion") +
+    ejemplo("Ejemplo resuelto: insaturación de tres fórmulas", "Calcula el grado de insaturación de (a) C₄H₈O, (b) C₃H₅Cl, (c) C₆H₁₂.", [
+      "<b>(a)</b> DI = (2·4 + 2 − 8)/2 = 2/2 = <b>1</b>: p. ej. un alcohol con doble enlace (but-3-en-1-ol), un aldehído (butanal), una cetona (butanona) o un ciclo con O.",
+      "<b>(b)</b> El Cl se resta como un H: DI = (2·3 + 2 − 5 − 1)/2 = 2/2 = <b>1</b> (por ejemplo 3-cloroprop-1-eno).",
+      "<b>(c)</b> DI = (2·6 + 2 − 12)/2 = <b>1</b>: un hexeno o un ciclohexano. La fórmula sola no distingue: hace falta más información (ver la sección 3)."
+    ]) +
+    ojo("El DI no dice <b>dónde</b> están las insaturaciones, solo cuántas hay. C=O también cuenta como una insaturación: el etanal (C₂H₄O) tiene DI = 1.")
+  );
+
+  // ---------------------------------------------------------------- 2. Nomenclatura
+  secciones[1] = env(
+    "<h5>Los grupos funcionales: prefijo, sufijo y fórmula</h5>" +
+    "<p>Un <b>grupo funcional</b> es el átomo o conjunto de átomos que determina las propiedades químicas de una familia. En la nomenclatura IUPAC cada grupo puede aparecer de dos maneras: como <b>sufijo</b> (si es el grupo <b>principal</b> de la molécula) o como <b>prefijo</b> (si hay otro grupo de mayor prioridad). Esta tabla, ordenada de <b>mayor a menor prioridad</b>, es la que más se pregunta:</p>" +
+    tabla(["#", "Familia", "Grupo", "Sufijo (principal)", "Prefijo (secundario)", "Ejemplo"], [
+      ["1", "Ácido carboxílico", "–COOH", "ácido …oico", "carboxi-", "CH₃COOH: ácido etanoico"],
+      ["2", "Éster", "–COO–", "…oato de …ilo", "alcoxicarbonil-", "CH₃COOCH₂CH₃: etanoato de etilo"],
+      ["3", "Amida", "–CONH₂", "…amida", "carbamoil-", "CH₃CONH₂: etanamida"],
+      ["4", "Nitrilo", "–C≡N", "…nitrilo", "ciano-", "CH₃CN: etanonitrilo"],
+      ["5", "Aldehído", "–CHO", "…al", "oxo- (o formil-)", "CH₃CH₂CHO: propanal"],
+      ["6", "Cetona", ">C=O", "…ona", "oxo-", "CH₃COCH₃: propanona"],
+      ["7", "Alcohol", "–OH", "…ol", "hidroxi-", "CH₃CH₂OH: etanol"],
+      ["8", "Amina", "–NH₂", "…amina", "amino-", "CH₃CH₂NH₂: etanamina"],
+      ["—", "Éter", "–O–", "(no tiene)", "alcoxi- (metoxi-, etoxi-…)", "CH₃OCH₂CH₃: metoxietano"],
+      ["—", "Derivado halogenado", "–F, –Cl, –Br, –I", "(no tiene)", "fluoro-, cloro-, bromo-, yodo-", "CH₃CH₂Cl: cloroetano"],
+      ["—", "Nitrocompuesto", "–NO₂", "(no tiene)", "nitro-", "CH₃NO₂: nitrometano"],
+      ["—", "Doble / triple enlace", "C=C · C≡C", "-eno / -ino (dentro del nombre)", "—", "CH₂=CH₂: eteno"]
+    ], "q3t") +
+    "<p>Los últimos cuatro <b>nunca son principales</b>: los éteres y los halogenuros solo se nombran con prefijos, y los enlaces múltiples se expresan con «-en-» / «-in-» dentro del nombre. Una regla mnemotécnica para el orden de los ocho primeros: <b>«Á-Es-Am-Ni-Al-Ce-Ol-Am»</b> (ácido, éster, amida, nitrilo, aldehído, cetona, alcohol, amina): cuanto más «oxidado» está el carbono del grupo, más prioridad tiene.</p>" +
+    w("q2t9_prioridad") +
+    "<h5>Las cinco reglas para nombrar (en este orden)</h5>" +
+    "<ol>" +
+    "<li><b>Grupo principal</b>: localiza el grupo de mayor prioridad. Dará el sufijo; los demás pasan a prefijos.</li>" +
+    "<li><b>Cadena principal</b>: la que <b>contiene el grupo principal</b> y, después, el mayor número de enlaces dobles y triples; entre varias, la <b>más larga</b>. La raíz es met-, et-, prop-, but-, pent-, hex-, hept-, oct-, non-, dec-.</li>" +
+    "<li><b>Numeración</b>: empieza por el extremo que dé el <b>localizador más bajo</b>, por este orden de prioridad: 1.º al grupo principal; 2.º a los dobles y triples enlaces; 3.º a los sustituyentes (todos juntos); 4.º, si aún hay empate, al sustituyente que va primero alfabéticamente.</li>" +
+    "<li><b>Sustituyentes</b>: se nombran como prefijos (metil, etil, cloro, hidroxi…), <b>por orden alfabético</b> sin contar di-, tri-, tetra-; sí cuentan los prefijos que forman parte de un nombre compuesto (dimetilamino se ordena por «d»).</li>" +
+    "<li><b>Ensamblado</b>: prefijos con localizadores + raíz + «-en-/-in-» con localizador + sufijo con localizador. Los números se separan con comas y de las letras con guiones.</li>" +
+    "</ol>" +
+    "<p>Los radicales que más aparecen: <b>metil</b> (–CH₃), <b>etil</b> (–CH₂CH₃), <b>propil</b> (–CH₂CH₂CH₃), <b>isopropil</b> o 1-metiletil (–CH(CH₃)₂), <b>butil</b>, <b>terc-butil</b> o 1,1-dimetiletil (–C(CH₃)₃), <b>vinil</b> o etenil (–CH=CH₂), <b>fenil</b> (–C₆H₅).</p>" +
+    ejemplo("Ejemplo resuelto: un alcano ramificado", "Nombra CH₃–CH(CH₃)–CH₂–CH(CH₂CH₃)–CH₂–CH₃.", [
+      "Sin grupos funcionales: es un alcano. La <b>cadena más larga</b> tiene 6 carbonos (hexano): se puede tomar a través de cualquiera de los dos etilos.",
+      "Quedan dos ramas: un <b>metilo</b> y un <b>etilo</b>. Numerando desde el extremo del isopropilo, los sustituyentes están en {2, 4}; desde el otro lado estarían en {3, 5}. Gana {2, 4}.",
+      "Orden alfabético: <b>e</b>til antes que <b>m</b>etil. Nombre: <b>4-etil-2-metilhexano</b>.",
+      "Comprobación: C₉H₂₀ (CₙH₂ₙ₊₂ con n = 9). Hexano (6 C) + metilo (1) + etilo (2) = 9 C ✓."
+    ]) +
+    ejemplo("Ejemplo resuelto: grupo principal y doble enlace", "Nombra CH₃–CH=CH–CH(OH)–CH₃.", [
+      "Hay un alcohol y un doble enlace. El alcohol es el grupo <b>principal</b> (sufijo «-ol»); el doble enlace entra como «-en-».",
+      "Cadena de 5 carbonos (pent-). Numeración: <b>el –OH debe llevar el localizador más bajo</b>, aunque el doble enlace quede más alto: desde la derecha, el C–OH es el C2 y el doble enlace va entre C3 y C4.",
+      "Los carbonos quedan CH₃(1)–CH(OH)(2)–CH(3)=CH(4)–CH₃(5): el doble enlace va entre C3 y C4 → <b>pent-3-en-2-ol</b>.",
+      "Fíjate: si hubiéramos numerado desde la izquierda el doble enlace tendría el 2 pero el –OH el 4: <b>se ha cumplido la prioridad</b> (grupo principal antes que el doble enlace)."
+    ]) +
+    "<h5>Cadenas con varios grupos iguales y la «o» que aparece o desaparece</h5>" +
+    "<p>Con dos o más grupos iguales se usan los prefijos multiplicadores di-, tri-… en el sufijo, y el nombre de la cadena <b>conserva la «-o» final de «-ano»</b> si el sufijo empieza por consonante: <b>propano-1,2-diol</b> (d es consonante) frente a <b>propan-2-ol</b> (o es vocal). Igual con los dobles enlaces: <b>buta-1,3-dieno</b> (se añade una «a» de enlace); <b>hexa-2,4-diino</b>; <b>pent-1-en-4-ino</b> (con un doble y un triple enlace, se numera para que el conjunto de localizadores sea el más bajo y, si empatan como aquí ({1, 4} en los dos sentidos), el número más bajo es para el doble enlace).</p>" +
+    w("q7_constructor", "moleculas") +
+    "<h5>Ésteres, amidas, nitrilos, éteres y aminas</h5>" +
+    "<p><b>Ésteres</b>: son derivados de un ácido y un alcohol. Se nombra primero la parte del ácido con terminación «-oato» y después el radical del alcohol: CH₃CH₂–COO–CH₂CH₃ = <b>propanoato de etilo</b> (propanoico del ácido + etilo del alcohol). Cuidado con el sentido: en CH₃–COO–CH₂CH₂CH₃ la parte «ácida» (con el C=O) tiene 2 C y el radical tiene 3: <b>etanoato de propilo</b>.</p>" +
+    "<p><b>Amidas</b> (–CONH₂): sufijo «-amida» y el C del grupo cuenta en la cadena: CH₃CH₂CONH₂ = <b>propanamida</b>. Si el N lleva radicales se indica con «N-»: CH₃CONHCH₃ = <i>N</i>-metiletanamida.</p>" +
+    "<p><b>Nitrilos</b> (–C≡N): el C del grupo también cuenta en la cadena: CH₃CH₂C≡N = <b>propanonitrilo</b> (3 C). Como prefijo: «ciano-» (NC–CH₂–COOH: ácido cianoetanoico).</p>" +
+    "<p><b>Éteres</b> (R–O–R′): se nombran como <b>alcoxi-alcano</b>: la cadena más larga es el alcano y la más corta, con el O, el sustituyente «alcoxi»: CH₃–O–CH₂CH₃ = <b>metoxietano</b>; CH₃CH₂–O–CH₂CH₃ = <b>etoxietano</b> (dietil éter en nomenclatura radicofuncional). Cuidado: «metoxietano» ≠ «etoximetano».</p>" +
+    "<p><b>Aminas</b>: primarias R–NH₂ (propan-1-amina), secundarias R–NH–R′ y terciarias. Las sustituciones en el N se marcan con <i>N</i>: CH₃–NH–CH₂CH₃ = <i>N</i>-metiletanamina (la cadena más larga es la base).</p>" +
+    ejemplo("Ejemplo resuelto: ¿éster o éter?", "Nombra CH₃–CH₂–CH₂–O–CH₃ y CH₃–CH₂–CO–O–CH₃.", [
+      "El primero no tiene C=O: es un <b>éter</b>. Cadena más larga (3 C: propano) y la otra cadena con el O (metoxi): <b>metoxipropano</b>.",
+      "El segundo tiene –COO–: es un <b>éster</b>. Lado del C=O: CH₃CH₂CO– (3 C) → «propanoato». Lado del O: –CH₃ → «de metilo». Nombre: <b>propanoato de metilo</b>.",
+      "Los dos son C₄H₁₀O y C₄H₈O₂ respectivamente: distintos compuestos; la diferencia es el C=O."
+    ]) +
+    ejemplo("Ejemplo resuelto: varias funciones a la vez", "Nombra HOOC–CH₂–CH(OH)–CH₃ y CH₃–CO–CH₂–CH₂–OH.", [
+      "<b>Primero</b>: ácido (1.º) y alcohol (7.º): manda el ácido, el –OH pasa a prefijo «hidroxi». Cadena de 4 C con el –COOH en C1; el –OH en C3: <b>ácido 3-hidroxibutanoico</b>.",
+      "<b>Segundo</b>: cetona (6.º) y alcohol (7.º): manda la cetona. Numerando desde el CH₃: C=O en 2 y –OH en 4; desde el otro lado, C=O en 3. Gana el 2: <b>4-hidroxibutan-2-ona</b>.",
+      "Regla de oro: no numeres por comodidad; <b>el principal siempre lleva el localizador más bajo posible</b>."
+    ]) +
+    w("q2t9_nombre") +
+    ojo("Errores muy frecuentes: (1) nombrar «propan-1-ol» como «1-propanol» en el examen (se admite, pero usa la IUPAC); (2) olvidar que el C del –COOH, –CHO, –CONH₂ y –CN <b>cuenta</b> en la cadena; (3) numerar por el extremo «que sale más bonito» en vez de por el que da el localizador más bajo al grupo principal; (4) separar mal los prefijos: «2,3-dimetil» (con coma) y «3-etil-2-metil» (con guion).")
+  );
+
+  // ---------------------------------------------------------------- 3. Isomería estructural
+  secciones[2] = env(
+    "<h5>Cómo se buscan los isómeros (y no se dejan ninguno)</h5>" +
+    "<p>Dos compuestos son <b>isómeros estructurales</b> si tienen la misma fórmula molecular pero se unen los átomos de manera distinta. Pedir «todos los isómeros de C₄H₁₀O» es un clásico. El método que no falla es: (1) calcular el grado de insaturación para saber si hay que meter dobles enlaces o ciclos; (2) dibujar <b>todos los esqueletos de carbono</b> posibles (cadena o ramificada); (3) en cada esqueleto, colocar el grupo funcional en <b>todas las posiciones no equivalentes</b>; (4) repetir con cada función posible para esos átomos (alcohol <i>o</i> éter, aldehído <i>o</i> cetona…).</p>" +
+    tabla(["Tipo", "Qué cambia", "Ejemplo (misma fórmula)"], [
+      ["De cadena", "El esqueleto de carbonos", "butano / 2-metilpropano (C₄H₁₀)"],
+      ["De posición", "Dónde está el grupo o el enlace múltiple", "propan-1-ol / propan-2-ol (C₃H₈O) · but-1-eno / but-2-eno (C₄H₈)"],
+      ["De función", "El grupo funcional", "etanol / metoximetano (C₂H₆O) · propanal / propanona (C₃H₆O) · ácido etanoico / metanoato de metilo (C₂H₄O₂)"]
+    ], "q3t") +
+    ejemplo("Ejemplo resuelto: todos los isómeros de C₄H₁₀O", "Escribe y nombra todos los isómeros estructurales de C₄H₁₀O que sean alcoholes o éteres.", [
+      "DI = (2·4 + 2 − 10)/2 = 0: sin dobles enlaces ni ciclos; el O va como –OH (alcohol) o como –O– (éter).",
+      "<b>Alcoholes con 4 C en cadena</b>: butan-1-ol (CH₃CH₂CH₂CH₂OH) y butan-2-ol (CH₃CH(OH)CH₂CH₃). Los –OH en C3 o C4 repiten los anteriores (se numera desde el otro extremo).",
+      "<b>Alcoholes ramificados</b> (esqueleto del 2-metilpropano): 2-metilpropan-1-ol y 2-metilpropan-2-ol.",
+      "<b>Éteres</b>: R–O–R′ con 3 C entre R y R′: metoxipropano (1+3), 2-metoxipropano (1+3 ramificado) y etoxietano (2+2).",
+      "Total: <b>7 isómeros</b> (4 alcoholes + 3 éteres). Entre alcoholes hay isomería de cadena y de posición; entre un alcohol y un éter, de función."
+    ]) +
+    w("q7_isomeria") +
+    ejemplo("Ejemplo resuelto: ¿qué tipo de isomería hay?", "Clasifica la relación entre (a) pentano y 2-metilbutano, (b) pent-1-eno y pent-2-eno, (c) butanal y butanona, (d) ácido propanoico y etanoato de metilo.", [
+      "<b>(a)</b> Los dos son C₅H₁₂; cambia el esqueleto: <b>cadena</b>.",
+      "<b>(b)</b> Los dos son C₅H₁₀, misma cadena, el doble enlace en otra posición: <b>posición</b>.",
+      "<b>(c)</b> Los dos son C₄H₈O; aldehído frente a cetona: <b>función</b>.",
+      "<b>(d)</b> Los dos son C₃H₆O₂; ácido frente a éster: <b>función</b>."
+    ]) +
+    ojo("Los isómeros estructurales <b>son compuestos distintos</b>, con propiedades físicas y a menudo químicas diferentes (el etanol es líquido y el metoximetano un gas; el primero puede formar puentes de hidrógeno y el segundo no, sección 5). Si dos moléculas tienen la misma fórmula, el nombre «isómeros» solo es correcto si la <b>conectividad</b> o la <b>disposición</b> cambia; dos formas de escribir la misma molécula (CH₃CH₂CH₂CH₃ y CH₃(CH₂)₂CH₃) son lo mismo.")
+  );
+
+  // ---------------------------------------------------------------- 4. Estereoisomería
+  secciones[3] = env(
+    "<h5>Isomería geométrica (cis-trans): cuándo existe</h5>" +
+    "<p>Los átomos de un doble enlace C=C y los cuatro sustituyentes están en un mismo plano y <b>no pueden girar</b> alrededor del eje (hay que romper el π). Por eso, si los sustituyentes ocupan lados distintos, la molécula es distinta. La condición, que se pregunta casi todos los años, es:</p>" +
+    "<div class='formula-wrap'><div class='formula'>cada carbono del C=C lleva dos sustituyentes distintos</div></div>" +
+    "<p>Si uno de los dos carbonos repite sustituyente (CH₂=, (CH₃)₂C=, Cl₂C=), intercambiarlos no da nada nuevo. Cuando existe: <b>cis</b> = los sustituyentes iguales (o los de la cadena principal) del mismo lado; <b>trans</b> = de lados opuestos. En general se usa el sistema <b>Z / E</b> (CIP), pero en Bachillerato basta con cis-trans.</p>" +
+    w("q2t9_cistrans") +
+    "<p>Los isómeros geométricos tienen propiedades físicas distintas: el cis-1,2-dicloroeteno hierve a 60,3 °C y el trans a 47,5 °C porque en el cis los dipolos C–Cl se suman (molécula polar) y en el trans se anulan (apolar). En los alquenos cíclicos o en C=N también ocurre; para el examen basta el alqueno.</p>" +
+    ejemplo("Ejemplo resuelto: ¿cuáles de estos alquenos tienen isómeros cis-trans?", "Decide para (a) but-2-eno, (b) 2-metilbut-2-eno, (c) pent-2-eno, (d) 1-cloroprop-1-eno, (e) 2-metilprop-1-eno.", [
+      "<b>(a)</b> CH₃–CH=CH–CH₃: cada C lleva H y CH₃. <b>Sí</b> (cis y trans).",
+      "<b>(b)</b> (CH₃)₂C=CH–CH₃: el C2 lleva dos CH₃ iguales. <b>No</b>.",
+      "<b>(c)</b> CH₃–CH=CH–CH₂CH₃: H y CH₃ en un C, H y etilo en el otro. <b>Sí</b>.",
+      "<b>(d)</b> ClCH=CH–CH₃: H y Cl en un C, H y CH₃ en el otro. <b>Sí</b> (se usaría Z/E).",
+      "<b>(e)</b> (CH₃)₂C=CH₂: ambos carbonos repiten sustituyente. <b>No</b>."
+    ]) +
+    "<h5>Isomería óptica: el carbono quiral</h5>" +
+    "<p>Un <b>carbono quiral</b> (o asimétrico, estereocentro) es un C sp³ unido a <b>cuatro sustituyentes diferentes</b>. La molécula resultante y su imagen en un espejo son distintas y no se pueden superponer (como las manos): son <b>enantiómeros</b>. Tienen las mismas propiedades físicas y químicas, salvo dos: <b>desvían el plano de la luz polarizada</b> en el mismo ángulo y sentidos opuestos (uno dextrógiro, +, otro levógiro, −) y <b>reaccionan de forma distinta con otras moléculas quirales</b> (receptores, enzimas). Una mezcla al 50 % de los dos (mezcla racémica) no desvía la luz.</p>" +
+    w("q2t9_espejo") +
+    "<p>Cómo se detecta: se mira cada carbono con cuatro enlaces simples y se comprueba si sus cuatro vecinos <b>son todos distintos</b> mirando lo que hay detrás, <b>no solo el átomo inmediato</b>: un –CH₂CH₃ y un –CH₂CH₂CH₃ son distintos aunque ambos empiecen por –CH₂–. No son quirales los CH₃, CH₂, los carbonos con doble enlace (sp²) ni los que llevan dos grupos iguales.</p>" +
+    ejemplo("Ejemplo resuelto: carbonos quirales", "Señala los carbonos quirales de (a) CH₃–CHCl–CH₂–CH₃, (b) CH₃–CH₂–CHOH–CH₂–CH₃, (c) CH₃–CH(OH)–CH(OH)–CH₃, (d) HOOC–CH(OH)–CH₃.", [
+      "<b>(a)</b> El C2 lleva H, Cl, CH₃ y CH₂CH₃: cuatro distintos. <b>Quiral</b> (2-clorobutano).",
+      "<b>(b)</b> El C3 lleva H, OH y <b>dos etilos</b>: dos iguales. <b>No es quiral</b> (pentan-3-ol).",
+      "<b>(c)</b> C2 y C3 lo son (H, OH, CH₃ y el otro C(OH)…): <b>dos centros</b>. Como los dos son iguales entre sí, hay una forma <b>meso</b> con plano de simetría: 3 estereoisómeros (no 2² = 4).",
+      "<b>(d)</b> El C2 lleva H, OH, CH₃ y COOH: <b>quiral</b> (ácido láctico, el del músculo cansado)."
+    ]) +
+    "<p><b>Cuántos estereoisómeros</b>: con <i>n</i> carbonos quirales hay como máximo <b>2ⁿ</b> estereoisómeros. Se reduce si hay formas meso (el ácido tartárico tiene 3, no 4). Dos estereoisómeros que <b>no</b> son imagen especular uno del otro se llaman <b>diastereoisómeros</b>; el cis-trans es un caso.</p>" +
+    w("q7_quiral") +
+    ojo("«Isomería óptica» y «actividad óptica» no son lo mismo: la molécula quiral <i>puede</i> ser ópticamente activa; una mezcla racémica o un compuesto meso <b>no</b> lo son aunque tengan carbonos quirales.")
+  );
+
+  B.parte.q2t9a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 9: Química de los compuestos del carbono
+   (parte B: secciones nuevas 5 a 10)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t9/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 5. Propiedades físicas
+    {
+      h: "5. Propiedades físicas: fuerzas intermoleculares y puntos de ebullición",
+      html: env(
+        "<h5>La idea central: el punto de ebullición mide la fuerza entre moléculas</h5>" +
+        "<p>Para hervir, las moléculas de un líquido deben separarse unas de otras; los enlaces covalentes <b>dentro</b> de cada molécula no se rompen. Por eso el punto de ebullición (Teb) depende de las <b>fuerzas intermoleculares</b>, que de menor a mayor son:</p>" +
+        tabla(["Fuerza", "Dónde actúa", "Intensidad relativa", "Ejemplo"], [
+          ["London (dispersión)", "en todas las moléculas, polares o no; crece con la masa y con la superficie de contacto", "débil, pero se suma en moléculas grandes", "alcanos, éter, CH₃Cl"],
+          ["Dipolo–dipolo", "entre moléculas polares (C=O, C–Cl, C–O–C)", "media", "propanona, propanal, cloroetano"],
+          ["Puente de hidrógeno", "H unido a O o N (y F) atraído por el O o N de otra molécula", "la más fuerte (≈ 20 kJ/mol)", "alcoholes, ácidos, aminas, amidas"]
+        ], "q3t") +
+        "<p>Cómo ordenar compuestos de masa parecida: <b>primero mira si hay O–H o N–H (puentes de H)</b>; si no los hay, mira si hay un grupo polar (C=O, –Cl); si no, queda solo London y manda la masa y la forma. En los ácidos carboxílicos los puentes de H son dobles (forman <b>dímeros</b>) y por eso su Teb es la mayor de la tabla.</p>" +
+        w("q2t9_fuerzas") +
+        ejemplo("Ejemplo resuelto: ordena por punto de ebullición", "Ordena de menor a mayor Teb: ácido etanoico, butano, propan-1-ol, propanona. Todos tienen M ≈ 58–60 g/mol. Justifícalo.", [
+          "<b>Butano</b> (CH₃CH₂CH₂CH₃): apolar, solo London → el menor (−0,5 °C).",
+          "<b>Propanona</b>: C=O polar, dipolo–dipolo, <b>sin O–H</b> → 56,1 °C.",
+          "<b>Propan-1-ol</b>: O–H, <b>puentes de hidrógeno</b> → 97,2 °C.",
+          "<b>Ácido etanoico</b>: puentes de H y dímeros → 118,1 °C.",
+          "Orden: butano &lt; propanona &lt; propan-1-ol &lt; ácido etanoico. Con masas casi iguales, lo único que cambia es el tipo de fuerza."
+        ]) +
+        ejemplo("Ejemplo resuelto: el mismo número de átomos, 100 °C de diferencia", "El etanol (CH₃CH₂OH) hierve a 78,4 °C y el metoximetano (CH₃OCH₃), con la misma fórmula C₂H₆O, a −24,8 °C. Explícalo.", [
+          "Son <b>isómeros de función</b>: misma masa (46 g/mol), mismos átomos.",
+          "El etanol tiene un H unido a O: forma <b>puentes de hidrógeno</b> con sus vecinas.",
+          "El éter no tiene ningún H unido a O (los H están en C): solo dipolo débil y London. Por eso es un gas a temperatura ambiente.",
+          "Diferencia: 78,4 − (−24,8) = <b>103,2 °C</b> debida únicamente al puente de hidrógeno."
+        ]) +
+        "<h5>Solubilidad, estado y densidad</h5>" +
+        "<ul>" +
+        "<li><b>Solubilidad en agua</b> («lo semejante disuelve a lo semejante»): los compuestos que forman puentes de H con el agua se disuelven (alcoholes, ácidos, aminas, aldehídos y cetonas pequeños); la <b>cadena apolar</b> lo impide cuando crece. El metanol y el etanol son miscibles en agua; el butan-1-ol, parcialmente; el octan-1-ol casi nada. Los hidrocarburos y los derivados halogenados no se disuelven en agua, pero sí en disolventes apolares.</li>" +
+        "<li><b>Estado a 25 °C</b>: de los alcanos, hasta C₄ son gases y de C₅ a C₁₇ líquidos; los ácidos y alcoholes de hasta unos 10 C son líquidos; los ácidos grasos de cadena larga (palmítico, C₁₆) y las amidas son sólidos.</li>" +
+        "<li><b>Densidad</b>: casi todos los hidrocarburos, alcoholes, éteres y ésteres son <b>menos densos que el agua</b> (flotan: por eso el petróleo mancha el mar); los derivados polihalogenados (CHCl₃, 1,49 g/mL; CCl₄, 1,59 g/mL) son más densos.</li>" +
+        "<li><b>Series homólogas</b>: dentro de una familia, cada CH₂ más sube la Teb unos 20–30 °C (más London); las ramificaciones la bajan (menor superficie de contacto): pentano 36,1 °C, 2-metilbutano 27,8 °C, neopentano 9,5 °C.</li>" +
+        "</ul>" +
+        w("q7_serie") +
+        ojo("Error típico: «el etanol hierve más porque tiene el enlace O–H más fuerte». No: el O–H <b>no se rompe</b> al hervir; lo que importa es el puente de hidrógeno <b>entre moléculas</b>. Otro: «el éter tiene oxígeno, luego forma puentes de H». Para formarlos como donante hace falta un H unido al O (o N); el éter solo puede aceptarlos de otras moléculas (por eso es algo soluble en agua pero hierve muy bajo).") +
+        "<h5>Acidez y basicidad (adelanto del tema de ácido-base)</h5>" +
+        "<p>Los <b>ácidos carboxílicos</b> son ácidos débiles (ácido etanoico: Kₐ = 1,8·10⁻⁵, pKₐ = 4,76) porque el anión carboxilato se estabiliza por resonancia. Los alcoholes no se comportan como ácidos en agua. Las <b>aminas</b> son bases débiles: el par libre del N capta H⁺ (R–NH₂ + H₂O ⇌ R–NH₃⁺ + OH⁻). Las <b>amidas</b> son casi neutras (el par del N se deslocaliza hacia el C=O).</p>"
+      )
+    },
+    // ------------------------------------------------------------ 6. Análisis elemental
+    {
+      h: "6. De los datos de análisis a la fórmula del compuesto",
+      html: env(
+        "<h5>Fórmula empírica y molecular</h5>" +
+        "<p>La <b>fórmula empírica</b> es la proporción más sencilla de átomos; la <b>molecular</b> es la real y es un múltiplo entero de la empírica: <b>fórmula molecular = (fórmula empírica)ₖ</b>, con <b>k = M / M<sub>empírica</sub></b>. Los datos pueden venir como <b>porcentajes</b> o como <b>masas de CO₂ y H₂O</b> de una combustión. (El método general ya lo viste en el Tema 1; aquí lo aplicamos a compuestos orgánicos.) El simulador de abajo hace el mismo cálculo paso a paso.</p>" +
+        w("q4_empirica") +
+        "<h5>El método de combustión</h5>" +
+        "<p>Al quemar una muestra, todo el C pasa a CO₂ y todo el H a H₂O; el O del compuesto <b>no se mide</b>: se obtiene <b>por diferencia</b> con la masa de muestra. Como 1 mol de CO₂ contiene 1 mol de C y 1 mol de H₂O contiene <b>2 mol de H</b>:</p>" +
+        "<div class='formula-wrap'><div class='formula'>n(C) = m(CO₂)/44,0 · n(H) = 2·m(H₂O)/18,0 · m(O) = m(muestra) − m(C) − m(H)</div></div>" +
+        ejemplo("Ejemplo resuelto: composición centesimal y masa molar", "Un compuesto contiene 54,5 % de C, 9,2 % de H y 36,3 % de O, y su masa molar es 88 g/mol. Halla su fórmula molecular y propón dos isómeros.", [
+          "En 100 g: 54,5 g C, 9,2 g H, 36,3 g O. Moles: C = 54,5/12,0 = 4,54; H = 9,2/1,01 = 9,1; O = 36,3/16,0 = 2,27.",
+          "Se divide entre el menor (2,27): C = 2,00; H = 4,01; O = 1. Empírica: <b>C₂H₄O</b> (M = 44).",
+          "k = 88/44 = <b>2</b> → molecular <b>C₄H₈O₂</b>.",
+          "DI = (2·4 + 2 − 8)/2 = 1. Isómeros posibles: el <b>ácido butanoico</b> (función ácido) y el <b>etanoato de etilo</b> (función éster); también un <b>hidroxi-aldehído</b> sería válido."
+        ]) +
+        ejemplo("Ejemplo resuelto: combustión", "Al quemar 1,50 g de un compuesto C, H, O se obtienen 2,20 g de CO₂ y 0,90 g de H₂O. Su masa molar es 60 g/mol. Halla la fórmula molecular y di qué compuestos podría ser.", [
+          "n(C) = 2,20/44,0 = 0,0500 mol → m(C) = 0,0500·12,0 = <b>0,600 g</b>.",
+          "n(H) = 2·0,90/18,0 = 0,100 mol → m(H) = <b>0,100 g</b>.",
+          "m(O) = 1,50 − 0,600 − 0,100 = <b>0,800 g</b> → n(O) = 0,800/16,0 = 0,0500 mol.",
+          "Proporción C : H : O = 0,0500 : 0,100 : 0,0500 = 1 : 2 : 1 → empírica <b>CH₂O</b> (M = 30). k = 60/30 = 2 → <b>C₂H₄O₂</b>.",
+          "Posibles: <b>ácido etanoico</b> o <b>metanoato de metilo</b> (isomería de función). Con los datos del análisis no se distinguen: hacen falta propiedades (Teb, acidez)."
+        ]) +
+        ejemplo("Ejemplo resuelto: hidrocarburo y densidad", "Un hidrocarburo contiene 85,7 % de C. La densidad del gas a 0 °C y 1 atm es 1,25 g/L. Halla su fórmula y di cuál es.", [
+          "El resto es H: 100 − 85,7 = 14,3 %. Moles: C = 85,7/12,0 = 7,14; H = 14,3/1,01 = 14,2. Proporción 1 : 2 → empírica <b>CH₂</b> (M = 14).",
+          "Masa molar con la densidad (1 mol de gas ocupa 22,4 L en c. n.): M = 1,25 · 22,4 = <b>28,0 g/mol</b>. k = 28/14 = 2 → <b>C₂H₄</b>.",
+          "Es el <b>eteno</b> (etileno), CH₂=CH₂. Comprobación del DI: (2·2 + 2 − 4)/2 = 1 ✓."
+        ]) +
+        ojo("La fórmula empírica no basta: el CH₂O es la empírica del metanal o formaldehído (CH₂O), del ácido etanoico (C₂H₄O₂) y de la glucosa (C₆H₁₂O₆). Sin la masa molar no sabes cuál es. Y el O siempre sale <b>por diferencia</b>: no lo midas con los gramos de CO₂.")
+      )
+    },
+    // ------------------------------------------------------------ 7. Benceno y aromáticos
+    {
+      h: "7. El benceno y los compuestos aromáticos",
+      html: env(
+        "<h5>Una molécula plana con electrones repartidos</h5>" +
+        "<p>El <b>benceno</b>, C₆H₆, es un anillo plano de seis carbonos <b>sp²</b> unidos entre sí y cada uno a un H. Cada C aporta un orbital p con un electrón y los seis electrones π <b>se reparten por todo el anillo</b> (deslocalización, o resonancia): por eso todos los enlaces C–C miden lo mismo (140 pm, entre el simple, 154, y el doble, 134) y no hay tres dobles y tres simples alternos. Esa estabilidad extra hace que el benceno <b>no se comporte como un alqueno</b>: prefiere sustituir un H antes que adicionar. Se dibuja como un hexágono con un círculo o con tres dobles enlaces (formas de Kekulé, solo una convención).</p>" +
+        tabla(["Fórmula", "Nombre IUPAC", "Nombre común"], [
+          ["C₆H₅–CH₃", "metilbenceno", "tolueno"],
+          ["C₆H₅–OH", "hidroxibenceno (bencenol)", "fenol"],
+          ["C₆H₅–NH₂", "aminobenceno (bencenamina)", "anilina"],
+          ["C₆H₅–CHO", "bencenocarbaldehído", "benzaldehído"],
+          ["C₆H₅–COOH", "ácido bencenocarboxílico", "ácido benzoico"],
+          ["C₆H₅–NO₂", "nitrobenceno", "—"],
+          ["C₆H₅–Cl", "clorobenceno", "—"],
+          ["C₆H₅–CH=CH₂", "vinilbenceno (etenilbenceno)", "estireno"]
+        ], "q3t") +
+        "<p>Con <b>dos sustituyentes</b> se indican las posiciones: <b>1,2</b> (orto), <b>1,3</b> (meta) y <b>1,4</b> (para); los xilenos son los tres dimetilbencenos (1,2-, 1,3- y 1,4-dimetilbenceno, C₈H₁₀). Como sustituyente, el anillo C₆H₅– se llama <b>fenil</b> y el C₆H₅–CH₂– <b>bencil</b>. En un compuesto con otro grupo de mayor prioridad, el anillo es un sustituyente fenil.</p>" +
+        ejemplo("Ejemplo resuelto: hibridación y fórmula en el tolueno", "Para el metilbenceno (tolueno) indica la fórmula molecular, la hibridación de cada tipo de carbono y su grado de insaturación.", [
+          "Fórmula: anillo C₆H₅ + CH₃ → <b>C₇H₈</b>.",
+          "Los 6 C del anillo son <b>sp²</b> (3 vecinos cada uno); el CH₃ es <b>sp³</b> (4 vecinos).",
+          "DI = (2·7 + 2 − 8)/2 = <b>4</b> (tres dobles enlaces y un ciclo en el anillo)."
+        ]) +
+        "<p>Hay compuestos aromáticos de mucha relevancia: el <b>fenol</b> (desinfectante), el <b>ácido benzoico</b> y su sal (conservante E-210/E-211), la <b>anilina</b> (colorantes), el <b>tolueno</b> (disolvente). El tema 10 estudia sus reacciones de sustitución.</p>" +
+        ojo("No confundas <b>fenol</b> (OH unido <i>directamente</i> al anillo) con un alcohol aromático como el alcohol bencílico, C₆H₅–CH₂OH. El primero es ligeramente ácido (pKₐ ≈ 10); el segundo no.")
+      )
+    },
+    // ------------------------------------------------------------ 8. Panorama de aplicaciones
+    {
+      h: "8. Dónde encuentras cada familia",
+      html: env(
+        "<p>Conviene asociar cada grupo a un compuesto conocido: ayuda a recordar nombres y propiedades y es la clase de contexto con la que se plantean muchas cuestiones.</p>" +
+        tabla(["Familia", "Compuesto", "Dónde lo encuentras"], [
+          ["Alcano", "metano, propano, butano; octano", "gas natural; bombonas; gasolina (índice de octano)"],
+          ["Alqueno / alquino", "eteno (etileno), etino (acetileno)", "madura la fruta y da polietileno; soldadura oxiacetilénica"],
+          ["Alcohol", "metanol, etanol, propano-1,2,3-triol (glicerina)", "disolvente y combustible; bebidas y desinfectante; cosméticos"],
+          ["Aldehído / cetona", "metanal (formol), propanona (acetona)", "conservación de muestras; disolvente de esmaltes de uñas"],
+          ["Ácido carboxílico", "ácido etanoico (acético), ácido láctico", "vinagre; leche agria y fatiga muscular"],
+          ["Éster", "etanoato de etilo, butanoato de etilo", "aromas de frutas, disolvente; las grasas son ésteres de la glicerina"],
+          ["Éter", "etoxietano (éter dietílico)", "disolvente, antiguo anestésico"],
+          ["Amina / amida", "metilamina; urea (amida), péptidos", "olor del pescado; fertilizante; enlace peptídico de las proteínas"],
+          ["Derivado halogenado", "triclorometano (cloroformo), CFC", "disolvente; antiguos refrigerantes que dañan el ozono"]
+        ], "q3t") +
+        "<p>Los tipos de reacciones que transforman unas familias en otras (sustitución, adición, eliminación, esterificación, oxidación) se estudian en el Tema 10, y los polímeros (polietileno, nylon, poliéster, proteínas) en el Tema 11.</p>"
+      )
+    },
+    // ------------------------------------------------------------ 9. EvAU
+    {
+      h: "9. Cómo se responde en la EvAU",
+      html: env(
+        "<h5>Qué te piden y qué haces</h5>" +
+        tabla(["Si el ejercicio dice…", "Empieza por…", "Recuerda"], [
+          ["«Formule o nombre…»", "grupo principal → cadena → numeración", "el principal lleva el localizador más bajo; prefijos alfabéticos"],
+          ["«Escriba todos los isómeros de…»", "DI, esqueletos, posiciones, funciones", "no repitas: numera desde el otro extremo"],
+          ["«¿Qué tipo de isomería?»", "¿cambia el esqueleto, el grupo o su posición?", "cadena / posición / función; si no, estereoisomería"],
+          ["«¿Tiene isomería cis-trans?»", "mira los dos sustituyentes de cada C del C=C", "deben ser distintos en cada carbono"],
+          ["«¿Es quiral? ¿Tiene enantiómeros?»", "busca C con 4 sustituyentes distintos", "cuenta lo que hay detrás del primer átomo"],
+          ["«Ordene por Teb / explique»", "¿O–H o N–H? ¿polar? ¿masa y forma?", "puente de H &gt; dipolo &gt; London"],
+          ["«Fórmula a partir de % o de combustión»", "moles de cada elemento → divide entre el menor", "k = M/Memp; O por diferencia; 1 H₂O → 2 H"],
+          ["«Hibridación / geometría»", "cuenta los vecinos de cada C (con H)", "4 sp³ · 3 sp² · 2 sp"]
+        ], "q3t") +
+        "<h5>Cómo redactar</h5>" +
+        "<ul>" +
+        "<li>Para formular escribe la <b>semidesarrollada</b> con todos los H del grupo (CH₃–CH(OH)–CH₃) y, si lo piden, indica la esquelética.</li>" +
+        "<li>Para nombrar, escribe primero el grupo principal y la cadena; así evitas el 50 % de los errores.</li>" +
+        "<li>En «justifique» di la <b>causa</b> (la fuerza intermolecular, el carbono con cuatro sustituyentes distintos…), no solo el resultado.</li>" +
+        "<li>En los problemas de fórmula empírica deja siempre una línea con la masa de cada elemento y con los moles: da puntos parciales aunque falle el último paso.</li>" +
+        "</ul>" +
+        w("q7_reto", "retos")
+      )
+    },
+    // ------------------------------------------------------------ 10. ¿Qué falla aquí?
+    {
+      h: "10. ¿Qué falla aquí? Errores típicos de química orgánica",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente en los exámenes. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    // ------------------------------------------------------------ 11. Autocomprobación
+    {
+      h: "11. Autocomprobación del tema",
+      html: "<p>Un test de doce preguntas, tarjetas para fijar definiciones y juegos: emparejar, ordenar y clasificar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarjetas1") + w("emparejar", "emp1") + w("orden", "orden1") + w("clasificar", "clas1") + w("clasificar", "clas2") + w("q7_nombrar", "moleculas") + w("q7_grupos", "moleculas")
+    }
+  ];
+
+  B.parte.q2t9b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 9: Química de los compuestos del carbono
+   (parte C: actividades, ejercicios, láminas y registro del tema)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Hibridación</b> (cuenta los átomos unidos al C, con los H): 4 → sp³ (109,5°, tetraédrico) · 3 → sp² (120°, plano; C=C, C=O) · 2 → sp (180°, lineal; C≡C, C≡N). Un enlace σ siempre; el π solo en dobles (1 π) y triples (2 π) e impide el giro.",
+    "<b>Nomenclatura</b>: 1) grupo principal (ácido &gt; éster &gt; amida &gt; nitrilo &gt; aldehído &gt; cetona &gt; alcohol &gt; amina); 2) cadena que lo contiene (y a los enlaces múltiples), la más larga; 3) numera para dar el localizador más bajo al principal, luego a los enlaces múltiples y a los sustituyentes; 4) prefijos por orden alfabético. Éteres y halogenuros solo como prefijos (alcoxi-, cloro-…).",
+    "<b>Isomería estructural</b> (misma fórmula molecular): de <b>cadena</b> (esqueleto), de <b>posición</b> (dónde está el grupo o el enlace) y de <b>función</b> (otro grupo). Método: DI → esqueletos → posiciones → funciones.",
+    "<b>Estereoisomería</b>: <b>cis-trans</b> si cada C del C=C tiene dos sustituyentes distintos; <b>óptica</b> si hay un C con cuatro sustituyentes distintos (quiral): enantiómeros, 2ⁿ estereoisómeros como máximo (menos si hay forma meso).",
+    "<b>Propiedades físicas</b>: Teb por fuerzas intermoleculares: London (masa, forma) &lt; dipolo–dipolo (C=O, C–Cl) &lt; puente de H (O–H, N–H). A masa parecida: alcano &lt; éter &lt; aldehído/cetona &lt; alcohol &lt; ácido. Cada CH₂ sube la Teb; las ramificaciones la bajan.",
+    "<b>Fórmula a partir de datos</b>: n(C) = m(CO₂)/44; n(H) = 2·m(H₂O)/18; O por diferencia; divide entre el menor → empírica; k = M/M_emp → molecular. DI = (2C + 2 + N − H − X)/2."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«CH₃–CH₂–CHO tiene 2 carbonos de cadena porque el C del –CHO no cuenta; se llama etanal.» ¿Qué falla?",
+          op: ["Nada", "El C del –CHO sí cuenta en la cadena: son 3 C → propanal", "Se llama propan-1-ol", "Es una cetona"], ok: 1,
+          porque: "En aldehídos, ácidos, amidas y nitrilos el carbono del grupo forma parte de la cadena principal." },
+        { q: "«CH₃–O–CH₂CH₃ se llama etoximetano.» ¿Qué falla?",
+          op: ["Nada", "La cadena más larga (2 C) es la base y la corta con el O es el sustituyente: metoxietano", "Es un alcohol", "Se llama etanoato de metilo"], ok: 1,
+          porque: "Éter: alcoxi-alcano; el alcano es la cadena más larga y el sustituyente alcoxi, la más corta." },
+        { q: "«(CH₃)₂C=CH–CH₃ tiene isomería cis-trans porque tiene un doble enlace.» ¿Qué falla?",
+          op: ["Nada", "El C2 lleva dos CH₃ iguales: no existe isomería geométrica", "Solo los alquinos tienen cis-trans", "Es un alcohol"], ok: 1,
+          porque: "El doble enlace es necesario pero no suficiente: cada carbono debe llevar dos sustituyentes distintos." },
+        { q: "«En el pentan-3-ol, el C3 es quiral porque lleva un –OH.» ¿Qué falla?",
+          op: ["Nada", "Lleva dos grupos etilo iguales: no es quiral", "El OH impide la quiralidad", "Los alcoholes no pueden ser quirales"], ok: 1,
+          porque: "Un C quiral necesita 4 sustituyentes distintos: H, OH, etilo y etilo no lo son." },
+        { q: "«El etanol hierve más que el metoximetano porque su enlace O–H es más fuerte.» ¿Qué falla?",
+          op: ["Nada", "El O–H no se rompe al hervir: lo que importa son los puentes de H entre moléculas", "El metoximetano pesa más", "El etanol es apolar"], ok: 1,
+          porque: "Hervir vence las fuerzas intermoleculares, no los enlaces covalentes. El etanol forma puentes de H; el éter no." },
+        { q: "«El carbono del grupo C=O del propanal tiene hibridación sp³.» ¿Qué falla?",
+          op: ["Nada", "Tiene 3 vecinos (O, C, H): es sp², plano a 120°", "Es sp", "No se hibrida"], ok: 1,
+          porque: "El carbonilo tiene un σ y un π con el O más dos σ con C y H: tres vecinos, sp²." },
+        { q: "«En HOOC–CH₂–CH(OH)–CH₃ numero desde el OH para que tenga el 1 y lo llamo ácido 1-hidroxi…» ¿Qué falla?",
+          op: ["Nada", "El grupo principal es el –COOH y es el que lleva el 1: ácido 3-hidroxibutanoico", "Debe llamarse butanol", "No tiene nombre"], ok: 1,
+          porque: "Primero el principal (ácido &gt; alcohol); el –OH queda de prefijo «hidroxi» y no manda en la numeración." },
+        { q: "«Los dos enantiómeros de un compuesto quiral hierven a temperaturas distintas.» ¿Qué falla?",
+          op: ["Nada", "Tienen las mismas propiedades físicas (Teb, solubilidad…); solo difieren en el sentido en que desvían la luz polarizada", "Tienen distinta fórmula", "Uno es sólido y el otro líquido"], ok: 1,
+          porque: "Los enantiómeros son idénticos salvo en la actividad óptica y en su reacción con otras moléculas quirales." },
+        { q: "«C₄H₈ es un alcano porque tiene cuatro carbonos.» ¿Qué falla?",
+          op: ["Nada", "Un alcano acíclico de 4 C es C₄H₁₀; C₄H₈ tiene DI = 1 (alqueno o ciclo)", "Es un alquino", "Es un alcohol"], ok: 1,
+          porque: "DI = (2·4 + 2 − 8)/2 = 1: un doble enlace o un ciclo." },
+        { q: "«El propan-1-ol y el propan-2-ol son isómeros de función.» ¿Qué falla?",
+          op: ["Nada", "Tienen el mismo grupo (–OH) en distinta posición: isomería de posición", "Son isómeros de cadena", "No son isómeros"], ok: 1,
+          porque: "Función = grupos distintos; aquí el grupo es el mismo y solo cambia el carbono donde está." },
+        { q: "«Al quemar la muestra, 0,90 g de H₂O contienen 0,90/18 = 0,050 mol de H.» ¿Qué falla?",
+          op: ["Nada", "Cada H₂O contiene 2 H: n(H) = 2 · 0,050 = 0,100 mol", "Hay que dividir entre 44", "Hay que dividir entre 2"], ok: 1,
+          porque: "Mol de H₂O = 0,050, pero cada molécula aporta dos átomos de H." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "La hibridación de cada carbono del eteno, CH₂=CH₂, es…", op: ["sp²", "sp³", "sp", "ninguna"], ok: 0, porque: "Cada C tiene 3 vecinos (2 H y 1 C): sp², plano y a 120°." },
+        { q: "El grupo funcional de mayor prioridad entre éstos es…", op: ["–COOH", "–OH", "–CHO", "–NH₂"], ok: 0, porque: "Orden: ácido &gt; … &gt; aldehído &gt; … &gt; alcohol &gt; amina." },
+        { q: "El nombre del CH₃–CH(CH₃)–CH₂–OH es…", op: ["2-metilpropan-1-ol", "isobutano", "butan-2-ol", "3-metilpropan-1-ol"], ok: 0, porque: "Cadena de 3 C con el –OH en C1 y un metilo en C2." },
+        { q: "La fórmula del propanoato de etilo es…", op: ["CH₃CH₂COOCH₂CH₃", "CH₃COOCH₂CH₂CH₃", "CH₃CH₂CH₂COOCH₃", "CH₃CH₂OCH₂CH₃"], ok: 0, porque: "La parte ácida (3 C: propanoato) y el etilo del alcohol." },
+        { q: "El etanol y el metoximetano son isómeros de…", op: ["función", "cadena", "posición", "geométricos"], ok: 0, porque: "C₂H₆O con grupos distintos (–OH frente a –O–)." },
+        { q: "¿Cuál tiene isomería cis-trans?", op: ["CH₃–CH=CH–CH₃", "CH₂=CH–CH₃", "(CH₃)₂C=CH₂", "CH₂=CH₂"], ok: 0, porque: "Solo el but-2-eno tiene dos sustituyentes distintos (H y CH₃) en cada carbono del doble enlace." },
+        { q: "Un carbono quiral es el que…", op: ["está unido a cuatro sustituyentes distintos", "forma un doble enlace", "está unido a un halógeno", "tiene hibridación sp"], ok: 0, porque: "Es la condición para que exista una imagen especular no superponible." },
+        { q: "Las propiedades de dos enantiómeros difieren en…", op: ["el sentido en que desvían la luz polarizada", "su punto de ebullición", "su fórmula molecular", "su densidad"], ok: 0, porque: "Solo en la actividad óptica y en cómo reaccionan con otras moléculas quirales." },
+        { q: "El orden creciente de Teb de butano, butanal y butan-1-ol es…", op: ["butano &lt; butanal &lt; butan-1-ol", "butan-1-ol &lt; butanal &lt; butano", "butanal &lt; butano &lt; butan-1-ol", "butano &lt; butan-1-ol &lt; butanal"], ok: 0, porque: "London &lt; dipolo–dipolo &lt; puente de hidrógeno." },
+        { q: "El grado de insaturación del C₅H₈ es…", op: ["2", "1", "0", "3"], ok: 0, porque: "(2·5 + 2 − 8)/2 = 2: un triple enlace, dos dobles o un doble y un ciclo…" },
+        { q: "Un compuesto de empírica CH₂O y M = 90 g/mol tiene fórmula molecular…", op: ["C₃H₆O₃", "C₂H₄O₂", "C₆H₁₂O₆", "CH₂O"], ok: 0, porque: "k = 90/30 = 3." },
+        { q: "El nombre del CH₃–CO–CH₂–CH₃ es…", op: ["butanona", "butanal", "butan-1-ona", "ácido butanoico"], ok: 0, porque: "Cetona de 4 C: el C=O siempre en un carbono interior, el 2 (se omite el 2 en «butanona»)." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: química del carbono",
+      cartas: [
+        { a: "Hibridación (regla)", b: "Cuenta los átomos unidos al C (con H): 4 → sp³ · 3 → sp² · 2 → sp." },
+        { a: "σ y π", b: "σ: todo enlace (frontal). π: solo en dobles (1) y triples (2); lateral, más débil e impide el giro." },
+        { a: "Orden de prioridad", b: "Ácido &gt; éster &gt; amida &gt; nitrilo &gt; aldehído &gt; cetona &gt; alcohol &gt; amina. Éter y halógeno: solo prefijo." },
+        { a: "Numerar la cadena", b: "Localizador más bajo: 1.º al grupo principal, 2.º a dobles y triples, 3.º a sustituyentes; prefijos por orden alfabético." },
+        { a: "Éster", b: "R–COO–R′: nombre del ácido en «-oato» + «de» + radical del alcohol. Ej.: etanoato de etilo." },
+        { a: "Éter", b: "R–O–R′: alcoxi-alcano. CH₃OCH₂CH₃ = metoxietano (la cadena larga es la base)." },
+        { a: "Isomería de cadena, posición y función", b: "Esqueleto distinto · grupo o enlace en otro carbono · grupo funcional distinto. Misma fórmula molecular." },
+        { a: "Isomería cis-trans", b: "Alquenos con dos sustituyentes distintos en cada carbono del C=C. Cis: del mismo lado; trans: de lados opuestos." },
+        { a: "Carbono quiral", b: "C sp³ con cuatro sustituyentes distintos. Genera dos enantiómeros (imágenes especulares no superponibles)." },
+        { a: "Enantiómeros", b: "Mismas propiedades físicas y químicas; desvían la luz polarizada en sentidos opuestos. Máximo 2ⁿ estereoisómeros." },
+        { a: "Forma meso", b: "Compuesto con carbonos quirales pero plano de simetría interno: ópticamente inactivo. Reduce el número de estereoisómeros (el 2,3-dibromobutano tiene 3)." },
+        { a: "Fuerzas intermoleculares", b: "London (todas; masa y forma) &lt; dipolo–dipolo (C=O, C–Cl) &lt; puente de H (O–H, N–H). Mandan en el punto de ebullición." },
+        { a: "Grado de insaturación", b: "DI = (2C + 2 + N − H − X)/2. Cuenta dobles enlaces, 2 por cada triple, y ciclos." },
+        { a: "Empírica y molecular", b: "Empírica: proporción mínima. Molecular = empírica × k, con k = M/M_emp. O por diferencia; 1 H₂O = 2 H." }
+      ]
+    },
+    emp1: {
+      titulo: "Empareja grupo funcional y compuesto",
+      consigna: "Une cada familia con un compuesto de ejemplo.",
+      pares: [["Ácido carboxílico", "ácido etanoico"], ["Éster", "etanoato de etilo"], ["Amida", "etanamida"], ["Nitrilo", "etanonitrilo"], ["Aldehído", "propanal"], ["Cetona", "propanona"], ["Alcohol", "propan-2-ol"], ["Amina", "etanamina"], ["Éter", "metoxietano"]]
+    },
+    orden1: {
+      titulo: "Ordena el proceso de nombrar",
+      consigna: "Pon los pasos en el orden correcto.",
+      items: [
+        { t: "Localizar el grupo funcional de mayor prioridad", nota: "da el sufijo" },
+        { t: "Elegir la cadena principal", nota: "la más larga que contiene el grupo principal y los enlaces múltiples" },
+        { t: "Numerar la cadena", nota: "localizador más bajo al principal, luego a dobles/triples y sustituyentes" },
+        { t: "Nombrar los sustituyentes por orden alfabético", nota: "di-, tri- no cuentan" },
+        { t: "Ensamblar prefijos + raíz + sufijo", nota: "comas entre números y guiones entre números y letras" }
+      ]
+    },
+    clas1: {
+      titulo: "Hibridación del carbono señalado",
+      consigna: "Toca cada carbono (en negrita) y después su hibridación.",
+      categorias: ["sp³", "sp²", "sp"],
+      items: [
+        { t: "<b>C</b>H₄", c: 0 }, { t: "CH₃–<b>C</b>H₂–CH₃", c: 0 }, { t: "<b>C</b>H₂=CH₂", c: 1 }, { t: "CH₃–<b>C</b>HO", c: 1 },
+        { t: "CH₃–<b>C</b>OOH", c: 1 }, { t: "H–<b>C</b>≡<b>C</b>–H", c: 2 }, { t: "CH₃–<b>C</b>≡N", c: 2 }, { t: "CH₂=<b>C</b>=CH₂ (el central)", c: 2 }
+      ]
+    },
+    clas2: {
+      titulo: "Fuerza intermolecular dominante",
+      consigna: "En el líquido puro, ¿cuál es la fuerza más importante entre sus moléculas?",
+      categorias: ["London (apolar)", "Dipolo–dipolo", "Puente de hidrógeno"],
+      items: [
+        { t: "pentano", c: 0 }, { t: "hexano", c: 0 }, { t: "propanona", c: 1 }, { t: "propanal", c: 1 }, { t: "clorometano", c: 1 },
+        { t: "etanol", c: 2 }, { t: "ácido etanoico", c: 2 }, { t: "propan-1-amina", c: 2 }
+      ]
+    }
+  };
+  // Los bancos de moléculas y retos del tema 7 de Física y Química I (el constructor, los juegos de nombrar y el reto)
+  datos.moleculas = B.parte.t7datos.moleculas;
+  datos.retos = B.parte.t7datos.retos;
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  var E = [];
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function tx(id, nivel, enun, etq, vals, otras, pistas, pasos, res) { var c = { tipo: "texto", etiqueta: etq, valores: vals }; if (otras && otras.length) c.otras = otras; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function ge(id, nivel, enun, check, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: check, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nc(etq, val, tol) { return { tipo: "num", etiqueta: etq, valor: val, tol: tol || 0.01 }; }
+
+  // ---------------- ★
+  op("c1", 1, "¿Qué hibridación tienen los carbonos del etano, CH₃–CH₃?", "Hibridación", ["sp³", "sp²", "sp", "s"], 0,
+    ["Cuenta los átomos unidos a cada C."], ["Cada C está unido a 3 H y 1 C: 4 átomos.", "4 vecinos → sp³ (tetraédrico, 109,5°)."], "sp³");
+  op("c2", 1, "¿Qué hibridación tienen los dos carbonos del eteno, CH₂=CH₂?", "Hibridación", ["sp²", "sp³", "sp", "sp²d"], 0,
+    ["Cada C: 2 H y 1 C (con doble enlace)."], ["3 vecinos por carbono.", "3 → sp² (plano, 120°)."], "sp²");
+  nu("c3", 1, "¿Cuántos enlaces σ tiene la molécula de eteno, C₂H₄?", "n.º de enlaces σ =", 5,
+    ["Cada C–H es σ; en el doble enlace, uno σ y otro π."], ["4 enlaces C–H: 4 σ.", "C=C: 1 σ + 1 π.", "Total: 5 σ (y 1 π)."], "5", 0.01);
+  op("c4", 1, "¿A qué familia pertenece el CH₃CH₂COOH?", "Familia", ["ácido carboxílico", "éster", "aldehído", "alcohol"], 0,
+    ["Mira el grupo –COOH."], ["–COOH = carboxilo.", "El compuesto es el ácido propanoico."], "Ácido carboxílico");
+  tx("c5", 1, "Nombra el compuesto CH₃–CH₂–CH₂–OH.", "Nombre IUPAC", ["propan-1-ol"], ["1-propanol"],
+    ["Tres carbonos y un –OH en el extremo."], ["Cadena de 3 C: prop-.", "Alcohol: sufijo «-ol»; el –OH en el C1.", "Propan-1-ol."], "propan-1-ol");
+  tx("c6", 1, "Nombra el compuesto CH₃–CH₂–CHO.", "Nombre IUPAC", ["propanal"], [],
+    ["El C del –CHO cuenta en la cadena."], ["Aldehído con 3 C: prop- + «-al».", "El grupo –CHO siempre está en el C1: no hace falta localizador."], "propanal");
+  tx("c7", 1, "Nombra el compuesto CH₃–CO–CH₃.", "Nombre IUPAC", ["propanona"], ["acetona"],
+    ["Cetona de 3 carbonos."], ["Cadena de 3 C: prop-.", "Cetona: sufijo «-ona» (el C=O solo puede estar en el C2)."], "propanona (acetona)");
+  op("c8", 1, "La fórmula semidesarrollada del ácido etanoico es…", "Fórmula", ["CH₃–COOH", "CH₃–CHO", "CH₃–CH₂–OH", "HCOOCH₃"], 0,
+    ["Dos carbonos y un grupo carboxilo."], ["Etan- = 2 C; «ácido …oico» = –COOH en el extremo.", "CH₃–COOH."], "CH₃–COOH");
+  op("c9", 1, "El sufijo que caracteriza a las amidas es…", "Sufijo", ["-amida", "-amina", "-nitrilo", "-oato"], 0,
+    ["Piensa en –CONH₂."], ["Amidas: –CONH₂ → «-amida».", "Aminas: –NH₂ → «-amina»."], "-amida");
+  op("c10", 1, "En el 2-hidroxietanal, HO–CH₂–CHO, ¿qué grupo da el sufijo?", "Grupo principal", ["aldehído", "alcohol", "los dos", "ninguno"], 0,
+    ["Compara las prioridades: aldehído y alcohol."], ["Aldehído (5.º) tiene más prioridad que alcohol (7.º).", "El –OH pasa a prefijo «hidroxi»."], "El aldehído (–al)");
+  op("c11", 1, "El propan-1-ol y el propan-2-ol son isómeros de…", "Isomería", ["posición", "cadena", "función", "no son isómeros"], 0,
+    ["El grupo es el mismo, pero…"], ["Ambos son C₃H₈O y alcoholes.", "El –OH cambia de carbono: posición."], "Posición");
+  op("c12", 1, "El etanol y el metoximetano (CH₃OCH₃) son isómeros de…", "Isomería", ["función", "cadena", "posición", "geométrica"], 0,
+    ["Uno tiene –OH y el otro –O–."], ["Los dos son C₂H₆O.", "Alcohol frente a éter: grupos funcionales distintos."], "Función");
+  nu("c13", 1, "Calcula el grado de insaturación del C₄H₆.", "DI =", 2,
+    ["DI = (2C + 2 − H)/2."], ["DI = (2·4 + 2 − 6)/2 = 4/2 = 2.", "Un triple enlace, dos dobles o un doble y un ciclo."], "2", 0.01);
+  op("c14", 1, "¿Cuál de estos alquenos presenta isomería cis-trans?", "Cis-trans", ["but-2-eno", "eteno", "propeno", "2-metilpropeno"], 0,
+    ["Debe haber dos sustituyentes distintos en cada carbono del doble enlace."], ["But-2-eno: CH₃–CH=CH–CH₃ → H y CH₃ en cada C: sí.", "Eteno, propeno y 2-metilpropeno tienen un C con dos grupos iguales."], "But-2-eno");
+  op("c15", 1, "¿Cuál de estos compuestos tiene un carbono quiral?", "Quiral", ["CH₃–CH(OH)–COOH", "CH₃–CH₂–OH", "CH₃–CH₂–COOH", "CH₃–CO–CH₃"], 0,
+    ["Busca un C con cuatro grupos distintos."], ["En CH₃–CH(OH)–COOH el C2 lleva H, OH, CH₃ y COOH.", "En los demás, ningún carbono sp³ tiene 4 sustituyentes distintos."], "Ácido láctico");
+  op("c16", 1, "¿Cuál es la fuerza intermolecular más importante en el etanol líquido?", "Fuerza", ["puentes de hidrógeno", "solo London", "enlace iónico", "enlace metálico"], 0,
+    ["Hay un H unido a O."], ["O–H → puentes de H entre moléculas.", "Explican su Teb de 78,4 °C."], "Puentes de hidrógeno");
+  nu("c17", 1, "Calcula la masa molar del etanol, C₂H₆O (C 12,01; H 1,008; O 16,00 g/mol).", "M (g/mol) =", 46.07,
+    ["M = 2·12,01 + 6·1,008 + 16,00."], ["24,02 + 6,048 + 16,00 = 46,07 g/mol."], "46,07 g/mol", 0.005);
+  op("c18", 1, "El etanol y el metoximetano tienen la misma masa molar. ¿Cuál hierve a mayor temperatura?", "Mayor Teb", ["el etanol", "el metoximetano", "igual", "depende de la presión únicamente"], 0,
+    ["¿Cuál puede formar puentes de H?"], ["El etanol tiene O–H: puentes de H.", "El éter no: solo dipolo débil y London."], "Etanol (78,4 °C frente a −24,8 °C)");
+
+  // ---------------- ★★
+  tx("d1", 2, "Nombra el compuesto CH₃–CH(CH₃)–CH₂–CH₃.", "Nombre IUPAC", ["2-metilbutano"], [],
+    ["La cadena más larga tiene 4 C."], ["Cadena de 4 C (butano) con un CH₃ lateral.", "Numerando desde el extremo cercano al CH₃: localizador 2 (desde el otro, 3).", "2-metilbutano."], "2-metilbutano");
+  tx("d2", 2, "Nombra el compuesto CH₃–CH(OH)–CH₂–CH₃.", "Nombre IUPAC", ["butan-2-ol"], ["2-butanol"],
+    ["El –OH debe llevar el localizador más bajo."], ["Cadena de 4 C.", "El –OH está en el segundo carbono desde cualquiera de los dos lados más cercanos: 2.", "Butan-2-ol."], "butan-2-ol");
+  tx("d3", 2, "Nombra el compuesto CH₃–CH₂–COO–CH₃.", "Nombre IUPAC", ["propanoato de metilo"], [],
+    ["Parte ácida: 3 C. Radical del alcohol: 1 C."], ["Lado del C=O: CH₃CH₂CO– → propanoato.", "Lado del O: –CH₃ → metilo.", "Propanoato de metilo."], "propanoato de metilo");
+  tx("d4", 2, "Nombra el compuesto CH₃–CH₂–C≡N.", "Nombre IUPAC", ["propanonitrilo"], [],
+    ["El C del –C≡N cuenta en la cadena."], ["3 C en total (incluido el del grupo).", "Sufijo «-nitrilo»."], "propanonitrilo");
+  tx("d5", 2, "Nombra el compuesto CH₂=CH–CH₂–CH₂–CH₃.", "Nombre IUPAC", ["pent-1-eno"], ["1-penteno"],
+    ["Cinco carbonos y un doble enlace en el extremo."], ["Cadena de 5 C: pent-.", "Doble enlace entre C1 y C2: pent-1-eno."], "pent-1-eno");
+  op("d6", 2, "La fórmula semidesarrollada de la 3-metilbutan-2-ona es…", "Fórmula", ["CH₃–CO–CH(CH₃)–CH₃", "CH₃–CH₂–CO–CH₂–CH₃", "CH₃–CH(CH₃)–CH₂–CHO", "CH₃–CH(OH)–CH(CH₃)–CH₃"], 0,
+    ["Cadena de 4 C, C=O en el 2 y un metilo en el 3."], ["Butan-2-ona: CH₃–CO–CH₂–CH₃.", "Metilo en C3: CH₃–CO–CH(CH₃)–CH₃."], "CH₃–CO–CH(CH₃)–CH₃");
+  op("d7", 2, "La fórmula del ácido 2-hidroxipropanoico es…", "Fórmula", ["CH₃–CH(OH)–COOH", "HO–CH₂–CH₂–COOH", "CH₃–CO–CH₂–OH", "CH₃–CH(OH)–CHO"], 0,
+    ["Propanoico: 3 C con –COOH en C1; hidroxi en C2."], ["C1 = COOH, C2 lleva –OH, C3 = CH₃.", "Es el ácido láctico."], "CH₃–CH(OH)–COOH");
+  nu("d8", 2, "(Estilo EvAU) ¿Cuántos isómeros estructurales de fórmula C₄H₁₀O hay que sean alcoholes o éteres (sin contar estereoisómeros)?", "n.º de isómeros =", 7,
+    ["DI = 0. Alcoholes: busca los esqueletos de 4 C. Éteres: reparte los C a los dos lados del O."],
+    ["Alcoholes lineales: butan-1-ol y butan-2-ol; ramificados: 2-metilpropan-1-ol y 2-metilpropan-2-ol (4).", "Éteres: metoxipropano, 2-metoxipropano y etoxietano (3).", "Total 4 + 3 = 7."], "7", 0.01);
+  nu("d9", 2, "¿Cuántos isómeros estructurales tiene el C₅H₁₂ (alcanos), contando el pentano?", "n.º de isómeros =", 3,
+    ["Un esqueleto lineal y los ramificados."], ["Pentano.", "2-metilbutano.", "2,2-dimetilpropano.", "Total: 3."], "3", 0.01);
+  nu("d10", 2, "¿Cuántos carbonos quirales tiene el CH₃–CHBr–CHCl–CH₃?", "n.º de C quirales =", 2,
+    ["Cada C central lleva H, un halógeno, CH₃ y otro carbono sustituido."], ["C2: H, Br, CH₃ y CHCl–CH₃ → distintos: quiral.", "C3: H, Cl, CH₃ y CHBr–CH₃ → distintos: quiral.", "Hay 2."], "2", 0.01);
+  nu("d11", 2, "¿Cuál es el número máximo de estereoisómeros de una molécula con 3 carbonos quirales distintos?", "máx. estereoisómeros =", 8,
+    ["2 elevado al número de centros."], ["Máx. = 2ⁿ = 2³ = 8."], "8", 0.01);
+  op("d12", 2, "¿Qué hibridación tiene el carbono del grupo –CHO?", "Hibridación", ["sp²", "sp³", "sp", "sp²d"], 0,
+    ["3 vecinos: O (doble), C y H."], ["Tres átomos unidos → sp².", "Es plano, con ángulos de 120°."], "sp²");
+  nu("d13", 2, "Calcula el grado de insaturación del tolueno, C₇H₈.", "DI =", 4,
+    ["Aplica DI = (2C + 2 − H)/2."], ["DI = (2·7 + 2 − 8)/2 = 8/2 = 4.", "Tres dobles enlaces y un ciclo."], "4", 0.01);
+  op("d14", 2, "Ordena de menor a mayor punto de ebullición: butanal, butan-1-ol y pentano.", "Orden", ["pentano &lt; butanal &lt; butan-1-ol", "butanal &lt; pentano &lt; butan-1-ol", "butan-1-ol &lt; butanal &lt; pentano", "pentano &lt; butan-1-ol &lt; butanal"], 0,
+    ["M parecida: mira el tipo de fuerza."], ["Pentano: London (36,1 °C).", "Butanal: dipolo–dipolo (74,8 °C).", "Butan-1-ol: puentes de H (117,7 °C)."], "Pentano < butanal < butan-1-ol");
+  op("d15", 2, "¿Cuál es un isómero de función del butanal, CH₃CH₂CH₂CHO?", "Isómero", ["butanona", "butan-1-ol", "ácido butanoico", "pentanal"], 0,
+    ["Misma fórmula C₄H₈O y otro grupo."], ["El butanal es C₄H₈O.", "La butanona (cetona) también: C₄H₈O.", "El butan-1-ol es C₄H₁₀O y el ácido butanoico C₄H₈O₂."], "Butanona");
+  nu("d16", 2, "Al quemar una muestra se obtienen 0,880 g de CO₂. ¿Cuántos moles de C había en la muestra? (M(CO₂) = 44,0 g/mol)", "n(C) (mol) =", 0.0200,
+    ["1 mol de CO₂ contiene 1 mol de C."], ["n(CO₂) = 0,880/44,0 = 0,0200 mol.", "n(C) = 0,0200 mol."], "0,0200 mol", 0.01);
+  tx("d17", 2, "Nombra el compuesto CH₃–CH₂–O–CH₃.", "Nombre IUPAC", ["metoxietano"], ["etil metil éter"],
+    ["La cadena más larga es la base; la corta con el O es «alcoxi»."], ["Cadena larga: 2 C (etano). Cadena corta: –O–CH₃ → metoxi.", "Metoxietano."], "metoxietano");
+  op("d18", 2, "El nombre de CH₃–COO–CH₂–CH₃ es…", "Nombre", ["etanoato de etilo", "propanoato de metilo", "etil etanol", "ácido butanoico"], 0,
+    ["Mira cada lado del grupo –COO–."], ["Lado del C=O: CH₃CO– → etanoato.", "Lado del O: CH₂CH₃ → etilo."], "Etanoato de etilo");
+
+  // ---------------- ★★★
+  tx("e1", 3, "(Estilo EvAU) Nombra HOOC–CH₂–CH(OH)–CH₃.", "Nombre IUPAC", ["ácido 3-hidroxibutanoico"], [],
+    ["El ácido es el grupo principal y lleva el 1."], ["Cadena de 4 C con el –COOH en el C1.", "El –OH queda en el C3: prefijo «hidroxi».", "Ácido 3-hidroxibutanoico."], "ácido 3-hidroxibutanoico");
+  tx("e2", 3, "(Estilo EvAU) Nombra CH₃–CO–CH₂–CH₂–OH.", "Nombre IUPAC", ["4-hidroxibutan-2-ona"], [],
+    ["La cetona es el grupo principal."], ["Cetona > alcohol: sufijo «-ona», prefijo «hidroxi».", "Numerando desde el CH₃: C=O en 2, OH en 4 (frente a 3 y 1 desde el otro extremo: gana el 2 para la cetona).", "4-hidroxibutan-2-ona."], "4-hidroxibutan-2-ona");
+  tx("e3", 3, "(Estilo EvAU) Nombra CH₃–CH(CH₃)–CH₂–CH(CH₂CH₃)–CH₂–CH₃.", "Nombre IUPAC", ["4-etil-2-metilhexano"], [],
+    ["Cadena más larga: 6 carbonos."], ["Hexano con metilo y etilo.", "Localizadores {2, 4} frente a {3, 5}: gana {2, 4}.", "Alfabético: etil antes que metil."], "4-etil-2-metilhexano");
+  ge("e4", 3, "(Estilo EvAU) Un compuesto contiene 62,1 % de C, 10,4 % de H y 27,5 % de O y su masa molar es 58 g/mol. Halla su fórmula molecular: número de átomos de C, H y O.",
+    [nc("n.º de C =", 3), nc("n.º de H =", 6), nc("n.º de O =", 1)],
+    ["En 100 g de compuesto hay 62,1 g de C…"], ["Moles: C = 62,1/12,0 = 5,18; H = 10,4/1,01 = 10,3; O = 27,5/16,0 = 1,72.", "Entre el menor (1,72): C = 3,0; H = 6,0; O = 1. Empírica C₃H₆O (M = 58).", "k = 58/58 = 1 → C₃H₆O (propanal o propanona)."], "C₃H₆O");
+  ge("e5", 3, "(Estilo EvAU) Al quemar 0,920 g de un compuesto de C, H y O se obtienen 1,76 g de CO₂ y 1,08 g de H₂O. Calcula la masa de oxígeno de la muestra (g) y el número de átomos de H de la fórmula molecular si M = 46 g/mol.",
+    [nc("m(O) (g) =", 0.32, 0.02), nc("n.º de H =", 6)],
+    ["m(C) = n(C)·12; m(H) = 2·n(H₂O)·1; O por diferencia."], ["n(C) = 1,76/44,0 = 0,0400 mol → 0,480 g.", "n(H) = 2·1,08/18,0 = 0,120 mol → 0,120 g.", "m(O) = 0,920 − 0,480 − 0,120 = 0,320 g → 0,0200 mol.", "C : H : O = 2 : 6 : 1 → C₂H₆O (M = 46): k = 1."], "m(O) = 0,320 g; C₂H₆O");
+  nu("e6", 3, "¿Cuántos isómeros estructurales de fórmula C₃H₆O₂ son ácidos carboxílicos o ésteres (acíclicos, sin otros grupos)?", "n.º de isómeros =", 3,
+    ["Un ácido y dos ésteres."], ["Ácido propanoico, CH₃CH₂COOH.", "Éster: etanoato de metilo, CH₃COOCH₃.", "Éster: metanoato de etilo, HCOOCH₂CH₃.", "Total 3."], "3", 0.01);
+  op("e7", 3, "(Estilo EvAU) ¿Cuál de estos compuestos presenta isomería cis-trans?", "Cis-trans", ["CH₃–CH=CHCl", "CH₂=CHCl", "(CH₃)₂C=CH₂", "CH₂=CH–CH₃"], 0,
+    ["Cada C del doble enlace necesita dos sustituyentes distintos."], ["CH₃–CH=CHCl: H y CH₃ en un C; H y Cl en el otro. Sí.", "En los demás, un carbono del doble enlace lleva dos H o dos CH₃."], "CH₃–CH=CHCl");
+  ge("e8", 3, "(Estilo EvAU) Para el 3-metilpentan-2-ol, CH₃–CH(OH)–CH(CH₃)–CH₂–CH₃, indica el número de carbonos quirales y el número máximo de estereoisómeros.",
+    [nc("C quirales =", 2), nc("estereoisómeros (máx.) =", 4)],
+    ["C2: H, OH, CH₃ y …; C3: H, CH₃, etilo y …"], ["C2: H, OH, CH₃ y CH(CH₃)CH₂CH₃ → distintos: quiral.", "C3: H, CH₃, CH₂CH₃ y CH(OH)CH₃ → distintos: quiral.", "2ⁿ = 2² = 4 estereoisómeros."], "2 carbonos quirales; 4 estereoisómeros");
+  nu("e9", 3, "¿Cuántos estereoisómeros distintos tiene el 2,3-dibromobutano, CH₃–CHBr–CHBr–CH₃? (Atención a la forma meso.)", "n.º de estereoisómeros =", 3,
+    ["Los dos C quirales son iguales entre sí."], ["Hay 2 centros: máx. 2² = 4.", "Como los dos C son equivalentes, el isómero (R,S) tiene un plano de simetría: forma meso, igual que el (S,R).", "Reales: (R,R), (S,S) y meso → 3."], "3", 0.01);
+  op("e10", 3, "(Estilo EvAU) El ácido etanoico (118 °C) hierve a más temperatura que el propan-1-ol (97 °C) aunque su masa molar sea igual (60 g/mol). La causa es que…", "Causa", ["forma dímeros con dos puentes de hidrógeno entre moléculas", "tiene un enlace O–H más fuerte", "tiene mayor masa molar", "es un compuesto iónico"], 0,
+    ["Tiene O–H y también C=O."], ["El –COOH da dos puentes de H entre dos moléculas (dímero).", "El alcohol solo forma uno por pareja. Más fuerza intermolecular → mayor Teb."], "Dímeros con dos puentes de H");
+  op("e11", 3, "El butano (C₄H₁₀) hierve a −0,5 °C y el 2-metilpropano (C₄H₁₀) a −11,7 °C. ¿Por qué el butano hierve más?", "Causa", ["su cadena lineal ofrece más superficie de contacto y más fuerzas de London", "tiene puentes de hidrógeno", "tiene mayor masa molar", "es polar"], 0,
+    ["Mismos átomos; ¿qué cambia?"], ["Son isómeros: igual M.", "La molécula ramificada es más compacta y se atrae menos con sus vecinas."], "Mayor superficie de contacto en la lineal");
+  nu("e12", 3, "Calcula la densidad del propano (C₃H₈, M = 44,1 g/mol) a 25 °C y 1 atm, en g/L, tratándolo como gas ideal. (R = 0,082 atm·L/(mol·K))", "d (g/L) =", 1.80,
+    ["d = pM/(RT)."], ["T = 298 K.", "d = 1 · 44,1/(0,082 · 298) = 44,1/24,44 = 1,80 g/L."], "1,80 g/L", 0.01);
+  ge("e13", 3, "Para el CH₂=CH–C≡CH (but-1-en-3-ino), cuenta los enlaces σ y los π de la molécula.",
+    [nc("n.º de enlaces σ =", 7), nc("n.º de enlaces π =", 3)],
+    ["Un doble enlace: 1 σ + 1 π. Un triple: 1 σ + 2 π."], ["C–H: 2 + 1 + 1 = 4 σ.", "C–C: C1=C2 (1 σ), C2–C3 (1 σ), C3≡C4 (1 σ) = 3 σ.", "σ = 7. π: 1 + 2 = 3."], "7 σ y 3 π");
+  nu("e14", 3, "¿Cuántos alquenos acíclicos de fórmula C₄H₈ existen contando los estereoisómeros cis-trans?", "n.º de alquenos =", 4,
+    ["Esqueletos: lineal y ramificado."], ["But-1-eno.", "Cis-but-2-eno y trans-but-2-eno.", "2-metilpropeno.", "Total 4 (3 isómeros estructurales; el but-2-eno tiene dos estereoisómeros)."], "4", 0.01);
+  op("e15", 3, "En HOOC–CH₂–CHO, ¿qué grupo da el sufijo y cuál es el nombre?", "Nombre", ["ácido 3-oxopropanoico (manda el ácido)", "3-carboxipropanal (manda el aldehído)", "propanal-ácido", "ácido 2-formiletanoico"], 0,
+    ["Ácido &gt; aldehído."], ["El –COOH es el principal: ácido …oico en C1.", "El –CHO queda como prefijo «oxo» en el C3."], "Ácido 3-oxopropanoico");
+  tx("e16", 3, "Nombra la amida CH₃–CH₂–CH₂–CO–NH₂.", "Nombre IUPAC", ["butanamida"], [],
+    ["El C del –CONH₂ cuenta en la cadena."], ["Cadena de 4 C.", "Sufijo «-amida»."], "butanamida");
+
+  var ejercicios = E;
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Grupos funcionales: prioridad y nombre", ancha: true,
+      tabla: { cab: ["#", "Familia", "Grupo", "Sufijo", "Prefijo"], filas: [
+        ["1", "Ácido carboxílico", "–COOH", "ácido …oico", "carboxi-"],
+        ["2", "Éster", "–COO–", "…oato de …ilo", "—"],
+        ["3", "Amida", "–CONH₂", "…amida", "carbamoil-"],
+        ["4", "Nitrilo", "–C≡N", "…nitrilo", "ciano-"],
+        ["5", "Aldehído", "–CHO", "…al", "oxo- / formil-"],
+        ["6", "Cetona", ">C=O", "…ona", "oxo-"],
+        ["7", "Alcohol", "–OH", "…ol", "hidroxi-"],
+        ["8", "Amina", "–NH₂", "…amina", "amino-"],
+        ["—", "Éter · halógeno · nitro", "–O– · –X · –NO₂", "(no)", "alcoxi- · cloro-… · nitro-"]
+      ] },
+      nota: "Numera para dar el localizador más bajo primero al grupo principal, luego a los enlaces múltiples y a los sustituyentes." },
+    { titulo: "Isomería: ¿de qué tipo es?", ancha: true,
+      tabla: { cab: ["Pregunta", "Si la respuesta es sí…"], filas: [
+        ["¿Misma fórmula molecular?", "son isómeros; si no, son compuestos distintos"],
+        ["¿Cambia el esqueleto de C?", "isomería de cadena"],
+        ["¿Mismo grupo en otro carbono?", "isomería de posición"],
+        ["¿Distinto grupo funcional?", "isomería de función"],
+        ["¿Mismos enlaces pero distinto lado del C=C?", "geométrica (cis-trans): cada C con dos sustituyentes distintos"],
+        ["¿C con cuatro sustituyentes distintos?", "óptica: enantiómeros, 2ⁿ estereoisómeros como máximo"]
+      ] },
+      nota: "Primero decide si cambia la conectividad (estructural) o solo la disposición en el espacio (estereoisomería)." },
+    { titulo: "Teb y fuerzas intermoleculares (M ≈ 60)", ancha: true,
+      tabla: { cab: ["Compuesto", "Teb (°C)", "Fuerza dominante"], filas: [
+        ["butano", "−0,5", "London"],
+        ["metoxietano", "7,4", "dipolo débil"],
+        ["propanal", "48,0", "dipolo–dipolo"],
+        ["propanona", "56,1", "dipolo–dipolo"],
+        ["propan-1-ol", "97,2", "puentes de H"],
+        ["ácido etanoico", "118,1", "puentes de H (dímeros)"]
+      ] },
+      nota: "Con masas parecidas manda el tipo de fuerza. Cada CH₂ más sube la Teb; las ramificaciones la bajan." },
+    { titulo: "Errores típicos del tema", ancha: true,
+      errores: [
+        { mal: "CH₃CH₂CHO = etanal", bien: "propanal (el C del –CHO cuenta)", por: "3 C en la cadena." },
+        { mal: "CH₃OCH₂CH₃ = etoximetano", bien: "metoxietano", por: "La cadena larga es la base." },
+        { mal: "Doble enlace ⇒ siempre cis-trans", bien: "solo si cada C tiene dos sustituyentes distintos", por: "(CH₃)₂C=… no lo tiene." },
+        { mal: "Pentan-3-ol tiene C quiral", bien: "no: lleva dos etilos iguales", por: "4 sustituyentes distintos." },
+        { mal: "El O–H más fuerte explica la Teb", bien: "los puentes de H entre moléculas", por: "El enlace no se rompe al hervir." },
+        { mal: "Mol de H = mol de H₂O", bien: "n(H) = 2·n(H₂O)", por: "Cada H₂O tiene 2 H." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t9", { resumen: resumen, secciones: B.parte.q2t9a.secciones, nuevas: B.parte.q2t9b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 /* ============================================================
