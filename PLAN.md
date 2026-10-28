@@ -67,6 +67,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | FyQ I t3 completo, con motor de 2.342 compuestos (tema pesado) | ≈610.000 | 63 min |
 | Química II t1: terminar (verificador 136 cifras, 2 ejemplos, e2e de 12 interactivos; partía de lo fusionado) | 138.199 (43 herramientas) | 9 min |
 | Química II t3 completo (≈7.300 palabras, 46 ejercicios, 3 interactivos nuevos, 313 comprobaciones) | 194.946 (55 herramientas) | 18 min |
+| Química II t2 completo (≈7.500 palabras, 46 ejercicios, 3 interactivos nuevos, 117 cifras) | 198.899 (56 herramientas) | 14 min |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -120,3 +121,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 
 **28-oct 00:00 UTC:** tema 1 fusionado y validado; lanzado `a7d2c2ba5db2196ad` → tema 2. **Publicar bloqueado**: la herramienta exige que una conversación nueva lea entera la página publicada (63.313 líneas, 5,7 MB) antes de republicar en la misma dirección; se ha preguntado al usuario (dirección nueva / esperar / releer).
 **28-oct ~00:15 UTC:** tema 3 fusionado y validado; lanzado `agente tema 4` (ver `git worktree list`). Pega menor conocida: en móvil los símbolos del eje de `q3_anomalias` quedan algo apretados.
+**28-oct:** tema 2 fusionado y validado. Solo queda el tema 4 en marcha.
