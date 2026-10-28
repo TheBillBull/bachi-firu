@@ -16514,6 +16514,176 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 2 («Estructura de la materia»)
+   Tres laboratorios nuevos (el resto se reutiliza de lab_atomo.js: q1_bohr, q1_cuanticos, q1_config):
+     qq2_fotoel   efecto fotoeléctrico: Ec = hν − W frente a ν, con umbral, metal y longitud de onda
+     qq2_broglie  dualidad onda-corpúsculo (λ = h/mv) e incertidumbre (Δx·Δp ≥ h/4π)
+     qq2_llenar   «llénalo tú»: coloca los electrones en las cajas y comprueba Aufbau, Pauli y Hund
+   Constantes (las mismas que usa el tema): h = 6,626·10⁻³⁴ J·s · c = 3,00·10⁸ m/s · e = 1,602·10⁻¹⁹ C · mₑ = 9,109·10⁻³¹ kg
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, Q = B.lab.quim, fil = U.lec;
+  var K = { h: 6.626e-34, c: 3.00e8, e: 1.602e-19, me: 9.109e-31, mp: 1.673e-27 };
+  Q.K2 = K;
+
+  // ============================================================
+  // QQ2_FOTOEL: efecto fotoeléctrico
+  // ============================================================
+  var METALES = { Cs: ["Cs", 2.1], Na: ["Na", 2.3], Ca: ["Ca", 2.9], Zn: ["Zn", 4.3], Cu: ["Cu", 4.7], Pt: ["Pt", 5.6] };
+  B.w.qq2_fotoel = function (host) {
+    var cuerpo = B.caja(host, "Simulador", "Efecto fotoeléctrico: Ec = hν − W");
+    cuerpo.innerHTML = '<div data-met class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { m: "Na", lam: 300, I: 50 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), g;
+    U.slider(ctl, { et: "Longitud de onda λ", min: 100, max: 800, step: 5, val: st.lam, on: function (v) { st.lam = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " nm · " + Q.region(v); } });
+    U.slider(ctl, { et: "Intensidad de la luz", min: 10, max: 100, step: 10, val: st.I, on: function (v) { st.I = v; pinta(); }, fmt: function (v) { return fmt(v, 0) + " %"; } });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 32, ymin: -6.5, ymax: 13, w: 600, h: 300, etx: "ν (·10¹⁴ Hz)", ety: "Ec (eV)", etiqueta: "Energía cinética frente a frecuencia" });
+    function pinta() {
+      var W = METALES[st.m][1], nu = K.c / (st.lam * 1e-9), Ef = K.h * nu / K.e, Ec = Ef - W, nu0 = W * K.e / K.h, lam0 = K.c / nu0 * 1e9, x = nu / 1e14, emite = Ec > 0;
+      g.limpiar();
+      g.horizontal(0, { clase: "c-faint" });
+      var pts = [], k; for (k = 0; k <= 64; k++) { var xx = k * 0.5; pts.push([xx, K.h * xx * 1e14 / K.e - W]); }
+      g.polilinea(pts.filter(function (p) { return p[0] <= nu0 / 1e14 + 0.01; }), { clase: "c-faint" }).setAttribute("stroke-dasharray", "5 4");
+      g.polilinea(pts.filter(function (p) { return p[0] >= nu0 / 1e14 - 0.01; }).map(function (p, i, a) { return i === 0 ? [nu0 / 1e14, 0] : p; }), { clase: "c-pen" }).setAttribute("stroke-width", 3);
+      g.punto(nu0 / 1e14, 0, { clase: "c-red", r: 5 });
+      g.texto(nu0 / 1e14, 0, "ν₀ = " + fmt(nu0 / 1e14, 2), { dx: 6, dy: -9, clase: "red" });
+      g.texto(0.4, -W, "−W = −" + fmt(W, 1) + " eV", { dx: 4, dy: -8, clase: "faint" });
+      g.segmento(x, -6.5, x, Math.max(Ec, -6), { clase: emite ? "c-ok" : "c-red", dash: "3 4" });
+      g.punto(x, Math.max(Ec, -6), { clase: emite ? "c-ok" : "c-red", r: 6 });
+      g.texto(x, Math.max(Ec, -6), emite ? "Ec = " + fmt(Ec, 2) + " eV" : "no hay emisión", { dx: x > 22 ? -10 : 10, dy: x > 22 ? 16 : -10, ancla: x > 22 ? "end" : "start", clase: emite ? "ok" : "red" });
+      var v = emite ? Math.sqrt(2 * Ec * K.e / K.me) : 0, corr = emite ? st.I : 0;
+      lectura.innerHTML =
+        fil("Fotón: E = hc/λ = hν", fmt(Ef, 2) + " eV = " + U.cient(Ef * K.e, 3) + " J  (ν = " + U.cient(nu, 3) + " Hz)", "pen ancho") +
+        fil("Trabajo de extracción W (" + st.m + ")", fmt(W, 1) + " eV = " + U.cient(W * K.e, 3) + " J", "") +
+        fil("Umbral: ν₀ = W/h · λ₀ = hc/W", U.cient(nu0, 3) + " Hz · " + fmt(lam0, 0) + " nm (" + Q.region(lam0) + ")", "red ancho") +
+        (emite ? fil("Ec máxima = hν − W", fmt(Ec, 2) + " eV = " + U.cient(Ec * K.e, 3) + " J", "ok") + fil("Velocidad máxima", U.cient(v, 3) + " m/s", "ok") + fil("Potencial de frenado V₀ = Ec/e", fmt(Ec, 2) + " V", "") + fil("Fotoelectrones por segundo (∝ intensidad)", fmt(corr, 0) + " (unidades relativas)", "")
+          : fil("Resultado", "E del fotón (" + fmt(Ef, 2) + " eV) < W (" + fmt(W, 1) + " eV): NO se arranca ningún electrón, por intensa que sea la luz", "red ancho"));
+      pie.innerHTML = "Un fotón entrega <b>toda</b> su energía hν a <b>un</b> electrón. Si hν &lt; W no sale ninguno (da igual la intensidad); si hν &gt; W, el sobrante es energía cinética. La recta Ec = hν − W tiene <b>pendiente h</b> y corta el eje de frecuencias en el <b>umbral ν₀</b>. Más intensidad = más fotones = más electrones, pero <b>la misma Ec</b>.";
+    }
+    U.fichas(cuerpo.querySelector("[data-met]"), Object.keys(METALES).map(function (k) { return { k: k, t: k + " (W = " + fmt(METALES[k][1], 1) + " eV)" }; }), st.m, function (k) { st.m = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // QQ2_BROGLIE: dualidad onda-corpúsculo e incertidumbre
+  // ============================================================
+  var OBJ = {
+    e: { t: "Electrón", m: K.me, v0: 6.0 }, p: { t: "Protón", m: K.mp, v0: 5.0 },
+    b: { t: "Pelota de tenis (57 g)", m: 0.057, v0: 1.7 }, h: { t: "Persona (70 kg)", m: 70, v0: 0.2 }
+  };
+  B.w.qq2_broglie = function (host) {
+    var cuerpo = B.caja(host, "Simulador", "De Broglie e incertidumbre: ¿cuándo importa lo ondulatorio?");
+    cuerpo.innerHTML = '<div data-obj class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { o: "e", lv: 6.0, dv: 1 }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), g, slv;
+    slv = U.slider(ctl, { et: "Velocidad v (escala logarítmica)", min: 0, max: 7.5, step: 0.05, val: st.lv, on: function (v) { st.lv = v; pinta(); }, fmt: function (v) { return U.cient(Math.pow(10, v), 2) + " m/s"; } });
+    U.slider(ctl, { et: "Incertidumbre en v (Δv)", min: 0.1, max: 10, step: 0.1, val: st.dv, on: function (v) { st.dv = v; pinta(); }, fmt: function (v) { return fmt(v, 1) + " % de v"; } });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 7.5, ymin: -40, ymax: 0, w: 600, h: 300, etx: "log₁₀ v (m/s)", ety: "log₁₀ λ (m)", etiqueta: "Longitud de onda de De Broglie frente a velocidad" });
+    function pinta() {
+      var o = OBJ[st.o], v = Math.pow(10, st.lv), lam = K.h / (o.m * v), dx = K.h / (4 * Math.PI * o.m * v * st.dv / 100), ll = Math.log10(lam);
+      g.limpiar();
+      Object.keys(OBJ).forEach(function (k) {
+        var m = OBJ[k].m, a = Math.log10(K.h / m), pts = [[0, a], [7.5, a - 7.5]];
+        g.polilinea(pts, { clase: k === st.o ? "c-pen" : "c-faint" }).setAttribute("stroke-width", k === st.o ? 3 : 1.6);
+        g.texto(0.15, a, OBJ[k].t.replace(/ \(.*/, ""), { dy: -7, clase: k === st.o ? "pen" : "faint" });
+      });
+      g.segmento(0, -10, 7.5, -10, { clase: "c-red", dash: "5 4" }); g.texto(0.15, -10, "tamaño de un átomo (10⁻¹⁰ m)", { dy: 15, clase: "red" });
+      g.punto(st.lv, Math.max(-40, ll), { clase: "c-ok", r: 6 });
+      var rel = lam / 1e-10;
+      lectura.innerHTML =
+        fil("Longitud de onda λ = h/(m·v)", U.cient(lam, 3) + " m", "pen ancho") +
+        fil("λ frente a un átomo (10⁻¹⁰ m)", rel >= 0.1 ? "λ ≈ " + fmt(rel, 2) + " veces el átomo: efectos ondulatorios importantes" : "λ es " + U.cient(1 / rel, 2) + " veces menor que un átomo: no se nota", rel >= 0.1 ? "ok ancho" : "red ancho") +
+        fil("Cantidad de movimiento p = m·v", U.cient(o.m * v, 3) + " kg·m/s", "") +
+        fil("Δx mínima = h/(4π·m·Δv)", U.cient(dx, 3) + " m", "ancho") +
+        fil("Δx frente a un átomo", dx >= 1e-10 ? "Δx ≈ " + fmt(dx / 1e-10, 1) + " veces el átomo: no se puede hablar de «órbita»" : "Δx es mucho menor que un átomo (" + U.cient(dx / 1e-10, 2) + " veces): posición bien definida", dx >= 1e-10 ? "red ancho" : "ok ancho");
+      pie.innerHTML = "Cada recta es λ = h/(mv): <b>baja una década cuando v sube otra</b> y también cuando sube la masa. Solo el electrón y el protón rápidos alcanzan longitudes de onda del tamaño de un átomo (o de una red cristalina: por eso hay difracción de electrones). Una pelota o una persona tienen λ ~ 10⁻³⁴ m: nunca se nota. La incertidumbre Δx·Δp ≥ h/4π impide trazar órbitas con v y posición exactas en el átomo.";
+    }
+    U.fichas(cuerpo.querySelector("[data-obj]"), Object.keys(OBJ).map(function (k) { return { k: k, t: OBJ[k].t }; }), st.o, function (k) { st.o = k; st.lv = OBJ[k].v0; slv.set(st.lv); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // QQ2_LLENAR: coloca los electrones tú mismo
+  // ============================================================
+  var SUBS = [[1, 0], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [3, 2], [4, 1]];          // orden de llenado (Aufbau)
+  var LET = ["s", "p", "d", "f"], PRE = [{ k: "7,0", t: "N" }, { k: "8,0", t: "O" }, { k: "17,-1", t: "Cl⁻" }, { k: "26,0", t: "Fe" }, { k: "26,3", t: "Fe³⁺" }, { k: "24,0", t: "Cr" }, { k: "29,1", t: "Cu⁺" }];
+  B.w.qq2_llenar = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Llénalo tú: Aufbau, Pauli y Hund");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="q2-llenar"></div><div class="ctl q2-acc"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { Z: 7, q: 0, caj: null }, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), zona = cuerpo.querySelector(".q2-llenar"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), slZ, slQ;
+    function nuevo() { st.caj = SUBS.map(function (s) { var a = []; for (var i = 0; i < 2 * s[1] + 1; i++) a.push(0); return a; }); }   // cada caja: 0 vacía · 1 ↑ · 2 ↓ · 3 ↑↓
+    function reinicia() { nuevo(); dibuja(null, false); }
+    slZ = U.slider(ctl, { et: "Número atómico <i>Z</i>", min: 1, max: 36, step: 1, val: st.Z, on: function (v) { st.Z = v; reinicia(); }, fmt: function (v) { return v + " · " + Q.EL[v - 1].s; } });
+    slQ = U.slider(ctl, { et: "Carga del ion", min: -3, max: 4, step: 1, val: st.q, on: function (v) { st.q = v; reinicia(); }, fmt: function (v) { return v === 0 ? "neutro" : (v > 0 ? "+" : "−") + Math.abs(v); } });
+    function nE() { return st.Z - st.q; }
+    function colocados() { return st.caj.reduce(function (a, s) { return a + s.reduce(function (b, c) { return b + (c === 3 ? 2 : c ? 1 : 0); }, 0); }, 0); }
+    function dibuja(msgs, ok) {
+      var html = SUBS.map(function (s, i) {
+        return '<span class="q1-sub"><b>' + s[0] + LET[s[1]] + "</b>" + st.caj[i].map(function (c, j) {
+          return '<button type="button" class="q1-orb q2-caja" data-i="' + i + '" data-j="' + j + '" aria-label="orbital ' + s[0] + LET[s[1]] + (j + 1) + '">' + ["", "↑", "↓", "↑↓"][c] + "</button>";
+        }).join("") + "</span>";
+      }).join("");
+      zona.innerHTML = html;
+      var puestos = colocados(), N = nE();
+      lectura.innerHTML = fil("Electrones colocados / que hay", puestos + " / " + N, puestos === N ? "ok" : "pen") + (msgs ? fil("Comprobación", msgs, ok ? "ok ancho" : "red ancho") : "");
+    }
+    zona.addEventListener("click", function (e) {
+      var b = e.target.closest(".q2-caja"); if (!b) return;
+      var i = +b.getAttribute("data-i"), j = +b.getAttribute("data-j");
+      st.caj[i][j] = (st.caj[i][j] + 1) % 4; dibuja(null, false);
+    });
+    function resuelve() {
+      var cfg = Q.configIon(st.Z, st.q), N = nE(), msgs = [], pila = [];
+      var cont = st.caj.map(function (s) { return s.reduce(function (b, c) { return b + (c === 3 ? 2 : c ? 1 : 0); }, 0); });
+      if (N < 1) return ["Carga imposible: no quedan electrones"];
+      var tot = cont.reduce(function (a, b) { return a + b; }, 0);
+      if (tot !== N) msgs.push("Hay que colocar exactamente " + N + " electrones y has puesto " + tot);
+      // Hund dentro de cada subnivel
+      SUBS.forEach(function (s, i) {
+        var c = st.caj[i], k = cont[i]; if (!k) return;
+        var vac = c.filter(function (x) { return x === 0; }).length, par = c.filter(function (x) { return x === 3; }).length;
+        var sim = c.filter(function (x) { return x === 1; }).length, aba = c.filter(function (x) { return x === 2; }).length;
+        if (par > 0 && vac > 0) msgs.push("Hund en " + s[0] + LET[s[1]] + ": hay un orbital con dos electrones y otro vacío; primero un electrón en cada orbital");
+        else if (sim > 0 && aba > 0) msgs.push("Hund en " + s[0] + LET[s[1]] + ": los electrones desapareados deben tener el mismo espín (todos ↑)");
+        else if (aba > 0 && par === 0 && vac === 0) { /* todo ↓ simple: válido por simetría, se acepta */ }
+      });
+      // Aufbau: cada subnivel debe tener el número de electrones de la configuración correcta
+      cfg.forEach(function (s) {
+        var i = SUBS.findIndex(function (x) { return x[0] === s.n && x[1] === s.l; });
+        if (i >= 0 && cont[i] !== s.e && tot === N) pila.push(s.n + LET[s.l] + ": tienes " + cont[i] + " y debería haber " + s.e);
+      });
+      SUBS.forEach(function (s, i) { if (cont[i] && !cfg.some(function (x) { return x.n === s[0] && x.l === s[1]; }) && tot === N) pila.push(s[0] + LET[s[1]] + " no debería tener electrones"); });
+      if (pila.length && !msgs.length) msgs.push("Aufbau (orden de energía 1s 2s 2p 3s 3p 4s 3d 4p, y las excepciones Cr y Cu): " + pila.join("; "));
+      return msgs;
+    }
+    U.boton(cuerpo.querySelector(".q2-acc"), "Comprobar", function () {
+      var m = resuelve();
+      if (m.length) dibuja(m[0], false);
+      else { var cfg = Q.configIon(st.Z, st.q); dibuja("✓ Correcto: " + Q.cfgTxt(cfg, false) + " · " + Q.desapareados(cfg) + " desapareado" + (Q.desapareados(cfg) === 1 ? "" : "s"), true); }
+    }, "btn-comprobar");
+    U.boton(cuerpo.querySelector(".q2-acc"), "Mostrar solución", function () {
+      var cfg = Q.configIon(st.Z, st.q); nuevo();
+      cfg.forEach(function (s) {
+        var i = SUBS.findIndex(function (x) { return x[0] === s.n && x[1] === s.l; }); if (i < 0) return;
+        var o = 2 * s.l + 1, j; for (j = 0; j < o; j++) st.caj[i][j] = j < s.e ? 1 : 0;
+        for (j = 0; j < o && s.e > o + j; j++) st.caj[i][j] = 3;
+      });
+      dibuja("Solución: " + Q.cfgTxt(cfg, false) + " · " + Q.desapareados(cfg) + " desapareado" + (Q.desapareados(cfg) === 1 ? "" : "s"), true);
+    });
+    U.boton(cuerpo.querySelector(".q2-acc"), "Vaciar", reinicia);
+    pie.innerHTML = "Pulsa una caja para recorrer <b>vacía → ↑ → ↓ → ↑↓</b>. <b>Aufbau</b>: llena de menor a mayor energía (1s 2s 2p 3s 3p 4s 3d 4p); <b>Pauli</b>: como máximo dos electrones por orbital, con espines opuestos; <b>Hund</b>: en orbitales de igual energía, uno en cada uno y con el mismo espín antes de emparejar. Con un ion, los electrones totales son Z − carga.";
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE, "7,0", function (k) {
+      var p = k.split(","); st.Z = +p[0]; st.q = +p[1]; slZ.set(st.Z); slQ.set(st.q); reinicia();
+    });
+    reinicia();
+  };
+
+  var s = document.createElement("style"); s.textContent =
+    ".q2-llenar{display:flex;flex-wrap:wrap;gap:10px 14px;margin:10px 0}.q2-caja{cursor:pointer;background:var(--sheet);padding:0 4px;min-width:30px;height:30px;font-size:17px}" +
+    ".q2-caja:hover{border-color:var(--pen)}.q2-acc{margin:6px 0}@media(max-width:560px){.q2-llenar{gap:8px 8px}.q2-caja{min-width:26px}}";
+  document.head.appendChild(s);
+})(window);
+
+/* ============================================================
    Bachi para Firu · Química II, tema 3: Sistema periódico
    Reutiliza el motor B.lab.quim de lab_atomo.js (elementos, configuraciones) y añade:
    Q.slater (carga nuclear efectiva) · q3_zef · q3_anomalias · q3_radios
@@ -47906,6 +48076,739 @@
   ];
 
   B.registrar("quimica2", "t1", { resumen: resumen, secciones: B.parte.q2t1a.secciones, nuevas: B.parte.q2t1b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 2: Estructura de la materia
+   (parte A: se añade al final de las cuatro secciones originales)
+
+   IDEAS QUE MÁS CUESTAN EN LA EvAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Modelos atómicos y por qué cada uno se queda corto → tabla + «clasificar» y «emparejar» (un gráfico no ayuda: es memoria razonada).
+   2. Espectros y Bohr: E, λ, ν de una transición del H con Rydberg, series → se reutiliza q1_bohr (niveles, flecha del fotón y espectro de la serie).
+   3. Efecto fotoeléctrico: umbral, Ec = hν − W, «la intensidad no cambia la Ec» → NUEVO qq2_fotoel (recta Ec frente a ν con pendiente h).
+   4. Dualidad onda-corpúsculo (De Broglie): ¿por qué no se nota en una pelota? → NUEVO qq2_broglie (λ frente a v para cuatro objetos).
+   5. Principio de incertidumbre: por qué no hay «órbitas» → mismo widget qq2_broglie (Δx mínima frente al tamaño del átomo).
+   6. Números cuánticos: conjuntos válidos y no válidos → se reutiliza q1_cuanticos (marca el error) + tabla de n, l, m.
+   7. Forma y orientación de los orbitales (s, p, d) y nodos → q1_cuanticos (dibuja el orbital).
+   8. Aufbau, Pauli, Hund y excepciones Cr y Cu → NUEVO qq2_llenar («llénalo tú» con comprobación) + q1_config.
+   9. Electrones desapareados, paramagnetismo y capa de valencia → q1_config.
+   10. Configuración de iones (el 4s se pierde antes que el 3d) e isoelectrónicos → q1_config con carga.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t2/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Repaso
+  secciones[0] = env(
+    "<h5>Qué vas a poder explicar al terminar el tema</h5>" +
+    "<p>Este tema contesta a tres preguntas que se repiten en la EvAU de Madrid: <b>(1)</b> ¿cómo es el átomo y por qué cada modelo se quedó corto?; <b>(2)</b> ¿cómo interacciona la luz con el átomo (espectros, efecto fotoeléctrico) y qué dice eso sobre la energía?; <b>(3)</b> ¿cómo se reparten los electrones (números cuánticos, orbitales, configuración) y qué propiedades se deducen de ello? Las tres se enlazan: la luz que emite un átomo es la huella de sus niveles de energía, y esos niveles son los que llenan los electrones.</p>" +
+    "<h5>Notación que vas a usar siempre</h5>" +
+    tabla(["Símbolo", "Significa", "Valor o unidad habitual"], [
+      ["Z, A", "número atómico (protones) y número másico (protones + neutrones)", "Z identifica el elemento; en un átomo neutro, electrones = Z"],
+      ["h", "constante de Planck", "6,626·10⁻³⁴ J·s"],
+      ["c", "velocidad de la luz en el vacío", "3,00·10⁸ m/s"],
+      ["R<sub>H</sub>", "constante de Rydberg del hidrógeno", "1,097·10⁷ m⁻¹"],
+      ["1 eV", "electronvoltio: energía de un electrón acelerado con 1 V", "1,602·10⁻¹⁹ J"],
+      ["m<sub>e</sub>", "masa del electrón", "9,109·10⁻³¹ kg"],
+      ["λ, ν", "longitud de onda (m, nm) y frecuencia (Hz = s⁻¹)", "c = λ·ν"]
+    ], "q3t") +
+    "<p>Con los datos de un examen casi nunca hace falta recordar más constantes que estas; lo que se pide es <b>usarlas con unidades coherentes</b>: nanómetros a metros (×10⁻⁹), electronvoltios a julios (×1,602·10⁻¹⁹).</p>" +
+    ojo("Un átomo neutro tiene tantos electrones como protones (Z), pero un <b>ion</b> no: el número de electrones es Z − carga. El Fe³⁺ (Z = 26) tiene 23 electrones, no 26.")
+  );
+
+  // ---------------------------------------------------------------- 2. Números cuánticos
+  secciones[1] = env(
+    "<h5>De dónde salen los números cuánticos</h5>" +
+    "<p>En el modelo de Bohr bastaba un número (<i>n</i>) para describir al electrón. Al resolver la ecuación de Schrödinger para el átomo de hidrógeno, los tres primeros números <b>aparecen solos</b> como condiciones matemáticas, y el cuarto (el espín) se añade para explicar los experimentos. No hace falta resolver nada: basta saber qué significa cada uno y <b>qué valores permite</b>.</p>" +
+    tabla(["Número", "Describe", "Valores permitidos", "Ejemplo (n = 3)"], [
+      ["<i>n</i> principal", "tamaño y energía del nivel", "1, 2, 3, … (enteros positivos)", "3"],
+      ["<i>l</i> secundario", "forma del orbital (subnivel)", "0, 1, …, n − 1", "0 (s), 1 (p), 2 (d)"],
+      ["<i>m</i><sub>l</sub> magnético", "orientación en el espacio", "−l, …, 0, …, +l (2l + 1 valores)", "para l = 2: −2, −1, 0, +1, +2"],
+      ["<i>m</i><sub>s</sub> espín", "giro del electrón", "+½ o −½", "dos valores siempre"]
+    ], "q3t") +
+    "<p><b>Contar orbitales y electrones</b> es mecánico: un subnivel de valor <i>l</i> tiene 2<i>l</i> + 1 orbitales (s: 1, p: 3, d: 5, f: 7) y, como cada orbital admite 2 electrones, 2(2<i>l</i> + 1) electrones (s: 2, p: 6, d: 10, f: 14). Un nivel <i>n</i> contiene <i>n</i>² orbitales y 2<i>n</i>² electrones: 2, 8, 18, 32…</p>" +
+    ejemplo("Ejemplo resuelto: ¿es válido este conjunto?", "Indica si cada conjunto (n, l, m<sub>l</sub>, m<sub>s</sub>) puede describir a un electrón de un átomo y, si no, qué regla incumple: (a) (2, 1, 0, +½); (b) (3, 3, 1, −½); (c) (2, 0, 1, +½); (d) (4, 2, −2, ½).", [
+      "<b>(a)</b> l = 1 ≤ n − 1 = 1 ✓; |m<sub>l</sub>| = 0 ≤ 1 ✓; m<sub>s</sub> = +½ ✓. <b>Válido</b>: electrón de un orbital 2p.",
+      "<b>(b)</b> l debe ser como máximo n − 1 = 2, pero l = 3. <b>No válido</b>: no existe el subnivel 3f.",
+      "<b>(c)</b> con l = 0 el único m<sub>l</sub> posible es 0 (2·0 + 1 = 1 orbital), y aquí m<sub>l</sub> = 1. <b>No válido</b>.",
+      "<b>(d)</b> l = 2 ≤ 3 ✓; m<sub>l</sub> = −2 está entre −2 y +2 ✓; m<sub>s</sub> = ½ ✓. <b>Válido</b>: electrón de un orbital 4d."
+    ]) +
+    "<p>Prueba tú: mueve <i>n</i>, <i>l</i>, <i>m</i><sub>l</sub> y <i>m</i><sub>s</sub> y mira cuándo el conjunto se pone en rojo, qué regla lo rompe y cómo cambia el orbital dibujado.</p>" +
+    w("q1_cuanticos") +
+    "<h5>Qué es un orbital (y qué no es)</h5>" +
+    "<p>Un <b>orbital</b> no es una órbita: es la <b>región del espacio donde la probabilidad de encontrar al electrón es alta</b> (por ejemplo, del 90 %). Su forma depende de <i>l</i>: el orbital <b>s</b> es esférico; los tres <b>p</b> tienen dos lóbulos opuestos y apuntan según los ejes x, y, z; los cinco <b>d</b> tienen sobre todo cuatro lóbulos. A mayor <i>n</i>, mayor tamaño (el electrón está, en promedio, más lejos del núcleo y menos ligado). Todos los orbitales de un mismo subnivel (por ejemplo, los tres 2p) tienen <b>la misma energía</b>: se dice que son <b>degenerados</b>.</p>" +
+    "<p>Hay también un número de <b>nodos</b> (zonas con probabilidad nula): un orbital tiene <i>l</i> nodos angulares y <i>n</i> − <i>l</i> − 1 nodos radiales. Por eso el 1s no tiene ninguno, el 2s tiene uno radial y el 2p tiene uno angular (el plano que separa sus dos lóbulos). Este nivel de detalle rara vez se pide, pero ayuda a entender por qué los orbitales «crecen» con <i>n</i>.</p>" +
+    ojo("Confundir «n», «l» y «m»: n da el <b>nivel</b>, l el <b>subnivel</b> y m el <b>orbital concreto</b> dentro del subnivel. «El electrón está en el nivel 3» no dice si es s, p o d.")
+  );
+
+  // ---------------------------------------------------------------- 3. Pauli y Hund
+  secciones[2] = env(
+    "<h5>Las tres reglas, en una frase cada una</h5>" +
+    tabla(["Regla", "Qué ordena", "Qué evita o explica"], [
+      ["<b>Aufbau</b> (construcción)", "se ocupan primero los orbitales de menor energía: 1s 2s 2p 3s 3p 4s 3d 4p 5s 4d 5p 6s…", "cada electrón va al hueco más estable libre"],
+      ["<b>Exclusión de Pauli</b>", "no puede haber dos electrones con los cuatro números cuánticos iguales", "máximo 2 por orbital, con espines opuestos (apareados)"],
+      ["<b>Máxima multiplicidad de Hund</b>", "en orbitales de la misma energía, un electrón en cada uno, con espines paralelos, antes de aparear", "repulsión entre electrones; da el mayor número de desapareados"]
+    ], "q3t") +
+    "<p>El orden de llenado (diagrama de Moeller) se obtiene del criterio <b>n + l</b>: se llena antes el subnivel con menor suma n + l y, si empatan, el de menor n. Así, 4s (4 + 0 = 4) va antes que 3d (3 + 2 = 5), y 4p (5) después de 3d (5) por tener mayor n.</p>" +
+    ejemplo("Ejemplo resuelto: ¿qué regla se rompe?", "Un alumno dibuja el diagrama del oxígeno (Z = 8) como 1s ↑↓ · 2s ↑↓ · 2p ↑↓ ↑↓ ▢ (cuatro electrones 2p con dos orbitales llenos y uno vacío). ¿Es correcto?", [
+      "Electrones: 2 + 2 + 4 = 8 ✓ (cuadra con Z = 8).",
+      "Pauli: cada orbital tiene como máximo 2 electrones con espines opuestos ✓.",
+      "Hund: en el subnivel 2p, con 4 electrones y 3 orbitales, deben ocupar los tres orbitales antes de aparear: ↑↓ ↑ ↑. El alumno ha apareado dos orbitales y dejado uno vacío: <b>incumple Hund</b>.",
+      "Correcto: 2p ↑↓ ↑ ↑ → <b>2 electrones desapareados</b>. El diagrama del alumno daría 0 y el O sería diamagnético; en realidad el oxígeno es paramagnético."
+    ]) +
+    "<p>Ahora, el ejercicio de verdad: elige un elemento, coloca los electrones pulsando las cajas y pulsa <em>Comprobar</em>. El widget te dice qué regla has roto. Prueba con el Cr y el Cu para ver las excepciones.</p>" +
+    w("qq2_llenar")
+  );
+
+  // ---------------------------------------------------------------- 4. Configuración electrónica
+  secciones[3] = env(
+    "<h5>Escribir la configuración, paso a paso</h5>" +
+    "<p>(1) Cuenta los electrones: Z para un átomo neutro; Z − carga para un ion. (2) Llena por el orden de energía hasta agotarlos, con las capacidades 2, 6, 10, 14. (3) Si te lo piden, abrevia con el gas noble anterior entre corchetes y da la <b>capa de valencia</b> (el último nivel: ns y np; en un metal de transición también el (n−1)d). (4) Dibuja las cajas del último subnivel con Hund para contar <b>electrones desapareados</b>.</p>" +
+    ejemplo("Ejemplo resuelto: del Z a las propiedades", "Un elemento tiene Z = 34. Escribe su configuración, indica periodo, grupo, electrones de valencia y desapareados, y los números cuánticos posibles del último electrón.", [
+      "34 electrones: 1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁴ (2 + 2 + 6 + 2 + 6 + 2 + 10 + 4 = 34 ✓). Abreviada: [Ar] 4s² 3d¹⁰ 4p⁴.",
+      "Periodo = mayor n = 4. Capa de valencia 4s² 4p⁴: 6 electrones → grupo 16 (anfígenos): es el <b>selenio</b>.",
+      "En 4p hay 4 electrones y 3 orbitales: ↑↓ ↑ ↑ → <b>2 desapareados</b> (paramagnético).",
+      "Último electrón (el 4.º del 4p, el que cierra el primer orbital): n = 4, l = 1, m<sub>l</sub> = −1 (o +1, según el convenio), m<sub>s</sub> = −½. Cualquier convenio consistente es aceptado en la EvAU si se explica."
+    ]) +
+    "<h5>Excepciones: Cr y Cu (y poco más)</h5>" +
+    "<p>El cromo (Z = 24) y el cobre (Z = 29) no siguen la regla: Cr = [Ar] 4s¹ 3d⁵ (no 4s² 3d⁴) y Cu = [Ar] 4s¹ 3d¹⁰ (no 4s² 3d⁹). La explicación habitual: los subniveles <b>d semillenos (d⁵) o llenos (d¹⁰) son especialmente estables</b> (los electrones d son muy parecidos en energía a los 4s, y repartirlos en orbitales distintos con espines paralelos reduce la repulsión). Con las dos excepciones basta en Bachillerato (en 4d y 5d hay más: Nb, Mo, Ag, etc., pero no se piden).</p>" +
+    "<h5>Iones: ¿qué electrones se pierden?</h5>" +
+    "<p>Un <b>catión</b> pierde primero los electrones del <b>nivel más externo (mayor n)</b>, aunque se hubieran llenado después de los 3d. Por eso el Fe ([Ar] 4s² 3d⁶) forma Fe²⁺ = [Ar] 3d⁶ y Fe³⁺ = [Ar] 3d⁵: salen primero los dos 4s y, luego, uno 3d. Un <b>anión</b> gana electrones en el siguiente hueco del orden de llenado: Cl⁻ = [Ne] 3s² 3p⁶ = configuración del Ar. Las especies con el mismo número de electrones se llaman <b>isoelectrónicas</b>: S²⁻, Cl⁻, Ar, K⁺ y Ca²⁺ tienen 18 electrones.</p>" +
+    ejemplo("Ejemplo resuelto: iones del cobre", "Escribe la configuración del Cu, del Cu⁺ y del Cu²⁺ y di cuál es paramagnético.", [
+      "Cu (Z = 29, excepción): [Ar] 4s¹ 3d¹⁰ → un electrón desapareado (4s¹).",
+      "Cu⁺ (28 e⁻): pierde el 4s¹ → [Ar] 3d¹⁰: <b>0 desapareados</b> (diamagnético).",
+      "Cu²⁺ (27 e⁻): pierde además un 3d → [Ar] 3d⁹: <b>1 desapareado</b> (paramagnético).",
+      "Cu y Cu²⁺ son paramagnéticos; Cu⁺ no. Por eso las sales de Cu(I) son incoloras y las de Cu(II) azules."
+    ]) +
+    w("q1_config") +
+    "<h5>Desapareados, paramagnetismo y capa de valencia</h5>" +
+    "<p>Una sustancia con electrones desapareados es <b>paramagnética</b> (la atrae un imán); si todos están apareados, es <b>diamagnética</b> (la repele muy débilmente). El número de desapareados se lee del último subnivel parcialmente lleno: p³ → 3; p⁴ → 2; d⁵ → 5; d⁶ → 4; d¹⁰ → 0. Los <b>electrones de valencia</b> son los de la capa más externa y deciden las propiedades químicas: el grupo del elemento coincide con ellos en el bloque s y p (1, 2, 13–18).</p>" +
+    ojo("«Desapareados» no es lo mismo que «electrones de valencia»: el Cl tiene 7 de valencia (3s² 3p⁵) pero <b>1</b> desapareado, que es el que le permite formar un enlace.")
+  );
+
+  B.parte.q2t2a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 2: Estructura de la materia
+   (parte B: secciones nuevas 5 a 9)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t2/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 5
+    {
+      h: "5. Modelos atómicos: qué explicó cada uno y por qué se quedó corto",
+      html: env(
+        "<h5>Una historia de modelos que se corrigen</h5>" +
+        "<p>Un modelo científico no es «verdadero o falso»: es <b>útil mientras explica los datos que se conocen</b>, y se sustituye cuando aparece un dato que no cuadra. Cada modelo atómico nace de un experimento que el anterior no podía explicar. En la EvAU suelen pedirte justo eso: <b>el hecho experimental</b> y <b>la limitación</b>.</p>" +
+        tabla(["Modelo", "Qué propone", "Qué explica", "Qué no puede explicar"], [
+          ["<b>Dalton</b> (1808)", "átomos esféricos, indivisibles e indestructibles; los de un elemento son iguales", "leyes ponderales (conservación de la masa, proporciones definidas y múltiples)", "la electricidad de la materia (rayos catódicos, electrólisis); isótopos"],
+          ["<b>Thomson</b> (1904)", "«pudin de pasas»: esfera positiva con electrones incrustados (descubrió el electrón en 1897)", "que la materia es neutra y que existen partículas negativas; la ionización", "los resultados de Rutherford: no hay forma de que una esfera difusa desvíe mucho las partículas α"],
+          ["<b>Rutherford</b> (1911)", "núcleo diminuto, positivo y muy denso, con los electrones girando a su alrededor (modelo planetario)", "la dispersión de partículas α: casi todas atraviesan la lámina de oro; unas pocas se desvían mucho o rebotan", "estabilidad (un electrón que gira emitiría radiación y caería al núcleo) y los espectros de líneas"],
+          ["<b>Bohr</b> (1913)", "electrón en órbitas circulares con energía cuantizada; emite o absorbe un fotón al saltar entre ellas", "los espectros del hidrógeno (series de Lyman, Balmer, Paschen) y la estabilidad del átomo", "átomos con más de un electrón; intensidades y estructura fina de las líneas; la ruptura del principio de incertidumbre (supone órbitas definidas)"],
+          ["<b>Cuántico</b> (1926 en adelante)", "el electrón se describe con una función de onda: orbitales (zonas de probabilidad) y cuatro números cuánticos", "todo lo anterior, los átomos polielectrónicos, la forma de los enlaces y la tabla periódica", "no es «incompleto» en Bachillerato; se perfecciona con la relatividad y el espín"]
+        ], "q3t") +
+        "<h5>El experimento de Rutherford en tres frases</h5>" +
+        "<p>Geiger y Marsden bombardearon una lámina finísima de oro con partículas α (núcleos de helio, cargados +2) y observaron: <b>(1)</b> casi todas la atraviesan sin desviarse → el átomo es en su mayor parte <b>espacio vacío</b>; <b>(2)</b> unas pocas se desvían mucho → hay una <b>carga positiva concentrada</b> que las repele; <b>(3)</b> alguna (una de cada ~20 000) rebota hacia atrás → esa carga está en un <b>núcleo muy pequeño y muy masivo</b>. El radio del núcleo es del orden de 10⁻¹⁵ m, 100 000 veces menor que el del átomo (10⁻¹⁰ m).</p>" +
+        ejemplo("Ejemplo resuelto: escala del átomo", "Si el núcleo fuese una canica de 1 cm de diámetro, ¿qué diámetro tendría el átomo a esa misma escala? (Núcleo ≈ 10⁻¹⁵ m de radio; átomo ≈ 10⁻¹⁰ m)", [
+          "La razón átomo/núcleo = 10⁻¹⁰ / 10⁻¹⁵ = 10⁵ (da lo mismo con radios que con diámetros).",
+          "A esa escala, el diámetro del átomo = 1 cm · 10⁵ = 10⁵ cm = <b>1 km</b>.",
+          "Conclusión: el átomo es casi todo vacío, con un núcleo del tamaño de una canica en el centro de un campo de 1 km: eso encaja con que casi todas las partículas α atraviesen la lámina."
+        ]) +
+        "<h5>Cómo se enlazan los modelos con lo que viene</h5>" +
+        "<p>La limitación de Rutherford (los espectros de líneas, la estabilidad) <b>empuja</b> a Bohr; la limitación de Bohr (solo vale para un electrón y viola la incertidumbre) <b>empuja</b> al modelo cuántico. Eso es lo que vas a recorrer en las secciones siguientes: primero los <b>espectros</b> (donde Bohr acierta), luego la <b>dualidad</b> (donde la idea de órbita falla) y, por último, los <b>orbitales</b> (el modelo actual, que ya has visto en las secciones 2 a 4).</p>" +
+        w("clasificar", "modelos") +
+        w("emparejar", "aportaciones") +
+        ojo("Rutherford <b>no</b> descubrió el protón ni el electrón: descubrió el <b>núcleo</b>. Y Bohr <b>no</b> «explicó todos los átomos»: su modelo solo funciona para el hidrógeno y los iones con un solo electrón (He⁺, Li²⁺).")
+      )
+    },
+    // ------------------------------------------------------------ 6
+    {
+      h: "6. Espectros y modelo de Bohr: energía, longitud de onda y frecuencia",
+      html: env(
+        "<h5>La luz como huella del átomo</h5>" +
+        "<p>Un sólido incandescente emite un <b>espectro continuo</b> (todos los colores). Un gas de átomos excitado emite un <b>espectro de emisión de líneas</b>: solo algunas longitudes de onda, siempre las mismas para cada elemento. Si se hace pasar luz blanca por un gas frío, faltan justo esas líneas: es el <b>espectro de absorción</b>. Que haya líneas y no una banda continua significa que <b>la energía del átomo está cuantizada</b>: solo son posibles ciertos valores y el átomo solo puede emitir o absorber la diferencia entre dos de ellos.</p>" +
+        "<h5>Los postulados de Bohr (hidrógeno)</h5>" +
+        "<p><b>1.</b> El electrón se mueve en órbitas circulares sin emitir energía (órbitas estacionarias). <b>2.</b> Solo son posibles las órbitas cuyo momento angular es múltiplo de h/2π (esto cuantiza la energía). <b>3.</b> Al pasar de una órbita (nivel) a otra, el átomo emite o absorbe un fotón de energía igual a la diferencia:</p>" +
+        "<div class='formula-wrap'><div class='formula'>ΔE = E<sub>i</sub> − E<sub>f</sub> = h·ν = " + fr("h·c", "λ") + "</div></div>" +
+        "<p>La energía del nivel <i>n</i> del hidrógeno es <b>E<sub>n</sub> = −13,6 eV / n²</b> (= −2,18·10⁻¹⁸ J / n²). Es negativa porque el electrón está <em>ligado</em>: la energía cero corresponde al electrón libre (n → ∞). El nivel fundamental (n = 1) es el más bajo (−13,6 eV) y los niveles se acercan unos a otros cuanto mayor es n.</p>" +
+        "<p>Para la longitud de onda se usa la <b>ecuación de Rydberg</b>, que resume todas las series:</p>" +
+        "<div class='formula-wrap'><div class='formula'>" + fr("1", "λ") + " = R<sub>H</sub> · ( " + fr("1", "n<sub>f</sub>²") + " − " + fr("1", "n<sub>i</sub>²") + " )  &nbsp;(emisión: n<sub>i</sub> &gt; n<sub>f</sub>) &nbsp;·&nbsp; R<sub>H</sub> = 1,097·10⁷ m⁻¹</div></div>" +
+        tabla(["Serie", "Nivel final n<sub>f</sub>", "Región", "Primera línea (λ)", "Límite de la serie (n<sub>i</sub> → ∞)"], [
+          ["Lyman", "1", "ultravioleta", "121,5 nm (2 → 1)", "91,2 nm"],
+          ["Balmer", "2", "visible (la única)", "656,3 nm (3 → 2), roja", "364,6 nm"],
+          ["Paschen", "3", "infrarrojo", "1875 nm (4 → 3)", "820,4 nm"]
+        ], "q3t") +
+        "<p>Observa el widget: elige los niveles inicial y final, mira el salto en el diagrama de niveles y cómo aparece la línea en el espectro de la serie. Pulsa <em>Animar transición</em> para ver el fotón.</p>" +
+        w("q1_bohr") +
+        ejemplo("Ejemplo resuelto: una línea de Balmer", "Un electrón de un átomo de hidrógeno pasa del nivel n = 4 al n = 2. Calcula la energía y la longitud de onda del fotón emitido, su frecuencia y la región del espectro. (R<sub>H</sub> = 1,097·10⁷ m⁻¹; h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s)", [
+          "Rydberg: 1/λ = 1,097·10⁷ · (1/2² − 1/4²) = 1,097·10⁷ · 0,1875 = 2,057·10⁶ m⁻¹ → <b>λ = 4,862·10⁻⁷ m = 486,2 nm</b> (azul-verdoso, <b>visible</b>).",
+          "Frecuencia: ν = c/λ = 3,00·10⁸ / 4,862·10⁻⁷ = <b>6,17·10¹⁴ Hz</b>.",
+          "Energía: E = hν = 6,626·10⁻³⁴ · 6,17·10¹⁴ = <b>4,09·10⁻¹⁹ J</b> = 4,09·10⁻¹⁹ / 1,602·10⁻¹⁹ = 2,55 eV.",
+          "Comprobación con los niveles: E₄ − E₂ = −13,6/16 − (−13,6/4) = −0,85 + 3,40 = 2,55 eV ✓ (los dos caminos coinciden)."
+        ]) +
+        ejemplo("Ejemplo resuelto: energía de ionización", "Calcula la energía mínima, en eV y en kJ/mol, necesaria para arrancar el electrón de un átomo de hidrógeno en su estado fundamental, y la longitud de onda máxima de la luz capaz de hacerlo. (N<sub>A</sub> = 6,022·10²³)", [
+          "Ionizar es pasar de n = 1 a n = ∞: ΔE = 0 − (−13,6) = <b>13,6 eV</b>.",
+          "En julios: 13,6 · 1,602·10⁻¹⁹ = 2,18·10⁻¹⁸ J por átomo. Por mol: 2,18·10⁻¹⁸ · 6,022·10²³ = 1,312·10⁶ J/mol = <b>1312 kJ/mol</b> (el valor tabulado de la 1.ª energía de ionización del H).",
+          "λ máxima: λ = hc/E = 6,626·10⁻³⁴ · 3,00·10⁸ / 2,18·10⁻¹⁸ = 9,12·10⁻⁸ m = <b>91,2 nm</b> (ultravioleta, el límite de Lyman). Con luz de mayor λ no se ioniza el átomo en reposo."
+        ]) +
+        "<h5>Absorción, emisión y cuántos saltos hay</h5>" +
+        "<p>Absorber un fotón <b>sube</b> al electrón (n<sub>f</sub> &gt; n<sub>i</sub>); emitirlo lo <b>baja</b>. Un átomo excitado hasta el nivel <i>n</i> puede volver al fundamental por varios caminos (4 → 1, o 4 → 2 → 1, o 4 → 3 → 1…), y cada salto distinto emite una línea distinta. El número de líneas posibles desde el nivel <i>n</i> hasta el fundamental, contando todos los saltos entre cualquier par de niveles, es <b>n(n − 1)/2</b>: con n = 4 salen 6 líneas (4→3, 4→2, 4→1, 3→2, 3→1, 2→1).</p>" +
+        "<h5>Iones hidrogenoides</h5>" +
+        "<p>Si un ion tiene un solo electrón (He⁺, Li²⁺, Be³⁺), el modelo de Bohr sigue valiendo, pero la atracción es <i>Z</i> veces mayor y la energía se multiplica por <i>Z</i>²: <b>E<sub>n</sub> = −13,6 · Z² / n² eV</b>. Para el He⁺ (Z = 2), la energía de ionización es 13,6 · 4 = 54,4 eV, cuatro veces la del H.</p>" +
+        ojo("(1) Usa <b>siempre metros</b> en Rydberg (1,097·10⁷ m⁻¹): da la λ en metros; pasa después a nm (×10⁹). (2) El orden de los niveles en la resta: n<sub>f</sub> es el <b>menor</b> en emisión. Si te sale un 1/λ negativo, has intercambiado los niveles. (3) El espectro de líneas de un átomo es único: se usa para <b>identificar elementos</b> en estrellas y en análisis.")
+      )
+    },
+    // ------------------------------------------------------------ 7
+    {
+      h: "7. Efecto fotoeléctrico: la luz como fotones",
+      html: env(
+        "<h5>Lo que la física clásica no podía explicar</h5>" +
+        "<p>Cuando la luz incide sobre una superficie metálica, ésta puede <b>emitir electrones</b> (fotoelectrones). Si la luz fuese una onda clásica, cabría esperar que más intensidad (más energía por segundo) arrancase más electrones y con más energía, y que una luz débil acabase por arrancarlos si se esperaba lo suficiente. El experimento dice lo contrario:</p>" +
+        tabla(["Observación experimental", "Predicción clásica", "Explicación de Einstein (1905)"], [
+          ["Hay una <b>frecuencia umbral ν₀</b>: por debajo, no se emiten electrones por intensa que sea la luz", "Basta con esperar o con más intensidad", "Un fotón entrega su energía hν a <b>un solo</b> electrón; si hν &lt; W (trabajo de extracción), no basta"],
+          ["La emisión es <b>instantánea</b> (&lt; 10⁻⁹ s)", "Habría un retraso mientras se acumula energía", "El fotón actúa de golpe, no hay que acumular nada"],
+          ["La <b>energía cinética máxima</b> crece con ν y <b>no depende de la intensidad</b>", "Dependería de la intensidad", "Ec = hν − W: solo depende de la frecuencia y del metal"],
+          ["La <b>cantidad</b> de electrones (la corriente) es proporcional a la intensidad", "—", "Más intensidad = más fotones por segundo = más electrones, cada uno con la misma Ec"]
+        ], "q3t") +
+        "<h5>La ecuación</h5>" +
+        "<div class='formula-wrap'><div class='formula'>h·ν = W + E<sub>c</sub> &nbsp; ⟹ &nbsp; E<sub>c</sub> = h·ν − W &nbsp;·&nbsp; W = h·ν₀ = " + fr("h·c", "λ₀") + "</div></div>" +
+        "<p><b>W</b> (trabajo de extracción o función de trabajo) es la energía mínima para arrancar un electrón del metal y es una propiedad del metal (se da en eV o en J). <b>ν₀</b> y <b>λ₀</b> son la frecuencia y longitud de onda <b>umbral</b>: la luz con ν &lt; ν₀ (λ &gt; λ₀) no produce efecto. La energía cinética es máxima para los electrones más superficiales; los demás pierden energía extra al salir. Si se aplica una tensión de frenado V₀ que detiene a los más rápidos, e·V₀ = Ec.</p>" +
+        "<p>Representa Ec frente a ν: sale <b>una recta de pendiente h</b> que corta el eje horizontal en ν₀ y el eje vertical en −W. Cambiar el metal desplaza la recta sin cambiar su pendiente (h es universal). Pruébalo con el widget: elige el metal y arrastra la longitud de onda; mueve la intensidad y comprueba que Ec no cambia.</p>" +
+        w("qq2_fotoel") +
+        ejemplo("Ejemplo resuelto: sodio con luz ultravioleta", "Se ilumina sodio (W = 2,3 eV) con luz de 300 nm. Calcula: (a) la energía del fotón; (b) la longitud de onda umbral; (c) la energía cinética máxima de los electrones, en eV y J; (d) su velocidad máxima. (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s; e = 1,602·10⁻¹⁹ C; m<sub>e</sub> = 9,109·10⁻³¹ kg)", [
+          "(a) E = hc/λ = 6,626·10⁻³⁴ · 3,00·10⁸ / 300·10⁻⁹ = 6,626·10⁻¹⁹ J = 4,14 eV.",
+          "(b) W = 2,3 · 1,602·10⁻¹⁹ = 3,685·10⁻¹⁹ J → λ₀ = hc/W = 1,9878·10⁻²⁵ / 3,685·10⁻¹⁹ = 5,39·10⁻⁷ m = <b>539 nm</b> (luz verde). Como 300 nm &lt; 539 nm, sí hay efecto.",
+          "(c) Ec = E − W = 4,14 − 2,3 = <b>1,84 eV</b> = 1,84 · 1,602·10⁻¹⁹ = <b>2,94·10⁻¹⁹ J</b>.",
+          "(d) Ec = ½mv² → v = √(2 · 2,94·10⁻¹⁹ / 9,109·10⁻³¹) = <b>8,0·10⁵ m/s</b> (muy por debajo de c: no hay efectos relativistas)."
+        ]) +
+        ejemplo("Ejemplo resuelto: del experimento al trabajo de extracción", "Al iluminar un metal con luz de frecuencia 1,2·10¹⁵ Hz, los electrones emitidos salen con una energía cinética máxima de 3,1·10⁻¹⁹ J. Calcula el trabajo de extracción (en J y en eV), la frecuencia umbral y la longitud de onda umbral.", [
+          "W = hν − Ec = 6,626·10⁻³⁴ · 1,2·10¹⁵ − 3,1·10⁻¹⁹ = 7,951·10⁻¹⁹ − 3,1·10⁻¹⁹ = <b>4,85·10⁻¹⁹ J</b> = 4,85·10⁻¹⁹ / 1,602·10⁻¹⁹ = 3,03 eV.",
+          "ν₀ = W/h = 4,85·10⁻¹⁹ / 6,626·10⁻³⁴ = <b>7,32·10¹⁴ Hz</b> (menor que 1,2·10¹⁵ Hz ✓: hay emisión).",
+          "λ₀ = c/ν₀ = 3,00·10⁸ / 7,32·10¹⁴ = 4,10·10⁻⁷ m = <b>410 nm</b> (violeta)."
+        ]) +
+        ejemplo("Ejemplo resuelto: ¿qué metales emiten con luz de 400 nm?", "Un fotón de 400 nm tiene E = 1240,8 / 400 = 3,10 eV (usa hc ≈ 1240,8 eV·nm). Decide qué metales de la tabla emiten y, para el que más electrones libere, calcula la Ec.", [
+          "Compara E con W: Cs (2,1 eV) sí; Na (2,3) sí; Ca (2,9) sí; Zn (4,3), Cu (4,7) y Pt (5,6): <b>no</b> (3,10 &lt; W).",
+          "Mayor Ec: la del metal con menor W, el cesio: Ec = 3,10 − 2,1 = <b>1,00 eV</b>.",
+          "Si se aumenta 10 veces la intensidad, Zn, Cu y Pt <b>siguen sin emitir</b>: más fotones, pero cada uno con 3,10 eV, que no alcanza."
+        ]) +
+        ojo("(1) La intensidad <b>no</b> cambia la energía cinética, solo el número de electrones. (2) Un fotón da su energía a <b>un</b> electrón, no se reparte. (3) Convierte unidades: 1 eV = 1,602·10⁻¹⁹ J, y los nm a metros. (4) Si Ec sale negativa, no hay emisión: no se «toma» el valor absoluto.")
+      )
+    },
+    // ------------------------------------------------------------ 8
+    {
+      h: "8. Dualidad onda-corpúsculo y principio de incertidumbre",
+      html: env(
+        "<h5>De Broglie: si la luz es partícula, la materia es onda</h5>" +
+        "<p>El efecto fotoeléctrico mostró que la luz, que se comporta como onda (difracción, interferencias), también se comporta como <b>partícula</b> (fotones de energía hν y cantidad de movimiento p = h/λ). En 1924 De Broglie propuso lo simétrico: <b>toda partícula con cantidad de movimiento p = m·v lleva asociada una onda de longitud</b></p>" +
+        "<div class='formula-wrap'><div class='formula'>λ = " + fr("h", "p") + " = " + fr("h", "m · v") + "</div></div>" +
+        "<p>Davisson y Germer confirmaron la idea en 1927: un haz de electrones difracta al atravesar un cristal, igual que los rayos X. En el átomo de Bohr, la onda del electrón es <b>estacionaria</b>: la órbita permitida cabe un número entero de longitudes de onda (2πr = nλ). Eso es justo la cuantización de Bohr deducida de otra manera.</p>" +
+        "<p>Como m va en el denominador, la λ solo es apreciable para <b>partículas muy ligeras</b>. Mira la gráfica: cada recta es un objeto; sube la velocidad y la λ baja, pero hasta el electrón más rápido apenas llega al tamaño de un átomo, y una pelota o una persona quedan 20 órdenes de magnitud por debajo.</p>" +
+        w("qq2_broglie") +
+        ejemplo("Ejemplo resuelto: el electrón de Bohr y la pelota de tenis", "(a) Calcula la longitud de onda de un electrón que se mueve a 2,19·10⁶ m/s (la velocidad en la 1.ª órbita de Bohr) y compárala con el perímetro de esa órbita (radio 0,0529 nm). (b) Calcula la λ de una pelota de 57 g a 40 m/s.", [
+          "(a) λ = h/(m·v) = 6,626·10⁻³⁴ / (9,109·10⁻³¹ · 2,19·10⁶) = 3,32·10⁻¹⁰ m = 0,332 nm.",
+          "Perímetro de la órbita: 2πr = 2π · 0,0529 nm = 0,332 nm. <b>Coincide</b>: en la órbita de n = 1 cabe exactamente una longitud de onda.",
+          "(b) λ = 6,626·10⁻³⁴ / (0,057 · 40) = <b>2,9·10⁻³⁴ m</b>, 10²⁴ veces menor que un átomo: es inmensurable, por eso una pelota no muestra comportamiento ondulatorio."
+        ]) +
+        ejemplo("Ejemplo resuelto: electrones acelerados con 100 V", "Un electrón parte del reposo y se acelera con una diferencia de potencial de 100 V. Calcula su longitud de onda y explica por qué se pueden observar con ellos difracciones en cristales.", [
+          "La energía ganada es Ec = e·V = 1,602·10⁻¹⁹ · 100 = 1,602·10⁻¹⁷ J.",
+          "Cantidad de movimiento: p = √(2·m·Ec) = √(2 · 9,109·10⁻³¹ · 1,602·10⁻¹⁷) = 5,40·10⁻²⁴ kg·m/s.",
+          "λ = h/p = 6,626·10⁻³⁴ / 5,40·10⁻²⁴ = <b>1,23·10⁻¹⁰ m</b> (0,123 nm).",
+          "Esa λ es del orden de la distancia entre átomos de un cristal (10⁻¹⁰ m), que actúa como red de difracción: por eso hay difracción de electrones (base del microscopio electrónico)."
+        ]) +
+        "<h5>Heisenberg: no se puede conocer todo a la vez</h5>" +
+        "<p>El <b>principio de incertidumbre</b> dice que no es posible conocer simultáneamente, con precisión arbitraria, la <b>posición</b> y la <b>cantidad de movimiento</b> de una partícula. No es un fallo del instrumento: es una propiedad de la naturaleza ondulatoria de la materia.</p>" +
+        "<div class='formula-wrap'><div class='formula'>Δx · Δp ≥ " + fr("h", "4π") + " &nbsp;(con Δp = m·Δv)</div></div>" +
+        "<p>Consecuencia clave para el átomo: si se quisiera fijar la posición del electrón con una incertidumbre del tamaño del átomo (Δx ≈ 10⁻¹⁰ m), la incertidumbre en su velocidad sería enorme, y <b>la trayectoria (la órbita) deja de tener sentido</b>. Por eso el modelo de Bohr se sustituye por <b>orbitales</b>: no dicen dónde está el electrón, sino dónde es más probable encontrarlo.</p>" +
+        ejemplo("Ejemplo resuelto: incertidumbre de un electrón y de una bala", "(a) Si la posición de un electrón de un átomo se conoce con una incertidumbre de 10⁻¹⁰ m, ¿cuál es la menor incertidumbre posible en su velocidad? Compárala con v = 2,2·10⁶ m/s. (b) Una bala de 10 g va a 300 m/s con Δv = 0,01 % de v: ¿cuál es la mínima Δx?", [
+          "(a) Δv ≥ h / (4π · m · Δx) = 6,626·10⁻³⁴ / (4π · 9,109·10⁻³¹ · 10⁻¹⁰) = <b>5,8·10⁵ m/s</b>.",
+          "Comparada con 2,2·10⁶ m/s, la incertidumbre es el 26 % de la velocidad: el electrón «no tiene» una velocidad definida a esa escala, y por eso no se puede hablar de órbita.",
+          "(b) Δv = 0,01 % · 300 = 0,03 m/s; Δx ≥ h / (4π · m · Δv) = 6,626·10⁻³⁴ / (4π · 0,010 · 0,03) = <b>1,76·10⁻³¹ m</b>: muy inferior al tamaño de un núcleo. Para objetos macroscópicos la incertidumbre es despreciable."
+        ]) +
+        ojo("(1) En De Broglie la masa va en <b>kg</b> y la velocidad en m/s: una masa en gramos da un resultado 1000 veces mayor. (2) Δx·Δp ≥ h/4π no dice que no se pueda medir bien una sola magnitud, sino que <b>el producto de las dos incertidumbres</b> tiene un mínimo. (3) La dualidad vale para todo, pero λ solo se nota si es comparable al tamaño de los objetos con los que interacciona.")
+      )
+    },
+    // ------------------------------------------------------------ 9
+    {
+      h: "9. Cómo se pregunta en la EvAU y cómo se responde",
+      html: env(
+        "<h5>Cinco tipos de pregunta que se repiten</h5>" +
+        tabla(["Tipo", "Cómo suele venir", "Qué hacer"], [
+          ["Números cuánticos", "«Indica razonadamente si son posibles estos conjuntos y a qué orbital corresponden»", "Comprueba l ≤ n − 1, |m<sub>l</sub>| ≤ l y m<sub>s</sub> = ±½; si es válido, nómbralo (n + letra)"],
+          ["Configuración e iones", "«Escribe la configuración de X (Z) y de X<sup>n+</sup>; electrones desapareados; grupo y periodo»", "Cuenta electrones (Z − carga), llena por Aufbau con excepciones, dibuja las cajas del último subnivel"],
+          ["Bohr y espectros", "«Calcula la λ (o E, ν) de la transición n<sub>i</sub> → n<sub>f</sub> del hidrógeno; ¿en qué región está?»", "Rydberg en metros; E = hc/λ; compara con 380–780 nm"],
+          ["Efecto fotoeléctrico", "«Luz de λ sobre un metal de W o λ₀: ¿hay emisión? Ec, v, potencial de frenado»", "Compara E del fotón con W; Ec = E − W; v = √(2Ec/m)"],
+          ["De Broglie e incertidumbre", "«λ asociada a un electrón/protón/pelota; ¿es observable?»", "λ = h/(mv) con m en kg; compara con el tamaño del átomo o del objeto"]
+        ], "q3t") +
+        "<h5>Tres respuestas modelo, completas</h5>" +
+        ejemplo("Modelo de respuesta 1: números cuánticos", "Razona si son posibles los conjuntos (n, l, m<sub>l</sub>, m<sub>s</sub>): (a) (3, 2, −1, +½); (b) (2, 2, 0, −½); (c) (4, 1, 2, +½). Para los válidos, indica el orbital.", [
+          "(a) l = 2 &lt; n = 3 ✓; −2 ≤ −1 ≤ 2 ✓; +½ ✓ → <b>posible</b>: orbital 3d.",
+          "(b) l = 2 pero n = 2: l debe ser ≤ n − 1 = 1 → <b>imposible</b> (no existe el subnivel 2d).",
+          "(c) l = 1 ≤ 3 ✓, pero m<sub>l</sub> = 2 &gt; l = 1 (solo −1, 0, +1) → <b>imposible</b>."
+        ]) +
+        ejemplo("Modelo de respuesta 2: de la configuración a lo que preguntan", "Un elemento tiene la configuración electrónica 1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d⁷. Identifica el elemento, su grupo y periodo, indica los electrones desapareados del átomo neutro y del ion X³⁺.", [
+          "Electrones: 2 + 2 + 6 + 2 + 6 + 2 + 7 = 27 → Z = 27: <b>cobalto</b>. Periodo 4 (mayor n); grupo 9 (2 + 7 = 9 electrones sobre el argón).",
+          "Neutro: 3d⁷ → ↑↓ ↑↓ ↑ ↑ ↑ → <b>3 desapareados</b> (4s² está apareado).",
+          "Co³⁺ (24 e⁻): pierde primero 4s² y luego un 3d → [Ar] 3d⁶ → ↑↓ ↑ ↑ ↑ ↑ → <b>4 desapareados</b>. Es paramagnético."
+        ]) +
+        ejemplo("Modelo de respuesta 3: combinar Bohr y fotoeléctrico", "La luz emitida por átomos de hidrógeno en la transición n = 3 → n = 1 incide sobre una lámina de cinc (W = 4,3 eV). ¿Se emiten electrones? Si es así, ¿con qué energía cinética máxima?", [
+          "Energía del fotón: E = 13,6 · (1 − 1/9) = <b>12,09 eV</b> (λ = 102,6 nm, ultravioleta).",
+          "Como 12,09 eV &gt; W = 4,3 eV: <b>sí</b> hay emisión.",
+          "Ec = 12,09 − 4,3 = <b>7,79 eV</b> = 7,79 · 1,602·10⁻¹⁹ = 1,25·10⁻¹⁸ J.",
+          "Esta mezcla de bloques es típica: el enunciado da la longitud de onda <em>sin decirlo</em>, y el primer paso es calcularla con Rydberg o con los niveles."
+        ]) +
+        "<h5>Antes de entregar</h5>" +
+        "<ul><li>¿Todas las longitudes están en metros y las energías en J (o todas en eV)?</li>" +
+        "<li>¿El signo de la energía tiene sentido (E<sub>n</sub> negativa; Ec positiva o no hay emisión)?</li>" +
+        "<li>¿La configuración suma Z (o Z − carga) y respeta las excepciones Cr y Cu?</li>" +
+        "<li>¿Has justificado en una frase la regla usada (Pauli, Hund, Aufbau, postulado de Bohr)? En la EvAU se puntúa el razonamiento.</li></ul>"
+      )
+    },
+    // ------------------------------------------------------------ 10 y 11
+    {
+      h: "10. ¿Qué falla aquí? Errores típicos de estructura de la materia",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente en los exámenes. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    {
+      h: "11. Autocomprobación del tema",
+      html: "<p>Un test de diez preguntas, tarjetas para fijar definiciones y un juego de ordenar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarj") + w("orden", "llenado")
+    }
+  ];
+
+  B.parte.q2t2b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 2: Estructura de la materia
+   (parte C: actividades, ejercicios, lámina y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr;
+
+  var resumen = [
+    "<b>Modelos</b>: Dalton (indivisible) → Thomson (electrón en esfera positiva) → Rutherford (núcleo; no explica estabilidad ni espectros) → Bohr (niveles cuantizados; solo H y iones con 1 e⁻) → cuántico (orbitales y probabilidad).",
+    "<b>Bohr</b>: E<sub>n</sub> = −13,6 eV/n² · ΔE = hν = hc/λ · 1/λ = R<sub>H</sub>(1/n<sub>f</sub>² − 1/n<sub>i</sub>²), R<sub>H</sub> = 1,097·10⁷ m⁻¹. Lyman (n<sub>f</sub> = 1, UV), Balmer (2, visible), Paschen (3, IR). Hidrogenoides: × Z².",
+    "<b>Fotoeléctrico</b>: hν = W + Ec · umbral ν₀ = W/h · la intensidad cambia el <em>número</em> de electrones, no su Ec. <b>De Broglie</b>: λ = h/mv. <b>Incertidumbre</b>: Δx·Δp ≥ h/4π.",
+    "<b>Electrones</b>: n, l (0 … n−1), m<sub>l</sub> (−l … +l), m<sub>s</sub> (±½). Aufbau + Pauli (máx. 2 por orbital) + Hund (uno en cada orbital antes de aparear). Excepciones: Cr ([Ar]4s¹3d⁵) y Cu ([Ar]4s¹3d¹⁰). Los cationes pierden antes el nivel más externo (4s antes que 3d)."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«El conjunto (2, 2, 0, +½) describe un electrón 2d.» ¿Qué falla?",
+          op: ["Nada", "Con n = 2 el máximo de l es 1: no existe el subnivel 2d", "m<sub>l</sub> no puede ser 0", "El espín debe ser −½"], ok: 1,
+          porque: "l llega como máximo a n − 1. Con n = 2 solo hay 2s (l = 0) y 2p (l = 1); los orbitales d empiezan en n = 3." },
+        { q: "Un alumno escribe el 2p del nitrógeno (3 electrones) como ↑↓ ↑ ▢. ¿Qué falla?",
+          op: ["Nada: es la configuración más estable", "Hund: hay que poner un electrón en cada uno de los tres orbitales, con espines paralelos (↑ ↑ ↑)", "Pauli: no pueden coexistir ↑↓ y ↑", "Aufbau: el 2p se llena después del 3s"], ok: 1,
+          porque: "Antes de aparear hay que ocupar todos los orbitales degenerados. El N tiene 2p³ = ↑ ↑ ↑ y, por tanto, 3 electrones desapareados." },
+        { q: "«El Fe²⁺ es [Ar] 4s² 3d⁴, porque ha ganado dos electrones al 4s.» ¿Qué falla?",
+          op: ["Nada", "Un catión pierde electrones: Fe²⁺ = [Ar] 3d⁶ (salen primero los 4s², que son del nivel más externo)", "Debería ser [Ar] 4s² 3d⁸", "El hierro no forma Fe²⁺"], ok: 1,
+          porque: "Fe = [Ar] 4s² 3d⁶; para Fe²⁺ se quitan dos electrones: primero los del nivel 4, que son los 4s. El 3d no se vacía hasta que no quedan 4s." },
+        { q: "«En la serie de Balmer, el electrón cae a n = 1 y emite luz visible.» ¿Qué falla?",
+          op: ["Nada", "Balmer es n<sub>f</sub> = 2; caer a n = 1 es la serie de Lyman (ultravioleta)", "Balmer es infrarroja", "Cae a n = 3"], ok: 1,
+          porque: "Lyman → n = 1 (UV); Balmer → n = 2 (visible); Paschen → n = 3 (IR). Cuanto menor es n<sub>f</sub>, mayor es la energía del salto." },
+        { q: "Un alumno calcula la λ de la transición 3 → 2 como 1/λ = 1,097·10⁷ · (1/9 − 1/4) y obtiene un valor negativo, así que «toma el valor absoluto» sin más. ¿Qué falla?",
+          op: ["Nada, el signo no importa", "Ha intercambiado los niveles: en emisión n<sub>f</sub> = 2 va primero: (1/4 − 1/9) = 0,1389 → λ = 656 nm", "Debía dividir entre 2", "Debía usar eV"], ok: 1,
+          porque: "En Rydberg 1/λ = R(1/n<sub>f</sub>² − 1/n<sub>i</sub>²) y n<sub>f</sub> es el nivel menor en una emisión. Un signo negativo indica niveles al revés; el resultado numérico sale igual, pero conviene entender por qué." },
+        { q: "«Si se triplica la intensidad de una luz de 700 nm que no arranca electrones de un metal, acabarán saliendo.» ¿Qué falla?",
+          op: ["Nada", "Un fotón entrega su energía a un solo electrón: si hν &lt; W no basta, por muchos fotones que lleguen", "Los electrones salen con más Ec pero no se detectan", "La intensidad solo importa en el ultravioleta"], ok: 1,
+          porque: "La intensidad es el número de fotones por segundo. Cada fotón actúa por separado. Si ninguno tiene energía suficiente, no hay efecto." },
+        { q: "«Al aumentar la intensidad de la luz (misma ν, mayor que ν₀), los electrones emitidos salen con mayor energía cinética.» ¿Qué falla?",
+          op: ["Nada", "La Ec depende de la frecuencia (Ec = hν − W), no de la intensidad: más intensidad da más electrones, no más rápidos", "La Ec disminuye con la intensidad", "Depende del metal solamente"], ok: 1,
+          porque: "Esta es una de las observaciones que la física clásica no explicaba. Con más intensidad aumenta la corriente, no la energía de cada electrón." },
+        { q: "Un alumno calcula la longitud de onda de De Broglie de un electrón con v = 2·10⁶ m/s usando m = 9,1 g. ¿Qué falla?",
+          op: ["Nada", "La masa debe ir en kg (9,1·10⁻³¹ kg); en gramos el resultado es 1000 veces menor", "La velocidad debe ir en km/s", "Debía usar la constante de Rydberg"], ok: 1,
+          porque: "En SI, λ = h/(m·v) con m en kg. Además, 9,1 g es la masa de un objeto casi macroscópico; la del electrón es 9,1·10⁻³¹ kg." },
+        { q: "«Por el principio de incertidumbre, el electrón del hidrógeno se mueve en una órbita de radio 0,0529 nm y su velocidad se conoce exactamente.» ¿Qué falla?",
+          op: ["Nada", "Es contradictorio con Heisenberg: no se pueden conocer a la vez posición (órbita) y velocidad con precisión; el modelo actual habla de orbitales (probabilidad)", "La órbita es de 0,529 nm", "El electrón no tiene velocidad"], ok: 1,
+          porque: "Una órbita exige conocer posición y velocidad a la vez. El modelo de Bohr es útil para las energías, pero no describe la posición del electrón." },
+        { q: "Un alumno dice que el Cr (Z = 24) es [Ar] 4s² 3d⁴ «porque se llena por el orden de Moeller». ¿Qué falla?",
+          op: ["Nada", "El Cr es una excepción: [Ar] 4s¹ 3d⁵ (el 3d semilleno es más estable)", "Debería ser [Ar] 4s² 3d⁴ pero con otro orden", "El Cr es [Ar] 3d⁶"], ok: 1,
+          porque: "Cr y Cu son las dos excepciones de Bachillerato: Cr = [Ar] 4s¹ 3d⁵; Cu = [Ar] 4s¹ 3d¹⁰. El Cr tiene así 6 electrones desapareados." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "¿Cuántos orbitales hay en el nivel n = 3?",
+          op: ["9", "3", "18", "6"], ok: 0, porque: "n² = 9: un 3s, tres 3p y cinco 3d. (18 es el número máximo de electrones, 2n².)" },
+        { q: "¿Cuál de los siguientes conjuntos (n, l, m<sub>l</sub>, m<sub>s</sub>) es posible?",
+          op: ["(3, 2, −2, −½)", "(2, 2, 0, +½)", "(3, 1, 2, +½)", "(1, 0, 1, −½)"], ok: 0, porque: "Solo el primero cumple l ≤ n − 1 y |m<sub>l</sub>| ≤ l. Es un electrón 3d." },
+        { q: "Sobre un electrón libre de energía cero (n → ∞), la energía del hidrógeno en n = 2 es…",
+          op: ["−3,4 eV", "+3,4 eV", "−13,6 eV", "−6,8 eV"], ok: 0, porque: "E<sub>n</sub> = −13,6/n²: con n = 2 resulta −13,6/4 = −3,4 eV." },
+        { q: "Una transición 4 → 2 del hidrógeno emite…",
+          op: ["Luz visible (486 nm)", "Ultravioleta (97 nm)", "Infrarrojo (1875 nm)", "Nada: es una absorción"], ok: 0, porque: "n<sub>f</sub> = 2 es la serie de Balmer, que está en el visible. 1/λ = 1,097·10⁷ · 0,1875 → 486 nm." },
+        { q: "Un metal tiene W = 3,0 eV. ¿Cuál de estas luces arranca electrones?",
+          op: ["Ultravioleta de 250 nm (4,96 eV)", "Roja de 700 nm (1,77 eV)", "Infrarroja muy intensa de 1000 nm", "Verde de 550 nm (2,26 eV) muy intensa"], ok: 0, porque: "Hace falta que hν = hc/λ ≥ W. Solo la de 250 nm (4,96 eV) lo cumple; la intensidad no sustituye a la energía por fotón." },
+        { q: "Si se duplica la intensidad de una luz que provoca efecto fotoeléctrico, ¿qué ocurre?",
+          op: ["Se duplica el número de electrones; la Ec máxima no cambia", "Se duplica la Ec máxima", "Aumenta el umbral ν₀", "No hay ningún cambio"], ok: 0, porque: "Más intensidad = más fotones = más electrones. La Ec = hν − W depende de ν y de W." },
+        { q: "La longitud de onda de De Broglie de una partícula es…",
+          op: ["Inversamente proporcional a su cantidad de movimiento", "Directamente proporcional a su masa", "Independiente de la velocidad", "Igual a h·m·v"], ok: 0, porque: "λ = h/(m·v): a mayor masa o velocidad, menor λ." },
+        { q: "El principio de incertidumbre implica que en el átomo…",
+          op: ["No se puede hablar de órbitas definidas, sino de probabilidad (orbitales)", "El electrón no tiene masa", "Los niveles de energía no están cuantizados", "El núcleo no es puntual"], ok: 0, porque: "Δx·Δp ≥ h/4π: no pueden conocerse a la vez posición y velocidad con precisión arbitraria." },
+        { q: "El Fe³⁺ (Z = 26) tiene configuración…",
+          op: ["[Ar] 3d⁵", "[Ar] 4s² 3d³", "[Ar] 4s¹ 3d⁴", "[Ar] 3d⁶"], ok: 0, porque: "Fe = [Ar] 4s² 3d⁶. Al perder tres electrones, primero salen los 4s² y luego uno 3d: [Ar] 3d⁵ (5 desapareados)." },
+        { q: "¿Cuántos electrones desapareados tiene el azufre (Z = 16)?",
+          op: ["2", "4", "6", "0"], ok: 0, porque: "S = [Ne] 3s² 3p⁴: en 3p, con 4 electrones y 3 orbitales, queda ↑↓ ↑ ↑ → 2 desapareados." }
+      ]
+    },
+    tarj: {
+      titulo: "Tarjetas",
+      cartas: [
+        { a: "Valores de l para un n dado", b: "0, 1, …, n − 1 (s, p, d, f…)" },
+        { a: "Valores de m<sub>l</sub> para un l dado", b: "−l … +l: 2l + 1 orbitales" },
+        { a: "Capacidad de un subnivel", b: "2(2l + 1): s = 2, p = 6, d = 10, f = 14" },
+        { a: "Principio de exclusión de Pauli", b: "Ningún par de electrones con los cuatro números cuánticos iguales: máx. 2 por orbital, con espines opuestos" },
+        { a: "Regla de Hund", b: "En orbitales degenerados, un electrón en cada uno con espines paralelos antes de aparear" },
+        { a: "Excepciones del llenado", b: "Cr: [Ar] 4s¹ 3d⁵ · Cu: [Ar] 4s¹ 3d¹⁰ (d semilleno o lleno más estable)" },
+        { a: "Energía del nivel n del H", b: "E<sub>n</sub> = −13,6 eV / n² (−2,18·10⁻¹⁸ J / n²); hidrogenoides: × Z²" },
+        { a: "Ecuación de Rydberg", b: "1/λ = R<sub>H</sub>(1/n<sub>f</sub>² − 1/n<sub>i</sub>²), R<sub>H</sub> = 1,097·10⁷ m⁻¹" },
+        { a: "Series del hidrógeno", b: "Lyman n<sub>f</sub> = 1 (UV) · Balmer 2 (visible) · Paschen 3 (IR)" },
+        { a: "Ecuación del efecto fotoeléctrico", b: "hν = W + Ec; umbral ν₀ = W/h; la pendiente de Ec(ν) es h" },
+        { a: "Qué cambia con la intensidad de la luz", b: "El número de fotoelectrones (la corriente), no su energía cinética máxima" },
+        { a: "Hipótesis de De Broglie", b: "λ = h/(m·v): toda partícula tiene una onda asociada" },
+        { a: "Principio de incertidumbre", b: "Δx·Δp ≥ h/4π: no se pueden conocer a la vez posición y cantidad de movimiento" },
+        { a: "Catión de un metal de transición", b: "Pierde primero los electrones del nivel más externo (4s antes que 3d)" },
+        { a: "Paramagnético / diamagnético", b: "Con electrones desapareados (atraído por un imán) / todos apareados" }
+      ]
+    },
+    modelos: {
+      titulo: "¿De qué modelo se trata?",
+      consigna: "Clasifica cada afirmación según el modelo atómico al que corresponde.",
+      categorias: ["Thomson", "Rutherford", "Bohr", "Cuántico"],
+      items: [
+        { t: "Esfera positiva con electrones incrustados («pudin de pasas»)", c: 0 },
+        { t: "Explica el modelo con la dispersión de partículas α en una lámina de oro", c: 1 },
+        { t: "Concentra la carga positiva y casi toda la masa en un núcleo diminuto", c: 1 },
+        { t: "Un electrón que girase emitiría radiación y caería al núcleo (su limitación)", c: 1 },
+        { t: "Órbitas estacionarias con energía cuantizada", c: 2 },
+        { t: "Explica las series de Lyman, Balmer y Paschen", c: 2 },
+        { t: "Solo funciona bien para el hidrógeno y los iones con un electrón", c: 2 },
+        { t: "Los electrones se describen con orbitales y probabilidad", c: 3 },
+        { t: "Usa cuatro números cuánticos (n, l, m<sub>l</sub>, m<sub>s</sub>)", c: 3 },
+        { t: "Compatible con el principio de incertidumbre", c: 3 }
+      ]
+    },
+    aportaciones: {
+      titulo: "¿Quién aportó qué?",
+      consigna: "Une cada científico con su idea.",
+      pares: [
+        ["Rutherford", "Existencia del núcleo (lámina de oro)"],
+        ["Bohr", "Niveles de energía cuantizados en el átomo"],
+        ["Einstein", "Fotones: explica el efecto fotoeléctrico"],
+        ["De Broglie", "λ = h/(m·v): ondas de materia"],
+        ["Heisenberg", "Δx·Δp ≥ h/4π"],
+        ["Pauli", "Máximo dos electrones por orbital, con espines opuestos"],
+        ["Hund", "Máxima multiplicidad en orbitales degenerados"]
+      ]
+    },
+    llenado: {
+      titulo: "Orden de llenado",
+      consigna: "Ordena los subniveles de menor a mayor energía (Aufbau).",
+      items: [{ t: "1s" }, { t: "2s" }, { t: "2p" }, { t: "3s" }, { t: "3p" }, { t: "4s", nota: "n + l = 4, menor que el 3d (n + l = 5)" }, { t: "3d" }, { t: "4p" }, { t: "5s" }, { t: "4d" }]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS (K: h = 6,626·10⁻³⁴ · c = 3,00·10⁸ · e = 1,602·10⁻¹⁹ · m_e = 9,109·10⁻³¹ · R_H = 1,097·10⁷ · N_A = 6,022·10²³)
+  // ================================================================
+  var ejercicios = [
+    // ================= ★ básico =================
+    { id: "a1", nivel: 1,
+      enunciado: "¿Cuántos orbitales atómicos hay en el nivel n = 4?",
+      check: { tipo: "num", etiqueta: "orbitales =", valor: 16 },
+      pistas: ["Un nivel n tiene n² orbitales: suma los de cada subnivel."],
+      pasos: ["Subniveles con n = 4: 4s, 4p, 4d, 4f.", "Orbitales: 1 + 3 + 5 + 7 = 16 = 4²."], resultado: "16 orbitales" },
+    { id: "a2", nivel: 1,
+      enunciado: "¿Es posible el conjunto de números cuánticos (3, 2, −3, +½)?",
+      check: { tipo: "opcion", etiqueta: "Respuesta:", opciones: ["Sí", "No: con l = 2, m<sub>l</sub> solo puede valer de −2 a +2", "No: con n = 3, l no puede ser 2", "No: el espín debe ser −½"], ok: 1 },
+      pistas: ["Comprueba l ≤ n − 1 y |m<sub>l</sub>| ≤ l."],
+      pasos: ["n = 3 → l puede ser 0, 1 o 2: l = 2 vale.", "l = 2 → m<sub>l</sub> ∈ {−2, −1, 0, 1, 2}: −3 no está."], resultado: "No es posible (m<sub>l</sub> = −3 &lt; −l)" },
+    { id: "a3", nivel: 1,
+      enunciado: "¿Cuántos electrones, como máximo, caben en el nivel n = 3?",
+      check: { tipo: "num", etiqueta: "electrones =", valor: 18 },
+      pistas: ["Nivel n: 2n² electrones."],
+      pasos: ["Orbitales: n² = 9.", "Cada orbital admite 2 electrones (Pauli): 18."], resultado: "18 electrones" },
+    { id: "a4", nivel: 1,
+      enunciado: "Escribe la configuración electrónica del cloro (Z = 17) y di cuántos electrones desapareados tiene.",
+      check: [{ tipo: "texto", etiqueta: "Configuración:", valores: ["1s2 2s2 2p6 3s2 3p5", "[Ne] 3s2 3p5"], formula: true }, { tipo: "num", etiqueta: "desapareados =", valor: 1 }],
+      pistas: ["17 electrones; el último subnivel es 3p con 5 electrones en 3 orbitales."],
+      pasos: ["1s² 2s² 2p⁶ 3s² 3p⁵ (2 + 2 + 6 + 2 + 5 = 17).", "3p⁵ = ↑↓ ↑↓ ↑ → 1 desapareado."], resultado: "1s² 2s² 2p⁶ 3s² 3p⁵; 1 desapareado" },
+    { id: "a5", nivel: 1,
+      enunciado: "Calcula la energía del electrón del hidrógeno en el nivel n = 2, en eV.",
+      check: { tipo: "num", etiqueta: "E₂ (eV) =", valor: -3.4 },
+      pistas: ["E<sub>n</sub> = −13,6 / n²."],
+      pasos: ["E₂ = −13,6 / 2² = −13,6 / 4 = −3,4 eV."], resultado: "−3,4 eV" },
+    { id: "a6", nivel: 1,
+      enunciado: "Calcula la energía de un fotón de luz verde de 500 nm. Da el resultado en unidades de 10⁻¹⁹ J. (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s)",
+      check: { tipo: "num", etiqueta: "E (·10⁻¹⁹ J) =", valor: 3.9756 },
+      pistas: ["E = hc/λ con λ en metros: 500 nm = 5,00·10⁻⁷ m."],
+      pasos: ["E = 6,626·10⁻³⁴ · 3,00·10⁸ / 5,00·10⁻⁷ = 3,98·10⁻¹⁹ J."], resultado: "3,98·10⁻¹⁹ J" },
+    { id: "a7", nivel: 1,
+      enunciado: "Calcula la frecuencia de una luz de 600 nm. Da el resultado en unidades de 10¹⁴ Hz. (c = 3,00·10⁸ m/s)",
+      check: { tipo: "num", etiqueta: "ν (·10¹⁴ Hz) =", valor: 5.0 },
+      pistas: ["c = λ·ν."],
+      pasos: ["ν = c/λ = 3,00·10⁸ / 6,00·10⁻⁷ = 5,0·10¹⁴ Hz."], resultado: "5,0·10¹⁴ Hz" },
+    { id: "a8", nivel: 1,
+      enunciado: "¿Cuántos electrones 3d tiene el ion Fe³⁺ (Z = 26)?",
+      check: { tipo: "num", etiqueta: "electrones 3d =", valor: 5 },
+      pistas: ["Fe = [Ar] 4s² 3d⁶; el catión pierde primero los 4s."],
+      pasos: ["Fe: 4s² 3d⁶. Fe³⁺ pierde 4s² y un 3d: [Ar] 3d⁵."], resultado: "5 electrones 3d" },
+    { id: "a9", nivel: 1,
+      enunciado: "¿Cuántos electrones desapareados tiene el manganeso (Z = 25)?",
+      check: { tipo: "num", etiqueta: "desapareados =", valor: 5 },
+      pistas: ["Mn = [Ar] 4s² 3d⁵."],
+      pasos: ["3d⁵: cinco orbitales con un electrón cada uno (Hund): 5 desapareados. El 4s² está apareado."], resultado: "5 electrones desapareados" },
+    { id: "a10", nivel: 1,
+      enunciado: "Escribe la configuración electrónica del ion Na⁺ (Z = 11).",
+      check: { tipo: "texto", etiqueta: "Configuración:", valores: ["1s2 2s2 2p6", "[He] 2s2 2p6", "[Ne]"], formula: true },
+      pistas: ["Un catión tiene Z − carga electrones: 11 − 1 = 10."],
+      pasos: ["10 electrones: 1s² 2s² 2p⁶ (isoelectrónico con el Ne)."], resultado: "1s² 2s² 2p⁶" },
+    { id: "a11", nivel: 1,
+      enunciado: "¿Qué experimento llevó a proponer el núcleo atómico?",
+      check: { tipo: "opcion", etiqueta: "Respuesta:", opciones: ["Rayos catódicos de Thomson", "Dispersión de partículas α en una lámina de oro (Rutherford)", "Espectro del hidrógeno (Bohr)", "Gota de aceite (Millikan)"], ok: 1 },
+      pistas: ["Pocas partículas α rebotan con ángulos grandes."],
+      pasos: ["Casi todas las α atraviesan la lámina y unas pocas se desvían mucho: carga positiva concentrada en un núcleo diminuto."], resultado: "Experimento de Geiger y Marsden, interpretado por Rutherford (1911)" },
+    { id: "a12", nivel: 1,
+      enunciado: "¿Cuántos electrones de valencia tiene el azufre (Z = 16)?",
+      check: { tipo: "num", etiqueta: "electrones de valencia =", valor: 6 },
+      pistas: ["La capa de valencia es la de mayor n."],
+      pasos: ["S = [Ne] 3s² 3p⁴: 2 + 4 = 6 electrones en n = 3."], resultado: "6 electrones" },
+    { id: "a13", nivel: 1,
+      enunciado: "Calcula la energía de un fotón de frecuencia 3,0·10¹⁵ Hz. Da el resultado en unidades de 10⁻¹⁸ J. (h = 6,626·10⁻³⁴ J·s)",
+      check: { tipo: "num", etiqueta: "E (·10⁻¹⁸ J) =", valor: 1.9878 },
+      pistas: ["E = hν."],
+      pasos: ["E = 6,626·10⁻³⁴ · 3,0·10¹⁵ = 1,99·10⁻¹⁸ J."], resultado: "1,99·10⁻¹⁸ J" },
+    { id: "a14", nivel: 1,
+      enunciado: "¿Cuántos orbitales tiene el subnivel 4f?",
+      check: { tipo: "num", etiqueta: "orbitales =", valor: 7 },
+      pistas: ["Un subnivel de valor l tiene 2l + 1 orbitales."],
+      pasos: ["f → l = 3 → 2·3 + 1 = 7 orbitales (14 electrones)."], resultado: "7 orbitales" },
+
+    // ================= ★★ intermedio =================
+    { id: "b1", nivel: 2,
+      enunciado: "Calcula la longitud de onda de la línea de la serie de Balmer que corresponde a la transición n = 3 → n = 2 del hidrógeno, en nm. (R<sub>H</sub> = 1,097·10⁷ m⁻¹)",
+      check: { tipo: "num", etiqueta: "λ (nm) =", valor: 656.3 },
+      pistas: ["1/λ = R<sub>H</sub>(1/2² − 1/3²)."],
+      pasos: ["1/λ = 1,097·10⁷ · (1/4 − 1/9) = 1,097·10⁷ · 0,1389 = 1,524·10⁶ m⁻¹.", "λ = 6,563·10⁻⁷ m = 656,3 nm (roja)."], resultado: "656,3 nm" },
+    { id: "b2", nivel: 2,
+      enunciado: "Calcula la energía, en eV, del fotón emitido en la transición n = 4 → n = 1 del hidrógeno.",
+      check: { tipo: "num", etiqueta: "E (eV) =", valor: 12.75 },
+      pistas: ["E = E₄ − E₁ con E<sub>n</sub> = −13,6/n²."],
+      pasos: ["E₄ = −0,85 eV; E₁ = −13,6 eV.", "ΔE = −0,85 + 13,6 = 12,75 eV."], resultado: "12,75 eV" },
+    { id: "b3", nivel: 2,
+      enunciado: "¿Cuál es la longitud de onda máxima, en nm, de la luz capaz de ionizar un átomo de hidrógeno que está en el nivel n = 2? (R<sub>H</sub> = 1,097·10⁷ m⁻¹)",
+      check: { tipo: "num", etiqueta: "λ máx. (nm) =", valor: 364.6 },
+      pistas: ["Ionizar desde n = 2 es pasar a n → ∞: 1/λ = R<sub>H</sub>/4."],
+      pasos: ["1/λ = 1,097·10⁷ / 4 = 2,743·10⁶ m⁻¹.", "λ = 3,646·10⁻⁷ m = 364,6 nm (límite de la serie de Balmer)."], resultado: "364,6 nm" },
+    { id: "b4", nivel: 2,
+      enunciado: "Calcula la longitud de onda límite de la serie de Lyman (n<sub>i</sub> → ∞, n<sub>f</sub> = 1), en nm. (R<sub>H</sub> = 1,097·10⁷ m⁻¹)",
+      check: { tipo: "num", etiqueta: "λ límite (nm) =", valor: 91.16 },
+      pistas: ["1/λ = R<sub>H</sub>(1/1² − 0)."],
+      pasos: ["λ = 1/R<sub>H</sub> = 1/1,097·10⁷ = 9,116·10⁻⁸ m = 91,16 nm (ultravioleta)."], resultado: "91,2 nm" },
+    { id: "b5", nivel: 2,
+      enunciado: "El sodio tiene un trabajo de extracción de 2,3 eV. Calcula su longitud de onda umbral en nm. (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s; 1 eV = 1,602·10⁻¹⁹ J)",
+      check: { tipo: "num", etiqueta: "λ₀ (nm) =", valor: 539.5 },
+      pistas: ["W en julios y λ₀ = hc/W."],
+      pasos: ["W = 2,3 · 1,602·10⁻¹⁹ = 3,685·10⁻¹⁹ J.", "λ₀ = 1,9878·10⁻²⁵ / 3,685·10⁻¹⁹ = 5,395·10⁻⁷ m = 539,5 nm."], resultado: "539 nm" },
+    { id: "b6", nivel: 2,
+      enunciado: "Se ilumina sodio (W = 2,3 eV) con luz ultravioleta de 300 nm. Calcula la energía cinética máxima de los fotoelectrones, en eV. (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s)",
+      check: { tipo: "num", etiqueta: "Ec (eV) =", valor: 1.836 },
+      pistas: ["Energía del fotón en eV: 1240,8 / λ(nm); luego Ec = E − W."],
+      pasos: ["E = hc/λ = 6,626·10⁻¹⁹ J = 4,136 eV.", "Ec = 4,136 − 2,3 = 1,84 eV."], resultado: "1,84 eV" },
+    { id: "b7", nivel: 2,
+      enunciado: "Calcula la velocidad máxima de los fotoelectrones del ejercicio anterior (Ec = 2,94·10⁻¹⁹ J). Da el resultado en unidades de 10⁵ m/s. (m<sub>e</sub> = 9,109·10⁻³¹ kg)",
+      check: { tipo: "num", etiqueta: "v (·10⁵ m/s) =", valor: 8.036 },
+      pistas: ["Ec = ½ m v²."],
+      pasos: ["v = √(2 · 2,941·10⁻¹⁹ / 9,109·10⁻³¹) = √(6,457·10¹¹) = 8,04·10⁵ m/s."], resultado: "8,0·10⁵ m/s" },
+    { id: "b8", nivel: 2,
+      enunciado: "Calcula la longitud de onda de De Broglie de un electrón que se mueve a 2,2·10⁶ m/s. Da el resultado en unidades de 10⁻¹⁰ m. (h = 6,626·10⁻³⁴ J·s; m<sub>e</sub> = 9,109·10⁻³¹ kg)",
+      check: { tipo: "num", etiqueta: "λ (·10⁻¹⁰ m) =", valor: 3.306 },
+      pistas: ["λ = h/(m·v)."],
+      pasos: ["λ = 6,626·10⁻³⁴ / (9,109·10⁻³¹ · 2,2·10⁶) = 3,31·10⁻¹⁰ m (del orden del tamaño del átomo)."], resultado: "3,31·10⁻¹⁰ m" },
+    { id: "b9", nivel: 2,
+      enunciado: "Calcula la longitud de onda de una pelota de tenis de 57 g que viaja a 40 m/s. Da el resultado en unidades de 10⁻³⁴ m.",
+      check: { tipo: "num", etiqueta: "λ (·10⁻³⁴ m) =", valor: 2.906 },
+      pistas: ["La masa en kg: 0,057 kg."],
+      pasos: ["λ = 6,626·10⁻³⁴ / (0,057 · 40) = 2,9·10⁻³⁴ m: despreciable."], resultado: "2,9·10⁻³⁴ m" },
+    { id: "b10", nivel: 2,
+      enunciado: "¿Cuál de estos conjuntos (n, l, m<sub>l</sub>, m<sub>s</sub>) puede describir un electrón de un orbital 3p?",
+      check: { tipo: "opcion", etiqueta: "Conjunto:", opciones: ["(3, 1, −1, −½)", "(3, 2, 1, +½)", "(2, 1, 0, +½)", "(3, 0, 0, +½)"], ok: 0 },
+      pistas: ["3p significa n = 3, l = 1."],
+      pasos: ["l = 1 y n = 3 → solo el primero. m<sub>l</sub> = −1 está entre −1 y +1."], resultado: "(3, 1, −1, −½)" },
+    { id: "b11", nivel: 2,
+      enunciado: "¿Cuántos electrones desapareados tiene el ion Fe²⁺ (Z = 26)?",
+      check: { tipo: "num", etiqueta: "desapareados =", valor: 4 },
+      pistas: ["Fe²⁺ = [Ar] 3d⁶."],
+      pasos: ["3d⁶ = ↑↓ ↑ ↑ ↑ ↑ → 4 desapareados."], resultado: "4 electrones desapareados" },
+    { id: "b12", nivel: 2,
+      enunciado: "Escribe la configuración electrónica del cromo (Z = 24), teniendo en cuenta que es una excepción.",
+      check: { tipo: "texto", etiqueta: "Configuración:", valores: ["[Ar] 4s1 3d5", "[Ar] 3d5 4s1", "1s2 2s2 2p6 3s2 3p6 4s1 3d5", "1s2 2s2 2p6 3s2 3p6 3d5 4s1"], formula: true },
+      pistas: ["Un subnivel d semilleno (d⁵) es especialmente estable."],
+      pasos: ["Un electrón del 4s pasa al 3d: [Ar] 4s¹ 3d⁵ (6 desapareados)."], resultado: "[Ar] 4s¹ 3d⁵" },
+    { id: "b13", nivel: 2,
+      enunciado: "¿Cuál de estos iones es diamagnético? (Z: Cu = 29; Zn = 30; Fe = 26; Cr = 24)",
+      check: { tipo: "opcion", etiqueta: "Ion:", opciones: ["Cu²⁺", "Zn²⁺", "Fe³⁺", "Cr³⁺"], ok: 1 },
+      pistas: ["Diamagnético = todos los electrones apareados."],
+      pasos: ["Cu²⁺ = 3d⁹ (1 desapareado); Fe³⁺ = 3d⁵ (5); Cr³⁺ = 3d³ (3); Zn²⁺ = 3d¹⁰ (0)."], resultado: "Zn²⁺" },
+    { id: "b14", nivel: 2,
+      enunciado: "Calcula la energía de un mol de fotones de luz violeta de 400 nm, en kJ/mol. (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s; N<sub>A</sub> = 6,022·10²³)",
+      check: { tipo: "num", etiqueta: "E (kJ/mol) =", valor: 299.26 },
+      pistas: ["Energía de un fotón × N<sub>A</sub>."],
+      pasos: ["E(fotón) = hc/λ = 4,970·10⁻¹⁹ J.", "E(mol) = 4,970·10⁻¹⁹ · 6,022·10²³ = 2,993·10⁵ J/mol = 299,3 kJ/mol."], resultado: "299 kJ/mol" },
+    { id: "b15", nivel: 2,
+      enunciado: "Calcula la frecuencia del fotón emitido en la transición n = 3 → n = 1 del hidrógeno. Da el resultado en unidades de 10¹⁵ Hz. (R<sub>H</sub> = 1,097·10⁷ m⁻¹; c = 3,00·10⁸ m/s)",
+      check: { tipo: "num", etiqueta: "ν (·10¹⁵ Hz) =", valor: 2.925 },
+      pistas: ["ν = c/λ = c·R<sub>H</sub>(1/n<sub>f</sub>² − 1/n<sub>i</sub>²)."],
+      pasos: ["1/λ = 1,097·10⁷ · (1 − 1/9) = 9,751·10⁶ m⁻¹ → λ = 102,6 nm.", "ν = 3,00·10⁸ · 9,751·10⁶ = 2,925·10¹⁵ Hz."], resultado: "2,93·10¹⁵ Hz" },
+    { id: "b16", nivel: 2,
+      enunciado: "El ion He⁺ tiene un solo electrón. Con E<sub>n</sub> = −13,6·Z²/n², calcula su energía de ionización desde el estado fundamental, en eV.",
+      check: { tipo: "num", etiqueta: "E ionización (eV) =", valor: 54.4 },
+      pistas: ["Z = 2 y n = 1."],
+      pasos: ["E₁ = −13,6 · 4 / 1 = −54,4 eV.", "Para ionizar hay que aportar +54,4 eV."], resultado: "54,4 eV" },
+
+    // ================= ★★★ tipo EvAU =================
+    { id: "c1", nivel: 3,
+      enunciado: "(EvAU) En un átomo de hidrógeno, un electrón excitado pasa del nivel n = 4 al n = 2. Calcula la longitud de onda (nm), la energía (eV) y la frecuencia (·10¹⁴ Hz) del fotón emitido. (R<sub>H</sub> = 1,097·10⁷ m⁻¹; c = 3,00·10⁸ m/s)",
+      check: [{ tipo: "num", etiqueta: "λ (nm) =", valor: 486.2 }, { tipo: "num", etiqueta: "E (eV) =", valor: 2.55 }, { tipo: "num", etiqueta: "ν (·10¹⁴ Hz) =", valor: 6.171 }],
+      pistas: ["Rydberg para λ; después E = E₄ − E₂ y ν = c/λ."],
+      pasos: ["1/λ = 1,097·10⁷ · 0,1875 = 2,057·10⁶ → λ = 486,2 nm.", "E = 13,6 · (1/4 − 1/16) = 2,55 eV.", "ν = c/λ = 6,17·10¹⁴ Hz."], resultado: "486 nm; 2,55 eV; 6,17·10¹⁴ Hz (visible)" },
+    { id: "c2", nivel: 3,
+      enunciado: "(EvAU) Calcula la longitud de onda del fotón emitido en la transición n = 5 → n = 2 del hidrógeno y decide si pertenece al espectro visible (380–780 nm). (R<sub>H</sub> = 1,097·10⁷ m⁻¹)",
+      check: [{ tipo: "num", etiqueta: "λ (nm) =", valor: 434.1 }, { tipo: "opcion", etiqueta: "Región:", opciones: ["Visible", "Ultravioleta", "Infrarrojo", "Rayos X"], ok: 0 }],
+      pistas: ["1/λ = R<sub>H</sub>(1/4 − 1/25)."],
+      pasos: ["1/λ = 1,097·10⁷ · 0,21 = 2,304·10⁶ m⁻¹ → λ = 434,1 nm.", "Está entre 380 y 780 nm: visible (violeta, serie de Balmer)."], resultado: "434 nm, visible" },
+    { id: "c3", nivel: 3,
+      enunciado: "(EvAU) Sobre un metal cuya longitud de onda umbral es 350 nm incide luz de 250 nm. Calcula la energía cinética máxima de los fotoelectrones (eV) y su velocidad máxima (·10⁵ m/s). (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s; e = 1,602·10⁻¹⁹ C; m<sub>e</sub> = 9,109·10⁻³¹ kg)",
+      check: [{ tipo: "num", etiqueta: "Ec (eV) =", valor: 1.418 }, { tipo: "num", etiqueta: "v (·10⁵ m/s) =", valor: 7.063 }],
+      pistas: ["Ec = hc(1/λ − 1/λ₀)."],
+      pasos: ["Ec = 1,9878·10⁻²⁵ · (1/250·10⁻⁹ − 1/350·10⁻⁹) = 1,9878·10⁻²⁵ · 1,1429·10⁶ = 2,272·10⁻¹⁹ J = 1,42 eV.", "v = √(2Ec/m) = √(2 · 2,272·10⁻¹⁹ / 9,109·10⁻³¹) = 7,06·10⁵ m/s."], resultado: "1,42 eV; 7,06·10⁵ m/s" },
+    { id: "c4", nivel: 3,
+      enunciado: "(EvAU) Al iluminar un metal con luz de 1,2·10¹⁵ Hz, los electrones salen con una energía cinética máxima de 3,1·10⁻¹⁹ J. Calcula el trabajo de extracción (en 10⁻¹⁹ J), la frecuencia umbral (en 10¹⁴ Hz) y la longitud de onda umbral (nm). (h = 6,626·10⁻³⁴ J·s; c = 3,00·10⁸ m/s)",
+      check: [{ tipo: "num", etiqueta: "W (·10⁻¹⁹ J) =", valor: 4.851 }, { tipo: "num", etiqueta: "ν₀ (·10¹⁴ Hz) =", valor: 7.321 }, { tipo: "num", etiqueta: "λ₀ (nm) =", valor: 409.8 }],
+      pistas: ["W = hν − Ec; ν₀ = W/h; λ₀ = c/ν₀."],
+      pasos: ["W = 6,626·10⁻³⁴ · 1,2·10¹⁵ − 3,1·10⁻¹⁹ = 7,951·10⁻¹⁹ − 3,1·10⁻¹⁹ = 4,85·10⁻¹⁹ J.", "ν₀ = 4,851·10⁻¹⁹ / 6,626·10⁻³⁴ = 7,32·10¹⁴ Hz.", "λ₀ = 3,00·10⁸ / 7,32·10¹⁴ = 4,10·10⁻⁷ m = 410 nm."], resultado: "4,85·10⁻¹⁹ J; 7,32·10¹⁴ Hz; 410 nm" },
+    { id: "c5", nivel: 3,
+      enunciado: "(EvAU) El cesio tiene W = 2,1 eV. ¿Arranca electrones la luz anaranjada de 600 nm? Razónalo con cifras.",
+      check: { tipo: "opcion", etiqueta: "Conclusión:", opciones: ["Sí, con Ec ≈ 0,03 eV", "No: el fotón (2,07 eV) tiene menos energía que W (2,1 eV)", "Sí, si se aumenta la intensidad", "No, porque 600 nm es infrarrojo"], ok: 1 },
+      pistas: ["Energía del fotón en eV = 1240,8 / λ(nm)."],
+      pasos: ["E = 1240,8 / 600 = 2,07 eV.", "2,07 eV &lt; 2,1 eV: no basta. No hay emisión, por intensa que sea la luz."], resultado: "No hay efecto: E = 2,07 eV &lt; W = 2,1 eV (λ₀ = 591 nm)" },
+    { id: "c6", nivel: 3,
+      enunciado: "(EvAU) La posición de un electrón de un átomo se conoce con una incertidumbre de 10⁻¹⁰ m. Calcula la incertidumbre mínima en su velocidad (·10⁵ m/s) y exprésala como porcentaje de v = 2,2·10⁶ m/s. (h = 6,626·10⁻³⁴ J·s; m<sub>e</sub> = 9,109·10⁻³¹ kg)",
+      check: [{ tipo: "num", etiqueta: "Δv (·10⁵ m/s) =", valor: 5.789 }, { tipo: "num", etiqueta: "% de v =", valor: 26.3 }],
+      pistas: ["Δx·m·Δv ≥ h/4π."],
+      pasos: ["Δv ≥ h/(4π·m·Δx) = 6,626·10⁻³⁴ / (4π · 9,109·10⁻³¹ · 10⁻¹⁰) = 5,79·10⁵ m/s.", "5,79·10⁵ / 2,2·10⁶ = 0,263 → 26 %: no puede hablarse de órbita."], resultado: "5,8·10⁵ m/s (26 % de v)" },
+    { id: "c7", nivel: 3,
+      enunciado: "Una bala de 10 g se mueve a 300 m/s con una incertidumbre en la velocidad del 0,01 %. Calcula la incertidumbre mínima en su posición (·10⁻³¹ m).",
+      check: { tipo: "num", etiqueta: "Δx (·10⁻³¹ m) =", valor: 1.758 },
+      pistas: ["Δv = 0,01 % de 300 m/s = 0,03 m/s; masa en kg."],
+      pasos: ["Δx ≥ h/(4π·m·Δv) = 6,626·10⁻³⁴ / (4π · 0,010 · 0,03) = 1,76·10⁻³¹ m: despreciable."], resultado: "1,76·10⁻³¹ m" },
+    { id: "c8", nivel: 3,
+      enunciado: "(EvAU) Un electrón se acelera desde el reposo con una diferencia de potencial de 100 V. Calcula su longitud de onda de De Broglie (·10⁻¹⁰ m). (h = 6,626·10⁻³⁴ J·s; e = 1,602·10⁻¹⁹ C; m<sub>e</sub> = 9,109·10⁻³¹ kg)",
+      check: { tipo: "num", etiqueta: "λ (·10⁻¹⁰ m) =", valor: 1.2265 },
+      pistas: ["Ec = eV; p = √(2mEc); λ = h/p."],
+      pasos: ["Ec = 1,602·10⁻¹⁷ J; p = √(2 · 9,109·10⁻³¹ · 1,602·10⁻¹⁷) = 5,40·10⁻²⁴ kg·m/s.", "λ = 6,626·10⁻³⁴ / 5,40·10⁻²⁴ = 1,23·10⁻¹⁰ m."], resultado: "1,23·10⁻¹⁰ m" },
+    { id: "c9", nivel: 3,
+      enunciado: "(EvAU) Un elemento tiene la configuración 1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p³. Indica su número atómico, su grupo y el número de electrones desapareados.",
+      check: { tipo: "lista", etiqueta: "Z, grupo, desapareados:", valores: [33, 15, 3] },
+      pistas: ["Suma los electrones; el grupo sale de 4s² 4p³ (5 de valencia en el bloque p)."],
+      pasos: ["2 + 2 + 6 + 2 + 6 + 2 + 10 + 3 = 33 (arsénico).", "Valencia 4s² 4p³ → grupo 13 + 2 = 15.", "4p³ = ↑ ↑ ↑ → 3 desapareados."], resultado: "Z = 33; grupo 15; 3 desapareados" },
+    { id: "c10", nivel: 3,
+      enunciado: "¿Cuántos electrones del átomo de cloro (Z = 17) tienen número cuántico secundario l = 1?",
+      check: { tipo: "num", etiqueta: "electrones con l = 1 =", valor: 11 },
+      pistas: ["l = 1 son los subniveles p: 2p y 3p."],
+      pasos: ["Cl: 1s² 2s² 2p⁶ 3s² 3p⁵.", "p: 6 + 5 = 11 electrones."], resultado: "11 electrones" },
+    { id: "c11", nivel: 3,
+      enunciado: "(EvAU) Indica el número de electrones desapareados del cobre (Z = 29), del ion Cu⁺ y del ion Cu²⁺ (en ese orden).",
+      check: { tipo: "lista", etiqueta: "Cu, Cu⁺, Cu²⁺:", valores: [1, 0, 1] },
+      pistas: ["Cu = [Ar] 4s¹ 3d¹⁰ (excepción); los cationes pierden primero el 4s."],
+      pasos: ["Cu: 4s¹ 3d¹⁰ → 1.", "Cu⁺: [Ar] 3d¹⁰ → 0.", "Cu²⁺: [Ar] 3d⁹ → 1."], resultado: "1, 0 y 1" },
+    { id: "c12", nivel: 3,
+      enunciado: "¿Cuál de estas especies NO es isoelectrónica con el átomo de argón? (Z: Ar = 18; S = 16; Cl = 17; K = 19; Ca = 20; Na = 11)",
+      check: { tipo: "opcion", etiqueta: "Especie:", opciones: ["S²⁻", "Cl⁻", "K⁺", "Na⁺"], ok: 3 },
+      pistas: ["Isoelectrónicas: mismo número de electrones (18)."],
+      pasos: ["S²⁻: 16 + 2 = 18; Cl⁻: 18; K⁺: 19 − 1 = 18; Na⁺: 11 − 1 = 10."], resultado: "Na⁺ (10 electrones)" },
+    { id: "c13", nivel: 3,
+      enunciado: "Un átomo de hidrógeno en su estado fundamental absorbe un fotón de 12,09 eV. ¿A qué nivel n salta el electrón?",
+      check: { tipo: "num", etiqueta: "n final =", valor: 3 },
+      pistas: ["13,6·(1 − 1/n²) = 12,09."],
+      pasos: ["1 − 1/n² = 12,09 / 13,6 = 0,889 → 1/n² = 0,111.", "n² = 9 → n = 3."], resultado: "n = 3" },
+    { id: "c14", nivel: 3,
+      enunciado: "Un electrón del hidrógeno está en el nivel n = 4. ¿Cuántas líneas distintas puede emitir al volver al estado fundamental, considerando todos los saltos posibles?",
+      check: { tipo: "num", etiqueta: "líneas =", valor: 6 },
+      pistas: ["Cuenta los pares (inicial, final) con inicial &gt; final entre 1, 2, 3 y 4."],
+      pasos: ["4→3, 4→2, 4→1, 3→2, 3→1, 2→1: 6 líneas = 4·3/2."], resultado: "6 líneas" },
+    { id: "c15", nivel: 3,
+      enunciado: "Calcula las longitudes de onda máxima y mínima, en nm, de la serie de Balmer del hidrógeno. (R<sub>H</sub> = 1,097·10⁷ m⁻¹)",
+      check: { tipo: "lista", etiqueta: "λ máx., λ mín. (nm):", valores: [656.3, 364.6] },
+      pistas: ["La máxima es la transición 3 → 2; la mínima, la del límite (n<sub>i</sub> → ∞)."],
+      pasos: ["λ máx.: 1/λ = R<sub>H</sub>(1/4 − 1/9) → 656,3 nm.", "λ mín.: 1/λ = R<sub>H</sub>/4 → 364,6 nm."], resultado: "656,3 nm y 364,6 nm" },
+    { id: "c16", nivel: 3,
+      enunciado: "(EvAU) La luz emitida por átomos de hidrógeno en la transición n = 2 → n = 1 incide sobre cobre (W = 4,7 eV). Calcula la energía cinética máxima (eV) y la velocidad máxima (·10⁶ m/s) de los electrones emitidos. (e = 1,602·10⁻¹⁹ C; m<sub>e</sub> = 9,109·10⁻³¹ kg)",
+      check: [{ tipo: "num", etiqueta: "Ec (eV) =", valor: 5.5 }, { tipo: "num", etiqueta: "v (·10⁶ m/s) =", valor: 1.391 }],
+      pistas: ["E del fotón = 13,6·(1 − 1/4); Ec = E − W."],
+      pasos: ["E = 13,6 · 0,75 = 10,2 eV (121 nm, ultravioleta); como 10,2 &gt; 4,7, hay emisión.", "Ec = 10,2 − 4,7 = 5,5 eV = 8,81·10⁻¹⁹ J.", "v = √(2 · 8,81·10⁻¹⁹ / 9,109·10⁻³¹) = 1,39·10⁶ m/s."], resultado: "5,5 eV; 1,39·10⁶ m/s" }
+  ];
+
+  // ================================================================
+  //  LÁMINA
+  // ================================================================
+  var lamina = [
+    { titulo: "Bohr y espectros del hidrógeno",
+      items: [
+        { label: "Energía del nivel", formula: "E<sub>n</sub> = −13,6 eV / n²", cuando: "Hidrógeno; hidrogenoides: × Z².", ojo: "Negativa: electrón ligado; 0 = electrón libre." },
+        { label: "Fotón de una transición", formula: "ΔE = hν = " + fr("hc", "λ"), cuando: "Emisión (baja de nivel) y absorción (sube).", ejemplo: "4 → 2: 2,55 eV, 486 nm." },
+        { label: "Rydberg", formula: "1/λ = R<sub>H</sub>(1/n<sub>f</sub>² − 1/n<sub>i</sub>²)", cuando: "R<sub>H</sub> = 1,097·10⁷ m⁻¹ (metros).", ojo: "n<sub>f</sub> es el menor en emisión." },
+        { label: "Series", formula: "Lyman 1 (UV) · Balmer 2 (visible) · Paschen 3 (IR)", cuando: "Según el nivel final.", ejemplo: "Balmer: de 656 nm (3→2) a 365 nm (límite)." }
+      ],
+      nota: "Líneas posibles desde el nivel n: n(n − 1)/2. Ionización del H: 13,6 eV = 1312 kJ/mol." },
+    { titulo: "Efecto fotoeléctrico",
+      tabla: { cab: ["Concepto", "Fórmula", "Idea"], filas: [
+        ["Energía del fotón", "E = hν = hc/λ", "1240,8 / λ(nm) = E en eV"],
+        ["Ecuación", "hν = W + Ec", "un fotón, un electrón"],
+        ["Umbral", "ν₀ = W/h · λ₀ = hc/W", "por debajo no hay emisión"],
+        ["Ec máxima", "Ec = hν − W", "no depende de la intensidad"],
+        ["Potencial de frenado", "e·V₀ = Ec", "tensión que detiene a los más rápidos"],
+        ["Velocidad", "v = √(2·Ec/m)", "Ec en julios, m en kg"],
+        ["Gráfica Ec(ν)", "recta de pendiente h", "corta el eje en ν₀ y en −W"]
+      ] },
+      nota: "Más intensidad = más fotones = más electrones, pero con la misma Ec." },
+    { titulo: "Dualidad, incertidumbre y números cuánticos",
+      items: [
+        { label: "De Broglie", formula: "λ = " + fr("h", "m·v"), cuando: "Ondas asociadas a la materia; m en kg.", ejemplo: "e⁻ a 2,2·10⁶ m/s: 3,3·10⁻¹⁰ m." },
+        { label: "Heisenberg", formula: "Δx·Δp ≥ " + fr("h", "4π"), cuando: "Posición y cantidad de movimiento a la vez.", ojo: "Por eso hay orbitales, no órbitas." },
+        { label: "Números cuánticos", formula: "n ≥ 1 · l = 0 … n−1 · m<sub>l</sub> = −l … +l · m<sub>s</sub> = ±½", cuando: "Un subnivel tiene 2l + 1 orbitales; un nivel, n².", ejemplo: "(3, 2, −2, +½) = orbital 3d." },
+        { label: "Reglas de llenado", formula: "Aufbau · Pauli · Hund", cuando: "1s 2s 2p 3s 3p 4s 3d 4p…; máx. 2 e⁻ por orbital; uno en cada orbital antes de aparear.", ojo: "Excepciones: Cr y Cu." }
+      ],
+      nota: "Cationes: pierden primero el nivel más externo (4s antes que 3d). Isoelectrónicos: igual número de electrones." },
+    { titulo: "Errores típicos de estructura de la materia", ancha: true,
+      errores: [
+        { mal: "l puede valer cualquier número con cualquier n", bien: "l = 0 … n − 1", por: "No hay subnivel 2d ni 3f." },
+        { mal: "Aparear electrones en un subnivel p antes de ocupar los tres orbitales", bien: "Hund: uno en cada orbital con espines paralelos", por: "El oxígeno es 2p⁴ = ↑↓ ↑ ↑ (2 desapareados)." },
+        { mal: "Fe²⁺ = [Ar] 4s² 3d⁴", bien: "Fe²⁺ = [Ar] 3d⁶", por: "El catión pierde antes el nivel más externo." },
+        { mal: "Más intensidad ⇒ más Ec de los electrones", bien: "Más intensidad ⇒ más electrones, misma Ec", por: "Ec = hν − W solo depende de ν y del metal." },
+        { mal: "Rydberg con nm o con niveles al revés", bien: "R<sub>H</sub> en m⁻¹ y n<sub>f</sub> el menor en emisión", por: "Pasa de m a nm al final (×10⁹)." },
+        { mal: "De Broglie con la masa en gramos", bien: "m en kg", por: "λ sale 1000 veces mayor si no." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t2", { resumen: resumen, secciones: B.parte.q2t2a.secciones, nuevas: B.parte.q2t2b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 /* ============================================================
