@@ -21,7 +21,7 @@
   })();
 
   function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
-  function txt(t, x, y, clase, ancla, parent, tam) { var e = el("text", { x: x, y: y, "text-anchor": ancla || "middle", "class": "m13-t " + (clase || "") }, parent); if (tam) e.setAttribute("font-size", tam); e.textContent = t; return e; }
+  function txt(t, x, y, clase, ancla, parent, tam) { var e = el("text", { x: x, y: y, "text-anchor": ancla || "middle", "class": "m13-t " + (clase || "") }, parent); if (tam) e.style.fontSize = tam + "px"; e.textContent = t; return e; }
   function lienzo(host, w, h, etiqueta) { var s = el("svg", { viewBox: "0 0 " + w + " " + h, "class": "m13-svg", role: "img", "aria-label": etiqueta }); host.appendChild(s); return s; }
   function d4(x) { return fmt(Math.round(x * 1e6) / 1e6, 4); }
   function d2(x) { return fmt(Math.round(x * 1e6) / 1e6, 2); }
@@ -122,27 +122,28 @@
       var W = 600, Hh = 330; arbol.innerHTML = ""; var s = lienzo(arbol, W, Hh, "Árbol de tres causas B1, B2 y B3 y el suceso A");
       var r = [28, 165], m = [[210, 55], [210, 165], [210, 275]], hojas = [];
       for (var k = 0; k < 3; k++) hojas.push([[395, m[k][1] - 24], [395, m[k][1] + 24]]);
-      function rama(a, b, et, cl, dy) { el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], "class": "m13-rama " + (cl || "") }, s); txt(et, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + (dy || -7), cl || "", "middle", s, 12.5); }
+      function rama(a, b, et, cl, dy) { el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], "class": "m13-rama " + (cl || "") }, s); txt(et, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + (dy || -7), cl || "", "middle", s, 17); }
       for (k = 0; k < 3; k++) {
         rama(r, m[k], d2(p[k]), k === 1 ? "faint" : "pen", k === 0 ? -8 : k === 2 ? 16 : -7);
         rama(m[k], hojas[k][0], d2(q[k]), "pen", -6); rama(m[k], hojas[k][1], d2(1 - q[k]), "faint", 14);
-        el("circle", { cx: m[k][0], cy: m[k][1], r: 7, "class": "m13-nodo" }, s); txt(N.nB[k], m[k][0] - 4, m[k][1] - 14, "pen", "end", s, 13);
+        el("circle", { cx: m[k][0], cy: m[k][1], r: 7, "class": "m13-nodo" }, s); txt(N.nB[k], m[k][0] - 4, m[k][1] - 14, "pen", "end", s, 16);
         for (var j = 0; j < 2; j++) {
           var sel = j === d; el("circle", { cx: hojas[k][j][0], cy: hojas[k][j][1], r: 6, "class": "m13-hoja m2p-hoja" + (sel ? " sel" : "") }, s);
-          txt("B" + ["₁", "₂", "₃"][k] + " ∩ " + (j ? "Ā" : "A") + " = " + d4(conj[k][j]), hojas[k][j][0] + 13, hojas[k][j][1] + 5, sel ? "ok" : "faint", "start", s, 13);
+          txt("B" + ["₁", "₂", "₃"][k] + " ∩ " + (j ? "Ā" : "A") + " = " + d4(conj[k][j]), hojas[k][j][0] + 13, hojas[k][j][1] + 5, sel ? "ok" : "faint", "start", s, 17);
         }
       }
       el("circle", { cx: r[0], cy: r[1], r: 7, "class": "m13-nodo" }, s);
       // ---- barras antes / después
-      var Wb = 600, Hb = 150; barras.innerHTML = ""; var sb = lienzo(barras, Wb, Hb, "Probabilidad de cada causa antes y después de saber el resultado");
-      var x0 = 110, ancho = 400;
-      txt("Antes: P(Bᵢ)", x0, 16, "faint", "start", sb, 12); txt("Después: P(Bᵢ | " + (d ? "Ā" : "A") + ")", x0 + 205, 16, "red", "start", sb, 12);
+      var Wb = 600, Hb = 190; barras.innerHTML = ""; var sb = lienzo(barras, Wb, Hb, "Probabilidad de cada causa antes y después de saber el resultado");
+      var x0 = 70, ancho = 400;
+      el("rect", { x: x0, y: 8, width: 16, height: 14, rx: 3, "class": "m2p-barra" }, sb); txt("antes: P(Bᵢ)", x0 + 24, 20, "faint", "start", sb, 15);
+      el("rect", { x: x0 + 190, y: 8, width: 16, height: 14, rx: 3, "class": "m2p-barra post" }, sb); txt("después: P(Bᵢ | " + (d ? "Ā" : "A") + ")", x0 + 214, 20, "red", "start", sb, 15);
       for (k = 0; k < 3; k++) {
-        var y = 26 + k * 40;
-        txt(N.nB[k], 8, y + 24, "pen", "start", sb, 14);
-        el("rect", { x: x0, y: y, width: Math.max(1, p[k] * ancho * 0.45), height: 14, rx: 3, "class": "m2p-barra" }, sb); txt(d2(p[k]), x0 + p[k] * ancho * 0.45 + 5, y + 12, "faint", "start", sb, 12);
+        var y = 36 + k * 50;
+        txt(N.nB[k], 8, y + 30, "pen", "start", sb, 16);
+        el("rect", { x: x0, y: y, width: Math.max(1, p[k] * ancho), height: 18, rx: 3, "class": "m2p-barra" }, sb); txt(d2(p[k]), x0 + p[k] * ancho + 6, y + 15, "faint", "start", sb, 15);
         var pv = isNaN(post[k]) ? 0 : post[k];
-        el("rect", { x: x0, y: y + 17, width: Math.max(1, pv * ancho * 0.45), height: 14, rx: 3, "class": "m2p-barra post" }, sb); txt(isNaN(post[k]) ? "—" : d2(pv), x0 + pv * ancho * 0.45 + 5, y + 29, "red", "start", sb, 12);
+        el("rect", { x: x0, y: y + 21, width: Math.max(1, pv * ancho), height: 18, rx: 3, "class": "m2p-barra post" }, sb); txt(isNaN(post[k]) ? "—" : d2(pv), x0 + pv * ancho + 6, y + 36, "red", "start", sb, 15);
       }
       var rows = fil("Contexto", N.nota, "ancho") +
         fil("P(B₃) = 1 − P(B₁) − P(B₂)", d4(p[2])) +
