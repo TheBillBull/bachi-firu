@@ -48,7 +48,7 @@
     sl = U.slider(ctl, { et: "Posición <i>x</i>", min: -3, max: 5, step: 0.01, val: 0, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
     function carga(i) {
       st.i = i; var R = SG[i].rg; st.x = R[0] + (R[1] - R[0]) * 0.18;
-      sl.input.min = R[0] + 0.001; sl.input.max = R[1]; sl.input.step = (R[1] - R[0]) / 600; sl.set(st.x); pinta();
+      sl.input.min = R[0]; sl.input.max = R[1]; sl.input.step = 0.01; st.x = Math.round(st.x * 100) / 100; sl.set(st.x); pinta();
     }
     function pinta() {
       var P = SG[st.i], f = P.f, R = P.rg, x = st.x, d1 = function (t) { return D.d1(f, t); }, d2 = function (t) { return D.d2(f, t); };
@@ -114,7 +114,7 @@
     function pinta() {
       var P = AB[st.i], f = P.f, a = st.a, b = st.b, R = P.rg;
       var cand = [{ x: a, tipo: "extremo del intervalo" }, { x: b, tipo: "extremo del intervalo" }];
-      D.cambios(function (t) { return D.d1(f, t); }, a + 1e-4, b - 1e-4, 1500).forEach(function (e) { cand.push({ x: e.x, tipo: "punto crítico" }); });
+      D.cambios(function (t) { return D.d1(f, t); }, a + 1e-4, b - 1e-4, 1500).forEach(function (e) { cand.push({ x: Math.round(e.x * 1e4) / 1e4, tipo: "punto crítico" }); });
       cand.forEach(function (c) { c.y = f(c.x); });
       var mx = Math.max.apply(null, cand.map(function (c) { return c.y; })), mn = Math.min.apply(null, cand.map(function (c) { return c.y; }));
       var yr = F.rangoY(f, R[0], R[1]);
@@ -123,17 +123,17 @@
       g.curva(f, { clase: "c-faint", n: 500 });
       g.curva(f, { clase: "c-pen", x0: a, x1: b, n: 500 }).setAttribute("stroke-width", 3.5);
       cand.forEach(function (c) {
-        var cl = Math.abs(c.y - mx) < 1e-9 ? "c-ok" : Math.abs(c.y - mn) < 1e-9 ? "c-red" : "c-faint";
+        var cl = Math.abs(c.y - mx) < 1e-6 ? "c-ok" : Math.abs(c.y - mn) < 1e-6 ? "c-red" : "c-faint";
         g.segmento(c.x, 0, c.x, c.y, { clase: cl, dash: "3 4" }); pto(g, c.x, c.y, cl === "c-faint" ? "c-pen" : cl, false, cl === "c-faint" ? 5 : 8);
       });
       cand.sort(function (u, v) { return u.x - v.x; });
-      var imax = cand.filter(function (c) { return Math.abs(c.y - mx) < 1e-9; }), imin = cand.filter(function (c) { return Math.abs(c.y - mn) < 1e-9; });
+      var imax = cand.filter(function (c) { return Math.abs(c.y - mx) < 1e-6; }), imin = cand.filter(function (c) { return Math.abs(c.y - mn) < 1e-6; });
       lectura.innerHTML =
         fil("Máximo absoluto", n2(mx) + " en " + imax.map(function (c) { return "x = " + n2(c.x); }).join(" y "), "ok") +
         fil("Mínimo absoluto", n2(mn) + " en " + imin.map(function (c) { return "x = " + n2(c.x); }).join(" y "), "red") +
         fil("Qué ver aquí", P.nota, "pen anch");
       tab.innerHTML = "<table class='m9-t'><thead><tr><th>Candidato</th><th>x</th><th>f(x)</th></tr></thead><tbody>" + cand.map(function (c) {
-        var cl = Math.abs(c.y - mx) < 1e-9 ? "m9-max" : Math.abs(c.y - mn) < 1e-9 ? "m9-min" : "";
+        var cl = Math.abs(c.y - mx) < 1e-6 ? "m9-max" : Math.abs(c.y - mn) < 1e-6 ? "m9-min" : "";
         return "<tr class='" + cl + "'><td>" + c.tipo + "</td><td>" + n2(c.x) + "</td><td>" + n2(c.y) + (cl === "m9-max" ? "  (máx)" : cl === "m9-min" ? "  (mín)" : "") + "</td></tr>";
       }).join("") + "</tbody></table>";
       pie.innerHTML = "Método de Weierstrass: si f es continua en [a, b], el máximo y el mínimo absolutos están entre los <b>puntos críticos del interior</b> (f′ = 0 o no existe) y los <b>dos extremos</b>. Se calculan todos los valores y se comparan. Mueve a y b y mira cómo cambia el ganador.";
@@ -265,7 +265,7 @@
     var st = { i: 0, x: 1, n: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), solEl = cuerpo.querySelector(".m9-sol"), pie = cuerpo.querySelector(".w-pie"), enun = cuerpo.querySelector(".m9-enun"), sl;
     sl = U.slider(ctl, { et: "Valor de <i>x</i>", min: 0, max: 10, step: 0.01, val: 1, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
     function carga(i) {
-      st.i = i; st.n = 0; var P = PR[i]; sl.input.min = P.dom[0] + (P.dom[1] - P.dom[0]) * 0.005; sl.input.max = P.dom[1]; sl.input.step = (P.dom[1] - P.dom[0]) / 800;
+      st.i = i; st.n = 0; var P = PR[i]; sl.input.min = P.dom[0]; sl.input.max = P.dom[1]; sl.input.step = P.dom[1] - P.dom[0] < 3 ? 0.001 : 0.01;
       st.x = P.x0; sl.set(P.x0); pinta();
     }
     function pinta() {
