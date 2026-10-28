@@ -11332,6 +11332,347 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 12 (Integral definida)
+   m2t12_riemann   (sumas de Riemann con deslizador de n: izquierda, derecha, punto medio, trapecios, inferior y superior)
+   m2t12_signo     (área cuando f cambia de signo: zonas coloreadas, integral neta frente a área)
+   m2t12_entre     (área entre dos curvas: cortes, cuál va encima, suma de tramos)
+   m2t12_fint      (función integral F(x) = ∫ f(t)dt: se dibuja al mover x; extremo superior x o x²)
+   m2t12_medio     (valor medio de f y teorema del valor medio integral)
+   Reutiliza el lector de expresiones de Matemáticas I (B.lab.fun.leer). Las cifras se verifican con herramientas/verificar_mates2_t12.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, F = B.lab.fun;
+  var fil = F.fil, pto = F.pto, etq = F.etq;
+  var T12 = B.lab.t12 = {};
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("m2t12-estilos")) return;
+    var s = document.createElement("style"); s.id = "m2t12-estilos";
+    s.textContent =
+      ".m12-t{width:100%;border-collapse:collapse;font:14px var(--math);margin-top:8px}" +
+      ".m12-t th,.m12-t td{padding:4px 8px;border-bottom:1px solid var(--line,rgba(128,128,128,.25));text-align:right}" +
+      ".m12-t th{font-size:12px;color:var(--ink-faint);font-weight:600}" +
+      ".m12-t td:first-child,.m12-t th:first-child{text-align:left}" +
+      ".m12-pos{color:var(--ok);font-weight:700}.m12-neg{color:var(--red);font-weight:700}" +
+      ".m12-dos{display:grid;grid-template-columns:1fr;gap:6px}" +
+      "@media(max-width:520px){.m12-t{font-size:12.5px}.m12-t th,.m12-t td{padding:3px 4px}}";
+    document.head.appendChild(s);
+  })();
+
+  // ------------------------------------------------------------
+  // Motor numérico
+  // ------------------------------------------------------------
+  function simpson(f, a, b, n) {
+    if (a === b) return 0;
+    n = n || 400; if (n % 2) n++;
+    var h = (b - a) / n, s = f(a) + f(b), i;
+    for (i = 1; i < n; i++) s += (i % 2 ? 4 : 2) * f(a + i * h);
+    return s * h / 3;
+  }
+  function ceros(h, a, b) {
+    var N = 797, out = [], x0 = a, v0 = h(a), i, x1, v1, lo, hi, vl, m, k;
+    for (i = 1; i <= N; i++) {
+      x1 = a + (b - a) * i / N; v1 = h(x1);
+      if (v1 === 0 && i < N) { out.push(x1); }
+      else if (v0 * v1 < 0) {
+        lo = x0; hi = x1; vl = v0;
+        for (k = 0; k < 60; k++) { m = (lo + hi) / 2; if (h(m) * vl > 0) lo = m; else hi = m; }
+        out.push((lo + hi) / 2);
+      }
+      x0 = x1; v0 = v1;
+    }
+    return out;
+  }
+  // trozos entre ceros de h en [a, b]: [{a, b, v}] con v = ∫ h en el trozo
+  function trozos(h, a, b) {
+    var xs = [a].concat(ceros(h, a, b), [b]), out = [], k;
+    for (k = 0; k < xs.length - 1; k++) out.push({ a: xs[k], b: xs[k + 1], v: simpson(h, xs[k], xs[k + 1], 200) });
+    return out;
+  }
+  T12.simpson = simpson; T12.ceros = ceros; T12.trozos = trozos;
+  function fn(txt) { var r = F.leer(txt); return r.g; }
+  function rangoY(fs, xa, xb, incl0) {
+    var lo = incl0 === false ? Infinity : 0, hi = incl0 === false ? -Infinity : 0, i, x, v, k;
+    for (k = 0; k < fs.length; k++) for (i = 0; i <= 300; i++) {
+      x = xa + (xb - xa) * i / 300; v = fs[k](x);
+      if (isFinite(v) && Math.abs(v) < 1e6) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    }
+    var pad = (hi - lo) * 0.12 || 1;
+    return [lo - pad, hi + pad];
+  }
+  function num3(x) { return fmt(Math.round(x * 1e9) / 1e9, 3); }
+  function sg(v) { return v > 0 ? '<span class="m12-pos">+' + num3(v) + "</span>" : '<span class="m12-neg">−' + num3(-v) + "</span>"; }
+
+  // ============================================================
+  // 1. SUMAS DE RIEMANN
+  // ============================================================
+  var PR = T12.riemann = [
+    { t: "x² en [0, 3]", ex: "x^2", a: 0, b: 3, I: 9, Is: "9" },
+    { t: "√x en [0, 4]", ex: "sqrt(x)", a: 0, b: 4, I: 16 / 3, Is: "16/3" },
+    { t: "1/x en [1, 2]", ex: "1/x", a: 1, b: 2, I: Math.log(2), Is: "ln 2" },
+    { t: "sen x en [0, π]", ex: "sin(x)", a: 0, b: Math.PI, I: 2, Is: "2" },
+    { t: "eˣ en [0, 1]", ex: "e^x", a: 0, b: 1, I: Math.E - 1, Is: "e − 1" }
+  ];
+  var MET = [
+    { k: "izq", t: "Izquierda" }, { k: "der", t: "Derecha" }, { k: "med", t: "Punto medio" },
+    { k: "tra", t: "Trapecios" }, { k: "inf", t: "Inferior" }, { k: "sup", t: "Superior" }
+  ];
+  // suma de Riemann (n subintervalos iguales) con el método dado; devuelve { s, alt: [{x0, x1, y0, y1}] }
+  T12.suma = function (f, a, b, n, met) {
+    var h = (b - a) / n, s = 0, parts = [], i, x0, x1, y0, y1, c, m, j, v, lo, hi;
+    for (i = 0; i < n; i++) {
+      x0 = a + i * h; x1 = x0 + h;
+      if (met === "izq") { y0 = y1 = f(x0); s += y0 * h; }
+      else if (met === "der") { y0 = y1 = f(x1); s += y0 * h; }
+      else if (met === "med") { y0 = y1 = f((x0 + x1) / 2); s += y0 * h; }
+      else if (met === "tra") { y0 = f(x0); y1 = f(x1); s += (y0 + y1) / 2 * h; }
+      else {
+        lo = Infinity; hi = -Infinity;
+        for (j = 0; j <= 24; j++) { v = f(x0 + h * j / 24); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+        y0 = y1 = met === "inf" ? lo : hi; s += y0 * h;
+      }
+      parts.push({ x0: x0, x1: x1, y0: y0, y1: y1 });
+    }
+    return { s: s, parts: parts };
+  };
+
+  B.w.m2t12_riemann = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Sumas de Riemann: rectángulos que se acercan al área");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-met class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, m: "izq", n: 4 }, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), g, sl;
+    function pinta() {
+      var P = PR[st.i], f = fn(P.ex), r = T12.suma(f, P.a, P.b, st.n, st.m), yy = rangoY([f], P.a, P.b), mg = (P.b - P.a) * 0.08;
+      g.rango(P.a - mg, P.b + mg, yy[0], yy[1]); g.limpiar();
+      r.parts.forEach(function (q) {
+        if (st.m === "tra") g.poligono([[q.x0, 0], [q.x0, q.y0], [q.x1, q.y1], [q.x1, 0]], { clase: "z-pen", borde: "var(--pen)", grosor: 1 });
+        else g.rect(q.x0, 0, q.x1, q.y0, { clase: "z-pen", borde: "var(--pen)" });
+      });
+      g.curva(f, { clase: "c-red", n: 400, x0: P.a, x1: P.b }).setAttribute("stroke-width", 3);
+      var err = r.s - P.I, rel = Math.abs(err / P.I) * 100;
+      lectura.innerHTML =
+        fil("Suma con n = " + st.n, fmt(r.s, 4), "pen") +
+        fil("Valor exacto ∫ f", P.Is + " ≈ " + fmt(P.I, 4), "ok") +
+        fil("Error (suma − exacto)", (err >= 0 ? "+" : "−") + fmt(Math.abs(err), 4) + " · " + (rel < 0.01 ? "&lt; 0,01" : fmt(rel, 2)) + " %", Math.abs(err) < 0.01 * Math.abs(P.I) ? "ok" : "");
+      pie.innerHTML = st.m === "inf" || st.m === "sup"
+        ? "Suma inferior s<sub>n</sub> ≤ ∫ f ≤ S<sub>n</sub> suma superior. Cuando n crece, las dos se pegan al mismo número: eso es que f es integrable."
+        : "Multiplica el número de rectángulos: la suma se aproxima al área exacta. El punto medio y los trapecios mejoran mucho más deprisa que izquierda o derecha.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 3, ymin: -1, ymax: 10, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Sumas de Riemann" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PR.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { st.i = +k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-met]"), MET, st.m, function (k) { st.m = k; pinta(); });
+    sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "n (rectángulos)", min: 1, max: 60, step: 1, val: st.n, fmt: function (v) { return fmt(v, 0); }, on: function (v) { st.n = Math.round(v); pinta(); } });
+    pinta();
+  };
+
+  // ============================================================
+  // Dibujo común de zonas con signo (signo y entre)
+  // ============================================================
+  function filasTrozos(tr, nombre) {
+    return '<table class="m12-t"><tr><th>Tramo</th><th>' + nombre + "</th><th>Área</th></tr>" + tr.map(function (q) {
+      return "<tr><td>[" + num3(q.a) + "; " + num3(q.b) + "]</td><td>" + sg(q.v) + "</td><td>" + num3(Math.abs(q.v)) + "</td></tr>";
+    }).join("") + "</table>";
+  }
+
+  // ============================================================
+  // 2. ÁREA CON CAMBIO DE SIGNO
+  // ============================================================
+  var PS = T12.signo = [
+    { t: "x² − 4x + 3", ex: "x^2-4*x+3", a: 0, b: 4, rg: [-0.5, 4.5] },
+    { t: "x³ − x", ex: "x^3-x", a: -1, b: 2, rg: [-1.5, 2.5] },
+    { t: "x³ − 3x² + 2x", ex: "x^3-3*x^2+2*x", a: 0, b: 2, rg: [-0.5, 2.5] },
+    { t: "sen x", ex: "sin(x)", a: 0, b: 2 * Math.PI, rg: [-0.3, 6.6] }
+  ];
+  T12.signoCalc = function (ex, a, b) {
+    var f = fn(ex), tr = trozos(f, a, b), neta = 0, area = 0;
+    tr.forEach(function (q) { neta += q.v; area += Math.abs(q.v); });
+    return { tr: tr, neta: neta, area: area };
+  };
+  B.w.m2t12_signo = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Integral neta frente a área real");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><div class="m12-tab"></div><p class="w-pie"></p>';
+    var st = { i: 0, a: PS[0].a, b: PS[0].b }, g, sa, sb, lectura = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector(".m12-tab"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var P = PS[st.i], f = fn(P.ex), c = T12.signoCalc(P.ex, st.a, st.b), yy = rangoY([f], P.rg[0], P.rg[1]);
+      g.rango(P.rg[0], P.rg[1], yy[0], yy[1]); g.limpiar();
+      c.tr.forEach(function (q) { g.zona(f, q.a, q.b, { clase: q.v >= 0 ? "z-ok" : "z-red" }); });
+      g.curva(f, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 3);
+      g.vertical(st.a, { clase: "c-faint", dash: "5 4" }); g.vertical(st.b, { clase: "c-faint", dash: "5 4" });
+      c.tr.slice(1).forEach(function (q) { pto(g, q.a, 0, "c-red"); });
+      lectura.innerHTML =
+        fil("Integral ∫ f (neta)", num3(c.neta), "pen") +
+        fil("Área real = suma de |trozos|", num3(c.area), "ok" + (Math.abs(c.neta - c.area) > 1e-6 ? " ancho" : ""));
+      tab.innerHTML = filasTrozos(c.tr, "∫ f");
+      pie.innerHTML = c.tr.length > 1 && Math.abs(c.neta - c.area) > 1e-6
+        ? "Verde: f ≥ 0 (suma). Rojo: f &lt; 0 (resta). La integral neta compensa; el área no. Los puntos rojos son los ceros que parten el intervalo."
+        : "Aquí f no cambia de signo en [a, b]: integral neta y área coinciden (salvo el signo si f &lt; 0).";
+    }
+    function preset(k) {
+      var P = PS[k]; st.i = k; st.a = P.a; st.b = P.b;
+      sa.input.min = sb.input.min = P.rg[0]; sa.input.max = sb.input.max = P.rg[1];
+      sa.set(P.a); sb.set(P.b); pinta();
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 5, ymin: -2, ymax: 4, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Área con cambio de signo" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PS.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { preset(+k); });
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    sa = U.slider(ctl, { et: "a", min: -0.5, max: 4.5, val: PS[0].a, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.a = Math.min(v, st.b - 0.1); if (st.a !== v) sa.set(st.a); pinta(); } });
+    sb = U.slider(ctl, { et: "b", min: -0.5, max: 4.5, val: PS[0].b, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.b = Math.max(v, st.a + 0.1); if (st.b !== v) sb.set(st.b); pinta(); } });
+    preset(0);
+  };
+
+  // ============================================================
+  // 3. ÁREA ENTRE DOS CURVAS
+  // ============================================================
+  var PE = T12.entre = [
+    { t: "x y x²", f: "x", g: "x^2", tf: "x", tg: "x²", a: 0, b: 1, rg: [-0.5, 1.5] },
+    { t: "x² y x + 2", f: "x+2", g: "x^2", tf: "x + 2", tg: "x²", a: -1, b: 2, rg: [-2.5, 3] },
+    { t: "x³ y x", f: "x", g: "x^3", tf: "x", tg: "x³", a: -1, b: 1, rg: [-1.6, 1.6] },
+    { t: "sen x y cos x", f: "cos(x)", g: "sin(x)", tf: "cos x", tg: "sen x", a: 0, b: Math.PI / 2, rg: [-0.3, 3.4] },
+    { t: "√x y x²", f: "sqrt(x)", g: "x^2", tf: "√x", tg: "x²", a: 0, b: 1, rg: [-0.3, 1.6] }
+  ];
+  T12.entreCalc = function (fe, ge, a, b) {
+    var f = fn(fe), g = fn(ge), h = function (x) { return f(x) - g(x); }, tr = trozos(h, a, b), neta = 0, area = 0;
+    tr.forEach(function (q) { neta += q.v; area += Math.abs(q.v); });
+    return { tr: tr, neta: neta, area: area };
+  };
+  B.w.m2t12_entre = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Área entre dos curvas");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><div class="m12-tab"></div><p class="w-pie"></p>';
+    var st = { i: 0, a: 0, b: 1 }, g, sa, sb, lectura = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector(".m12-tab"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var P = PE[st.i], f = fn(P.f), q = fn(P.g), c = T12.entreCalc(P.f, P.g, st.a, st.b), yy = rangoY([f, q], P.rg[0], P.rg[1]);
+      g.rango(P.rg[0], P.rg[1], yy[0], yy[1]); g.limpiar();
+      c.tr.forEach(function (t) { g.zona(f, t.a, t.b, { g: q, clase: t.v >= 0 ? "z-ok" : "z-pen" }); });
+      g.curva(f, { clase: "c-red", n: 400 }).setAttribute("stroke-width", 3);
+      g.curva(q, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 3);
+      g.vertical(st.a, { clase: "c-faint", dash: "5 4" }); g.vertical(st.b, { clase: "c-faint", dash: "5 4" });
+      c.tr.slice(1).forEach(function (t) { pto(g, t.a, f(t.a), "c-ok"); });
+      lectura.innerHTML =
+        fil("Curva roja f", P.tf, "") +
+        fil("Curva azul g", P.tg, "") +
+        fil("∫ (f − g) neta", num3(c.neta), "pen") +
+        fil("Área = suma de |trozos|", num3(c.area), "ok");
+      tab.innerHTML = filasTrozos(c.tr, "∫ (f − g)");
+      pie.innerHTML = "Verde: f va por encima de g (f − g &gt; 0). Azul claro: g va por encima. Los puntos verdes son cortes f = g: ahí cambia quién va encima y hay que partir la integral.";
+    }
+    function preset(k) {
+      var P = PE[k]; st.i = k; st.a = P.a; st.b = P.b;
+      sa.input.min = sb.input.min = P.rg[0]; sa.input.max = sb.input.max = P.rg[1];
+      sa.set(P.a); sb.set(P.b); pinta();
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 2, ymin: -1, ymax: 2, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Área entre dos curvas" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PE.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { preset(+k); });
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    sa = U.slider(ctl, { et: "a", min: -0.5, max: 1.5, val: 0, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.a = Math.min(v, st.b - 0.05); if (st.a !== v) sa.set(st.a); pinta(); } });
+    sb = U.slider(ctl, { et: "b", min: -0.5, max: 1.5, val: 1, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.b = Math.max(v, st.a + 0.05); if (st.b !== v) sb.set(st.b); pinta(); } });
+    preset(0);
+  };
+
+  // ============================================================
+  // 4. FUNCIÓN INTEGRAL F(x) = ∫ₐ^u f(t) dt
+  // ============================================================
+  var PI = T12.fint = [
+    { t: "t² − 4t + 3", ex: "t^2-4*t+3", a: 0, T: [-1, 5], x0: 2 },
+    { t: "sen t", ex: "sin(t)", a: 0, T: [-0.5, 10], x0: 2 },
+    { t: "e^(−t²)", ex: "e^(-t^2)", a: 0, T: [-3, 3], x0: 1 },
+    { t: "2t/(1 + t²)", ex: "2*t/(1+t^2)", a: 0, T: [-4, 4], x0: 1.5 }
+  ];
+  B.w.m2t12_fint = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Función integral: F se dibuja al mover x");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-lim class="chips"></div><div data-ctl></div><div class="w-plot" data-top></div><div class="w-plot" data-bot></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, cuad: false, x: 2 }, gt, gb, sl, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function dom() { var P = PI[st.i]; return st.cuad ? [-Math.sqrt(P.T[1]), Math.sqrt(P.T[1])] : P.T; }
+    function ajusta() {
+      var d = dom(), P = PI[st.i];
+      sl.input.min = d[0]; sl.input.max = d[1];
+      st.x = Math.min(d[1], Math.max(d[0], st.cuad ? Math.min(P.x0, Math.sqrt(P.T[1]) * 0.7) : P.x0)); sl.set(st.x);
+    }
+    function pinta() {
+      var P = PI[st.i], f = fn(P.ex), u = st.cuad ? st.x * st.x : st.x, d = dom();
+      var Fu = function (uu) { return simpson(f, P.a, uu, Math.max(20, Math.ceil(Math.abs(uu - P.a) * 40))); };
+      var G = function (x) { return Fu(st.cuad ? x * x : x); };
+      var dG = function (x) { return st.cuad ? 2 * x * f(x * x) : f(x); };
+      var yt = rangoY([f], P.T[0], P.T[1]), yb = rangoY([G], d[0], d[1]);
+      gt.rango(P.T[0], P.T[1], yt[0], yt[1]); gt.limpiar();
+      gt.zona(f, Math.min(P.a, u), Math.max(P.a, u), { clase: (u >= P.a) === true ? "z-pen" : "z-red" });
+      gt.curva(f, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 3);
+      gt.vertical(u, { clase: "c-red", dash: "5 4" }); gt.vertical(P.a, { clase: "c-faint", dash: "5 4" });
+      gb.rango(d[0], d[1], yb[0], yb[1]); gb.limpiar();
+      gb.curva(G, { clase: "c-ok", n: 400 }).setAttribute("stroke-width", 3);
+      gb.vertical(st.x, { clase: "c-faint", dash: "5 4" });
+      pto(gb, st.x, G(st.x), "c-red", false, 6);
+      // extremos de G (ceros de G′ con cambio de signo)
+      var ex = ceros(dG, d[0], d[1]), txt = ex.map(function (z) {
+        var s0 = dG(z - 1e-3), tipo = s0 > 0 ? "máx" : "mín"; pto(gb, z, G(z), s0 > 0 ? "c-pen" : "c-ok", true, 4);
+        return tipo + " en x = " + fmt(Math.round(z * 1e4) / 1e4, 3);
+      });
+      var der = dG(st.x), nombre = st.cuad ? "F(x) = ∫ f(t) dt, de a hasta x²" : "F(x) = ∫ f(t) dt, de a hasta x";
+      lectura.innerHTML =
+        fil(nombre.replace("F(x)", "F(" + fmt(st.x, 2) + ")"), num3(G(st.x)), "pen") +
+        fil(st.cuad ? "F′(x) = f(x²)·2x" : "F′(x) = f(x)", num3(der), der > 1e-9 ? "ok" : der < -1e-9 ? "red" : "") +
+        fil("F en este punto", Math.abs(der) < 0.02 ? "tangente horizontal" : der > 0 ? "crece ↗" : "decrece ↘", "") +
+        fil("Extremos de F", txt.length ? txt.join(" · ") : "ninguno en este intervalo", "ancho");
+      pie.innerHTML = "Arriba: f y el área desde a = " + fmt(P.a, 0) + " hasta " + (st.cuad ? "x²" : "x") + " (azul: sumando, rojo: restando). Abajo: el valor de esa área en función de x. F crece cuando " + (st.cuad ? "2x·f(x²) &gt; 0" : "f &gt; 0") + " y sus extremos están donde " + (st.cuad ? "esa derivada cambia" : "f cambia") + " de signo.";
+    }
+    gt = new B.Plot(cuerpo.querySelector("[data-top]"), { xmin: -1, xmax: 5, ymin: -2, ymax: 4, w: 600, h: 200, etx: "t", ety: "f(t)", etiqueta: "La función f" });
+    gb = new B.Plot(cuerpo.querySelector("[data-bot]"), { xmin: -1, xmax: 5, ymin: -2, ymax: 4, w: 600, h: 220, etx: "x", ety: "F(x)", etiqueta: "La función integral F" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PI.map(function (q, k) { return { k: String(k), t: "f(t) = " + q.t }; }), "0", function (k) { st.i = +k; ajusta(); pinta(); });
+    U.fichas(cuerpo.querySelector("[data-lim]"), [{ k: "x", t: "Extremo superior x" }, { k: "x2", t: "Extremo superior x²" }], "x", function (k) { st.cuad = k === "x2"; ajusta(); pinta(); });
+    sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "x", min: -1, max: 5, step: 0.02, val: 2, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.x = v; pinta(); } });
+    ajusta(); pinta();
+  };
+
+  // ============================================================
+  // 5. VALOR MEDIO
+  // ============================================================
+  var PM = T12.medio = [
+    { t: "x² en [0, 3]", ex: "x^2", a: 0, b: 3 },
+    { t: "sen x en [0, π]", ex: "sin(x)", a: 0, b: Math.PI },
+    { t: "eˣ en [0, 1]", ex: "e^x", a: 0, b: 1 },
+    { t: "x³ − 3x en [0, 3]", ex: "x^3-3*x", a: 0, b: 3 }
+  ];
+  T12.medioCalc = function (ex, a, b) {
+    var f = fn(ex), I = simpson(f, a, b, 800), mu = I / (b - a);
+    return { I: I, mu: mu, cs: ceros(function (x) { return f(x) - mu; }, a, b) };
+  };
+  B.w.m2t12_medio = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Valor medio de f y teorema del valor medio");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, c: 1, rev: false }, g, sl, btn, lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var P = PM[st.i], f = fn(P.ex), M = T12.medioCalc(P.ex, P.a, P.b), L = P.b - P.a, fc = f(st.c), yy = rangoY([f], P.a, P.b), mg = L * 0.08;
+      g.rango(P.a - mg, P.b + mg, yy[0], yy[1]); g.limpiar();
+      g.zona(f, P.a, P.b, { clase: "z-pen" });
+      g.rect(P.a, 0, P.b, fc, { clase: "z-ok", borde: "var(--ok)" });
+      g.curva(f, { clase: "c-pen", n: 400, x0: P.a, x1: P.b }).setAttribute("stroke-width", 3);
+      g.horizontal(M.mu, { clase: "c-red", dash: "6 4" });
+      g.vertical(st.c, { clase: "c-faint", dash: "5 4" });
+      pto(g, st.c, fc, "c-ok", false, 6);
+      if (st.rev) M.cs.forEach(function (z) { pto(g, z, f(z), "c-red", false, 6); });
+      var dif = fc * L - M.I, cerca = Math.abs(fc - M.mu) < 0.01 * Math.max(1, Math.abs(M.mu));
+      lectura.innerHTML =
+        fil("Área bajo la curva ∫ f", num3(M.I), "pen") +
+        fil("Valor medio μ = ∫ f / (b − a)", num3(M.mu), "pen") +
+        fil("Rectángulo f(c)·(b − a)", num3(fc * L), cerca ? "ok" : "") +
+        fil("Rectángulo − área", (dif >= 0 ? "+" : "−") + num3(Math.abs(dif)), cerca ? "ok" : "") +
+        (st.rev ? fil("c que cumplen f(c) = μ", M.cs.map(function (z) { return fmt(Math.round(z * 1e4) / 1e4, 3); }).join(" · "), "ok ancho") : "");
+      pie.innerHTML = cerca
+        ? "¡Este c cumple el teorema! La altura f(c) es el valor medio y el rectángulo verde tiene exactamente el área de la zona azul."
+        : "Mueve c hasta que el rectángulo verde «compense» la zona azul (diferencia 0): la altura f(c) debe valer μ (línea roja discontinua).";
+    }
+    function preset(k) {
+      var P = PM[k]; st.i = k; sl.input.min = P.a; sl.input.max = P.b; st.c = P.a + (P.b - P.a) * 0.2; sl.set(st.c); st.rev = false; btn.textContent = "Revelar los c"; pinta();
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 3, ymin: -1, ymax: 10, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Valor medio" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PM.map(function (q, k) { return { k: String(k), t: q.t }; }), "0", function (k) { preset(+k); });
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    sl = U.slider(ctl, { et: "c", min: 0, max: 3, step: 0.01, val: 1, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.c = v; pinta(); } });
+    btn = U.boton(ctl, "Revelar los c", function () { st.rev = !st.rev; btn.textContent = st.rev ? "Ocultar los c" : "Revelar los c"; pinta(); });
+    preset(0);
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de matrices (Matemáticas II, tema 1)
    motor B.lab.mt (fracciones exactas) + mm_producto · mm_potencias ·
    mm_gauss · mm_ecuacion · mm_rango
@@ -60416,6 +60757,575 @@
 
   B.registrar("mates2", "t11", {
     resumen: resumen, secciones: B.parte.m2t11a.secciones, nuevas: B.parte.m2t11b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 12: Integral definida
+   (parte A: se añade al final de las cuatro secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t12/" + ref); }
+  function I(a, b) { return "∫<sub>" + a + "</sub><sup>" + b + "</sup>"; }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Riemann y propiedades
+  secciones[0] =
+    "<h5>De las sumas de rectángulos a la integral</h5>" +
+    "<p>La definición de la integral definida no usa primitivas: usa <b>sumas de áreas de rectángulos</b>. Se parte [a, b] en n trozos iguales de anchura <b>Δ = (b − a)/n</b> y sobre cada trozo se levanta un rectángulo cuya altura es el valor de f en algún punto del trozo:</p>" +
+    tabla(["Suma", "Altura del rectángulo", "Fórmula"], [
+      ["Izquierda", "f en el extremo izquierdo del trozo", "Δ·[f(x<sub>0</sub>) + f(x<sub>1</sub>) + … + f(x<sub>n−1</sub>)]"],
+      ["Derecha", "f en el extremo derecho", "Δ·[f(x<sub>1</sub>) + f(x<sub>2</sub>) + … + f(x<sub>n</sub>)]"],
+      ["Inferior s<sub>n</sub>", "el mínimo de f en el trozo", "Δ·Σ mín f"],
+      ["Superior S<sub>n</sub>", "el máximo de f en el trozo", "Δ·Σ máx f"]
+    ]) +
+    "<p>Siempre ocurre s<sub>n</sub> ≤ (área) ≤ S<sub>n</sub>. Si f es <b>continua</b> en [a, b], cuando n → ∞ las dos sumas se acercan al mismo número, y ese número es por definición la integral: <b>" + I("a", "b") + " f(x)dx = lím<sub>n→∞</sub> s<sub>n</sub> = lím<sub>n→∞</sub> S<sub>n</sub></b>. Todas las funciones continuas son integrables; eso es lo que garantiza que la regla de Barrow tenga sentido. En el simulador puedes ver cómo se pegan las sumas inferior y superior al valor exacto.</p>" +
+    w("m2t12_riemann") +
+    ejemplo("Una integral como límite de sumas", "Calcula " + I("0", "1") + " x²dx como límite de sumas de Riemann (suma derecha).",
+      ["Δ = 1/n y los extremos derechos son x<sub>i</sub> = i/n, i = 1, …, n. La suma es S<sub>n</sub> = Σ (i/n)²·(1/n) = (1/n³)·Σ i².",
+       "Se usa Σ<sub>i=1</sub><sup>n</sup> i² = n(n + 1)(2n + 1)/6. Entonces S<sub>n</sub> = (n + 1)(2n + 1)/(6n²).",
+       "Valores: n = 4 → 5·9/96 = 0,46875; n = 10 → 11·21/600 = 0,385; n = 100 → 101·201/60000 ≈ 0,338.",
+       "Límite: lím S<sub>n</sub> = 2/6 = <b>1/3</b>. Coincide con Barrow: [x³/3] entre 0 y 1 = 1/3. (La suma izquierda es (n − 1)(2n − 1)/(6n²), que tiende al mismo 1/3 por debajo.)"]) +
+    "<p>Una consecuencia útil para los límites de sumas: si f es continua, <b>lím<sub>n→∞</sub> (1/n)·Σ<sub>k=1</sub><sup>n</sup> f(k/n) = " + I("0", "1") + " f(x)dx</b>. Es una suma derecha con Δ = 1/n. Por ejemplo, lím (1/n)Σ √(k/n) = " + I("0", "1") + " √x dx = 2/3.</p>" +
+    "<h5>Propiedades de la integral definida</h5>" +
+    tabla(["Propiedad", "Enunciado", "Para qué sirve"], [
+      ["Linealidad", I("a", "b") + " [λf + μg] = λ" + I("a", "b") + " f + μ" + I("a", "b") + " g", "Integrar sumas y sacar constantes"],
+      ["Aditividad", I("a", "b") + " f = " + I("a", "c") + " f + " + I("c", "b") + " f", "Partir en trozos (valor absoluto, funciones a trozos, cambios de signo)"],
+      ["Límites iguales", I("a", "a") + " f = 0", "Un intervalo sin anchura no tiene área"],
+      ["Límites invertidos", I("b", "a") + " f = −" + I("a", "b") + " f", "Cuidado con el signo cuando el extremo superior es menor"],
+      ["Monotonía", "f ≤ g en [a, b] ⟹ " + I("a", "b") + " f ≤ " + I("a", "b") + " g", "Acotar integrales sin calcularlas"],
+      ["Valor absoluto", "|" + I("a", "b") + " f| ≤ " + I("a", "b") + " |f|", "La integral neta nunca supera al área real"],
+      ["Función par", "f(−x) = f(x) ⟹ " + I("−a", "a") + " f = 2" + I("0", "a") + " f", "Reducir el trabajo a la mitad"],
+      ["Función impar", "f(−x) = −f(x) ⟹ " + I("−a", "a") + " f = 0", "Anular integrales sin hacer cuentas"]
+    ]) +
+    ejemplo("Simetría y aditividad", "(a) Calcula " + I("−2", "2") + " (x³ + 3x²)dx. (b) Si " + I("0", "3") + " f = 5 y " + I("3", "7") + " f = 2, calcula " + I("0", "7") + " f e " + I("7", "0") + " f.",
+      ["<b>(a)</b> x³ es impar: su integral entre −2 y 2 vale 0. 3x² es par: " + I("−2", "2") + " 3x²dx = 2" + I("0", "2") + " 3x²dx = 2·[x³]<sub>0</sub><sup>2</sup> = 2·8 = <b>16</b>. (Haciéndolo directamente: [x⁴/4 + x³] entre −2 y 2 = (4 + 8) − (4 − 8) = 16 ✓.)",
+       "<b>(b)</b> Aditividad: " + I("0", "7") + " f = " + I("0", "3") + " f + " + I("3", "7") + " f = 5 + 2 = <b>7</b>. Límites invertidos: " + I("7", "0") + " f = −7."]) +
+    ojo("La integral definida es un <b>número</b>, y es el área solo si f ≥ 0. Si f &lt; 0 en todo el intervalo la integral sale <i>negativa</i>: el área es su valor absoluto. Y si f cambia de signo, la integral compensa positivos con negativos (sección 3).");
+
+  // ---------------------------------------------------------------- 2. Barrow
+  secciones[1] =
+    "<h5>Por qué funciona Barrow, y cómo escribirlo bien</h5>" +
+    "<p>La regla de Barrow dice que, si F′ = f en [a, b] (F es una primitiva de f, continua), entonces <b>" + I("a", "b") + " f(x)dx = F(b) − F(a) = [F(x)]<sub>a</sub><sup>b</sup></b>. La idea de fondo es que f es la velocidad a la que crece F, así que el área acumulada entre a y b es lo que ha crecido F en total (el teorema fundamental, sección 5 de este tema, lo demuestra). En el examen se escribe siempre en tres líneas: la primitiva, la sustitución <i>con paréntesis</i> y el resultado simplificado.</p>" +
+    ejemplo("Barrow con potencias, exponenciales y trigonométricas", "Calcula: (a) " + I("1", "4") + " (√x + 1/x²)dx; (b) " + I("0", "1") + " e<sup>2x</sup>dx; (c) " + I("0", "π/4") + " dx/cos²x.",
+      ["<b>(a)</b> Reescribe √x = x<sup>1/2</sup> y 1/x² = x<sup>−2</sup>. Primitiva: F(x) = (2/3)x<sup>3/2</sup> − 1/x. F(4) = (2/3)·8 − 1/4 = 16/3 − 1/4; F(1) = 2/3 − 1. Resta: (16/3 − 1/4) − (2/3 − 1) = 14/3 + 3/4 = <b>65/12</b> ≈ 5,417.",
+       "<b>(b)</b> F(x) = e<sup>2x</sup>/2 (no olvides dividir por la derivada interior 2). [e<sup>2x</sup>/2] entre 0 y 1 = e²/2 − 1/2 = <b>(e² − 1)/2</b> ≈ 3,195.",
+       "<b>(c)</b> 1/cos²x = 1 + tg²x, primitiva tg x. [tg x] entre 0 y π/4 = tg(π/4) − tg 0 = 1 − 0 = <b>1</b>."]) +
+    ojo("Tres fallos clásicos al aplicar Barrow: (1) <b>no poner paréntesis</b> al restar F(a) cuando es negativa (F(1) = 2/3 − 1 se resta entera); (2) <b>olvidar la derivada interior</b> de e<sup>2x</sup>, sen 3x…; (3) escribir «+C»: en una integral definida la constante se cancela, no se pone.") +
+    "<p>Hay una situación en la que Barrow <b>no se puede aplicar</b>: si f no está definida o no es continua en algún punto de [a, b]. Por ejemplo " + I("−1", "1") + " dx/x² no vale [−1/x] entre −1 y 1 = −2: la función tiene una asíntota en x = 0 y la integral no existe como tal (el área es infinita). Antes de integrar, mira el dominio.</p>";
+
+  // ---------------------------------------------------------------- 3. Cambio de signo
+  secciones[2] =
+    "<h5>La receta del área cuando f cambia de signo</h5>" +
+    tabla(["Paso", "Qué haces"], [
+      ["1", "Resuelve f(x) = 0 y quédate con las raíces que caen <b>dentro</b> de [a, b]."],
+      ["2", "Parte el intervalo en esos puntos: [a, x<sub>1</sub>], [x<sub>1</sub>, x<sub>2</sub>], …, [x<sub>k</sub>, b]."],
+      ["3", "Calcula una integral por trozo con Barrow (una sola primitiva F sirve para todos)."],
+      ["4", "Área = suma de los <b>valores absolutos</b>. La integral neta es la suma <i>con signos</i>."]
+    ]) +
+    "<p>Si se pide «el área encerrada por la curva y el eje X» sin dar límites, los límites son <b>las raíces consecutivas</b> de f: entre ellas f no cambia de signo y la región queda cerrada.</p>" +
+    w("m2t12_signo") +
+    ejemplo("Área con dos cambios de signo", "Calcula " + I("−1", "2") + " (x³ − x)dx y el área limitada por y = x³ − x, el eje X y las rectas x = −1, x = 2.",
+      ["Primitiva: F(x) = x⁴/4 − x²/2. F(−1) = 1/4 − 1/2 = −1/4; F(0) = 0; F(1) = −1/4; F(2) = 4 − 2 = 2.",
+       "Raíces de x³ − x = x(x − 1)(x + 1): −1, 0, 1. Dentro de (−1, 2) están 0 y 1. Signo: + en (−1, 0), − en (0, 1), + en (1, 2).",
+       "Trozos: " + I("−1", "0") + " = F(0) − F(−1) = 1/4 &nbsp;·&nbsp; " + I("0", "1") + " = F(1) − F(0) = −1/4 &nbsp;·&nbsp; " + I("1", "2") + " = F(2) − F(1) = 9/4.",
+       "<b>Integral neta</b> = 1/4 − 1/4 + 9/4 = <b>9/4</b> (= F(2) − F(−1) directamente). <b>Área</b> = 1/4 + 1/4 + 9/4 = <b>11/4</b>. Dos números distintos: eso es lo que se pregunta en la EvAU."]) +
+    ejemplo("Curva y eje X sin límites", "Halla el área de la región limitada por y = x² − 4x + 3 y el eje X.",
+      ["Raíces: x² − 4x + 3 = (x − 1)(x − 3). Los límites son x = 1 y x = 3. Entre ambas, la parábola (hacia arriba) está por debajo del eje.",
+       "F(x) = x³/3 − 2x² + 3x. F(3) = 9 − 18 + 9 = 0; F(1) = 1/3 − 2 + 3 = 4/3. " + I("1", "3") + " = 0 − 4/3 = −4/3.",
+       "Área = |−4/3| = <b>4/3</b>. (Atención: la respuesta «−4/3» es un error de signo: un área nunca es negativa.)"]) +
+    ejemplo("El seno en un periodo", "Calcula " + I("0", "2π") + " sen x dx y el área entre y = sen x y el eje X en [0, 2π].",
+      ["F(x) = −cos x. " + I("0", "2π") + " = −cos 2π + cos 0 = −1 + 1 = <b>0</b>: la arcada positiva y la negativa se compensan.",
+       "Trozos con el cero en π: " + I("0", "π") + " = −cos π + cos 0 = 2 e " + I("π", "2π") + " = −cos 2π + cos π = −2. Área = 2 + 2 = <b>4</b>."]) +
+    ojo("Trampa de examen: calcular " + I("a", "b") + " f con Barrow en un intervalo donde f cambia de signo y llamar a eso «área». Dibuja siempre un esbozo (o estudia el signo) <i>antes</i> de integrar. El simulador de arriba te deja mover a y b y comprobar cómo cambia la diferencia entre ambos números.");
+
+  // ---------------------------------------------------------------- 4. Entre dos curvas
+  secciones[3] =
+    "<h5>Receta completa y casos que se complican</h5>" +
+    tabla(["Paso", "Qué haces", "Fallo habitual"], [
+      ["1. Esbozo", "Dibuja las curvas (aunque sea a grandes rasgos) y sombrea la región", "Integrar sin saber cuál va encima"],
+      ["2. Cortes", "Resuelve f(x) = g(x). Ordena las soluciones", "Olvidar un corte intermedio"],
+      ["3. Quién va encima", "En cada tramo entre cortes, prueba un punto: ¿f(x<sub>0</sub>) &gt; g(x<sub>0</sub>)?", "Suponer que la misma función va siempre encima"],
+      ["4. Integra", "Para cada tramo, ∫(arriba − abajo)dx con Barrow", "Restar al revés y quedar con signo negativo"],
+      ["5. Suma", "Suma las áreas de los tramos (todas positivas)", "Sumar integrales con signo en vez de áreas"]
+    ]) +
+    w("m2t12_entre") +
+    ejemplo("Parábola y recta", "Halla el área encerrada por y = x² e y = x + 2.",
+      ["Cortes: x² = x + 2 ⟹ x² − x − 2 = 0 ⟹ x = −1 y x = 2.",
+       "Quién va encima: en x = 0 la recta vale 2 y la parábola 0, luego la recta va por encima en (−1, 2).",
+       "Área = " + I("−1", "2") + " (x + 2 − x²)dx = [x²/2 + 2x − x³/3] entre −1 y 2 = (2 + 4 − 8/3) − (1/2 − 2 + 1/3) = 10/3 + 7/6 = <b>9/2</b>."]) +
+    ejemplo("Tres cortes: cambia quién va encima", "Halla el área limitada por y = x³ e y = x.",
+      ["Cortes: x³ = x ⟹ x(x − 1)(x + 1) = 0 ⟹ x = −1, 0, 1.",
+       "En (0, 1): x = 1/2 da x = 0,5 &gt; x³ = 0,125, luego la recta va encima. En (−1, 0): x = −1/2 da x³ = −0,125 &gt; x = −0,5, luego ahora va encima la cúbica.",
+       "Área = " + I("−1", "0") + " (x³ − x)dx + " + I("0", "1") + " (x − x³)dx = [x⁴/4 − x²/2]<sub>−1</sub><sup>0</sup> + [x²/2 − x⁴/4]<sub>0</sub><sup>1</sup> = 1/4 + 1/4 = <b>1/2</b>.",
+       "Comprobación del error típico: " + I("−1", "1") + " (x − x³)dx = 0 por ser una función impar. Las dos lóbulos se compensarían si no se toman en valor absoluto."]) +
+    ejemplo("Seno y coseno", "Halla el área limitada por y = sen x, y = cos x y las rectas x = 0, x = π/2.",
+      ["Corte en [0, π/2]: sen x = cos x ⟹ x = π/4. Para x &lt; π/4, cos x &gt; sen x; para x &gt; π/4, sen x &gt; cos x.",
+       "Área = " + I("0", "π/4") + " (cos x − sen x)dx + " + I("π/4", "π/2") + " (sen x − cos x)dx.",
+       "Primera: [sen x + cos x] entre 0 y π/4 = √2 − 1. Segunda: [−cos x − sen x] entre π/4 y π/2 = (0 − 1) − (−√2) = √2 − 1.",
+       "Área total = <b>2√2 − 2</b> ≈ 0,828."]) +
+    "<h5>Integrar respecto de y, y regiones con una tangente</h5>" +
+    "<p>A veces es más cómodo ver las curvas como x = h(y). Entonces el área es " + I("y₁", "y₂") + " (x<sub>derecha</sub> − x<sub>izquierda</sub>)dy. Es el truco para regiones donde la parábola está «tumbada».</p>" +
+    ejemplo("Integrar en y", "Halla el área encerrada por la parábola x = y² y la recta y = x − 2.",
+      ["La recta es x = y + 2. Cortes: y² = y + 2 ⟹ y = −1 y y = 2.",
+       "Entre ellos, la recta (x = y + 2) está a la derecha de la parábola (x = y², comprueba y = 0: 2 &gt; 0).",
+       "Área = " + I("−1", "2") + " (y + 2 − y²)dy = [y²/2 + 2y − y³/3]<sub>−1</sub><sup>2</sup> = (2 + 4 − 8/3) − (1/2 − 2 + 1/3) = <b>9/2</b>. Respecto de x habría que partir en dos regiones; respecto de y basta una integral."]) +
+    ejemplo("Curva, tangente y eje", "Halla el área limitada por y = x² + 1, su recta tangente en el punto (1, 2) y el eje Y.",
+      ["Tangente: y′ = 2x, pendiente 2 en x = 1 ⟹ y − 2 = 2(x − 1) ⟹ y = 2x. La parábola siempre queda por encima de su tangente (es convexa): x² + 1 − 2x = (x − 1)² ≥ 0.",
+       "La región queda entre x = 0 (el eje Y) y x = 1 (el punto de tangencia).",
+       "Área = " + I("0", "1") + " (x² + 1 − 2x)dx = " + I("0", "1") + " (x − 1)²dx = [(x − 1)³/3]<sub>0</sub><sup>1</sup> = 0 − (−1/3) = <b>1/3</b>."]);
+
+  B.parte.m2t12a = { secciones: secciones, I: I };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 12: Integral definida
+   (parte B: secciones nuevas 5 a 9)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t12/" + ref); }
+  var I = B.parte.m2t12a.I;
+
+  var nuevas = [
+    // -------------------------------------------------------------- 5
+    {
+      h: "5. Teorema fundamental del cálculo: derivar funciones integrales",
+      html:
+        "<p>Hasta ahora la integral definida daba un número. Si dejamos libre el extremo superior, da una <b>función</b>: <b>F(x) = " + I("a", "x") + " f(t)dt</b> (la variable de integración es muda: se llama t para no confundirla con x). Es el área acumulada desde a hasta x. El <b>teorema fundamental del cálculo</b> dice:</p>" +
+        "<div class='formula-wrap'><div class='formula'>f continua en [a, b] ⟹ F(x) = " + I("a", "x") + " f(t)dt es derivable y <b>F′(x) = f(x)</b></div></div>" +
+        "<p>Es decir, derivar deshace integrar. Y de aquí sale Barrow: F es una primitiva de f. Lo que cae en la EvAU es la versión con <b>regla de la cadena</b>:</p>" +
+        tabla(["Función integral", "Derivada"], [
+          [I("a", "x") + " f(t)dt", "f(x)"],
+          [I("a", "g(x)") + " f(t)dt", "f(g(x))·g′(x)"],
+          [I("h(x)", "g(x)") + " f(t)dt", "f(g(x))·g′(x) − f(h(x))·h′(x)"],
+          [I("x", "a") + " f(t)dt", "−f(x)  (límites invertidos)"]
+        ]) +
+        "<p>Para <b>no tener que calcular la integral</b>: la derivada de F se obtiene sin resolver nada; con F′ se estudian crecimiento y extremos de F. Con F″ = f′ se estudia la curvatura. El simulador dibuja F mientras mueves x: observa que F crece mientras f &gt; 0, que F tiene su máximo donde f pasa de + a −, y que la pendiente de F en cada punto es justamente el valor de f.</p>" +
+        w("m2t12_fint") +
+        ejemplo("Extremo superior que es una función", "Sea F(x) = " + I("1", "x²") + " ln t dt, con x &gt; 0. Calcula F′(x) y estudia su monotonía.",
+          ["Regla de la cadena con g(x) = x²: F′(x) = ln(x²)·(x²)′ = 2 ln x · 2x = <b>4x ln x</b>.",
+           "Signo para x &gt; 0: 4x &gt; 0, luego el signo es el de ln x. F′ &lt; 0 en (0, 1) y F′ &gt; 0 en (1, +∞).",
+           "F decrece en (0, 1) y crece en (1, +∞): <b>mínimo en x = 1</b>, con F(1) = " + I("1", "1") + " ln t dt = 0.",
+           "(Comprobación: " + I("1", "u") + " ln t dt = u ln u − u + 1, luego F(x) = x² ln x² − x² + 1 = 2x² ln x − x² + 1; derivando, 4x ln x + 2x − 2x = 4x ln x ✓.)"]) +
+        ejemplo("Límite con una integral (L'Hôpital)", "Calcula lím<sub>x→0</sub> " + I("0", "x") + " (e<sup>t²</sup> − 1)dt / x³.",
+          ["Numerador: para x = 0 la integral vale 0. Denominador: 0. Indeterminación 0/0 ⟹ L'Hôpital.",
+           "Derivando arriba (teorema fundamental) y abajo: (e<sup>x²</sup> − 1)/(3x²).",
+           "Sigue siendo 0/0. Con e<sup>x²</sup> − 1 ∼ x² (o L'Hôpital otra vez: 2x·e<sup>x²</sup>/(6x) = e<sup>x²</sup>/3) el límite es <b>1/3</b>."]) +
+        ejemplo("Una F sin fórmula", "F(x) = " + I("0", "x") + " e<sup>−t²</sup>dt. Estúdiala: monotonía, curvatura y simetría.",
+          ["No existe primitiva elemental de e<sup>−t²</sup>, pero no hace falta: F′(x) = e<sup>−x²</sup> &gt; 0 para todo x ⟹ F es <b>estrictamente creciente</b>.",
+           "F″(x) = −2x·e<sup>−x²</sup>: positiva si x &lt; 0 (convexa) y negativa si x &gt; 0 (cóncava) ⟹ <b>inflexión en x = 0</b>, donde F(0) = 0 y la pendiente es la máxima (F′(0) = 1).",
+           "F es impar (el integrando es par), y tiende a un valor finito cuando x → ∞ (≈ 0,886 = √π/2): tiene dos asíntotas horizontales, y = ±√π/2."]) +
+        ojo("Fallos típicos: (1) olvidar el factor g′(x): la derivada de " + I("0", "x²") + " f(t)dt <b>no</b> es f(x²), es f(x²)·2x; (2) escribir x dentro del integrando como si fuera la variable cuando también está en el límite; (3) olvidar el signo − cuando el extremo variable es el inferior.")
+    },
+    // -------------------------------------------------------------- 6
+    {
+      h: "6. Valor medio de una función y teorema del valor medio integral",
+      html:
+        "<p>El <b>valor medio</b> de f en [a, b] es la altura que tendría un rectángulo con la misma base b − a y la misma área que la región bajo la curva:</p>" +
+        "<div class='formula-wrap'><div class='formula'>μ = (1/(b − a))·" + I("a", "b") + " f(x)dx</div></div>" +
+        "<p><b>Teorema del valor medio integral</b>: si f es continua en [a, b], existe al menos un c ∈ [a, b] con <b>f(c)·(b − a) = " + I("a", "b") + " f(x)dx</b>, es decir, f(c) = μ. La función toma su valor medio en algún punto (por el teorema de los valores intermedios, ya que μ está entre el mínimo y el máximo de f). Puede haber más de un c. Arrastra c en el simulador hasta que el rectángulo verde iguale la zona azul.</p>" +
+        w("m2t12_medio") +
+        ejemplo("Valor medio y punto c", "Para f(x) = x² en [0, 3], halla el valor medio y el c del teorema.",
+          [I("0", "3") + " x²dx = [x³/3] = 9. Longitud 3. μ = 9/3 = <b>3</b>.",
+           "f(c) = c² = 3 ⟹ c = ±√3; solo √3 ≈ 1,732 está en [0, 3]. <b>c = √3</b>."]) +
+        ejemplo("Dos valores de c", "Para f(x) = sen x en [0, π], halla μ y los c que cumplen el teorema.",
+          [I("0", "π") + " sen x dx = [−cos x] = 2. μ = 2/π ≈ 0,637.",
+           "sen c = 2/π ⟹ c = arcsen(2/π) ≈ 0,690 y c = π − 0,690 ≈ 2,452. Los dos están en [0, π]: el teorema asegura que existe al menos uno, no que sea único."]) +
+        ejemplo("Datos para hallar un parámetro", "Se sabe que f(x) = ax² + 1 tiene valor medio 7 en [0, 3]. Halla a y el punto c.",
+          ["μ = (1/3)·" + I("0", "3") + " (ax² + 1)dx = (1/3)·[ax³/3 + x] = (1/3)(9a + 3) = 3a + 1.",
+           "3a + 1 = 7 ⟹ <b>a = 2</b>. Entonces f(x) = 2x² + 1 y f(c) = 7 ⟹ 2c² = 6 ⟹ <b>c = √3</b> ≈ 1,732."]) +
+        "<p>Aplicaciones que aparecen en problemas de enunciado: la <i>temperatura media</i> de un día es el valor medio de T(t); la <i>velocidad media</i> es el valor medio de v(t) = (1/(b − a))" + I("a", "b") + " v dt = (espacio recorrido)/(tiempo). El teorema dice que en algún instante la velocidad instantánea coincide con la media.</p>" +
+        ojo("Distingue los dos teoremas: el del valor medio <i>derivativo</i> (Lagrange) dice f′(c) = (f(b) − f(a))/(b − a); el <i>integral</i> dice f(c) = (1/(b − a))" + I("a", "b") + " f. Son parientes (aplica Lagrange a la F de la sección 5) pero hablan de f′ y de f respectivamente.")
+    },
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Técnicas dentro de la integral definida",
+      html:
+        "<p>Los métodos del Tema 11 (cambio de variable, partes, racionales) se usan igual, con una ventaja: en la integral definida <b>puedes cambiar los límites</b> y no hace falta deshacer el cambio. Veamos los tres métodos y los valores absolutos.</p>" +
+        ejemplo("Cambio de variable con cambio de límites", "Calcula (a) " + I("0", "1") + " 2x/(1 + x²) dx; (b) " + I("0", "1") + " x√(1 + x²) dx; (c) " + I("0", "π/2") + " sen x cos x dx.",
+          ["<b>(a)</b> t = 1 + x², dt = 2x dx. Límites: x = 0 ⟹ t = 1; x = 1 ⟹ t = 2. " + I("1", "2") + " dt/t = [ln t] = ln 2 − ln 1 = <b>ln 2</b> ≈ 0,693.",
+           "<b>(b)</b> t = 1 + x², x dx = dt/2; t va de 1 a 2. (1/2)" + I("1", "2") + " √t dt = (1/2)·[(2/3)t<sup>3/2</sup>] = (1/3)(2√2 − 1) = <b>(2√2 − 1)/3</b> ≈ 0,610.",
+           "<b>(c)</b> t = sen x, dt = cos x dx; x = 0 ⟹ t = 0 y x = π/2 ⟹ t = 1. " + I("0", "1") + " t dt = <b>1/2</b>."]) +
+        ejemplo("Integración por partes", "Calcula (a) " + I("0", "1") + " x·eˣ dx; (b) " + I("1", "e") + " ln x dx; (c) " + I("0", "π") + " x sen x dx.",
+          ["Fórmula: " + I("a", "b") + " u dv = [uv]<sub>a</sub><sup>b</sup> − " + I("a", "b") + " v du.",
+           "<b>(a)</b> u = x, dv = eˣdx: [x eˣ]<sub>0</sub><sup>1</sup> − " + I("0", "1") + " eˣdx = e − (e − 1) = <b>1</b>.",
+           "<b>(b)</b> u = ln x, dv = dx: [x ln x]<sub>1</sub><sup>e</sup> − " + I("1", "e") + " dx = e − (e − 1) = <b>1</b>.",
+           "<b>(c)</b> u = x, dv = sen x dx: [−x cos x]<sub>0</sub><sup>π</sup> + " + I("0", "π") + " cos x dx = π + [sen x] = <b>π</b>."]) +
+        ejemplo("Fracciones simples", "Calcula " + I("0", "1") + " dx/((x + 1)(x + 2)).",
+          ["Descomposición: 1/((x + 1)(x + 2)) = 1/(x + 1) − 1/(x + 2).",
+           "[ln(x + 1) − ln(x + 2)]<sub>0</sub><sup>1</sup> = (ln 2 − ln 3) − (0 − ln 2) = 2 ln 2 − ln 3 = <b>ln(4/3)</b> ≈ 0,288."]) +
+        ejemplo("Valor absoluto y funciones a trozos", "Calcula (a) " + I("0", "3") + " |x − 1| dx; (b) " + I("0", "2") + " f(x)dx con f(x) = x² si x ≤ 1 y f(x) = 2 − x si x &gt; 1.",
+          ["<b>(a)</b> |x − 1| = 1 − x si x &lt; 1 y x − 1 si x ≥ 1. " + I("0", "1") + " (1 − x)dx + " + I("1", "3") + " (x − 1)dx = 1/2 + 2 = <b>5/2</b>. (La gráfica son dos triángulos: 1·1/2 + 2·2/2.)",
+           "<b>(b)</b> Se parte en el punto de unión: " + I("0", "1") + " x²dx + " + I("1", "2") + " (2 − x)dx = 1/3 + [2x − x²/2]<sub>1</sub><sup>2</sup> = 1/3 + (4 − 2) − (2 − 1/2) = 1/3 + 1/2 = <b>5/6</b>. (f es continua en 1: f(1) = 1 por ambos lados.)"]) +
+        "<p>Truco para ahorrar tiempo: <b>en el valor absoluto de una función polinómica</b>, busca primero las raíces dentro del intervalo; es exactamente el mismo proceso del área con cambio de signo. Por ejemplo, " + I("0", "2") + " |x² − 1| dx = " + I("0", "1") + " (1 − x²)dx + " + I("1", "2") + " (x² − 1)dx = 2/3 + 4/3 = <b>2</b>.</p>"
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Parámetros, geometría y problemas de enunciado",
+      html:
+        "<p>En la EvAU la integral rara vez se pide «a pelo»: lo habitual es que haya un parámetro o un dato que debes usar para plantear una ecuación. Receta: <b>calcula la integral en función del parámetro y iguala</b>.</p>" +
+        ejemplo("Límite de integración desconocido", "Halla a &gt; 0 para que " + I("0", "a") + " (2x + 1)dx = 6.",
+          ["[x² + x]<sub>0</sub><sup>a</sup> = a² + a. Se iguala: a² + a = 6 ⟹ a² + a − 6 = 0 ⟹ a = 2 o a = −3.",
+           "Como a &gt; 0: <b>a = 2</b>."]) +
+        ejemplo("Parámetro en la curva", "Halla k &gt; 0 para que la región limitada por y = kx − x² y el eje X tenga área 36.",
+          ["Raíces: kx − x² = x(k − x) = 0 ⟹ x = 0 y x = k. Entre ellas la parábola (hacia abajo) está por encima del eje.",
+           "Área = " + I("0", "k") + " (kx − x²)dx = [kx²/2 − x³/3]<sub>0</sub><sup>k</sup> = k³/2 − k³/3 = k³/6.",
+           "k³/6 = 36 ⟹ k³ = 216 ⟹ <b>k = 6</b>. (Ya se ve la regla: el área bajo la parábola de un arco es 1/6 del cubo de la base.)"]) +
+        ejemplo("Curva y recta que pasan por un punto", "Región limitada por y = eˣ, la recta y = e y el eje Y.",
+          ["eˣ = e ⟹ x = 1. Entre 0 y 1, eˣ ≤ e: la recta va por encima.",
+           "Área = " + I("0", "1") + " (e − eˣ)dx = [ex − eˣ]<sub>0</sub><sup>1</sup> = (e − e) − (0 − 1) = <b>1</b>."]) +
+        ejemplo("Curva con una asíntota: tres fronteras", "Área limitada por y = 1/x, y = x y x = 2.",
+          ["Corte: 1/x = x ⟹ x = 1 (con x &gt; 0). En (1, 2): x = 1,5 da x = 1,5 &gt; 1/x = 0,667: la recta va por encima.",
+           "Área = " + I("1", "2") + " (x − 1/x)dx = [x²/2 − ln x]<sub>1</sub><sup>2</sup> = (2 − ln 2) − 1/2 = <b>3/2 − ln 2</b> ≈ 0,807."]) +
+        "<p><b>Problemas con funciones definidas por una integral</b>: si te dan F(x) = " + I("0", "x") + " f(t)dt, entonces F(0) siempre vale 0 (límites iguales). Si te dan F(a) y F(b), entonces " + I("a", "b") + " f = F(b) − F(a). Y si f viene dada solo por su gráfica, la integral se lee como suma de áreas con signo (cuadraditos).</p>"
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Volumen de un cuerpo de revolución (ampliación)",
+      html:
+        "<p>Si la región bajo y = f(x) entre a y b gira alrededor del eje X, se engendra un sólido cuyo volumen es la suma de discos de radio f(x) y espesor dx:</p>" +
+        "<div class='formula-wrap'><div class='formula'>V = π·" + I("a", "b") + " [f(x)]² dx</div></div>" +
+        "<p>Este apartado suele quedar fuera de la EvAU de Madrid, pero entrena la misma herramienta y sirve de comprobación geométrica.</p>" +
+        ejemplo("Tres volúmenes", "Calcula el volumen al girar sobre el eje X: (a) y = √x en [0, 4]; (b) y = x en [0, 1]; (c) y = sen x en [0, π].",
+          ["<b>(a)</b> V = π" + I("0", "4") + " x dx = π·[x²/2] = <b>8π</b> ≈ 25,13.",
+           "<b>(b)</b> V = π" + I("0", "1") + " x²dx = <b>π/3</b>: es un cono de radio 1 y altura 1, cuyo volumen conocido es (1/3)π·1²·1 ✓.",
+           "<b>(c)</b> V = π" + I("0", "π") + " sen²x dx = π·[x/2 − sen 2x/4] = π·(π/2) = <b>π²/2</b> ≈ 4,93. (Se usa sen²x = (1 − cos 2x)/2.)"])
+    }
+  ];
+
+  B.parte.m2t12b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 12: Integral definida
+   (parte C: problemas EvAU, resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo;
+  function w(n, ref) { return H.w(n, ref && "mates2/t12/" + ref); }
+  var I = B.parte.m2t12a.I;
+
+  var nuevas = B.parte.m2t12b.nuevas;
+
+  // ================================================================
+  //  SECCIONES FINALES (10 problemas EvAU, 11 errores, 12 autocomprobación)
+  // ================================================================
+  nuevas.push({
+    h: "10. Problemas tipo EvAU resueltos",
+    html:
+      "<p>Cinco problemas con el formato de la EvAU de Madrid: intenta los apartados antes de leer la solución.</p>" +
+      ejemplo("Problema 1 · Estudiar una función integral", "Sea F(x) = " + I("0", "x") + " (t² − 2t − 3)dt. (a) Calcula F′ y los intervalos de crecimiento y decrecimiento de F. (b) Extremos relativos y su valor. (c) Curvatura e inflexión. (d) Calcula F(x) explícitamente y comprueba (b).",
+        ["<b>(a)</b> Por el teorema fundamental, F′(x) = x² − 2x − 3 = (x − 3)(x + 1). F′ &gt; 0 si x &lt; −1 o x &gt; 3 y F′ &lt; 0 en (−1, 3): <b>F crece en (−∞, −1) y (3, +∞), decrece en (−1, 3)</b>.",
+         "<b>(b)</b> Máximo relativo en x = −1 y mínimo relativo en x = 3 (F′ cambia de + a − y de − a +).",
+         "<b>(c)</b> F″ = 2x − 2 = 0 ⟹ x = 1. Cóncava si x &lt; 1, convexa si x &gt; 1: <b>inflexión en x = 1</b>.",
+         "<b>(d)</b> F(x) = x³/3 − x² − 3x (con F(0) = 0). Valores: F(−1) = −1/3 − 1 + 3 = <b>5/3</b> (máximo); F(3) = 9 − 9 − 9 = <b>−9</b> (mínimo); F(1) = 1/3 − 1 − 3 = −11/3 (inflexión). Coincide con lo deducido sin integrar."]) +
+      ejemplo("Problema 2 · Área con tres raíces", "Sea f(x) = x³ − 3x² + 2x. Calcula " + I("0", "2") + " f(x)dx y el área limitada por la gráfica de f y el eje X.",
+        ["f = x(x − 1)(x − 2): raíces 0, 1 y 2. Signo: + en (0, 1) y − en (1, 2).",
+         "F(x) = x⁴/4 − x³ + x². F(0) = 0; F(1) = 1/4 − 1 + 1 = 1/4; F(2) = 4 − 8 + 4 = 0.",
+         "Integral: " + I("0", "2") + " f = F(2) − F(0) = <b>0</b>. Trozos: " + I("0", "1") + " f = 1/4 e " + I("1", "2") + " f = −1/4.",
+         "<b>Área</b> = |1/4| + |−1/4| = <b>1/2</b>. (Que la integral valga 0 no significa que no haya área: se compensan dos regiones iguales, porque f es simétrica respecto del punto (1, 0).)"]) +
+      ejemplo("Problema 3 · Por partes y cambio de signo", "Calcula el área de la región limitada por y = x·eˣ, el eje X y las rectas x = −1 y x = 1.",
+        ["Corte con el eje: x·eˣ = 0 ⟹ x = 0 (eˣ nunca se anula). Signo: − en (−1, 0) y + en (0, 1).",
+         "Primitiva por partes: u = x, dv = eˣdx ⟹ ∫x eˣ dx = x eˣ − eˣ = (x − 1)eˣ.",
+         I("−1", "0") + " = (0 − 1)e⁰ − (−2)e<sup>−1</sup> = −1 + 2/e ≈ −0,264 &nbsp;·&nbsp; " + I("0", "1") + " = 0·e − (−1)e⁰ = 1.",
+         "<b>Área</b> = |−1 + 2/e| + 1 = (1 − 2/e) + 1 = <b>2 − 2/e</b> ≈ 1,264. (La integral neta sería 2/e ≈ 0,736: no es el área.)"]) +
+      ejemplo("Problema 4 · Valor medio y parámetro", "Sea f(x) = ax² + 1 con a &gt; 0. Se sabe que el valor medio de f en [0, 3] es 7. Halla a y el punto c ∈ [0, 3] donde f toma ese valor medio.",
+        ["μ = (1/3)" + I("0", "3") + " (ax² + 1)dx = (1/3)[ax³/3 + x]<sub>0</sub><sup>3</sup> = (1/3)(9a + 3) = 3a + 1.",
+         "3a + 1 = 7 ⟹ <b>a = 2</b>.",
+         "f(c) = 2c² + 1 = 7 ⟹ c² = 3 ⟹ <b>c = √3</b> ≈ 1,732 (la raíz negativa queda fuera de [0, 3])."]) +
+      ejemplo("Problema 5 · Límite con integral", "Calcula lím<sub>x→0</sub> " + I("0", "x") + " ln(1 + t)dt / x² y comprueba el resultado calculando la integral.",
+        ["Numerador y denominador tienden a 0: L'Hôpital. Derivada del numerador: ln(1 + x) (teorema fundamental); del denominador: 2x. Queda ln(1 + x)/(2x), otra vez 0/0.",
+         "Otra vez L'Hôpital: (1/(1 + x))/2 → <b>1/2</b>.",
+         "Comprobación: por partes, " + I("0", "x") + " ln(1 + t)dt = [(1 + t)ln(1 + t) − t]<sub>0</sub><sup>x</sup> = (1 + x)ln(1 + x) − x. Con ln(1 + x) ≈ x − x²/2 + x³/3 resulta ≈ x²/2 − x³/6, y dividido entre x² tiende a 1/2 ✓."])
+  });
+
+  nuevas.push({
+    h: "11. ¿Qué falla aquí? Errores típicos",
+    html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+  });
+  nuevas.push({
+    h: "12. Autocomprobación del tema",
+    html: "<p>Test con explicación, tarjetas, una actividad de emparejar, otra de clasificar el signo de integrales y el orden del área entre curvas.</p>" +
+      w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+  });
+
+  // ================================================================
+  //  RESUMEN
+  // ================================================================
+  var resumen = [
+    "<b>Definición</b>: " + I("a", "b") + " f = límite de las sumas de Riemann (rectángulos de anchura (b − a)/n). Si f es continua, las sumas inferiores y superiores convergen al mismo número. Es un <b>número</b>, y es el área solo si f ≥ 0.",
+    "<b>Propiedades</b>: linealidad; aditividad " + I("a", "b") + " = " + I("a", "c") + " + " + I("c", "b") + "; " + I("b", "a") + " = −" + I("a", "b") + "; " + I("a", "a") + " = 0; |∫f| ≤ ∫|f|; par: 2∫<sub>0</sub><sup>a</sup>; impar: 0.",
+    "<b>Barrow</b>: " + I("a", "b") + " f = F(b) − F(a), con F primitiva (sin +C). Paréntesis al restar. Solo si f es continua en [a, b].",
+    "<b>Área con cambio de signo</b>: ceros de f dentro de [a, b], un Barrow por trozo y suma de valores absolutos. «Entre la curva y el eje X» sin límites: las raíces consecutivas.",
+    "<b>Área entre curvas</b>: esbozo, cortes f = g, quién va encima en cada tramo, ∫(arriba − abajo), suma. Si las curvas se cruzan, el valor absoluto parte la integral. A veces conviene integrar en y.",
+    "<b>Teorema fundamental</b>: (" + I("a", "x") + " f)′ = f(x); con extremo g(x): f(g(x))·g′(x); con dos extremos variables: f(g)g′ − f(h)h′. Se estudia F (crecimiento, extremos, curvatura) con F′ y F″ sin integrar.",
+    "<b>Valor medio</b>: μ = (1/(b − a))" + I("a", "b") + " f. Teorema: si f es continua existe c con f(c) = μ (puede haber varios).",
+    "<b>En la integral definida</b>: el cambio de variable cambia también los límites; por partes: [uv] − ∫v du; valor absoluto y funciones a trozos se parten en sus puntos.",
+    "<b>Volumen de revolución</b> (ampliación): V = π" + I("a", "b") + " [f(x)]²dx."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«∫<sub>−1</sub><sup>2</sup> (x³ − x)dx = 9/4, luego el área es 9/4». ¿Qué falla?",
+          op: ["Nada, está bien", "f cambia de signo en 0 y 1: hay que partir y sumar valores absolutos; el área es 11/4", "El área es 9/4 − 11/4", "La primitiva es x⁴ − x²"], ok: 1,
+          porque: "La integral neta compensa trozos positivos y negativos. Con trozos 1/4, −1/4 y 9/4, la integral vale 9/4 pero el área es 1/4 + 1/4 + 9/4 = 11/4." },
+        { q: "«∫<sub>−1</sub><sup>1</sup> dx/x² = [−1/x] entre −1 y 1 = −1 − 1 = −2». ¿Qué falla?",
+          op: ["Nada, está bien", "La función no es continua en x = 0 ∈ [−1, 1]: no se puede aplicar Barrow (la integral diverge)", "La primitiva es 1/x", "Debería salir +2"], ok: 1,
+          porque: "Barrow exige f continua en todo [a, b]. Además un integrando positivo no puede dar un resultado negativo: señal de alarma." },
+        { q: "«Derivada de ∫<sub>0</sub><sup>x²</sup> e<sup>−t</sup> dt es e<sup>−x²</sup>». ¿Qué falla?",
+          op: ["Nada, está bien", "Falta multiplicar por la derivada del extremo: es e<sup>−x²</sup>·2x", "Es e<sup>−x</sup>", "Se debe integrar primero"], ok: 1,
+          porque: "Regla de la cadena: (∫<sub>0</sub><sup>g(x)</sup> f)′ = f(g(x))·g′(x). Aquí g′ = 2x." },
+        { q: "«∫<sub>0</sub><sup>3</sup> (x − 1)dx = [x²/2 − x + C] entre 0 y 3 = 3/2 + C». ¿Qué falla?",
+          op: ["Nada, está bien", "En una integral definida no se pone +C: se cancela al restar F(3) − F(0) = 3/2", "La primitiva es x² − x", "Falta dividir entre 3"], ok: 1,
+          porque: "(F(3) + C) − (F(0) + C) = F(3) − F(0). El resultado es el número 3/2, sin constante." },
+        { q: "«∫<sub>0</sub><sup>2</sup> 2x e<sup>x²</sup> dx: con t = x² queda ∫<sub>0</sub><sup>2</sup> eᵗ dt = e² − 1». ¿Qué falla?",
+          op: ["Nada, está bien", "Al cambiar de variable hay que cambiar los límites: x = 2 ⟹ t = 4, y el resultado es e⁴ − 1", "El cambio correcto es t = 2x", "Hay que sumar +C"], ok: 1,
+          porque: "En una integral definida los límites pertenecen a la variable: con t = x², van de t = 0 a t = 4. Entonces ∫<sub>0</sub><sup>4</sup> eᵗ dt = e⁴ − 1 (que coincide con [e<sup>x²</sup>] entre 0 y 2)." },
+        { q: "«Área entre y = x e y = x³ en [−1, 1] es ∫<sub>−1</sub><sup>1</sup> (x − x³)dx = 0». ¿Qué falla?",
+          op: ["Nada, está bien", "Las curvas se cruzan en −1, 0, 1 y cambia cuál va encima: el área es 2·∫<sub>0</sub><sup>1</sup> (x − x³)dx = 1/2", "El área es 1", "No se puede calcular"], ok: 1,
+          porque: "Una región con área no puede tener área 0. Hay que tomar valores absolutos de cada tramo (o usar la simetría)." },
+        { q: "«El valor medio de f(x) = x² en [0, 3] es ∫<sub>0</sub><sup>3</sup> x²dx = 9». ¿Qué falla?",
+          op: ["Nada, está bien", "Falta dividir entre la longitud del intervalo: μ = 9/3 = 3", "Es 9/2", "El valor medio es f(3) = 9"], ok: 1,
+          porque: "El valor medio es la integral dividida entre b − a. La integral (9) es el área; μ = 3 es la altura del rectángulo equivalente." },
+        { q: "«El teorema del valor medio integral dice que existe un único c con f(c) = μ». ¿Qué falla?",
+          op: ["Nada, está bien", "Garantiza al menos uno; por ejemplo, sen x en [0, π] toma el valor medio 2/π en dos puntos", "Solo vale para funciones derivables", "Dice f′(c) = μ"], ok: 1,
+          porque: "Es un teorema de existencia: no asegura unicidad. Pide f continua, no derivable." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de integral definida",
+      preguntas: [
+        { q: "∫<sub>0</sub><sup>2</sup> 3x² dx vale", op: ["4", "8", "12", "6"], ok: 1, porque: "[x³] entre 0 y 2 = 8 − 0 = 8." },
+        { q: "Si f(x) &lt; 0 en [a, b], la integral ∫<sub>a</sub><sup>b</sup> f es", op: ["positiva y es el área", "negativa; el área es su valor absoluto", "cero", "no existe"], ok: 1, porque: "Los rectángulos tienen altura negativa; el área es |∫ f|." },
+        { q: "∫<sub>−3</sub><sup>3</sup> x⁵ dx vale", op: ["0", "243", "729/3", "−243"], ok: 0, porque: "x⁵ es impar: las contribuciones de −3..0 y 0..3 se anulan." },
+        { q: "(d/dx) ∫<sub>1</sub><sup>x</sup> ln(t² + 1) dt =", op: ["ln(x² + 1)", "ln(x² + 1) − ln 2", "2x/(x² + 1)", "0"], ok: 0, porque: "Teorema fundamental: derivar la integral con extremo superior x devuelve el integrando evaluado en x." },
+        { q: "(d/dx) ∫<sub>0</sub><sup>x³</sup> sen t dt =", op: ["sen(x³)", "3x² sen(x³)", "−cos(x³)", "3x² cos(x³)"], ok: 1, porque: "f(g(x))·g′(x) con f = sen y g = x³." },
+        { q: "Para calcular el área entre f y g hay que", op: ["integrar f − g siempre", "resolver f = g y tomar valor absoluto o decidir quién va encima en cada tramo", "integrar f y g por separado y sumar", "derivar f − g"], ok: 1, porque: "Los cortes parten la región; en cada tramo se integra (arriba − abajo)." },
+        { q: "El valor medio de f(x) = x en [0, 4] es", op: ["8", "4", "2", "16"], ok: 2, porque: "∫ x dx = 8, dividido entre 4 = 2." },
+        { q: "El área limitada por y = x² − 1 y el eje X es", op: ["2/3", "4/3", "8/3", "−4/3"], ok: 1, porque: "Raíces ±1: ∫<sub>−1</sub><sup>1</sup> (x² − 1)dx = 2(1/3 − 1) = −4/3; el área es su valor absoluto, 4/3." },
+        { q: "∫<sub>a</sub><sup>b</sup> f = −∫<sub>b</sub><sup>a</sup> f ocurre", op: ["solo si f es par", "siempre", "solo si a = b", "solo si f es impar"], ok: 1, porque: "Es la propiedad de intercambio de límites." },
+        { q: "Con el cambio t = 1 + x² en ∫<sub>0</sub><sup>1</sup> x(1 + x²)³ dx, los nuevos límites son", op: ["0 y 1", "1 y 2", "1 y 4", "0 y 2"], ok: 1, porque: "x = 0 ⟹ t = 1; x = 1 ⟹ t = 2." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas del tema 12",
+      cartas: [
+        { a: "Suma de Riemann", b: "Δ·Σ f(x*<sub>i</sub>) con Δ = (b − a)/n. Si f es continua, las sumas inferiores y superiores tienden al mismo límite: ∫ f." },
+        { a: "Regla de Barrow", b: "∫<sub>a</sub><sup>b</sup> f = F(b) − F(a), F primitiva de f continua en [a, b]. No lleva +C." },
+        { a: "Propiedades básicas", b: "Lineal · aditiva ∫<sub>a</sub><sup>b</sup> = ∫<sub>a</sub><sup>c</sup> + ∫<sub>c</sub><sup>b</sup> · ∫<sub>b</sub><sup>a</sup> = −∫<sub>a</sub><sup>b</sup> · |∫f| ≤ ∫|f|." },
+        { a: "Simetrías", b: "Par: ∫<sub>−a</sub><sup>a</sup> = 2∫<sub>0</sub><sup>a</sup>. Impar: ∫<sub>−a</sub><sup>a</sup> = 0." },
+        { a: "Área con cambio de signo", b: "Raíces dentro de [a, b], una integral por trozo, suma de valores absolutos." },
+        { a: "Área entre dos curvas", b: "Cortes f = g; en cada tramo ∫(arriba − abajo); suma de áreas. Esbozo antes de integrar." },
+        { a: "Teorema fundamental del cálculo", b: "(∫<sub>a</sub><sup>x</sup> f(t)dt)′ = f(x) si f es continua." },
+        { a: "Derivada con extremo g(x)", b: "(∫<sub>a</sub><sup>g(x)</sup> f)′ = f(g(x))·g′(x)." },
+        { a: "Dos extremos variables", b: "(∫<sub>h(x)</sub><sup>g(x)</sup> f)′ = f(g)·g′ − f(h)·h′." },
+        { a: "Valor medio", b: "μ = (1/(b − a))∫<sub>a</sub><sup>b</sup> f. Teorema: existe c con f(c) = μ si f es continua." },
+        { a: "Cambio de variable en integral definida", b: "Cambian los límites con la variable; el resultado ya es un número: no se deshace el cambio." },
+        { a: "Volumen de revolución", b: "Giro alrededor del eje X: V = π∫<sub>a</sub><sup>b</sup> [f(x)]² dx." }
+      ]
+    },
+    empar: {
+      titulo: "Integral y resultado",
+      consigna: "Une cada integral con su valor.",
+      pares: [
+        ["∫<sub>0</sub><sup>1</sup> x eˣ dx", "1"],
+        ["∫<sub>0</sub><sup>1</sup> √x dx", "2/3"],
+        ["∫<sub>0</sub><sup>1</sup> 2x/(1 + x²) dx", "ln 2"],
+        ["∫<sub>0</sub><sup>π</sup> sen x dx", "2"],
+        ["∫<sub>0</sub><sup>3</sup> |x − 1| dx", "5/2"],
+        ["∫<sub>−2</sub><sup>2</sup> x³ dx", "0"]
+      ]
+    },
+    clas: {
+      titulo: "Signo de una integral",
+      consigna: "Clasifica cada integral según su signo (sin calcularla entera, mirando la gráfica).",
+      categorias: ["Positiva", "Negativa", "Cero"],
+      items: [
+        { t: "∫<sub>0</sub><sup>π</sup> sen x dx", c: 0 }, { t: "∫<sub>1</sub><sup>e</sup> ln x dx", c: 0 }, { t: "∫<sub>−1</sub><sup>1</sup> x² dx", c: 0 },
+        { t: "∫<sub>π</sub><sup>2π</sup> sen x dx", c: 1 }, { t: "∫<sub>0</sub><sup>1</sup> ln x dx", c: 1 }, { t: "∫<sub>3</sub><sup>0</sup> x² dx", c: 1 },
+        { t: "∫<sub>−2</sub><sup>2</sup> x³ dx", c: 2 }, { t: "∫<sub>0</sub><sup>2π</sup> cos x dx", c: 2 }, { t: "∫<sub>−π</sub><sup>π</sup> sen x dx", c: 2 }
+      ]
+    },
+    orden: {
+      titulo: "Área entre dos curvas",
+      consigna: "Ordena los pasos para calcular el área encerrada por dos curvas.",
+      items: [
+        { t: "Esbozar las dos curvas" }, { t: "Resolver f(x) = g(x) para hallar los cortes" }, { t: "Ordenar los cortes: serán los límites de integración" },
+        { t: "En cada tramo, decidir cuál va encima probando un punto" }, { t: "Integrar (arriba − abajo) en cada tramo con Barrow" }, { t: "Sumar las áreas de los tramos (todas positivas)" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  function E(id, nivel, enunciado, check, pistas, pasos, resultado) { return { id: id, nivel: nivel, enunciado: enunciado, check: check, pistas: pistas, pasos: pasos, resultado: resultado }; }
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    E("a1", 1, "Calcula " + I("1", "3") + " (2x + 1)dx.", num("∫ =", 10),
+      ["Primitiva de 2x + 1."], ["F(x) = x² + x. F(3) = 12 y F(1) = 2.", "12 − 2 = 10."], "10"),
+    E("a2", 1, "Calcula " + I("0", "π") + " sen x dx.", num("∫ =", 2),
+      ["Primitiva de sen x: −cos x."], ["[−cos x] entre 0 y π = −cos π + cos 0 = 1 + 1."], "2"),
+    E("a3", 1, "Calcula " + I("0", "1") + " eˣ dx (da el valor decimal).", num("∫ ≈", 1.718282),
+      ["La primitiva de eˣ es eˣ."], ["e¹ − e⁰ = e − 1."], "e − 1 ≈ 1,718"),
+    E("a4", 1, "Calcula el área bajo y = 4 − x² entre x = 0 y x = 2.", num("Área =", 16 / 3),
+      ["f ≥ 0 en [0, 2]: el área es la integral."], ["F(x) = 4x − x³/3. F(2) = 8 − 8/3 = 16/3; F(0) = 0."], "16/3 ≈ 5,333"),
+    E("a5", 1, "Sin hacer cuentas largas, " + I("−2", "2") + " (x⁵ − x³ + x)dx vale", opcion("Valor", ["0", "8", "16", "−8"], 0),
+      ["¿Es par o impar el integrando?"], ["x⁵, x³ y x son impares: la suma es impar.", "Integral de una impar entre −2 y 2: 0."], "0"),
+    E("a6", 1, "Calcula " + I("1", "4") + " √x dx.", num("∫ =", 14 / 3),
+      ["√x = x<sup>1/2</sup>."], ["F = (2/3)x<sup>3/2</sup>. F(4) = (2/3)·8 = 16/3; F(1) = 2/3.", "16/3 − 2/3 = 14/3."], "14/3 ≈ 4,667"),
+    E("a7", 1, "Halla el valor medio de f(x) = 3x² en [0, 2].", num("μ =", 4),
+      ["μ = (1/(b − a))·∫ f."], ["∫<sub>0</sub><sup>2</sup> 3x²dx = [x³] = 8.", "μ = 8/2 = 4."], "4"),
+    E("a8", 1, "Si " + I("0", "3") + " f = 5 y " + I("3", "7") + " f = 2, calcula " + I("7", "0") + " f.", num("∫ =", -7),
+      ["Aditividad y luego límites invertidos."], ["∫<sub>0</sub><sup>7</sup> f = 5 + 2 = 7.", "Invertir límites cambia el signo: −7."], "−7"),
+    E("a9", 1, "Sea F(x) = " + I("0", "x") + " (t² + 1)dt. Calcula F′(2).", num("F′(2) =", 5),
+      ["Teorema fundamental: F′(x) = f(x)."], ["F′(x) = x² + 1.", "F′(2) = 5."], "5"),
+    E("a10", 1, "Calcula " + I("1", "e") + " dx/x.", num("∫ =", 1),
+      ["Primitiva de 1/x."], ["[ln x] entre 1 y e = ln e − ln 1 = 1 − 0."], "1"),
+    E("a11", 1, "Calcula " + I("0", "2") + " |x − 1| dx.", num("∫ =", 1),
+      ["Parte en x = 1."], ["Dos triángulos de base 1 y altura 1: 1/2 + 1/2.", "O bien ∫<sub>0</sub><sup>1</sup> (1 − x) + ∫<sub>1</sub><sup>2</sup> (x − 1) = 1/2 + 1/2."], "1"),
+    E("a12", 1, "Halla el área encerrada entre y = x² e y = 2x.", num("Área =", 4 / 3),
+      ["Cortes: x² = 2x."], ["x² − 2x = 0 ⟹ x = 0 y x = 2. En x = 1: 2x = 2 &gt; x² = 1.", "∫<sub>0</sub><sup>2</sup> (2x − x²)dx = [x² − x³/3] = 4 − 8/3 = 4/3."], "4/3 ≈ 1,333"),
+    E("a13", 1, "Suma izquierda de f(x) = x en [0, 4] con n = 4 rectángulos.", num("Suma =", 6),
+      ["Δ = 1; alturas en x = 0, 1, 2, 3."], ["Δ = (4 − 0)/4 = 1.", "Δ·[f(0) + f(1) + f(2) + f(3)] = 0 + 1 + 2 + 3 = 6 (la integral exacta es 8)."], "6"),
+    E("a14", 1, "Calcula " + I("0", "1") + " (x + 1)³ dx.", num("∫ =", 15 / 4),
+      ["La primitiva de (x + 1)³ es (x + 1)⁴/4."], ["[(x + 1)⁴/4] entre 0 y 1 = 16/4 − 1/4 = 15/4."], "15/4 = 3,75"),
+    E("a15", 1, "Calcula " + I("−1", "3") + " 5 dx.", num("∫ =", 20),
+      ["Rectángulo de altura 5."], ["Base 3 − (−1) = 4, altura 5: 20. Con Barrow: [5x] = 15 + 5 = 20."], "20"),
+
+    // ---------------------------------------------------------------- ★★
+    E("b1", 2, "Calcula " + I("0", "1") + " x·eˣ dx.", num("∫ =", 1),
+      ["Por partes: u = x, dv = eˣdx."], ["[x eˣ − eˣ]<sub>0</sub><sup>1</sup> = (e − e) − (0 − 1) = 1."], "1"),
+    E("b2", 2, "Calcula " + I("1", "e") + " ln x dx.", num("∫ =", 1),
+      ["Por partes: u = ln x, dv = dx."], ["Primitiva x ln x − x. En e: e − e = 0; en 1: 0 − 1 = −1.", "0 − (−1) = 1."], "1"),
+    E("b3", 2, "Calcula " + I("0", "1") + " 2x/(x² + 1) dx.", num("∫ ≈", 0.693147),
+      ["El numerador es la derivada del denominador."], ["[ln(x² + 1)] entre 0 y 1 = ln 2 − ln 1 = ln 2."], "ln 2 ≈ 0,693"),
+    E("b4", 2, "Calcula " + I("0", "1") + " x√(x² + 1) dx.", num("∫ ≈", 0.609476),
+      ["t = x² + 1; los límites pasan a 1 y 2."], ["(1/2)∫<sub>1</sub><sup>2</sup> √t dt = (1/2)(2/3)[t<sup>3/2</sup>] = (1/3)(2√2 − 1)."], "(2√2 − 1)/3 ≈ 0,609"),
+    E("b5", 2, "Halla el área encerrada por y = x³ − x y el eje X.", num("Área =", 1 / 2),
+      ["Raíces −1, 0, 1: dos regiones."], ["Una es 1/4 y la otra 1/4 (simetría impar): ∫<sub>0</sub><sup>1</sup> (x³ − x) = −1/4.", "Área = 2·(1/4) = 1/2."], "1/2"),
+    E("b6", 2, "Halla el área entre y = x² − 4x + 3 y el eje X para x entre 0 y 3.", num("Área =", 8 / 3),
+      ["Raíces 1 y 3: parte en x = 1."], ["F = x³/3 − 2x² + 3x. F(0) = 0, F(1) = 4/3, F(3) = 0.", "|4/3| + |0 − 4/3| = 8/3."], "8/3 ≈ 2,667"),
+    E("b7", 2, "Halla el área encerrada por y = x² e y = x + 2.", num("Área =", 9 / 2),
+      ["Cortes: x² − x − 2 = 0."], ["x = −1 y x = 2; la recta va encima.", "∫<sub>−1</sub><sup>2</sup> (x + 2 − x²)dx = 9/2."], "9/2 = 4,5"),
+    E("b8", 2, "Halla el área entre y = sen x e y = cos x para x entre 0 y π/2.", num("Área ≈", 0.828427),
+      ["Se cruzan en π/4."], ["∫<sub>0</sub><sup>π/4</sup> (cos − sen) = √2 − 1 y ∫<sub>π/4</sub><sup>π/2</sup> (sen − cos) = √2 − 1.", "Suma: 2√2 − 2."], "2√2 − 2 ≈ 0,828"),
+    E("b9", 2, "Sea F(x) = " + I("0", "x²") + " e<sup>−t</sup> dt. Calcula F′(1).", num("F′(1) ≈", 0.735759),
+      ["Regla de la cadena: f(g(x))·g′(x)."], ["F′(x) = e<sup>−x²</sup>·2x.", "F′(1) = 2e<sup>−1</sup> = 2/e."], "2/e ≈ 0,736"),
+    E("b10", 2, "Sea F(x) = " + I("0", "x") + " (t² − 4t + 3)dt. Halla las abscisas de sus extremos relativos.", lista("x =", [1, 3]),
+      ["F′ = t² − 4t + 3 evaluada en x."], ["F′(x) = (x − 1)(x − 3).", "Ceros en 1 (máximo: de + a −) y 3 (mínimo)."], "x = 1 (máx) y x = 3 (mín)"),
+    E("b11", 2, "Calcula lím<sub>x→0</sub> " + I("0", "x") + " sen t dt / x².", num("Límite =", 0.5),
+      ["0/0: L'Hôpital."], ["Derivando: sen x/(2x) → 1/2."], "1/2"),
+    E("b12", 2, "Para f(x) = 3x² en [0, 2], halla el c del teorema del valor medio integral.", num("c ≈", 1.154701),
+      ["f(c) = μ = 8/2 = 4."], ["∫<sub>0</sub><sup>2</sup> 3x² = 8, μ = 4.", "3c² = 4 ⟹ c = 2/√3 ≈ 1,155."], "2/√3 ≈ 1,155"),
+    E("b13", 2, "Calcula " + I("0", "2") + " |x² − 1| dx.", num("∫ =", 2),
+      ["Parte en x = 1."], ["∫<sub>0</sub><sup>1</sup> (1 − x²) = 2/3 y ∫<sub>1</sub><sup>2</sup> (x² − 1) = 4/3.", "Suma: 2."], "2"),
+    E("b14", 2, "Calcula " + I("0", "1") + " dx/((x + 1)(x + 2)).", num("∫ ≈", 0.287682),
+      ["Fracciones simples."], ["1/(x + 1) − 1/(x + 2).", "[ln(x + 1) − ln(x + 2)] = (ln 2 − ln 3) + ln 2 = ln(4/3)."], "ln(4/3) ≈ 0,288"),
+    E("b15", 2, "Suma de punto medio de f(x) = x² en [0, 2] con n = 4 rectángulos.", num("Suma =", 2.625),
+      ["Δ = 0,5; puntos medios 0,25; 0,75; 1,25; 1,75."], ["Cuadrados: 0,0625 + 0,5625 + 1,5625 + 3,0625 = 5,25.", "5,25·0,5 = 2,625 (la integral exacta es 8/3 ≈ 2,667)."], "2,625"),
+    E("b16", 2, "Calcula " + I("0", "π") + " x sen x dx.", num("∫ ≈", 3.141593),
+      ["Por partes: u = x, dv = sen x dx."], ["[−x cos x] entre 0 y π = π·1 − 0 = π.", "Más ∫<sub>0</sub><sup>π</sup> cos x dx = [sen x] = 0. Resultado: π."], "π"),
+    E("b17", 2, "Halla el área encerrada entre y = x² e y = x³.", num("Área ≈", 0.083333),
+      ["Cortes en 0 y 1."], ["En (0, 1): x² ≥ x³.", "∫<sub>0</sub><sup>1</sup> (x² − x³) = 1/3 − 1/4 = 1/12."], "1/12 ≈ 0,0833"),
+    E("b18", 2, "Sin calcular a mano, " + I("−π", "π") + " x²·sen x dx vale", opcion("Valor", ["0", "π", "2π", "No se puede saber"], 0),
+      ["x² es par y sen x impar."], ["Producto par × impar = impar. La integral de una impar sobre un intervalo simétrico es 0."], "0"),
+
+    // ---------------------------------------------------------------- ★★★
+    E("c1", 3, "Sea F(x) = " + I("0", "x²") + " √(1 + t²) dt. Calcula F′(1).", num("F′(1) ≈", 2.828427),
+      ["Cadena: f(x²)·2x con f(t) = √(1 + t²)."], ["F′(x) = √(1 + x⁴)·2x.", "F′(1) = 2√2."], "2√2 ≈ 2,828"),
+    E("c2", 3, "Sea F(x) = " + I("0", "x") + " (t² − t − 2)dt. Halla el valor del mínimo relativo de F.", num("F(mín) ≈", -10 / 3),
+      ["F′(x) = x² − x − 2 = (x − 2)(x + 1): el mínimo está en x = 2."], ["Mínimo en x = 2 (F′ pasa de − a +).", "F(x) = x³/3 − x²/2 − 2x. F(2) = 8/3 − 2 − 4 = −10/3."], "−10/3 ≈ −3,333"),
+    E("c3", 3, "Calcula lím<sub>x→0</sub> " + I("0", "x") + " (1 − cos t)dt / x³.", num("Límite ≈", 1 / 6),
+      ["L'Hôpital con el teorema fundamental."], ["Primera: (1 − cos x)/(3x²), otra vez 0/0.", "Segunda: sen x/(6x) → 1/6."], "1/6 ≈ 0,1667"),
+    E("c4", 3, "Halla a &gt; 0 tal que " + I("0", "a") + " (3x² + 2x)dx = 12.", num("a =", 2),
+      ["Calcula la integral en función de a."], ["[x³ + x²]<sub>0</sub><sup>a</sup> = a³ + a² = 12.", "a = 2 cumple 8 + 4 = 12 (y a³ + a² − 12 = (a − 2)(a² + 3a + 6))."], "a = 2"),
+    E("c5", 3, "Halla el área limitada por y = x², su tangente en (2, 4) y el eje Y.", num("Área ≈", 8 / 3),
+      ["Tangente: y = 4x − 4."], ["La parábola está por encima de su tangente: x² − 4x + 4 = (x − 2)².", "∫<sub>0</sub><sup>2</sup> (x − 2)²dx = [(x − 2)³/3]<sub>0</sub><sup>2</sup> = 8/3."], "8/3 ≈ 2,667"),
+    E("c6", 3, "Halla el área encerrada por x = y² y x = 3 − 2y (integra respecto de y).", num("Área ≈", 32 / 3),
+      ["Cortes: y² = 3 − 2y."], ["y² + 2y − 3 = 0 ⟹ y = −3 y y = 1. La recta (x = 3 − 2y) está a la derecha.", "∫<sub>−3</sub><sup>1</sup> (3 − 2y − y²)dy = [3y − y² − y³/3] = 5/3 + 9 = 32/3."], "32/3 ≈ 10,667"),
+    E("c7", 3, "Halla el área limitada por y = eˣ, y = e<sup>−x</sup> y la recta x = 1.", num("Área ≈", 1.086161),
+      ["Se cortan en x = 0."], ["Entre 0 y 1, eˣ ≥ e<sup>−x</sup>.", "∫<sub>0</sub><sup>1</sup> (eˣ − e<sup>−x</sup>)dx = [eˣ + e<sup>−x</sup>] = (e + 1/e) − 2."], "e + 1/e − 2 ≈ 1,086"),
+    E("c8", 3, "Halla el área limitada por y = 1/x, y = 1/x² y x = e (a la derecha del corte).", num("Área ≈", 0.367879),
+      ["Cortes: 1/x = 1/x² ⟹ x = 1."], ["En (1, e): 1/x ≥ 1/x².", "[ln x + 1/x] entre 1 y e = (1 + 1/e) − 1 = 1/e."], "1/e ≈ 0,368"),
+    E("c9", 3, "Halla a &gt; 0 para que el área encerrada por y = x² e y = ax sea 9/2.", num("a =", 3),
+      ["Cortes en 0 y a."], ["∫<sub>0</sub><sup>a</sup> (ax − x²)dx = a³/2 − a³/3 = a³/6.", "a³/6 = 9/2 ⟹ a³ = 27 ⟹ a = 3."], "a = 3"),
+    E("c10", 3, "Calcula " + I("0", "1") + " x²·eˣ dx.", num("∫ ≈", 0.718282),
+      ["Por partes dos veces."], ["∫x²eˣ = x²eˣ − 2∫x eˣ = x²eˣ − 2(x − 1)eˣ = (x² − 2x + 2)eˣ.", "En 1: e; en 0: 2. Resultado e − 2."], "e − 2 ≈ 0,718"),
+    E("c11", 3, "Para f(x) = ln x en [1, e], halla el c del teorema del valor medio integral.", num("c ≈", 1.789634),
+      ["f(c) = μ = (1/(e − 1))∫ ln x."], ["∫<sub>1</sub><sup>e</sup> ln x dx = 1, μ = 1/(e − 1) ≈ 0,582.", "ln c = 1/(e − 1) ⟹ c = e<sup>1/(e − 1)</sup> ≈ 1,790."], "c ≈ 1,790"),
+    E("c12", 3, "Calcula " + I("0", "3") + " |x² − 2x| dx.", num("∫ ≈", 8 / 3),
+      ["Raíces 0 y 2: parte en x = 2."], ["∫<sub>0</sub><sup>2</sup> (2x − x²) = 4/3 y ∫<sub>2</sub><sup>3</sup> (x² − 2x) = 4/3.", "Suma 8/3."], "8/3 ≈ 2,667"),
+    E("c13", 3, "Sea G(x) = " + I("x", "x²") + " dt/(1 + t²). Calcula G′(1).", num("G′(1) =", 0.5),
+      ["G′ = f(x²)·2x − f(x)."], ["f(t) = 1/(1 + t²). G′(x) = 2x/(1 + x⁴) − 1/(1 + x²).", "G′(1) = 2/2 − 1/2 = 1/2."], "1/2"),
+    E("c14", 3, "Calcula lím<sub>n→∞</sub> (1/n)·Σ<sub>k=1</sub><sup>n</sup> √(k/n).", num("Límite ≈", 2 / 3),
+      ["Es una suma de Riemann derecha en [0, 1]."], ["Δ = 1/n, x<sub>k</sub> = k/n: la suma es la derecha de √x en [0, 1].", "Límite = ∫<sub>0</sub><sup>1</sup> √x dx = 2/3."], "2/3"),
+    E("c15", 3, "Halla el área limitada por y = |x| e y = 2 − x².", num("Área ≈", 7 / 3),
+      ["Cortes en x = ±1; simetría."], ["Para x ≥ 0: x = 2 − x² ⟹ x = 1. La parábola va encima.", "Área = 2∫<sub>0</sub><sup>1</sup> (2 − x² − x)dx = 2(2 − 1/3 − 1/2) = 7/3."], "7/3 ≈ 2,333"),
+    E("c16", 3, "Calcula " + I("0", "ln 2") + " eˣ/(1 + eˣ) dx.", num("∫ ≈", 0.405465),
+      ["El numerador es la derivada del denominador."], ["[ln(1 + eˣ)] entre 0 y ln 2 = ln 3 − ln 2.", "= ln(3/2)."], "ln(3/2) ≈ 0,405")
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Integral definida: lo esencial", ancha: true,
+      tabla: { cab: ["Idea", "Fórmula"], filas: [
+        ["Definición", "∫<sub>a</sub><sup>b</sup> f = lím (b − a)/n · Σ f(x*<sub>i</sub>)"],
+        ["Barrow", "∫<sub>a</sub><sup>b</sup> f = F(b) − F(a)"],
+        ["Aditiva / invertir", "∫<sub>a</sub><sup>b</sup> = ∫<sub>a</sub><sup>c</sup> + ∫<sub>c</sub><sup>b</sup> · ∫<sub>b</sub><sup>a</sup> = −∫<sub>a</sub><sup>b</sup>"],
+        ["Simetrías", "par: 2∫<sub>0</sub><sup>a</sup> · impar: 0"],
+        ["Valor medio", "μ = (1/(b − a))∫<sub>a</sub><sup>b</sup> f"]
+      ] } },
+    { titulo: "Áreas: receta", ancha: true,
+      pasos: ["Esbozo (o estudio del signo).", "Ceros de f (o cortes f = g) dentro de [a, b].", "Un Barrow por trozo: ∫(arriba − abajo).", "Suma de valores absolutos.", "Un área nunca sale negativa."],
+      nota: "La integral neta y el área solo coinciden si no hay cambio de signo." },
+    { titulo: "Teorema fundamental", ancha: true,
+      tabla: { cab: ["F(x) =", "F′(x) ="], filas: [
+        ["∫<sub>a</sub><sup>x</sup> f(t)dt", "f(x)"],
+        ["∫<sub>a</sub><sup>g(x)</sup> f(t)dt", "f(g(x))·g′(x)"],
+        ["∫<sub>h(x)</sub><sup>g(x)</sup> f(t)dt", "f(g)·g′ − f(h)·h′"],
+        ["∫<sub>x</sub><sup>a</sup> f(t)dt", "−f(x)"]
+      ] },
+      nota: "Con F′ = integrando se estudian crecimiento y extremos de F sin integrar." },
+    { titulo: "Teoremas del valor medio",
+      tabla: { cab: ["Teorema", "Dice"], filas: [
+        ["Integral", "f(c) = (1/(b − a))∫<sub>a</sub><sup>b</sup> f"],
+        ["Derivativo (Lagrange)", "f′(c) = (f(b) − f(a))/(b − a)"]
+      ] },
+      nota: "Ambos garantizan al menos un c, no uno solo." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Llamar área a ∫ f cuando f cambia de signo", bien: "Parte en los ceros y suma |trozos|", por: "La integral neta compensa positivos con negativos." },
+        { mal: "Poner +C en una integral definida", bien: "La constante se cancela", por: "(F(b) + C) − (F(a) + C) = F(b) − F(a)." },
+        { mal: "(∫<sub>0</sub><sup>x²</sup> f)′ = f(x²)", bien: "f(x²)·2x", por: "Regla de la cadena con g′." },
+        { mal: "Aplicar Barrow con una asíntota en [a, b]", bien: "Comprobar continuidad", por: "∫<sub>−1</sub><sup>1</sup> dx/x² no vale −2." },
+        { mal: "Deshacer el cambio de variable al final", bien: "Con los límites nuevos ya es un número", por: "Se cambian límites y no se vuelve a x." },
+        { mal: "Valor medio = integral", bien: "Dividir entre b − a", por: "μ es la altura del rectángulo equivalente." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t12", {
+    resumen: resumen, secciones: B.parte.m2t12a.secciones, nuevas: nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
