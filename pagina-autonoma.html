@@ -12758,6 +12758,342 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 6 (Problemas métricos)
+   met_3d  (vista 3D girable: proyección y simétrico de un punto sobre un plano o una recta; perpendicular común de dos rectas que se cruzan)
+   met_calc (calculadora paso a paso: ángulos y distancias)
+   La geometría de B.lab.met se verifica aparte con sympy (herramientas/verificar_mates2_t6.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  B.lab = B.lab || {};
+  var G = B.lab.met = {};
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("mt6-estilos")) return;
+    var s = document.createElement("style"); s.id = "mt6-estilos";
+    s.textContent =
+      ".mt6-vec{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:6px 0}" +
+      ".mt6-vec .mt6-nom{font:700 16px var(--math);min-width:2.2em}" +
+      ".mt6-vec input[type=number]{width:62px;padding:5px 6px;font:15px var(--math);border:1px solid var(--line,rgba(128,128,128,.4));border-radius:8px;background:var(--sheet-2);color:var(--ink)}" +
+      ".mt6-pasos{margin:8px 0 0;padding:0;list-style:none;font-size:14.5px;line-height:1.55}" +
+      ".mt6-pasos li{padding:5px 0;border-top:1px solid var(--line,rgba(128,128,128,.25))}" +
+      ".mt6-pasos li>b:first-child{display:block;font-size:12px;color:var(--ink-faint);font-weight:600}" +
+      ".mt6-ok{color:var(--ok);font-weight:700}.mt6-mal{color:var(--red);font-weight:700}" +
+      ".mt6-svg{touch-action:pan-y;cursor:grab}" +
+      "@media(max-width:520px){.mt6-vec input[type=number]{width:52px}.mt6-pasos{font-size:13.5px}}";
+    document.head.appendChild(s);
+  })();
+
+  // ---------- álgebra ----------
+  function n2(x) { return fmt(Math.round(x * 1e9) / 1e9, 2).replace(/,00$/, "").replace(/(,\d)0$/, "$1"); }
+  function par(n) { return n < 0 ? "(−" + n2(-n) + ")" : n2(n); }
+  var sub = G.sub = function (a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; };
+  var add = G.add = function (a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; };
+  var esc = G.esc = function (k, a) { return [k * a[0], k * a[1], k * a[2]]; };
+  var dot = G.dot = function (a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; };
+  var cruz = G.cruz = function (a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; };
+  var mod = G.mod = function (a) { return Math.sqrt(dot(a, a)); };
+  function vtxt(a) { return "(" + a.map(n2).join(", ") + ")"; }
+  function aDeg(r) { return r * 180 / Math.PI; }
+  // √n con n entero: a√b simplificado
+  function raiz(n) {
+    if (Math.abs(n - Math.round(n)) > 1e-9) return "√" + n2(n);
+    n = Math.round(n); if (n === 0) return "0";
+    var a = 1, b = n;
+    for (var f = 2; f * f <= b; f++) while (b % (f * f) === 0) { b /= f * f; a *= f; }
+    if (b === 1) return String(a);
+    return (a === 1 ? "" : a) + "√" + b;
+  }
+  function paralelos(a, b) { var c = cruz(a, b); return dot(c, c) < 1e-9 * Math.max(1, dot(a, a) * dot(b, b)); }
+
+  // ángulos (en grados): entre rectas y entre planos (coseno), entre recta y plano (seno)
+  G.angRectas = function (u, v) { return aDeg(Math.acos(Math.min(1, Math.abs(dot(u, v)) / (mod(u) * mod(v))))); };
+  G.angRectaPlano = function (v, n) { return aDeg(Math.asin(Math.min(1, Math.abs(dot(v, n)) / (mod(v) * mod(n))))); };
+  G.angPlanos = G.angRectas;
+  // plano: n = [A, B, C], D  (Ax + By + Cz + D = 0)
+  G.valPlano = function (P, n, D) { return dot(n, P) + D; };
+  G.distPuntoPlano = function (P, n, D) { return Math.abs(G.valPlano(P, n, D)) / mod(n); };
+  G.proyPlano = function (P, n, D) { return sub(P, esc(G.valPlano(P, n, D) / dot(n, n), n)); };
+  G.simPlano = function (P, n, D) { return sub(P, esc(2 * G.valPlano(P, n, D) / dot(n, n), n)); };
+  // recta: punto Q y director v
+  G.proyRecta = function (P, Q, v) { return add(Q, esc(dot(sub(P, Q), v) / dot(v, v), v)); };
+  G.simRecta = function (P, Q, v) { var F = G.proyRecta(P, Q, v); return sub(esc(2, F), P); };
+  G.distPuntoRecta = function (P, Q, v) { return mod(cruz(sub(P, Q), v)) / mod(v); };
+  // rectas que se cruzan: pies de la perpendicular común y distancia
+  G.cruzadas = function (Q1, u, Q2, v) {
+    var w = cruz(u, v);
+    if (dot(w, w) < 1e-9 * Math.max(1, dot(u, u) * dot(v, v))) return { par: true, d: G.distPuntoRecta(Q2, Q1, u) };
+    var d = sub(Q2, Q1), a = dot(u, u), b = dot(u, v), c = dot(v, v), det = b * b - a * c;
+    var t = (-c * dot(d, u) + b * dot(d, v)) / det, s = (a * dot(d, v) - b * dot(d, u)) / det;
+    var A = add(Q1, esc(t, u)), Bq = add(Q2, esc(s, v));
+    return { par: false, t: t, s: s, A: A, B: Bq, d: mod(sub(Bq, A)), dm: Math.abs(dot(d, w)) / mod(w), w: w };
+  };
+
+  // ============================================================
+  // VISTA 3D GIRABLE
+  // ============================================================
+  var PLANOS = [
+    { k: "0", t: "x + 2y − 2z − 6 = 0", n: [1, 2, -2], D: -6, P: [3, -1, 2] },
+    { k: "1", t: "z = 0", n: [0, 0, 1], D: 0, P: [2, 1, 3] },
+    { k: "2", t: "x + y + z − 3 = 0", n: [1, 1, 1], D: -3, P: [3, 2, 1] },
+    { k: "3", t: "2x − y + 2z − 3 = 0", n: [2, -1, 2], D: -3, P: [3, 0, 3] }
+  ];
+  var RECTAS = [
+    { k: "0", t: "r: (0, 1, 0) + t(1, 1, 2)", Q: [0, 1, 0], v: [1, 1, 2], P: [2, 1, 2] },
+    { k: "1", t: "r: eje Z", Q: [0, 0, 0], v: [0, 0, 1], P: [3, 1, 2] },
+    { k: "2", t: "r: (1, 0, 0) + t(0, 1, 1)", Q: [1, 0, 0], v: [0, 1, 1], P: [1, 2, 0] }
+  ];
+  var CRUZ = [
+    { k: "0", t: "Ejemplo", Q1: [-1, 1, 0], u: [2, 1, 0], Q2: [2, -1, 1], v: [0, 1, 1] },
+    { k: "1", t: "Perpendiculares", Q1: [0, 0, 0], u: [1, 0, 0], Q2: [0, 0, 2], v: [0, 1, 0] },
+    { k: "2", t: "Se cortan (no se cruzan)", Q1: [0, 0, 0], u: [1, 1, 0], Q2: [2, 0, 0], v: [-1, 1, 0] },
+    { k: "3", t: "Paralelas", Q1: [0, 0, 0], u: [1, 1, 0], Q2: [0, 0, 3], v: [1, 1, 0] }
+  ];
+  G.PRE3D = { plano: PLANOS, recta: RECTAS, cruz: CRUZ };
+
+  B.w.met_3d = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Distancias y proyecciones en 3D: gira la vista con el ratón o los deslizadores");
+    cuerpo.innerHTML = '<div data-modo></div><div data-pre></div><div class="w-plot"></div><div data-ctl></div><div data-ctl2></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var ref = host.getAttribute("data-ref") || "";
+    var modo0 = /recta$/.test(ref) ? "recta" : /cruz$/.test(ref) ? "cruz" : "plano";
+    var st = { modo: modo0, plano: PLANOS[0], recta: RECTAS[0], P: PLANOS[0].P.slice(), cr: JSON.parse(JSON.stringify(CRUZ[0])), h: 0, az: 35, el: 22 };
+    if (modo0 === "recta") st.P = RECTAS[0].P.slice();
+    var lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), plotEl = cuerpo.querySelector(".w-plot");
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), ctl2 = U.ctl(cuerpo.querySelector("[data-ctl2]"));
+    var g, sls = [], azS, elS;
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "plano", t: "Punto y plano" }, { k: "recta", t: "Punto y recta" }, { k: "cruz", t: "Dos rectas que se cruzan" }], st.modo, function (k) {
+      st.modo = k; if (k === "plano") st.P = st.plano.P.slice(); if (k === "recta") st.P = st.recta.P.slice();
+      armaPre(); armaSl(); pinta();
+    });
+    function armaPre() {
+      var lista = st.modo === "plano" ? PLANOS : st.modo === "recta" ? RECTAS : CRUZ;
+      U.fichas(cuerpo.querySelector("[data-pre]"), lista.map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) {
+        var p = lista[+k];
+        if (st.modo === "plano") { st.plano = p; st.P = p.P.slice(); }
+        else if (st.modo === "recta") { st.recta = p; st.P = p.P.slice(); }
+        else { st.cr = JSON.parse(JSON.stringify(p)); st.h = 0; }
+        sync(); pinta();
+      });
+    }
+    function sync() {
+      sls.forEach(function (o) { o.s.set(o.get()); });
+    }
+    function armaSl() {
+      ctl.innerHTML = ""; sls = [];
+      function nuevo(et, etq, min, max, get, set) {
+        var o = { get: get }; o.s = U.slider(ctl, { et: et, etq: etq, min: min, max: max, step: 1, val: get(), on: function (x) { set(x); pinta(); }, fmt: function (x) { return fmt(x, 0); } }); sls.push(o);
+      }
+      if (st.modo === "cruz") {
+        [0, 1, 2].forEach(function (i) { nuevo("s<sub>" + "xyz"[i] + "</sub>", "Componente " + "xyz"[i] + " del director de s", -3, 3, function () { return st.cr.v[i]; }, function (x) { st.cr.v[i] = x; }); });
+        nuevo("Altura s", "Altura de la recta s", -4, 4, function () { return st.h; }, function (x) { st.h = x; });
+      } else {
+        [0, 1, 2].forEach(function (i) { nuevo("P<sub>" + "xyz"[i] + "</sub>", "Coordenada " + "xyz"[i] + " del punto P", -5, 5, function () { return st.P[i]; }, function (x) { st.P[i] = x; }); });
+      }
+    }
+    azS = U.slider(ctl2, { et: "Giro", etq: "Giro horizontal de la vista", min: -180, max: 180, step: 5, val: st.az, on: function (x) { st.az = x; pinta(); }, fmt: function (x) { return fmt(x, 0) + "°"; } });
+    elS = U.slider(ctl2, { et: "Altura", etq: "Altura de la vista", min: -80, max: 80, step: 5, val: st.el, on: function (x) { st.el = x; pinta(); }, fmt: function (x) { return fmt(x, 0) + "°"; } });
+    U.boton(ctl2, "Vista inicial", function () { st.az = 35; st.el = 22; azS.set(35); elS.set(22); pinta(); });
+    g = new B.Plot(plotEl, { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 600, h: 400, limpio: true, etx: "", ety: "", etiqueta: "Vista tridimensional de puntos, rectas y planos" });
+    g.svg.classList.add("mt6-svg");
+    (function () {
+      var d = null;
+      g.svg.addEventListener("pointerdown", function (ev) { d = { x: ev.clientX, y: ev.clientY, az: st.az, el: st.el, t: ev.pointerType }; try { g.svg.setPointerCapture(ev.pointerId); } catch (e) {} });
+      g.svg.addEventListener("pointermove", function (ev) {
+        if (!d) return;
+        st.az = Math.round(Math.max(-180, Math.min(180, d.az + (ev.clientX - d.x) * 0.6)) / 5) * 5; azS.set(st.az);
+        if (d.t !== "touch") { st.el = Math.round(Math.max(-80, Math.min(80, d.el + (ev.clientY - d.y) * 0.4)) / 5) * 5; elS.set(st.el); }
+        pinta();
+      });
+      var fin = function () { d = null; };
+      g.svg.addEventListener("pointerup", fin); g.svg.addEventListener("pointercancel", fin);
+    })();
+
+    function proy(p) {
+      var a = st.az * Math.PI / 180, e = st.el * Math.PI / 180;
+      var xr = p[0] * Math.cos(a) - p[1] * Math.sin(a), yr = p[0] * Math.sin(a) + p[1] * Math.cos(a);
+      return [xr, p[2] * Math.cos(e) - yr * Math.sin(e), yr * Math.cos(e) + p[2] * Math.sin(e)];
+    }
+    function P2(p) { var q = proy(p); return [q[0], q[1]]; }
+    function seg(a, b, clase, dash) { var A = P2(a), Bq = P2(b); var s = g.segmento(A[0], A[1], Bq[0], Bq[1], { clase: clase || "c-faint" }); if (dash) s.setAttribute("stroke-dasharray", dash); return s; }
+    function pt(p, clase, nombre, dx, dy) { var q = P2(p); g.punto(q[0], q[1], { clase: clase, r: 5 }); if (nombre) g.texto(q[0], q[1], nombre, { dx: dx === undefined ? 8 : dx, dy: dy === undefined ? -8 : dy, clase: clase.replace("c-", "") }); }
+    function ejes() {
+      [[[3.5, 0, 0], "x"], [[0, 3.5, 0], "y"], [[0, 0, 3.5], "z"]].forEach(function (e) {
+        seg([0, 0, 0], e[0], "c-faint"); var q = P2(e[0]); g.texto(q[0], q[1], e[1], { dx: 5, dy: -4, clase: "faint" });
+      });
+    }
+    function ajusta(puntos) {
+      var m = 3.8;
+      puntos.forEach(function (p) { var q = P2(p); m = Math.max(m, Math.abs(q[1]) * 1.2, Math.abs(q[0]) * 1.2 * 400 / 600); });
+      g.rangoIso(0, 0, Math.ceil(m * 2) / 2);
+    }
+    // parche del plano alrededor de C
+    function parche(C, n, L, clase) {
+      var a = Math.abs(n[0]) <= Math.abs(n[1]) && Math.abs(n[0]) <= Math.abs(n[2]) ? [1, 0, 0] : Math.abs(n[1]) <= Math.abs(n[2]) ? [0, 1, 0] : [0, 0, 1];
+      var e1 = cruz(n, a); e1 = esc(L / mod(e1), e1); var e2 = cruz(n, e1); e2 = esc(L / mod(e2), e2);
+      var q = [add(add(C, e1), e2), sub(add(C, e2), e1), sub(sub(C, e1), e2), sub(add(C, e1), e2)];
+      g.poligono(q.map(P2), { clase: clase || "z-pen", borde: "var(--ink-faint)" });
+    }
+    function pinta() {
+      var lec = "", nota = "", P = st.P, O = [0, 0, 0];
+      if (st.modo === "plano") {
+        var pl = st.plano, n = pl.n, F = G.proyPlano(P, n, pl.D), S = G.simPlano(P, n, pl.D), d = G.distPuntoPlano(P, n, pl.D), val = G.valPlano(P, n, pl.D);
+        ajusta([P, F, S, [3.5, 0, 0], [0, 3.5, 0], [0, 0, 3.5]]);
+        g.limpiar(); ejes(); parche(F, n, 3.4);
+        seg(P, S, "c-ok", "5 4"); pt(P, "c-pen", "P"); pt(F, "c-ok", "P′", 8, 14); pt(S, "c-red", "P″");
+        lec = U.lec("Valor Ax + By + Cz + D en P", n2(val), val === 0 ? "ok" : "") + U.lec("Distancia d(P, π)", d < 1e-9 ? "0" : n2(Math.abs(val)) + " / " + raiz(dot(n, n)) + " ≈ " + n2(d)) +
+          U.lec("Proyección P′", vtxt(F), "ok") + U.lec("Simétrico P″", vtxt(S)) + U.lec("Normal n", vtxt(n));
+        nota = d < 1e-9 ? "P está <b>en el plano</b>: la distancia es 0 y P′ = P″ = P." :
+          "P′ (verde) es el pie de la perpendicular desde P: P′ = P − (valor/|n|²)·n. El simétrico P″ (rojo) está al otro lado a la <b>misma distancia</b>: P″ = 2P′ − P. El segmento P–P″ es paralelo a la normal.";
+      } else if (st.modo === "recta") {
+        var rr = st.recta, Q = rr.Q, v = rr.v, Fr = G.proyRecta(P, Q, v), Sr = G.simRecta(P, Q, v), dr = G.distPuntoRecta(P, Q, v), c = cruz(sub(P, Q), v);
+        ajusta([P, Fr, Sr, add(Q, esc(-3, esc(3.2 / mod(v), v))), add(Q, esc(3.2 / mod(v), esc(3, v))), [3.5, 0, 0], [0, 3.5, 0], [0, 0, 3.5]]);
+        g.limpiar(); ejes();
+        var k = 3.4 / mod(v); seg(add(Q, esc(-k, v)), add(Q, esc(k, v)), "c-pen");
+        seg(P, Sr, "c-ok", "5 4"); pt(P, "c-pen", "P"); pt(Fr, "c-ok", "P′", 8, 14); pt(Sr, "c-red", "P″"); pt(Q, "c-faint", "Q", 8, 14);
+        lec = U.lec("|QP × v|", dr < 1e-9 ? "0" : raiz(dot(c, c)) + " ≈ " + n2(mod(c))) + U.lec("|v|", raiz(dot(v, v)) + " ≈ " + n2(mod(v))) +
+          U.lec("Distancia d(P, r)", n2(dr), dr < 1e-9 ? "ok" : "") + U.lec("Proyección P′", vtxt(Fr), "ok") + U.lec("Simétrico P″", vtxt(Sr)) + U.lec("PP′ · v (debe ser 0)", n2(dot(sub(Fr, P), v)));
+        nota = dr < 1e-9 ? "P está <b>en la recta</b>: distancia 0 y P′ = P″ = P." : "P′ es el punto de la recta más cercano a P: PP′ es perpendicular a v (la última lectura vale 0). La distancia sale de |QP × v|/|v| (área del paralelogramo entre la base |v|).";
+      } else {
+        var c0 = st.cr, v2 = add(c0.v, [0, 0, 0]), Q2 = add(c0.Q2, [0, 0, st.h]);
+        var R = G.cruzadas(c0.Q1, c0.u, Q2, v2), ku = 3.2 / mod(c0.u), kv = mod(v2) > 0 ? 3.2 / mod(v2) : 0;
+        var pts = [add(c0.Q1, esc(ku, c0.u)), sub(c0.Q1, esc(ku, c0.u)), add(Q2, esc(kv, v2)), sub(Q2, esc(kv, v2)), [3.5, 0, 0], [0, 3.5, 0], [0, 0, 3.5]];
+        if (!R.par) pts.push(R.A, R.B);
+        ajusta(pts);
+        g.limpiar(); ejes();
+        seg(sub(c0.Q1, esc(ku, c0.u)), add(c0.Q1, esc(ku, c0.u)), "c-pen");
+        if (mod(v2) > 0) seg(sub(Q2, esc(kv, v2)), add(Q2, esc(kv, v2)), "c-red");
+        var q1 = P2(add(c0.Q1, esc(ku, c0.u))), q2 = P2(add(Q2, esc(kv, v2)));
+        g.texto(q1[0], q1[1], "r", { dx: 8, dy: -6, clase: "pen" }); g.texto(q2[0], q2[1], "s", { dx: 8, dy: -6, clase: "red" });
+        var w = cruz(c0.u, v2);
+        if (mod(v2) === 0) { lec = U.lec("Director de s", "(0, 0, 0)", "mal"); nota = "El director de s no puede ser el vector nulo: sube algún deslizador."; }
+        else if (R.par) {
+          lec = U.lec("u × v", "(0, 0, 0)", "mal") + U.lec("¿Se cruzan?", "no: son paralelas") + U.lec("Distancia entre las rectas", n2(R.d));
+          nota = "u y v son proporcionales: las rectas son <b>paralelas</b> (o coincidentes). La fórmula con el producto mixto no sirve (u × v = 0); la distancia es la de un punto de s a la recta r.";
+        } else {
+          seg(R.A, R.B, "c-ok"); pt(R.A, "c-ok", "A", 8, 14); pt(R.B, "c-ok", "B", 8, 14);
+          var mixto = dot(sub(Q2, c0.Q1), w);
+          lec = U.lec("u × v", vtxt(w)) + U.lec("[Q₁Q₂, u, v]", n2(mixto), Math.abs(mixto) < 1e-9 ? "mal" : "ok") + U.lec("d = |[Q₁Q₂, u, v]| / |u × v|", n2(R.dm), Math.abs(mixto) < 1e-9 ? "mal" : "ok") +
+            U.lec("Pie A en r", vtxt(R.A)) + U.lec("Pie B en s", vtxt(R.B)) + U.lec("|AB| (debe coincidir)", n2(R.d));
+          nota = Math.abs(mixto) < 1e-9 ? "El producto mixto vale 0: las rectas son <b>coplanarias</b> (se cortan) y la distancia es 0. No se cruzan."
+            : "El segmento verde AB es la <b>perpendicular común</b>: perpendicular a u y a v, y su longitud es la distancia mínima. Es paralelo a u × v. Mueve la altura de s y mira cómo cambia el volumen del producto mixto.";
+        }
+      }
+      lectura.innerHTML = lec; pie.innerHTML = nota;
+    }
+    armaPre(); armaSl(); pinta();
+  };
+
+  // ============================================================
+  // CALCULADORA DE ÁNGULOS Y DISTANCIAS, paso a paso
+  // ============================================================
+  var MODOS = [
+    { k: "rr", t: "Ángulo entre rectas", campos: [["u", 3], ["v", 3]], pres: [[[1, 1, 0], [0, 1, 1]], [[2, -1, 2], [1, 2, 2]]] },
+    { k: "rp", t: "Ángulo recta-plano", campos: [["v", 3], ["n", 3]], pres: [[[1, 0, 1], [1, 1, 0]], [[1, -2, 2], [2, 3, 6]]] },
+    { k: "pp", t: "Ángulo entre planos", campos: [["n₁", 3], ["n₂", 3]], pres: [[[1, 2, -2], [0, 3, 4]], [[1, 1, 1], [1, -1, 0]]] },
+    { k: "pP", t: "Punto a plano", campos: [["P", 3], ["π", 4]], pres: [[[3, -1, 2], [1, 2, -2, -6]], [[1, 1, 1], [2, 2, 1, -3]]] },
+    { k: "Pr", t: "Punto a recta", campos: [["P", 3], ["Q", 3], ["v", 3]], pres: [[[2, 1, 2], [0, 1, 0], [1, 1, 2]], [[1, 2, -1], [0, 1, 0], [1, 1, 2]]] },
+    { k: "rs", t: "Entre dos rectas", campos: [["Q₁", 3], ["u", 3], ["Q₂", 3], ["v", 3]], pres: [[[-1, 1, 0], [2, 1, 0], [2, -1, 1], [0, 1, 1]], [[0, 0, 0], [1, 1, 0], [0, 0, 3], [1, 1, 0]]] }
+  ];
+  G.MODOS = MODOS;
+
+  // Calcula los pasos y las lecturas de un modo (se usa también desde la verificación)
+  G.calcula = function (k, a) {
+    var L = [], lec = [], res = {};
+    function paso(t, h) { L.push("<li><b>" + t + "</b>" + h + "</li>"); }
+    function eq(n) { var r = raiz(n); return Math.abs(n - Math.round(n)) < 1e-9 && r !== "√" + Math.round(n) ? " = " + r : ""; }
+    if (k === "rr" || k === "pp") {
+      var u = a[0], v = a[1], nm = k === "rr" ? ["u", "v"] : ["n₁", "n₂"], d = dot(u, v);
+      paso("Producto escalar", nm[0] + "·" + nm[1] + " = " + [0, 1, 2].map(function (i) { return par(u[i]) + "·" + par(v[i]); }).join(" + ") + " = <b>" + n2(d) + "</b>");
+      paso("Módulos", "|" + nm[0] + "| = √" + n2(dot(u, u)) + eq(dot(u, u)) + " · |" + nm[1] + "| = √" + n2(dot(v, v)) + eq(dot(v, v)));
+      if (mod(u) > 0 && mod(v) > 0) {
+        var c = Math.abs(d) / (mod(u) * mod(v)), al = G.angRectas(u, v);
+        paso("Coseno (con valor absoluto)", "cos α = |" + n2(d) + "| / (" + n2(mod(u)) + "·" + n2(mod(v)) + ") ≈ " + n2(c));
+        paso("Ángulo", "α = arccos(" + n2(c) + ") ≈ <b>" + n2(al) + "°</b>" + (Math.abs(d) < 1e-9 ? ' <span class="mt6-ok">(perpendiculares)</span>' : paralelos(u, v) ? ' <span class="mt6-ok">(paralelos)</span>' : ""));
+        res.ang = al; lec.push(U.lec("cos α", n2(c)), U.lec("α", n2(al) + "°", Math.abs(d) < 1e-9 ? "ok" : ""));
+      } else paso("Aviso", '<span class="mt6-mal">hay un vector nulo</span>');
+    } else if (k === "rp") {
+      var v1 = a[0], n1 = a[1], d1 = dot(v1, n1);
+      paso("Producto escalar", "v·n = " + [0, 1, 2].map(function (i) { return par(v1[i]) + "·" + par(n1[i]); }).join(" + ") + " = <b>" + n2(d1) + "</b>");
+      paso("Módulos", "|v| = √" + n2(dot(v1, v1)) + eq(dot(v1, v1)) + " · |n| = √" + n2(dot(n1, n1)) + eq(dot(n1, n1)));
+      if (mod(v1) > 0 && mod(n1) > 0) {
+        var s = Math.abs(d1) / (mod(v1) * mod(n1)), al1 = G.angRectaPlano(v1, n1);
+        paso("SENO (no coseno)", "sen α = |" + n2(d1) + "| / (" + n2(mod(v1)) + "·" + n2(mod(n1)) + ") ≈ " + n2(s));
+        paso("Ángulo", "α = arcsen(" + n2(s) + ") ≈ <b>" + n2(al1) + "°</b>" + (Math.abs(d1) < 1e-9 ? ' <span class="mt6-ok">(recta paralela al plano)</span>' : paralelos(v1, n1) ? ' <span class="mt6-ok">(recta perpendicular al plano)</span>' : ""));
+        res.ang = al1; lec.push(U.lec("sen α", n2(s)), U.lec("α", n2(al1) + "°", Math.abs(d1) < 1e-9 ? "ok" : ""));
+      } else paso("Aviso", '<span class="mt6-mal">hay un vector nulo</span>');
+    } else if (k === "pP") {
+      var P = a[0], pl = a[1], nn = pl.slice(0, 3), D = pl[3], val = G.valPlano(P, nn, D);
+      paso("Numerador", "A·p₁ + B·p₂ + C·p₃ + D = " + [0, 1, 2].map(function (i) { return par(nn[i]) + "·" + par(P[i]); }).join(" + ") + " + " + par(D) + " = <b>" + n2(val) + "</b>");
+      paso("Denominador", "√(A² + B² + C²) = √" + n2(dot(nn, nn)) + eq(dot(nn, nn)) + " ≈ " + n2(mod(nn)));
+      if (mod(nn) > 0) {
+        var dd = G.distPuntoPlano(P, nn, D);
+        paso("Distancia", "d(P, π) = |" + n2(val) + "| / " + n2(mod(nn)) + " = <b>" + n2(dd) + "</b>" + (dd < 1e-9 ? ' <span class="mt6-ok">(P está en el plano)</span>' : ""));
+        var F = G.proyPlano(P, nn, D), S = G.simPlano(P, nn, D);
+        paso("Proyección y simétrico", "P′ = P − (valor/|n|²)·n = " + vtxt(F) + " · P″ = 2P′ − P = " + vtxt(S));
+        res.d = dd; lec.push(U.lec("Distancia", n2(dd), dd < 1e-9 ? "ok" : ""), U.lec("Proyección P′", vtxt(F)), U.lec("Simétrico P″", vtxt(S)));
+      } else paso("Aviso", '<span class="mt6-mal">(A, B, C) = (0, 0, 0) no es un plano</span>');
+    } else if (k === "Pr") {
+      var P2_ = a[0], Q = a[1], vv = a[2], QP = sub(P2_, Q), cc = cruz(QP, vv);
+      paso("Vector QP", "QP = P − Q = " + vtxt(QP));
+      paso("Producto vectorial", "QP × v = " + vtxt(cc) + " · |QP × v| = √" + n2(dot(cc, cc)) + eq(dot(cc, cc)) + " ≈ " + n2(mod(cc)));
+      if (mod(vv) > 0) {
+        var dr = G.distPuntoRecta(P2_, Q, vv);
+        paso("Distancia", "d(P, r) = |QP × v| / |v| = " + n2(mod(cc)) + " / " + n2(mod(vv)) + " = <b>" + n2(dr) + "</b>" + (dr < 1e-9 ? ' <span class="mt6-ok">(P está en la recta)</span>' : ""));
+        var Fr = G.proyRecta(P2_, Q, vv), Sr = G.simRecta(P2_, Q, vv);
+        paso("Proyección y simétrico", "P′ = Q + (QP·v/|v|²)·v = " + vtxt(Fr) + " · P″ = 2P′ − P = " + vtxt(Sr));
+        res.d = dr; lec.push(U.lec("Distancia", n2(dr), dr < 1e-9 ? "ok" : ""), U.lec("Proyección P′", vtxt(Fr)), U.lec("Simétrico P″", vtxt(Sr)));
+      } else paso("Aviso", '<span class="mt6-mal">el director es nulo</span>');
+    } else {
+      var Q1 = a[0], uu = a[1], Q2 = a[2], vw = a[3], w = cruz(uu, vw), Q1Q2 = sub(Q2, Q1);
+      paso("Vector entre los puntos", "Q₁Q₂ = " + vtxt(Q1Q2));
+      paso("Producto vectorial", "u × v = " + vtxt(w) + " · |u × v| = " + (dot(w, w) < 1e-9 ? "0" : raiz(dot(w, w)) + " ≈ " + n2(mod(w))));
+      if (dot(w, w) < 1e-9 * Math.max(1, dot(uu, uu) * dot(vw, vw))) {
+        var dp = G.distPuntoRecta(Q2, Q1, uu);
+        paso("Son paralelas", "u y v son proporcionales: la fórmula del producto mixto no vale. Distancia = d(Q₂, r) = |Q₁Q₂ × u|/|u| = <b>" + n2(dp) + "</b>" + (dp < 1e-9 ? ' <span class="mt6-ok">(coincidentes)</span>' : ""));
+        res.d = dp; res.tipo = "paralelas"; lec.push(U.lec("Posición", dp < 1e-9 ? "coincidentes" : "paralelas"), U.lec("Distancia", n2(dp)));
+      } else {
+        var mx = dot(Q1Q2, w);
+        paso("Producto mixto", "[Q₁Q₂, u, v] = Q₁Q₂·(u × v) = <b>" + n2(mx) + "</b>" + (Math.abs(mx) < 1e-9 ? ' <span class="mt6-mal">= 0: las rectas se cortan (coplanarias)</span>' : ' <span class="mt6-ok">≠ 0: se cruzan</span>'));
+        var R = G.cruzadas(Q1, uu, Q2, vw);
+        paso("Distancia", "d = |" + n2(mx) + "| / " + n2(mod(w)) + " = <b>" + n2(R.dm) + "</b>");
+        paso("Perpendicular común", "pies A = Q₁ + t·u = " + vtxt(R.A) + " (t = " + n2(R.t) + ") y B = Q₂ + s·v = " + vtxt(R.B) + " (s = " + n2(R.s) + "); |AB| = " + n2(R.d));
+        res.d = R.dm; res.tipo = Math.abs(mx) < 1e-9 ? "secantes" : "cruzan"; lec.push(U.lec("Posición", Math.abs(mx) < 1e-9 ? "se cortan" : "se cruzan", Math.abs(mx) < 1e-9 ? "mal" : "ok"), U.lec("Distancia", n2(R.dm)), U.lec("Pie A", vtxt(R.A)), U.lec("Pie B", vtxt(R.B)));
+      }
+    }
+    return { pasos: L.join(""), lec: lec.join(""), res: res };
+  };
+
+  B.w.met_calc = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Calculadora: ángulos y distancias paso a paso");
+    cuerpo.innerHTML = '<div data-modo></div><div data-pre></div><div data-campos></div><div class="lectura anch"></div><ul class="mt6-pasos"></ul><p class="w-pie"></p>';
+    var st = { k: "rr", vals: [], pre: 0 };
+    var camposEl = cuerpo.querySelector("[data-campos]"), lec = cuerpo.querySelector(".lectura"), pasos = cuerpo.querySelector(".mt6-pasos"), pie = cuerpo.querySelector(".w-pie");
+    function modo() { return MODOS.filter(function (m) { return m.k === st.k; })[0]; }
+    function carga(i) { st.pre = i; st.vals = modo().pres[i].map(function (v) { return v.slice(); }); armaCampos(); pinta(); }
+    function armaCampos() {
+      var m = modo();
+      camposEl.innerHTML = m.campos.map(function (c, j) {
+        return '<div class="mt6-vec"><span class="mt6-nom">' + c[0] + ' =</span>' + (function () { var s = ""; for (var i = 0; i < c[1]; i++) s += '<input type="number" step="any" data-j="' + j + '" data-i="' + i + '" value="' + st.vals[j][i] + '" aria-label="Componente ' + (i + 1) + ' de ' + c[0] + '">'; return s; })() +
+          (c[1] === 4 ? '<span class="mt6-nom">= 0</span>' : "") + "</div>";
+      }).join("");
+      Array.prototype.forEach.call(camposEl.querySelectorAll("input"), function (inp) {
+        inp.addEventListener("input", function () { var x = parseFloat(String(inp.value).replace(",", ".")); st.vals[+inp.getAttribute("data-j")][+inp.getAttribute("data-i")] = isFinite(x) ? x : 0; pinta(); });
+      });
+      U.fichas(cuerpo.querySelector("[data-pre]"), m.pres.map(function (p, i) { return { k: String(i), t: "Ejemplo " + (i + 1) }; }), String(st.pre), function (k) { carga(+k); });
+    }
+    U.fichas(cuerpo.querySelector("[data-modo]"), MODOS.map(function (m) { return { k: m.k, t: m.t }; }), st.k, function (k) { st.k = k; carga(0); });
+    function pinta() {
+      var r = G.calcula(st.k, st.vals);
+      pasos.innerHTML = r.pasos; lec.innerHTML = r.lec;
+      pie.innerHTML = st.k === "rp" ? "Recuerda: con recta y plano se usa el <b>seno</b>; con rectas entre sí o planos entre sí, el coseno. Siempre con valor absoluto." :
+        st.k === "pP" ? "El plano se escribe como Ax + By + Cz + D = 0: la cuarta casilla es D." : "Escribe tus propios datos (admite decimales) y compara con tu resolución a mano.";
+    }
+    carga(0);
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · mecánica I (Física y Química 1.º, tema 8: cinemática)
    motor B.lab.mec1 + f8_movil · f8_encuentro · f8_graficas · f8_caida
    ============================================================ */
@@ -54952,6 +55288,618 @@
 
   B.registrar("mates2", "t5", {
     resumen: resumen, secciones: B.parte.m2t5a.secciones, nuevas: B.parte.m2t5b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 6: Problemas métricos
+   (parte A: se añade al final de las seis secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Ángulo entre dos rectas
+  secciones[0] =
+    "<h5>De dónde sale la fórmula y qué vectores usar</h5>" +
+    "<p>El ángulo entre dos rectas es el ángulo entre sus <b>vectores directores</b>. Dos vectores forman dos ángulos suplementarios según el sentido que elijas (α y 180° − α); como una recta no tiene sentido, nos quedamos siempre con el <b>agudo</b>, y por eso el producto escalar lleva valor absoluto. El resultado está siempre entre 0° (paralelas) y 90° (perpendiculares).</p>" +
+    "<p>Lo primero es sacar bien el vector director, según cómo te den la recta:</p>" +
+    "<ul>" +
+    "<li><b>Paramétricas o continua</b> x = x₀ + at, … o (x − x₀)/a = …: el director es (a, b, c), los números que multiplican a t o están en los denominadores.</li>" +
+    "<li><b>Dos puntos A y B</b>: el director es AB = B − A.</li>" +
+    "<li><b>Como intersección de dos planos</b> (forma implícita): el director es el producto vectorial de las normales, v = n₁ × n₂.</li>" +
+    "</ul>" +
+    ejemplo("Una recta dada como intersección de planos",
+      "Calcula el ángulo entre r: (x − 1)/2 = (y + 1)/(−1) = z/2 y s: x + y = 1, y + z = 2.",
+      ["Director de r: u = (2, −1, 2), de módulo √(4 + 1 + 4) = 3.",
+       "Director de s: producto vectorial de las normales (1, 1, 0) y (0, 1, 1): v = (1·1 − 0·1, 0·0 − 1·1, 1·1 − 1·0) = (1, −1, 1), de módulo √3.",
+       "u·v = 2·1 + (−1)(−1) + 2·1 = 5.",
+       "cos α = |5| / (3·√3) = 5/(3√3) = 5√3/9 ≈ 0,9623 ⟹ <b>α ≈ 15,79°</b>."]) +
+    "<h5>Paralelas y perpendiculares: las dos condiciones que más se preguntan</h5>" +
+    "<div class='formula-wrap'><div class='formula'>r ∥ s ⟺ u y v proporcionales (u × v = 0) &nbsp;&nbsp;·&nbsp;&nbsp; r ⟂ s ⟺ u·v = 0</div></div>" +
+    ojo("«Perpendiculares» en el espacio quiere decir que los directores son perpendiculares: las rectas pueden cortarse <b>o cruzarse</b> (la x y la y de los ejes, por ejemplo, se cortan; una horizontal y una vertical en habitaciones distintas, no). Para saber si además se cortan hay que estudiar la posición relativa del tema 5.") +
+    ejemplo("Un parámetro para que sean perpendiculares",
+      "(EvAU) Halla m para que las rectas de directores u = (1, m, 2) y v = (m, −3, 1) sean perpendiculares.",
+      ["u·v = 1·m + m·(−3) + 2·1 = m − 3m + 2 = 2 − 2m.",
+       "u·v = 0 ⟹ 2 − 2m = 0 ⟹ <b>m = 1</b>.",
+       "Comprobación: u = (1, 1, 2), v = (1, −3, 1): 1 − 3 + 2 = 0 ✓."]);
+
+  // ---------------------------------------------------------------- 2. Ángulo recta-plano
+  secciones[1] =
+    "<h5>Por qué seno y no coseno</h5>" +
+    "<p>El vector normal n es perpendicular al plano. Si el ángulo entre la recta y la normal es β, el ángulo entre la recta y el plano es el complementario, α = 90° − β, y como sen α = cos β, basta calcular el coseno con la normal pero <b>llamarlo seno</b>. Es decir: la fórmula es la del producto escalar de siempre, y lo único que cambia es la función que despejas.</p>" +
+    "<div class='formula-wrap'><div class='formula'>sen α = |v·n| / (|v|·|n|) &nbsp;⟹&nbsp; α = arcsen( |v·n| / (|v|·|n|) ) &nbsp;&nbsp;(0° ≤ α ≤ 90°)</div></div>" +
+    ejemplo("Ángulo entre una recta y un plano",
+      "Halla el ángulo que forma la recta r de director v = (1, −2, 2) con el plano π: 2x + 3y + 6z − 1 = 0.",
+      ["Normal del plano: n = (2, 3, 6), |n| = √(4 + 9 + 36) = 7. Director: |v| = √(1 + 4 + 4) = 3.",
+       "v·n = 1·2 + (−2)·3 + 2·6 = 2 − 6 + 12 = 8.",
+       "sen α = 8/(3·7) = 8/21 ≈ 0,3810 ⟹ <b>α ≈ 22,39°</b>.",
+       "Si hubieras usado coseno saldría arccos(8/21) ≈ 67,61°: el ángulo con la normal, no con el plano."]) +
+    "<h5>Los dos casos extremos</h5>" +
+    "<ul>" +
+    "<li><b>Recta paralela al plano</b> (o contenida en él): v ⟂ n, es decir, v·n = 0 (sen α = 0, α = 0°). Para distinguir «paralela» de «contenida» se mira si un punto de la recta cumple la ecuación del plano.</li>" +
+    "<li><b>Recta perpendicular al plano</b>: v ∥ n (proporcionales), sen α = 1, α = 90°.</li>" +
+    "</ul>" +
+    ejemplo("Recta paralela a un plano",
+      "Halla m para que la recta de director v = (2, m, 1) sea paralela al plano π: 3x + y − z = 2.",
+      ["n = (3, 1, −1). Paralela ⟺ v·n = 0.",
+       "v·n = 6 + m − 1 = m + 5 = 0 ⟹ <b>m = −5</b>.",
+       "Para que además no esté contenida en π habría que comprobar que algún punto de la recta no cumple 3x + y − z = 2."]);
+
+  // ---------------------------------------------------------------- 3. Ángulo entre planos
+  secciones[2] =
+    "<h5>El ángulo entre planos es el de sus normales</h5>" +
+    "<p>Dos planos que se cortan forman cuatro ángulos diedros (dos agudos iguales y dos obtusos iguales); se toma el agudo, y es el mismo que forman sus normales. Con las ecuaciones generales Ax + By + Cz + D = 0 basta leer los coeficientes (A, B, C): el término independiente D no interviene.</p>" +
+    ejemplo("Ángulo entre dos planos",
+      "Calcula el ángulo entre π₁: x + 2y − 2z = 3 y π₂: 3y + 4z + 5 = 0.",
+      ["n₁ = (1, 2, −2), |n₁| = 3. n₂ = (0, 3, 4), |n₂| = 5.",
+       "n₁·n₂ = 0 + 6 − 8 = −2.",
+       "cos α = |−2|/(3·5) = 2/15 ≈ 0,1333 ⟹ <b>α ≈ 82,34°</b>."]) +
+    "<ul>" +
+    "<li><b>Paralelos</b> (o coincidentes): n₁ y n₂ proporcionales. Se distinguen comparando también los términos independientes: si (A, B, C, D) son proporcionales los cuatro, son el mismo plano.</li>" +
+    "<li><b>Perpendiculares</b>: n₁·n₂ = 0. Es la condición que más aparece al pedir «un plano perpendicular a otro».</li>" +
+    "</ul>" +
+    ejemplo("Un parámetro para que los planos sean perpendiculares",
+      "Halla m para que π₁: mx + 2y − z = 1 y π₂: x + my + 2z = 0 sean perpendiculares.",
+      ["n₁ = (m, 2, −1), n₂ = (1, m, 2).",
+       "n₁·n₂ = m + 2m − 2 = 3m − 2 = 0 ⟹ <b>m = 2/3</b>."]);
+
+  // ---------------------------------------------------------------- 4. Distancia punto-plano
+  secciones[3] =
+    "<h5>Por qué funciona la fórmula</h5>" +
+    "<p>Si Q es un punto cualquiera del plano, la distancia de P al plano es la longitud de la proyección del vector QP sobre la normal n: d = |QP·n| / |n|. Como Q cumple A·q₁ + B·q₂ + C·q₃ + D = 0, se tiene QP·n = A·p₁ + B·p₂ + C·p₃ − (A·q₁ + B·q₂ + C·q₃) = A·p₁ + B·p₂ + C·p₃ + D, y de ahí sale exactamente la fórmula: <b>sustituyes el punto en el primer miembro y divides por el módulo de la normal</b>. El signo del numerador (antes del valor absoluto) dice en qué lado del plano está P; y vale 0 si P está en el plano.</p>" +
+    ejemplo("Distancia de un punto a un plano",
+      "Calcula la distancia de P(3, 0, 3) al plano π: 2x − y + 2z − 3 = 0.",
+      ["Numerador: 2·3 − 0 + 2·3 − 3 = 9.",
+       "Denominador: √(4 + 1 + 4) = 3.",
+       "d(P, π) = 9/3 = <b>3</b>."]) +
+    ojo("La fórmula exige el plano en forma <b>general</b> Ax + By + Cz + D = 0, con todo en un miembro. Si te lo dan como x + 2y = 5 − z, primero pásalo a x + 2y + z − 5 = 0. Y si te lo dan en paramétricas o por tres puntos, saca antes la normal con un producto vectorial.") +
+    "<p>Si el enunciado pide «los puntos de una recta que están a distancia d de un plano», sustituye el punto genérico de la recta (en función de t) en la fórmula, iguala a d y resuelve: sale una ecuación con valor absoluto, es decir, <b>dos soluciones</b> (uno a cada lado del plano).</p>";
+
+  // ---------------------------------------------------------------- 5. Distancia punto-recta
+  secciones[4] =
+    "<h5>Un ejemplo con la fórmula del producto vectorial</h5>" +
+    ejemplo("Distancia de un punto a una recta",
+      "Calcula la distancia de P(1, 2, −1) a la recta r: (x, y, z) = (0, 1, 0) + t(1, 1, 2).",
+      ["Tomamos Q = (0, 1, 0) y v = (1, 1, 2). QP = P − Q = (1, 1, −1).",
+       "QP × v = (1·2 − (−1)·1, (−1)·1 − 1·2, 1·1 − 1·1) = (3, −3, 0).",
+       "|QP × v| = √(9 + 9) = 3√2. |v| = √6.",
+       "d(P, r) = 3√2/√6 = 3/√3 = <b>√3 ≈ 1,732</b>."]) +
+    "<h5>Segundo método: plano perpendicular a la recta</h5>" +
+    "<p>Es más largo, pero te da además el <b>pie de la perpendicular</b> (la proyección de P sobre r), que suele pedirse en el mismo problema: (1) plano π por P perpendicular a r (su normal es v); (2) corte F = r ∩ π; (3) d(P, r) = |PF|. Lo desarrollamos con números en la sección de proyecciones.</p>" +
+    ojo("Con la fórmula del producto vectorial hay que dividir por |v|, no por |QP|. Y si P está en la recta, QP y v son paralelos, el producto vectorial sale (0, 0, 0) y la distancia es 0: comprobación útil si te sale un número raro.");
+
+  // ---------------------------------------------------------------- 6. Distancia entre rectas que se cruzan
+  secciones[5] =
+    "<h5>Primero, ¿se cruzan de verdad?</h5>" +
+    "<p>La fórmula del producto mixto solo vale para rectas que <b>se cruzan</b>. Antes de usarla conviene saber en cuál de los cuatro casos estás:</p>" +
+    tabla(["Caso", "Directores", "[Q₁Q₂, u, v]", "Distancia"], [
+          ["Se cruzan", "no proporcionales", "≠ 0", "|[Q₁Q₂, u, v]| / |u × v|"],
+          ["Se cortan", "no proporcionales", "= 0", "0"],
+          ["Paralelas", "proporcionales", "(u × v = 0)", "d(punto de s, r)"],
+          ["Coincidentes", "proporcionales y Q₂ ∈ r", "—", "0"]]) +
+    ejemplo("Distancia entre dos rectas que se cruzan",
+      "Calcula la distancia entre r: (x, y, z) = (−1, 1, 0) + t(2, 1, 0) y s: (x, y, z) = (2, −1, 1) + s(0, 1, 1).",
+      ["Q₁ = (−1, 1, 0), u = (2, 1, 0); Q₂ = (2, −1, 1), v = (0, 1, 1). Q₁Q₂ = (3, −2, 1).",
+       "u × v = (1·1 − 0·1, 0·0 − 2·1, 2·1 − 1·0) = (1, −2, 2), |u × v| = 3. No son proporcionales.",
+       "[Q₁Q₂, u, v] = Q₁Q₂·(u × v) = 3·1 + (−2)(−2) + 1·2 = 9 ≠ 0 ⟹ se cruzan.",
+       "d(r, s) = |9|/3 = <b>3</b>."]) +
+    "<p>Una forma de ver la fórmula: el paralelepípedo construido sobre Q₁Q₂, u y v tiene volumen |[Q₁Q₂, u, v]|; su base (u, v) tiene área |u × v|, y su altura —la distancia entre los dos planos paralelos que contienen una recta cada uno— es la distancia entre las rectas. Pruébalo en el interactivo del apartado «perpendicular común».</p>";
+
+  B.parte.m2t6a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 6: Problemas métricos
+   (parte B: secciones nuevas 7 a 15)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t6/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Proyecciones ortogonales y puntos simétricos",
+      html:
+        "<p>Un tipo de problema muy repetido en la EvAU es: «halla la proyección ortogonal del punto P sobre el plano (o la recta) y el punto simétrico de P». Los dos puntos se calculan juntos: la <b>proyección P′</b> es el pie de la perpendicular desde P, y el <b>simétrico P″</b> está al otro lado a la misma distancia, de modo que P′ es el punto medio de PP″ y por tanto <b>P″ = 2P′ − P</b>.</p>" +
+        "<h5>Sobre un plano</h5>" +
+        "<p>El método más rápido usa que la perpendicular desde P a π tiene como dirección la normal n. Con el numerador de la fórmula de distancia, v = A·p₁ + B·p₂ + C·p₃ + D:</p>" +
+        "<div class='formula-wrap'><div class='formula'>P′ = P − (v / |n|²)·n &nbsp;&nbsp;·&nbsp;&nbsp; P″ = P − (2v / |n|²)·n</div></div>" +
+        ejemplo("Proyección y simétrico de un punto sobre un plano",
+          "Halla la proyección ortogonal y el simétrico de P(3, −1, 2) respecto del plano π: x + 2y − 2z − 6 = 0.",
+          ["n = (1, 2, −2), |n|² = 9. Valor en P: v = 3 − 2 − 4 − 6 = −9.",
+           "P′ = P − (−9/9)·n = P + n = <b>(4, 1, 0)</b>. Comprobación: 4 + 2 − 0 − 6 = 0, está en el plano ✓.",
+           "P″ = P + 2n = <b>(5, 3, −2)</b> (o 2P′ − P = (8 − 3, 2 + 1, 0 − 2)).",
+           "Distancia: |PP′| = |n| = 3 (también |−9|/3 = 3 ✓)."]) +
+        "<p>Si prefieres el método «de manual», es el mismo: recta r por P con dirección n, P′ = r ∩ π, P″ = 2P′ − P. Pruébalo con el interactivo: mueve P y comprueba que el segmento P–P″ (discontinuo) siempre es paralelo a la normal.</p>" +
+        w("met_3d", "plano") +
+        "<h5>Sobre una recta</h5>" +
+        "<p>Aquí la perpendicular desde P a r no tiene una dirección conocida de antemano, así que se hace al revés: se construye el <b>plano por P perpendicular a r</b> (su normal es el director v) y se corta con r.</p>" +
+        ejemplo("Proyección y simétrico de un punto sobre una recta",
+          "Halla la proyección ortogonal de P(2, 1, 2) sobre r: (x, y, z) = (0, 1, 0) + t(1, 1, 2), el simétrico de P respecto de r y la distancia de P a r.",
+          ["Plano por P perpendicular a r: x + y + 2z + D = 0 con 2 + 1 + 4 + D = 0 ⟹ D = −7: π: x + y + 2z = 7.",
+           "Punto genérico de r: (t, 1 + t, 2t). En π: t + 1 + t + 4t = 7 ⟹ 6t = 6 ⟹ t = 1.",
+           "Proyección: P′ = F = <b>(1, 2, 2)</b>.",
+           "Simétrico: P″ = 2F − P = (2 − 2, 4 − 1, 4 − 2) = <b>(0, 3, 2)</b>.",
+           "Distancia: |PF| = |(−1, 1, 0)| = <b>√2</b>. (Con la fórmula: QP = (2, 0, 2), QP × v = (−2, −2, 2), |QP × v| = 2√3, y 2√3/√6 = √2 ✓.)"]) +
+        w("met_3d", "recta") +
+        "<h5>Respecto de otro punto, y la proyección de una recta sobre un plano</h5>" +
+        "<p>El simétrico de A respecto de un <b>punto</b> M es A′ = 2M − A (M es el punto medio). Para la <b>proyección de una recta sobre un plano</b> hay dos caminos: proyectar dos puntos de la recta, o —más corto— cortar el plano dado con el plano que contiene a la recta y es perpendicular a π (sus vectores son el director v de la recta y la normal n, luego su normal es v × n).</p>" +
+        ejemplo("Proyección de una recta sobre un plano",
+          "Halla la proyección ortogonal de r: (x, y, z) = (1, 0, 0) + t(1, 1, 0) sobre el plano π: x + y + z = 0.",
+          ["Normal de π: n = (1, 1, 1). Plano que contiene a r y es perpendicular a π: normal v × n = (1, 1, 0) × (1, 1, 1) = (1·1 − 0·1, 0·1 − 1·1, 1·1 − 1·1) = (1, −1, 0).",
+           "Pasa por (1, 0, 0): x − y = 1.",
+           "La proyección es la intersección de los dos planos: <b>x − y = 1, x + y + z = 0</b>.",
+           "Comprobación: proyectamos el punto (1, 0, 0): (1, 0, 0) − (1/3)(1, 1, 1) = (2/3, −1/3, −1/3), que cumple x − y = 1 ✓."]) +
+        ojo("El simétrico <b>no</b> es el opuesto. P″ = −P solo sirve si el centro de simetría es el origen. Y en una simetría respecto de un plano o una recta no cambian «signos de coordenadas» salvo en casos muy particulares (plano z = 0: solo cambia z)."),
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Perpendicular común a dos rectas que se cruzan",
+      html:
+        "<p>Dos rectas que se cruzan tienen una única recta que las corta a las dos y es perpendicular a ambas: la <b>perpendicular común</b>. El segmento que une los dos puntos de corte (los «pies» A ∈ r y B ∈ s) mide justo la distancia entre las rectas. Hay dos métodos; ambos salen en la EvAU.</p>" +
+        "<h5>Método 1: puntos genéricos (el más directo)</h5>" +
+        "<p>Escribe un punto genérico de cada recta, X(t) y Y(s); impón que el vector XY sea perpendicular a u y a v (dos ecuaciones lineales) y resuelve t y s.</p>" +
+        ejemplo("Pies de la perpendicular común",
+          "Con r: (−1, 1, 0) + t(2, 1, 0) y s: (2, −1, 1) + s(0, 1, 1), halla los pies de la perpendicular común y su ecuación.",
+          ["X = (−1 + 2t, 1 + t, 0), Y = (2, −1 + s, 1 + s). XY = Y − X = (3 − 2t, −2 + s − t, 1 + s).",
+           "XY·u = 0: 2(3 − 2t) + (−2 + s − t) = 4 − 5t + s = 0.",
+           "XY·v = 0: (−2 + s − t) + (1 + s) = −1 − t + 2s = 0.",
+           "De la segunda, s = (1 + t)/2; en la primera: 4 − 5t + (1 + t)/2 = 0 ⟹ 8 − 10t + 1 + t = 0 ⟹ t = 1, s = 1.",
+           "Pies: A = X(1) = <b>(1, 2, 0)</b> y B = Y(1) = <b>(2, 0, 2)</b>. AB = (1, −2, 2) ⟹ |AB| = 3 = d(r, s) ✓ (coincide con el producto mixto).",
+           "Perpendicular común: la recta por A con dirección AB: <b>(x, y, z) = (1, 2, 0) + λ(1, −2, 2)</b>."]) +
+        w("met_3d", "cruz") +
+        "<h5>Método 2: intersección de dos planos</h5>" +
+        "<p>La perpendicular común tiene la dirección w = u × v. Está contenida en el plano π₁ que contiene a r y a la dirección w, y también en el plano π₂ que contiene a s y a w. Así que la perpendicular común es π₁ ∩ π₂. Es el método de la EvAU cuando te piden la recta en forma implícita.</p>" +
+        ejemplo("La misma recta por intersección de planos",
+          "Con las mismas rectas, w = u × v = (1, −2, 2). Halla π₁ ⊃ r y π₂ ⊃ s, ambos con dirección w.",
+          ["π₁ contiene a Q₁ = (−1, 1, 0) y a los vectores u = (2, 1, 0), w = (1, −2, 2). Normal: u × w = (1·2 − 0·(−2), 0·1 − 2·2, 2·(−2) − 1·1) = (2, −4, −5).",
+           "π₁: 2(x + 1) − 4(y − 1) − 5z = 0 ⟹ <b>2x − 4y − 5z + 6 = 0</b>.",
+           "π₂ contiene a Q₂ = (2, −1, 1) y a v = (0, 1, 1), w = (1, −2, 2). Normal: v × w = (1·2 − 1·(−2), 1·1 − 0·2, 0·(−2) − 1·1) = (4, 1, −1).",
+           "π₂: 4(x − 2) + (y + 1) − (z − 1) = 0 ⟹ <b>4x + y − z − 6 = 0</b>.",
+           "Perpendicular común: <b>2x − 4y − 5z + 6 = 0, 4x + y − z − 6 = 0</b>. Comprobación: A(1, 2, 0): 2 − 8 + 6 = 0 y 4 + 2 − 6 = 0 ✓; B(2, 0, 2): 4 − 10 + 6 = 0 y 8 − 2 − 6 = 0 ✓."]) +
+        "<p>Y una consecuencia útil: la <b>distancia entre rectas que se cruzan</b> es también la distancia entre los dos planos paralelos que las contienen (los dos planos con normal u × v), o la distancia de un punto de s al plano que contiene a r y es paralelo a s.</p>" +
+        ojo("Si el producto mixto [Q₁Q₂, u, v] sale 0, las rectas son coplanarias: se cortan (o son paralelas) y no existe «perpendicular común única». Mira antes la tabla de la sección 6."),
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Distancias entre elementos paralelos",
+      html:
+        "<p>Cuando dos elementos son paralelos, la distancia es la misma en cualquier punto, así que todo se reduce a <b>elegir un punto de uno y usar la fórmula de punto–plano o punto–recta</b>.</p>" +
+        tabla(["Elementos", "Condición", "Cómo se calcula"], [
+          ["Plano y plano", "n₁ ∥ n₂", "d(π₁, π₂) = d(P, π₂) con P ∈ π₁. Si tienen la misma normal (A, B, C): |D − D′|/√(A² + B² + C²)"],
+          ["Recta y plano", "v·n = 0 y recta fuera del plano", "d(r, π) = d(P, π) con P ∈ r"],
+          ["Recta y recta", "u ∥ v", "d(r, s) = d(Q₂, r) con Q₂ ∈ s"]]) +
+        ejemplo("Distancia entre dos planos paralelos",
+          "Calcula la distancia entre π₁: 2x − y + 2z − 3 = 0 y π₂: 4x − 2y + 4z + 12 = 0.",
+          ["Normales (2, −1, 2) y (4, −2, 4): proporcionales, son paralelos.",
+           "Primero se igualan los coeficientes: π₂ ÷ 2: 2x − y + 2z + 6 = 0.",
+           "d = |6 − (−3)| / √(4 + 1 + 4) = 9/3 = <b>3</b>.",
+           "Otra forma: un punto de π₁ es (0, 0, 3/2) (cumple 3 − 3 = 0); d = |4·0 − 0 + 4·(3/2) + 12|/√(16 + 4 + 16) = 18/6 = 3 ✓."]) +
+        ojo("Restar los términos independientes (−3 y 12 sin más) solo vale si las <b>ecuaciones tienen exactamente los mismos A, B, C</b>. Si no, divide antes. Aquí 12 − (−3) = 15 daría 5, que es falso.") +
+        ejemplo("Distancia de una recta a un plano paralelo",
+          "Comprueba que r: (1, 1, 1) + t(1, 1, −2) es paralela a π: x + y + z − 9 = 0 y calcula la distancia.",
+          ["v·n = (1, 1, −2)·(1, 1, 1) = 1 + 1 − 2 = 0: son paralelos (el punto (1, 1, 1) da 3 − 9 ≠ 0, no está contenida).",
+           "d(r, π) = d((1, 1, 1), π) = |1 + 1 + 1 − 9| / √3 = 6/√3 = <b>2√3 ≈ 3,464</b>."]) +
+        ejemplo("Distancia entre dos rectas paralelas",
+          "Calcula la distancia entre r: (1, 0, 2) + t(1, 2, 2) y s: (3, 1, 0) + t(1, 2, 2).",
+          ["Mismo director v = (1, 2, 2) ⟹ paralelas. Tomamos Q₁ = (1, 0, 2) ∈ r y Q₂ = (3, 1, 0) ∈ s: Q₁Q₂ = (2, 1, −2).",
+           "Q₁Q₂ × v = (1·2 − (−2)·2, (−2)·1 − 2·2, 2·2 − 1·1) = (6, −6, 3), de módulo √(36 + 36 + 9) = 9. |v| = 3.",
+           "d(r, s) = 9/3 = <b>3</b>."]),
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Áreas y volúmenes en el espacio",
+      html:
+        "<p>Aquí se juntan el tema 4 (productos vectorial y mixto) con las distancias de este tema. Las alturas se obtienen despejando de las fórmulas de área y de volumen, o con una distancia punto–plano/punto–recta; ambos caminos deben dar lo mismo, y es una buena comprobación.</p>" +
+        "<div class='formula-wrap'><div class='formula'>Área(ABC) = ½|AB × AC| &nbsp;&nbsp;·&nbsp;&nbsp; V(ABCD) = ⅙|[AB, AC, AD]| &nbsp;&nbsp;·&nbsp;&nbsp; h<sub>D</sub> = 3V / Área(ABC)</div></div>" +
+        ejemplo("Un tetraedro completo",
+          "Sean A(1, 0, 0), B(3, 0, 1), C(1, 2, 2) y D(2, 1, 5). Calcula: el área de ABC, el volumen de ABCD, la altura desde D, la ecuación del plano ABC y el ángulo que forma la arista AD con ese plano.",
+          ["AB = (2, 0, 1), AC = (0, 2, 2), AD = (1, 1, 5).",
+           "AB × AC = (0·2 − 1·2, 1·0 − 2·2, 2·2 − 0) = (−2, −4, 4), módulo √36 = 6 ⟹ Área(ABC) = 6/2 = <b>3</b>.",
+           "[AB, AC, AD] = (−2, −4, 4)·(1, 1, 5) = −2 − 4 + 20 = 14 ⟹ V = 14/6 = <b>7/3</b>.",
+           "Altura desde D: h = 3V/Área = 7/3 · 3 / 3 = <b>7/3</b>.",
+           "Plano ABC: normal (−2, −4, 4) ∥ (1, 2, −2); por A(1, 0, 0): x + 2y − 2z − 1 = 0. Comprobación de h: D da 2 + 2 − 10 − 1 = −7, y |−7|/3 = 7/3 ✓.",
+           "Ángulo de AD con el plano: sen α = |AD·n| / (|AD||n|) = |1 + 2 − 10| / (√27·3) = 7/(9√3) = 7√3/27 ≈ 0,4490 ⟹ <b>α ≈ 26,68°</b>."]) +
+        "<p>Para <b>pirámides</b> de base un paralelogramo o un triángulo vale V = ⅓·(área de la base)·h, con h = distancia del vértice al plano de la base. Y si un vértice depende de un parámetro, el volumen es |polinomio en m|/6: dos casos por el valor absoluto.</p>" +
+        ojo("Área del triángulo = ½|AB × AC|, y volumen del tetraedro = ⅙|[…]|: son los dos factores que más se olvidan. Comprueba siempre que el resultado es positivo (valor absoluto) y que la altura de un tetraedro nunca es mayor que sus aristas."),
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. Lugares geométricos sencillos",
+      html:
+        "<p>Un lugar geométrico es el conjunto de puntos que cumplen una condición de distancias o ángulos. En 2.º de Bachillerato solo aparecen tres, y los tres acaban en un plano.</p>" +
+        "<h5>Plano mediador de dos puntos A y B</h5>" +
+        "<p>Es el conjunto de puntos X con d(X, A) = d(X, B): pasa por el punto medio M de AB y es perpendicular a AB. Su normal es AB: <b>AB·(X − M) = 0</b>. (También sale elevando al cuadrado |XA|² = |XB|².)</p>" +
+        ejemplo("Plano mediador",
+          "Halla el plano mediador de A(1, 2, 3) y B(3, 0, 1).",
+          ["AB = (2, −2, −2) ∥ (1, −1, −1). Punto medio M = (2, 1, 2).",
+           "(x − 2) − (y − 1) − (z − 2) = 0 ⟹ <b>x − y − z + 1 = 0</b>.",
+           "Comprobación con las distancias: (x − 1)² + (y − 2)² + (z − 3)² = (x − 3)² + y² + (z − 1)² ⟹ −2x − 4y − 6z + 14 = −6x − 2z + 10 ⟹ 4x − 4y − 4z + 4 = 0 ✓."]) +
+        "<h5>Planos a distancia d de un plano dado</h5>" +
+        "<p>Son los dos planos paralelos a π: Ax + By + Cz + D = 0 situados a cada lado: <b>Ax + By + Cz + D ± d·√(A² + B² + C²) = 0</b>.</p>" +
+        ejemplo("Planos paralelos a distancia dada",
+          "Halla los planos paralelos a π: 2x − y + 2z − 1 = 0 que distan 2 unidades de él.",
+          ["√(A² + B² + C²) = 3, luego el término independiente cambia en 2·3 = 6.",
+           "Nuevos planos: 2x − y + 2z − 1 ± 6 = 0 ⟹ <b>2x − y + 2z + 5 = 0</b> y <b>2x − y + 2z − 7 = 0</b>.",
+           "Comprobación: un punto del primero, (0, 0, −5/2), cumple −5 + 5 = 0, y d a π = |−5 − 1|/3 = 2 ✓."]) +
+        "<h5>Planos bisectores de dos planos</h5>" +
+        "<p>Los puntos X equidistantes de π₁ y π₂ cumplen |π₁(X)|/|n₁| = |π₂(X)|/|n₂|: salen <b>dos</b> planos bisectores (uno por cada signo), perpendiculares entre sí. Si los planos son paralelos, solo hay uno (el plano medio).</p>" +
+        ejemplo("Bisectores",
+          "Halla los planos bisectores de π₁: x + 2y + 2z − 3 = 0 y π₂: 2x − 2y + z + 3 = 0.",
+          ["|n₁| = 3 y |n₂| = 3, así que basta igualar: x + 2y + 2z − 3 = ±(2x − 2y + z + 3).",
+           "Signo +: x + 2y + 2z − 3 = 2x − 2y + z + 3 ⟹ <b>−x + 4y + z − 6 = 0</b>.",
+           "Signo −: x + 2y + 2z − 3 = −2x + 2y − z − 3 ⟹ 3x + 3z = 0 ⟹ <b>x + z = 0</b>.",
+           "Son perpendiculares: (−1, 4, 1)·(1, 0, 1) = 0 ✓."]) +
+        ojo("Si los módulos de las normales son distintos, divide cada ecuación por su |n| antes de igualar (π₁/|n₁| = ±π₂/|n₂|), o el bisector no será equidistante."),
+    },
+    // -------------------------------------------------------------- 12
+    {
+      h: "12. ¿Qué fórmula uso? Mapa de decisión y calculadora",
+      html:
+        "<p>Casi todos los fallos de este tema son de elección de fórmula. Fíjate en <b>qué dos objetos te dan</b> y mira esta tabla:</p>" +
+        tabla(["Objetos", "Datos que necesitas", "Resultado"], [
+          ["Recta – recta (ángulo)", "u, v", "cos α = |u·v|/(|u||v|)"],
+          ["Recta – plano (ángulo)", "v, n", "sen α = |v·n|/(|v||n|)"],
+          ["Plano – plano (ángulo)", "n₁, n₂", "cos α = |n₁·n₂|/(|n₁||n₂|)"],
+          ["Punto – plano", "P y A, B, C, D", "|valor|/|n|"],
+          ["Punto – recta", "P, Q, v", "|QP × v|/|v|"],
+          ["Recta – recta (distancia)", "Q₁, u, Q₂, v", "cruzan: |[Q₁Q₂, u, v]|/|u × v|; paralelas: punto–recta"],
+          ["Recta – plano / plano – plano", "solo si son paralelos", "un punto del primero al segundo"]]) +
+        "<p>Y el orden que conviene seguir: (1) escribe los datos (puntos, directores, normales); (2) decide si hay que mirar paralelismo o posición relativa antes; (3) aplica la fórmula con todos los pasos; (4) comprueba con otro camino si el problema es largo (por ejemplo, una distancia con la proyección). La calculadora hace los seis cálculos paso a paso: úsala para <b>comprobar tus ejercicios</b>, no para sustituir el razonamiento.</p>" +
+        w("met_calc"),
+    },
+    // -------------------------------------------------------------- 13
+    {
+      h: "13. Problemas tipo EvAU resueltos",
+      html:
+        ejemplo("Problema 1: punto y plano",
+          "Sea π: 2x − y + 2z − 3 = 0 y P(3, 0, 3). (a) Distancia de P a π. (b) Proyección ortogonal de P sobre π. (c) Simétrico de P respecto de π. (d) Ángulo que forma la recta OP (O es el origen) con π.",
+          ["(a) v = 6 − 0 + 6 − 3 = 9; |n| = 3. d = 9/3 = <b>3</b>.",
+           "(b) P′ = P − (9/9)·n = (3, 0, 3) − (2, −1, 2) = <b>(1, 1, 1)</b>. Comprobación: 2 − 1 + 2 − 3 = 0 ✓.",
+           "(c) P″ = 2P′ − P = (2 − 3, 2 − 0, 2 − 3) = <b>(−1, 2, −1)</b>.",
+           "(d) OP = (3, 0, 3) ∥ (1, 0, 1), |OP| = 3√2. sen α = |OP·n|/(|OP||n|) = 12/(3√2·3) = 4/(3√2) = 2√2/3 ≈ 0,9428 ⟹ <b>α ≈ 70,53°</b>."]) +
+        ejemplo("Problema 2: tetraedro",
+          "Con A(1, 0, 0), B(3, 0, 1), C(1, 2, 2) y D(2, 1, 5): (a) Área del triángulo ABC. (b) Volumen del tetraedro. (c) Distancia de D al plano ABC. (d) Ángulo entre las rectas AB y AC.",
+          ["(a) AB × AC = (−2, −4, 4) ⟹ Área = ½·6 = <b>3</b>.",
+           "(b) [AB, AC, AD] = 14 ⟹ V = 14/6 = <b>7/3</b>.",
+           "(c) Plano ABC: x + 2y − 2z − 1 = 0; d(D, ABC) = |2 + 2 − 10 − 1|/3 = <b>7/3</b> (coincide con 3V/Área).",
+           "(d) AB·AC = 0 + 0 + 2 = 2; |AB| = √5, |AC| = √8: cos α = 2/√40 = 1/√10 ≈ 0,3162 ⟹ <b>α ≈ 71,57°</b>."]) +
+        ejemplo("Problema 3: perpendicular desde un punto a una recta",
+          "Sea P(2, 1, 2) y r: (x, y, z) = (0, 1, 0) + t(1, 1, 2). (a) Halla la recta que pasa por P, corta a r y es perpendicular a ella. (b) Halla el simétrico de P respecto de r. (c) Calcula el área del triángulo de vértices Q(0, 1, 0), P y P″.",
+          ["(a) La recta pedida pasa por P y por el pie de la perpendicular F = (1, 2, 2) (sección 7). Dirección PF = (−1, 1, 0): <b>(x, y, z) = (2, 1, 2) + λ(−1, 1, 0)</b>. Comprobación: (−1, 1, 0)·(1, 1, 2) = 0 ✓.",
+           "(b) P″ = 2F − P = <b>(0, 3, 2)</b>.",
+           "(c) QP = (2, 0, 2) y QP″ = (0, 2, 2). QP × QP″ = (0·2 − 2·2, 2·0 − 2·2, 2·2 − 0) = (−4, −4, 4), módulo √48 = 4√3 ⟹ Área = <b>2√3 ≈ 3,464</b>.",
+           "Comprobación: el triángulo es isósceles con base PP″ = 2√2 y altura QF = √6: ½·2√2·√6 = √12 = 2√3 ✓."]),
+    },
+    // -------------------------------------------------------------- 14
+    {
+      h: "14. ¿Qué falla aquí? Errores típicos",
+      html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+    },
+    // -------------------------------------------------------------- 15
+    {
+      h: "15. Autocomprobación del tema",
+      html: "<p>Doce preguntas de test con explicación, tarjetas con las fórmulas, una actividad de emparejar, otra de clasificar y el orden correcto para resolver el problema de la perpendicular común.</p>" +
+        w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+    }
+  ];
+
+  B.parte.m2t6b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 6: Problemas métricos
+   (parte C: resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Ángulos</b> (siempre agudos, con valor absoluto): entre rectas, cos α = |u·v|/(|u||v|) con sus directores; entre planos, igual con las normales; entre recta y plano, <b>seno</b>: sen α = |v·n|/(|v||n|). Una recta dada como corte de dos planos tiene director n₁ × n₂. Perpendiculares ⟺ producto escalar 0; paralelos ⟺ proporcionales.",
+    "<b>Punto–plano</b>: d = |A·p₁ + B·p₂ + C·p₃ + D| / √(A² + B² + C²) (plano en forma general). <b>Punto–recta</b>: d = |QP × v| / |v|. <b>Entre rectas que se cruzan</b>: d = |[Q₁Q₂, u, v]| / |u × v| (si el mixto es 0, se cortan; si u ∥ v, son paralelas y se usa punto–recta).",
+    "<b>Elementos paralelos</b>: la distancia es la de un punto de uno al otro (plano–plano con los mismos A, B, C: |D − D′|/|n|; recta–plano; recta–recta).",
+    "<b>Proyección y simétrico</b>: sobre un plano, P′ = P − (valor/|n|²)·n; sobre una recta, plano por P perpendicular a r y cortarlo con r; el simétrico es siempre P″ = 2P′ − P. Para la proyección de una recta sobre un plano: corta π con el plano que contiene a r y es perpendicular a π (normal v × n).",
+    "<b>Perpendicular común</b> de r y s (que se cruzan): con puntos genéricos X(t), Y(s) e imponiendo XY·u = 0 y XY·v = 0 salen los pies A y B; o como intersección de los planos que contienen a r y a s con dirección u × v. |AB| = d(r, s).",
+    "<b>Áreas y volúmenes</b>: Área(ABC) = ½|AB × AC|; V(ABCD) = ⅙|[AB, AC, AD]|; altura h = 3V/Área. <b>Lugares</b>: plano mediador (normal AB, por el punto medio), planos a distancia d (D ± d·|n|) y bisectores (π₁/|n₁| = ±π₂/|n₂|)."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«El ángulo entre una recta de director v y un plano de normal n es arccos(|v·n|/(|v||n|))». ¿Qué falla?",
+          op: ["Nada, está bien", "Con recta y plano se usa el seno: arcsen(|v·n|/(|v||n|))", "Hay que quitar el valor absoluto", "Hay que usar arctan"], ok: 1,
+          porque: "El coseno de esa expresión es el ángulo con la <b>normal</b>; el ángulo con el plano es su complementario y sale con el seno. Por ejemplo, v = (1, 0, 0) y π: x = 0 son perpendiculares (90°): sen α = 1, mientras que arccos(1) daría 0°." },
+        { q: "«Para el ángulo entre dos rectas me sale cos α = −0,5, luego α = 120°». ¿Qué falla?",
+          op: ["Nada, 120° es correcto", "El ángulo entre rectas es el agudo: hay que tomar |u·v|, y sale 60°", "Hay que sumar 180°", "El coseno nunca es negativo"], ok: 1,
+          porque: "Una recta no tiene sentido, así que u y −u dan la misma recta: el ángulo entre rectas es el agudo (entre 0° y 90°). Se toma valor absoluto en el numerador." },
+        { q: "«d(P, π) = (A·p₁ + B·p₂ + C·p₃ + D)/(A² + B² + C²)». ¿Qué falla?",
+          op: ["Nada", "Falta el valor absoluto y la raíz del denominador: |…|/√(A² + B² + C²)", "Hay que multiplicar por |n|", "Sobra el término D"], ok: 1,
+          porque: "La distancia es positiva (valor absoluto) y se divide por el módulo de la normal, |n| = √(A² + B² + C²), no por su cuadrado." },
+        { q: "Entre π₁: 2x − y + 2z − 3 = 0 y π₂: 4x − 2y + 4z + 12 = 0 alguien dice «d = |12 − (−3)|/3 = 5». ¿Qué falla?",
+          op: ["Nada", "Los coeficientes de x, y, z no coinciden: hay que dividir π₂ entre 2 (D = 6) y entonces d = 9/3 = 3", "Hay que sumar los D en lugar de restarlos", "Falta multiplicar por √2"], ok: 1,
+          porque: "La fórmula |D − D′|/|n| exige que ambas ecuaciones tengan los mismos A, B, C. Con 2x − y + 2z + 6 = 0, d = |6 − (−3)|/3 = 3." },
+        { q: "«El simétrico de P(1, 2, 3) respecto de un plano cualquiera es (−1, −2, −3)». ¿Qué falla?",
+          op: ["Nada", "Eso solo es el simétrico respecto del origen; respecto del plano se usa P″ = 2P′ − P", "Hay que cambiar solo el signo de z", "Es (1, 2, −3) siempre"], ok: 1,
+          porque: "El simétrico depende del plano: P″ = P − (2v/|n|²)·n. Solo respecto de ciertos planos particulares (como z = 0) basta con cambiar un signo." },
+        { q: "«Dos rectas con [Q₁Q₂, u, v] = 0 están a distancia d = 0/|u × v| = 0, luego se cruzan a distancia 0». ¿Qué falla?",
+          op: ["Nada", "Si el mixto es 0, las rectas son coplanarias y se cortan: no se cruzan", "El mixto nunca puede valer 0", "Hay que dividir por |u|"], ok: 1,
+          porque: "Que se crucen exige un mixto distinto de 0. Con mixto 0 (y directores no proporcionales) las rectas están en un plano y se cortan en un punto." },
+        { q: "«La distancia de P a la recta r es |QP × v| sin dividir, porque ya es el área». ¿Qué falla?",
+          op: ["Nada", "|QP × v| es el área del paralelogramo; hay que dividirla entre la base |v| para obtener la altura", "Hay que dividir por |QP|", "Hay que usar QP·v"], ok: 1,
+          porque: "Área = base · altura: |QP × v| = |v|·d, de donde d = |QP × v|/|v|." },
+        { q: "«Para hallar el pie de la perpendicular de P a r, corto r con la recta que pasa por P con dirección la normal». ¿Qué falla?",
+          op: ["Nada, es válido", "Eso se hace con un plano; con una recta hay que usar el plano por P perpendicular a r (normal v)", "La normal no existe en el espacio", "Hay que cortar con el plano z = 0"], ok: 1,
+          porque: "Una recta no tiene «normal» única en el espacio (hay infinitas direcciones perpendiculares). Se usa el plano por P con normal v y se corta con r." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de problemas métricos",
+      preguntas: [
+        { q: "El ángulo entre una recta y un plano se calcula con", op: ["el coseno de v y n", "el seno de v y n", "la tangente", "el producto vectorial v × n"], ok: 1, porque: "sen α = |v·n|/(|v||n|): la normal está a 90° del plano." },
+        { q: "Dos planos son perpendiculares si", op: ["n₁ ∥ n₂", "n₁·n₂ = 0", "n₁ × n₂ = 0", "D₁ = D₂"], ok: 1, porque: "Sus normales son perpendiculares: producto escalar 0." },
+        { q: "La distancia de P(1, 1, 1) a π: 2x + 2y + z − 3 = 0 es", op: ["2", "2/3", "1/3", "3"], ok: 1, porque: "|2 + 2 + 1 − 3|/√9 = 2/3." },
+        { q: "El director de la recta x + y = 1, y + z = 2 es", op: ["(1, 1, 0)", "(1, −1, 1)", "(0, 1, 1)", "(1, 1, 2)"], ok: 1, porque: "(1, 1, 0) × (0, 1, 1) = (1, −1, 1)." },
+        { q: "Si [Q₁Q₂, u, v] = 0 y u, v no proporcionales, las rectas", op: ["se cruzan", "se cortan", "son paralelas", "coinciden"], ok: 1, porque: "Son coplanarias y no paralelas: se cortan en un punto." },
+        { q: "La distancia entre dos rectas paralelas se calcula como", op: ["|[Q₁Q₂, u, v]|/|u × v|", "la distancia de un punto de una a la otra", "|u·v|", "|Q₁Q₂|"], ok: 1, porque: "Con u × v = 0 el producto mixto no sirve: se usa punto–recta." },
+        { q: "La proyección ortogonal de P sobre un plano de normal n está en la recta", op: ["por P con dirección n", "por P con dirección cualquiera del plano", "por el origen con dirección n", "por P con dirección P"], ok: 0, porque: "La perpendicular desde P al plano lleva la dirección de la normal." },
+        { q: "Si P′ es la proyección de P, el simétrico es", op: ["−P′", "2P′ − P", "P′ − P", "(P + P′)/2"], ok: 1, porque: "P′ es el punto medio de P y su simétrico: P″ = 2P′ − P." },
+        { q: "El plano mediador de A y B tiene como vector normal", op: ["A + B", "AB", "A × B", "(A + B)/2"], ok: 1, porque: "Es perpendicular al segmento AB y pasa por su punto medio." },
+        { q: "Los planos a distancia 3 de x + 2y + 2z − 1 = 0 son", op: ["x + 2y + 2z − 4 = 0 y x + 2y + 2z + 2 = 0", "x + 2y + 2z + 8 = 0 y x + 2y + 2z − 10 = 0", "x + 2y + 2z − 1 ± 3 = 0 con el mismo D", "No hay ninguno"], ok: 1, porque: "|n| = 3: D cambia en 3·3 = 9. −1 + 9 = 8 y −1 − 9 = −10." },
+        { q: "Altura desde D de un tetraedro de volumen V sobre la cara ABC:", op: ["V/Área", "3V/Área", "6V/Área", "Área/(3V)"], ok: 1, porque: "V = ⅓·Área·h ⟹ h = 3V/Área." },
+        { q: "Una recta de director v es paralela a un plano de normal n si", op: ["v·n = 0", "v × n = 0", "v = n", "|v| = |n|"], ok: 0, porque: "Paralela al plano ⟺ v perpendicular a la normal. (v × n = 0 sería perpendicular al plano.)" }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas de problemas métricos",
+      cartas: [
+        { a: "Ángulo entre dos rectas", b: "cos α = |u·v| / (|u||v|) con sus directores. Entre 0° y 90°." },
+        { a: "Ángulo recta–plano", b: "sen α = |v·n| / (|v||n|). ¡Seno!" },
+        { a: "Ángulo entre planos", b: "cos α = |n₁·n₂| / (|n₁||n₂|) con las normales." },
+        { a: "Director de una recta dada por dos planos", b: "v = n₁ × n₂ (producto vectorial de las normales)." },
+        { a: "Distancia punto–plano", b: "d = |A·p₁ + B·p₂ + C·p₃ + D| / √(A² + B² + C²)" },
+        { a: "Distancia punto–recta", b: "d = |QP × v| / |v|, con Q ∈ r y v su director." },
+        { a: "Distancia entre rectas que se cruzan", b: "d = |[Q₁Q₂, u, v]| / |u × v|. Si el mixto es 0, se cortan." },
+        { a: "Proyección de P sobre un plano", b: "P′ = P − (valor/|n|²)·n, con valor = A·p₁ + B·p₂ + C·p₃ + D." },
+        { a: "Proyección de P sobre una recta", b: "Plano por P perpendicular a r (normal v), cortar con r." },
+        { a: "Simétrico de P", b: "P″ = 2P′ − P, con P′ la proyección (o el punto medio)." },
+        { a: "Perpendicular común", b: "Puntos genéricos X(t), Y(s) con XY·u = 0 y XY·v = 0; o intersección de los planos con dirección u × v." },
+        { a: "Plano mediador de A y B", b: "Normal AB, pasa por el punto medio: AB·(X − M) = 0." }
+      ]
+    },
+    empar: {
+      titulo: "Situación y condición",
+      consigna: "Une cada situación con la condición que la expresa.",
+      pares: [
+        ["Dos rectas son perpendiculares", "u·v = 0"],
+        ["Una recta es paralela a un plano", "v·n = 0"],
+        ["Una recta es perpendicular a un plano", "v y n proporcionales (v × n = 0)"],
+        ["Dos planos son perpendiculares", "n₁·n₂ = 0"],
+        ["Dos rectas se cruzan", "[Q₁Q₂, u, v] ≠ 0"],
+        ["Un punto está en un plano", "A·p₁ + B·p₂ + C·p₃ + D = 0"]
+      ]
+    },
+    clas: {
+      titulo: "¿Seno o coseno?",
+      consigna: "Toca cada ángulo y elige la función que se usa para calcularlo con los vectores.",
+      categorias: ["Coseno", "Seno"],
+      items: [
+        { t: "Ángulo entre dos rectas", c: 0 }, { t: "Ángulo entre una recta y un plano", c: 1 }, { t: "Ángulo entre dos planos", c: 0 },
+        { t: "Ángulo de una recta con su proyección sobre el plano", c: 1 }, { t: "Ángulo entre las normales de dos planos", c: 0 }, { t: "Ángulo entre una recta y la normal de un plano", c: 0 }
+      ]
+    },
+    orden: {
+      titulo: "Perpendicular común a dos rectas",
+      consigna: "Ordena los pasos del método de los puntos genéricos.",
+      items: [
+        { t: "Escribir un punto genérico de cada recta: X(t) en r e Y(s) en s" },
+        { t: "Calcular el vector XY = Y − X en función de t y s" },
+        { t: "Imponer XY·u = 0 y XY·v = 0 (dos ecuaciones lineales)" },
+        { t: "Resolver el sistema para t y s" },
+        { t: "Sustituir para obtener los pies A y B" },
+        { t: "Dar la recta por A con dirección AB; la distancia es |AB|" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  function vec(a, b, c) { return [num("x =", a), num("y =", b), num("z =", c)]; }
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    { id: "m1", nivel: 1, enunciado: "Calcula el ángulo (en grados) entre las rectas de directores u = (1, 1, 0) y v = (0, 1, 1).", check: num("α =", 60, { unidad: "°" }),
+      pistas: ["cos α = |u·v|/(|u||v|)."], pasos: ["u·v = 1; |u| = |v| = √2.", "cos α = 1/2 ⟹ α = 60°."], resultado: "α = 60°" },
+    { id: "m2", nivel: 1, enunciado: "Calcula el ángulo (en grados) entre la recta de director v = (1, 0, 1) y el plano π: x + y = 4.", check: num("α =", 30, { unidad: "°" }),
+      pistas: ["Con recta y plano se usa el seno; n = (1, 1, 0)."], pasos: ["v·n = 1; |v| = |n| = √2.", "sen α = 1/2 ⟹ α = 30°."], resultado: "α = 30°" },
+    { id: "m3", nivel: 1, enunciado: "Calcula el ángulo (en grados) entre los planos x + y + z = 3 y x = 0.", check: num("α =", 54.7356, { unidad: "°" }),
+      pistas: ["Normales (1, 1, 1) y (1, 0, 0)."], pasos: ["n₁·n₂ = 1; |n₁| = √3, |n₂| = 1.", "cos α = 1/√3 ≈ 0,5774 ⟹ α ≈ 54,74°."], resultado: "α ≈ 54,74°" },
+    { id: "m4", nivel: 1, enunciado: "Calcula la distancia de P(1, 2, 3) al plano 2x − y + 2z − 4 = 0 (decimal).", check: num("d =", 2 / 3, { ph: "0,667" }),
+      pistas: ["Sustituye P en el primer miembro y divide por |n| = 3."], pasos: ["Numerador: 2 − 2 + 6 − 4 = 2.", "d = 2/3 ≈ 0,667."], resultado: "d = 2/3" },
+    { id: "m5", nivel: 1, enunciado: "Calcula la distancia del origen al plano 2x + 3y + 6z − 14 = 0.", check: num("d =", 2),
+      pistas: ["|n| = 7."], pasos: ["Numerador: |−14| = 14; |n| = √(4 + 9 + 36) = 7.", "d = 14/7 = 2."], resultado: "d = 2" },
+    { id: "m6", nivel: 1, enunciado: "Las rectas de directores u = (1, 2, −1) y v = (3, −1, 1) son…",
+      check: opcion("Elige", ["paralelas", "perpendiculares", "ni paralelas ni perpendiculares", "coincidentes"], 1),
+      pistas: ["Calcula u·v."], pasos: ["u·v = 3 − 2 − 1 = 0 ⟹ directores perpendiculares."], resultado: "Perpendiculares" },
+    { id: "m7", nivel: 1, enunciado: "Calcula la distancia de P(1, 2, 0) a la recta r: (1, 0, 0) + t(0, 1, 1) (decimal).", check: num("d =", Math.SQRT2, { ph: "1,414" }),
+      pistas: ["QP = (0, 2, 0)."], pasos: ["QP × v = (0, 2, 0) × (0, 1, 1) = (2, 0, 0), módulo 2.", "d = 2/√2 = √2 ≈ 1,414."], resultado: "d = √2" },
+    { id: "m8", nivel: 1, enunciado: "Halla la proyección ortogonal de P(1, 2, 3) sobre el plano x + y + z − 3 = 0.", check: vec(0, 1, 2),
+      pistas: ["P′ = P − (valor/|n|²)·n."], pasos: ["Valor: 1 + 2 + 3 − 3 = 3; |n|² = 3.", "P′ = (1, 2, 3) − 1·(1, 1, 1) = (0, 1, 2)."], resultado: "(0, 1, 2)" },
+    { id: "m9", nivel: 1, enunciado: "Halla el simétrico de A(1, 2, 3) respecto del punto M(2, 0, 1).", check: vec(3, -2, -1),
+      pistas: ["A′ = 2M − A."], pasos: ["A′ = (4 − 1, 0 − 2, 2 − 3) = (3, −2, −1)."], resultado: "(3, −2, −1)" },
+    { id: "m10", nivel: 1, enunciado: "Halla el área del triángulo de vértices A(1, 0, 0), B(0, 2, 0) y C(0, 0, 3) (decimal).", check: num("Área =", 3.5),
+      pistas: ["½|AB × AC|."], pasos: ["AB = (−1, 2, 0), AC = (−1, 0, 3).", "AB × AC = (6, 3, 2), módulo 7 ⟹ Área = 7/2."], resultado: "7/2" },
+    { id: "m11", nivel: 1, enunciado: "Halla el volumen del tetraedro de vértices O(0, 0, 0), A(1, 0, 0), B(0, 2, 0) y C(0, 0, 3).", check: num("V =", 1),
+      pistas: ["⅙ del valor absoluto del mixto."], pasos: ["[OA, OB, OC] = 1·2·3 = 6.", "V = 6/6 = 1."], resultado: "V = 1" },
+    { id: "m12", nivel: 1, enunciado: "Para calcular el ángulo entre una recta y un plano con v y n se usa…",
+      check: opcion("Elige", ["cos α = |v·n|/(|v||n|)", "sen α = |v·n|/(|v||n|)", "tg α = |v·n|", "sen α = |v × n|/(|v||n|)"], 1),
+      pistas: ["La normal forma 90° con el plano."], pasos: ["El ángulo con la normal es complementario del ángulo con el plano, así que su coseno es el seno buscado."], resultado: "sen α = |v·n|/(|v||n|)" },
+    { id: "m13", nivel: 1, enunciado: "El plano mediador de A(1, 2, 3) y B(3, 0, 1) es x − y − z + D = 0. Halla D.", check: num("D =", 1),
+      pistas: ["Normal AB ∥ (1, −1, −1); pasa por M = (2, 1, 2)."], pasos: ["AB = (2, −2, −2).", "M = (2, 1, 2) ⟹ 2 − 1 − 2 + D = 0 ⟹ D = 1."], resultado: "D = 1" },
+    { id: "m14", nivel: 1, enunciado: "Calcula la distancia entre los planos 2x − y + 2z − 3 = 0 y 2x − y + 2z + 6 = 0.", check: num("d =", 3),
+      pistas: ["Mismos A, B, C: |D − D′|/|n|."], pasos: ["|6 − (−3)|/3 = 9/3 = 3."], resultado: "d = 3" },
+    { id: "m15", nivel: 1, enunciado: "Para calcular la distancia entre dos rectas que se cruzan, con directores u y v y puntos Q₁, Q₂, se usa…",
+      check: opcion("Elige", ["|u·v| / |Q₁Q₂|", "|[Q₁Q₂, u, v]| / |u × v|", "|Q₁Q₂ × u| / |v|", "|u × v| / |Q₁Q₂|"], 1),
+      pistas: ["Volumen del paralelepípedo entre el área de la base."], pasos: ["El mixto es el volumen; u × v da el área de la base; el cociente es la altura."], resultado: "|[Q₁Q₂, u, v]| / |u × v|" },
+    // ---------------------------------------------------------------- ★★
+    { id: "m16", nivel: 2, enunciado: "Calcula el ángulo (en grados) entre r: x − y = 0, y − z = 0 y s: (1, 0, 0) + t(1, 2, 0).", check: num("α =", 39.2315, { unidad: "°" }),
+      pistas: ["Director de r: producto vectorial de las normales (1, −1, 0) y (0, 1, −1)."], pasos: ["u = (1, −1, 0) × (0, 1, −1) = (1, 1, 1); v = (1, 2, 0).", "u·v = 3; |u| = √3, |v| = √5: cos α = 3/√15 = √15/5 ≈ 0,7746.", "α ≈ 39,23°."], resultado: "α ≈ 39,23°" },
+    { id: "m17", nivel: 2, enunciado: "Calcula el ángulo (en grados) entre la recta de director v = (2, 1, −2) y el plano π: x + 2y − 2z = 5.", check: num("α =", 62.7339, { unidad: "°" }),
+      pistas: ["Seno."], pasos: ["v·n = 2 + 2 + 4 = 8; |v| = 3, |n| = 3.", "sen α = 8/9 ≈ 0,8889 ⟹ α ≈ 62,73°."], resultado: "α ≈ 62,73°" },
+    { id: "m18", nivel: 2, enunciado: "Calcula la distancia de P(0, 3, 1) a la recta r: (0, 1, 0) + t(1, 1, 2) (decimal).", check: num("d =", Math.sqrt(7 / 3), { ph: "1,528" }),
+      pistas: ["QP = (0, 2, 1)."], pasos: ["QP × v = (0, 2, 1) × (1, 1, 2) = (3, 1, −2), módulo √14.", "d = √14/√6 = √(7/3) ≈ 1,528."], resultado: "d ≈ 1,528" },
+    { id: "m19", nivel: 2, enunciado: "Calcula la distancia entre r: (0, 0, 0) + t(1, 1, 0) y s: (0, 0, 1) + s(1, 0, 1) (decimal).", check: num("d =", 1 / Math.sqrt(3), { ph: "0,577" }),
+      pistas: ["u × v = (1, −1, −1); Q₁Q₂ = (0, 0, 1)."], pasos: ["Mixto: Q₁Q₂·(u × v) = −1 ≠ 0 ⟹ se cruzan.", "d = 1/√3 ≈ 0,577."], resultado: "d = 1/√3 ≈ 0,577" },
+    { id: "m20", nivel: 2, enunciado: "Halla la proyección ortogonal de P(1, 2, 3) sobre la recta x = y = z.", check: vec(2, 2, 2),
+      pistas: ["Plano por P perpendicular a r: x + y + z = 6."], pasos: ["Plano por P con normal (1, 1, 1): x + y + z = 6.", "Punto (t, t, t): 3t = 6 ⟹ t = 2 ⟹ (2, 2, 2)."], resultado: "(2, 2, 2)" },
+    { id: "m21", nivel: 2, enunciado: "Halla el simétrico de P(1, 2, 3) respecto del plano x + y + z − 3 = 0.", check: vec(-1, 0, 1),
+      pistas: ["P″ = 2P′ − P con P′ = (0, 1, 2)."], pasos: ["P′ = (0, 1, 2) (ejercicio m8).", "P″ = (0 − 1, 2 − 2, 4 − 3) = (−1, 0, 1)."], resultado: "(−1, 0, 1)" },
+    { id: "m22", nivel: 2, enunciado: "Los puntos de r: (1 + t, t, 2t) que están a distancia 1 del plano 2x − y + 2z − 1 = 0 corresponden a dos valores de t. Halla ambos.", check: lista("t =", [-0.8, 0.4], "dos valores"),
+      pistas: ["Sustituye (1 + t, t, 2t): el numerador es 1 + 5t."], pasos: ["2(1 + t) − t + 4t − 1 = 1 + 5t.", "|1 + 5t|/3 = 1 ⟹ 1 + 5t = ±3 ⟹ t = 2/5 o t = −4/5."], resultado: "t = −4/5 y t = 2/5" },
+    { id: "m23", nivel: 2, enunciado: "(EvAU) Halla m &gt; 0 para que la recta de director (1, 1, m) forme 45° con el plano z = 0.", check: num("m =", Math.SQRT2, { ph: "1,414" }),
+      pistas: ["sen 45° = |m|/√(2 + m²)."], pasos: ["n = (0, 0, 1): sen α = |m|/√(2 + m²) = √2/2.", "Al cuadrado: 2m² = 2 + m² ⟹ m² = 2 ⟹ m = √2."], resultado: "m = √2" },
+    { id: "m24", nivel: 2, enunciado: "(EvAU) Halla m para que la recta de director (2, m, 1) sea paralela al plano 3x + y − z = 2.", check: num("m =", -5),
+      pistas: ["v·n = 0."], pasos: ["6 + m − 1 = 0 ⟹ m = −5."], resultado: "m = −5" },
+    { id: "m25", nivel: 2, enunciado: "Con A(1, 0, 0), B(3, 0, 1), C(1, 2, 2) calcula la altura del triángulo ABC desde C (decimal).", check: num("h =", 6 / Math.sqrt(5), { ph: "2,683" }),
+      pistas: ["Área = 3; base |AB| = √5."], pasos: ["AB × AC = (−2, −4, 4), Área = 3.", "h = 2·Área/|AB| = 6/√5 ≈ 2,683."], resultado: "h = 6/√5 ≈ 2,683" },
+    { id: "m26", nivel: 2, enunciado: "Halla el volumen del tetraedro de vértices A(1, 0, 0), B(3, 0, 1), C(1, 2, 2) y D(2, 1, 5) (decimal).", check: num("V =", 7 / 3, { ph: "2,333" }),
+      pistas: ["AB = (2, 0, 1), AC = (0, 2, 2), AD = (1, 1, 5)."], pasos: ["[AB, AC, AD] = 14.", "V = 14/6 = 7/3 ≈ 2,333."], resultado: "V = 7/3" },
+    { id: "m27", nivel: 2, enunciado: "Con los mismos A, B, C, D, calcula el término D′ del plano ABC escrito como x + 2y − 2z + D′ = 0.", check: num("D′ =", -1),
+      pistas: ["Normal AB × AC ∥ (1, 2, −2); sustituye A."], pasos: ["AB × AC = (−2, −4, 4) ∥ (1, 2, −2).", "Por A(1, 0, 0): 1 + D′ = 0 ⟹ D′ = −1."], resultado: "D′ = −1" },
+    { id: "m28", nivel: 2, enunciado: "Uno de los planos bisectores de x + 2y + 2z − 3 = 0 y 2x − 2y + z + 3 = 0 no tiene término en y. ¿Cuál es?",
+      check: opcion("Elige", ["x + z = 0", "x + z = 1", "x − z = 0", "x + 4z = 0"], 0),
+      pistas: ["Las dos normales tienen módulo 3: iguala las ecuaciones con signo − ."], pasos: ["x + 2y + 2z − 3 = −(2x − 2y + z + 3) ⟹ 3x + 3z = 0 ⟹ x + z = 0."], resultado: "x + z = 0" },
+    { id: "m29", nivel: 2, enunciado: "Los planos paralelos a 2x − y + 2z − 1 = 0 que distan 2 de él son 2x − y + 2z + D = 0. Da los dos valores de D (de menor a mayor).", check: lista("D =", [-7, 5], "dos valores"),
+      pistas: ["|n| = 3; D = −1 ± 2·3."], pasos: ["D = −1 + 6 = 5 y D = −1 − 6 = −7."], resultado: "D = −7 y D = 5" },
+    { id: "m30", nivel: 2, enunciado: "Halla el simétrico de P(3, 1, 0) respecto de r: (0, 1, 0) + t(1, 1, 2).", check: vec(-2, 2, 2),
+      pistas: ["Plano por P con normal (1, 1, 2): x + y + 2z = 4."], pasos: ["Plano: x + y + 2z = 3 + 1 = 4; punto de r: (t, 1 + t, 2t): 6t + 1 = 4 ⟹ t = 1/2.", "P′ = (1/2, 3/2, 1); P″ = 2P′ − P = (1 − 3, 3 − 1, 2 − 0) = (−2, 2, 2)."], resultado: "(−2, 2, 2)" },
+    { id: "m31", nivel: 2, enunciado: "Calcula la distancia entre las rectas paralelas r: (1, 0, 2) + t(1, 2, 2) y s: (3, 1, 0) + t(1, 2, 2).", check: num("d =", 3),
+      pistas: ["Distancia de un punto de s a r."], pasos: ["Q₁Q₂ = (2, 1, −2); Q₁Q₂ × v = (6, −6, 3), módulo 9; |v| = 3.", "d = 9/3 = 3."], resultado: "d = 3" },
+    { id: "m32", nivel: 2, enunciado: "Calcula la distancia de r: (1, 1, 1) + t(1, 1, −2) al plano x + y + z − 9 = 0 (decimal).", check: num("d =", 2 * Math.sqrt(3), { ph: "3,464" }),
+      pistas: ["Comprueba v·n = 0 y usa el punto (1, 1, 1)."], pasos: ["v·n = 1 + 1 − 2 = 0: paralelos.", "d = |3 − 9|/√3 = 6/√3 = 2√3 ≈ 3,464."], resultado: "d = 2√3" },
+    { id: "m33", nivel: 2, enunciado: "El plano perpendicular a la recta x = y = z que pasa por P(1, 2, 3) es x + y + z + D = 0. Halla D.", check: num("D =", -6),
+      pistas: ["Su normal es el director (1, 1, 1)."], pasos: ["1 + 2 + 3 + D = 0 ⟹ D = −6."], resultado: "D = −6" },
+    // ---------------------------------------------------------------- ★★★
+    { id: "m34", nivel: 3, enunciado: "(EvAU) Sean r: (0, 1, −1) + t(1, 0, 1) y s: (0, −1, 0) + s(0, 1, 1). Halla los pies A ∈ r y B ∈ s de la perpendicular común.", check: [num("A: x =", 1), num("A: y =", 1), num("A: z =", 0), num("B: x =", 0), num("B: y =", 0), num("B: z =", 1)],
+      pistas: ["X = (t, 1, −1 + t), Y = (0, −1 + s, s). Impón XY·u = 0 y XY·v = 0."], pasos: ["XY = (−t, −2 + s, 1 + s − t).", "XY·u = −2t + 1 + s = 0; XY·v = −2 + s + 1 + s − t = −1 − t + 2s = 0.", "De la primera, s = 2t − 1; en la segunda: −1 − t + 4t − 2 = 0 ⟹ t = 1, s = 1.", "A = X(1) = (1, 1, 0); B = Y(1) = (0, 0, 1). |AB| = √3."], resultado: "A(1, 1, 0), B(0, 0, 1)" },
+    { id: "m35", nivel: 3, enunciado: "Con A(1, 0, 0), B(3, 0, 1), C(1, 2, 2) y D(2, 1, 5), calcula el ángulo (en grados) que forma la recta AD con el plano ABC.", check: num("α =", 26.6828, { unidad: "°" }),
+      pistas: ["Plano ABC: normal (1, 2, −2). Usa el seno."], pasos: ["AD = (1, 1, 5), |AD| = √27 = 3√3; n·AD = 1 + 2 − 10 = −7; |n| = 3.", "sen α = 7/(9√3) ≈ 0,4490 ⟹ α ≈ 26,68°."], resultado: "α ≈ 26,68°" },
+    { id: "m36", nivel: 3, enunciado: "Calcula el ángulo (en grados) que forma la recta OP, con P(3, 0, 3), con el plano 2x − y + 2z − 3 = 0.", check: num("α =", 70.5288, { unidad: "°" }),
+      pistas: ["OP ∥ (1, 0, 1)."], pasos: ["v·n = 2 + 2 = 4 con v = (1, 0, 1); |v| = √2, |n| = 3.", "sen α = 4/(3√2) = 2√2/3 ≈ 0,9428 ⟹ α ≈ 70,53°."], resultado: "α ≈ 70,53°" },
+    { id: "m37", nivel: 3, enunciado: "Halla la coordenada x del punto del eje OX que equidista de A(1, 2, 3) y B(3, 0, 1).", check: num("x =", -1),
+      pistas: ["P = (x, 0, 0): iguala |PA|² y |PB|²."], pasos: ["|PA|² = (x − 1)² + 4 + 9; |PB|² = (x − 3)² + 0 + 1.", "x² − 2x + 14 = x² − 6x + 10 ⟹ 4x = −4 ⟹ x = −1."], resultado: "P(−1, 0, 0)" },
+    { id: "m38", nivel: 3, enunciado: "(EvAU) Halla el punto de r: (t, 1, t + 1) que equidista de los planos x + 2y + 2z − 3 = 0 y 2x − 2y + z + 3 = 0.", check: vec(-0.5, 1, 0.5),
+      pistas: ["Los dos módulos de normal valen 3: basta igualar los valores absolutos."], pasos: ["Primer plano: t + 2 + 2t + 2 − 3 = 3t + 1. Segundo: 2t − 2 + t + 1 + 3 = 3t + 2.", "|3t + 1| = |3t + 2| ⟹ 3t + 1 = −(3t + 2) ⟹ t = −1/2.", "P = (−1/2, 1, 1/2)."], resultado: "(−1/2, 1, 1/2)" },
+    { id: "m39", nivel: 3, enunciado: "(EvAU) Halla m para que la distancia del punto P(m, 1, 1) al plano 2x + 2y − z + 1 = 0 sea 2 (de menor a mayor).", check: lista("m =", [-4, 2], "dos valores"),
+      pistas: ["Numerador 2m + 2; |n| = 3."], pasos: ["2m + 2 − 1 + 1 = 2m + 2.", "|2m + 2|/3 = 2 ⟹ 2m + 2 = ±6 ⟹ m = 2 o m = −4."], resultado: "m = −4 y m = 2" },
+    { id: "m40", nivel: 3, enunciado: "(EvAU) Sean r: (0, 0, 0) + t(1, 1, 0) y s<sub>m</sub>: (0, 0, m) + s(1, 0, 1). Halla m para que la distancia entre ellas sea √3 (de menor a mayor).", check: lista("m =", [-3, 3], "dos valores"),
+      pistas: ["u × v = (1, −1, −1)."], pasos: ["Q₁Q₂ = (0, 0, m); mixto = −m.", "d = |m|/√3 = √3 ⟹ |m| = 3 ⟹ m = ±3."], resultado: "m = −3 y m = 3" },
+    { id: "m41", nivel: 3, enunciado: "Con P(2, 1, 2) y r: (0, 1, 0) + t(1, 1, 2), calcula el área del triángulo formado por Q(0, 1, 0), P y el simétrico de P respecto de r (decimal).", check: num("Área =", 2 * Math.sqrt(3), { ph: "3,464" }),
+      pistas: ["P″ = (0, 3, 2) (sección 7)."], pasos: ["QP = (2, 0, 2), QP″ = (0, 2, 2).", "QP × QP″ = (−4, −4, 4), módulo 4√3.", "Área = 2√3 ≈ 3,464."], resultado: "2√3" },
+    { id: "m42", nivel: 3, enunciado: "Deduce la fórmula de la distancia de P a π: Ax + By + Cz + D = 0 usando la proyección de QP sobre la normal.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 5, items: [
+        { t: "Toma un punto Q del plano y observa que d es la proyección escalar de QP sobre n", p: 0.5 }, { t: "Escribe d = |QP·n| / |n|", p: 0.5 },
+        { t: "Desarrolla QP·n = A(p₁ − q₁) + B(p₂ − q₂) + C(p₃ − q₃)", p: 0.5 }, { t: "Usa que Q cumple Aq₁ + Bq₂ + Cq₃ = −D", p: 0.5 }] },
+      pasos: ["d = |QP·n|/|n|.", "QP·n = A p₁ + B p₂ + C p₃ − (A q₁ + B q₂ + C q₃).", "Como Q ∈ π, A q₁ + B q₂ + C q₃ = −D. Luego QP·n = A p₁ + B p₂ + C p₃ + D y d = |A p₁ + B p₂ + C p₃ + D| / √(A² + B² + C²). ∎"], resultado: "d = |A p₁ + B p₂ + C p₃ + D| / √(A² + B² + C²)" },
+    { id: "m43", nivel: 3, enunciado: "Demuestra que el ángulo α entre una recta de director v y un plano de normal n cumple sen α = |v·n|/(|v||n|).",
+      check: { tipo: "rubrica", etiqueta: "Tu razonamiento", filas: 4, items: [
+        { t: "Llama β al ángulo entre v y n: cos β = |v·n|/(|v||n|)", p: 0.5 }, { t: "Observa que n es perpendicular al plano, luego α + β = 90°", p: 0.5 },
+        { t: "Usa sen α = sen(90° − β) = cos β", p: 0.5 }, { t: "Concluye la fórmula", p: 0.5 }] },
+      pasos: ["Si β es el ángulo (agudo) entre la recta y la normal, cos β = |v·n|/(|v||n|).", "La normal forma 90° con el plano, luego α = 90° − β.", "sen α = sen(90° − β) = cos β = |v·n|/(|v||n|). ∎"], resultado: "sen α = |v·n| / (|v||n|)" },
+    { id: "m44", nivel: 3, enunciado: "Calcula la distancia de A(1, 2, 3) al plano mediador de A y B(3, 0, 1) (decimal) sin hallar el plano.", check: num("d =", Math.sqrt(3), { ph: "1,732" }),
+      pistas: ["Piensa en el punto medio de AB."], pasos: ["El plano mediador es perpendicular a AB por su punto medio M.", "La distancia de A al plano es |AM| = |AB|/2 = √12/2 = √3 ≈ 1,732."], resultado: "√3" },
+    { id: "m45", nivel: 3, enunciado: "(EvAU) Halla m para que el tetraedro de vértices A(1, 0, 0), B(0, 2, 0), C(0, 0, 3) y D(1, 1, m) tenga volumen 1 (de menor a mayor).", check: lista("m =", [-4.5, 1.5], "dos valores"),
+      pistas: ["AB = (−1, 2, 0), AC = (−1, 0, 3), AD = (0, 1, m)."], pasos: ["[AB, AC, AD] = 3 + 2m.", "V = |3 + 2m|/6 = 1 ⟹ 3 + 2m = ±6 ⟹ m = 3/2 o m = −9/2."], resultado: "m = −9/2 y m = 3/2" }
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Ángulos: cuál uso",
+      tabla: { cab: ["Entre…", "Vectores", "Función", "Perpendicular si…"], filas: [
+        ["Dos rectas", "u, v", "cos α = |u·v|/(|u||v|)", "u·v = 0"],
+        ["Recta y plano", "v, n", "sen α = |v·n|/(|v||n|)", "v ∥ n"],
+        ["Dos planos", "n₁, n₂", "cos α = |n₁·n₂|/(|n₁||n₂|)", "n₁·n₂ = 0"]
+      ] },
+      nota: "Siempre valor absoluto: el resultado está entre 0° y 90°." },
+    { titulo: "Distancias", ancha: true,
+      tabla: { cab: ["Objetos", "Fórmula", "Observación"], filas: [
+        ["Punto – plano", "|Ap₁ + Bp₂ + Cp₃ + D| / √(A² + B² + C²)", "Plano en forma general"],
+        ["Punto – recta", "|QP × v| / |v|", "Q ∈ r, v director"],
+        ["Dos rectas que se cruzan", "|[Q₁Q₂, u, v]| / |u × v|", "Mixto ≠ 0"],
+        ["Dos planos paralelos", "|D − D′| / |n|", "Mismos A, B, C"],
+        ["Recta y plano paralelos", "d(P, π) con P ∈ r", "v·n = 0"],
+        ["Dos rectas paralelas", "d(Q₂, r)", "u ∥ v"]
+      ] } },
+    { titulo: "Proyección y simétrico",
+      items: [
+        { label: "Sobre un plano", formula: "P′ = P − (valor/|n|²)·n" },
+        { label: "Sobre una recta", formula: "plano por P ⟂ r; cortar con r" },
+        { label: "Simétrico", formula: "P″ = 2P′ − P" },
+        { label: "Respecto de un punto M", formula: "P″ = 2M − P" },
+        { label: "Distancia", formula: "|PP′| = d(P, π o r)" },
+        { label: "Perpendicular común", formula: "XY·u = 0 y XY·v = 0" }
+      ] },
+    { titulo: "Áreas, volúmenes y lugares", ancha: true,
+      tabla: { cab: ["Concepto", "Fórmula"], filas: [
+        ["Área del triángulo ABC", "½|AB × AC|"],
+        ["Volumen del tetraedro", "⅙|[AB, AC, AD]|"],
+        ["Altura desde D", "3V / Área(ABC)"],
+        ["Plano mediador de A y B", "AB·(X − M) = 0, M punto medio"],
+        ["Planos a distancia d de π", "Ax + By + Cz + D ± d|n| = 0"],
+        ["Bisectores", "π₁/|n₁| = ±π₂/|n₂|"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Recta–plano con coseno", bien: "Con seno", por: "La normal forma 90° con el plano." },
+        { mal: "Ángulo obtuso entre rectas", bien: "Valor absoluto: ángulo agudo", por: "Una recta no tiene sentido." },
+        { mal: "Restar los D sin igualar A, B, C", bien: "Dividir antes por el coeficiente común", por: "Si no, la distancia sale mal." },
+        { mal: "Aplicar el mixto a rectas paralelas", bien: "Punto–recta", por: "u × v = 0: se divide por 0." },
+        { mal: "Simétrico = opuesto", bien: "P″ = 2P′ − P", por: "Solo coincide si el centro es el origen." },
+        { mal: "Olvidar ½ en el triángulo o ⅙ en el tetraedro", bien: "½|AB × AC| y ⅙|[…]|", por: "Eso es el paralelogramo o el paralelepípedo." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t6", {
+    resumen: resumen, secciones: B.parte.m2t6a.secciones, nuevas: B.parte.m2t6b.nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
