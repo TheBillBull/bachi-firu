@@ -10715,6 +10715,449 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de matrices (Matemáticas II, tema 1)
+   motor B.lab.mt (fracciones exactas) + mm_producto · mm_potencias ·
+   mm_gauss · mm_ecuacion · mm_rango
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, H = B.h;
+  B.lab = B.lab || {};
+  var T = B.lab.mt = {};
+
+  function estilo(id, css) {
+    try {
+      if (document.getElementById(id)) return;
+      var s = document.createElement("style"); s.id = id; s.textContent = css; document.head.appendChild(s);
+    } catch (e) { /* sin documento (volcado de datos) */ }
+  }
+  estilo("mm-css",
+    ".mm-fila{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin:12px 0 6px;font-family:var(--math)}" +
+    ".mm-op{font:600 22px/1 var(--math);color:var(--ink-soft)}" +
+    ".mm-wrap{display:inline-block;max-width:100%;overflow-x:auto;vertical-align:middle}" +
+    ".mm-t{border-collapse:separate;border-spacing:3px;border-left:2px solid var(--ink-soft);border-right:2px solid var(--ink-soft);border-radius:6px;padding:2px 4px;font:17px/1.2 var(--math);color:var(--ink)}" +
+    ".mm-t td{min-width:2.3em;height:2.2em;text-align:center;border-radius:6px;padding:0 3px;transition:background .15s}" +
+    ".mm-t td.sep{border-left:2px dashed var(--ink-faint);padding-left:8px}" +
+    ".mm-t td.fila{background:var(--pen-soft)} .mm-t td.col{background:var(--ok-soft)} .mm-t td.fila.col{background:var(--hl-wash,var(--pen-soft));outline:2px solid var(--pen)}" +
+    ".mm-t td.act{background:var(--pen-soft);outline:2px solid var(--pen);font-weight:700} .mm-t td.pend{color:var(--ink-faint);cursor:pointer}" +
+    ".mm-t td.hecho{cursor:pointer} .mm-t td.piv{background:var(--hl-wash,var(--pen-soft));outline:2px solid var(--pen);font-weight:700}" +
+    ".mm-t td.mod{background:var(--ok-soft)} .mm-t td.mal{background:var(--red-soft);color:var(--red)} .mm-t td.bien{background:var(--ok-soft)}" +
+    ".mm-in{width:2.6em;height:2.1em;text-align:center;font:inherit;color:var(--ink);background:var(--sheet);border:1.5px solid var(--line);border-radius:6px;padding:0}" +
+    ".mm-in:focus{outline:2px solid var(--pen);border-color:var(--pen)} .mm-in.malo{border-color:var(--red);background:var(--red-soft)}" +
+    ".mm-t .frac{font-size:.85em}" +
+    ".mm-nota{font:600 13px/1.4 var(--body);color:var(--ink-soft);margin:2px 0 0}" +
+    ".mm-pots{display:flex;flex-wrap:wrap;gap:8px 12px;margin:8px 0;align-items:flex-end}" +
+    ".mm-pot{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;color:var(--ink-soft)} .mm-pot.ult{color:var(--pen);font-weight:700}" +
+    ".mm-pasos{margin:6px 0 0;padding-left:22px;font-size:14.5px;color:var(--ink-soft)} .mm-pasos li{margin:2px 0} .mm-pasos li.on{color:var(--ink);font-weight:600}" +
+    ".mm-eq{font:600 20px/1.3 var(--math);color:var(--ink);margin:6px 0}" +
+    ".mm-msg{border-left:4px solid var(--red);background:var(--red-soft);border-radius:4px 10px 10px 4px;padding:8px 14px;margin:10px 0;font-size:14.5px}" +
+    ".mm-msg.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+    ".mm-t td{white-space:nowrap} .mm-nw{display:inline-flex;align-items:center;gap:1px;white-space:nowrap}" +
+    "@media (max-width:520px){.mm-t{font-size:15px}.mm-t td{min-width:2em}.mm-in{width:2.3em}}" +
+    ".mm-t.g{font-size:14px;border-spacing:2px;padding:2px 2px}.mm-t.g td{min-width:1.5em;padding:0 2px}");
+
+  // ------------------------------------------------------------
+  // Fracciones exactas: { n, d }
+  // ------------------------------------------------------------
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = a % b; a = b; b = t; } return a || 1; }
+  function F(n, d) { d = d == null ? 1 : d; if (d < 0) { n = -n; d = -d; } var g = gcd(n, d); return { n: n / g, d: d / g }; }
+  var f0 = F(0), f1 = F(1);
+  T.F = F;
+  T.add = function (a, b) { return F(a.n * b.d + b.n * a.d, a.d * b.d); };
+  T.sub = function (a, b) { return F(a.n * b.d - b.n * a.d, a.d * b.d); };
+  T.mul = function (a, b) { return F(a.n * b.n, a.d * b.d); };
+  T.div = function (a, b) { return F(a.n * b.d, a.d * b.n); };
+  T.neg = function (a) { return F(-a.n, a.d); };
+  T.z = function (a) { return a.n === 0; };
+  T.eq = function (a, b) { return a.n === b.n && a.d === b.d; };
+  T.val = function (a) { return a.n / a.d; };
+  function sg(n) { return n < 0 ? "−" : ""; }
+  T.txt = function (a) { return a.d === 1 ? sg(a.n) + Math.abs(a.n) : sg(a.n) + Math.abs(a.n) + "/" + a.d; };
+  T.html = function (a) { return a.d === 1 ? sg(a.n) + Math.abs(a.n) : "<span class='mm-nw'>" + sg(a.n) + H.fr(Math.abs(a.n), a.d) + "</span>"; };
+  T.parse = function (s) {
+    s = String(s).replace(/\s+/g, "").replace(/[−–]/g, "-").replace(/,/g, ".");
+    var m;
+    if ((m = /^(-?)(\d+)(?:\.(\d+))?$/.exec(s))) {
+      var dec = m[3] || "", n = parseInt(m[2] + dec, 10), d = Math.pow(10, dec.length);
+      if (n > 1e7) return null;
+      return F(m[1] ? -n : n, d);
+    }
+    if ((m = /^(-?\d+)\/(\d+)$/.exec(s))) { if (+m[2] === 0 || Math.abs(+m[1]) > 1e7) return null; return F(+m[1], +m[2]); }
+    return null;
+  };
+
+  // ------------------------------------------------------------
+  // Matrices de fracciones (arrays de filas)
+  // ------------------------------------------------------------
+  T.de = function (rows) { return rows.map(function (r) { return r.map(function (x) { return typeof x === "number" ? F(x) : x; }); }); };
+  T.copia = function (A) { return A.map(function (r) { return r.slice(); }); };
+  T.id = function (n) { var I = []; for (var i = 0; i < n; i++) { I.push([]); for (var j = 0; j < n; j++) I[i].push(i === j ? f1 : f0); } return I; };
+  T.mmul = function (A, Bm) {
+    var m = A.length, n = Bm.length, q = Bm[0].length, C = [];
+    for (var i = 0; i < m; i++) { C.push([]); for (var j = 0; j < q; j++) { var s = f0; for (var k = 0; k < n; k++) s = T.add(s, T.mul(A[i][k], Bm[k][j])); C[i].push(s); } }
+    return C;
+  };
+  T.madd = function (A, Bm) { return A.map(function (r, i) { return r.map(function (x, j) { return T.add(x, Bm[i][j]); }); }); };
+  T.msub = function (A, Bm) { return A.map(function (r, i) { return r.map(function (x, j) { return T.sub(x, Bm[i][j]); }); }); };
+  T.igual = function (A, Bm) { return A.length === Bm.length && A[0].length === Bm[0].length && A.every(function (r, i) { return r.every(function (x, j) { return T.eq(x, Bm[i][j]); }); }); };
+  T.potencia = function (A, k) { var P = T.id(A.length); for (var i = 0; i < k; i++) P = T.mmul(P, A); return P; };
+  var SUB = "₀₁₂₃₄₅₆₇₈₉";
+  function sb(i) { return String(i).split("").map(function (c) { return SUB.charAt(+c); }).join(""); }
+  T.sb = sb;
+
+  // Gauss-Jordan sobre (A | I): lista de pasos { M, txt, mod, piv, fin }
+  T.gj = function (A) {
+    var n = A.length, M = A.map(function (r, i) { return r.concat(T.id(n)[i]); }), pasos = [];
+    function foto(txt, extra) { var o = { M: T.copia(M), txt: txt }; if (extra) for (var k in extra) o[k] = extra[k]; pasos.push(o); }
+    foto("Escribimos la matriz ampliada (A | I).");
+    for (var c = 0; c < n; c++) {
+      var r = -1, i;
+      for (i = c; i < n; i++) if (!T.z(M[i][c])) { r = i; break; }
+      if (r < 0) { foto("En la columna " + (c + 1) + " no queda ningún pivote (todo ceros desde la fila " + (c + 1) + "): A no tiene inversa.", { fin: "sing", piv: [c, c] }); return pasos; }
+      if (r !== c) { var t = M[r]; M[r] = M[c]; M[c] = t; foto("F" + sb(c + 1) + " ↔ F" + sb(r + 1) + ": intercambio filas para tener un pivote distinto de 0.", { mod: [c, r], piv: [c, c] }); }
+      var p = M[c][c];
+      if (!T.eq(p, f1)) {
+        M[c] = M[c].map(function (x) { return T.div(x, p); });
+        foto("F" + sb(c + 1) + " ← F" + sb(c + 1) + (p.n === -1 && p.d === 1 ? " · (−1)" : " ÷ " + (p.n < 0 || p.d !== 1 ? "(" + T.txt(p) + ")" : T.txt(p))) + ": el pivote pasa a valer 1.", { mod: [c], piv: [c, c] });
+      }
+      for (i = 0; i < n; i++) {
+        if (i === c || T.z(M[i][c])) continue;
+        var f = M[i][c];
+        M[i] = M[i].map(function (x, j) { return T.sub(x, T.mul(f, M[c][j])); });
+        var ab = F(Math.abs(f.n), f.d), coef = T.eq(ab, f1) ? "" : (ab.d === 1 ? ab.n : "(" + T.txt(ab) + ")") + "·";
+        foto("F" + sb(i + 1) + " ← F" + sb(i + 1) + (f.n > 0 ? " − " : " + ") + coef + "F" + sb(c + 1) + ": hago 0 el " + T.txt(f) + " de la columna " + (c + 1) + ".", { mod: [i], piv: [c, c] });
+      }
+    }
+    foto("A la izquierda queda la identidad: A⁻¹ es la parte derecha.", { fin: "ok" });
+    return pasos;
+  };
+  T.inv = function (A) {
+    var p = T.gj(A), u = p[p.length - 1];
+    if (u.fin !== "ok") return null;
+    return u.M.map(function (r) { return r.slice(A.length); });
+  };
+
+  // Escalonamiento (Gauss hacia delante): { rango, R, pasos:[txt] }
+  T.escalona = function (A0) {
+    var A = T.copia(A0), m = A.length, n = A[0].length, r = 0, pasos = [];
+    for (var c = 0; c < n && r < m; c++) {
+      var p = -1, i;
+      for (i = r; i < m; i++) if (!T.z(A[i][c])) { p = i; break; }
+      if (p < 0) continue;
+      if (p !== r) { var t = A[p]; A[p] = A[r]; A[r] = t; pasos.push("F" + sb(r + 1) + " ↔ F" + sb(p + 1)); }
+      for (i = r + 1; i < m; i++) {
+        if (T.z(A[i][c])) continue;
+        var f = T.div(A[i][c], A[r][c]);
+        A[i] = A[i].map(function (x, j) { return T.sub(x, T.mul(f, A[r][j])); });
+        var ab = F(Math.abs(f.n), f.d), coef = T.eq(ab, f1) ? "" : (ab.d === 1 ? ab.n : "(" + T.txt(ab) + ")") + "·";
+        pasos.push("F" + sb(i + 1) + " ← F" + sb(i + 1) + (f.n > 0 ? " − " : " + ") + coef + "F" + sb(r + 1));
+      }
+      r++;
+    }
+    return { rango: r, R: A, pasos: pasos };
+  };
+
+  // ------------------------------------------------------------
+  // Dibujo de matrices
+  // ------------------------------------------------------------
+  // o = { cls(i,j), sep, edit: nombre, celda(i,j,x) }
+  function mhtml(M, o) {
+    o = o || {};
+    var h = '<span class="mm-wrap"' + (o.id ? ' data-mat="' + o.id + '"' : "") + '><table class="mm-t' + (M[0].length >= 5 ? " g" : "") + '"><tbody>';
+    for (var i = 0; i < M.length; i++) {
+      h += "<tr>";
+      for (var j = 0; j < M[i].length; j++) {
+        var cl = (o.cls && o.cls(i, j)) || "";
+        if (o.sep != null && j === o.sep) cl += " sep";
+        h += '<td class="' + cl + '" data-i="' + i + '" data-j="' + j + '">' +
+          (o.edit ? '<input class="mm-in" type="text" autocomplete="off" data-m="' + o.edit + '" data-i="' + i + '" data-j="' + j + '" value="' + T.txt(M[i][j]).replace("−", "-") + '" aria-label="' + o.edit + " fila " + (i + 1) + " columna " + (j + 1) + '">' : (o.celda ? o.celda(i, j, M[i][j]) : T.html(M[i][j]))) + "</td>";
+      }
+      h += "</tr>";
+    }
+    return h + "</tbody></table></span>";
+  }
+  T.mhtml = mhtml;
+  // matriz para texto de teoría: T.m([[1,2],[3,4]])
+  T.m = function (rows, sep) {
+    return mhtml(rows.map(function (r) { return r.map(function (x) { if (typeof x === "string") return T.parse(x); return typeof x === "number" ? F(x) : x; }); }), { sep: sep });
+  };
+  // matriz con textos libres (parámetros): T.mt([["1","a"],["b","0"]])
+  T.mt = function (rows) {
+    return mhtml(rows.map(function (r) { return r.map(function (x) { return x; }); }), { celda: function (i, j, x) { return String(x).replace(/-/g, "−"); } });
+  };
+
+  // Enlaza <input class="mm-in"> de un contenedor con una matriz de estado: alCambiar(nombre) tras una edición válida
+  function enlazar(host, estado, alCambiar) {
+    host.addEventListener("input", function (e) {
+      var inp = e.target; if (!inp.classList || !inp.classList.contains("mm-in")) return;
+      var v = T.parse(inp.value);
+      inp.classList.toggle("malo", !v);
+      if (!v) return;
+      estado[inp.getAttribute("data-m")][+inp.getAttribute("data-i")][+inp.getAttribute("data-j")] = v;
+      alCambiar(inp.getAttribute("data-m"));
+    });
+  }
+  function dimTxt(M) { return M.length + "×" + M[0].length; }
+  function par(f) { return f.n < 0 || f.d !== 1 ? "(" + T.txt(f) + ")" : T.txt(f); }
+  function rel(m, n, base) {
+    var M = [];
+    for (var i = 0; i < m; i++) { M.push([]); for (var j = 0; j < n; j++) M[i].push(F(((i * 2 + j * 3 + base) % 5) - 1)); }
+    return M;
+  }
+
+  // ============================================================
+  // 1. Producto fila × columna
+  // ============================================================
+  B.w.mm_producto = function (host) {
+    var cu = B.caja(host, "Pruébalo", "Multiplicar matrices: fila por columna");
+    cu.innerHTML = '<div data-pre></div><div class="ctl" data-dims></div><div class="mm-fila" data-mats></div><div class="lectura anch"></div><p class="w-pie"></p><div class="ctl" data-btn></div>';
+    var pres = [
+      { k: "tema", t: "Ejemplo del tema", A: [[1, 2], [3, 4]], B: [[5, 6], [7, 8]] },
+      { k: "rect", t: "2×3 por 3×2", A: [[1, 0, 2], [-1, 3, 1]], B: [[3, 1], [2, 1], [1, 0]] },
+      { k: "conm", t: "No conmutan", A: [[1, 1], [0, 1]], B: [[1, 0], [1, 1]] },
+      { k: "nulo", t: "AB = O con A, B ≠ O", A: [[1, 1], [1, 1]], B: [[1, -1], [-1, 1]] },
+      { k: "no", t: "No se puede", A: [[1, 2, 3], [4, 5, 6]], B: [[1, 0, 2], [0, 1, 1]] }
+    ];
+    var E = { A: null, B: null }, k = 0;
+    var mats = cu.querySelector("[data-mats]"), lect = cu.querySelector(".lectura"), pie = cu.querySelector(".w-pie");
+    var sl = {};
+    function dims() { return [E.A.length, E.A[0].length, E.B.length, E.B[0].length]; }
+    function ajusta(M, m, n, base) { var R = rel(m, n, base); for (var i = 0; i < m; i++) for (var j = 0; j < n; j++) if (M[i] && M[i][j]) R[i][j] = M[i][j]; return R; }
+    function armar() {
+      mats.innerHTML = '<span data-a>' + mhtml(E.A, { edit: "A" }) + '</span><span class="mm-op">×</span><span data-b>' + mhtml(E.B, { edit: "B" }) + '</span><span class="mm-op">=</span><span data-c></span>';
+      pinta();
+    }
+    function pinta() {
+      var m = E.A.length, n = E.A[0].length, p = E.B.length, q = E.B[0].length, ok = n === p, C = ok ? T.mmul(E.A, E.B) : null;
+      var tot = ok ? m * q : 0; if (k > tot) k = tot;
+      var ci = k ? Math.floor((k - 1) / q) : -1, cj = k ? (k - 1) % q : -1;
+      Array.prototype.forEach.call(mats.querySelectorAll("[data-a] td"), function (td) { td.classList.toggle("fila", ok && +td.getAttribute("data-i") === ci); });
+      Array.prototype.forEach.call(mats.querySelectorAll("[data-b] td"), function (td) { td.classList.toggle("col", ok && +td.getAttribute("data-j") === cj); });
+      var cc = mats.querySelector("[data-c]");
+      if (ok) {
+        cc.innerHTML = mhtml(C, { id: "C", cls: function (i, j) { var idx = i * q + j; return idx === k - 1 ? "act" : idx < k ? "hecho" : "pend"; }, celda: function (i, j, x) { return (i * q + j) < k ? T.html(x) : "?"; } });
+        Array.prototype.forEach.call(cc.querySelectorAll("td"), function (td) { td.addEventListener("click", function () { k = +td.getAttribute("data-i") * q + +td.getAttribute("data-j") + 1; pinta(); }); });
+      } else cc.innerHTML = '<span class="mm-msg">no existe</span>';
+      var bExiste = q === m, igual = null, motivo = "";
+      if (ok && bExiste) { var BAm = T.mmul(E.B, E.A); if (BAm.length === C.length && BAm[0].length === C[0].length) igual = T.igual(C, BAm); else motivo = "no: distinto tamaño"; }
+      else if (ok || bExiste) motivo = "no: solo existe uno";
+      else motivo = "no existe ninguno";
+      lect.innerHTML =
+        U.lec("A y B", "A " + m + "×" + n + " · B " + p + "×" + q) +
+        U.lec("A·B", ok ? "existe: " + m + "×" + q : "no existe", ok ? "ok" : "red") +
+        U.lec("B·A", bExiste ? "existe: " + p + "×" + n : "no existe", bExiste ? "ok" : "red") +
+        U.lec("¿A·B = B·A?", igual === null ? motivo : igual ? "sí (casualidad)" : "no", igual === true ? "ok" : "red");
+      if (!ok) pie.innerHTML = "A tiene <b>" + n + "</b> columnas y B tiene <b>" + p + "</b> filas: para multiplicar tienen que coincidir. Cambia las dimensiones con los deslizadores.";
+      else if (!k) pie.innerHTML = "El resultado será " + m + "×" + q + ". Pulsa «Siguiente» para ver cómo sale cada elemento, o pulsa una casilla del resultado.";
+      else {
+        var t = [], s = f0, ts = [];
+        for (var x = 0; x < n; x++) { t.push(par(E.A[ci][x]) + "·" + par(E.B[x][cj])); s = T.add(s, T.mul(E.A[ci][x], E.B[x][cj])); }
+        pie.innerHTML = "(A·B)<sub>" + (ci + 1) + (cj + 1) + "</sub> = fila " + (ci + 1) + " de A · columna " + (cj + 1) + " de B = " + t.join(" + ") + " = <b>" + T.txt(s) + "</b>";
+      }
+    }
+    var ctl = U.ctl(cu.querySelector("[data-dims]"));
+    function dim(et, idx) {
+      return U.slider(ctl, { et: et, min: 1, max: 4, step: 1, val: 2, on: function (v) {
+        var d = dims(); d[idx] = v;
+        E.A = ajusta(E.A, d[0], d[1], 0); E.B = ajusta(E.B, d[2], d[3], 2); k = 0; armar();
+      }, fmt: function (v) { return String(v); } });
+    }
+    sl.am = dim("filas de A", 0); sl.an = dim("columnas de A", 1); sl.bp = dim("filas de B", 2); sl.bq = dim("columnas de B", 3);
+    function elige(kk) {
+      var p = pres.filter(function (x) { return x.k === kk; })[0];
+      E.A = T.de(p.A); E.B = T.de(p.B); k = 0;
+      sl.am.set(E.A.length); sl.an.set(E.A[0].length); sl.bp.set(E.B.length); sl.bq.set(E.B[0].length);
+      armar();
+    }
+    U.fichas(cu.querySelector("[data-pre]"), pres.map(function (p) { return { k: p.k, t: p.t }; }), "tema", elige);
+    enlazar(mats, E, function () { pinta(); });
+    var bt = cu.querySelector("[data-btn]");
+    U.boton(bt, "Siguiente ▸", function () { var d = dims(); if (d[1] === d[2]) { k = Math.min(k + 1, d[0] * d[3]); pinta(); } });
+    U.boton(bt, "Todo ⏭", function () { var d = dims(); if (d[1] === d[2]) { k = d[0] * d[3]; pinta(); } });
+    U.boton(bt, "↺ Reiniciar", function () { k = 0; pinta(); });
+    elige("tema");
+  };
+
+  // ============================================================
+  // 2. Potencias y patrón
+  // ============================================================
+  function fib(n) { var a = 0, b = 1; for (var i = 0; i < n; i++) { var t = a + b; a = b; b = t; } return a; }
+  var POT = [
+    { k: "diag", t: "Diagonal", A: [[2, 0], [0, -1]], forma: "Aⁿ = diag(2ⁿ, (−1)ⁿ): se eleva cada elemento de la diagonal.", f: function (n) { return [[Math.pow(2, n), 0], [0, Math.pow(-1, n)]]; } },
+    { k: "unip", t: "[[1,1],[0,1]]", A: [[1, 1], [0, 1]], forma: "Aⁿ = [[1, n], [0, 1]]: cada potencia suma 1 arriba a la derecha.", f: function (n) { return [[1, n], [0, 1]]; } },
+    { k: "doble", t: "[[2,1],[0,2]]", A: [[2, 1], [0, 2]], forma: "A = 2I + N con N² = O: Aⁿ = [[2ⁿ, n·2ⁿ⁻¹], [0, 2ⁿ]].", f: function (n) { return [[Math.pow(2, n), n * Math.pow(2, n - 1)], [0, Math.pow(2, n)]]; } },
+    { k: "tri3", t: "Triangular 3×3", A: [[1, 1, 1], [0, 1, 1], [0, 0, 1]], forma: "A = I + N con N³ = O: Aⁿ = I + nN + n(n−1)/2·N², así que a₁₃ = n(n+1)/2.", f: function (n) { return [[1, n, n * (n + 1) / 2], [0, 1, n], [0, 0, 1]]; } },
+    { k: "nil", t: "Nilpotente 3×3", A: [[0, 1, 0], [0, 0, 1], [0, 0, 0]], forma: "A² ≠ O pero A³ = O: desde n = 3 todas las potencias son la matriz nula.", f: function (n) { return n === 1 ? [[0, 1, 0], [0, 0, 1], [0, 0, 0]] : n === 2 ? [[0, 0, 1], [0, 0, 0], [0, 0, 0]] : [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; } },
+    { k: "idem", t: "Idempotente", A: [[2, -2], [1, -1]], forma: "A² = A (idempotente): todas las potencias valen A.", f: function () { return [[2, -2], [1, -1]]; } },
+    { k: "invol", t: "Intercambio", A: [[0, 1], [1, 0]], forma: "A² = I (involutiva): Aⁿ = A si n es impar e I si n es par.", f: function (n) { return n % 2 ? [[0, 1], [1, 0]] : [[1, 0], [0, 1]]; } },
+    { k: "giro", t: "Giro de 90°", A: [[0, -1], [1, 0]], forma: "A⁴ = I: las potencias se repiten con periodo 4 (A, −I, −A, I).", f: function (n) { var r = n % 4; return r === 1 ? [[0, -1], [1, 0]] : r === 2 ? [[-1, 0], [0, -1]] : r === 3 ? [[0, 1], [-1, 0]] : [[1, 0], [0, 1]]; } },
+    { k: "fib", t: "Fibonacci", A: [[1, 1], [1, 0]], forma: "Aⁿ = [[Fₙ₊₁, Fₙ], [Fₙ, Fₙ₋₁]] con Fₙ los números de Fibonacci (0, 1, 1, 2, 3, 5, 8…).", f: function (n) { return [[fib(n + 1), fib(n)], [fib(n), fib(n - 1)]]; } }
+  ];
+  T.POT = POT;
+  B.w.mm_potencias = function (host) {
+    var cu = B.caja(host, "Pruébalo", "Potencias de una matriz: busca el patrón");
+    cu.innerHTML = '<div data-pre></div><div class="ctl" data-n></div><div class="mm-pots"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var pre = POT[0], n = 4, pots = cu.querySelector(".mm-pots"), lect = cu.querySelector(".lectura"), pie = cu.querySelector(".w-pie");
+    function pinta() {
+      var A = T.de(pre.A), P = T.id(A.length), h = "", Pn;
+      for (var i = 1; i <= n; i++) {
+        P = T.mmul(P, A); Pn = P;
+        if (n <= 6 || i > n - 6 || i <= 2) h += '<div class="mm-pot' + (i === n ? " ult" : "") + '"><span>A<sup>' + i + "</sup></span>" + mhtml(P) + "</div>";
+        else if (i === 3) h += '<div class="mm-pot"><span>…</span></div>';
+      }
+      pots.innerHTML = h;
+      var Fm = T.de(pre.f(n)), coincide = T.igual(Fm, Pn);
+      lect.innerHTML = U.lec("Potencia", "A" + U.sup(n) + " es " + dimTxt(Pn), "pen") + U.lec("Fórmula del patrón", coincide ? "coincide con el cálculo ✓" : "NO coincide", coincide ? "ok" : "red");
+      pie.innerHTML = "<b>Patrón:</b> " + pre.forma;
+    }
+    var ctl = U.ctl(cu.querySelector("[data-n]"));
+    U.slider(ctl, { et: "exponente n", min: 1, max: 12, step: 1, val: n, on: function (v) { n = v; pinta(); }, fmt: function (v) { return String(v); } });
+    U.fichas(cu.querySelector("[data-pre]"), POT.map(function (p) { return { k: p.k, t: p.t }; }), "diag", function (kk) { pre = POT.filter(function (p) { return p.k === kk; })[0]; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // 3. Gauss-Jordan guiado
+  // ============================================================
+  B.w.mm_gauss = function (host) {
+    var cu = B.caja(host, "Pruébalo", "Matriz inversa por Gauss-Jordan, paso a paso");
+    cu.innerHTML = '<div data-pre></div><div class="mm-fila" data-ent></div><div class="mm-fila" data-amp></div><div class="lectura anch"></div><p class="w-pie"></p><div class="ctl" data-btn></div>';
+    var pres = [
+      { k: "a", t: "2×2", A: [[2, 1], [5, 3]] },
+      { k: "b", t: "3×3", A: [[1, 2, 3], [0, 1, 4], [1, 0, 6]] },
+      { k: "c", t: "3×3 con intercambio", A: [[0, 1, 2], [1, 0, 3], [4, -3, 8]] },
+      { k: "d", t: "2×2 sin inversa", A: [[1, 2], [2, 4]] },
+      { k: "e", t: "3×3 sin inversa", A: [[1, 2, 3], [4, 5, 6], [7, 8, 9]] }
+    ];
+    var E = { A: T.de(pres[0].A) }, pasos, s = 0;
+    var ent = cu.querySelector("[data-ent]"), amp = cu.querySelector("[data-amp]"), lect = cu.querySelector(".lectura"), pie = cu.querySelector(".w-pie");
+    function recalcula() { pasos = T.gj(E.A); s = Math.min(s, pasos.length - 1); }
+    function pinta() {
+      var P = pasos[s], n = E.A.length;
+      amp.innerHTML = mhtml(P.M, { sep: n, cls: function (i, j) {
+        var c = ""; if (P.piv && i === P.piv[0] && j === P.piv[1] && s > 0) c += " piv";
+        if (P.mod && P.mod.indexOf(i) >= 0) c += " mod";
+        if (P.fin === "ok" && j >= n) c += " bien";
+        if (P.fin === "sing" && j < n && i >= P.piv[0]) c += " mal";
+        return c;
+      } });
+      var ult = s === pasos.length - 1, ver = "";
+      if (ult && P.fin === "ok") {
+        var Ai = P.M.map(function (r) { return r.slice(n); });
+        ver = T.igual(T.mmul(E.A, Ai), T.id(n)) ? "A·A⁻¹ = I ✓" : "no cuadra";
+      }
+      lect.innerHTML = U.lec("Paso", s + " de " + (pasos.length - 1)) + U.lec("Resultado", !ult ? "en curso…" : P.fin === "ok" ? "A⁻¹ encontrada" : "A no es invertible", !ult ? "" : P.fin === "ok" ? "ok" : "red") + (ver ? U.lec("Comprobación", ver, "ok") : "");
+      pie.innerHTML = (s ? "<b>" + s + ".</b> " : "") + P.txt;
+      var b = cu.querySelectorAll("[data-btn] button"); b[0].disabled = s === 0; b[1].disabled = ult; b[2].disabled = ult;
+    }
+    function armar() {
+      ent.innerHTML = '<span class="mm-op">A =</span>' + mhtml(E.A, { edit: "A" });
+      recalcula(); pinta();
+    }
+    function elige(kk) { E.A = T.de(pres.filter(function (p) { return p.k === kk; })[0].A); s = 0; armar(); }
+    U.fichas(cu.querySelector("[data-pre]"), pres.map(function (p) { return { k: p.k, t: p.t }; }), "a", elige);
+    enlazar(ent, E, function () { s = 0; recalcula(); pinta(); });
+    var bt = cu.querySelector("[data-btn]");
+    U.boton(bt, "◂ Atrás", function () { if (s > 0) { s--; pinta(); } });
+    U.boton(bt, "Siguiente ▸", function () { if (s < pasos.length - 1) { s++; pinta(); } });
+    U.boton(bt, "Todo ⏭", function () { s = pasos.length - 1; pinta(); });
+    U.boton(bt, "↺ Reiniciar", function () { s = 0; pinta(); });
+    armar();
+  };
+
+  // ============================================================
+  // 4. Ecuaciones matriciales: despeja sin dividir
+  // ============================================================
+  B.w.mm_ecuacion = function (host) {
+    var cu = B.caja(host, "Pruébalo", "Ecuaciones matriciales: ¿por qué lado multiplico?");
+    cu.innerHTML = '<div data-pre></div><div class="mm-fila" data-ent></div><div class="mm-eq"></div><ol class="mm-pasos"></ol><div class="mm-fila" data-res></div><div class="lectura anch"></div><p class="w-pie"></p><div class="ctl" data-btn></div>';
+    var I2 = T.id(2);
+    function inv(M) { return T.inv(M); }
+    var FORMAS = [
+      { k: "ax", t: "AX = B", eq: "A·X = B", usa: "AB", pasos: ["Multiplico por A⁻¹ <b>por la izquierda</b> en los dos miembros: A⁻¹·A·X = A⁻¹·B.", "Como A⁻¹·A = I: X = A⁻¹·B."], need: ["A"],
+        X: function (A, Bm) { return T.mmul(inv(A), Bm); }, lhs: function (A, Bm, X) { return T.mmul(A, X); }, rhs: function (A, Bm) { return Bm; }, mal: function (A, Bm) { return T.mmul(Bm, inv(A)); }, malTxt: "B·A⁻¹" },
+      { k: "xa", t: "XA = B", eq: "X·A = B", usa: "AB", pasos: ["Multiplico por A⁻¹ <b>por la derecha</b> en los dos miembros: X·A·A⁻¹ = B·A⁻¹.", "Como A·A⁻¹ = I: X = B·A⁻¹."], need: ["A"],
+        X: function (A, Bm) { return T.mmul(Bm, inv(A)); }, lhs: function (A, Bm, X) { return T.mmul(X, A); }, rhs: function (A, Bm) { return Bm; }, mal: function (A, Bm) { return T.mmul(inv(A), Bm); }, malTxt: "A⁻¹·B" },
+      { k: "axb", t: "AXB = C", eq: "A·X·B = C", usa: "ABC", pasos: ["A⁻¹ por la izquierda y B⁻¹ por la derecha: A⁻¹·A·X·B·B⁻¹ = A⁻¹·C·B⁻¹.", "Se cancelan los pares: X = A⁻¹·C·B⁻¹."], need: ["A", "B"],
+        X: function (A, Bm, C) { return T.mmul(T.mmul(inv(A), C), inv(Bm)); }, lhs: function (A, Bm, X) { return T.mmul(T.mmul(A, X), Bm); }, rhs: function (A, Bm, X, C) { return C; }, mal: function (A, Bm, C) { return T.mmul(T.mmul(inv(Bm), C), inv(A)); }, malTxt: "B⁻¹·C·A⁻¹" },
+      { k: "axbc", t: "AX + B = C", eq: "A·X + B = C", usa: "ABC", pasos: ["Paso los sumandos que no llevan X: A·X = C − B.", "Ahora multiplico por A⁻¹ por la izquierda: X = A⁻¹·(C − B)."], need: ["A"],
+        X: function (A, Bm, C) { return T.mmul(inv(A), T.msub(C, Bm)); }, lhs: function (A, Bm, X) { return T.madd(T.mmul(A, X), Bm); }, rhs: function (A, Bm, X, C) { return C; }, mal: function (A, Bm, C) { return T.mmul(T.msub(C, Bm), inv(A)); }, malTxt: "(C − B)·A⁻¹" },
+      { k: "axx", t: "AX + X = B", eq: "A·X + X = B", usa: "AB", pasos: ["X está en los dos sumandos: saco factor común <b>por la derecha</b>, A·X + I·X = (A + I)·X.", "(A + I)·X = B, y multiplico por (A + I)⁻¹ por la izquierda: X = (A + I)⁻¹·B."], need: ["A+I"],
+        X: function (A, Bm) { return T.mmul(inv(T.madd(A, I2)), Bm); }, lhs: function (A, Bm, X) { return T.madd(T.mmul(A, X), X); }, rhs: function (A, Bm) { return Bm; }, mal: null },
+      { k: "xax", t: "XA = X + B", eq: "X·A = X + B", usa: "AB", pasos: ["Paso X al otro lado: X·A − X = B, y saco factor común <b>por la izquierda</b>: X·(A − I) = B.", "Multiplico por (A − I)⁻¹ por la derecha: X = B·(A − I)⁻¹."], need: ["A−I"],
+        X: function (A, Bm) { return T.mmul(Bm, inv(T.msub(A, I2))); }, lhs: function (A, Bm, X) { return T.mmul(X, A); }, rhs: function (A, Bm, X) { return T.madd(X, Bm); }, mal: null }
+    ];
+    var E = { A: T.de([[2, 1], [5, 3]]), B: T.de([[4, 1], [9, 2]]), C: T.de([[1, 2], [3, 4]]) }, forma = FORMAS[0], malOn = false;
+    var ent = cu.querySelector("[data-ent]"), eq = cu.querySelector(".mm-eq"), ol = cu.querySelector(".mm-pasos"), res = cu.querySelector("[data-res]"), lect = cu.querySelector(".lectura"), pie = cu.querySelector(".w-pie");
+    function armar() {
+      var h = '<span class="mm-op">A =</span>' + mhtml(E.A, { edit: "A" }) + '<span class="mm-op">B =</span>' + mhtml(E.B, { edit: "B" });
+      if (forma.usa.indexOf("C") >= 0) h += '<span class="mm-op">C =</span>' + mhtml(E.C, { edit: "C" });
+      ent.innerHTML = h; pinta();
+    }
+    function invertible(nm) {
+      if (nm === "A") return !!inv(E.A); if (nm === "B") return !!inv(E.B);
+      if (nm === "A+I") return !!inv(T.madd(E.A, I2)); if (nm === "A−I") return !!inv(T.msub(E.A, I2)); return true;
+    }
+    function pinta() {
+      eq.innerHTML = "Resolver: " + forma.eq;
+      ol.innerHTML = forma.pasos.map(function (p) { return "<li class='on'>" + p + "</li>"; }).join("");
+      var falta = forma.need.filter(function (nm) { return !invertible(nm); });
+      cu.querySelector("[data-btn]").style.display = forma.mal ? "" : "none";
+      if (falta.length) {
+        res.innerHTML = '<div class="mm-msg">La matriz <b>' + falta.join(" y ") + "</b> no tiene inversa (determinante 0): la ecuación no se puede despejar así y no tiene solución única. Cambia los números.</div>";
+        lect.innerHTML = ""; pie.innerHTML = ""; return;
+      }
+      var X = forma.X(E.A, E.B, E.C), Xv = (malOn && forma.mal) ? forma.mal(E.A, E.B, E.C) : X;
+      var L = forma.lhs(E.A, E.B, Xv), R = forma.rhs(E.A, E.B, Xv, E.C), bien = T.igual(L, R);
+      res.innerHTML = '<span class="mm-op">' + (malOn && forma.mal ? "X = " + forma.malTxt + " =" : "X =") + "</span>" + mhtml(Xv, {}) +
+        '<span class="mm-op">Comprobación:</span>' + mhtml(L, { cls: function () { return bien ? "bien" : "mal"; } }) + '<span class="mm-op">' + (bien ? "=" : "≠") + "</span>" + mhtml(R, { cls: function () { return bien ? "bien" : "mal"; } });
+      lect.innerHTML = U.lec("Orden", malOn && forma.mal ? "equivocado" : "correcto", malOn && forma.mal ? "red" : "ok") + U.lec("¿Cumple la ecuación?", bien ? "sí" : "no", bien ? "ok" : "red");
+      pie.innerHTML = malOn && forma.mal ? "Con el orden cambiado, <b>" + forma.malTxt + "</b> no verifica la ecuación: al multiplicar por la inversa del lado equivocado no se cancela nada." : "Sustituye siempre X en la ecuación original: es la comprobación que pide el examen.";
+    }
+    U.fichas(cu.querySelector("[data-pre]"), FORMAS.map(function (f) { return { k: f.k, t: f.t }; }), "ax", function (kk) { forma = FORMAS.filter(function (f) { return f.k === kk; })[0]; malOn = false; armar(); });
+    enlazar(ent, E, function () { pinta(); });
+    U.boton(cu.querySelector("[data-btn]"), "Probar el orden equivocado", function () { malOn = !malOn; this.textContent = malOn ? "Volver al orden correcto" : "Probar el orden equivocado"; pinta(); });
+    armar();
+  };
+
+  // ============================================================
+  // 5. Rango según un parámetro
+  // ============================================================
+  var RANG = [
+    { k: "p1", t: "3×3 simétrica", pl: [["1", "1", "a"], ["1", "a", "1"], ["a", "1", "1"]], f: function (a) { return [[1, 1, a], [1, a, 1], [a, 1, 1]]; } },
+    { k: "p2", t: "2×3", pl: [["1", "a", "2"], ["a", "4", "2a"]], f: function (a) { return [[1, a, 2], [a, 4, 2 * a]]; } },
+    { k: "p3", t: "3×3 cíclica", pl: [["a", "1", "0"], ["0", "a", "1"], ["1", "0", "a"]], f: function (a) { return [[a, 1, 0], [0, a, 1], [1, 0, a]]; } },
+    { k: "p4", t: "3×4", pl: [["1", "1", "1", "a"], ["1", "a", "1", "1"], ["a", "1", "1", "1"]], f: function (a) { return [[1, 1, 1, a], [1, a, 1, 1], [a, 1, 1, 1]]; } }
+  ];
+  T.RANG = RANG;
+  B.w.mm_rango = function (host) {
+    var cu = B.caja(host, "Pruébalo", "Rango según un parámetro");
+    cu.innerHTML = '<div data-pre></div><div class="ctl" data-a></div><div class="mm-fila" data-mats></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var pre = RANG[0], a2 = 0, mats = cu.querySelector("[data-mats]"), lect = cu.querySelector(".lectura"), pie = cu.querySelector(".w-pie");
+    var g = new B.Plot(cu.querySelector(".w-plot"), { xmin: -4.5, xmax: 4.5, ymin: -0.2, ymax: 3.8, w: 600, h: 230, etx: "a", ety: "rango", etiqueta: "Rango de la matriz según el valor del parámetro a" });
+    function rg(k2) { return T.escalona(T.de(pre.f(k2 / 2))).rango; }
+    function pinta() {
+      var a = a2 / 2, Mf = T.de(pre.f(a)), res = T.escalona(Mf), max = 0, crit = [], k;
+      for (k = -8; k <= 8; k++) max = Math.max(max, rg(k));
+      for (k = -8; k <= 8; k++) if (rg(k) < max) crit.push(k / 2);
+      mats.innerHTML = '<span class="mm-op">M =</span>' + T.mt(pre.pl) + '<span class="mm-op">con a = ' + B.fmt(a, 1) + ' →</span>' + mhtml(Mf, {}) + '<span class="mm-op">escalonada →</span>' + mhtml(res.R, { cls: function (i, j) { return ""; } });
+      g.limpiar();
+      var pts = [];
+      for (k = -8; k <= 8; k++) { var r = rg(k); pts.push([k / 2, r]); g.punto(k / 2, r, { r: 3.5, clase: r < max ? "c-red" : "c-pen" }); }
+      g.horizontal(max, { clase: "c-faint", dash: "4 4" });
+      g.vertical(a, { clase: "c-ok" });
+      g.punto(a, res.rango, { r: 7, clase: "c-ok" });
+      lect.innerHTML = U.lec("a", B.fmt(a, 1), "pen") + U.lec("Rango de M", String(res.rango), res.rango < max ? "red" : "ok") + U.lec("Rango más alto", String(max)) + U.lec("Valores de a con rango menor", crit.length ? crit.map(function (x) { return B.fmt(x, 1); }).join(", ") : "ninguno");
+      pie.innerHTML = res.pasos.length ? "Pasos de Gauss: " + res.pasos.join(" · ") + "." : "La matriz ya está escalonada.";
+    }
+    var ctl = U.ctl(cu.querySelector("[data-a]"));
+    U.slider(ctl, { et: "parámetro a", min: -8, max: 8, step: 1, val: 0, on: function (v) { a2 = v; pinta(); }, fmt: function (v) { return B.fmt(v / 2, 1); } });
+    U.fichas(cu.querySelector("[data-pre]"), RANG.map(function (p) { return { k: p.k, t: p.t }; }), "p1", function (kk) { pre = RANG.filter(function (p) { return p.k === kk; })[0]; pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · mecánica I (Física y Química 1.º, tema 8: cinemática)
    motor B.lab.mec1 + f8_movil · f8_encuentro · f8_graficas · f8_caida
    ============================================================ */
@@ -49438,6 +49881,826 @@
 
   ]);
 
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 1: Álgebra de matrices
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla, formula = H.formula, T = B.lab.mt;
+  function w(n, ref) { return H.w(n, ref && "mates2/t1/" + ref); }
+  function M(rows, sep) { return T.m(rows, sep); }
+  function MT(rows) { return T.mt(rows); }
+  // comprobación de una matriz entrada a entrada
+  function mc(et, rows) {
+    var out = [];
+    rows.forEach(function (r, i) { r.forEach(function (v, j) { out.push({ tipo: "num", etiqueta: et + " (" + (i + 1) + "," + (j + 1) + ") =", valor: v }); }); });
+    return out;
+  }
+
+  var resumen = [
+    "Una matriz m×n tiene <b>m filas y n columnas</b> (primero filas). Se suman y restan solo matrices de la misma dimensión, elemento a elemento; k·A multiplica todos los elementos.",
+    "<b>A·B</b> existe solo si columnas de A = filas de B; cada elemento es «fila de A por columna de B». Es asociativa y distributiva, pero <b>no conmutativa</b> (AB ≠ BA en general), y AB = O no obliga a A = O ni a B = O. Por eso (A+B)² = A² + AB + BA + B².",
+    "<b>Potencias:</b> calcula A², A³, A⁴ hasta ver el patrón y demuéstralo por inducción. Casos que se repiten: diagonales, A = I + N con N nilpotente (binomio de Newton), periódicas (A² = I) e idempotentes (A² = A).",
+    "<b>Traspuesta:</b> (A+B)ᵗ = Aᵗ+Bᵗ, (k·A)ᵗ = k·Aᵗ, <b>(A·B)ᵗ = Bᵗ·Aᵗ</b>. Simétrica: Aᵗ = A; antisimétrica: Aᵗ = −A (diagonal de ceros); ortogonal: AᵗA = I.",
+    "<b>Inversa:</b> A⁻¹ existe solo si A es cuadrada y su rango es n (det ≠ 0). Gauss-Jordan: (A | I) → (I | A⁻¹). <b>(A·B)⁻¹ = B⁻¹·A⁻¹</b> (orden invertido). Si A² − 2A + I = O, entonces A⁻¹ = 2I − A.",
+    "<b>Ecuaciones matriciales:</b> no se divide; se multiplica por la inversa <b>del lado donde está la X</b>: AX = B → X = A⁻¹B; XA = B → X = BA⁻¹. Con X en varios sumandos, factor común (respetando el lado) y después la inversa. Comprueba siempre sustituyendo.",
+    "<b>Rango</b> = número de filas no nulas tras escalonar por Gauss (o de filas linealmente independientes). Con un parámetro, se escalona sin dividir entre expresiones que puedan valer 0 y se discuten los valores que anulan pivotes."
+  ];
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Qué es una matriz
+  secciones[0] =
+    "<h5>Cuándo dos matrices son iguales</h5>" +
+    "<p>Dos matrices A y B son <b>iguales</b> si tienen la <b>misma dimensión</b> y todos sus elementos coinciden posición a posición: aᵢⱼ = bᵢⱼ para todo i, j. Parece una obviedad, pero es una herramienta de examen muy potente: una igualdad de matrices equivale a <b>un sistema de ecuaciones</b>, una por cada posición. Si " + MT([["x", "2"], ["3", "y"]]) + " = " + M([[5, 2], [3, 7]]) + ", entonces x = 5 e y = 7.</p>" +
+    "<h5>Matrices definidas por una fórmula</h5>" +
+    "<p>Muchas veces la matriz no se da escrita, sino mediante una regla para aᵢⱼ. Para construirla se recorre la tabla fila a fila sustituyendo i y j.</p>" +
+    ejemplo("Matriz 3×3 con aᵢⱼ = 2i − j", "Escribe la matriz A = (aᵢⱼ) de orden 3 con aᵢⱼ = 2i − j.", [
+      "Fila 1 (i = 1): a₁₁ = 2 − 1 = 1; a₁₂ = 2 − 2 = 0; a₁₃ = 2 − 3 = −1.",
+      "Fila 2 (i = 2): a₂₁ = 4 − 1 = 3; a₂₂ = 2; a₂₃ = 1.",
+      "Fila 3 (i = 3): a₃₁ = 5; a₃₂ = 4; a₃₃ = 3.",
+      "A = " + M([[1, 0, -1], [3, 2, 1], [5, 4, 3]]) + ". Fíjate en que la diagonal sale de i = j, es decir, aᵢᵢ = 2i − i = i: 1, 2, 3."
+    ]) +
+    "<h5>Para qué sirven: matrices como tablas de datos</h5>" +
+    "<p>Una matriz es la forma ordenada de manejar muchos números a la vez: las ventas de cada producto en cada tienda, los costes por material, las rutas de un grafo. Lo que hace potente al álgebra de matrices es que las operaciones (sumar, multiplicar, invertir) tienen un <b>significado</b> en esos contextos; lo verás en el producto de la sección 4 y en el ejemplo de producción de la sección 12.</p>";
+
+  // ---------------------------------------------------------------- 2. Tipos
+  secciones[1] =
+    "<h5>Más tipos que conviene reconocer (aparecen en las preguntas)</h5>" +
+    tabla(["Tipo", "Condición", "Ejemplo"], [
+      ["Triangular superior", "aᵢⱼ = 0 si i &gt; j (ceros por debajo de la diagonal)", M([[1, 2, 3], [0, 4, 5], [0, 0, 6]])],
+      ["Triangular inferior", "aᵢⱼ = 0 si i &lt; j (ceros por encima)", M([[1, 0], [2, 3]])],
+      ["Simétrica", "Aᵗ = A, es decir, aᵢⱼ = aⱼᵢ", M([[1, 2, 3], [2, 0, -1], [3, -1, 4]])],
+      ["Antisimétrica", "Aᵗ = −A, es decir, aᵢⱼ = −aⱼᵢ (y por tanto aᵢᵢ = 0)", M([[0, 2, -3], [-2, 0, 1], [3, -1, 0]])],
+      ["Idempotente", "A² = A", M([[2, -2], [1, -1]])],
+      ["Involutiva", "A² = I", M([[0, 1], [1, 0]])],
+      ["Nilpotente", "Aᵏ = O para algún k", M([[0, 1], [0, 0]])],
+      ["Ortogonal", "Aᵗ·A = I (entonces A⁻¹ = Aᵗ)", M([["3/5", "-4/5"], ["4/5", "3/5"]])]
+    ]) +
+    ojo("Que una matriz sea antisimétrica obliga a que su diagonal principal sea de ceros (aᵢᵢ = −aᵢᵢ implica aᵢᵢ = 0). En cambio, una matriz con diagonal de ceros no tiene por qué ser antisimétrica.") +
+    "<p>Las propiedades <b>A² = A</b>, <b>A² = I</b> y <b>Aᵏ = O</b> son las que dan juego en los ejercicios de potencias (sección 7): si A² = A, todas las potencias valen A; si A² = I, las potencias alternan entre A e I; si A es nilpotente, a partir de cierto exponente todo es la matriz nula.</p>";
+
+  // ---------------------------------------------------------------- 3. Suma
+  secciones[2] =
+    "<h5>Despejar una matriz en una suma</h5>" +
+    "<p>La suma y el producto por un número se manejan como en el álgebra de siempre: se puede sumar o restar el mismo término a los dos miembros y multiplicar por un número no nulo. Es el primer tipo de ecuación matricial que aparece, y no requiere inversas.</p>" +
+    ejemplo("Despejar X en 3X + A = 2B", "Con A = " + M([[1, 2], [3, 4]]) + " y B = " + M([[2, 1], [3, 5]]) + ", halla X tal que 3X + A = 2B.", [
+      "Paso A al otro miembro: 3X = 2B − A.",
+      "2B = " + M([[4, 2], [6, 10]]) + "; 2B − A = " + M([[3, 0], [3, 6]]) + ".",
+      "Divido entre 3 (multiplico por 1/3 todos los elementos): X = " + M([[1, 0], [1, 2]]) + ".",
+      "Comprobación: 3X + A = " + M([[3, 0], [3, 6]]) + " + " + M([[1, 2], [3, 4]]) + " = " + M([[4, 2], [6, 10]]) + " = 2B. ✓"
+    ]) +
+    "<p>La resta A − B es A + (−B), y se cumple todo lo esperable: A + B = B + A, (A + B) + C = A + (B + C), k(A + B) = kA + kB y (k + l)A = kA + lA. Lo que <b>no</b> se puede hacer es dividir entre una matriz: eso se sustituye por multiplicar por su inversa (sección 10).</p>";
+
+  // ---------------------------------------------------------------- 4. Producto
+  secciones[3] =
+    w("mm_producto") +
+    "<h5>Cómo leer el producto: dimensiones primero</h5>" +
+    "<p>Antes de calcular nada, mira las dimensiones y haz el «dominó»: A (m×<b>n</b>) por B (<b>p</b>×q) existe si n = p, y el resultado es m×q (se «cancelan» las dimensiones de en medio). Si A es 2×3 y B es 3×4, entonces A·B es 2×4 y B·A <b>no existe</b>. Si A es 3×2 y B es 2×3, existen A·B (3×3) y B·A (2×2), de distinto tamaño: es imposible que coincidan.</p>" +
+    "<p>Cada elemento (A·B)ᵢⱼ es «fila i de A por columna j de B»: se multiplican los elementos uno a uno y se suma. Es el producto escalar de la fila por la columna. Pruébalo arriba: con las dimensiones 2×3 y 3×2 el resultado es 2×2, y con 3 columnas frente a 2 filas el simulador avisa de que no se puede multiplicar.</p>" +
+    "<h5>Propiedades que sí se cumplen</h5>" +
+    "<ul><li><b>Asociativa:</b> (A·B)·C = A·(B·C). Por eso se escribe ABC sin paréntesis (pero sin cambiar el orden).</li>" +
+    "<li><b>Distributiva:</b> A·(B + C) = AB + AC y (A + B)·C = AC + BC. Ojo: se saca factor común <b>conservando el lado</b>.</li>" +
+    "<li><b>Elemento neutro:</b> A·I = I·A = A (con la identidad del tamaño adecuado).</li>" +
+    "<li><b>Escalares:</b> (kA)·B = A·(kB) = k(AB).</li></ul>" +
+    "<h5>Lo que NO se cumple (el origen de casi todos los errores)</h5>" +
+    "<ol><li><b>No es conmutativa:</b> en general AB ≠ BA, y a veces solo existe uno de los dos.</li>" +
+    "<li><b>AB = O no implica A = O ni B = O.</b> Hay «divisores de cero».</li>" +
+    "<li><b>No se puede simplificar:</b> AB = AC no implica B = C (salvo que A tenga inversa).</li></ol>" +
+    ejemplo("AB = O con A ≠ O y B ≠ O, y PQ = PR con Q ≠ R", "Comprueba con A = " + M([[1, 1], [1, 1]]) + ", B = " + M([[1, -1], [-1, 1]]) + " que AB = O, y con P = " + M([[1, 0], [0, 0]]) + ", Q = " + M([[1, 2], [3, 4]]) + ", R = " + M([[1, 2], [5, 6]]) + " que PQ = PR aunque Q ≠ R.", [
+      "A·B: cada elemento es 1·1 + 1·(−1) = 0 ó 1·(−1) + 1·1 = 0, así que AB = " + M([[0, 0], [0, 0]]) + ", pero ni A ni B son nulas.",
+      "P·Q = " + M([[1, 2], [0, 0]]) + " y P·R = " + M([[1, 2], [0, 0]]) + ": son iguales, pero Q ≠ R. P solo «mira» la primera fila, y por eso no distingue Q de R: no se puede simplificar P."
+    ]) +
+    "<h5>Las identidades notables cambian</h5>" +
+    "<p>Como AB ≠ BA, al desarrollar hay que conservar el orden:</p>" +
+    formula("(A + B)² = A² + AB + BA + B²   ·   (A − B)(A + B) = A² + AB − BA − B²") +
+    "<p>Solo se reducen a las de siempre, (A + B)² = A² + 2AB + B² y (A − B)(A + B) = A² − B², cuando <b>AB = BA</b> (se dice que A y B <b>conmutan</b>).</p>" +
+    ejemplo("(A + B)² frente a A² + 2AB + B²", "Con A = " + M([[1, 1], [0, 1]]) + " y B = " + M([[1, 0], [1, 1]]) + ", calcula (A + B)² y compáralo con A² + 2AB + B².", [
+      "A + B = " + M([[2, 1], [1, 2]]) + ", luego (A + B)² = " + M([[5, 4], [4, 5]]) + ".",
+      "A² = " + M([[1, 2], [0, 1]]) + ", B² = " + M([[1, 0], [2, 1]]) + ", AB = " + M([[2, 1], [1, 1]]) + " y BA = " + M([[1, 1], [1, 2]]) + ".",
+      "A² + 2AB + B² = " + M([[6, 4], [4, 4]]) + " ≠ (A + B)². En cambio A² + AB + BA + B² = " + M([[5, 4], [4, 5]]) + ", que sí coincide."
+    ]) +
+    "<h5>Matrices que conmutan con una dada</h5>" +
+    "<p>Pregunta clásica: «halla todas las matrices X que conmutan con A». Se escribe X con letras, se imponen AX = XA y se resuelve el sistema que sale de comparar posiciones.</p>" +
+    ejemplo("Matrices que conmutan con A = [[0,1],[0,0]]", "Halla las matrices X = [[a, b], [c, d]] tales que AX = XA.", [
+      "A·X = " + MT([["c", "d"], ["0", "0"]]) + " (la primera fila de AX es la segunda de X) y X·A = " + MT([["0", "a"], ["0", "c"]]) + ".",
+      "Igualando posición a posición: c = 0; d = a; 0 = 0; 0 = c.",
+      "Luego X = " + MT([["a", "b"], ["0", "a"]]) + " con a y b cualesquiera: infinitas matrices, con dos parámetros libres."
+    ]) +
+    "<h5>El producto en contexto</h5>" +
+    "<p>Si A es «producto × ingrediente» y c es «coste por ingrediente», entonces A·c es «coste por producto». Para encadenar tablas se multiplican en orden y el sentido lo marcan las dimensiones. Verás un ejemplo completo en la sección 12.</p>";
+
+  var nuevas = [
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Potencias de una matriz: busca el patrón y demuéstralo",
+      html:
+        "<p>Solo las matrices <b>cuadradas</b> se pueden elevar a un exponente: Aⁿ = A·A·…·A (n factores) y A⁰ = I. Valen Aᵐ·Aⁿ = Aᵐ⁺ⁿ y (Aᵐ)ⁿ = Aᵐⁿ. Pero cuidado: <b>(A·B)ⁿ ≠ Aⁿ·Bⁿ</b> en general, porque para reordenar los factores haría falta que AB = BA.</p>" +
+        w("mm_potencias") +
+        "<h5>El método de siempre en la EvAU</h5>" +
+        "<ol><li><b>Calcula</b> A², A³ y, si hace falta, A⁴ a mano. No te saltes este paso: el patrón sale de los números.</li>" +
+        "<li><b>Conjetura</b> la fórmula de Aⁿ (o el periodo, o el exponente a partir del cual se anula).</li>" +
+        "<li><b>Demuéstrala por inducción</b> si te piden «demostrar» o «probar»: caso base n = 1, hipótesis para n, y paso Aⁿ⁺¹ = Aⁿ·A.</li></ol>" +
+        ejemplo("Patrón por inducción", "Sea A = " + M([[1, 1], [0, 1]]) + ". Halla Aⁿ y demuéstralo.", [
+          "A² = " + M([[1, 2], [0, 1]]) + ", A³ = A²·A = " + M([[1, 3], [0, 1]]) + ". Conjetura: Aⁿ = " + MT([["1", "n"], ["0", "1"]]) + ".",
+          "Caso base: n = 1 da A. ✓",
+          "Hipótesis: Aⁿ = " + MT([["1", "n"], ["0", "1"]]) + ". Paso: Aⁿ⁺¹ = Aⁿ·A = " + MT([["1", "n"], ["0", "1"]]) + "·" + M([[1, 1], [0, 1]]) + " = " + MT([["1", "n+1"], ["0", "1"]]) + ", que es la fórmula con n + 1. ∎"
+        ]) +
+        "<h5>Cuatro situaciones que se repiten</h5>" +
+        "<p><b>1. Diagonal.</b> Se eleva cada elemento de la diagonal: diag(a, b)ⁿ = diag(aⁿ, bⁿ).</p>" +
+        "<p><b>2. Nilpotente.</b> Si Aᵏ = O, todas las potencias desde k son O. Una matriz triangular con ceros en la diagonal de orden 3 cumple siempre A³ = O.</p>" +
+        ejemplo("Una nilpotente de orden 3", "Calcula las potencias de A = " + M([[0, 1, 0], [0, 0, 1], [0, 0, 0]]) + ".", [
+          "A² = " + M([[0, 0, 1], [0, 0, 0], [0, 0, 0]]) + " (el 1 de la diagonal superior «sube» un lugar).",
+          "A³ = A²·A = " + M([[0, 0, 0], [0, 0, 0], [0, 0, 0]]) + ". Luego Aⁿ = O para todo n ≥ 3."
+        ]) +
+        "<p><b>3. Identidad más nilpotente: A = I + N.</b> I y N conmutan (I conmuta con todo), así que se puede usar el <b>binomio de Newton</b>: Aⁿ = (I + N)ⁿ = I + n·N + C(n,2)·N² + … y, como N se anula pronto, la suma tiene pocos términos. Es el truco que resuelve las matrices triangulares con unos en la diagonal.</p>" +
+        ejemplo("Binomio de Newton con N nilpotente", "Halla Aⁿ para A = " + M([[1, 2, 3], [0, 1, 2], [0, 0, 1]]) + ".", [
+          "Escribo A = I + N con N = " + M([[0, 2, 3], [0, 0, 2], [0, 0, 0]]) + ".",
+          "N² = " + M([[0, 0, 4], [0, 0, 0], [0, 0, 0]]) + " y N³ = O.",
+          "Binomio: Aⁿ = I + nN + C(n,2)·N² (los demás términos son O).",
+          "Entradas: a₁₂ = 2n, a₂₃ = 2n y a₁₃ = 3n + 4·n(n−1)/2 = 2n² + n. Comprobación con n = 2: a₁₃ = 3·1 + 2·2 + 1·3 = 10 = 2·4 + 2. ✓",
+          "Aⁿ = " + MT([["1", "2n", "2n²+n"], ["0", "1", "2n"], ["0", "0", "1"]]) + "."
+        ]) +
+        "<p><b>4. Periódicas e idempotentes.</b> Si A² = I, las potencias alternan: A, I, A, I… Si A² = A, entonces Aⁿ = A para todo n ≥ 1. A veces el patrón es «con signo»: si A² = −A, entonces Aⁿ = (−1)ⁿ⁻¹·A.</p>" +
+        ejemplo("Periodo 4 y A² = −A", "(a) Calcula A²⁰²³ para A = " + M([[0, -1], [1, 0]]) + ". (b) Halla Bⁿ para B = " + M([[1, 2], [-1, -2]]) + ".", [
+          "(a) A² = " + M([[-1, 0], [0, -1]]) + " = −I, así que A⁴ = (−I)² = I: el periodo es 4. Como 2023 = 4·505 + 3, A²⁰²³ = A³ = A²·A = −A = " + M([[0, 1], [-1, 0]]) + ".",
+          "(b) B² = " + M([[-1, -2], [1, 2]]) + " = −B. Entonces B³ = B²·B = −B² = B, B⁴ = −B…: Bⁿ = (−1)ⁿ⁻¹·B."
+        ]) +
+        ojo("Para el periodo, mira el <b>resto</b> de dividir el exponente entre el periodo (2023 entre 4 da resto 3, no 0), y recuerda que el exponente 0 corresponde a la identidad I, no a A.") +
+        "<p>Con A = " + M([[1, 1], [1, 0]]) + " las potencias generan los <b>números de Fibonacci</b>: Aⁿ = [[Fₙ₊₁, Fₙ], [Fₙ, Fₙ₋₁]] (puedes verlo en el simulador). Es un buen ejemplo de que una potencia no siempre tiene una fórmula «bonita» en n.</p>"
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. La traspuesta: propiedades y matrices con simetría",
+      html:
+        "<p>La traspuesta Aᵗ cambia filas por columnas. Se comporta bien con la suma y el producto por números, y <b>da la vuelta</b> al producto:</p>" +
+        formula("(Aᵗ)ᵗ = A  ·  (A + B)ᵗ = Aᵗ + Bᵗ  ·  (k·A)ᵗ = k·Aᵗ  ·  (A·B)ᵗ = Bᵗ·Aᵗ") +
+        ejemplo("(AB)ᵗ = BᵗAᵗ, y no AᵗBᵗ", "Con A = " + M([[1, 2], [0, 3]]) + " y B = " + M([[4, 0], [1, 5]]) + ", comprueba que (AB)ᵗ = BᵗAᵗ.", [
+          "AB = " + M([[6, 10], [3, 15]]) + ", luego (AB)ᵗ = " + M([[6, 3], [10, 15]]) + ".",
+          "Bᵗ·Aᵗ = " + M([[4, 1], [0, 5]]) + "·" + M([[1, 0], [2, 3]]) + " = " + M([[6, 3], [10, 15]]) + ". ✓",
+          "En cambio Aᵗ·Bᵗ = " + M([[4, 1], [8, 17]]) + ", que es distinta: el orden cambia al trasponer."
+        ]) +
+        "<p>La regla se extiende: (ABC)ᵗ = CᵗBᵗAᵗ. Es la misma idea que «los calcetines y los zapatos»: se quitan en orden inverso al que se pusieron, y volverá a aparecer con la inversa.</p>" +
+        "<h5>Simétricas y antisimétricas se fabrican</h5>" +
+        "<p>Para cualquier matriz cuadrada A (y esto se pregunta mucho):</p>" +
+        "<ul><li><b>A + Aᵗ es simétrica</b>, porque (A + Aᵗ)ᵗ = Aᵗ + A.</li>" +
+        "<li><b>A − Aᵗ es antisimétrica</b>, porque (A − Aᵗ)ᵗ = Aᵗ − A = −(A − Aᵗ).</li>" +
+        "<li><b>A·Aᵗ y Aᵗ·A son simétricas</b>, porque (A·Aᵗ)ᵗ = (Aᵗ)ᵗ·Aᵗ = A·Aᵗ. (A no tiene que ser cuadrada: A·Aᵗ es m×m y Aᵗ·A es n×n.)</li></ul>" +
+        "<p>Y toda matriz cuadrada se descompone de forma única en parte simétrica más parte antisimétrica:</p>" +
+        formula("A = S + K  con  S = (A + Aᵗ)/2  (simétrica)  y  K = (A − Aᵗ)/2  (antisimétrica)") +
+        ejemplo("Descomponer en simétrica + antisimétrica", "Descompón A = " + M([[1, 4], [2, 3]]) + ".", [
+          "Aᵗ = " + M([[1, 2], [4, 3]]) + ".",
+          "S = (A + Aᵗ)/2 = " + M([[1, 3], [3, 3]]) + " (simétrica).",
+          "K = (A − Aᵗ)/2 = " + M([[0, 1], [-1, 0]]) + " (antisimétrica).",
+          "Comprobación: S + K = " + M([[1, 4], [2, 3]]) + " = A. ✓"
+        ]) +
+        "<h5>Ortogonales: la traspuesta hace de inversa</h5>" +
+        "<p>Una matriz Q es <b>ortogonal</b> si Qᵗ·Q = I, y entonces Q⁻¹ = Qᵗ (invertir es tan fácil como trasponer). Ejemplos típicos son los giros: Q = " + M([["3/5", "-4/5"], ["4/5", "3/5"]]) + " cumple QᵗQ = I porque (3/5)² + (4/5)² = 1 y −12/25 + 12/25 = 0. Las columnas de una ortogonal son vectores de módulo 1 y perpendiculares entre sí (lo verás en el tema de producto escalar).</p>" +
+        ojo("«Simétrica» y «ortogonal» no son lo mismo: la identidad es ambas, pero " + M([[1, 2], [2, 1]]) + " es simétrica y no es ortogonal (sus columnas no tienen módulo 1).")
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. La matriz inversa con Gauss-Jordan, paso a paso",
+      html:
+        "<p>La inversa de una matriz cuadrada A de orden n es la matriz A⁻¹ (si existe) con <b>A·A⁻¹ = A⁻¹·A = I</b>. Es única. Si existe, A es <b>invertible</b> (o regular); si no, es <b>singular</b>. Hay tres formas equivalentes de decir que A es invertible: A⁻¹ existe, det A ≠ 0 y rango A = n.</p>" +
+        w("mm_gauss") +
+        "<h5>Método de Gauss-Jordan</h5>" +
+        "<p>Se escribe (A | I) y, con operaciones elementales entre filas (cambiar dos filas, multiplicar una fila por un número ≠ 0, sumar a una fila un múltiplo de otra), se transforma la parte izquierda en I. La parte derecha se convierte, a la vez, en A⁻¹. Un orden cómodo es trabajar <b>columna por columna</b>: poner el pivote 1, y hacer ceros en <b>toda</b> la columna (arriba y abajo).</p>" +
+        ejemplo("Inversa 3×3 por Gauss-Jordan", "Calcula la inversa de A = " + M([[1, 2, 3], [0, 1, 4], [1, 0, 6]]) + ".", [
+          "(A | I) = " + M([[1, 2, 3, 1, 0, 0], [0, 1, 4, 0, 1, 0], [1, 0, 6, 0, 0, 1]], 3) + " (las tres últimas columnas son I).",
+          "F₃ ← F₃ − F₁: " + M([[1, 2, 3, 1, 0, 0], [0, 1, 4, 0, 1, 0], [0, -2, 3, -1, 0, 1]], 3) + ".",
+          "F₁ ← F₁ − 2·F₂ y F₃ ← F₃ + 2·F₂: " + M([[1, 0, -5, 1, -2, 0], [0, 1, 4, 0, 1, 0], [0, 0, 11, -1, 2, 1]], 3) + ".",
+          "F₃ ← F₃ ÷ 11: la última fila es (0, 0, 1 | −1/11, 2/11, 1/11).",
+          "F₁ ← F₁ + 5·F₃ y F₂ ← F₂ − 4·F₃: " + M([[1, 0, 0, "6/11", "-12/11", "5/11"], [0, 1, 0, "4/11", "3/11", "-4/11"], [0, 0, 1, "-1/11", "2/11", "1/11"]], 3) + ".",
+          "A⁻¹ = (1/11)·" + M([[6, -12, 5], [4, 3, -4], [-1, 2, 1]]) + ". El 11 que aparece es det A = 11 (lo calcularás directamente en el tema 2).",
+          "Comprobación (obligatoria): fila 1 de A por columna 1 de A⁻¹ = (6 + 8 − 3)/11 = 1, y fila 1 de A por columna 2 = (−12 + 6 + 6)/11 = 0. ✓ Sigue igual con el resto para confirmar que A·A⁻¹ = I."
+        ]) +
+        "<h5>Cuándo no existe: la fila de ceros</h5>" +
+        "<p>Si al escalonar aparece una <b>fila de ceros a la izquierda</b>, el método se detiene: A no tiene inversa. Por ejemplo, con A = " + M([[1, 2, 3], [4, 5, 6], [7, 8, 9]]) + ": F₂ ← F₂ − 4F₁ da (0, −3, −6); F₃ ← F₃ − 7F₁ da (0, −6, −12); y F₃ ← F₃ − 2F₂ da (0, 0, 0). El rango es 2 &lt; 3: A es singular. (Pruébalo en el simulador con la opción «3×3 sin inversa».)</p>" +
+        "<h5>El atajo para 2×2 (y cuándo conviene)</h5>" +
+        formula("A = " + MT([["a", "b"], ["c", "d"]]) + "  ⟹  A⁻¹ = " + H.fr("1", "ad − bc") + " · " + MT([["d", "-b"], ["-c", "a"]])) +
+        ejemplo("Inversa 2×2 con el atajo", "Calcula A⁻¹ para A = " + M([[3, 5], [1, 2]]) + ".", [
+          "ad − bc = 3·2 − 5·1 = 1 ≠ 0, así que existe.",
+          "Intercambio los de la diagonal (3 y 2), cambio de signo los otros (5 y 1) y divido entre 1: A⁻¹ = " + M([[2, -5], [-1, 3]]) + ".",
+          "Comprobación: A·A⁻¹ = " + M([[1, 0], [0, 1]]) + " = I. ✓"
+        ]) +
+        "<h5>Propiedades de la inversa</h5>" +
+        formula("(A⁻¹)⁻¹ = A  ·  (Aᵗ)⁻¹ = (A⁻¹)ᵗ  ·  (k·A)⁻¹ = (1/k)·A⁻¹  ·  (A·B)⁻¹ = B⁻¹·A⁻¹") +
+        ejemplo("(AB)⁻¹ = B⁻¹A⁻¹", "Con A = " + M([[1, 1], [0, 1]]) + " y B = " + M([[2, 1], [1, 1]]) + ", comprueba la regla del orden.", [
+          "AB = " + M([[3, 2], [1, 1]]) + " tiene determinante 3 − 2 = 1, luego (AB)⁻¹ = " + M([[1, -2], [-1, 3]]) + ".",
+          "A⁻¹ = " + M([[1, -1], [0, 1]]) + " y B⁻¹ = " + M([[1, -1], [-1, 2]]) + ". Entonces B⁻¹·A⁻¹ = " + M([[1, -2], [-1, 3]]) + ". ✓",
+          "En cambio A⁻¹·B⁻¹ = " + M([[2, -3], [-1, 2]]) + " no es la inversa de AB."
+        ]) +
+        ojo("<b>(A + B)⁻¹ ≠ A⁻¹ + B⁻¹.</b> No hay ninguna regla simple para la inversa de una suma: no la inventes. Tampoco existe «1/A»: la expresión A⁻¹ nunca se escribe como fracción con matrices.") +
+        "<h5>Calcular A⁻¹ sin Gauss: a partir de una ecuación que cumple A</h5>" +
+        "<p>Si te dan una igualdad como A² − 2A + I = O, puedes <b>despejar la identidad</b> y sacar A factor común: I = 2A − A² = A·(2I − A). Como A·(2I − A) = I, la inversa es A⁻¹ = 2I − A. Cuidado de no escribir 2 − A (un número menos una matriz no existe: hay que escribir 2I).</p>" +
+        ejemplo("Inversa a partir de un polinomio", "Se sabe que A² − 2A + I = O. Demuestra que A es invertible y calcula A⁻¹ para A = " + M([[1, 2], [0, 1]]) + ".", [
+          "De A² − 2A + I = O: I = 2A − A² = A·(2I − A) (y también (2I − A)·A, porque A conmuta con I y consigo misma).",
+          "Por tanto A es invertible y A⁻¹ = 2I − A.",
+          "Con A = " + M([[1, 2], [0, 1]]) + ": 2I − A = " + M([[1, -2], [0, 1]]) + ". Comprobación: A·(2I − A) = " + M([[1, 0], [0, 1]]) + ". ✓"
+        ]) +
+        "<h5>Inversa con un parámetro</h5>" +
+        "<p>Si la matriz depende de un parámetro, lo primero es saber <b>para qué valores existe la inversa</b>: los que dejan el rango máximo (o det ≠ 0). Con A = " + MT([["1", "a"], ["2", "4"]]) + ", ad − bc = 4 − 2a, así que existe si y solo si a ≠ 2. Para a = 1, ad − bc = 2 y A⁻¹ = " + M([[2, "-1/2"], [-1, "1/2"]]) + ".</p>"
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Ecuaciones matriciales: despejar sin dividir",
+      html:
+        "<p>Despejar X en una ecuación con matrices sigue tres reglas, y las tres nacen de que el producto <b>no conmuta</b>:</p>" +
+        "<ol><li><b>Los sumandos que no llevan X</b> se pasan al otro miembro (sumando o restando: eso sí se puede).</li>" +
+        "<li>Si X aparece en varios sumandos, se saca <b>factor común</b> conservando el lado: AX + X = (A + I)X (con I, no con 1) y XA − X = X(A − I).</li>" +
+        "<li>Para quitar una matriz P que multiplica a X, se multiplica <b>los dos miembros por P⁻¹ por el mismo lado en que está P</b>: si PX = Q, entonces X = P⁻¹Q; si XP = Q, entonces X = QP⁻¹. Y se necesita que P sea invertible.</li></ol>" +
+        w("mm_ecuacion") +
+        tabla(["Ecuación", "Solución", "Por qué"], [
+          ["A·X = B", "X = A⁻¹·B", "A⁻¹ por la izquierda en ambos miembros"],
+          ["X·A = B", "X = B·A⁻¹", "A⁻¹ por la derecha en ambos miembros"],
+          ["A·X·B = C", "X = A⁻¹·C·B⁻¹", "A⁻¹ a la izquierda y B⁻¹ a la derecha"],
+          ["A·X + B = C", "X = A⁻¹·(C − B)", "primero pasar B, luego A⁻¹ a la izquierda del paréntesis"],
+          ["A·X + X = B", "X = (A + I)⁻¹·B", "factor común X a la derecha: (A + I)X"],
+          ["X·A = X + B", "X = B·(A − I)⁻¹", "X·(A − I) = B, y (A − I)⁻¹ por la derecha"],
+          ["A·X·A⁻¹ = B", "X = A⁻¹·B·A", "A⁻¹ a la izquierda y A a la derecha"]
+        ]) +
+        ejemplo("AX = B y XA = B con las mismas matrices", "Sean A = " + M([[2, 1], [5, 3]]) + " y B = " + M([[1, 0], [2, 1]]) + ". Resuelve A·X = B y X·A = B.", [
+          "|A| = 2·3 − 1·5 = 1, luego A⁻¹ = " + M([[3, -1], [-5, 2]]) + ".",
+          "A·X = B: X = A⁻¹·B = " + M([[1, -1], [-1, 2]]) + ".",
+          "X·A = B: X = B·A⁻¹ = " + M([[3, -1], [1, 0]]) + ". Son matrices distintas, aunque A y B son las mismas: el lado importa.",
+          "Comprobaciones: A·" + M([[1, -1], [-1, 2]]) + " = " + M([[1, 0], [2, 1]]) + " y " + M([[3, -1], [1, 0]]) + "·A = " + M([[1, 0], [2, 1]]) + ". ✓"
+        ]) +
+        ejemplo("Un sumando sin X", "Resuelve A·X + B = C con A = " + M([[1, 2], [0, 1]]) + ", B = " + M([[1, 0], [1, 1]]) + ", C = " + M([[3, 1], [2, 3]]) + ".", [
+          "Paso B: A·X = C − B = " + M([[2, 1], [1, 2]]) + ".",
+          "A⁻¹ = " + M([[1, -2], [0, 1]]) + ", y se multiplica por la izquierda: X = A⁻¹·(C − B) = " + M([[0, -3], [1, 2]]) + ".",
+          "Comprobación: A·X + B = " + M([[2, 1], [1, 2]]) + " + " + M([[1, 0], [1, 1]]) + " = C. ✓"
+        ]) +
+        ejemplo("X en dos sumandos: factor común", "Resuelve A·X + X = 4I con A = " + M([[1, 2], [3, 4]]) + ".", [
+          "Saco X factor común por la derecha: (A + I)·X = 4I.",
+          "A + I = " + M([[2, 2], [3, 5]]) + " tiene determinante 10 − 6 = 4, y su inversa es (1/4)·" + M([[5, -2], [-3, 2]]) + ".",
+          "X = (A + I)⁻¹·4I = " + M([[5, -2], [-3, 2]]) + ".",
+          "Comprobación: (A + I)·X = " + M([[4, 0], [0, 4]]) + " = 4I. ✓"
+        ]) +
+        ejemplo("Sistema de ecuaciones matriciales", "Halla X e Y que cumplen 2X + Y = A y X − Y = B, con A = " + M([[3, 3], [0, 6]]) + " y B = " + M([[0, 3], [3, 0]]) + ".", [
+          "Se resuelve como un sistema de dos ecuaciones: sumando, 3X = A + B = " + M([[3, 6], [3, 6]]) + ", luego X = " + M([[1, 2], [1, 2]]) + ".",
+          "De la segunda: Y = X − B = " + M([[1, -1], [-2, 2]]) + ".",
+          "Comprobación en la primera: 2X + Y = " + M([[3, 3], [0, 6]]) + " = A. ✓"
+        ]) +
+        "<h5>Los tres errores que más puntos cuestan</h5>" +
+        "<ul><li><b>Multiplicar por el lado equivocado.</b> De A·X = B no sale X = B·A⁻¹. Prueba: A·(B·A⁻¹) no es B en general.</li>" +
+        "<li><b>Factor común sin lado ni identidad.</b> A·X + X no es (A + 1)·X: el 1 no es una matriz; es (A + I)·X.</li>" +
+        "<li><b>Invertir lo que no es invertible.</b> Antes de escribir A⁻¹ comprueba que det A ≠ 0 (o que el rango es n). Si no, la ecuación no se despeja así.</li></ul>" +
+        "<p>Y la comprobación final es gratis: sustituye X en la ecuación <b>original</b> y verifica la igualdad. El simulador de arriba lo hace por ti, con colores.</p>"
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. Rango de una matriz y discusión según un parámetro",
+      html:
+        "<p>El <b>rango</b> de una matriz es el número máximo de filas (o de columnas, da lo mismo) <b>linealmente independientes</b>: filas que no se pueden obtener como combinación de las demás. Se escribe rg(A) y cumple 0 ≤ rg(A) ≤ mín(m, n), rg(A) = rg(Aᵗ), y rg(A) = 0 solo para la matriz nula.</p>" +
+        "<h5>Cálculo por Gauss</h5>" +
+        "<p>Se escalona la matriz con operaciones elementales (cambiar filas, multiplicar una fila por un número ≠ 0, sumar a una fila un múltiplo de otra), que <b>no cambian el rango</b>. El rango es el número de <b>filas no nulas</b> de la matriz escalonada resultante.</p>" +
+        ejemplo("Rango de una 3×3 con dependencias", "Halla el rango de " + M([[1, 2, 3], [2, 4, 6], [1, 0, 1]]) + ".", [
+          "F₂ ← F₂ − 2F₁ da (0, 0, 0): la fila 2 es el doble de la fila 1. F₃ ← F₃ − F₁ da (0, −2, −2).",
+          "Quedan dos filas no nulas, (1, 2, 3) y (0, −2, −2): rg = 2. La matriz no es invertible."
+        ]) +
+        ejemplo("Rango de una 3×4", "Halla el rango de " + M([[1, 2, 0, 1], [2, 1, 3, 0], [3, 3, 3, 1]]) + ".", [
+          "Observo que F₃ = F₁ + F₂. Con Gauss: F₂ ← F₂ − 2F₁ = (0, −3, 3, −2); F₃ ← F₃ − 3F₁ = (0, −3, 3, −2).",
+          "F₃ ← F₃ − F₂ = (0, 0, 0, 0). Quedan 2 filas no nulas: rg = 2."
+        ]) +
+        w("mm_rango") +
+        "<h5>Discutir el rango según un parámetro</h5>" +
+        "<p>Es la pregunta estrella: «discute el rango de A según los valores de a». El método:</p>" +
+        "<ol><li>Escalona <b>sin dividir</b> entre expresiones que contengan a (puede valer 0): usa operaciones del tipo F₂ ← F₂ − (algo)·F₁ con pivotes que sean números.</li>" +
+        "<li>Mira los pivotes que quedan: son expresiones en a. Los valores de a que los anulan son los <b>valores críticos</b>.</li>" +
+        "<li>Para cada valor crítico, <b>sustituye en la matriz</b> y calcula el rango a mano. Para los demás valores, el rango es el máximo.</li></ol>" +
+        ejemplo("Discusión con un parámetro (3×3)", "Discute el rango de M = " + MT([["1", "1", "a"], ["1", "a", "1"], ["a", "1", "1"]]) + " según a.", [
+          "F₂ ← F₂ − F₁ y F₃ ← F₃ − a·F₁: filas (1, 1, a), (0, a−1, 1−a) y (0, 1−a, 1−a²).",
+          "F₃ ← F₃ + F₂: la tercera fila queda (0, 0, (1−a²) + (1−a)) = (0, 0, (1−a)(a+2)).",
+          "Pivotes: 1, a−1 y (1−a)(a+2). Se anulan en a = 1 (el 2.º y el 3.º) y en a = −2 (el 3.º).",
+          "Si a ≠ 1 y a ≠ −2: tres pivotes, rg = 3.",
+          "Si a = 1: M = " + M([[1, 1, 1], [1, 1, 1], [1, 1, 1]]) + ", todas las filas iguales: rg = 1.",
+          "Si a = −2: la fila 3 se anula y quedan (1, 1, −2) y (0, −3, 3), independientes: rg = 2."
+        ]) +
+        ejemplo("Discusión con un parámetro (2×3)", "Discute el rango de N = " + MT([["1", "a", "2"], ["a", "4", "2a"]]) + " según a.", [
+          "F₂ ← F₂ − a·F₁ da (0, 4 − a², 2a − 2a) = (0, 4 − a², 0).",
+          "Si 4 − a² ≠ 0, es decir, a ≠ 2 y a ≠ −2: dos filas no nulas, rg = 2.",
+          "Si a = 2 ó a = −2: la segunda fila es (0, 0, 0) y solo queda la primera: rg = 1."
+        ]) +
+        "<p><b>Conexión con otros temas.</b> Una matriz cuadrada tiene rg = n si y solo si su determinante es distinto de 0 (tema 2: allí el rango también se calcula con menores). Y el rango de la matriz de coeficientes y el de la ampliada deciden si un sistema tiene solución (teorema de Rouché-Frobenius, tema 3). Por eso esta sección es la base de dos temas siguientes.</p>" +
+        ojo("Un error típico: dividir una fila entre (a − 1) «para poner un 1». Si a vale 1 esa operación no existe y el caso queda sin estudiar. Mejor deja el pivote como está y estudia aparte los valores que lo anulan.")
+    },
+    // -------------------------------------------------------------- 12
+    {
+      h: "12. Matrices en problemas con contexto",
+      html:
+        "<p>En los problemas «de enunciado» no te piden operar con matrices abstractas: te dan una situación, tú organizas los datos en matrices y el producto hace el cálculo. La clave es etiquetar filas y columnas para saber si el producto tiene sentido.</p>" +
+        ejemplo("Dos tablas encadenadas", "Un taller fabrica dos productos, P₁ y P₂. P₁ usa 2 unidades del ingrediente I₁ y 1 de I₂; P₂ usa 1 de cada uno de I₁, I₂ e I₃. Los ingredientes cuestan 3, 5 y 2 euros por unidad. Se piden 100 unidades de P₁ y 50 de P₂. ¿Cuánto cuesta el pedido?", [
+          "Matriz de composición (productos × ingredientes): A = " + M([[2, 1, 0], [1, 1, 1]]) + ". Vector de costes (ingredientes × 1): c = " + M([[3], [5], [2]]) + ".",
+          "Coste de cada producto: A·c = " + M([[11], [10]]) + " (2·3 + 1·5 + 0·2 = 11 y 3 + 5 + 2 = 10).",
+          "Pedido (1 × productos): p = (100, 50). Coste total: p·(A·c) = 100·11 + 50·10 = 1600 euros.",
+          "Por asociatividad se puede hacer en otro orden: p·A = (250, 150, 50) son las unidades de cada ingrediente, y (p·A)·c = 750 + 750 + 100 = 1600. Mismo resultado, con una información distinta por el camino."
+        ]) +
+        ejemplo("Potencias y caminos en un grafo", "En una red de tres nodos hay un enlace de 1 a 2, de 1 a 3, de 2 a 1, de 2 a 3 y de 3 a 2. Su matriz de adyacencia es A = " + M([[0, 1, 1], [1, 0, 1], [0, 1, 0]]) + ". ¿Cuántos caminos de longitud 2 hay del nodo 2 a sí mismo?", [
+          "El elemento aᵢⱼ de Aⁿ cuenta los caminos de longitud n que van de i a j.",
+          "A² = " + M([[1, 1, 1], [0, 2, 1], [1, 0, 1]]) + ".",
+          "El elemento (2,2) vale 2: los caminos 2→1→2 y 2→3→2."
+        ])
+    },
+    // -------------------------------------------------------------- 13
+    {
+      h: "13. Cómo se pregunta en la EvAU de Madrid y cómo se contesta",
+      html:
+        "<p>Las matrices se preguntan dentro del bloque de Álgebra (junto con determinantes y sistemas), y los enunciados se repiten por familias:</p>" +
+        tabla(["Qué piden", "Qué hacer", "Dónde se pierden puntos"], [
+          ["Calcular Aⁿ", "A², A³, A⁴ → patrón → inducción", "no calcular los primeros casos; no demostrar"],
+          ["Resolver AX = B (o XA = B)", "det A ≠ 0 → A⁻¹ → lado correcto", "lado equivocado; no justificar que A⁻¹ existe"],
+          ["Discutir rango / invertibilidad según a", "Gauss sin dividir; valores críticos; casos aparte", "dividir entre a − 1; olvidar un valor crítico"],
+          ["Matrices que cumplen una condición", "plantear X con letras y comparar posición a posición", "no resolver el sistema entero; quedarse en una solución"],
+          ["Demostrar una propiedad", "partir de las propiedades (traspuesta, inversa, producto)", "usar AB = BA o (A+B)⁻¹ = A⁻¹ + B⁻¹ sin justificar"],
+          ["Inversa por Gauss-Jordan", "(A | I) con operaciones indicadas en cada paso", "errores aritméticos sin comprobar A·A⁻¹ = I"]
+        ]) +
+        "<p>Reglas para redactar bien: <b>nombra cada operación</b> entre filas (F₂ ← F₂ − 3F₁); <b>comprueba siempre</b> el resultado (A·A⁻¹ = I, o sustituir X en la ecuación); y cuando uses una hipótesis (A invertible, A y B conmutan), <b>dilo explícitamente</b>.</p>"
+    },
+    // -------------------------------------------------------------- 14
+    {
+      h: "14. ¿Qué falla aquí? Los errores que más puntos cuestan",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo. Detéctalo.</p>" + w("quiz", "errores")
+    },
+    // -------------------------------------------------------------- 15
+    {
+      h: "15. Autocomprobación",
+      html:
+        "<p>Test de doce preguntas, tarjetas con lo esencial, un juego para unir cada ecuación con su solución, otro para clasificar matrices y un ejercicio de ordenar los pasos de Gauss-Jordan.</p>" +
+        w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "ecuaciones") + w("clasificar", "tipos") + w("orden", "gauss")
+    }
+  ];
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    errores: {
+      titulo: "¿Qué falla aquí?",
+      preguntas: [
+        { q: "Un alumno razona: «A·B = A·C, así que, simplificando A, B = C».",
+          op: ["Está bien: se simplifica el factor común", "No se puede simplificar una matriz: solo si A tiene inversa se multiplica por A⁻¹", "Debía restar B − C = 0 y ya", "Falla porque A·B no existe"], ok: 1,
+          porque: "En matrices no hay simplificación. Con A = [[1,0],[0,0]] se tiene A·B = A·C con B ≠ C. Solo si A es invertible, multiplicando por A⁻¹ se concluye B = C." },
+        { q: "Para A·X = B, un alumno escribe «X = B·A⁻¹». ¿Qué falla?",
+          op: ["Nada, es la solución", "El producto está en el orden contrario: debe ser X = A⁻¹·B", "Debe ser X = B/A", "Debe ser X = A·B⁻¹"], ok: 1,
+          porque: "A⁻¹ se multiplica por la izquierda en los dos miembros, porque A está a la izquierda de X. Con X = B·A⁻¹ resolverías X·A = B." },
+        { q: "«(A + B)² = A² + 2AB + B²», dice un alumno sin más justificación.",
+          op: ["Correcto: es el cuadrado de una suma", "Solo vale si AB = BA; en general es A² + AB + BA + B²", "Siempre falla; el término cruzado vale 0", "Debía ser A² + B²"], ok: 1,
+          porque: "2AB solo aparece si AB = BA. Con A = [[1,1],[0,1]] y B = [[1,0],[1,1]] se comprueba que (A+B)² ≠ A² + 2AB + B²." },
+        { q: "Un alumno calcula (A·B)⁻¹ = A⁻¹·B⁻¹.",
+          op: ["Es correcto", "El orden debe invertirse: (A·B)⁻¹ = B⁻¹·A⁻¹", "(A·B)⁻¹ = (A + B)⁻¹", "La inversa de un producto no existe"], ok: 1,
+          porque: "Para deshacer A·B hay que deshacer primero B y luego A: B⁻¹·A⁻¹. Lo mismo ocurre con la traspuesta: (AB)ᵗ = BᵗAᵗ." },
+        { q: "De «A·X + X = B» un alumno concluye «(A + 1)·X = B».",
+          op: ["Es correcto", "No existe «A + 1»: el factor común es (A + I)·X, con la matriz identidad", "Debía ser (A·X)(1 + X)", "Debía ser X(A + 1)"], ok: 1,
+          porque: "Un número no se puede sumar a una matriz. X = I·X, luego A·X + I·X = (A + I)·X." },
+        { q: "Al discutir el rango, un alumno divide la fila 2 entre (a − 1) «para tener un 1» y sigue sin más.",
+          op: ["Es un buen método", "Falla: si a = 1 esa operación no existe y ese caso queda sin estudiar", "Falla: nunca se divide una fila", "Falla: el rango no depende de a"], ok: 1,
+          porque: "Hay que dejar el pivote como expresión y estudiar por separado los valores que lo anulan (aquí a = 1)." },
+        { q: "«La matriz [[0, 2], [−2, 3]] es antisimétrica porque a₁₂ = −a₂₁».",
+          op: ["Correcto", "Falla: la diagonal debería ser de ceros y a₂₂ = 3 ≠ 0", "Falla: debería ser simétrica", "Falla: no es cuadrada"], ok: 1,
+          porque: "Antisimétrica exige aᵢⱼ = −aⱼᵢ para todo i, j; para i = j da aᵢᵢ = 0. Aquí a₂₂ = 3." },
+        { q: "«Como A² = O, entonces A = O».",
+          op: ["Cierto, como en los números", "Falso: existen matrices no nulas con A² = O, como [[0,1],[0,0]]", "Cierto solo para 2×2", "Falso porque A² nunca puede ser O"], ok: 1,
+          porque: "Las matrices nilpotentes cumplen Aᵏ = O sin ser nulas. En los números, x² = 0 implica x = 0; con matrices no." },
+        { q: "Un alumno calcula A⁵ de A = [[1,1],[0,1]] elevando cada elemento a 5 y obtiene A⁵ = A.",
+          op: ["Es correcto", "Falla: Aⁿ es el producto de A por sí misma n veces, no se eleva elemento a elemento; A⁵ = [[1,5],[0,1]]", "Falla: el resultado es la matriz nula", "Falla: A⁵ = 5A"], ok: 1,
+          porque: "La potencia de una matriz no es la potencia de cada elemento (salvo en las diagonales). Aquí Aⁿ = [[1,n],[0,1]]." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "Si A es 2×3 y B es 3×4, entonces A·B…",
+          op: ["es 2×4", "es 3×3", "es 4×2", "no existe"], ok: 0,
+          porque: "Las columnas de A (3) coinciden con las filas de B (3); el resultado tiene las filas de A y las columnas de B: 2×4." },
+        { q: "¿Cuál de estas igualdades es cierta para matrices cualesquiera para las que existen los productos?",
+          op: ["(A·B)ᵗ = Bᵗ·Aᵗ", "(A·B)ᵗ = Aᵗ·Bᵗ", "A·B = B·A", "(A·B)⁻¹ = A⁻¹·B⁻¹"], ok: 0,
+          porque: "La traspuesta de un producto invierte el orden. Las otras dos son falsas en general." },
+        { q: "Si A² = A, entonces A⁵ vale…",
+          op: ["A", "A⁵ no se puede simplificar", "I", "5A"], ok: 0,
+          porque: "A³ = A²·A = A·A = A, y así sucesivamente: todas las potencias valen A." },
+        { q: "La inversa de A·B es…",
+          op: ["B⁻¹·A⁻¹", "A⁻¹·B⁻¹", "(A + B)⁻¹", "A·B"], ok: 0,
+          porque: "(B⁻¹A⁻¹)(AB) = B⁻¹(A⁻¹A)B = B⁻¹B = I." },
+        { q: "El rango de [[1, 2], [2, 4]] es…",
+          op: ["1", "2", "0", "4"], ok: 0,
+          porque: "La segunda fila es el doble de la primera: solo hay una fila independiente." },
+        { q: "La solución de X·A = B (con A invertible) es…",
+          op: ["X = B·A⁻¹", "X = A⁻¹·B", "X = B/A", "X = A·B⁻¹"], ok: 0,
+          porque: "A⁻¹ se multiplica por la derecha en los dos miembros: X·A·A⁻¹ = B·A⁻¹." },
+        { q: "Si A² = I, entonces A²⁰²³ vale…",
+          op: ["A", "I", "O", "A²⁰²³ no se puede simplificar"], ok: 0,
+          porque: "Las potencias alternan A, I, A, I…: el exponente es impar, luego A²⁰²³ = A." },
+        { q: "Una matriz cuadrada de orden n tiene inversa si y solo si…",
+          op: ["su rango es n", "todos sus elementos son distintos de 0", "es simétrica", "su diagonal es de unos"], ok: 0,
+          porque: "Rango n equivale a determinante distinto de 0 y a que Gauss-Jordan llegue a la identidad." },
+        { q: "En una matriz antisimétrica, la diagonal principal…",
+          op: ["está formada por ceros", "está formada por unos", "es simétrica", "puede ser cualquiera"], ok: 0,
+          porque: "aᵢᵢ = −aᵢᵢ obliga a aᵢᵢ = 0." },
+        { q: "(A + B)² es igual a…",
+          op: ["A² + AB + BA + B²", "A² + 2AB + B²", "A² + B²", "A² + 2A + B²"], ok: 0,
+          porque: "Se aplica la distributiva respetando el orden. La segunda solo vale si AB = BA." },
+        { q: "Al aplicar Gauss-Jordan a (A | I) aparece una fila de ceros en la parte izquierda. Entonces…",
+          op: ["A no tiene inversa", "A es la identidad", "A⁻¹ = Aᵗ", "hay que repetir el cálculo"], ok: 0,
+          porque: "La fila de ceros indica que el rango es menor que n: A es singular." },
+        { q: "Si A = [[1,1],[0,1]], el elemento a₁₂ de A⁵⁰ vale…",
+          op: ["50", "1", "2⁵⁰", "0"], ok: 0,
+          porque: "Aⁿ = [[1,n],[0,1]], luego a₁₂ = n = 50." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas del tema",
+      cartas: [
+        { a: "¿Cuándo existe A·B?", b: "Cuando las columnas de A son tantas como las filas de B. Si A es m×n y B es n×q, A·B es m×q." },
+        { a: "¿Es conmutativo el producto de matrices?", b: "No: en general AB ≠ BA. Por eso (A + B)² = A² + AB + BA + B²." },
+        { a: "AB = O, ¿implica A = O o B = O?", b: "No. Por ejemplo [[1,1],[1,1]]·[[1,−1],[−1,1]] = O." },
+        { a: "(A·B)ᵗ", b: "Bᵗ·Aᵗ (se invierte el orden)." },
+        { a: "(A·B)⁻¹", b: "B⁻¹·A⁻¹ (se invierte el orden)." },
+        { a: "Matriz simétrica y antisimétrica", b: "Simétrica: Aᵗ = A. Antisimétrica: Aᵗ = −A, con diagonal de ceros." },
+        { a: "Inversa de una 2×2", b: "A⁻¹ = 1/(ad − bc) · [[d, −b], [−c, a]], si ad − bc ≠ 0." },
+        { a: "Gauss-Jordan para A⁻¹", b: "Se parte de (A | I) y se hace con operaciones entre filas (I | A⁻¹). Fila de ceros a la izquierda: no hay inversa." },
+        { a: "Resolver A·X = B", b: "X = A⁻¹·B (A⁻¹ por la izquierda). Si fuese X·A = B, X = B·A⁻¹." },
+        { a: "Resolver A·X + X = B", b: "(A + I)·X = B, y X = (A + I)⁻¹·B." },
+        { a: "Aⁿ de una matriz diagonal", b: "Se eleva cada elemento de la diagonal a n." },
+        { a: "A = I + N con N nilpotente", b: "Binomio de Newton: Aⁿ = I + nN + C(n,2)N² + … (se corta cuando Nᵏ = O)." },
+        { a: "A² = A, A² = I y Aᵏ = O", b: "Idempotente (Aⁿ = A), involutiva (A, I, A, I…) y nilpotente (O desde el exponente k)." },
+        { a: "Rango de una matriz", b: "Número de filas no nulas tras escalonar por Gauss. Para cuadradas: rango n equivale a invertible." },
+        { a: "Si A² − 2A + I = O", b: "A·(2I − A) = I, luego A⁻¹ = 2I − A." },
+        { a: "Matriz ortogonal", b: "Aᵗ·A = I, es decir, A⁻¹ = Aᵗ." }
+      ]
+    },
+    ecuaciones: {
+      titulo: "Ecuación y solución",
+      consigna: "Une cada ecuación matricial (A y B invertibles) con su solución.",
+      pares: [
+        ["A·X = B", "X = A⁻¹·B"],
+        ["X·A = B", "X = B·A⁻¹"],
+        ["A·X + B = C", "X = A⁻¹·(C − B)"],
+        ["A·X + X = B", "X = (A + I)⁻¹·B"],
+        ["A·X·B = C", "X = A⁻¹·C·B⁻¹"],
+        ["X·A − X = B", "X = B·(A − I)⁻¹"]
+      ]
+    },
+    tipos: {
+      titulo: "Reconoce el tipo de matriz",
+      consigna: "Clasifica cada matriz. Ninguna pertenece a dos categorías.",
+      categorias: ["Simétrica", "Antisimétrica", "Idempotente (A² = A)", "Ortogonal (AᵗA = I)"],
+      items: [
+        { t: M([[1, 2], [2, 5]]), c: 0 }, { t: M([[0, 3, -1], [3, 2, 4], [-1, 4, 0]]), c: 0 },
+        { t: M([[0, 2], [-2, 0]]), c: 1 }, { t: M([[0, 1, -4], [-1, 0, 2], [4, -2, 0]]), c: 1 },
+        { t: M([[1, 1], [0, 0]]), c: 2 }, { t: M([[2, -2], [1, -1]]), c: 2 }, { t: M([[1, 0], [1, 0]]), c: 2 },
+        { t: M([["3/5", "-4/5"], ["4/5", "3/5"]]), c: 3 }, { t: M([[0, 1, 0], [0, 0, 1], [1, 0, 0]]), c: 3 }
+      ]
+    },
+    gauss: {
+      titulo: "Gauss-Jordan en orden",
+      consigna: "Ordena los pasos para calcular A⁻¹ con el método de Gauss-Jordan.",
+      items: [
+        { t: "Comprobar que A es cuadrada" },
+        { t: "Escribir la matriz ampliada (A | I)" },
+        { t: "Elegir el pivote de la primera columna (intercambiando filas si es 0) y convertirlo en 1" },
+        { t: "Hacer ceros en el resto de la primera columna, arriba y abajo" },
+        { t: "Repetir con la segunda, tercera… columna hasta tener I a la izquierda" },
+        { t: "Leer A⁻¹ en la parte derecha (si aparece una fila de ceros a la izquierda, A no es invertible)" },
+        { t: "Comprobar que A·A⁻¹ = I" }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var ejercicios = [
+    // ================= ★ básico =================
+    { id: "b1", nivel: 1,
+      enunciado: "Sea A = " + M([[2, -1, 0], [3, 4, 5]]) + ". ¿Qué dimensión tiene? Da además los elementos a₁₂ y a₂₃.",
+      check: [{ tipo: "opcion", etiqueta: "Dimensión", opciones: ["2×3", "3×2", "2×2", "3×3"], ok: 0 }, { tipo: "num", etiqueta: "a₁₂ =", valor: -1 }, { tipo: "num", etiqueta: "a₂₃ =", valor: 5 }],
+      pistas: ["Primero las filas, después las columnas. aᵢⱼ: fila i, columna j."],
+      pasos: ["Tiene 2 filas y 3 columnas: dimensión 2×3.", "a₁₂ está en la fila 1, columna 2: −1.", "a₂₃ está en la fila 2, columna 3: 5."],
+      resultado: "2×3 · a₁₂ = −1 · a₂₃ = 5" },
+    { id: "b2", nivel: 1,
+      enunciado: "Escribe la matriz A de dimensión 2×3 con aᵢⱼ = i² − j. ¿Cuánto vale a₂₁ y cuánto suman todos sus elementos?",
+      check: [{ tipo: "num", etiqueta: "a₂₁ =", valor: 3 }, { tipo: "num", etiqueta: "Suma de elementos =", valor: 3 }],
+      pistas: ["Fila 1: i = 1, así que 1 − j. Fila 2: i = 2, así que 4 − j."],
+      pasos: ["A = " + M([[0, -1, -2], [3, 2, 1]]) + ".", "a₂₁ = 4 − 1 = 3.", "Suma: (0 − 1 − 2) + (3 + 2 + 1) = −3 + 6 = 3."],
+      resultado: "a₂₁ = 3 · suma = 3" },
+    { id: "b3", nivel: 1,
+      enunciado: "Con A = " + M([[1, 2], [3, 4]]) + " y B = " + M([[0, -1], [2, 1]]) + ", calcula 2A − 3B.",
+      check: mc("2A − 3B", [[2, 7], [0, 5]]),
+      pistas: ["Multiplica cada matriz por su número y resta posición a posición."],
+      pasos: ["2A = " + M([[2, 4], [6, 8]]) + " y 3B = " + M([[0, -3], [6, 3]]) + ".", "2A − 3B = " + M([[2, 7], [0, 5]]) + "."],
+      resultado: M([[2, 7], [0, 5]]) },
+    { id: "b4", nivel: 1,
+      enunciado: "A es 3×2 y B es 2×4. ¿Qué dimensión tiene A·B? ¿Existe B·A?",
+      check: [{ tipo: "opcion", etiqueta: "A·B es", opciones: ["3×4", "2×2", "4×3", "no existe"], ok: 0 }, { tipo: "opcion", etiqueta: "B·A", opciones: ["no existe", "existe y es 4×3", "existe y es 2×2", "existe y es 3×4"], ok: 0 }],
+      pistas: ["Columnas de la primera = filas de la segunda."],
+      pasos: ["A·B: A tiene 2 columnas y B tiene 2 filas: existe y es 3×4.", "B·A: B tiene 4 columnas y A tiene 3 filas; 4 ≠ 3: no existe."],
+      resultado: "A·B es 3×4 · B·A no existe" },
+    { id: "b5", nivel: 1,
+      enunciado: "Calcula A·B con A = " + M([[1, 2], [0, 1]]) + " y B = " + M([[3, 0], [1, 4]]) + ". Después B·A: ¿son iguales?",
+      check: mc("A·B", [[5, 8], [1, 4]]).concat([{ tipo: "opcion", etiqueta: "¿A·B = B·A?", opciones: ["No", "Sí"], ok: 0 }]),
+      pistas: ["Fila de A por columna de B. Para B·A, al revés."],
+      pasos: ["A·B = " + M([[5, 8], [1, 4]]) + " (por ejemplo, 1·3 + 2·1 = 5).", "B·A = " + M([[3, 6], [1, 6]]) + ". Distintas: no conmutan."],
+      resultado: "A·B = " + M([[5, 8], [1, 4]]) + " ≠ B·A = " + M([[3, 6], [1, 6]]) },
+    { id: "b6", nivel: 1,
+      enunciado: "Calcula A·B con A = " + M([[1, 0, 2], [-1, 3, 1]]) + " y B = " + M([[3, 1], [2, 1], [1, 0]]) + ".",
+      check: mc("A·B", [[5, 1], [4, 2]]),
+      pistas: ["El resultado es 2×2: cuatro productos fila × columna de tres sumandos."],
+      pasos: ["(1,1): 1·3 + 0·2 + 2·1 = 5. (1,2): 1·1 + 0·1 + 2·0 = 1.", "(2,1): −1·3 + 3·2 + 1·1 = 4. (2,2): −1·1 + 3·1 + 1·0 = 2."],
+      resultado: M([[5, 1], [4, 2]]) },
+    { id: "b7", nivel: 1,
+      enunciado: "Sea A = " + M([[1, 2, 3], [4, 5, 6]]) + ". Escribe Aᵗ: ¿cuánto valen sus elementos (Aᵗ)₃₁ y (Aᵗ)₂₂?",
+      check: [{ tipo: "num", etiqueta: "(Aᵗ)₃₁ =", valor: 3 }, { tipo: "num", etiqueta: "(Aᵗ)₂₂ =", valor: 5 }],
+      pistas: ["(Aᵗ)ᵢⱼ = aⱼᵢ."],
+      pasos: ["Aᵗ = " + M([[1, 4], [2, 5], [3, 6]]) + " (3×2).", "(Aᵗ)₃₁ = a₁₃ = 3 y (Aᵗ)₂₂ = a₂₂ = 5."],
+      resultado: "(Aᵗ)₃₁ = 3 · (Aᵗ)₂₂ = 5" },
+    { id: "b8", nivel: 1,
+      enunciado: "Calcula la inversa de A = " + M([[3, 1], [5, 2]]) + " con el atajo para 2×2.",
+      check: mc("A⁻¹", [[2, -1], [-5, 3]]),
+      pistas: ["det = ad − bc. Intercambia a y d, cambia el signo de b y c, divide entre det."],
+      pasos: ["det A = 3·2 − 1·5 = 1.", "A⁻¹ = (1/1)·" + M([[2, -1], [-5, 3]]) + "."],
+      resultado: M([[2, -1], [-5, 3]]) },
+    { id: "b9", nivel: 1,
+      enunciado: "¿Para qué valor de k NO tiene inversa la matriz A = " + MT([["1", "2"], ["k", "6"]]) + "?",
+      check: { tipo: "num", etiqueta: "k =", valor: 3 },
+      pistas: ["No tiene inversa cuando ad − bc = 0."],
+      pasos: ["ad − bc = 6 − 2k = 0 ⟹ k = 3."],
+      resultado: "k = 3" },
+    { id: "b10", nivel: 1,
+      enunciado: "Calcula A³ con A = " + M([[2, 0], [0, 3]]) + ".",
+      check: mc("A³", [[8, 0], [0, 27]]),
+      pistas: ["En una diagonal se eleva cada elemento de la diagonal."],
+      pasos: ["A³ = diag(2³, 3³) = diag(8, 27)."],
+      resultado: M([[8, 0], [0, 27]]) },
+    { id: "b11", nivel: 1,
+      enunciado: "Sea A = " + M([[0, 1], [0, 0]]) + " y B = " + M([[0, 1, 0], [0, 0, 1], [0, 0, 0]]) + ". ¿Cuál es el menor exponente n con Aⁿ = O? ¿Y con Bⁿ = O?",
+      check: [{ tipo: "num", etiqueta: "Para A, n =", valor: 2 }, { tipo: "num", etiqueta: "Para B, n =", valor: 3 }],
+      pistas: ["Calcula A², B² y B³."],
+      pasos: ["A² = O (0·0 + 1·0 = 0 en todas las posiciones): n = 2.", "B² = " + M([[0, 0, 1], [0, 0, 0], [0, 0, 0]]) + " ≠ O, y B³ = O: n = 3."],
+      resultado: "n = 2 para A y n = 3 para B" },
+    { id: "b12", nivel: 1,
+      enunciado: "Halla el rango de " + M([[1, 2], [2, 4]]) + " y el de " + M([[1, 2, 3], [0, 1, 1], [1, 3, 4]]) + ".",
+      check: [{ tipo: "num", etiqueta: "Rango de la 2×2 =", valor: 1 }, { tipo: "num", etiqueta: "Rango de la 3×3 =", valor: 2 }],
+      pistas: ["Busca filas que sean combinación de las otras."],
+      pasos: ["En la 2×2, F₂ = 2F₁: rango 1.", "En la 3×3, F₃ = F₁ + F₂ (1+0, 2+1, 3+1 = 1, 3, 4): rango 2 (F₁ y F₂ son independientes)."],
+      resultado: "1 y 2" },
+    { id: "b13", nivel: 1,
+      enunciado: "Resuelve A·X = B con A = " + M([[1, 1], [0, 1]]) + " y B = " + M([[3], [2]]) + ".",
+      check: mc("X", [[1], [2]]),
+      pistas: ["X = A⁻¹·B. La inversa de una triangular 2×2 de unos es fácil."],
+      pasos: ["det A = 1, A⁻¹ = " + M([[1, -1], [0, 1]]) + ".", "X = A⁻¹·B = " + M([[1], [2]]) + " (3 − 2 = 1 y 2)."],
+      resultado: M([[1], [2]]) },
+    { id: "b14", nivel: 1,
+      enunciado: "¿Cuál de estas matrices es antisimétrica?",
+      check: { tipo: "opcion", etiqueta: "Es antisimétrica", opciones: ["filas (0, 2) y (−2, 0)", "filas (0, 2) y (2, 0)", "filas (1, 2) y (−2, 1)", "filas (0, 2) y (−2, 1)"], ok: 0 },
+      pistas: ["Diagonal de ceros y aᵢⱼ = −aⱼᵢ."],
+      pasos: ["Solo la primera tiene diagonal de ceros y a₁₂ = −a₂₁ (2 = −(−2)). La segunda es simétrica; las demás tienen diagonal no nula."],
+      resultado: "La primera" },
+    { id: "b15", nivel: 1,
+      enunciado: "Calcula " + M([[1, 2, 3], [0, 1, -1]]) + "·" + M([[2], [1], [1]]) + ".",
+      check: mc("Producto", [[7], [0]]),
+      pistas: ["Una matriz 2×3 por una columna 3×1 da una columna 2×1."],
+      pasos: ["Fila 1: 1·2 + 2·1 + 3·1 = 7.", "Fila 2: 0·2 + 1·1 + (−1)·1 = 0."],
+      resultado: M([[7], [0]]) },
+
+    // ================= ★★ intermedio =================
+    { id: "c1", nivel: 2,
+      enunciado: "Calcula A² con A = " + M([[1, -1], [2, 3]]) + ".",
+      check: mc("A²", [[-1, -4], [8, 7]]),
+      pistas: ["A² = A·A, no los cuadrados de los elementos."],
+      pasos: ["(1,1): 1·1 + (−1)·2 = −1. (1,2): 1·(−1) + (−1)·3 = −4.", "(2,1): 2·1 + 3·2 = 8. (2,2): 2·(−1) + 3·3 = 7."],
+      resultado: M([[-1, -4], [8, 7]]) },
+    { id: "c2", nivel: 2,
+      enunciado: "Con A = " + M([[1, 2], [0, 1]]) + " y B = " + M([[1, 0], [3, 1]]) + ", calcula el conmutador A·B − B·A. ¿Conmutan A y B?",
+      check: mc("A·B − B·A", [[6, 0], [0, -6]]),
+      pistas: ["Calcula por separado A·B y B·A."],
+      pasos: ["A·B = " + M([[7, 2], [3, 1]]) + " y B·A = " + M([[1, 2], [3, 7]]) + ".", "A·B − B·A = " + M([[6, 0], [0, -6]]) + " ≠ O: no conmutan."],
+      resultado: M([[6, 0], [0, -6]]) },
+    { id: "c3", nivel: 2,
+      enunciado: "(Tipo EvAU) Halla las matrices X = " + MT([["a", "b"], ["c", "d"]]) + " que conmutan con A = " + M([[2, 0], [0, 3]]) + ". ¿Cuánto valen b y c? ¿Cuántos parámetros libres tiene X?",
+      check: [{ tipo: "num", etiqueta: "b =", valor: 0 }, { tipo: "num", etiqueta: "c =", valor: 0 }, { tipo: "num", etiqueta: "Parámetros libres =", valor: 2 }],
+      pistas: ["Calcula A·X y X·A con letras e iguala posición a posición."],
+      pasos: ["A·X = " + MT([["2a", "2b"], ["3c", "3d"]]) + " y X·A = " + MT([["2a", "3b"], ["2c", "3d"]]) + ".", "2b = 3b ⟹ b = 0; 3c = 2c ⟹ c = 0. Los elementos a y d quedan libres.", "X = diag(a, d): dos parámetros."],
+      resultado: "b = 0, c = 0; X diagonal con 2 parámetros libres" },
+    { id: "c4", nivel: 2,
+      enunciado: "Con A = " + M([[1, 2], [3, 4]]) + " y B = " + M([[0, 1], [1, 0]]) + ", calcula (A·B)ᵗ.",
+      check: mc("(A·B)ᵗ", [[2, 4], [1, 3]]),
+      pistas: ["Calcula A·B y traspón; o usa (AB)ᵗ = BᵗAᵗ para comprobarlo."],
+      pasos: ["A·B = " + M([[2, 1], [4, 3]]) + " (intercambia las columnas de A).", "(A·B)ᵗ = " + M([[2, 4], [1, 3]]) + "."],
+      resultado: M([[2, 4], [1, 3]]) },
+    { id: "c5", nivel: 2,
+      enunciado: "Sea A = " + M([[1, 2, 0], [0, 1, 3]]) + ". Calcula A·Aᵗ y comprueba que es simétrica.",
+      check: mc("A·Aᵗ", [[5, 2], [2, 10]]),
+      pistas: ["A es 2×3 y Aᵗ es 3×2: A·Aᵗ es 2×2."],
+      pasos: ["(1,1): 1 + 4 + 0 = 5. (1,2): 0 + 2 + 0 = 2.", "(2,1) = 2 y (2,2): 0 + 1 + 9 = 10.", "A·Aᵗ = " + M([[5, 2], [2, 10]]) + ", simétrica."],
+      resultado: M([[5, 2], [2, 10]]) },
+    { id: "c6", nivel: 2,
+      enunciado: "Calcula por Gauss-Jordan la inversa de A = " + M([[1, 1, 0], [0, 1, 1], [1, 0, 1]]) + ". Da los elementos (A⁻¹)₁₁, (A⁻¹)₂₃ y (A⁻¹)₃₁.",
+      check: [{ tipo: "num", etiqueta: "(A⁻¹)₁₁ =", valor: 0.5 }, { tipo: "num", etiqueta: "(A⁻¹)₂₃ =", valor: -0.5 }, { tipo: "num", etiqueta: "(A⁻¹)₃₁ =", valor: -0.5 }],
+      pistas: ["Empieza con F₃ ← F₃ − F₁. El determinante es 2."],
+      pasos: ["(A | I) → F₃ ← F₃ − F₁ → F₃ ← F₃ + F₂ da (0, 0, 2 | −1, 1, 1).", "Se normaliza y se hacen ceros hacia arriba.", "A⁻¹ = (1/2)·" + M([[1, -1, 1], [1, 1, -1], [-1, 1, 1]]) + "."],
+      resultado: "A⁻¹ = (1/2)·" + M([[1, -1, 1], [1, 1, -1], [-1, 1, 1]]) },
+    { id: "c7", nivel: 2,
+      enunciado: "Resuelve X·A = B con A = " + M([[1, 2], [1, 3]]) + " y B = " + M([[1, 0], [2, 1]]) + ".",
+      check: mc("X", [[3, -2], [5, -3]]),
+      pistas: ["La X está a la izquierda de A: X = B·A⁻¹."],
+      pasos: ["det A = 3 − 2 = 1 y A⁻¹ = " + M([[3, -2], [-1, 1]]) + ".", "X = B·A⁻¹ = " + M([[3, -2], [5, -3]]) + ".", "Comprobación: X·A = " + M([[1, 0], [2, 1]]) + " = B. ✓"],
+      resultado: M([[3, -2], [5, -3]]) },
+    { id: "c8", nivel: 2,
+      enunciado: "Resuelve A·X + B = C con A = " + M([[2, 1], [1, 1]]) + ", B = " + M([[1, 1], [0, 2]]) + " y C = " + M([[4, 3], [1, 5]]) + ".",
+      check: mc("X", [[2, -1], [-1, 4]]),
+      pistas: ["Pasa B restando y multiplica por A⁻¹ por la izquierda."],
+      pasos: ["A·X = C − B = " + M([[3, 2], [1, 3]]) + ".", "A⁻¹ = " + M([[1, -1], [-1, 2]]) + " (det A = 1).", "X = A⁻¹·(C − B) = " + M([[2, -1], [-1, 4]]) + "."],
+      resultado: M([[2, -1], [-1, 4]]) },
+    { id: "c9", nivel: 2,
+      enunciado: "Halla a para que A = " + MT([["2", "−2"], ["a", "−1"]]) + " sea idempotente (A² = A).",
+      check: { tipo: "num", etiqueta: "a =", valor: 1 },
+      pistas: ["Calcula A² con a y compara con A."],
+      pasos: ["A² = " + MT([["4−2a", "−2"], ["a", "1−2a"]]) + ".", "Igualando a A: 4 − 2a = 2 ⟹ a = 1, y 1 − 2a = −1 ⟹ a = 1. Las demás posiciones se cumplen."],
+      resultado: "a = 1" },
+    { id: "c10", nivel: 2,
+      enunciado: "Halla x, y, z, w para que A = " + MT([["x", "2", "y"], ["z", "0", "−3"], ["1", "w", "x"]]) + " sea antisimétrica. Indica y, z y w.",
+      check: [{ tipo: "num", etiqueta: "y =", valor: -1 }, { tipo: "num", etiqueta: "z =", valor: -2 }, { tipo: "num", etiqueta: "w =", valor: 3 }],
+      pistas: ["aᵢⱼ = −aⱼᵢ y diagonal de ceros."],
+      pasos: ["Diagonal: x = 0 (a₁₁ y a₃₃).", "a₁₃ = −a₃₁ ⟹ y = −1. a₂₁ = −a₁₂ ⟹ z = −2. a₃₂ = −a₂₃ = 3 ⟹ w = 3."],
+      resultado: "x = 0, y = −1, z = −2, w = 3" },
+    { id: "c11", nivel: 2,
+      enunciado: "(Tipo EvAU) Comprueba que A = " + M([[2, 1], [-1, 0]]) + " cumple A² − 2A + I = O y calcula A⁻¹ a partir de esa igualdad.",
+      check: mc("A⁻¹", [[0, -1], [1, 2]]),
+      pistas: ["Despeja I y saca A factor común: I = A·(2I − A)."],
+      pasos: ["A² = " + M([[3, 2], [-2, -1]]) + ", 2A = " + M([[4, 2], [-2, 0]]) + ": A² − 2A + I = O. ✓", "I = 2A − A² = A·(2I − A) ⟹ A⁻¹ = 2I − A = " + M([[0, -1], [1, 2]]) + "."],
+      resultado: "A⁻¹ = 2I − A = " + M([[0, -1], [1, 2]]) },
+    { id: "c12", nivel: 2,
+      enunciado: "Sea A = " + M([[1, 0], [3, 1]]) + ". Halla Aⁿ (escribe el elemento a₂₁ de Aⁿ en función de n) y el valor de a₂₁ en A²⁰.",
+      check: [{ tipo: "expr", etiqueta: "a₂₁ de Aⁿ =", expr: "3*n" }, { tipo: "num", etiqueta: "a₂₁ de A²⁰ =", valor: 60 }],
+      pistas: ["A² = [[1,0],[6,1]], A³ = [[1,0],[9,1]]…"],
+      pasos: ["A² y A³ muestran que a₂₁ crece de 3 en 3: Aⁿ = [[1, 0], [3n, 1]] (por inducción: Aⁿ·A suma 3 a a₂₁).", "A²⁰: a₂₁ = 60."],
+      resultado: "Aⁿ = [[1, 0], [3n, 1]] · a₂₁(A²⁰) = 60" },
+    { id: "c13", nivel: 2,
+      enunciado: "Para B = " + M([[2, 0], [0, 3]]) + " escribe (Bⁿ)₁₁ y (Bⁿ)₂₂ en función de n.",
+      check: [{ tipo: "expr", etiqueta: "(Bⁿ)₁₁ =", expr: "2^n" }, { tipo: "expr", etiqueta: "(Bⁿ)₂₂ =", expr: "3^n" }],
+      pistas: ["Es diagonal."],
+      pasos: ["Bⁿ = diag(2ⁿ, 3ⁿ)."],
+      resultado: "Bⁿ = diag(2ⁿ, 3ⁿ)" },
+    { id: "c14", nivel: 2,
+      enunciado: "Discute el rango de " + MT([["1", "1", "1"], ["1", "m", "1"], ["1", "1", "m"]]) + " según m. ¿Para qué valor de m baja el rango? ¿A cuánto?",
+      check: [{ tipo: "num", etiqueta: "Valor crítico m =", valor: 1 }, { tipo: "num", etiqueta: "Rango en ese caso =", valor: 1 }],
+      pistas: ["F₂ ← F₂ − F₁ y F₃ ← F₃ − F₁."],
+      pasos: ["Quedan las filas (1, 1, 1), (0, m−1, 0) y (0, 0, m−1).", "Si m ≠ 1: tres pivotes, rango 3. Si m = 1: las dos últimas son nulas y el rango es 1."],
+      resultado: "rg = 3 si m ≠ 1; rg = 1 si m = 1" },
+    { id: "c15", nivel: 2,
+      enunciado: "Despeja X en 2X − A = B + X con A = " + M([[1, 2], [3, 4]]) + " y B = " + M([[0, 1], [1, 0]]) + ".",
+      check: mc("X", [[1, 3], [4, 4]]),
+      pistas: ["Agrupa las X a un lado: X = A + B."],
+      pasos: ["2X − X = A + B ⟹ X = A + B = " + M([[1, 3], [4, 4]]) + "."],
+      resultado: M([[1, 3], [4, 4]]) },
+    { id: "c16", nivel: 2,
+      enunciado: "Una tienda vende tres productos en dos sucursales. Las unidades vendidas son las filas de " + M([[10, 20, 5], [8, 15, 12]]) + " (sucursal × producto) y los precios, 3, 4 y 5 euros. Calcula con un producto de matrices la facturación de cada sucursal.",
+      check: mc("Facturación", [[135], [144]]),
+      pistas: ["(unidades 2×3)·(precios 3×1) da una columna 2×1."],
+      pasos: ["Sucursal 1: 10·3 + 20·4 + 5·5 = 135 euros.", "Sucursal 2: 8·3 + 15·4 + 12·5 = 144 euros."],
+      resultado: M([[135], [144]]) + " euros" },
+    { id: "c17", nivel: 2,
+      enunciado: "Calcula la inversa de A = " + M([[2, 4], [1, 3]]) + ".",
+      check: mc("A⁻¹", [[1.5, -2], [-0.5, 1]]),
+      pistas: ["det A = 2; divide cada elemento entre 2."],
+      pasos: ["det A = 6 − 4 = 2.", "A⁻¹ = (1/2)·" + M([[3, -4], [-1, 2]]) + " = " + M([["3/2", -2], ["-1/2", 1]]) + "."],
+      resultado: M([["3/2", -2], ["-1/2", 1]]) },
+
+    // ================= ★★★ nivel EvAU / avanzado =================
+    { id: "d1", nivel: 3,
+      enunciado: "(Tipo EvAU) Sea A = " + M([[1, 1, 0], [0, 1, 1], [0, 0, 1]]) + ". Halla Aⁿ. Indica el elemento a₁₃ de Aⁿ en función de n y su valor en A¹⁰.",
+      check: [{ tipo: "expr", etiqueta: "a₁₃ de Aⁿ =", expr: "n*(n-1)/2" }, { tipo: "num", etiqueta: "a₁₃ de A¹⁰ =", valor: 45 }],
+      pistas: ["Escribe A = I + N y usa el binomio de Newton: N³ = O."],
+      pasos: ["A = I + N con N = " + M([[0, 1, 0], [0, 0, 1], [0, 0, 0]]) + ", N² = " + M([[0, 0, 1], [0, 0, 0], [0, 0, 0]]) + ", N³ = O.", "Aⁿ = I + nN + C(n,2)N² = " + MT([["1", "n", "n(n−1)/2"], ["0", "1", "n"], ["0", "0", "1"]]) + ".", "Con n = 10: 10·9/2 = 45."],
+      resultado: "a₁₃ = n(n−1)/2 · en A¹⁰: 45" },
+    { id: "d2", nivel: 3,
+      enunciado: "Halla A⁵ para A = " + M([[3, 1], [0, 3]]) + " usando A = 3I + N.",
+      check: mc("A⁵", [[243, 405], [0, 243]]),
+      pistas: ["N = [[0,1],[0,0]] cumple N² = O. (3I + N)ⁿ = 3ⁿI + n·3ⁿ⁻¹N."],
+      pasos: ["A⁵ = 3⁵I + 5·3⁴N = 243I + 405N.", "A⁵ = " + M([[243, 405], [0, 243]]) + "."],
+      resultado: M([[243, 405], [0, 243]]) },
+    { id: "d3", nivel: 3,
+      enunciado: "Calcula A²⁰²⁵ para A = " + M([[0, 1], [-1, 0]]) + ". Da sus elementos a₁₂ y a₂₁.",
+      check: mc("A²⁰²⁵", [[0, 1], [-1, 0]]),
+      pistas: ["A² = −I. ¿Cuál es el periodo?"],
+      pasos: ["A² = −I y A⁴ = I: periodo 4.", "2025 = 4·506 + 1 ⟹ A²⁰²⁵ = A = " + M([[0, 1], [-1, 0]]) + "."],
+      resultado: M([[0, 1], [-1, 0]]) },
+    { id: "d4", nivel: 3,
+      enunciado: "Para A = " + M([[1, 1], [1, 0]]) + ", calcula A¹⁰ y da su elemento a₁₂. (Pista: Aⁿ = [[Fₙ₊₁, Fₙ], [Fₙ, Fₙ₋₁]].)",
+      check: { tipo: "num", etiqueta: "a₁₂ de A¹⁰ =", valor: 55 },
+      pistas: ["Fibonacci: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55."],
+      pasos: ["a₁₂ = F₁₀ = 55 (F₁ = 1, F₂ = 1, F₃ = 2, …, F₁₀ = 55).", "A¹⁰ = " + M([[89, 55], [55, 34]]) + "."],
+      resultado: "a₁₂ = 55" },
+    { id: "d5", nivel: 3,
+      enunciado: "Halla las matrices A y B que cumplen A + B = " + M([[3, 1], [2, 0]]) + " y A − B = " + M([[1, -1], [0, 2]]) + ". Da A.",
+      check: mc("A", [[2, 0], [1, 1]]),
+      pistas: ["Suma las dos ecuaciones: 2A = …"],
+      pasos: ["Sumando: 2A = " + M([[4, 0], [2, 2]]) + ", luego A = " + M([[2, 0], [1, 1]]) + ".", "B = (A+B) − A = " + M([[1, 1], [1, -1]]) + "."],
+      resultado: "A = " + M([[2, 0], [1, 1]]) + " · B = " + M([[1, 1], [1, -1]]) },
+    { id: "d6", nivel: 3,
+      enunciado: "(Tipo EvAU) Resuelve X·A − 2X = B con A = " + M([[3, 1], [0, 4]]) + " y B = " + M([[1, 2], [3, 4]]) + ".",
+      check: mc("X", [[1, 0.5], [3, 0.5]]),
+      pistas: ["X·A − 2X = X·(A − 2I)."],
+      pasos: ["X·(A − 2I) = B, con A − 2I = " + M([[1, 1], [0, 2]]) + " (det 2).", "(A − 2I)⁻¹ = " + M([[1, "-1/2"], [0, "1/2"]]) + ".", "X = B·(A − 2I)⁻¹ = " + M([[1, "1/2"], [3, "1/2"]]) + "."],
+      resultado: M([[1, "1/2"], [3, "1/2"]]) },
+    { id: "d7", nivel: 3,
+      enunciado: "(Tipo EvAU) Sea A = " + M([[1, 1], [1, 0]]) + ". Comprueba que A² = A + I, deduce que A es invertible y calcula A⁻¹.",
+      check: mc("A⁻¹", [[0, 1], [1, -1]]),
+      pistas: ["A² − A = I ⟹ A·(A − I) = I."],
+      pasos: ["A² = " + M([[2, 1], [1, 1]]) + " = A + I. ✓", "A² − A = I ⟹ A·(A − I) = I, así que A⁻¹ = A − I.", "A⁻¹ = " + M([[0, 1], [1, -1]]) + "."],
+      resultado: M([[0, 1], [1, -1]]) },
+    { id: "d8", nivel: 3,
+      enunciado: "Halla los valores de a para los que A = " + MT([["a", "1"], ["4", "a"]]) + " NO es invertible. Escríbelos separados por comas.",
+      check: { tipo: "lista", etiqueta: "a =", valores: [-2, 2] },
+      pistas: ["Determinante a·a − 1·4."],
+      pasos: ["ad − bc = a² − 4 = 0 ⟹ a = 2 ó a = −2."],
+      resultado: "a = −2 y a = 2" },
+    { id: "d9", nivel: 3,
+      enunciado: "(Tipo EvAU) Discute el rango de M = " + MT([["1", "1", "a"], ["1", "a", "1"], ["a", "1", "1"]]) + ". Da los dos valores de a que lo reducen y el rango en cada uno (primero el menor valor de a).",
+      check: [{ tipo: "lista", etiqueta: "Valores de a =", valores: [-2, 1] }, { tipo: "num", etiqueta: "Rango si a = −2:", valor: 2 }, { tipo: "num", etiqueta: "Rango si a = 1:", valor: 1 }],
+      pistas: ["F₂ − F₁, F₃ − aF₁, luego F₃ + F₂: el último pivote es (1−a)(a+2)."],
+      pasos: ["Tras Gauss los pivotes son 1, a−1 y (1−a)(a+2).", "a = −2 ⟹ rango 2; a = 1 ⟹ rango 1; en otro caso, rango 3."],
+      resultado: "a = −2 (rango 2), a = 1 (rango 1); si no, rango 3" },
+    { id: "d10", nivel: 3,
+      enunciado: "Estudia el rango de " + MT([["1", "2", "−1", "3"], ["2", "4", "a", "6"], ["−1", "−2", "1", "−3"]]) + " según a. ¿Para qué valor de a el rango es 1?",
+      check: { tipo: "num", etiqueta: "a =", valor: -2 },
+      pistas: ["La tercera fila es −F₁. ¿Cuándo es F₂ múltiplo de F₁?"],
+      pasos: ["F₃ = −F₁, así que el rango es el de las dos primeras filas.", "F₂ ← F₂ − 2F₁ = (0, 0, a + 2, 0). Rango 2 si a ≠ −2; rango 1 si a = −2."],
+      resultado: "a = −2 (rango 1); si no, rango 2" },
+    { id: "d11", nivel: 3,
+      enunciado: "¿Cuántas matrices diagonales 2×2 son idempotentes (A² = A)?",
+      check: { tipo: "num", etiqueta: "Hay", valor: 4 },
+      pistas: ["diag(a, d)² = diag(a², d²) = diag(a, d)."],
+      pasos: ["a² = a ⟹ a ∈ {0, 1}; d² = d ⟹ d ∈ {0, 1}.", "2·2 = 4 matrices: O, I, diag(1,0) y diag(0,1)."],
+      resultado: "4" },
+    { id: "d12", nivel: 3,
+      enunciado: "Se sabe que A⁻¹ = " + M([[1, 2], [0, 1]]) + " y B⁻¹ = " + M([[1, 0], [3, 1]]) + ". Calcula (A·B)⁻¹.",
+      check: mc("(AB)⁻¹", [[1, 2], [3, 7]]),
+      pistas: ["(AB)⁻¹ = B⁻¹·A⁻¹. Cuidado con el orden."],
+      pasos: ["(AB)⁻¹ = B⁻¹·A⁻¹ = " + M([[1, 0], [3, 1]]) + "·" + M([[1, 2], [0, 1]]) + " = " + M([[1, 2], [3, 7]]) + ".", "(El otro orden, A⁻¹·B⁻¹ = " + M([[7, 2], [3, 1]]) + ", es incorrecto.)"],
+      resultado: M([[1, 2], [3, 7]]) },
+    { id: "d13", nivel: 3,
+      enunciado: "Demuestra que si A es antisimétrica (Aᵗ = −A), entonces A² es simétrica.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 6, items: [
+        { t: "Calcula la traspuesta (A²)ᵗ", p: 1 },
+        { t: "Usa (A·A)ᵗ = Aᵗ·Aᵗ (traspuesta de un producto)", p: 1 },
+        { t: "Sustituye Aᵗ = −A: (−A)(−A)", p: 1 },
+        { t: "Concluye (A²)ᵗ = A²", p: 1 }] },
+      pistas: ["Parte de (A²)ᵗ y usa la regla del producto."],
+      pasos: ["(A²)ᵗ = (A·A)ᵗ = Aᵗ·Aᵗ (con dos factores iguales el orden invertido no importa).", "Como Aᵗ = −A: Aᵗ·Aᵗ = (−A)·(−A) = A².", "Luego (A²)ᵗ = A²: A² es simétrica. ∎"],
+      resultado: "(A²)ᵗ = (Aᵗ)² = (−A)² = A²" },
+    { id: "d14", nivel: 3,
+      enunciado: "(Tipo EvAU) Halla X tal que A·X·A⁻¹ = B, con A = " + M([[1, 1], [0, 1]]) + " y B = " + M([[1, 0], [1, 1]]) + ".",
+      check: mc("X", [[0, -1], [1, 2]]),
+      pistas: ["A⁻¹ por la izquierda y A por la derecha: X = A⁻¹·B·A."],
+      pasos: ["A⁻¹ = " + M([[1, -1], [0, 1]]) + ".", "A⁻¹·B = " + M([[0, -1], [1, 1]]) + " y, por A: X = " + M([[0, -1], [1, 2]]) + ".", "Comprobación: A·X·A⁻¹ = B. ✓"],
+      resultado: M([[0, -1], [1, 2]]) },
+    { id: "d15", nivel: 3,
+      enunciado: "Sea N = " + M([[0, 1, 1], [0, 0, 1], [0, 0, 0]]) + ". Comprueba que N³ = O y calcula (I − N)⁻¹. Da el elemento (1,3).",
+      check: { tipo: "num", etiqueta: "(I−N)⁻¹ (1,3) =", valor: 2 },
+      pistas: ["(I − N)(I + N + N²) = I − N³."],
+      pasos: ["N² = " + M([[0, 0, 1], [0, 0, 0], [0, 0, 0]]) + " y N³ = O.", "(I − N)(I + N + N²) = I − N³ = I, así que (I − N)⁻¹ = I + N + N² = " + M([[1, 1, 2], [0, 1, 1], [0, 0, 1]]) + "."],
+      resultado: M([[1, 1, 2], [0, 1, 1], [0, 0, 1]]) }
+  ];
+
+  // ---------------------------------------------------------------- láminas
+  var lamina = [
+    { titulo: "Operaciones y propiedades", ancha: true,
+      tabla: { cab: ["Operación", "Regla"], filas: [
+        ["Suma, resta", "misma dimensión; elemento a elemento"],
+        ["Producto A·B", "A m×n, B n×q → m×q; fila de A por columna de B"],
+        ["Conmutativa", "NO: AB ≠ BA en general"],
+        ["Cuadrado de una suma", "(A+B)² = A² + AB + BA + B²"],
+        ["Traspuesta", "(AB)ᵗ = BᵗAᵗ · (A+B)ᵗ = Aᵗ+Bᵗ"],
+        ["Inversa", "(AB)⁻¹ = B⁻¹A⁻¹ · (Aᵗ)⁻¹ = (A⁻¹)ᵗ"]
+      ] },
+      nota: "AB = O no implica A = O ni B = O; AB = AC no implica B = C." },
+    { titulo: "Inversa por Gauss-Jordan",
+      pasos: ["Escribe (A | I).", "Pivote 1 en cada columna (cambia filas si hace falta).", "Haz ceros arriba y abajo del pivote.", "Cuando a la izquierda esté I, a la derecha tienes A⁻¹.", "Fila de ceros a la izquierda: A no es invertible.", "Comprueba A·A⁻¹ = I."],
+      nota: "2×2: A⁻¹ = 1/(ad − bc) · [[d, −b], [−c, a]]." },
+    { titulo: "Ecuaciones matriciales",
+      items: [
+        { label: "AX = B", formula: "X = A⁻¹·B" },
+        { label: "XA = B", formula: "X = B·A⁻¹" },
+        { label: "AXB = C", formula: "X = A⁻¹·C·B⁻¹" },
+        { label: "AX + X = B", formula: "X = (A + I)⁻¹·B" },
+        { label: "Regla", formula: "la inversa se multiplica por el lado donde está la matriz que quitas, en los dos miembros" }
+      ],
+      nota: "Comprueba que la matriz es invertible y sustituye X en la ecuación original." },
+    { titulo: "Patrones de potencias",
+      items: [
+        { label: "Diagonal", formula: "diag(a,b)ⁿ = diag(aⁿ, bⁿ)" },
+        { label: "A² = A", formula: "Aⁿ = A" },
+        { label: "A² = I", formula: "A, I, A, I…" },
+        { label: "Nilpotente", formula: "Aᵏ = O ⟹ Aⁿ = O si n ≥ k" },
+        { label: "A = I + N", formula: "Aⁿ = I + nN + C(n,2)N² + …" }
+      ],
+      nota: "Calcula A², A³, A⁴, conjetura y demuestra por inducción." },
+    { titulo: "Rango con parámetro",
+      pasos: ["Escalona sin dividir entre expresiones con a.", "Anula cada pivote para hallar los valores críticos.", "Sustituye cada valor crítico y calcula el rango a mano.", "El rango máximo vale para el resto de valores."],
+      nota: "Cuadrada: rango n ⟺ invertible ⟺ det ≠ 0." }
+  ];
+
+  B.registrar("mates2", "t1", { resumen: resumen, secciones: secciones, nuevas: nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 /* ============================================================
