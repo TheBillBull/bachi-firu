@@ -16,7 +16,7 @@
 | Física y Química I (13 temas) | **Cerrada** | ≈117.000 palabras añadidas · 674 ejercicios (622 nuevos) · 11 simulacros (4 nuevos) · ≈240 actividades · 115 láminas nuevas |
 | Química II (11 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 11 temas ampliados · 525 ejercicios en temas (t6 incluye 10 antiguos) · 8 simulacros (3 nuevos) · ≈45 interactivos nuevos, todos probados pulsándolos · ≈4.500 comprobaciones de cifras nuevas sin fallos |
 | Historia de España (15 temas) | **A medias a propósito**: solo el tema 7 (Restauración) con el estándar antiguo (7 ejercicios, línea del tiempo, diagramas, comentario guiado) | Después de Química II, si el usuario lo decide |
-| Matemáticas II (14 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 14 temas ampliados (≈95.000 palabras) · 660 ejercicios · ≈55 interactivos nuevos, todos probados pulsándolos · 2.896 comprobaciones de cifras sin fallos · sin simulacros nuevos |
+| Matemáticas II (14 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 14 temas ampliados (≈98.000 palabras) · 660 ejercicios · 53 interactivos nuevos, todos probados pulsándolos · 2.896 comprobaciones de cifras sin fallos · sin simulacros nuevos |
 | Física II (12), Biología II (16), Lengua (22), Historia de la Filosofía (16) | Sin empezar (solo el contenido original) | — |
 
 «A medias a propósito» = no hay nada roto ni sin terminar en el código: esos dos temas funcionan y están verificados; simplemente se ampliarán más cuando toque su asignatura.
