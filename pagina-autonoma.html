@@ -13397,6 +13397,337 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 9 (Aplicaciones de la derivada)
+   m2_signos (f, f′ y f″ con un punto que se mueve) · m2_absolutos (extremos absolutos en [a, b]) ·
+   m2_parametros (hallar parámetros a partir de condiciones) · m2_problema (optimización guiada) ·
+   m2_lhopital (tabla f/g frente a f′/g′).
+   Reutiliza el motor de Matemáticas I: B.lab.fun (lecturas, puntos) y B.lab.der (derivadas numéricas y cambios de signo).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt, F = B.lab.fun, D = B.lab.der;
+  var fil = F.fil, pto = F.pto, etq = F.etq, INF = Infinity;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("m2t9-estilos")) return;
+    var s = document.createElement("style"); s.id = "m2t9-estilos";
+    s.textContent =
+      ".m9-pasos{margin:6px 0 0;padding:0 0 0 1.2em;font-size:14.5px;line-height:1.55}" +
+      ".m9-pasos li{margin:3px 0;overflow-wrap:anywhere}" +
+      ".m9-t{width:100%;border-collapse:collapse;font:14px var(--math);margin-top:6px}" +
+      ".m9-t th,.m9-t td{padding:4px 8px;border-bottom:1px solid var(--line,rgba(128,128,128,.25));text-align:right}" +
+      ".m9-t th{font-size:12px;color:var(--ink-faint);font-weight:600}" +
+      ".m9-t td:first-child,.m9-t th:first-child{text-align:left}" +
+      ".m9-t tr.m9-max td{color:var(--ok);font-weight:700}.m9-t tr.m9-min td{color:var(--red);font-weight:700}" +
+      ".m9-enun{margin:0 0 6px;font-size:15px;line-height:1.5}" +
+      "@media(max-width:520px){.m9-t{font-size:12.5px}.m9-t th,.m9-t td{padding:3px 4px}}";
+    document.head.appendChild(s);
+  })();
+
+  function n2(x) { return fmt(Math.round(x * 1e9) / 1e9, 3).replace(/,000$/, "").replace(/(,\d\d)0$/, "$1").replace(/(,\d)0$/, "$1"); }
+  function sg(x) { return x < 0 ? "−" + n2(-x) : n2(x); }
+  function lista(arr) { return "<ol class='m9-pasos'>" + arr.map(function (s) { return "<li>" + s + "</li>"; }).join("") + "</ol>"; }
+
+  // ============================================================
+  // SIGNOS: f, f′ y f″ con un punto que se mueve
+  // ============================================================
+  var SG = [
+    { t: "x³ − 3x² − 9x + 5", f: function (x) { return x * x * x - 3 * x * x - 9 * x + 5; }, rg: [-3, 5, -32, 20], nota: "Dos extremos relativos (máximo en x = −1, mínimo en x = 3) y una inflexión en x = 1." },
+    { t: "x·e^(−x)", f: function (x) { return x * Math.exp(-x); }, rg: [-1, 6, -3.6, 0.8], nota: "Un máximo en x = 1 y una inflexión en x = 2, donde la curva pasa de ∩ a ∪." },
+    { t: "x⁴ − 4x³", f: function (x) { return x * x * x * (x - 4); }, rg: [-1, 4.2, -36, 12], nota: "En x = 0 se anula f′ pero NO hay extremo (f′ no cambia de signo): es una inflexión con tangente horizontal." },
+    { t: "ln(x)/x", f: function (x) { return Math.log(x) / x; }, rg: [0.5, 9, -1.8, 0.6], nota: "Dominio x &gt; 0. Máximo en x = e ≈ 2,718 e inflexión en x = e<sup>3/2</sup> ≈ 4,482." },
+    { t: "e^(−x²)", f: function (x) { return Math.exp(-x * x); }, rg: [-3, 3, -0.2, 1.1], nota: "Máximo en x = 0 y dos inflexiones en x = ±1/√2 ≈ ±0,707 (la «campana de Gauss»)." },
+    { t: "x³", f: function (x) { return x * x * x; }, rg: [-2, 2, -8, 8], nota: "f′(0) = 0 y f″(0) = 0, pero hay inflexión y no hay extremo: f siempre crece." }
+  ];
+  B.w.m2_signos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Mueve el punto: el signo de f′ y de f″ explica la gráfica");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot m9-g1"></div><div class="w-plot m9-g2"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, x: 0 }, g1, g2, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl;
+    sl = U.slider(ctl, { et: "Posición <i>x</i>", min: -3, max: 5, step: 0.01, val: 0, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    function carga(i) {
+      st.i = i; var R = SG[i].rg; st.x = R[0] + (R[1] - R[0]) * 0.18;
+      sl.input.min = R[0]; sl.input.max = R[1]; sl.input.step = 0.01; st.x = Math.round(st.x * 100) / 100; sl.set(st.x); pinta();
+    }
+    function pinta() {
+      var P = SG[st.i], f = P.f, R = P.rg, x = st.x, d1 = function (t) { return D.d1(f, t); }, d2 = function (t) { return D.d2(f, t); };
+      var ext = D.cambios(d1, R[0], R[1], 1200), inf = D.cambios(d2, R[0], R[1], 1200);
+      var y1 = F.rangoY(d1, R[0], R[1]);
+      g1.rango(R[0], R[1], R[2], R[3]); g1.limpiar(); g2.rango(R[0], R[1], y1[0], y1[1]); g2.limpiar();
+      // curva troceada por colores según el signo de f′
+      var N = 360, tr = [], cl = null, i;
+      for (i = 0; i <= N; i++) {
+        var t = R[0] + (R[1] - R[0]) * i / N, s = d1(t) >= 0 ? "c-ok" : "c-red";
+        if (s !== cl) { tr.push({ c: s, p: tr.length ? [tr[tr.length - 1].p[tr[tr.length - 1].p.length - 1]] : [] }); cl = s; }
+        tr[tr.length - 1].p.push([t, f(t)]);
+      }
+      tr.forEach(function (q) { if (q.p.length > 1) g1.polilinea(q.p, { clase: q.c }).setAttribute("stroke-width", 3); });
+      g2.horizontal(0, { clase: "c-faint" });
+      for (i = 0; i < 160; i++) {
+        var xa = R[0] + (R[1] - R[0]) * i / 160, xb = R[0] + (R[1] - R[0]) * (i + 1) / 160, v = d1((xa + xb) / 2);
+        if (!isNaN(v)) g2.rect(xa, Math.min(0, y1[1]), xb, Math.max(0, y1[0]), { clase: v > 0 ? "z-ok" : "z-red" });
+      }
+      g2.curva(d1, { clase: "c-pen", n: 400 }).setAttribute("stroke-width", 2.5);
+      ext.forEach(function (e) { pto(g1, e.x, f(e.x), "c-pen", false, 6); etq(g1, e.x, f(e.x), e.de > 0 ? "máx" : "mín", "", 0, e.de > 0 ? -10 : 18, "middle"); pto(g2, e.x, 0, "c-pen", false, 5); });
+      inf.forEach(function (e) { pto(g1, e.x, f(e.x), "c-faint", true, 6); });
+      var a = d1(x), c = d2(x), fx = f(x), W = (R[1] - R[0]) * 0.12;
+      g1.segmento(x - W, fx - a * W, x + W, fx + a * W, { clase: "c-pen", dash: "5 4" });
+      pto(g1, x, fx, "c-red", false, 7); pto(g2, x, a, "c-red", false, 6);
+      var nt = Math.abs(a) < 0.02;
+      lectura.innerHTML =
+        fil("f(x)", n2(fx), "pen") +
+        fil("f′(x)", sg(a) + (nt ? " ⟶ tangente horizontal" : a > 0 ? " &gt; 0 ⟶ f crece" : " &lt; 0 ⟶ f decrece"), nt ? "red" : a > 0 ? "ok" : "red") +
+        fil("f″(x)", sg(c) + (Math.abs(c) < 0.02 ? " ⟶ posible inflexión" : c > 0 ? " &gt; 0 ⟶ convexa ∪" : " &lt; 0 ⟶ cóncava ∩"), "pen") +
+        fil("Máximos relativos", ext.filter(function (e) { return e.de > 0; }).map(function (e) { return "x = " + n2(e.x); }).join(" · ") || "ninguno", "ok") +
+        fil("Mínimos relativos", ext.filter(function (e) { return e.de < 0; }).map(function (e) { return "x = " + n2(e.x); }).join(" · ") || "ninguno", "red") +
+        fil("Inflexiones (f″ cambia de signo)", inf.map(function (e) { return "x = " + n2(e.x); }).join(" · ") || "ninguna", "pen") +
+        fil("Qué ver aquí", P.nota, "pen anch");
+      pie.innerHTML = "Arriba, f: <b>verde</b> donde f′ &gt; 0 (crece), <b>rojo</b> donde f′ &lt; 0 (decrece); los círculos huecos son inflexiones. Abajo, f′: los máximos y mínimos de f están donde f′ <b>corta el eje</b> cambiando de signo.";
+    }
+    g1 = new B.Plot(cuerpo.querySelector(".m9-g1"), { xmin: -3, xmax: 5, ymin: -5, ymax: 5, w: 600, h: 250, etx: "x", ety: "", etiqueta: "Función f" });
+    g2 = new B.Plot(cuerpo.querySelector(".m9-g2"), { xmin: -3, xmax: 5, ymin: -5, ymax: 5, w: 600, h: 170, etx: "x", ety: "", etiqueta: "Derivada f′" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), SG.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { carga(+k); });
+    carga(0);
+  };
+
+  // ============================================================
+  // ABSOLUTOS: candidatos en un intervalo cerrado [a, b]
+  // ============================================================
+  var AB = [
+    { t: "x³ − 6x² + 9x + 1", f: function (x) { return x * x * x - 6 * x * x + 9 * x + 1; }, rg: [-1, 6], ab: [0, 5], nota: "Hay dos mínimos absolutos empatados (x = 0 y x = 3)." },
+    { t: "|x² − 1|", f: function (x) { return Math.abs(x * x - 1); }, rg: [-3, 3], ab: [-2, 2], nota: "Los mínimos están en x = ±1, donde f NO es derivable (punto angular): hay que mirarlos aparte." },
+    { t: "x/(x² + 1)", f: function (x) { return x / (x * x + 1); }, rg: [-1, 5], ab: [0, 3], nota: "Máximo en x = 1 con f = 1/2; el mínimo está en el extremo x = 0." },
+    { t: "x·e^(−x)", f: function (x) { return x * Math.exp(-x); }, rg: [-1, 5], ab: [0, 3], nota: "El máximo es interior (x = 1); si amplías b, el valor en el extremo sigue siendo menor." },
+    { t: "x² si x ≤ 1;  2 − x si x &gt; 1", f: function (x) { return x <= 1 ? x * x : 2 - x; }, rg: [-2, 4], ab: [-1, 3], nota: "En x = 1 hay un punto angular (f′ cambia de 2 a −1): es candidato aunque f′ no valga 0." }
+  ];
+  B.w.m2_absolutos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Máximo y mínimo absolutos en [a, b]: compara los candidatos");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><div class="m9-tab"></div><p class="w-pie"></p>';
+    var st = { i: 0, a: 0, b: 5 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector(".m9-tab"), pie = cuerpo.querySelector(".w-pie"), sa, sb;
+    sa = U.slider(ctl, { et: "Extremo <i>a</i>", min: -1, max: 6, step: 0.1, val: 0, on: function (v) { st.a = Math.min(v, st.b - 0.2); pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    sb = U.slider(ctl, { et: "Extremo <i>b</i>", min: -1, max: 6, step: 0.1, val: 5, on: function (v) { st.b = Math.max(v, st.a + 0.2); pinta(); }, fmt: function (v) { return fmt(v, 1); } });
+    function carga(i) {
+      st.i = i; var P = AB[i]; [sa, sb].forEach(function (s) { s.input.min = P.rg[0]; s.input.max = P.rg[1]; });
+      st.a = P.ab[0]; st.b = P.ab[1]; sa.set(st.a); sb.set(st.b); pinta();
+    }
+    function pinta() {
+      var P = AB[st.i], f = P.f, a = st.a, b = st.b, R = P.rg;
+      var cand = [{ x: a, tipo: "extremo del intervalo" }, { x: b, tipo: "extremo del intervalo" }];
+      D.cambios(function (t) { return D.d1(f, t); }, a + 1e-4, b - 1e-4, 1500).forEach(function (e) { cand.push({ x: Math.round(e.x * 1e4) / 1e4, tipo: "punto crítico" }); });
+      cand.forEach(function (c) { c.y = f(c.x); });
+      var mx = Math.max.apply(null, cand.map(function (c) { return c.y; })), mn = Math.min.apply(null, cand.map(function (c) { return c.y; }));
+      var yr = F.rangoY(f, R[0], R[1]);
+      g.rango(R[0], R[1], Math.min(yr[0], 0), yr[1]); g.limpiar();
+      g.rect(a, g.c.ymin, b, g.c.ymax, { clase: "z-pen" });
+      g.curva(f, { clase: "c-faint", n: 500 });
+      g.curva(f, { clase: "c-pen", x0: a, x1: b, n: 500 }).setAttribute("stroke-width", 3.5);
+      cand.forEach(function (c) {
+        var cl = Math.abs(c.y - mx) < 1e-6 ? "c-ok" : Math.abs(c.y - mn) < 1e-6 ? "c-red" : "c-faint";
+        g.segmento(c.x, 0, c.x, c.y, { clase: cl, dash: "3 4" }); pto(g, c.x, c.y, cl === "c-faint" ? "c-pen" : cl, false, cl === "c-faint" ? 5 : 8);
+      });
+      cand.sort(function (u, v) { return u.x - v.x; });
+      var imax = cand.filter(function (c) { return Math.abs(c.y - mx) < 1e-6; }), imin = cand.filter(function (c) { return Math.abs(c.y - mn) < 1e-6; });
+      lectura.innerHTML =
+        fil("Máximo absoluto", n2(mx) + " en " + imax.map(function (c) { return "x = " + n2(c.x); }).join(" y "), "ok") +
+        fil("Mínimo absoluto", n2(mn) + " en " + imin.map(function (c) { return "x = " + n2(c.x); }).join(" y "), "red") +
+        fil("Qué ver aquí", P.nota, "pen anch");
+      tab.innerHTML = "<table class='m9-t'><thead><tr><th>Candidato</th><th>x</th><th>f(x)</th></tr></thead><tbody>" + cand.map(function (c) {
+        var cl = Math.abs(c.y - mx) < 1e-6 ? "m9-max" : Math.abs(c.y - mn) < 1e-6 ? "m9-min" : "";
+        return "<tr class='" + cl + "'><td>" + c.tipo + "</td><td>" + n2(c.x) + "</td><td>" + n2(c.y) + (cl === "m9-max" ? "  (máx)" : cl === "m9-min" ? "  (mín)" : "") + "</td></tr>";
+      }).join("") + "</tbody></table>";
+      pie.innerHTML = "Método de Weierstrass: si f es continua en [a, b], el máximo y el mínimo absolutos están entre los <b>puntos críticos del interior</b> (f′ = 0 o no existe) y los <b>dos extremos</b>. Se calculan todos los valores y se comparan. Mueve a y b y mira cómo cambia el ganador.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -1, xmax: 6, ymin: -1, ymax: 5, w: 600, h: 300, etx: "x", ety: "", etiqueta: "Extremos absolutos en un intervalo cerrado" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), AB.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { carga(+k); });
+    carga(0);
+  };
+
+  // ============================================================
+  // PARÁMETROS: la función con parámetros que cumple las condiciones
+  // ============================================================
+  var PA = [
+    { t: "x³ + ax² + bx", f: function (x, p) { return x * x * x + p.a * x * x + p.b * x; }, rg: [-2, 6, -10, 14],
+      par: [{ n: "a", min: -10, max: 4, step: 0.5, val: 0, sol: -6 }, { n: "b", min: -4, max: 14, step: 0.5, val: 0, sol: 9 }],
+      cond: [{ txt: "extremo en x = 1:  f′(1) = 3 + 2a + b = 0", x: 1, r: function (p) { return 3 + 2 * p.a + p.b; } },
+             { txt: "inflexión en x = 2:  f″(2) = 12 + 2a = 0", x: 2, r: function (p) { return 12 + 2 * p.a; } }],
+      ec: ["f′(x) = 3x² + 2ax + b y f″(x) = 6x + 2a.", "Inflexión en x = 2: f″(2) = 12 + 2a = 0 ⟹ a = −6.", "Extremo en x = 1: f′(1) = 3 + 2a + b = 0 ⟹ 3 − 12 + b = 0 ⟹ b = 9.", "Comprobación: f″(1) = 6 − 12 = −6 &lt; 0, luego en x = 1 hay un máximo relativo."] },
+    { t: "ax³ + bx", f: function (x, p) { return p.a * x * x * x + p.b * x; }, rg: [-3, 3, -8, 8],
+      par: [{ n: "a", min: -3, max: 3, step: 0.25, val: 0, sol: 1 }, { n: "b", min: -6, max: 3, step: 0.25, val: 0, sol: -3 }],
+      cond: [{ txt: "pasa por (1, −2):  a + b = −2", x: 1, r: function (p) { return p.a + p.b + 2; } },
+             { txt: "extremo en x = 1:  f′(1) = 3a + b = 0", x: 1, r: function (p) { return 3 * p.a + p.b; } }],
+      ec: ["f(1) = a + b = −2 y f′(x) = 3ax² + b ⟹ f′(1) = 3a + b = 0.", "Restando: 2a = 2 ⟹ a = 1, y b = −3.", "f(x) = x³ − 3x: f″(1) = 6 &gt; 0, mínimo relativo en (1, −2)."] },
+    { t: "a·ln x + b·x²", f: function (x, p) { return p.a * Math.log(x) + p.b * x * x; }, rg: [0.2, 4, -6, 14],
+      par: [{ n: "a", min: -8, max: 4, step: 0.5, val: 0, sol: -4 }, { n: "b", min: -1, max: 5, step: 0.5, val: 0, sol: 2 }],
+      cond: [{ txt: "pasa por (1, 2):  f(1) = b = 2", x: 1, r: function (p) { return p.b - 2; } },
+             { txt: "extremo en x = 1:  f′(1) = a + 2b = 0", x: 1, r: function (p) { return p.a + 2 * p.b; } }],
+      ec: ["f(1) = a·ln 1 + b = b = 2.", "f′(x) = a/x + 2bx ⟹ f′(1) = a + 2b = 0 ⟹ a = −4.", "f″(x) = −a/x² + 2b = 4/x² + 4 &gt; 0: en (1, 2) hay un mínimo relativo."] },
+    { t: "(ax + b)/(x² + 1)", f: function (x, p) { return (p.a * x + p.b) / (x * x + 1); }, rg: [-5, 5, -4, 4],
+      par: [{ n: "a", min: -2, max: 8, step: 0.5, val: 0, sol: 4 }, { n: "b", min: -4, max: 4, step: 0.5, val: 0, sol: 0 }],
+      cond: [{ txt: "pasa por (1, 2):  (a + b)/2 = 2", x: 1, r: function (p) { return (p.a + p.b) / 2 - 2; } },
+             { txt: "extremo en x = 1:  f′(1) = −b/2 = 0", x: 1, r: function (p) { return -p.b / 2; } }],
+      ec: ["f′(x) = [a(x² + 1) − 2x(ax + b)]/(x² + 1)² = (−ax² − 2bx + a)/(x² + 1)².", "f′(1) = −2b/4 = −b/2 = 0 ⟹ b = 0.", "f(1) = (a + 0)/2 = 2 ⟹ a = 4.", "f(x) = 4x/(x² + 1): máximo en (1, 2) y mínimo en (−1, −2)."] }
+  ];
+  B.w.m2_parametros = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Hallar parámetros: ajusta a y b hasta cumplir todas las condiciones");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="ctl m9-acc"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, p: {} }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), acc = cuerpo.querySelector(".m9-acc"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sls = [], mostrada = false;
+    function sliders() {
+      ctl.innerHTML = ""; sls = []; st.p = {};
+      PA[st.i].par.forEach(function (q) {
+        st.p[q.n] = q.val;
+        sls.push(U.slider(ctl, { et: "Parámetro <i>" + q.n + "</i>", min: q.min, max: q.max, step: q.step, val: q.val, fmt: function (v) { return fmt(v, 2); }, on: function (v) { st.p[q.n] = v; mostrada = false; pinta(); } }));
+      });
+    }
+    function pinta() {
+      var T = PA[st.i], p = st.p, R = T.rg; g.rango(R[0], R[1], R[2], R[3]); g.limpiar();
+      g.curva(function (x) { return T.f(x, p); }, { clase: "c-pen", n: 500 }).setAttribute("stroke-width", 3);
+      var todas = true, filas = [];
+      T.cond.forEach(function (c) {
+        var ok = Math.abs(c.r(p)) < 1e-9; if (!ok) todas = false;
+        var y = T.f(c.x, p);
+        g.segmento(c.x, R[2], c.x, R[3], { clase: ok ? "c-ok" : "c-faint", dash: "4 5" });
+        if (isFinite(y)) pto(g, c.x, y, ok ? "c-ok" : "c-red", false, 6);
+        filas.push("<li>" + c.txt + " ⟶ " + (ok ? "<b style='color:var(--ok)'>se cumple</b>" : "<b style='color:var(--red)'>falta " + sg(c.r(p)) + "</b>") + "</li>");
+      });
+      lectura.innerHTML =
+        fil("Condiciones (lo que falta para que valga 0)", "<ul class='lec-ul'>" + filas.join("") + "</ul>", todas ? "ok anch" : "red anch") +
+        fil("Conclusión", todas ? "Con " + T.par.map(function (q) { return q.n + " = " + n2(p[q.n]); }).join(" y ") + " se cumplen <b>todas</b>" : "Todavía no: mueve los deslizadores", todas ? "ok anch" : "pen anch") +
+        (mostrada ? fil("Cómo se calcula", lista(T.ec), "pen anch") : "");
+      pie.innerHTML = "Cada condición del enunciado (pasar por un punto, extremo, inflexión…) se traduce en una <b>ecuación</b> sobre los parámetros: f(x₀) = y₀, f′(x₀) = 0, f″(x₀) = 0. Con dos incógnitas hacen falta dos ecuaciones.";
+    }
+    function carga(i) { st.i = i; mostrada = false; sliders(); pinta(); }
+    U.boton(acc, "Mostrar la solución y su cálculo", function () {
+      var T = PA[st.i]; T.par.forEach(function (q, j) { st.p[q.n] = q.sol; sls[j].set(q.sol); }); mostrada = true; pinta();
+    }, "btn-comprobar");
+    U.boton(acc, "Reiniciar", function () { carga(st.i); });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: -2, xmax: 6, ymin: -10, ymax: 14, w: 600, h: 300, etx: "x", ety: "y", etiqueta: "Función con parámetros" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PA.map(function (q, i) { return { k: String(i), t: q.t }; }), "0", function (k) { carga(+k); });
+    carga(0);
+  };
+
+  // ============================================================
+  // PROBLEMA: optimización guiada, paso a paso
+  // ============================================================
+  var PR = [
+    { t: "Caja abierta", x: "x = lado del cuadrado recortado (cm)", dom: [0, 12], x0: 1.5, u: "cm³", tipo: "máximo", xs: 4,
+      f: function (x) { return x * (24 - 2 * x) * (24 - 2 * x); }, obj: "V(x) = x(24 − 2x)²",
+      enun: "A una lámina cuadrada de cartón de 24 cm de lado se le recorta un cuadrado de lado x en cada esquina y se doblan los bordes para formar una caja sin tapa. ¿Qué x da el mayor volumen?",
+      pasos: ["<b>Variable y objetivo.</b> x es el lado del cuadrado recortado. La base queda (24 − 2x) × (24 − 2x) y la altura es x: V(x) = x(24 − 2x)².",
+              "<b>Dominio.</b> Hace falta x &gt; 0 y 24 − 2x &gt; 0: x ∈ (0, 12).",
+              "<b>Derivada.</b> V′(x) = (24 − 2x)² + x·2(24 − 2x)(−2) = (24 − 2x)(24 − 6x). Se anula en x = 12 (fuera del dominio útil, V = 0) y en <b>x = 4</b>.",
+              "<b>Clasificar.</b> V″(x) = 24x − 192 ⟹ V″(4) = −96 &lt; 0: máximo. (Además V(0) = V(12) = 0 en los bordes.)",
+              "<b>Respuesta.</b> x = 4 cm; la caja mide 16 × 16 × 4 y su volumen máximo es <b>1024 cm³</b>."] },
+    { t: "Lata de 500 cm³", x: "r = radio de la base (cm)", dom: [1.5, 10], x0: 7, u: "cm²", tipo: "mínimo", xs: Math.cbrt(250 / Math.PI),
+      f: function (r) { return 2 * Math.PI * r * r + 1000 / r; }, obj: "S(r) = 2πr² + 1000/r",
+      enun: "Una lata cilíndrica debe contener 500 cm³. ¿Qué radio y qué altura usan la menor cantidad de chapa (superficie total)?",
+      pasos: ["<b>Variable y objetivo.</b> S = 2πr² + 2πrh (dos tapas y el lateral). La condición πr²h = 500 da h = 500/(πr²), y entonces S(r) = 2πr² + 1000/r.",
+              "<b>Dominio.</b> r &gt; 0 (cuando r → 0 o r → ∞, S → ∞): se espera un mínimo interior.",
+              "<b>Derivada.</b> S′(r) = 4πr − 1000/r² = 0 ⟹ r³ = 250/π ⟹ <b>r ≈ 4,30 cm</b>.",
+              "<b>Clasificar.</b> S″(r) = 4π + 2000/r³ &gt; 0 para todo r &gt; 0: mínimo (y absoluto).",
+              "<b>Respuesta.</b> r ≈ 4,30 cm y h = 500/(πr²) ≈ 8,60 cm (<b>h = 2r</b>); superficie mínima ≈ <b>348,7 cm²</b>."] },
+    { t: "Cercado con valla central", x: "x = lado paralelo a la valla central (m)", dom: [0, 200], x0: 40, u: "m²", tipo: "máximo", xs: 100,
+      f: function (x) { return x * (600 - 3 * x) / 2; }, obj: "A(x) = x(600 − 3x)/2",
+      enun: "Con 600 m de valla se cerca un campo rectangular y se divide en dos partes iguales con otra valla paralela a uno de los lados. ¿Qué dimensiones dan la mayor superficie?",
+      pasos: ["<b>Variable y objetivo.</b> Sean x los tres lados iguales (los dos exteriores y la división) e y los otros dos. Valla: 3x + 2y = 600 ⟹ y = (600 − 3x)/2. Área A = xy = x(600 − 3x)/2.",
+              "<b>Dominio.</b> x &gt; 0 e y &gt; 0 ⟹ x ∈ (0, 200).",
+              "<b>Derivada.</b> A′(x) = (600 − 6x)/2 = 300 − 3x = 0 ⟹ <b>x = 100</b>.",
+              "<b>Clasificar.</b> A″(x) = −3 &lt; 0: máximo. En los bordes del dominio A → 0.",
+              "<b>Respuesta.</b> x = 100 m, y = 150 m; superficie máxima <b>15 000 m²</b>."] },
+    { t: "Beneficio por precio", x: "p = precio de venta (€)", dom: [20, 80], x0: 30, u: "€", tipo: "máximo", xs: 50,
+      f: function (p) { return (p - 20) * (400 - 5 * p); }, obj: "B(p) = (p − 20)(400 − 5p)",
+      enun: "Un producto cuesta 20 € fabricarlo. Si se vende a p euros, se venden 400 − 5p unidades. ¿Qué precio maximiza el beneficio y cuánto vale éste?",
+      pasos: ["<b>Variable y objetivo.</b> Beneficio = (precio − coste) · unidades: B(p) = (p − 20)(400 − 5p) = −5p² + 500p − 8000.",
+              "<b>Dominio.</b> Vender sin pérdida y con demanda positiva: 20 ≤ p ≤ 80 (a p = 80 no se vende nada).",
+              "<b>Derivada.</b> B′(p) = −10p + 500 = 0 ⟹ <b>p = 50</b>.",
+              "<b>Clasificar.</b> B″ = −10 &lt; 0: máximo. En los bordes B(20) = B(80) = 0, mucho menor.",
+              "<b>Respuesta.</b> Precio óptimo 50 €; se venden 150 unidades y el beneficio es <b>4500 €</b>."] },
+    { t: "Distancia mínima a una curva", x: "x = abscisa del punto (x, √x)", dom: [0, 6], x0: 1, u: "(distancia)²", tipo: "mínimo", xs: 3.5,
+      f: function (x) { return (x - 4) * (x - 4) + x; }, obj: "d²(x) = (x − 4)² + x",
+      enun: "¿Qué punto de la curva y = √x está más cerca del punto (4, 0)?",
+      pasos: ["<b>Variable y objetivo.</b> Un punto de la curva es (x, √x); su distancia a (4, 0) es d = √((x − 4)² + x). Minimizar d equivale a minimizar <b>d² = (x − 4)² + x</b> (la raíz es creciente), que es más cómodo.",
+              "<b>Dominio.</b> √x exige x ≥ 0: [0, +∞). Cuando x → ∞, d² → ∞.",
+              "<b>Derivada.</b> (d²)′ = 2(x − 4) + 1 = 2x − 7 = 0 ⟹ <b>x = 7/2</b>.",
+              "<b>Clasificar.</b> (d²)″ = 2 &gt; 0: mínimo. En el borde x = 0, d² = 16, mayor que el valor en x = 7/2.",
+              "<b>Respuesta.</b> El punto es (7/2, √(7/2)) ≈ (3,5; 1,87); d² = 15/4, luego la distancia mínima es <b>√15/2 ≈ 1,94</b>."] },
+    { t: "Ventana normanda", x: "x = radio del semicírculo (m)", dom: [0, 1.16], x0: 0.3, u: "m²", tipo: "máximo", xs: 6 / (4 + Math.PI),
+      f: function (x) { return 6 * x - (2 + Math.PI / 2) * x * x; }, obj: "A(x) = 6x − (2 + π/2)x²",
+      enun: "Una ventana tiene forma de rectángulo coronado por un semicírculo cuyo diámetro es la base del rectángulo. Su perímetro es 6 m. ¿Qué radio da la mayor superficie (mayor luz)?",
+      pasos: ["<b>Variable y objetivo.</b> Radio x (base 2x) y altura lateral y. Perímetro: 2x + 2y + πx = 6 ⟹ y = (6 − 2x − πx)/2. Área: A = 2xy + πx²/2 = 6x − (2 + π/2)x².",
+              "<b>Dominio.</b> x &gt; 0 e y ≥ 0 ⟹ 0 &lt; x ≤ 6/(2 + π) ≈ 1,167.",
+              "<b>Derivada.</b> A′(x) = 6 − (4 + π)x = 0 ⟹ <b>x = 6/(4 + π) ≈ 0,840</b>, dentro del dominio.",
+              "<b>Clasificar.</b> A″ = −(4 + π) &lt; 0: máximo.",
+              "<b>Respuesta.</b> x ≈ 0,840 m (base 1,68 m, y ≈ 0,840 m: y = x). Área máxima = 3x = 18/(4 + π) ≈ <b>2,52 m²</b>."] }
+  ];
+  B.w.m2_problema = function (host) {
+    var cuerpo = B.caja(host, "Problema", "Optimización guiada: del enunciado a la respuesta en cinco pasos");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><p class="m9-enun"></p><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><div class="ctl m9-acc"></div><div class="m9-sol"></div><p class="w-pie"></p>';
+    var st = { i: 0, x: 1, n: 0 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), solEl = cuerpo.querySelector(".m9-sol"), pie = cuerpo.querySelector(".w-pie"), enun = cuerpo.querySelector(".m9-enun"), sl;
+    sl = U.slider(ctl, { et: "Valor de <i>x</i>", min: 0, max: 10, step: 0.01, val: 1, on: function (v) { st.x = v; pinta(); }, fmt: function (v) { return fmt(v, 2); } });
+    function carga(i) {
+      st.i = i; st.n = 0; var P = PR[i]; sl.input.min = P.dom[0]; sl.input.max = P.dom[1]; sl.input.step = P.dom[1] - P.dom[0] < 3 ? 0.001 : 0.01;
+      st.x = P.x0; sl.set(P.x0); pinta();
+    }
+    function pinta() {
+      var P = PR[st.i], f = P.f, x = st.x, d = D.d1(f, x);
+      enun.innerHTML = "<b>" + P.t + ".</b> " + P.enun;
+      var yr = F.rangoY(f, P.dom[0], P.dom[1]);
+      g.rango(P.dom[0], P.dom[1], Math.min(yr[0], 0), yr[1]); g.limpiar();
+      g.curva(f, { clase: "c-pen", n: 500 }).setAttribute("stroke-width", 3);
+      if (st.n >= 4) { g.segmento(P.xs, 0, P.xs, f(P.xs), { clase: "c-ok", dash: "4 4" }); pto(g, P.xs, f(P.xs), "c-ok", false, 8); }
+      g.segmento(x, 0, x, f(x), { clase: "c-faint", dash: "3 4" }); pto(g, x, f(x), "c-red", false, 6);
+      var W = (P.dom[1] - P.dom[0]) * 0.12; g.segmento(x - W, f(x) - d * W, x + W, f(x) + d * W, { clase: "c-red", dash: "5 4" });
+      lectura.innerHTML = fil("Función objetivo", P.obj, "pen anch") + fil("Variable", P.x, "pen anch") +
+        fil("Tu valor", "x = " + fmt(x, 3) + " ⟶ " + fmt(f(x), 3) + " " + P.u, "red") +
+        fil("f′ en tu valor", sg(d) + (Math.abs(d) < 0.02 * (yr[1] - yr[0]) / (P.dom[1] - P.dom[0]) ? " ⟶ tangente casi horizontal" : (d > 0) === (P.tipo === "máximo") ? " (aún puedes mejorar)" : " (aún puedes mejorar, al otro lado)"), "pen");
+      solEl.innerHTML = st.n ? lista(P.pasos.slice(0, st.n)) : "";
+      pie.innerHTML = "Mueve x para «buscar a ojo» el " + P.tipo + ": en el óptimo la tangente es <b>horizontal</b> (f′ = 0). Pulsa «Siguiente paso» para ver cómo se plantea y se justifica.";
+    }
+    var acc = cuerpo.querySelector(".m9-acc");
+    U.boton(acc, "Siguiente paso", function () { st.n = Math.min(5, st.n + 1); pinta(); }, "btn-comprobar");
+    U.boton(acc, "Reiniciar pasos", function () { st.n = 0; pinta(); });
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 10, ymin: 0, ymax: 10, w: 600, h: 300, etx: "x", ety: "", etiqueta: "Función objetivo" });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PR.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { carga(+k); });
+    carga(0);
+  };
+
+  // ============================================================
+  // L'HÔPITAL: f/g frente a f′/g′ (y cuándo no sirve)
+  // ============================================================
+  var LH = [
+    { t: "sen x / x  (x → 0)", xs: [0.5, 0.1, 0.01, 0.001], fs: [Math.sin, Math.cos], gs: [function (x) { return x; }, function () { return 1; }], L: 1,
+      nota: "0/0. f′/g′ = cos x / 1 → 1." },
+    { t: "(eˣ − 1 − x)/x²  (x → 0)", xs: [0.5, 0.1, 0.01, 0.001], fs: [function (x) { return Math.exp(x) - 1 - x; }, function (x) { return Math.exp(x) - 1; }, Math.exp], gs: [function (x) { return x * x; }, function (x) { return 2 * x; }, function () { return 2; }], L: 0.5,
+      nota: "0/0, y tras derivar una vez SIGUE siendo 0/0: se vuelve a aplicar. f″/g″ = eˣ/2 → 1/2." },
+    { t: "ln x / x²  (x → +∞)", xs: [10, 100, 1000, 10000], fs: [Math.log, function (x) { return 1 / x; }], gs: [function (x) { return x * x; }, function (x) { return 2 * x; }], L: 0,
+      nota: "∞/∞. f′/g′ = 1/(2x²) → 0. Coincide con la jerarquía de infinitos: x² crece más que ln x." },
+    { t: "x² / eˣ  (x → +∞)", xs: [10, 20, 30, 40], fs: [function (x) { return x * x; }, function (x) { return 2 * x; }, function () { return 2; }], gs: [Math.exp, Math.exp, Math.exp], L: 0,
+      nota: "∞/∞ dos veces seguidas: f″/g″ = 2/eˣ → 0. La exponencial gana a cualquier potencia." },
+    { t: "(tg x − x)/x³  (x → 0)", xs: [0.5, 0.1, 0.01, 0.001], fs: [function (x) { return Math.tan(x) - x; }, function (x) { var c = Math.cos(x); return 1 / (c * c) - 1; }, function (x) { var c = Math.cos(x); return 2 * Math.sin(x) / (c * c * c); }], gs: [function (x) { return x * x * x; }, function (x) { return 3 * x * x; }, function (x) { return 6 * x; }], L: 1 / 3,
+      nota: "0/0 dos veces seguidas. f″/g″ = 2 sen x/(6x cos³x) → 1/3 usando el límite notable sen x/x → 1." },
+    { t: "(x + sen x)/x  (x → +∞)  ¡TRAMPA!", xs: [10, 100, 1000, 10000], fs: [function (x) { return x + Math.sin(x); }, function (x) { return 1 + Math.cos(x); }], gs: [function (x) { return x; }, function () { return 1; }], L: 1, trampa: true,
+      nota: "∞/∞, pero f′/g′ = 1 + cos x NO tiene límite (oscila entre 0 y 2). L'Hôpital no dice nada; el límite existe y vale 1 (dividiendo entre x: 1 + sen x/x → 1)." }
+  ];
+  B.w.m2_lhopital = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "L'Hôpital: ¿se parecen f/g y f′/g′ cerca del punto?");
+    cuerpo.innerHTML = '<div data-pre class="chips"></div><div class="lectura anch"></div><div class="m9-tab"></div><p class="w-pie"></p>';
+    var st = { i: 0 }, lectura = cuerpo.querySelector(".lectura"), tab = cuerpo.querySelector(".m9-tab"), pie = cuerpo.querySelector(".w-pie");
+    function pinta() {
+      var T = LH[st.i], niv = T.fs.length, cab = ["x", "f / g"], i, k;
+      for (k = 1; k < niv; k++) cab.push("f" + (k === 1 ? "′" : "″") + " / g" + (k === 1 ? "′" : "″"));
+      var filas = T.xs.map(function (x) {
+        var celdas = [x >= 1e4 ? "10<sup>4</sup>" : fmt(x, x < 1 ? (x <= 0.001 ? 3 : x <= 0.01 ? 2 : 1) : 0)];
+        for (k = 0; k < niv; k++) celdas.push(fmt(T.fs[k](x) / T.gs[k](x), 5));
+        return "<tr><td>" + celdas.join("</td><td>") + "</td></tr>";
+      });
+      tab.innerHTML = "<table class='m9-t'><thead><tr><th>" + cab.join("</th><th>") + "</th></tr></thead><tbody>" + filas.join("") + "</tbody></table>";
+      lectura.innerHTML = fil("Límite", T.trampa ? "f/g → 1, pero f′/g′ no tiene límite" : sg(T.L) === "0,333" ? "1/3" : sg(T.L) === "0,5" ? "1/2" : sg(T.L), T.trampa ? "red" : "ok") + fil("Comentario", T.nota, T.trampa ? "red anch" : "pen anch");
+      pie.innerHTML = "Regla: si f/g es 0/0 o ∞/∞ y <b>existe</b> lím f′/g′, entonces lím f/g = lím f′/g′. Fíjate en que las columnas de derivadas se acercan al mismo número que la primera (salvo en la trampa, donde f′/g′ ni siquiera converge).";
+    }
+    U.fichas(cuerpo.querySelector("[data-pre]"), LH.map(function (p, i) { return { k: String(i), t: p.t }; }), "0", function (k) { st.i = +k; pinta(); });
+    pinta();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · mecánica I (Física y Química 1.º, tema 8: cinemática)
    motor B.lab.mec1 + f8_movil · f8_encuentro · f8_graficas · f8_caida
    ============================================================ */
@@ -57561,6 +57892,629 @@
 
   B.registrar("mates2", "t8", {
     resumen: resumen, secciones: B.parte.m2t8a.secciones, nuevas: nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 9: Aplicaciones de la derivada
+   (parte A: se añade al final de las cuatro secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t9/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Rolle
+  secciones[0] =
+    "<h5>Las tres hipótesis y qué pasa si falta una</h5>" +
+    "<p>El teorema de Rolle exige <b>tres cosas</b>: (1) f continua en el intervalo <b>cerrado</b> [a, b]; (2) f derivable en el intervalo <b>abierto</b> (a, b); (3) f(a) = f(b). Si se cumplen, hay <b>al menos un</b> c ∈ (a, b) con f′(c) = 0. En un examen te piden casi siempre dos cosas: <b>comprobar las hipótesis</b> (una a una, nombrándolas) y <b>hallar c</b>.</p>" +
+    ejemplo("Rolle con un cúbico",
+      "Comprueba que f(x) = x³ − x cumple el teorema de Rolle en [−1, 1] y halla los valores de c.",
+      ["<b>Continua y derivable:</b> es un polinomio, así que lo es en todo ℝ.",
+       "<b>Mismo valor en los extremos:</b> f(−1) = −1 + 1 = 0 y f(1) = 1 − 1 = 0. ✓",
+       "<b>Hallar c:</b> f′(x) = 3x² − 1 = 0 ⟹ x = ±1/√3 ≈ ±0,577.",
+       "Los dos valores están en (−1, 1), así que hay <b>dos</b> puntos c. (El teorema asegura «al menos uno»; no dice «exactamente uno».)"]) +
+    ejemplo("Rolle con un parámetro",
+      "Halla a para que f(x) = x³ − 6x² + ax cumpla las hipótesis de Rolle en [0, 3], y calcula c.",
+      ["f es un polinomio: continua y derivable. Falta f(0) = f(3).",
+       "f(0) = 0 y f(3) = 27 − 54 + 3a = 3a − 27. Igualando: 3a − 27 = 0 ⟹ <b>a = 9</b>.",
+       "Con a = 9: f′(x) = 3x² − 12x + 9 = 3(x − 1)(x − 3), cuyas raíces son x = 1 y x = 3.",
+       "Solo x = 1 está en el intervalo <b>abierto</b> (0, 3). Luego <b>c = 1</b>. (El x = 3 es un extremo y no cuenta.)"]) +
+    ejemplo("Cuando Rolle NO se puede aplicar",
+      "¿Se puede aplicar el teorema de Rolle a f(x) = x<sup>2/3</sup> en [−1, 1]? ¿Existe algún c con f′(c) = 0?",
+      ["f es continua en [−1, 1] y f(−1) = f(1) = 1. Dos hipótesis se cumplen.",
+       "Pero f′(x) = (2/3)x<sup>−1/3</sup> no existe en x = 0 ∈ (−1, 1): f <b>no es derivable en todo el intervalo abierto</b>. Rolle no se puede aplicar.",
+       "De hecho no existe ningún c: f′(x) = (2/3)/∛x nunca se anula. La gráfica tiene una <b>cúspide</b> en el origen en vez de una cima suave."]) +
+    ojo("Rolle <b>no se puede invertir</b>: que haya un c con f′(c) = 0 no implica que f(a) = f(b). Y si falla una hipótesis, el teorema no dice «no hay c»: solo que no puede garantizarlo (a veces lo hay y a veces no).") +
+    "<h5>El uso estrella: probar cuántas raíces tiene una ecuación</h5>" +
+    "<p>Bolzano da <b>al menos</b> una raíz; Rolle (con la derivada) da <b>como mucho</b> una. Es una pareja muy frecuente en la EvAU: «demuestra que la ecuación tiene exactamente una solución real».</p>" +
+    ejemplo("Exactamente una raíz",
+      "Demuestra que la ecuación x³ + 3x − 1 = 0 tiene una única solución real.",
+      ["<b>Existencia (Bolzano).</b> f(x) = x³ + 3x − 1 es continua. f(0) = −1 &lt; 0 y f(1) = 3 &gt; 0, luego existe c ∈ (0, 1) con f(c) = 0.",
+       "<b>Unicidad (Rolle, por reducción al absurdo).</b> Si hubiera dos raíces x₁ &lt; x₂, f cumpliría Rolle en [x₁, x₂] (polinomio, f(x₁) = f(x₂) = 0), y existiría un d con f′(d) = 0.",
+       "Pero f′(x) = 3x² + 3 ≥ 3 &gt; 0 para todo x: nunca se anula. Contradicción.",
+       "Por tanto hay <b>exactamente una</b> raíz real (en (0, 1))."]) +
+    ojo("Resumen de la técnica: <b>Bolzano ⟹ al menos una</b>; <b>f′ nunca se anula ⟹ a lo sumo una</b> (Rolle). Si f′ cambia de signo en algún punto, esta vía no basta y hay que estudiar monotonía por tramos.");
+
+  // ---------------------------------------------------------------- 2. Valor medio
+  secciones[1] =
+    "<h5>Cómo se usa en un examen</h5>" +
+    "<p>Hay tres tipos de pregunta: <b>(a)</b> comprobar las hipótesis y hallar c; <b>(b)</b> interpretar geométricamente (tangente paralela a la secante); <b>(c)</b> usar el teorema para <b>acotar</b> o demostrar una desigualdad. Las hipótesis son solo dos: continua en [a, b] y derivable en (a, b); ya no hace falta f(a) = f(b).</p>" +
+    w("valormedio") +
+    ejemplo("Hallar c con una raíz",
+      "Aplica el teorema del valor medio a f(x) = √x en [1, 4] y halla c.",
+      ["√x es continua en [1, 4] y derivable en (1, 4) (el problema estaría en x = 0, que no está en el intervalo).",
+       "Pendiente media: " + fr("f(4) − f(1)", "4 − 1") + " = " + fr("2 − 1", "3") + " = 1/3.",
+       "f′(x) = 1/(2√x) = 1/3 ⟹ √c = 3/2 ⟹ <b>c = 9/4 = 2,25</b>, que está en (1, 4). ✓"]) +
+    ejemplo("Con un logaritmo",
+      "Halla c para f(x) = ln x en [1, e].",
+      ["ln x es continua y derivable en (0, ∞) ⊃ [1, e].",
+       "Pendiente media: (ln e − ln 1)/(e − 1) = 1/(e − 1).",
+       "f′(c) = 1/c = 1/(e − 1) ⟹ <b>c = e − 1 ≈ 1,718</b>, y 1 &lt; 1,718 &lt; e. ✓"]) +
+    ejemplo("Cuando no se cumple",
+      "Para f(x) = |x − 1| en [0, 3] la pendiente media es (2 − 1)/3 = 1/3. ¿Hay algún c con f′(c) = 1/3?",
+      ["f no es derivable en x = 1 ∈ (0, 3): el teorema no se puede aplicar.",
+       "De hecho f′(x) = −1 si x &lt; 1 y f′(x) = 1 si x &gt; 1: la derivada <b>nunca vale 1/3</b>. Se ve que la hipótesis no es un adorno."]) +
+    "<h5>Para demostrar desigualdades</h5>" +
+    ejemplo("ln(1 + x) &lt; x",
+      "Demuestra que ln(1 + x) &lt; x para todo x &gt; 0.",
+      ["Sea g(t) = ln(1 + t) en [0, x]: continua y derivable. Por el teorema del valor medio existe c ∈ (0, x) con " + fr("g(x) − g(0)", "x − 0") + " = g′(c), es decir " + fr("ln(1 + x)", "x") + " = " + fr("1", "1 + c") + ".",
+       "Como c &gt; 0, 1 + c &gt; 1 y por tanto 1/(1 + c) &lt; 1.",
+       "Entonces ln(1 + x)/x &lt; 1, y multiplicando por x &gt; 0: <b>ln(1 + x) &lt; x</b>."]) +
+    ojo("Una consecuencia útil: si f′(x) = 0 en todo un intervalo, f es constante; y si f′(x) &gt; 0 en todo un intervalo, f es estrictamente creciente. <b>Así se demuestra</b> que el signo de f′ gobierna la monotonía (sección 5).");
+
+  // ---------------------------------------------------------------- 3. L'Hôpital
+  secciones[2] =
+    "<h5>Condiciones y técnica</h5>" +
+    "<p>L'Hôpital se aplica <b>solo</b> si el cociente es 0/0 o ∞/∞ (compruébalo siempre antes de derivar). Las otras indeterminaciones hay que convertirlas primero en un cociente. Además, la regla pide que <b>exista</b> el límite de f′/g′: si no existe, la regla <b>no dice nada</b> (el límite original puede existir o no).</p>" +
+    tabla(["Indeterminación", "Cómo llevarla a 0/0 o ∞/∞", "Ejemplo"], [
+      ["0 · ∞", "f·g = f/(1/g) (o g/(1/f))", "x ln x = ln x/(1/x)"],
+      ["∞ − ∞", "Sacar denominador común o conjugado", "1/x − 1/sen x = (sen x − x)/(x sen x)"],
+      ["1<sup>∞</sup>, 0<sup>0</sup>, ∞<sup>0</sup>", "Tomar logaritmos: L = lím g·ln f, resultado e<sup>L</sup>", "x<sup>x</sup> en 0⁺"]
+    ]) +
+    w("m2_lhopital") +
+    ejemplo("Aplicar la regla dos veces",
+      "Calcula lím<sub>x→0</sub> (eˣ − 1 − x)/x².",
+      ["Sustituyendo: (1 − 1 − 0)/0 = 0/0. Aplicamos L'Hôpital: " + fr("eˣ − 1", "2x") + ".",
+       "Sigue siendo 0/0 (e⁰ − 1 = 0). Se aplica otra vez: " + fr("eˣ", "2") + " ⟶ <b>1/2</b>.",
+       "Comprobación con la tabla: (e<sup>0,01</sup> − 1 − 0,01)/0,01² = 0,50167…, que se acerca a 0,5. ✓"]) +
+    ejemplo("Producto 0 · ∞",
+      "Calcula lím<sub>x→0⁺</sub> x·ln x.",
+      ["0 · (−∞): indeterminación. Se escribe como cociente: " + fr("ln x", "1/x") + " (ahora −∞/∞).",
+       "L'Hôpital: " + fr("1/x", "−1/x²") + " = −x ⟶ <b>0</b>.",
+       "Moraleja: la potencia «gana» al logaritmo, igual que dice la jerarquía de infinitos."]) +
+    ejemplo("Diferencia ∞ − ∞",
+      "Calcula lím<sub>x→0</sub> (1/x − 1/sen x).",
+      ["Común denominador: " + fr("sen x − x", "x·sen x") + " (0/0).",
+       "L'Hôpital: " + fr("cos x − 1", "sen x + x cos x") + " (sigue 0/0).",
+       "Otra vez: " + fr("−sen x", "2 cos x − x sen x") + " ⟶ " + fr("0", "2") + " = <b>0</b>."]) +
+    ejemplo("Una potencia 0<sup>0</sup>",
+      "Calcula lím<sub>x→0⁺</sub> x<sup>x</sup>.",
+      ["Es 0<sup>0</sup>. Llamamos L = lím x·ln x (por logaritmos: ln(x<sup>x</sup>) = x ln x).",
+       "Hemos visto que L = 0, luego el límite vale e<sup>0</sup> = <b>1</b>."]) +
+    ejemplo("Una potencia 1<sup>∞</sup> con L'Hôpital",
+      "Calcula lím<sub>x→0</sub> (cos x)<sup>1/x²</sup>.",
+      ["Base → 1 y exponente → ∞: 1<sup>∞</sup>. L = lím ln(cos x)/x² (0/0).",
+       "L'Hôpital: " + fr("−sen x/cos x", "2x") + " = " + fr("−tg x", "2x") + " ⟶ −1/2.",
+       "Resultado: e<sup>−1/2</sup> = 1/√e ≈ <b>0,6065</b> (el mismo que con la fórmula e<sup>L</sup> del tema de límites)."]) +
+    ojo("<b>La trampa clásica:</b> lím<sub>x→∞</sub> (x + sen x)/x es ∞/∞, pero (x + sen x)′/x′ = 1 + cos x <b>no tiene límite</b> (oscila). L'Hôpital no puede concluir. El límite sí existe y vale 1: dividiendo entre x, 1 + sen x/x → 1 + 0.") +
+    ojo("Tampoco es válido derivar «a ojo» un cociente que <b>no</b> es indeterminado: lím<sub>x→0</sub> (x + 1)/(x + 2) = 1/2, pero (x + 1)′/(x + 2)′ = 1. Aplicar la regla fuera de 0/0 o ∞/∞ da resultados falsos.") +
+    "<p>Si el límite se puede resolver con factorización, conjugado o un límite notable, suele ser <b>más rápido y más seguro</b> hacerlo así; deja L'Hôpital para los casos con exponenciales, logaritmos y senos, donde es la herramienta natural.</p>";
+
+  // ---------------------------------------------------------------- 4. Optimización
+  secciones[3] =
+    "<h5>El método en seis pasos (y qué se puntúa)</h5>" +
+    "<p>En la EvAU de Madrid, un problema de optimización puntúa <b>por pasos</b>: plantear la función, derivar y resolver, y <b>justificar</b> que el valor hallado es máximo o mínimo y dar la respuesta con unidades. Quien olvida justificar suele perder puntos aunque la cifra sea correcta.</p>" +
+    "<ol>" +
+    "<li><b>Leer y dibujar.</b> Identifica qué se quiere optimizar (área, volumen, coste, distancia, tiempo…) y qué condición liga las variables.</li>" +
+    "<li><b>Una sola variable.</b> Despeja una variable de la condición y sustitúyela en la función objetivo.</li>" +
+    "<li><b>Dominio.</b> Escribe para qué valores tiene sentido el problema (longitudes &gt; 0, etc.).</li>" +
+    "<li><b>Derivar e igualar a 0.</b> Elimina las soluciones que no estén en el dominio.</li>" +
+    "<li><b>Justificar.</b> Con f″ (en el punto), con el signo de f′ a cada lado, o comparando con los valores en los bordes del dominio.</li>" +
+    "<li><b>Responder</b> con la magnitud pedida, sus unidades y todas las cantidades que pregunte el enunciado (no solo x).</li></ol>" +
+    ojo("Si te piden una <b>distancia mínima</b>, minimiza el <b>cuadrado</b> de la distancia: tiene el mismo mínimo y evita derivar raíces. Después acuérdate de hacer la raíz para dar la distancia.") +
+    w("m2_problema") +
+    "<p>En la sección 9 de este tema tienes el método completo con más ejemplos, y en la sección 7 cómo se justifica el óptimo cuando el dominio es un intervalo cerrado.</p>";
+
+  B.parte.m2t9a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 9: Aplicaciones de la derivada
+   (parte B: secciones nuevas 5 a 12)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t9/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 5
+    {
+      h: "5. Crecimiento, decrecimiento y extremos relativos",
+      html:
+        "<p>El signo de la derivada manda: si <b>f′ &gt; 0</b> en un intervalo, f es <b>estrictamente creciente</b> ahí; si <b>f′ &lt; 0</b>, estrictamente decreciente. Un <b>extremo relativo</b> (o local) es un punto donde f deja de crecer para decrecer (máximo) o al revés (mínimo). Si f es derivable, en un extremo la tangente es horizontal: <b>f′(a) = 0</b>. Pero ojo, la implicación no se puede invertir: f′(a) = 0 es necesaria, no suficiente.</p>" +
+        w("m2_signos") +
+        "<h5>Procedimiento (siempre el mismo)</h5>" +
+        "<ol><li><b>Dominio</b> de f.</li><li><b>Calcula f′</b> y factorízala.</li><li><b>Puntos críticos:</b> los x del dominio donde f′(x) = 0 <b>o donde f′ no existe</b>.</li>" +
+        "<li><b>Tabla de signos:</b> coloca en una recta los puntos críticos <b>y los puntos fuera del dominio</b>; en cada intervalo mira el signo de f′ con un valor de prueba.</li>" +
+        "<li><b>Concluye:</b> f′ pasa de + a − ⟹ máximo; de − a + ⟹ mínimo; sin cambio de signo ⟹ no hay extremo.</li></ol>" +
+        ejemplo("Tabla de signos de un cúbico",
+          "Estudia la monotonía y los extremos relativos de f(x) = x³ − 3x² − 9x + 5.",
+          ["Dominio: ℝ. f′(x) = 3x² − 6x − 9 = 3(x² − 2x − 3) = 3(x + 1)(x − 3).",
+           "Puntos críticos: f′ = 0 ⟹ x = −1 y x = 3.",
+           tabla(["Intervalo", "(−∞, −1)", "(−1, 3)", "(3, +∞)"], [["Signo de f′ (valor de prueba)", "+ (x = −2: 15)", "− (x = 0: −9)", "+ (x = 4: 15)"], ["f", "creciente", "decreciente", "creciente"]]),
+           "En x = −1 pasa de + a −: <b>máximo relativo</b>, f(−1) = −1 − 3 + 9 + 5 = <b>10</b>. En x = 3 pasa de − a +: <b>mínimo relativo</b>, f(3) = 27 − 27 − 27 + 5 = <b>−22</b>.",
+           "Comprobación con f″(x) = 6x − 6: f″(−1) = −12 &lt; 0 (máximo) y f″(3) = 12 &gt; 0 (mínimo). ✓"]) +
+        ejemplo("Un dominio restringido",
+          "Estudia f(x) = x ln x.",
+          ["Dominio: x &gt; 0. f′(x) = ln x + 1.",
+           "f′ = 0 ⟹ ln x = −1 ⟹ x = 1/e ≈ 0,368.",
+           "Si 0 &lt; x &lt; 1/e, ln x &lt; −1 y f′ &lt; 0: decrece. Si x &gt; 1/e, f′ &gt; 0: crece.",
+           "<b>Mínimo relativo</b> en x = 1/e con f(1/e) = (1/e)·(−1) = <b>−1/e ≈ −0,368</b>. (Además es mínimo absoluto en todo el dominio.)"]) +
+        ejemplo("Un punto donde f′ no existe",
+          "Estudia f(x) = x<sup>2/3</sup> = ∛(x²).",
+          ["Dominio: ℝ. f′(x) = (2/3)x<sup>−1/3</sup> = 2/(3∛x), que no existe en x = 0 (aunque f sí está definida allí).",
+           "x &lt; 0: ∛x &lt; 0 ⟹ f′ &lt; 0 (decrece). x &gt; 0: f′ &gt; 0 (crece).",
+           "En x = 0 hay un <b>mínimo relativo</b> (de hecho absoluto, f(0) = 0) con una cúspide: f′(0) no existe y no vale la regla «f′ = 0»."]) +
+        "<h5>Criterio de la segunda derivada (y cuándo falla)</h5>" +
+        "<p>Si f′(a) = 0: <b>f″(a) &gt; 0 ⟹ mínimo</b> (f curvada hacia arriba), <b>f″(a) &lt; 0 ⟹ máximo</b>. Si <b>f″(a) = 0, el criterio no decide</b>: hay que mirar el signo de f′ a cada lado, o seguir derivando (si la primera derivada no nula es de orden <b>par</b>, hay extremo —mínimo si es &gt; 0, máximo si es &lt; 0—; si es <b>impar</b>, no lo hay).</p>" +
+        tabla(["Función en x = 0", "f′(0), f″(0), …", "Conclusión"], [
+          ["f(x) = x²", "f′ = 0, f″ = 2 &gt; 0", "mínimo"],
+          ["f(x) = −x⁴", "f′ = f″ = f‴ = 0, f⁗ = −24 &lt; 0", "máximo (el criterio de f″ falla, pero el orden par decide)"],
+          ["f(x) = x⁴", "f′ = f″ = f‴ = 0, f⁗ = 24 &gt; 0", "mínimo"],
+          ["f(x) = x³", "f′ = f″ = 0, f‴ = 6 ≠ 0 (orden impar)", "no hay extremo (es una inflexión)"]
+        ]) +
+        ojo("<b>Extremo relativo no es lo mismo que mayor o menor valor.</b> Una función puede tener un «máximo» relativo más bajo que su «mínimo» relativo (por ejemplo f(x) = x²/(x − 1): máximo relativo 0 en x = 0, mínimo relativo 4 en x = 2; mira la sección 10). Que sea máximo solo significa «mayor que sus vecinos».") +
+        ojo("Si te piden los intervalos de crecimiento, no olvides los puntos fuera del dominio: aunque f′ no cambie de signo en x = 1, si x = 1 no está en el dominio no puedes escribir «crece en (−∞, ∞)»: son intervalos separados.")
+    },
+    // -------------------------------------------------------------- 6
+    {
+      h: "6. Curvatura y puntos de inflexión",
+      html:
+        "<p>La segunda derivada mide cómo cambia la pendiente. Si <b>f″ &gt; 0</b> en un intervalo, f′ crece y la gráfica se curva hacia arriba (forma ∪): f es <b>convexa</b>. Si <b>f″ &lt; 0</b>, f′ decrece y la gráfica se curva hacia abajo (∩): f es <b>cóncava</b>. Un <b>punto de inflexión</b> es donde cambia la curvatura: f″ cambia de signo, y por tanto f″(a) = 0 (si f″ existe).</p>" +
+        ojo("<b>Terminología:</b> en los libros españoles y en los exámenes de Madrid lo habitual es «convexa» = ∪ (f″ &gt; 0) y «cóncava» = ∩ (f″ &lt; 0), pero algunos textos usan los nombres al revés. Para evitar malentendidos, escribe siempre el signo de f″ o el dibujo ∪ / ∩ junto al nombre.") +
+        "<h5>Procedimiento</h5>" +
+        "<ol><li>Calcula f″ y resuelve f″(x) = 0 (también anota dónde f″ no existe).</li><li>Haz una tabla con el signo de f″ en cada intervalo.</li><li>Hay inflexión en a si <b>f″ cambia de signo</b> en a (o, si f‴(a) ≠ 0 y f″(a) = 0, basta con eso).</li></ol>" +
+        ejemplo("Dos inflexiones y un extremo",
+          "Estudia la curvatura de f(x) = x⁴ − 4x³ y halla sus extremos y puntos de inflexión.",
+          ["f′(x) = 4x³ − 12x² = 4x²(x − 3); f″(x) = 12x² − 24x = 12x(x − 2).",
+           tabla(["Intervalo", "(−∞, 0)", "(0, 2)", "(2, +∞)"], [["Signo de f″", "+", "−", "+"], ["Curvatura", "convexa ∪", "cóncava ∩", "convexa ∪"]]),
+           "f″ cambia de signo en x = 0 y en x = 2: <b>inflexiones en (0, 0) y en (2, −16)</b> (f(2) = 16 − 32 = −16).",
+           "Extremos: f′ = 0 en x = 0 y x = 3. En x = 0, f′ = 4x²(x − 3) es negativa a ambos lados (el factor x² no cambia de signo): <b>no hay extremo</b> (es una inflexión con tangente horizontal). En x = 3, f″(3) = 36 &gt; 0: <b>mínimo</b> con f(3) = 81 − 108 = −27."]) +
+        ejemplo("La campana de Gauss",
+          "Halla los puntos de inflexión de f(x) = e<sup>−x²</sup>.",
+          ["f′(x) = −2x e<sup>−x²</sup>. f″(x) = −2e<sup>−x²</sup> + 4x² e<sup>−x²</sup> = (4x² − 2)e<sup>−x²</sup>.",
+           "Como e<sup>−x²</sup> &gt; 0, f″ = 0 ⟺ 4x² = 2 ⟺ x = ±1/√2 ≈ ±0,707.",
+           "El factor (4x² − 2) es + fuera de [−0,707; 0,707] y − dentro: cambia de signo en ambos puntos.",
+           "Inflexiones en (±1/√2, e<sup>−1/2</sup>) ≈ (±0,707; 0,607). (Además f tiene un máximo en x = 0, donde f″(0) = −2 &lt; 0.)"]) +
+        ojo("<b>f″(a) = 0 no basta para que haya inflexión</b>: f(x) = x⁴ cumple f″(0) = 0 y en x = 0 hay un <i>mínimo</i>, porque f″ = 12x² es ≥ 0 a ambos lados (no cambia de signo). Y al revés: en x = 0, f(x) = x³ tiene inflexión sin extremo.") +
+        "<p>Geométricamente, en un punto de inflexión <b>la tangente atraviesa a la curva</b> (la curva pasa de estar por un lado de su tangente a estar por el otro). La recta tangente en la inflexión es una pregunta típica: se calcula con f′(a) y f(a) como siempre.</p>" +
+        ejemplo("Tangente en la inflexión",
+          "Halla la recta tangente a f(x) = x³ − 3x² + 2x en su punto de inflexión.",
+          ["f″(x) = 6x − 6 = 0 ⟹ x = 1, y f″ cambia de − a +: inflexión en x = 1, con f(1) = 1 − 3 + 2 = 0.",
+           "f′(x) = 3x² − 6x + 2 ⟹ f′(1) = −1.",
+           "Tangente: y − 0 = −1·(x − 1), es decir <b>y = −x + 1</b>."])
+    },
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Extremos absolutos en un intervalo cerrado",
+      html:
+        "<p>Los extremos <b>absolutos</b> son el mayor y el menor valor de f en todo un intervalo. El <b>teorema de Weierstrass</b> garantiza que existen si <b>f es continua en un intervalo cerrado y acotado [a, b]</b>. Dónde están: o en los <b>extremos del intervalo</b>, o en un <b>punto crítico del interior</b> (f′ = 0 o f′ no existe). Por eso el método es simplemente comparar.</p>" +
+        w("m2_absolutos") +
+        "<ol><li>Comprueba que f es continua en [a, b].</li><li>Halla los puntos críticos que estén dentro de (a, b) (descarta los que caigan fuera).</li><li>Calcula f en <b>todos</b> los candidatos: los puntos críticos, a y b. No hace falta clasificarlos.</li><li>El mayor valor es el máximo absoluto; el menor, el mínimo absoluto. Indica <b>dónde</b> se alcanzan.</li></ol>" +
+        ejemplo("Un cúbico en [0, 5]",
+          "Halla los extremos absolutos de f(x) = x³ − 6x² + 9x + 1 en [0, 5].",
+          ["f es un polinomio: continua. f′(x) = 3x² − 12x + 9 = 3(x − 1)(x − 3) ⟹ puntos críticos x = 1 y x = 3, ambos en (0, 5).",
+           tabla(["x", "0", "1", "3", "5"], [["f(x)", "1", "5", "1", "21"]]),
+           "f(5) = 125 − 150 + 45 + 1 = 21. <b>Máximo absoluto 21 en x = 5</b> (un extremo del intervalo, no un punto crítico). <b>Mínimo absoluto 1</b>, alcanzado en x = 0 <b>y</b> en x = 3 (empate).",
+           "Fíjate: x = 1 es máximo <i>relativo</i> (f = 5), pero no es el máximo absoluto."]) +
+        ejemplo("Un valor absoluto: los puntos angulares también cuentan",
+          "Halla los extremos absolutos de f(x) = |x² − 1| en [−2, 2].",
+          ["Escribimos f(x) = x² − 1 si |x| ≥ 1 y f(x) = 1 − x² si |x| &lt; 1. Es continua.",
+           "Derivada: f′ = 2x si |x| &gt; 1; f′ = −2x si |x| &lt; 1. En x = ±1 los dos lados no coinciden (2 ≠ −2): f no es derivable, <b>candidatos</b>. En x = 0: f′ = 0, candidato.",
+           tabla(["x", "−2", "−1", "0", "1", "2"], [["f(x)", "3", "0", "1", "0", "3"]]),
+           "<b>Máximo absoluto 3</b> en x = ±2; <b>mínimo absoluto 0</b> en x = ±1 (los dos puntos angulares). El punto x = 0 es máximo relativo con valor 1."]) +
+        ejemplo("Función a trozos",
+          "Halla los extremos absolutos de f(x) = x² si x ≤ 1 y f(x) = 2 − x si x &gt; 1, en [−1, 3].",
+          ["Continua en x = 1 (los dos trozos valen 1). Candidatos: extremos −1 y 3; x = 0 (donde 2x = 0); x = 1 (donde f′ cambia de 2 a −1, no derivable).",
+           tabla(["x", "−1", "0", "1", "3"], [["f(x)", "1", "0", "1", "−1"]]),
+           "<b>Máximo absoluto 1</b>, en x = −1 y en x = 1; <b>mínimo absoluto −1</b> en x = 3."]) +
+        "<h5>Si el intervalo no es cerrado o f no es continua</h5>" +
+        "<p>Entonces Weierstrass no garantiza nada y hay que <b>mirar los límites en los bordes</b>. Por ejemplo f(x) = x + 1/x en (0, +∞): f′ = 1 − 1/x² = 0 ⟹ x = 1, con f(1) = 2 y f″(1) = 2 &gt; 0. Como f → +∞ en x → 0⁺ y en x → +∞, el valor 2 es el <b>mínimo absoluto</b>; no hay máximo absoluto.</p>" +
+        ojo("«f continua en [a, b] ⟹ máximo y mínimo» es lo que dice el teorema. «f no continua en [a, b] ⟹ no hay» <b>no</b> es cierto: simplemente no está garantizado. Por ejemplo f(x) = 1/x en [1, 3] sí tiene máximo (f(1) = 1) y mínimo (f(3) = 1/3); en [−1, 1] no, por la asíntota en 0.")
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Hallar parámetros a partir de condiciones",
+      html:
+        "<p>Este es <b>el tipo de pregunta con más trampa en la EvAU</b>: se da una función con parámetros (a, b, c…) y se imponen condiciones geométricas que hay que traducir a ecuaciones. Cada condición produce <b>una ecuación</b>; con n parámetros necesitas n ecuaciones independientes.</p>" +
+        tabla(["El enunciado dice…", "Se traduce en…"], [
+          ["«pasa por el punto (x₀, y₀)»", "f(x₀) = y₀"],
+          ["«tiene un extremo (máximo o mínimo) en x = x₀»", "f′(x₀) = 0"],
+          ["«tiene un extremo en el punto (x₀, y₀)»", "f′(x₀) = 0  y  f(x₀) = y₀"],
+          ["«tiene un punto de inflexión en x = x₀»", "f″(x₀) = 0 (y f″ cambia de signo)"],
+          ["«la tangente en x₀ es horizontal»", "f′(x₀) = 0"],
+          ["«la tangente en x₀ tiene pendiente m» / «es paralela a y = mx + n»", "f′(x₀) = m"],
+          ["«la tangente en x₀ es la recta y = mx + n»", "f′(x₀) = m  y  f(x₀) = m x₀ + n"],
+          ["«es continua / derivable en x₀» (función a trozos)", "Lateral izquierdo = lateral derecho = f(x₀);  y para derivable, también f′(x₀⁻) = f′(x₀⁺)"]
+        ]) +
+        w("m2_parametros") +
+        ejemplo("Tres parámetros",
+          "Halla a, b y c para que f(x) = x³ + ax² + bx + c tenga un punto de inflexión en x = −1, un mínimo relativo en x = 1 y corte al eje Y en el punto (0, 2).",
+          ["f′(x) = 3x² + 2ax + b y f″(x) = 6x + 2a.",
+           "Inflexión en x = −1: f″(−1) = −6 + 2a = 0 ⟹ <b>a = 3</b>.",
+           "Mínimo en x = 1: f′(1) = 3 + 2a + b = 3 + 6 + b = 0 ⟹ <b>b = −9</b>.",
+           "Corte con el eje Y: f(0) = c = 2 ⟹ <b>c = 2</b>.",
+           "<b>Comprobación (imprescindible):</b> f(x) = x³ + 3x² − 9x + 2. f′ = 3(x + 3)(x − 1): en x = 1, f″(1) = 12 &gt; 0 ✓ (mínimo, f(1) = −3). f″(x) = 6(x + 1) cambia de signo en x = −1 ✓ (inflexión, f(−1) = 13)."]) +
+        ejemplo("Dos extremos dados",
+          "Halla a y b para que f(x) = a ln x + b x² + x tenga extremos relativos en x = 1 y en x = 2. Clasifícalos.",
+          ["f′(x) = a/x + 2bx + 1. Condiciones: f′(1) = a + 2b + 1 = 0 y f′(2) = a/2 + 4b + 1 = 0.",
+           "De la primera, a = −1 − 2b. En la segunda: (−1 − 2b)/2 + 4b + 1 = 0 ⟹ −1/2 − b + 4b + 1 = 0 ⟹ 3b = −1/2 ⟹ <b>b = −1/6</b>, y <b>a = −1 + 1/3 = −2/3</b>.",
+           "Clasificación con f″(x) = −a/x² + 2b = (2/3)/x² − 1/3: f″(1) = 1/3 &gt; 0 ⟹ <b>mínimo en x = 1</b>; f″(2) = 1/6 − 1/3 = −1/6 &lt; 0 ⟹ <b>máximo en x = 2</b>."]) +
+        ejemplo("Tangente con pendiente conocida",
+          "Halla a y b para que la gráfica de f(x) = ax³ + bx² pase por (1, 3) y tenga en ese punto tangente de pendiente 5. Escribe la tangente.",
+          ["f(1) = a + b = 3. f′(x) = 3ax² + 2bx ⟹ f′(1) = 3a + 2b = 5.",
+           "De la primera, b = 3 − a. En la segunda: 3a + 6 − 2a = 5 ⟹ <b>a = −1</b>, <b>b = 4</b>.",
+           "f(x) = −x³ + 4x². Tangente en x = 1: y − 3 = 5(x − 1), es decir <b>y = 5x − 2</b>."]) +
+        ojo("Tras resolver, <b>comprueba</b> con los parámetros hallados que se cumple lo que decía el enunciado (por ejemplo, que el punto es de verdad un mínimo y no un máximo). Un error frecuente es plantear f′ = 0 con la función equivocada o derivar mal el parámetro: a·ln x se deriva como a/x, no como ln x.")
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. Problemas de optimización con enunciado",
+      html:
+        "<p>Los problemas de la EvAU de Madrid son siempre de uno de estos cuatro tipos: <b>geométricos</b> (áreas, volúmenes con perímetro o superficie dados), <b>de distancia</b>, <b>económicos</b> (beneficio, coste, ingresos) y <b>de tiempo o movimiento</b>. El método es el de la sección 4; aquí aprendes a justificar bien y a ver las trampas.</p>" +
+        ejemplo("Lata de 1 litro (geométrico)",
+          "Se quiere fabricar una lata cilíndrica de 1 litro (1000 cm³). ¿Qué dimensiones usan menos chapa?",
+          ["<b>Plantear.</b> Superficie S = 2πr² + 2πrh. Volumen: πr²h = 1000 ⟹ h = 1000/(πr²). Sustituyendo: S(r) = 2πr² + 2000/r, con <b>r &gt; 0</b>.",
+           "<b>Derivar.</b> S′(r) = 4πr − 2000/r² = 0 ⟹ r³ = 500/π ⟹ <b>r ≈ 5,419 cm</b>.",
+           "<b>Justificar.</b> S″(r) = 4π + 4000/r³ &gt; 0 en todo el dominio ⟹ mínimo. Como S → ∞ cuando r → 0⁺ y r → ∞, es el mínimo absoluto.",
+           "<b>Responder.</b> r ≈ 5,42 cm, h = 1000/(πr²) ≈ 10,84 cm (es decir h = 2r) y S ≈ <b>553,6 cm²</b>."]) +
+        ejemplo("Punto más cercano (distancia)",
+          "Halla los puntos de la parábola y = x² más próximos al punto (0, 3).",
+          ["<b>Plantear.</b> Un punto es (x, x²). Su distancia al cuadrado: d² = x² + (x² − 3)² = x⁴ − 5x² + 9. (Minimizar d² da los mismos puntos que minimizar d.)",
+           "<b>Derivar.</b> (d²)′ = 4x³ − 10x = 2x(2x² − 5) = 0 ⟹ x = 0 o x = ±√(5/2) ≈ ±1,581.",
+           "<b>Justificar.</b> (d²)″ = 12x² − 10: en x = 0 vale −10 &lt; 0 (es un máximo local, d² = 9); en x = ±√(5/2) vale 20 &gt; 0 (mínimos).",
+           "<b>Responder.</b> Hay <b>dos</b> puntos: (±√(5/2), 5/2) ≈ (±1,58; 2,5), con d² = 25/4 − 25/2 + 9 = 11/4, es decir d = √11/2 ≈ 1,66."]) +
+        ejemplo("El óptimo puede estar en el borde del dominio (económico)",
+          "El beneficio al vender un producto a p euros es B(p) = (p − 20)(400 − 5p). Por un acuerdo con el distribuidor, el precio no puede superar 40 €. ¿Qué precio maximiza el beneficio?",
+          ["<b>Plantear.</b> B(p) = −5p² + 500p − 8000, con dominio <b>20 ≤ p ≤ 40</b> (cerrado: ahora Weierstrass nos sirve).",
+           "<b>Derivar.</b> B′(p) = −10p + 500 = 0 ⟹ p = 50, que <b>no está en [20, 40]</b>: se descarta.",
+           "<b>Comparar los extremos.</b> B(20) = 0; B(40) = 20 · 200 = 4000. En todo el intervalo B′ &gt; 0 (B crece), así que el máximo está en el extremo derecho.",
+           "<b>Responder.</b> p = 40 €, con un beneficio de <b>4000 €</b>. Sin la restricción habría sido p = 50 y 4500 €."]) +
+        w("optimizar2") +
+        "<h5>Qué trampas buscan los examinadores</h5>" +
+        "<ul>" +
+        "<li><b>Olvidar el dominio.</b> Sin él no puedes descartar soluciones ni comparar con los bordes.</li>" +
+        "<li><b>No justificar.</b> «Es máximo porque A″ &lt; 0» o «porque f′ pasa de + a −» son frases obligatorias.</li>" +
+        "<li><b>Responder solo con x.</b> Si piden las dimensiones, da todas; si piden el valor máximo, da el valor (área, beneficio…), no el x.</li>" +
+        "<li><b>Unidades</b> y coherencia: un radio de −3 o una longitud mayor que la valla disponible delata un error.</li>" +
+        "<li><b>Dos variables sin eliminar.</b> Si en la función aparecen x e y, falta usar la condición del enunciado.</li></ul>"
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Un estudio completo, paso a paso",
+      html:
+        "<p>Reúne todo lo anterior en el estudio de una función racional. Es la base de la representación gráfica (tema siguiente).</p>" +
+        ejemplo("Estudio de f(x) = x²/(x − 1)",
+          "Halla el dominio, las asíntotas, los intervalos de crecimiento, los extremos y la curvatura de f(x) = x²/(x − 1).",
+          ["<b>Dominio:</b> x ≠ 1, es decir ℝ − {1}.",
+           "<b>Asíntotas:</b> en x = 1 el numerador vale 1 ≠ 0: <b>asíntota vertical x = 1</b> (lím<sub>x→1⁻</sub> = −∞, lím<sub>x→1⁺</sub> = +∞). Al dividir, x²/(x − 1) = x + 1 + 1/(x − 1): <b>asíntota oblicua y = x + 1</b> (a ambos lados).",
+           "<b>Primera derivada:</b> f′(x) = [2x(x − 1) − x²]/(x − 1)² = (x² − 2x)/(x − 1)² = x(x − 2)/(x − 1)². Se anula en x = 0 y x = 2.",
+           tabla(["Intervalo", "(−∞, 0)", "(0, 1)", "(1, 2)", "(2, +∞)"], [["Signo de f′", "+", "−", "−", "+"], ["f", "crece", "decrece", "decrece", "crece"]]),
+           "<b>Extremos relativos:</b> máximo en (0, 0) (f pasa de crecer a decrecer) y mínimo en (2, 4). Fíjate: el «máximo» (0) es menor que el «mínimo» (4); como la función no es continua en x = 1, son extremos solo <i>relativos</i>.",
+           "<b>Segunda derivada:</b> f″(x) = 2/(x − 1)³. Nunca se anula: <b>no hay puntos de inflexión</b>. Para x &lt; 1, f″ &lt; 0 (cóncava ∩); para x &gt; 1, f″ &gt; 0 (convexa ∪). El cambio en x = 1 no es una inflexión porque x = 1 no pertenece al dominio.",
+           "<b>Comprobación:</b> f″(0) = −2 &lt; 0 ✓ (máximo) y f″(2) = 2 &gt; 0 ✓ (mínimo)."]) +
+        ojo("Un cambio de curvatura en un punto <b>fuera del dominio</b> (una asíntota vertical) no es un punto de inflexión: un punto de inflexión es un punto de la gráfica.")
+    },
+    // -------------------------------------------------------------- 11
+    {
+      h: "11. ¿Qué falla aquí? Errores típicos",
+      html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+    },
+    // -------------------------------------------------------------- 12
+    {
+      h: "12. Autocomprobación del tema",
+      html: "<p>Doce preguntas de test con explicación, tarjetas con las fórmulas, una actividad de emparejar, otra de clasificar y el orden correcto para resolver un problema de optimización.</p>" +
+        w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+    }
+  ];
+
+  B.parte.m2t9b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 9: Aplicaciones de la derivada
+   (parte C: resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Monotonía</b>: f′ &gt; 0 ⟹ crece; f′ &lt; 0 ⟹ decrece. Tabla de signos con los puntos donde f′ = 0 <b>o no existe</b> y los que no están en el dominio. Máximo si f′ pasa de + a −; mínimo si de − a +; si no cambia, no hay extremo.",
+    "<b>Segunda derivada</b>: f′(a) = 0 y f″(a) &gt; 0 ⟹ mínimo; f″(a) &lt; 0 ⟹ máximo; f″(a) = 0 ⟹ el criterio no decide (mira el signo de f′ o la primera derivada no nula: orden par ⟹ extremo, impar ⟹ no).",
+    "<b>Curvatura</b>: f″ &gt; 0 ⟹ ∪ (convexa); f″ &lt; 0 ⟹ ∩ (cóncava). Inflexión: f″ cambia de signo (f″(a) = 0 no basta: x⁴ en 0). Escribe siempre el signo o el dibujo ∪/∩.",
+    "<b>Extremos absolutos en [a, b]</b> (f continua, Weierstrass): comparar f en los puntos críticos interiores (f′ = 0 o f′ no existe) y en a y b. Dices dónde se alcanzan; puede haber empates. Si no es cerrado, mira los límites en los bordes.",
+    "<b>Parámetros</b>: pasa por (x₀, y₀) ⟹ f(x₀) = y₀; extremo en x₀ ⟹ f′(x₀) = 0; inflexión en x₀ ⟹ f″(x₀) = 0; tangente de pendiente m ⟹ f′(x₀) = m. Una ecuación por cada parámetro. Comprueba al final.",
+    "<b>Optimización</b>: variable y función objetivo ⟹ una sola variable con la condición ⟹ dominio ⟹ f′ = 0 ⟹ justificar (f″, signo de f′ o bordes) ⟹ responder con todas las magnitudes y unidades. Distancia mínima: minimiza d².",
+    "<b>Rolle</b>: continua en [a, b], derivable en (a, b), f(a) = f(b) ⟹ ∃c, f′(c) = 0. <b>Valor medio</b>: ∃c, f′(c) = (f(b) − f(a))/(b − a). Bolzano ⟹ al menos una raíz; f′ ≠ 0 siempre ⟹ como mucho una (Rolle).",
+    "<b>L'Hôpital</b>: solo con 0/0 o ∞/∞ y si <b>existe</b> lím f′/g′. 0·∞ ⟹ cociente; ∞ − ∞ ⟹ denominador común; 1<sup>∞</sup>, 0<sup>0</sup>, ∞<sup>0</sup> ⟹ logaritmos. Trampa: (x + sen x)/x en ∞."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«f(x) = x³ cumple f′(0) = 0, luego tiene un extremo en x = 0». ¿Qué falla?",
+          op: ["Nada, está bien", "f′(a) = 0 es necesario pero no suficiente: f′ = 3x² no cambia de signo en 0, así que no hay extremo (es una inflexión)", "f′(0) no vale 0", "f(x) = x³ tiene un máximo en x = 0"], ok: 1,
+          porque: "Un extremo exige que f′ cambie de signo. f′ = 3x² ≥ 0 a ambos lados: f es siempre creciente." },
+        { q: "«f(x) = x⁴ cumple f′(0) = 0 y f″(0) = 0, luego en x = 0 no hay extremo». ¿Qué falla?",
+          op: ["Nada", "Si f″(a) = 0 el criterio no decide: hay que mirar el signo de f′ (− a la izquierda, + a la derecha) y en x = 0 hay un mínimo", "Hay un máximo", "Hay una inflexión"], ok: 1,
+          porque: "f′ = 4x³ pasa de negativa a positiva: mínimo. La primera derivada no nula es la cuarta (24 &gt; 0, orden par): mínimo." },
+        { q: "«f″(a) = 0, luego en a hay un punto de inflexión». ¿Qué falla?",
+          op: ["Nada", "Falta que f″ cambie de signo: f(x) = x⁴ tiene f″(0) = 0 y no hay inflexión", "Debería ser f′(a) = 0", "Debería ser f(a) = 0"], ok: 1,
+          porque: "f″(a) = 0 es condición necesaria. Para x⁴, f″ = 12x² no cambia de signo (es ≥ 0 a ambos lados)." },
+        { q: "«f(x) = 1/x es decreciente en todo su dominio, porque f′ = −1/x² &lt; 0; por tanto f(−1) &gt; f(1)». ¿Qué falla?",
+          op: ["Nada", "El dominio ℝ − {0} no es un intervalo: f decrece en (−∞, 0) y en (0, ∞) por separado, y f(−1) = −1 &lt; 1 = f(1)", "f′ es positiva", "f es creciente"], ok: 1,
+          porque: "La monotonía se enuncia en intervalos. Entre −1 y 1 hay una asíntota y f salta de −∞ a +∞." },
+        { q: "«Máximo de x³ − 3x en [0, 2]: f′ = 3x² − 3 = 0 ⟹ x = ±1; el máximo es f(1) = −2». ¿Qué falla?",
+          op: ["Nada", "x = −1 está fuera del intervalo, y además hay que evaluar los extremos: f(0) = 0, f(2) = 2; el máximo absoluto es 2 en x = 2 y f(1) = −2 es el mínimo", "El máximo es f(−1) = 2", "El máximo es f(0) = 0"], ok: 1,
+          porque: "En un intervalo cerrado se comparan puntos críticos interiores y extremos: f(0) = 0, f(1) = −2, f(2) = 2." },
+        { q: "«Para minimizar la distancia de (x, √x) al punto (4, 0) derivo d = √((x−4)² + x) y me sale una derivada enorme; no se puede simplificar». ¿Qué falla?",
+          op: ["Nada", "Basta minimizar d² = (x−4)² + x: tiene el mismo mínimo y su derivada es 2x − 7", "Hay que maximizar", "Hay que usar L'Hôpital"], ok: 1,
+          porque: "La raíz cuadrada es creciente, así que d y d² alcanzan el mínimo en el mismo x. Después se hace la raíz para dar la distancia." },
+        { q: "«El rectángulo de perímetro 20 con área A = x·y: A′ = y + x·y′ = 0…». ¿Qué falla?",
+          op: ["Nada", "No se ha eliminado una variable con la condición 2x + 2y = 20: debe ser A(x) = x(10 − x) y derivar esa función de una variable", "A no se puede derivar", "El perímetro no se usa"], ok: 1,
+          porque: "Antes de derivar hay que dejar la función objetivo en una sola variable; la condición del problema sirve para eso." },
+        { q: "«Tras hallar x = 4 en el problema de la caja, respondo: el volumen máximo es 4». ¿Qué falla?",
+          op: ["Nada", "x = 4 es el lado del recorte; el volumen máximo es V(4), no x. Hay que responder con lo que pide el enunciado y con unidades", "El volumen es x²", "x debería ser 0"], ok: 1,
+          porque: "Siempre hay que sustituir el óptimo en la función objetivo y contestar con todas las magnitudes pedidas." },
+        { q: "«Aplico L'Hôpital a lím<sub>x→0</sub> (x + 1)/(x + 2): (x+1)′/(x+2)′ = 1, así que el límite vale 1». ¿Qué falla?",
+          op: ["Nada", "No es 0/0 ni ∞/∞ (da 1/2): L'Hôpital solo se aplica con indeterminación, y aquí el límite vale 1/2", "Hay que derivar dos veces", "El límite no existe"], ok: 1,
+          porque: "Sustituyendo, (0+1)/(0+2) = 1/2. La regla es válida solo para 0/0 o ∞/∞." },
+        { q: "«El teorema de Rolle se aplica a f(x) = |x| en [−1, 1] porque f(−1) = f(1)». ¿Qué falla?",
+          op: ["Nada", "f no es derivable en x = 0 ∈ (−1, 1): falta una hipótesis, y de hecho no hay ningún c con f′(c) = 0", "f no es continua", "El intervalo debe ser abierto"], ok: 1,
+          porque: "|x| es continua y toma el mismo valor en ±1, pero tiene un pico en 0, donde no existe la derivada. Su derivada es ±1 y nunca vale 0." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de aplicaciones de la derivada",
+      preguntas: [
+        { q: "Si f′(x) &gt; 0 en todo el intervalo (a, b), entonces en (a, b) f es", op: ["estrictamente creciente", "estrictamente decreciente", "constante", "convexa"], ok: 0, porque: "El signo de la primera derivada da la monotonía." },
+        { q: "f′(2) = 0 y f″(2) = −4. En x = 2 hay", op: ["un máximo relativo", "un mínimo relativo", "una inflexión", "no se sabe"], ok: 0, porque: "f″ &lt; 0: la curva es ∩ y la tangente es horizontal: máximo." },
+        { q: "f(x) = x³ − 3x tiene un máximo relativo en", op: ["x = −1", "x = 1", "x = 0", "x = 3"], ok: 0, porque: "f′ = 3(x−1)(x+1) pasa de + a − en x = −1." },
+        { q: "El punto de inflexión de f(x) = x³ − 6x² + 1 está en", op: ["x = 2", "x = 4", "x = 0", "x = −2"], ok: 0, porque: "f″ = 6x − 12 = 0 ⟹ x = 2, y cambia de signo." },
+        { q: "Si f″(x) &lt; 0 en un intervalo, f es", op: ["cóncava (∩)", "convexa (∪)", "creciente", "constante"], ok: 0, porque: "f″ &lt; 0 ⟹ f′ decrece ⟹ forma ∩." },
+        { q: "Para hallar los extremos absolutos de una función continua en [a, b] se comparan", op: ["los puntos críticos del interior y los valores en a y b", "solo los puntos con f′ = 0", "solo los extremos del intervalo", "solo los puntos de inflexión"], ok: 0, porque: "Es el método de Weierstrass." },
+        { q: "f(x) = x² en [−2, 1]: el máximo absoluto vale", op: ["4", "1", "0", "2"], ok: 0, porque: "f(−2) = 4, f(1) = 1, f(0) = 0." },
+        { q: "Si una curva «pasa por (1, 2) y tiene un extremo en x = 1» se plantea", op: ["f(1) = 2 y f′(1) = 0", "f(1) = 2 y f″(1) = 0", "f′(1) = 2", "f(2) = 1"], ok: 0, porque: "Pasar por el punto es f(1) = 2; un extremo es f′(1) = 0." },
+        { q: "En el rectángulo de perímetro 40 de área máxima, los lados miden", op: ["10 y 10", "5 y 15", "8 y 12", "20 y 0"], ok: 0, porque: "A = x(20 − x) es máxima en x = 10: un cuadrado." },
+        { q: "Para minimizar una distancia conviene minimizar", op: ["su cuadrado", "su raíz", "su logaritmo en base 2", "su inversa"], ok: 0, porque: "Mismo mínimo con una derivada más sencilla." },
+        { q: "L'Hôpital se puede aplicar a lím<sub>x→0</sub> (1 − cos x)/x² porque es", op: ["0/0", "∞/∞", "1<sup>∞</sup>", "no es indeterminado"], ok: 0, porque: "1 − cos 0 = 0 y 0² = 0. Resultado 1/2." },
+        { q: "El teorema del valor medio asegura que existe c ∈ (a, b) con f′(c) igual a", op: ["(f(b) − f(a))/(b − a)", "f(b) − f(a)", "0", "(f(a) + f(b))/2"], ok: 0, porque: "La derivada coincide con la tasa de variación media en algún punto." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas de aplicaciones de la derivada",
+      cartas: [
+        { a: "Crecimiento", b: "f′ &gt; 0 ⟹ f creciente; f′ &lt; 0 ⟹ decreciente. Tabla de signos con puntos críticos y puntos fuera del dominio." },
+        { a: "Extremos relativos", b: "f′ pasa de + a − ⟹ máximo; de − a + ⟹ mínimo; sin cambio ⟹ ninguno." },
+        { a: "Criterio de la segunda derivada", b: "f′(a) = 0: f″(a) &gt; 0 ⟹ mínimo; f″(a) &lt; 0 ⟹ máximo; f″(a) = 0 ⟹ no decide." },
+        { a: "Curvatura", b: "f″ &gt; 0 ⟹ convexa (∪); f″ &lt; 0 ⟹ cóncava (∩). Escribe siempre el signo o el dibujo." },
+        { a: "Punto de inflexión", b: "f″ cambia de signo en a. f″(a) = 0 es necesario, no suficiente." },
+        { a: "Extremos absolutos en [a, b]", b: "f continua: comparar f en puntos críticos interiores y en a y b. Pueden empatar." },
+        { a: "Parámetros", b: "Pasa por (x₀, y₀): f(x₀) = y₀. Extremo: f′(x₀) = 0. Inflexión: f″(x₀) = 0. Pendiente m: f′(x₀) = m." },
+        { a: "Optimización: pasos", b: "Función objetivo ⟹ una variable ⟹ dominio ⟹ f′ = 0 ⟹ justificar ⟹ responder con unidades." },
+        { a: "Distancia mínima", b: "Minimiza d² (mismo mínimo, derivada más fácil) y haz la raíz al final." },
+        { a: "Rolle", b: "f continua en [a, b], derivable en (a, b), f(a) = f(b) ⟹ ∃c ∈ (a, b), f′(c) = 0." },
+        { a: "Teorema del valor medio", b: "f continua en [a, b], derivable en (a, b) ⟹ ∃c, f′(c) = (f(b) − f(a))/(b − a)." },
+        { a: "L'Hôpital", b: "Solo 0/0 o ∞/∞ y si existe lím f′/g′. Otras indeterminaciones: pasar a cociente o usar logaritmos." }
+      ]
+    },
+    empar: {
+      titulo: "Función y su característica",
+      consigna: "Une cada función con el dato que se pide.",
+      pares: [
+        ["Mínimo relativo de f(x) = x² − 4x + 1", "x = 2"],
+        ["Inflexión de f(x) = x³ − 3x²", "x = 1"],
+        ["Máximo absoluto de f(x) = x² en [−3, 2]", "9"],
+        ["Mínimo absoluto de f(x) = x + 4/x en (0, ∞)", "4"],
+        ["Rectángulo de perímetro 40 con mayor área: área", "100"],
+        ["lím<sub>x→0</sub> (eˣ − 1)/x aplicando L'Hôpital", "1"]
+      ]
+    },
+    clas: {
+      titulo: "¿Qué herramienta uso?",
+      consigna: "Toca cada pregunta y elige la herramienta que la resuelve.",
+      categorias: ["Signo de f′", "Signo de f″", "Comparar candidatos en [a, b]", "Plantear ecuaciones con parámetros"],
+      items: [
+        { t: "¿Dónde crece la función?", c: 0 },
+        { t: "¿Cuáles son sus mínimos relativos (tabla)?", c: 0 },
+        { t: "¿En qué intervalos es convexa?", c: 1 },
+        { t: "Puntos de inflexión", c: 1 },
+        { t: "Máximo absoluto en [0, 5]", c: 2 },
+        { t: "Beneficio máximo si el precio está limitado a p ≤ 40", c: 2 },
+        { t: "Halla a para que tenga un extremo en x = 1", c: 3 },
+        { t: "Halla a y b para que pase por (1, 2) con tangente horizontal", c: 3 }
+      ]
+    },
+    orden: {
+      titulo: "Resolver un problema de optimización",
+      consigna: "Ordena los pasos de un problema de máximos y mínimos.",
+      items: [
+        { t: "Identificar la magnitud a optimizar y la condición del enunciado", nota: "Dibujar ayuda." },
+        { t: "Expresar la función objetivo con una sola variable", nota: "Usando la condición para eliminar la otra." },
+        { t: "Fijar el dominio de la variable", nota: "Longitudes positivas, etc." },
+        { t: "Derivar e igualar a cero", nota: "Descartar soluciones fuera del dominio." },
+        { t: "Justificar que es máximo o mínimo", nota: "Con f″, con el signo de f′ o comparando con los bordes." },
+        { t: "Responder con todas las magnitudes y unidades", nota: "Sustituir en la función objetivo." }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function opc(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    { id: "e01", nivel: 1, enunciado: "Halla el mínimo relativo de f(x) = x² − 4x + 3: ¿en qué valor de x se alcanza?", check: num("x =", 2),
+      pistas: ["Deriva e iguala a cero."], pasos: ["f′(x) = 2x − 4 = 0 ⟹ x = 2.", "f″(x) = 2 &gt; 0: mínimo relativo en x = 2 (con f(2) = −1)."], resultado: "x = 2" },
+    { id: "e02", nivel: 1, enunciado: "Halla los puntos críticos de f(x) = x³ − 12x.", check: { tipo: "lista", etiqueta: "x =", valores: [2, -2] },
+      pistas: ["f′(x) = 0."], pasos: ["f′(x) = 3x² − 12 = 3(x − 2)(x + 2).", "Se anula en x = 2 y x = −2."], resultado: "x = 2 y x = −2" },
+    { id: "e03", nivel: 1, enunciado: "Calcula el valor del máximo relativo de f(x) = x³ − 12x.", check: num("f(máx) =", 16),
+      pistas: ["Los críticos son ±2; f′ pasa de + a − en uno de ellos."], pasos: ["f′ = 3(x − 2)(x + 2): + si x &lt; −2, − en (−2, 2), + si x &gt; 2.", "Máximo en x = −2: f(−2) = −8 + 24 = 16."], resultado: "16" },
+    { id: "e04", nivel: 1, enunciado: "Halla la abscisa del punto de inflexión de f(x) = x³ − 3x².", check: num("x =", 1),
+      pistas: ["f″(x) = 0."], pasos: ["f″(x) = 6x − 6 = 0 ⟹ x = 1.", "f″ cambia de − a +: es inflexión (f(1) = −2)."], resultado: "x = 1" },
+    { id: "e05", nivel: 1, enunciado: "Halla las abscisas de los mínimos relativos de f(x) = x⁴ − 2x².", check: { tipo: "lista", etiqueta: "x =", valores: [1, -1] },
+      pistas: ["f′(x) = 4x(x² − 1)."], pasos: ["f′ = 4x(x − 1)(x + 1): críticos −1, 0, 1.", "Signos de f′: − (x &lt; −1), + (−1, 0), − (0, 1), + (x &gt; 1). Mínimos en x = ±1; en x = 0 hay un máximo."], resultado: "x = 1 y x = −1" },
+    { id: "e06", nivel: 1, enunciado: "Si f′(a) = 0 y f″(a) = −3, ¿qué hay en x = a?", check: opc("En x = a hay", ["Un máximo relativo", "Un mínimo relativo", "Un punto de inflexión", "No se puede decir"], 0),
+      pistas: ["Signo de la segunda derivada."], pasos: ["f″(a) &lt; 0: la curva es ∩ con tangente horizontal."], resultado: "Máximo relativo" },
+    { id: "e07", nivel: 1, enunciado: "Halla el máximo y el mínimo absolutos de f(x) = 2x³ − 6x + 1 en [0, 2].", check: [num("Máximo =", 5), num("Mínimo =", -3)],
+      pistas: ["Compara f en los extremos y en los puntos críticos interiores."], pasos: ["f′ = 6x² − 6 = 0 ⟹ x = ±1; solo x = 1 está en [0, 2].", "f(0) = 1, f(1) = −3, f(2) = 16 − 12 + 1 = 5.", "Máximo absoluto 5 (x = 2); mínimo absoluto −3 (x = 1)."], resultado: "máximo 5, mínimo −3" },
+    { id: "e08", nivel: 1, enunciado: "Halla el punto c que da el teorema de Rolle para f(x) = x² − 6x + 8 en [2, 4].", check: num("c =", 3),
+      pistas: ["f(2) = f(4) = 0."], pasos: ["f(2) = 4 − 12 + 8 = 0 y f(4) = 16 − 24 + 8 = 0.", "f′(c) = 2c − 6 = 0 ⟹ c = 3."], resultado: "c = 3" },
+    { id: "e09", nivel: 1, enunciado: "Halla el punto c del teorema del valor medio para f(x) = x³ en [0, 2].", check: num("c =", 2 / Math.sqrt(3)),
+      pistas: ["Pendiente media = (8 − 0)/(2 − 0)."], pasos: ["Pendiente media = 8/2 = 4.", "3c² = 4 ⟹ c = 2/√3 ≈ 1,155 (el valor negativo no está en el intervalo)."], resultado: "c = 2/√3 ≈ 1,155" },
+    { id: "e10", nivel: 1, enunciado: "Calcula lím<sub>x→1</sub> (x² − 1)/ln x con L'Hôpital.", check: num("Límite =", 2),
+      pistas: ["Es 0/0."], pasos: ["(x² − 1)′/(ln x)′ = 2x/(1/x) = 2x².", "En x = 1: 2."], resultado: "2" },
+    { id: "e11", nivel: 1, enunciado: "Dos números positivos suman 30. ¿Cuánto valen si su producto es máximo y cuál es ese producto?", check: [num("Cada número =", 15), num("Producto máximo =", 225)],
+      pistas: ["Si uno es x, el otro es 30 − x."], pasos: ["P(x) = x(30 − x) = 30x − x², x ∈ (0, 30).", "P′ = 30 − 2x = 0 ⟹ x = 15; P″ = −2 &lt; 0: máximo.", "Los dos números valen 15 y el producto es 225."], resultado: "15 y 15; 225" },
+    { id: "e12", nivel: 1, enunciado: "De todos los rectángulos de perímetro 36 m, ¿qué área máxima se consigue?", check: num("Área máxima (m²) =", 81),
+      pistas: ["Semiperímetro 18: lados x y 18 − x."], pasos: ["A(x) = x(18 − x); A′ = 18 − 2x = 0 ⟹ x = 9.", "A″ = −2 &lt; 0: máximo. Cuadrado de lado 9: A = 81 m²."], resultado: "81 m²" },
+    { id: "e13", nivel: 1, enunciado: "Halla el mínimo de f(x) = x − ln x en (0, ∞): el punto x y el valor mínimo.", check: [num("x =", 1), num("Mínimo =", 1)],
+      pistas: ["Dominio x &gt; 0."], pasos: ["f′ = 1 − 1/x = 0 ⟹ x = 1. f″ = 1/x² &gt; 0 ⟹ mínimo.", "f(1) = 1 − 0 = 1."], resultado: "x = 1, mínimo 1" },
+    { id: "e14", nivel: 1, enunciado: "La función f(x) = eˣ, en todo ℝ, es", check: opc("f es", ["Convexa (∪)", "Cóncava (∩)", "Con una inflexión en x = 0", "Convexa en x &gt; 0 y cóncava en x &lt; 0"], 0),
+      pistas: ["f″(x) = eˣ."], pasos: ["f″(x) = eˣ &gt; 0 para todo x: convexa siempre, sin inflexiones."], resultado: "Convexa" },
+    // ---------------------------------------------------------------- ★★
+    { id: "e15", nivel: 2, enunciado: "Halla los valores del máximo y del mínimo relativos de f(x) = x³ − 6x² + 9x + 2.", check: [num("Máximo relativo =", 6), num("Mínimo relativo =", 2)],
+      pistas: ["f′ = 3(x − 1)(x − 3)."], pasos: ["Críticos x = 1 y x = 3; f′ es + / − / + ⟹ máximo en x = 1, mínimo en x = 3.", "f(1) = 1 − 6 + 9 + 2 = 6; f(3) = 27 − 54 + 27 + 2 = 2."], resultado: "máximo 6 (x = 1), mínimo 2 (x = 3)" },
+    { id: "e16", nivel: 2, enunciado: "Para f(x) = x/(x² + 1), halla la abscisa y el valor del máximo relativo.", check: [num("x =", 1), num("Valor =", 0.5)],
+      pistas: ["f′ = (1 − x²)/(x² + 1)²."], pasos: ["f′ = 0 ⟹ x = ±1. Signos: − (x &lt; −1), + (−1, 1), − (x &gt; 1).", "Máximo en x = 1: f(1) = 1/2 (y mínimo en x = −1: −1/2)."], resultado: "x = 1, valor 1/2" },
+    { id: "e17", nivel: 2, enunciado: "Calcula el valor del máximo relativo de f(x) = x²e<sup>−x</sup>.", check: num("Máximo =", 4 * Math.exp(-2)),
+      pistas: ["f′ = (2x − x²)e<sup>−x</sup> = x(2 − x)e<sup>−x</sup>."], pasos: ["f′ = 0 ⟹ x = 0 y x = 2. Signos: − (x &lt; 0), + (0, 2), − (x &gt; 2).", "Máximo en x = 2: f(2) = 4e<sup>−2</sup> ≈ 0,5413. (En x = 0, mínimo con f = 0.)"], resultado: "4e⁻² ≈ 0,5413" },
+    { id: "e18", nivel: 2, enunciado: "Halla las abscisas de los puntos de inflexión de f(x) = x⁴ − 8x² + 3.", check: { tipo: "lista", etiqueta: "x =", valores: [2 / Math.sqrt(3), -2 / Math.sqrt(3)] },
+      pistas: ["f″(x) = 12x² − 16."], pasos: ["f″ = 0 ⟹ x² = 4/3 ⟹ x = ±2/√3 ≈ ±1,155.", "f″ cambia de signo en ambos (es una parábola que corta al eje): son inflexiones."], resultado: "x = ±2/√3 ≈ ±1,155" },
+    { id: "e19", nivel: 2, enunciado: "Halla el máximo y el mínimo absolutos de f(x) = x³ − 3x² + 2 en [−1, 3].", check: [num("Máximo =", 2), num("Mínimo =", -2)],
+      pistas: ["f′ = 3x(x − 2)."], pasos: ["Críticos x = 0 y x = 2, ambos en (−1, 3).", "f(−1) = −2, f(0) = 2, f(2) = −2, f(3) = 2.", "Máximo 2 (x = 0 y x = 3); mínimo −2 (x = −1 y x = 2)."], resultado: "máximo 2, mínimo −2" },
+    { id: "e20", nivel: 2, enunciado: "Halla el máximo y el mínimo absolutos de f(x) = ln x / x en [1, e²].", check: [num("Máximo =", 1 / Math.E), num("Mínimo =", 0)],
+      pistas: ["f′ = (1 − ln x)/x²."], pasos: ["f′ = 0 ⟹ ln x = 1 ⟹ x = e ∈ [1, e²].", "f(1) = 0, f(e) = 1/e ≈ 0,368, f(e²) = 2/e² ≈ 0,271.", "Máximo 1/e (x = e); mínimo 0 (x = 1)."], resultado: "máximo 1/e, mínimo 0" },
+    { id: "e21", nivel: 2, enunciado: "Halla a y b para que f(x) = x³ + ax + b tenga un mínimo relativo en el punto (2, −5).", check: [num("a =", -12), num("b =", 11)],
+      pistas: ["f′(2) = 0 y f(2) = −5."], pasos: ["f′ = 3x² + a ⟹ 12 + a = 0 ⟹ a = −12.", "f(2) = 8 − 24 + b = −5 ⟹ b = 11.", "Comprobación: f″(2) = 12 &gt; 0, mínimo. ✓"], resultado: "a = −12, b = 11" },
+    { id: "e22", nivel: 2, enunciado: "Halla a, b y c para que f(x) = ax² + bx + c pase por (0, 1) y tenga un mínimo en (1, 0).", check: [num("a =", 1), num("b =", -2), num("c =", 1)],
+      pistas: ["Tres condiciones: f(0) = 1, f(1) = 0, f′(1) = 0."], pasos: ["f(0) = c = 1. f(1) = a + b + 1 = 0. f′(1) = 2a + b = 0.", "Restando: a = 1, y b = −2.", "f(x) = x² − 2x + 1 = (x − 1)²: mínimo en (1, 0). ✓"], resultado: "a = 1, b = −2, c = 1" },
+    { id: "e23", nivel: 2, enunciado: "Un rectángulo tiene un lado sobre el eje X y los dos vértices superiores en la parábola y = 12 − x² (simétrico respecto al eje Y). Halla el valor x de su vértice (con x &gt; 0) que da el área máxima y esa área.", check: [num("x =", 2), num("Área máx =", 32)],
+      pistas: ["Base 2x, altura 12 − x²."], pasos: ["A(x) = 2x(12 − x²) = 24x − 2x³, x ∈ (0, √12).", "A′ = 24 − 6x² = 0 ⟹ x = 2; A″ = −12x &lt; 0: máximo.", "A(2) = 2·2·8 = 32."], resultado: "x = 2, área 32" },
+    { id: "e24", nivel: 2, enunciado: "Se quiere cercar una parcela rectangular de 900 m² con la menor cantidad de valla. Halla el lado del cuadrado óptimo y el perímetro mínimo.", check: [num("Lado (m) =", 30), num("Perímetro mín (m) =", 120)],
+      pistas: ["P = 2x + 2·900/x."], pasos: ["P(x) = 2x + 1800/x, x &gt; 0. P′ = 2 − 1800/x² = 0 ⟹ x² = 900 ⟹ x = 30.", "P″ = 3600/x³ &gt; 0: mínimo. y = 900/30 = 30 (cuadrado). P = 120 m."], resultado: "lado 30 m, perímetro 120 m" },
+    { id: "e25", nivel: 2, enunciado: "Una lata cilíndrica debe tener 330 cm³ (como una de refresco). Halla el radio (cm) y la superficie mínima (cm²) con ese volumen.", check: [num("Radio (cm) =", 3.7449), num("Superficie mín (cm²) =", 264.36)],
+      pistas: ["S(r) = 2πr² + 660/r."], pasos: ["h = 330/(πr²) ⟹ S(r) = 2πr² + 660/r.", "S′ = 4πr − 660/r² = 0 ⟹ r³ = 165/π ⟹ r ≈ 3,745 cm (h = 2r ≈ 7,49 cm).", "S″ &gt; 0: mínimo. S ≈ 264,4 cm²."], resultado: "r ≈ 3,745 cm; S ≈ 264,4 cm²" },
+    { id: "e26", nivel: 2, enunciado: "¿Cuál es la distancia mínima del origen a la recta y = 2x + 3 (usando derivadas)? Da también la abscisa del punto más cercano.", check: [num("Abscisa =", -1.2), num("Distancia =", 3 / Math.sqrt(5))],
+      pistas: ["Minimiza d² = x² + (2x + 3)²."], pasos: ["d²(x) = 5x² + 12x + 9. (d²)′ = 10x + 12 = 0 ⟹ x = −6/5.", "d² = 5·36/25 − 72/5 + 9 = 9/5 ⟹ d = 3/√5 ≈ 1,342."], resultado: "x = −6/5, d = 3/√5 ≈ 1,342" },
+    { id: "e27", nivel: 2, enunciado: "Halla a para que f(x) = x² + ax + 3 cumpla el teorema de Rolle en [1, 5], y el valor de c.", check: [num("a =", -6), num("c =", 3)],
+      pistas: ["Impón f(1) = f(5)."], pasos: ["f(1) = 4 + a; f(5) = 28 + 5a ⟹ 4 + a = 28 + 5a ⟹ a = −6.", "f′(c) = 2c − 6 = 0 ⟹ c = 3 ∈ (1, 5)."], resultado: "a = −6, c = 3" },
+    { id: "e28", nivel: 2, enunciado: "Calcula lím<sub>x→0</sub> (x − sen x)/x³.", check: num("Límite =", 1 / 6),
+      pistas: ["Aplícalo dos veces."], pasos: ["0/0: (1 − cos x)/(3x²), otra vez 0/0.", "Segunda aplicación: sen x/(6x) → 1/6."], resultado: "1/6" },
+    { id: "e29", nivel: 2, enunciado: "Calcula lím<sub>x→0</sub> (e<sup>2x</sup> − 1 − 2x)/x².", check: num("Límite =", 2),
+      pistas: ["Dos aplicaciones de L'Hôpital."], pasos: ["(2e<sup>2x</sup> − 2)/(2x): sigue 0/0.", "(4e<sup>2x</sup>)/2 → 2."], resultado: "2" },
+    { id: "e30", nivel: 2, enunciado: "Calcula lím<sub>x→0</sub> (1/x − 1/(eˣ − 1)).", check: num("Límite =", 0.5),
+      pistas: ["Denominador común: ∞ − ∞ pasa a 0/0."], pasos: ["= (eˣ − 1 − x)/(x(eˣ − 1)): 0/0.", "L'Hôpital: (eˣ − 1)/(eˣ − 1 + xeˣ): 0/0 otra vez. Segunda: eˣ/(2eˣ + xeˣ) → 1/2."], resultado: "1/2" },
+    // ---------------------------------------------------------------- ★★★
+    { id: "e31", nivel: 3, enunciado: "Para f(x) = x²/(x − 1), halla los valores del máximo relativo y del mínimo relativo (¡compáralos!).", check: [num("Máximo relativo =", 0), num("Mínimo relativo =", 4)],
+      pistas: ["f′ = x(x − 2)/(x − 1)²."], pasos: ["Dominio x ≠ 1. f′ = 0 ⟹ x = 0, x = 2.", "Signos: + (x &lt; 0), − (0, 1), − (1, 2), + (x &gt; 2). Máximo relativo en x = 0 con f = 0; mínimo relativo en x = 2 con f = 4.", "El máximo relativo (0) es menor que el mínimo relativo (4): no son absolutos."], resultado: "máximo relativo 0, mínimo relativo 4" },
+    { id: "e32", nivel: 3, enunciado: "Halla la abscisa y el valor del mínimo relativo de f(x) = eˣ/x en x &gt; 0.", check: [num("x =", 1), num("Valor =", Math.E)],
+      pistas: ["f′ = eˣ(x − 1)/x²."], pasos: ["f′ = 0 ⟹ x = 1. Signos: − en (0, 1), + en x &gt; 1.", "Mínimo en x = 1: f(1) = e ≈ 2,718."], resultado: "x = 1, valor e" },
+    { id: "e33", nivel: 3, enunciado: "Halla las abscisas de los puntos de inflexión de f(x) = x²e<sup>−x</sup>.", check: { tipo: "lista", etiqueta: "x =", valores: [2 + Math.SQRT2, 2 - Math.SQRT2] },
+      pistas: ["f″ = (x² − 4x + 2)e<sup>−x</sup>."], pasos: ["f′ = (2x − x²)e<sup>−x</sup>; f″ = (2 − 2x)e<sup>−x</sup> − (2x − x²)e<sup>−x</sup> = (x² − 4x + 2)e<sup>−x</sup>.", "x² − 4x + 2 = 0 ⟹ x = 2 ± √2 ≈ 3,414 y 0,586; la parábola cambia de signo en ambos."], resultado: "x = 2 ± √2" },
+    { id: "e34", nivel: 3, enunciado: "Halla el mínimo absoluto de f(x) = x + 4/x en (0, ∞): la abscisa y el valor.", check: [num("x =", 2), num("Valor =", 4)],
+      pistas: ["f → ∞ en los bordes del dominio."], pasos: ["f′ = 1 − 4/x² = 0 ⟹ x = 2. f″ = 8/x³ &gt; 0: mínimo.", "Como f → ∞ cuando x → 0⁺ y cuando x → ∞, es mínimo absoluto: f(2) = 4."], resultado: "x = 2, mínimo 4" },
+    { id: "e35", nivel: 3, enunciado: "Halla el máximo y el mínimo absolutos de f(x) = x + 2cos x en [0, π].", check: [num("Máximo =", Math.PI / 6 + Math.sqrt(3)), num("Mínimo =", 5 * Math.PI / 6 - Math.sqrt(3))],
+      pistas: ["f′ = 1 − 2 sen x = 0 ⟹ sen x = 1/2."], pasos: ["En [0, π]: x = π/6 y x = 5π/6.", "f(0) = 2; f(π/6) = π/6 + √3 ≈ 2,2556; f(5π/6) = 5π/6 − √3 ≈ 0,8859; f(π) = π − 2 ≈ 1,1416.", "Máximo ≈ 2,2556 (x = π/6); mínimo ≈ 0,8859 (x = 5π/6)."], resultado: "máx π/6 + √3 ≈ 2,256; mín 5π/6 − √3 ≈ 0,886" },
+    { id: "e36", nivel: 3, enunciado: "Halla el máximo y el mínimo absolutos de f(x) = |x² − 4x| en [0, 5].", check: [num("Máximo =", 5), num("Mínimo =", 0)],
+      pistas: ["Cuidado con x = 0 y x = 4, donde f no es derivable."], pasos: ["f(x) = x² − 4x si x ≤ 0 o x ≥ 4; f(x) = 4x − x² si 0 &lt; x &lt; 4.", "Candidatos: extremos 0 y 5; x = 4 (punto angular); x = 2 (f′ = 4 − 2x = 0).", "f(0) = 0, f(2) = 4, f(4) = 0, f(5) = 5. Máximo 5, mínimo 0."], resultado: "máximo 5, mínimo 0" },
+    { id: "e37", nivel: 3, enunciado: "Halla a, b y c para que f(x) = x³ + ax² + bx + c tenga un máximo relativo en x = −1, un mínimo relativo en x = 3 y f(0) = 5.", check: [num("a =", -3), num("b =", -9), num("c =", 5)],
+      pistas: ["f′(x) = 3(x + 1)(x − 3)."], pasos: ["f′(−1) = 3 − 2a + b = 0 y f′(3) = 27 + 6a + b = 0.", "Restando: 24 + 8a = 0 ⟹ a = −3, y b = −9. f(0) = c = 5.", "Comprobación: f″ = 6x − 6: f″(−1) = −12 &lt; 0 (máximo), f″(3) = 12 &gt; 0 (mínimo). ✓"], resultado: "a = −3, b = −9, c = 5" },
+    { id: "e38", nivel: 3, enunciado: "Halla a y b para que f(x) = a·eˣ + b·x pase por (0, 1) y tenga un extremo en x = ln 2.", check: [num("a =", 1), num("b =", -2)],
+      pistas: ["f′(x) = aeˣ + b."], pasos: ["f(0) = a = 1.", "f′(ln 2) = 2a + b = 0 ⟹ b = −2.", "f(x) = eˣ − 2x: f″ = eˣ &gt; 0, mínimo con f(ln 2) = 2 − 2 ln 2 ≈ 0,614."], resultado: "a = 1, b = −2" },
+    { id: "e39", nivel: 3, enunciado: "Un triángulo rectángulo tiene hipotenusa 10. ¿Qué área máxima puede tener?", check: num("Área máxima =", 25),
+      pistas: ["Catetos x y √(100 − x²); minimiza o maximiza A² = x²(100 − x²)/4."], pasos: ["A = x√(100 − x²)/2; A² = (100x² − x⁴)/4.", "(A²)′ = (200x − 4x³)/4 = 0 ⟹ x² = 50. Máximo (A² = 625).", "A = 25 (triángulo isósceles de catetos 5√2)."], resultado: "25" },
+    { id: "e40", nivel: 3, enunciado: "Un cilindro está inscrito en una esfera de radio 3. Halla su altura h y su volumen máximo.", check: [num("Altura =", 2 * Math.sqrt(3)), num("Volumen máx =", 12 * Math.sqrt(3) * Math.PI)],
+      pistas: ["r² = 9 − h²/4; V = πr²h."], pasos: ["V(h) = π(9h − h³/4), h ∈ (0, 6).", "V′ = π(9 − 3h²/4) = 0 ⟹ h² = 12 ⟹ h = 2√3 ≈ 3,464. V″ &lt; 0: máximo.", "r² = 9 − 3 = 6; V = π·6·2√3 = 12√3π ≈ 65,30."], resultado: "h = 2√3 ≈ 3,464; V = 12√3π ≈ 65,30" },
+    { id: "e41", nivel: 3, enunciado: "Una persona está en una barca a 3 km de la orilla (recta) y quiere llegar a un punto situado a 6 km del pie de la perpendicular, a lo largo de la orilla. Rema a 3 km/h y anda a 5 km/h. ¿A qué distancia x del pie de la perpendicular debe desembarcar para tardar lo menos posible, y cuánto tarda?", check: [num("x (km) =", 2.25), num("Tiempo (h) =", 2)],
+      pistas: ["T(x) = √(9 + x²)/3 + (6 − x)/5."], pasos: ["T′(x) = x/(3√(9 + x²)) − 1/5 = 0 ⟹ 5x = 3√(9 + x²) ⟹ 25x² = 81 + 9x² ⟹ x = 9/4.", "T(9/4) = 3,75/3 + 3,75/5 = 1,25 + 0,75 = 2 h. Se compara con los bordes: T(0) = 2,2 h y T(6) ≈ 2,236 h.", "Por tanto desembarca a 2,25 km y tarda 2 h."], resultado: "x = 2,25 km; 2 h" },
+    { id: "e42", nivel: 3, enunciado: "Una empresa vende una cantidad q = 1000 − 10p con p el precio en euros; el coste total es C = 2000 + 20q. Halla el precio que maximiza el beneficio y ese beneficio.", check: [num("Precio (€) =", 60), num("Beneficio (€) =", 14000)],
+      pistas: ["Beneficio = ingresos − coste = pq − C."], pasos: ["B(p) = p(1000 − 10p) − 2000 − 20(1000 − 10p) = −10p² + 1200p − 22000.", "B′ = −20p + 1200 = 0 ⟹ p = 60; B″ = −20 &lt; 0: máximo.", "B(60) = −36000 + 72000 − 22000 = 14000 €."], resultado: "p = 60 €; B = 14 000 €" },
+    { id: "e43", nivel: 3, enunciado: "¿Cuántas soluciones reales tiene la ecuación x³ + 3x − 1 = 0?", check: opc("Número de raíces reales", ["Exactamente una", "Ninguna", "Exactamente dos", "Tres"], 0),
+      pistas: ["Bolzano para la existencia; f′ para la unicidad."], pasos: ["f(0) = −1 y f(1) = 3: Bolzano ⟹ hay al menos una en (0, 1).", "f′ = 3x² + 3 &gt; 0 en todo ℝ: f es estrictamente creciente; como mucho una (Rolle)."], resultado: "Exactamente una" },
+    { id: "e44", nivel: 3, enunciado: "Halla la abscisa y el valor del mínimo de f(x) = x² ln x en su dominio (x &gt; 0).", check: [num("x =", Math.exp(-0.5)), num("Mínimo =", -1 / (2 * Math.E))],
+      pistas: ["f′ = x(2 ln x + 1)."], pasos: ["f′ = 2x ln x + x = x(2 ln x + 1) = 0 ⟹ ln x = −1/2 ⟹ x = e<sup>−1/2</sup> ≈ 0,6065.", "f′ es − a la izquierda y + a la derecha: mínimo.", "f = e<sup>−1</sup>·(−1/2) = −1/(2e) ≈ −0,1839."], resultado: "x = e^(−1/2); mínimo −1/(2e) ≈ −0,184" }
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Signos de f′ y de f″", ancha: true,
+      tabla: { cab: ["Signo", "Qué dice sobre f"], filas: [
+        ["f′ &gt; 0", "f creciente"],
+        ["f′ &lt; 0", "f decreciente"],
+        ["f′ pasa de + a −", "máximo relativo"],
+        ["f′ pasa de − a +", "mínimo relativo"],
+        ["f″ &gt; 0", "convexa ∪"],
+        ["f″ &lt; 0", "cóncava ∩"],
+        ["f″ cambia de signo", "punto de inflexión"]
+      ] },
+      nota: "f′(a) = 0 y f″(a) &gt; 0 ⟹ mínimo; f″(a) &lt; 0 ⟹ máximo; f″(a) = 0 no decide." },
+    { titulo: "Extremos absolutos y parámetros",
+      pasos: [
+        "<b>Cerrado [a, b]</b>: comparar f en los puntos críticos interiores y en a y b.",
+        "<b>No cerrado</b>: mirar también los límites en los bordes.",
+        "<b>Pasa por (x₀, y₀)</b> ⟹ f(x₀) = y₀.",
+        "<b>Extremo en x₀</b> ⟹ f′(x₀) = 0.",
+        "<b>Inflexión en x₀</b> ⟹ f″(x₀) = 0.",
+        "<b>Tangente de pendiente m</b> ⟹ f′(x₀) = m."
+      ], nota: "Una ecuación por parámetro; comprueba el resultado." },
+    { titulo: "Optimización: pasos",
+      pasos: [
+        "Dibuja e identifica la magnitud a optimizar.",
+        "Función con una sola variable (usa la condición).",
+        "Dominio.",
+        "f′ = 0 y descarta lo que no esté en el dominio.",
+        "Justifica: f″, signo de f′ o bordes.",
+        "Responde con todas las magnitudes y unidades."
+      ], nota: "Distancia mínima: minimiza el cuadrado." },
+    { titulo: "Teoremas y L'Hôpital",
+      items: [
+        "<b>Rolle</b>: continua en [a, b], derivable en (a, b), f(a) = f(b) ⟹ ∃c, f′(c) = 0.",
+        "<b>Valor medio</b>: ∃c, f′(c) = (f(b) − f(a))/(b − a).",
+        "<b>Bolzano + f′ ≠ 0</b> ⟹ exactamente una raíz.",
+        "<b>L'Hôpital</b>: 0/0 o ∞/∞, y debe existir lím f′/g′."
+      ], nota: "Trampa: (x + sen x)/x en ∞." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "f′(a) = 0 ⟹ extremo", bien: "hace falta cambio de signo de f′", por: "x³ en x = 0." },
+        { mal: "f″(a) = 0 ⟹ inflexión", bien: "f″ debe cambiar de signo", por: "x⁴ en x = 0." },
+        { mal: "Olvidar los extremos del intervalo", bien: "comparar con f(a) y f(b)", por: "El máximo absoluto puede estar en el borde." },
+        { mal: "Responder solo con x", bien: "dar el valor de la magnitud y unidades", por: "Piden área, volumen, beneficio…" },
+        { mal: "Derivar sin una sola variable", bien: "usar la condición antes de derivar", por: "La función objetivo debe depender de una variable." },
+        { mal: "L'Hôpital sin indeterminación", bien: "comprobar 0/0 o ∞/∞", por: "(x+1)/(x+2) en 0 vale 1/2, no 1." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t9", {
+    resumen: resumen, secciones: B.parte.m2t9a.secciones, nuevas: B.parte.m2t9b.nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
