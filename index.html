@@ -11518,6 +11518,325 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · laboratorio de Matemáticas II, tema 4 (Vectores en el espacio)
+   vec_3d (vista 3D girable) · vec_calc (calculadora paso a paso) · vec_param (vectores con parámetro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  B.lab = B.lab || {};
+  var V = B.lab.vec = {};
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("vc-estilos")) return;
+    var s = document.createElement("style"); s.id = "vc-estilos";
+    s.textContent =
+      ".vc-vec{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:6px 0}" +
+      ".vc-vec .vc-nom{font:700 16px var(--math);min-width:1.6em}" +
+      ".vc-vec input[type=number]{width:64px;padding:5px 6px;font:15px var(--math);border:1px solid var(--line,rgba(128,128,128,.4));border-radius:8px;background:var(--sheet-2);color:var(--ink)}" +
+      ".vc-pasos{margin:8px 0 0;padding:0;list-style:none;font-size:14.5px;line-height:1.55}" +
+      ".vc-pasos li{padding:5px 0;border-top:1px solid var(--line,rgba(128,128,128,.25))}" +
+      ".vc-pasos li>b:first-child{display:block;font-size:12px;color:var(--ink-faint);font-weight:600;text-transform:none}" +
+      ".vc-ok{color:var(--ok);font-weight:700}.vc-mal{color:var(--red);font-weight:700}" +
+      ".vc-svg{touch-action:pan-y;cursor:grab}" +
+      "@media(max-width:520px){.vc-vec input[type=number]{width:54px}.vc-pasos{font-size:13.5px}}";
+    document.head.appendChild(s);
+  })();
+
+  // ---------- álgebra de vectores ----------
+  function sg(n) { return n < 0 ? "−" + (-n) : String(n); }
+  function par(n) { return n < 0 ? "(−" + (-n) + ")" : String(n); }
+  function n2(x) { return fmt(Math.round(x * 1e9) / 1e9, 2).replace(/,00$/, "").replace(/(,\d)0$/, "$1"); }
+  V.suma = function (a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; };
+  V.esc = function (k, a) { return [k * a[0], k * a[1], k * a[2]]; };
+  V.dot = function (a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; };
+  V.cruz = function (a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; };
+  V.mixto = function (a, b, c) { return V.dot(a, V.cruz(b, c)); };
+  V.mod = function (a) { return Math.sqrt(V.dot(a, a)); };
+  V.ang = function (a, b) { return Math.acos(Math.max(-1, Math.min(1, V.dot(a, b) / (V.mod(a) * V.mod(b))))) * 180 / Math.PI; };
+  V.vtxt = function (a) { return "(" + a.map(function (x) { return n2(x); }).join(", ") + ")"; };
+  // √n con n entero: a√b simplificado, en HTML
+  V.raiz = function (n) {
+    if (Math.abs(n - Math.round(n)) > 1e-9) return "√" + n2(n);
+    n = Math.round(n);
+    if (n === 0) return "0";
+    var a = 1, b = n;
+    for (var f = 2; f * f <= b; f++) while (b % (f * f) === 0) { b /= f * f; a *= f; }
+    if (b === 1) return String(a);
+    return (a === 1 ? "" : a) + "√" + b;
+  };
+  // rango de una lista de vectores (numérico)
+  V.rango = function (vs) {
+    var M = vs.map(function (f) { return f.slice(); }), r = 0, esc = 1;
+    M.forEach(function (f) { f.forEach(function (x) { esc = Math.max(esc, Math.abs(x)); }); });
+    for (var c = 0; c < 3 && r < M.length; c++) {
+      var p = r;
+      for (var i = r + 1; i < M.length; i++) if (Math.abs(M[i][c]) > Math.abs(M[p][c])) p = i;
+      if (Math.abs(M[p][c]) <= 1e-9 * esc) continue;
+      var t = M[p]; M[p] = M[r]; M[r] = t;
+      for (var k = r + 1; k < M.length; k++) { var q = M[k][c] / M[r][c]; for (var l = c; l < 3; l++) M[k][l] -= q * M[r][l]; }
+      r++;
+    }
+    return r;
+  };
+
+  // ============================================================
+  // VISTA 3D GIRABLE: u × v, producto escalar y producto mixto
+  // ============================================================
+  var PRE = {
+    cruz: [
+      { k: "0", t: "Ejemplo", u: [2, 1, 0], v: [0, 2, 1] }, { k: "1", t: "Perpendiculares", u: [2, 0, 0], v: [0, 3, 0] },
+      { k: "2", t: "Paralelos", u: [1, 2, 1], v: [2, 4, 2] }, { k: "3", t: "Intercambio v × u", u: [0, 2, 1], v: [2, 1, 0] }
+    ],
+    esc: [
+      { k: "0", t: "Ejemplo", u: [3, 1, 0], v: [2, 2, 1] }, { k: "1", t: "Perpendiculares", u: [1, 2, 0], v: [2, -1, 3] },
+      { k: "2", t: "Paralelos", u: [1, 2, 1], v: [2, 4, 2] }, { k: "3", t: "Obtuso", u: [2, 1, 0], v: [-2, 1, 1] }
+    ],
+    mixto: [
+      { k: "0", t: "Ejemplo", u: [2, 0, 0], v: [1, 2, 0], w: [0, 1, 2] }, { k: "1", t: "Caja", u: [2, 0, 0], v: [0, 3, 0], w: [0, 0, 2] },
+      { k: "2", t: "Coplanarios (w = u + v)", u: [2, 0, 0], v: [1, 2, 0], w: [3, 2, 0] }, { k: "3", t: "Orientación inversa", u: [2, 0, 0], v: [1, 2, 0], w: [0, 1, -2] }
+    ]
+  };
+  V.PRE3D = PRE;
+
+  B.w.vec_3d = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Vectores en 3D: gira la vista con el ratón o los deslizadores");
+    cuerpo.innerHTML = '<div data-modo></div><div data-pre></div><div class="w-plot"></div><div data-ctl></div><div data-ctl2></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var ref = host.getAttribute("data-ref") || "";
+    var modo0 = /escalar$/.test(ref) ? "esc" : /mixto$/.test(ref) ? "mixto" : "cruz";
+    var st = { modo: modo0, u: PRE[modo0][0].u.slice(), v: PRE[modo0][0].v.slice(), w: (PRE.mixto[0].w).slice(), az: 35, el: 22 };
+    var lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), plotEl = cuerpo.querySelector(".w-plot");
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), ctl2 = U.ctl(cuerpo.querySelector("[data-ctl2]"));
+    var g, sls = {}, azS, elS;
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "cruz", t: "u × v" }, { k: "esc", t: "u · v" }, { k: "mixto", t: "[u, v, w]" }], st.modo, function (k) {
+      st.modo = k; var p = PRE[k][0]; st.u = p.u.slice(); st.v = p.v.slice(); if (p.w) st.w = p.w.slice(); armaPre(); armaSl(); pinta();
+    });
+    function armaPre() {
+      U.fichas(cuerpo.querySelector("[data-pre]"), PRE[st.modo].map(function (p) { return { k: p.k, t: p.t }; }), "-", function (k) {
+        var p = PRE[st.modo][+k]; st.u = p.u.slice(); st.v = p.v.slice(); if (p.w) st.w = p.w.slice(); sync(); pinta();
+      });
+    }
+    function sync() { ["u", "v", "w"].forEach(function (n) { if (sls[n]) sls[n].forEach(function (s, i) { s.set(st[n][i]); }); }); }
+    function armaSl() {
+      ctl.innerHTML = ""; sls = {};
+      (st.modo === "mixto" ? ["u", "v", "w"] : ["u", "v"]).forEach(function (n) {
+        sls[n] = [0, 1, 2].map(function (i) {
+          return U.slider(ctl, { et: n + "<sub>" + "xyz"[i] + "</sub>", etq: "Componente " + "xyz"[i] + " de " + n, min: -3, max: 3, step: 1, val: st[n][i], on: function (x) { st[n][i] = x; pinta(); }, fmt: function (x) { return fmt(x, 0); } });
+        });
+      });
+    }
+    azS = U.slider(ctl2, { et: "Giro", etq: "Giro horizontal de la vista", min: -180, max: 180, step: 5, val: st.az, on: function (x) { st.az = x; pinta(); }, fmt: function (x) { return fmt(x, 0) + "°"; } });
+    elS = U.slider(ctl2, { et: "Altura", etq: "Altura de la vista", min: -80, max: 80, step: 5, val: st.el, on: function (x) { st.el = x; pinta(); }, fmt: function (x) { return fmt(x, 0) + "°"; } });
+    U.boton(ctl2, "Vista inicial", function () { st.az = 35; st.el = 22; azS.set(35); elS.set(22); pinta(); });
+    g = new B.Plot(plotEl, { xmin: -6, xmax: 6, ymin: -5, ymax: 5, w: 600, h: 400, limpio: true, etx: "", ety: "", etiqueta: "Vista tridimensional de los vectores u, v y w" });
+    g.svg.classList.add("vc-svg");
+    // arrastrar para girar
+    (function () {
+      var d = null;
+      g.svg.addEventListener("pointerdown", function (ev) { d = { x: ev.clientX, y: ev.clientY, az: st.az, el: st.el, t: ev.pointerType }; try { g.svg.setPointerCapture(ev.pointerId); } catch (e) {} });
+      g.svg.addEventListener("pointermove", function (ev) {
+        if (!d) return;
+        st.az = Math.round(Math.max(-180, Math.min(180, d.az + (ev.clientX - d.x) * 0.6)) / 5) * 5; azS.set(st.az);
+        if (d.t !== "touch") { st.el = Math.round(Math.max(-80, Math.min(80, d.el + (ev.clientY - d.y) * 0.4)) / 5) * 5; elS.set(st.el); }
+        pinta();
+      });
+      var fin = function () { d = null; };
+      g.svg.addEventListener("pointerup", fin); g.svg.addEventListener("pointercancel", fin);
+    })();
+
+    // proyección: z hacia arriba, y hacia dentro de la pantalla
+    function proy(p) {
+      var a = st.az * Math.PI / 180, e = st.el * Math.PI / 180;
+      var xr = p[0] * Math.cos(a) - p[1] * Math.sin(a), yr = p[0] * Math.sin(a) + p[1] * Math.cos(a);
+      return [xr, p[2] * Math.cos(e) - yr * Math.sin(e), yr * Math.cos(e) + p[2] * Math.sin(e)];
+    }
+    function P2(p) { var q = proy(p); return [q[0], q[1]]; }
+    function flecha(a, b, clase, nombre, dx, dy) {
+      var A = P2(a), Bq = P2(b);
+      if (Math.abs(A[0] - Bq[0]) + Math.abs(A[1] - Bq[1]) < 1e-9) return;
+      U.flecha(g, A[0], A[1], Bq[0], Bq[1], { clase: clase, punta: 9 });
+      if (nombre) g.texto(Bq[0], Bq[1], nombre, { dx: dx || 8, dy: dy || -8, clase: clase.replace("c-", "") });
+    }
+    function seg(a, b, clase, dash) { var A = P2(a), Bq = P2(b); var s = g.segmento(A[0], A[1], Bq[0], Bq[1], { clase: clase || "c-faint" }); if (dash) s.setAttribute("stroke-dasharray", dash); return s; }
+    function ejes() {
+      [[[3.5, 0, 0], "x"], [[0, 3.5, 0], "y"], [[0, 0, 3.5], "z"]].forEach(function (e) {
+        seg([0, 0, 0], e[0], "c-faint"); var q = P2(e[0]); g.texto(q[0], q[1], e[1], { dx: 5, dy: -4, clase: "faint" });
+      });
+    }
+    function ajusta(puntos) {
+      var m = 3.8;
+      puntos.forEach(function (p) { var q = P2(p); m = Math.max(m, Math.abs(q[1]) * 1.18, Math.abs(q[0]) * 1.18 * 400 / 600 * 1.0); });
+      g.rangoIso(0, 0, Math.ceil(m * 2) / 2);
+    }
+    function pinta() {
+      var u = st.u, v = st.v, w = st.w, O = [0, 0, 0], lec = "", nota = "";
+      if (st.modo === "cruz") {
+        var c = V.cruz(u, v), mc = V.mod(c), uv = V.suma(u, v), cd = mc > 0 ? V.esc(3.2 / mc, c) : O;
+        ajusta([u, v, uv, cd, [3.5, 0, 0], [0, 3.5, 0], [0, 0, 3.5]]);
+        g.limpiar(); ejes();
+        var pts = [O, u, uv, v].map(P2);
+        g.poligono(pts, { clase: mc > 0 ? "z-pen" : "z-red", borde: "var(--ink-faint)" });
+        flecha(O, u, "c-pen", "u"); flecha(O, v, "c-red", "v");
+        if (mc > 0) { flecha(O, cd, "c-ok", "u × v"); }
+        lec = U.lec("u × v", V.vtxt(c), mc > 0 ? "ok" : "mal") + U.lec("|u × v| = área del paralelogramo", mc > 0 ? V.raiz(V.dot(c, c)).replace(/^0$/, "0") + " ≈ " + n2(mc) : "0") +
+          U.lec("Área del triángulo", mc > 0 ? n2(mc / 2) : "0") + U.lec("u · (u × v)", n2(V.dot(u, c))) + U.lec("v · (u × v)", n2(V.dot(v, c)));
+        nota = mc > 0 ? "<b>u × v</b> (verde) es perpendicular al plano de u y v: sus dos productos escalares valen 0. Su sentido sale de la regla de la mano derecha (de u hacia v); pulsa «Intercambio» y verás que se invierte. Se dibuja con longitud fija; su módulo real está arriba y es el <b>área del paralelogramo</b> (azul)."
+          : "u y v son <b>paralelos</b> (o alguno es nulo): el paralelogramo se aplasta, su área es 0 y u × v = 0.";
+      } else if (st.modo === "esc") {
+        var dp = V.dot(u, v), mu = V.mod(u), mv = V.mod(v), proj = mv > 0 ? V.esc(dp / (mv * mv), v) : O, ok0 = mu > 0 && mv > 0;
+        ajusta([u, v, [3.5, 0, 0], [0, 3.5, 0], [0, 0, 3.5]]);
+        g.limpiar(); ejes();
+        flecha(O, v, "c-red", "v"); flecha(O, u, "c-pen", "u");
+        if (ok0) { flecha(O, proj, "c-ok", ""); seg(u, proj, "c-faint", "4 4"); var pp = P2(proj); g.texto(pp[0], pp[1], "proy", { dx: 6, dy: 14, clase: "ok" }); }
+        var al = ok0 ? V.ang(u, v) : 0;
+        lec = U.lec("u · v", n2(dp), dp === 0 ? "ok" : "") + U.lec("|u| · |v|", ok0 ? V.raiz(V.dot(u, u)) + " · " + V.raiz(V.dot(v, v)) : "—") +
+          U.lec("Ángulo", ok0 ? n2(al) + "°" : "—", ok0 && Math.abs(al - 90) < 1e-9 ? "ok" : "") +
+          U.lec("Proyección de u sobre v", ok0 ? V.vtxt(proj) : "—") + U.lec("Longitud con signo", ok0 ? n2(dp / mv) : "—");
+        nota = ok0 ? (dp === 0 ? "u · v = 0: son <b>perpendiculares</b>; la proyección de u sobre v se reduce a un punto." : dp > 0 ? "u · v &gt; 0: ángulo <b>agudo</b>. La proyección (verde) de u sobre v tiene el mismo sentido que v." : "u · v &lt; 0: ángulo <b>obtuso</b>. La proyección de u sobre v apunta en sentido contrario a v.") +
+          " Fíjate en el segmento discontinuo: es la perpendicular desde la punta de u hasta la recta de v." : "Hay un vector nulo: no hay ángulo.";
+      } else {
+        var d = V.mixto(u, v, w), uv2 = V.suma(u, v), uw = V.suma(u, w), vw = V.suma(v, w), uvw = V.suma(uv2, w);
+        ajusta([u, v, w, uvw]);
+        g.limpiar(); ejes();
+        var cl = d > 0 ? "z-ok" : d < 0 ? "z-red" : "z-pen";
+        var V8 = { O: O, u: u, v: v, w: w, uv: uv2, uw: uw, vw: vw, uvw: uvw };
+        var caras = [["O", "u", "uv", "v"], ["w", "uw", "uvw", "vw"], ["O", "u", "uw", "w"], ["v", "uv", "uvw", "vw"], ["O", "v", "vw", "w"], ["u", "uv", "uvw", "uw"]];
+        caras.map(function (f) {
+          var dep = 0; f.forEach(function (n) { dep += proy(V8[n])[2]; });
+          return { f: f, dep: dep / 4 };
+        }).sort(function (a, b) { return b.dep - a.dep; }).forEach(function (o) {
+          g.poligono(o.f.map(function (n) { return P2(V8[n]); }), { clase: cl, borde: "var(--ink-faint)" });
+        });
+        flecha(O, u, "c-pen", "u"); flecha(O, v, "c-red", "v"); flecha(O, w, "c-ok", "w");
+        var mb = V.mod(V.cruz(u, v));
+        lec = U.lec("[u, v, w]", n2(d), d === 0 ? "mal" : "ok") + U.lec("Volumen del paralelepípedo", n2(Math.abs(d))) + U.lec("Volumen del tetraedro", n2(Math.abs(d) / 6)) +
+          U.lec("Orientación", d > 0 ? "directa (+)" : d < 0 ? "inversa (−)" : "coplanarios (0)", d > 0 ? "ok" : d < 0 ? "mal" : "") +
+          U.lec("Área de la base |u × v|", mb > 0 ? V.raiz(V.dot(V.cruz(u, v), V.cruz(u, v))) : "0");
+        nota = d === 0 ? "[u, v, w] = 0: los tres vectores son <b>coplanarios</b>. El paralelepípedo se aplana y su volumen es 0 (cámbiale la altura al girar la vista y lo verás de canto)."
+          : "El volumen es <b>área de la base × altura</b>: |u × v| por la altura de w sobre ese plano, y eso es justo |u · (v × w)|. El color indica la orientación: verde si [u, v, w] &gt; 0 (u, v, w forman un triedro «de mano derecha»), rojo si &lt; 0.";
+      }
+      lectura.innerHTML = lec; pie.innerHTML = nota;
+    }
+    armaPre(); armaSl(); pinta();
+  };
+
+  // ============================================================
+  // CALCULADORA DE OPERACIONES CON VECTORES, paso a paso
+  // ============================================================
+  B.w.vec_calc = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Calculadora: todas las operaciones paso a paso");
+    cuerpo.innerHTML = '<div data-pre></div><div class="vc-vec" data-vu></div><div class="vc-vec" data-vv></div><div class="vc-vec" data-vw></div><div class="lectura anch"></div><ul class="vc-pasos"></ul><p class="w-pie"></p>';
+    var st = { u: [1, 2, 3], v: [4, -1, 2], w: [0, 1, 1] };
+    var pasos = cuerpo.querySelector(".vc-pasos"), lec = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var PREC = [
+      { k: "0", t: "Ejemplo", u: [1, 2, 3], v: [4, -1, 2], w: [0, 1, 1] }, { k: "1", t: "Perpendiculares", u: [1, 1, 0], v: [1, -1, 5], w: [0, 0, 1] },
+      { k: "2", t: "Coplanarios", u: [1, 0, 2], v: [0, 1, 1], w: [2, 3, 7] }, { k: "3", t: "Caja", u: [2, 0, 0], v: [0, 3, 0], w: [0, 0, 4] }
+    ];
+    var campos = {};
+    ["u", "v", "w"].forEach(function (n) {
+      var el = cuerpo.querySelector("[data-v" + n + "]");
+      el.innerHTML = '<span class="vc-nom">' + n + ' =</span>' + [0, 1, 2].map(function (i) {
+        return '<input type="number" step="any" data-n="' + n + '" data-i="' + i + '" value="' + st[n][i] + '" aria-label="Componente ' + "xyz"[i] + ' de ' + n + '">';
+      }).join("");
+      campos[n] = el.querySelectorAll("input");
+      Array.prototype.forEach.call(campos[n], function (inp, i) {
+        inp.addEventListener("input", function () { var x = parseFloat(String(inp.value).replace(",", ".")); st[n][i] = isFinite(x) ? x : 0; pinta(); });
+      });
+    });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PREC.map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) {
+      var p = PREC[+k]; ["u", "v", "w"].forEach(function (n) { st[n] = p[n].slice(); Array.prototype.forEach.call(campos[n], function (inp, i) { inp.value = st[n][i]; }); }); pinta();
+    });
+    function pinta() {
+      var u = st.u, v = st.v, w = st.w, L = [];
+      function paso(t, h) { L.push("<li><b>" + t + "</b>" + h + "</li>"); }
+      function eqr(n) { var r = V.raiz(n); return Math.abs(n - Math.round(n)) < 1e-9 && r !== "√" + Math.round(n) ? " = " + r : ""; }
+      var a = u.map(par), b = v.map(par), c3 = w.map(par);
+      paso("Suma y diferencia", "u + v = " + V.vtxt(V.suma(u, v)) + " · u − v = " + V.vtxt(V.suma(u, V.esc(-1, v))));
+      var dp = V.dot(u, v), mu2 = V.dot(u, u), mv2 = V.dot(v, v);
+      paso("Módulos", "|u| = √(" + u.map(function (x) { return par(x) + "²"; }).join(" + ") + ") = √" + n2(mu2) + eqr(mu2) + " ≈ " + n2(Math.sqrt(mu2)) +
+        " · |v| = √" + n2(mv2) + eqr(mv2) + " ≈ " + n2(Math.sqrt(mv2)));
+      paso("Producto escalar", "u·v = " + [0, 1, 2].map(function (i) { return a[i] + "·" + b[i]; }).join(" + ") + " = <b>" + n2(dp) + "</b>");
+      var ang = "";
+      if (mu2 > 0 && mv2 > 0) {
+        var al = V.ang(u, v);
+        ang = "cos α = " + n2(dp) + " / (" + n2(Math.sqrt(mu2)) + " · " + n2(Math.sqrt(mv2)) + ") ≈ " + n2(dp / Math.sqrt(mu2 * mv2)) + " ⟹ α ≈ <b>" + n2(al) + "°</b>" + (Math.abs(dp) < 1e-9 ? ' <span class="vc-ok">(perpendiculares)</span>' : "");
+      } else ang = "hay un vector nulo";
+      paso("Ángulo", ang);
+      var cr = V.cruz(u, v), mc2 = V.dot(cr, cr);
+      paso("Producto vectorial", "u×v = (" + n2(u[1]) + "·" + b[2] + " − " + a[2] + "·" + b[1] + ", " + n2(u[2]) + "·" + b[0] + " − " + a[0] + "·" + b[2] + ", " + n2(u[0]) + "·" + b[1] + " − " + a[1] + "·" + b[0] + ") = <b>" + V.vtxt(cr) + "</b>");
+      paso("Área", "|u×v| = √" + n2(mc2) + eqr(mc2) + " ≈ " + n2(Math.sqrt(mc2)) + " (paralelogramo) · mitad ≈ " + n2(Math.sqrt(mc2) / 2) + " (triángulo)" +
+        (mc2 < 1e-12 ? ' <span class="vc-mal">u y v paralelos</span>' : ""));
+      var mx = V.mixto(u, v, w);
+      paso("Producto mixto", "[u,v,w] = w·(u×v) = " + [0, 1, 2].map(function (i) { return c3[i] + "·" + par(cr[i]); }).join(" + ") + " = <b>" + n2(mx) + "</b>");
+      paso("Volumen", "paralelepípedo = " + n2(Math.abs(mx)) + " · tetraedro = " + n2(Math.abs(mx) / 6) + (Math.abs(mx) < 1e-9 ? ' · <span class="vc-mal">u, v, w coplanarios</span>' : ' · <span class="vc-ok">forman una base de ℝ³</span>'));
+      pasos.innerHTML = L.join("");
+      var r = V.rango([u, v, w]);
+      lec.innerHTML = U.lec("u · v", n2(dp)) + U.lec("u × v", V.vtxt(cr)) + U.lec("[u, v, w]", n2(mx), Math.abs(mx) < 1e-9 ? "mal" : "ok") + U.lec("Rango de {u, v, w}", String(r), r === 3 ? "ok" : "mal") +
+        U.lec("¿Independientes?", r === 3 ? "sí: base de ℝ³" : "no: dependientes");
+      pie.innerHTML = "Escribe tus propios vectores (admite decimales) y compara con tu resolución a mano. El orden importa en u × v: cambia u y v de sitio y el resultado cambia de signo.";
+    }
+    pinta();
+  };
+
+  // ============================================================
+  // VECTORES CON PARÁMETRO
+  // ============================================================
+  var PRE_PAR = [
+    { k: "0", t: "Coplanarios", nom: "[u, v, w] = 0",
+      f: function (m) { return [[1, 1, 1], [1, m, m * m], [1, 2, 4]]; },
+      txt: ["u = (1, 1, 1)", "v = (1, m, m²)", "w = (1, 2, 4)"],
+      val: function (a) { return V.mixto(a[0], a[1], a[2]); }, raices: [1, 2], rn: ["1", "2"], ymin: -8, ymax: 8, sig: "los tres vectores son coplanarios (dependientes)", no: "forman base de ℝ³" },
+    { k: "1", t: "Perpendiculares", nom: "u · v = 0",
+      f: function (m) { return [[m, 2, 0], [m, -2, 5]]; },
+      txt: ["u = (m, 2, 0)", "v = (m, −2, 5)"],
+      val: function (a) { return V.dot(a[0], a[1]); }, raices: [-2, 2], rn: ["−2", "2"], ymin: -8, ymax: 12, sig: "u y v son perpendiculares", no: "no son perpendiculares" },
+    { k: "2", t: "Base de ℝ³", nom: "[u, v, w] ≠ 0",
+      f: function (m) { return [[m, 1, 0], [1, m, 1], [0, 1, m]]; },
+      txt: ["u = (m, 1, 0)", "v = (1, m, 1)", "w = (0, 1, m)"],
+      val: function (a) { return V.mixto(a[0], a[1], a[2]); }, raices: [-Math.SQRT2, 0, Math.SQRT2], rn: ["−√2", "0", "√2"], ymin: -6, ymax: 6, sig: "dependientes: NO forman base", no: "forman base de ℝ³" },
+    { k: "3", t: "Área del paralelogramo", nom: "|u × v|²",
+      f: function (m) { return [[1, m, 0], [0, 1, m]]; },
+      txt: ["u = (1, m, 0)", "v = (0, 1, m)"],
+      val: function (a) { var c = V.cruz(a[0], a[1]); return V.dot(c, c); }, raices: [], rn: [], ymin: -1, ymax: 40, sig: "", no: "no hay m con área 0" }
+  ];
+  V.PRE_PAR = PRE_PAR;
+  B.w.vec_param = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Vectores con parámetro: ¿para qué m ocurre?");
+    cuerpo.innerHTML = '<div data-pre></div><div data-raiz class="chips"></div><div class="w-plot"></div><div data-ctl></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, m: 0.5 }, g, pm, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lec = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var sk = U.slider(ctl, { et: "Parámetro <i>m</i>", min: -4, max: 4, step: 0.05, val: 0.5, on: function (x) { st.m = Math.round(x * 1000) / 1000; pinta(); }, fmt: function (x) { return fmt(x, 2); } });
+    U.fichas(cuerpo.querySelector("[data-pre]"), PRE_PAR.map(function (p) { return { k: p.k, t: p.t }; }), "0", function (k) { st.i = +k; arma(); });
+    function arma() {
+      var p = PRE_PAR[st.i], el = cuerpo.querySelector(".w-plot");
+      el.innerHTML = "";
+      g = new B.Plot(el, { xmin: -4, xmax: 4, ymin: p.ymin, ymax: p.ymax, w: 560, h: 280, etx: "m", ety: p.nom.indexOf("|") === 0 && p.nom.indexOf("×") > 0 ? "área²" : "valor", etiqueta: "Valor de la condición según m" });
+      pm = g.punto(0, 0, { capa: "top", r: 7, clase: "c-pen" });
+      var o = p.raices.map(function (r, j) { return { k: String(j), t: "m = " + p.rn[j] }; });
+      cuerpo.querySelector("[data-raiz]").style.display = o.length ? "" : "none";
+      U.fichas(cuerpo.querySelector("[data-raiz]"), o, "-", function (k) { st.m = p.raices[+k]; sk.set(Math.round(st.m * 1000) / 1000); pinta(); });
+      pinta();
+    }
+    function pinta() {
+      var p = PRE_PAR[st.i], a = p.f(st.m), d = p.val(a), esRaiz = p.raices.some(function (r) { return Math.abs(r - st.m) < 0.026; });
+      if (esRaiz) { var rr = p.raices.filter(function (r) { return Math.abs(r - st.m) < 0.026; })[0]; a = p.f(rr); d = p.val(a); if (Math.abs(d) < 1e-9) d = 0; }
+      g.limpiar();
+      g.horizontal(0, { clase: "c-faint" });
+      g.curva(function (m) { return p.val(p.f(m)); }, { clase: "c-pen" });
+      p.raices.forEach(function (r, j) { g.punto(r, 0, { clase: "c-red", r: 6 }); g.texto(r, 0, p.rn[j], { dx: 6, dy: -9, clase: "red" }); });
+      g.mover(pm, st.m, Math.max(p.ymin, Math.min(p.ymax, d)));
+      var vecs = a.map(function (vv, i) { return "<b>" + "uvw"[i] + "</b> = " + V.vtxt(vv.map(function (x) { return Math.round(x * 1000) / 1000; })); }).join(" · ");
+      var cero = Math.abs(d) < 1e-9;
+      var r = a.length === 3 ? V.rango(a) : null;
+      lec.innerHTML = U.lec(p.nom.replace(/^\[u, v, w\] ≠ 0$/, "[u, v, w]"), n2(d), cero && p.raices.length ? "mal" : "") + U.lec("Vectores con m = " + n2(esRaiz ? p.raices.filter(function (r0) { return Math.abs(r0 - st.m) < 0.026; })[0] : st.m), vecs) +
+        (r != null ? U.lec("Rango de {u, v, w}", String(r), r === 3 ? "ok" : "mal") : "") +
+        U.lec("Conclusión", p.raices.length ? (cero ? p.sig : p.no) : p.no);
+      pie.innerHTML = p.raices.length ? "Desliza <i>m</i>. Donde la curva corta el eje (puntos rojos) se cumple la condición (" + p.nom + "). Es el mismo método de siempre: calcula la expresión en función de m, iguala a 0 y resuelve." : "Aquí la expresión es siempre positiva: |u × v|² = m⁴ + m² + 1 nunca se anula, así que u y v no son paralelos para ningún valor de m.";
+    }
+    arma();
+  };
+})(window);
+
+/* ============================================================
    Bachi para Firu · mecánica I (Física y Química 1.º, tema 8: cinemática)
    motor B.lab.mec1 + f8_movil · f8_encuentro · f8_graficas · f8_caida
    ============================================================ */
@@ -51704,6 +52023,619 @@
 
   B.registrar("mates2", "t2", {
     resumen: resumen, secciones: B.parte.m2t2a.secciones, nuevas: B.parte.m2t2b.nuevas,
+    datos: datos, ejercicios: ejercicios, lamina: lamina
+  });
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 4: Vectores en el espacio
+   (parte A: se añade al final de las cuatro secciones originales)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t4/" + ref); }
+  B.parte = B.parte || {};
+
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. De 2 a 3 dimensiones
+  secciones[0] =
+    "<h5>Puntos, vectores y el vector entre dos puntos</h5>" +
+    "<p>Un <b>punto</b> A(a₁, a₂, a₃) es una posición en el espacio; un <b>vector</b> u = (u₁, u₂, u₃) es un desplazamiento (módulo, dirección y sentido), sin posición fija. Se relacionan así:</p>" +
+    "<div class='formula-wrap'><div class='formula'>AB = B − A = (b₁ − a₁, b₂ − a₂, b₃ − a₃) &nbsp;&nbsp;·&nbsp;&nbsp; punto medio M = (A + B)/2</div></div>" +
+    "<p>«Final menos principio»: el vector AB lleva de A a B. Y BA = −AB. La distancia entre A y B es el módulo |AB|.</p>" +
+    ejemplo("Vector, distancia y punto medio",
+      "Sean A(1, 2, −1) y B(4, 0, 3). Calcula AB, la distancia entre A y B y el punto medio del segmento.",
+      ["AB = B − A = (4 − 1, 0 − 2, 3 − (−1)) = <b>(3, −2, 4)</b>.",
+       "|AB| = √(3² + (−2)² + 4²) = √(9 + 4 + 16) = <b>√29 ≈ 5,39</b>.",
+       "M = (A + B)/2 = (5/2, 2/2, 2/2) = <b>(5/2, 1, 1)</b>."]) +
+    "<h5>Vector unitario y vector de módulo dado</h5>" +
+    "<p>Dividir un vector por su módulo da otro de la <b>misma dirección y sentido</b> y de módulo 1 (vector <i>unitario</i> o normalizado): û = u/|u|. Para fabricar un vector de módulo k en esa dirección, multiplicas el unitario por k. Si multiplicas por un número negativo, el sentido se invierte, y recuerda que |λu| = |λ|·|u| (el módulo nunca es negativo).</p>" +
+    ejemplo("Normalizar y escalar",
+      "Halla el vector unitario en la dirección de u = (2, −3, 6) y un vector de módulo 14 con la misma dirección y sentido contrario.",
+      ["|u| = √(4 + 9 + 36) = √49 = 7.",
+       "Unitario: û = u/7 = <b>(2/7, −3/7, 6/7)</b>.",
+       "Módulo 14 y sentido contrario: −14·û = −2u = <b>(−4, 6, −12)</b>. Comprobación: |(−4, 6, −12)| = √(16 + 36 + 144) = √196 = 14 ✓."]) +
+    "<h5>Los tres usos más frecuentes de «AB = B − A»</h5>" +
+    "<ul>" +
+    "<li><b>Tres puntos alineados</b> ⟺ AB y AC son proporcionales (una de las dos es múltiplo de la otra).</li>" +
+    "<li><b>Cuarto vértice de un paralelogramo</b> ABCD (en ese orden): los lados opuestos son iguales, AB = DC, luego D = A + C − B.</li>" +
+    "<li><b>Punto simétrico</b> de A respecto de M: A′ = 2M − A.</li>" +
+    "</ul>" +
+    ejemplo("Cuarto vértice de un paralelogramo",
+      "Tres vértices consecutivos de un paralelogramo son A(1, 0, 2), B(3, 1, 1) y C(4, 3, 0). Halla el cuarto vértice D.",
+      ["En ABCD los lados opuestos cumplen AB = DC, es decir, B − A = C − D.",
+       "Despejando: D = A + C − B = (1 + 4 − 3, 0 + 3 − 1, 2 + 0 − 1) = <b>(2, 2, 1)</b>.",
+       "Comprobación: AB = (2, 1, −1) y DC = C − D = (4 − 2, 3 − 2, 0 − 1) = (2, 1, −1) ✓."]) +
+    ejemplo("¿Están alineados?",
+      "Comprueba si A(1, 2, 3), B(2, 4, 5) y C(4, 8, 9) están alineados.",
+      ["AB = (1, 2, 2) y AC = (3, 6, 6).",
+       "AC = 3·AB: son proporcionales, luego los tres puntos están en una misma recta (y B está entre A y C, a un tercio del camino)."]) +
+    ojo("Un vector y un punto se escriben igual, (x, y, z), pero no son lo mismo: se pueden sumar vectores, y se puede sumar un vector a un punto (el resultado es un punto), pero «sumar dos puntos» no tiene sentido geométrico; solo se hace para el punto medio, que es una media.");
+
+  // ---------------------------------------------------------------- 2. Producto escalar
+  secciones[1] =
+    "<h5>Dos fórmulas, un mismo número</h5>" +
+    "<div class='formula-wrap'><div class='formula'>u·v = u₁v₁ + u₂v₂ + u₃v₃ = |u|·|v|·cos α</div></div>" +
+    "<p>La primera sirve cuando tienes las <b>componentes</b>; la segunda, cuando tienes <b>módulos y ángulo</b>. Igualándolas sale la fórmula del ángulo. El producto escalar es conmutativo, distributivo respecto de la suma y cumple (λu)·v = λ(u·v). Además u·u = |u|², que es la forma más rápida de calcular un módulo al cuadrado.</p>" +
+    tabla(["Signo de u·v", "Ángulo α", "Significado"], [
+      ["u·v &gt; 0", "agudo (0° ≤ α &lt; 90°)", "apuntan «más o menos hacia el mismo lado»"],
+      ["u·v = 0", "α = 90°", "<b>perpendiculares</b> (ortogonales); vale también si uno es el vector nulo"],
+      ["u·v &lt; 0", "obtuso (90° &lt; α ≤ 180°)", "apuntan «más o menos hacia lados opuestos»"]
+    ]) +
+    ejemplo("Ángulo entre dos vectores",
+      "Calcula el ángulo que forman u = (2, −1, 2) y v = (1, 2, −2).",
+      ["u·v = 2·1 + (−1)·2 + 2·(−2) = 2 − 2 − 4 = −4.",
+       "|u| = √(4 + 1 + 4) = 3 y |v| = √(1 + 4 + 4) = 3.",
+       "cos α = −4/(3·3) = −4/9 ≈ −0,444 ⟹ α = arccos(−4/9) ≈ <b>116,39°</b> (obtuso, como anunciaba el signo negativo)."]) +
+    ejemplo("La diagonal del cubo",
+      "En un cubo de arista 1, calcula el ángulo entre dos diagonales que parten de vértices distintos: (1, 1, 1) y (1, 1, −1).",
+      ["Producto escalar: 1 + 1 − 1 = 1. Los dos módulos son √3.",
+       "cos α = 1/(√3·√3) = 1/3 ⟹ α = arccos(1/3) ≈ <b>70,53°</b>."]) +
+    "<h5>Proyección ortogonal</h5>" +
+    "<p>Si dejas caer una «sombra» perpendicular del vector u sobre la recta de v, obtienes la <b>proyección de u sobre v</b>. Su longitud con signo y el vector proyección son:</p>" +
+    "<div class='formula-wrap'><div class='formula'>proy<sub>v</sub>u (escalar) = (u·v)/|v| &nbsp;&nbsp;·&nbsp;&nbsp; proy<sub>v</sub>u (vector) = ((u·v)/|v|²)·v</div></div>" +
+    "<p>El vector proyección es paralelo a v; el resto, u − proy, es perpendicular a v. En la vista 3D de abajo es el segmento verde, y el discontinuo es la perpendicular.</p>" +
+    ejemplo("Proyección de u sobre v",
+      "Calcula la proyección ortogonal de u = (3, 4, 0) sobre v = (1, 2, 2).",
+      ["u·v = 3 + 8 + 0 = 11 y |v|² = 1 + 4 + 4 = 9, |v| = 3.",
+       "Longitud con signo: 11/3 ≈ 3,67.",
+       "Vector proyección: (11/9)·(1, 2, 2) = <b>(11/9, 22/9, 22/9)</b>.",
+       "Comprobación: u − proy = (16/9, 14/9, −22/9) y su producto escalar con v es (16 + 28 − 44)/9 = 0 ✓."]) +
+    w("vec_3d", "escalar") +
+    ojo("Para decidir si dos vectores son perpendiculares <b>no hace falta el ángulo</b>: basta u·v = 0. Es la condición que más aparece con parámetros (véase la sección 7).");
+
+  // ---------------------------------------------------------------- 3. Producto vectorial
+  secciones[2] =
+    "<h5>Cómo se calcula sin aprenderse nada de memoria</h5>" +
+    "<p>La fórmula por componentes se recuerda mejor como un <b>determinante simbólico</b>, que se desarrolla por la primera fila:</p>" +
+    "<div class='formula-wrap'><div class='formula'>u × v = | i&nbsp; j&nbsp; k ; u₁&nbsp; u₂&nbsp; u₃ ; v₁&nbsp; v₂&nbsp; v₃ | = (u₂v₃ − u₃v₂)·i − (u₁v₃ − u₃v₁)·j + (u₁v₂ − u₂v₁)·k</div></div>" +
+    "<p>Fíjate en el signo menos de la componente j (el «tablero de ajedrez» del Tema 2). Con i = (1, 0, 0), j = (0, 1, 0), k = (0, 0, 1) se cumple i × j = k, j × k = i y k × i = j.</p>" +
+    "<h5>Qué es u × v: dirección, sentido y módulo</h5>" +
+    "<ul>" +
+    "<li><b>Dirección</b>: perpendicular a u y a v a la vez, es decir, perpendicular al plano que forman. Por eso (u × v)·u = 0 y (u × v)·v = 0: es una forma estupenda de <b>comprobar</b> el resultado.</li>" +
+    "<li><b>Sentido</b>: regla de la mano derecha. Curva los dedos de la mano derecha de u hacia v (por el ángulo menor): el pulgar apunta en el sentido de u × v. Si cambias el orden, el sentido se invierte: v × u = −(u × v).</li>" +
+    "<li><b>Módulo</b>: |u × v| = |u|·|v|·sen α, el <b>área del paralelogramo</b> de lados u y v.</li>" +
+    "</ul>" +
+    tabla(["Propiedad", "Fórmula"], [
+      ["Anticonmutativa", "v × u = −(u × v)"],
+      ["Con un escalar", "(λu) × v = λ(u × v)"],
+      ["Distributiva", "u × (v + w) = u × v + u × w"],
+      ["Un vector consigo mismo", "u × u = 0"],
+      ["Paralelismo", "u × v = 0 ⟺ u y v son paralelos (proporcionales)"],
+      ["Identidad de Lagrange", "|u × v|² = |u|²|v|² − (u·v)²"]
+    ]) +
+    ejemplo("Producto vectorial y comprobación",
+      "Calcula u × v para u = (1, 2, 3) y v = (4, −1, 2), y comprueba que es perpendicular a ambos.",
+      ["Componente i: 2·2 − 3·(−1) = 4 + 3 = 7.",
+       "Componente j: 3·4 − 1·2 = 12 − 2 = 10 (ya con el signo menos aplicado: −(1·2 − 3·4) = 10).",
+       "Componente k: 1·(−1) − 2·4 = −1 − 8 = −9. Resultado: <b>u × v = (7, 10, −9)</b>.",
+       "Comprobación: u·(u × v) = 7 + 20 − 27 = 0 ✓ y v·(u × v) = 28 − 10 − 18 = 0 ✓.",
+       "Módulo (área del paralelogramo): |u × v| = √(49 + 100 + 81) = <b>√230 ≈ 15,17</b>. Con Lagrange: |u|²|v|² − (u·v)² = 14·21 − 8² = 294 − 64 = 230 ✓."]) +
+    "<h5>Área de un triángulo y vector perpendicular a un plano</h5>" +
+    "<p>Para un triángulo ABC, toma dos lados que salgan del mismo vértice: <b>área = ½·|AB × AC|</b>. Y el mismo producto AB × AC es un vector <b>perpendicular al plano</b> que contiene a A, B y C (lo usarás en el Tema 5 como vector normal del plano).</p>" +
+    ejemplo("Área y vector unitario perpendicular",
+      "Sean A(1, 0, 1), B(2, 2, 0) y C(0, 1, 3). Calcula el área del triángulo ABC y un vector unitario perpendicular al plano que contiene al triángulo.",
+      ["AB = (1, 2, −1) y AC = (−1, 1, 2).",
+       "AB × AC = (2·2 − (−1)·1, −(1·2 − (−1)(−1)), 1·1 − 2·(−1)) = (5, −1, 3).",
+       "|AB × AC| = √(25 + 1 + 9) = √35. Área = ½·√35 ≈ <b>2,96</b>.",
+       "Vector unitario perpendicular al plano: (5, −1, 3)/√35 ≈ <b>(0,845; −0,169; 0,507)</b> (y su opuesto)."]) +
+    ejemplo("Altura de un triángulo",
+      "En el triángulo anterior, halla la altura desde C sobre el lado AB.",
+      ["Área = ½·base·altura ⟹ altura = 2·Área/|AB|.",
+       "|AB| = √(1 + 4 + 1) = √6, y 2·Área = √35.",
+       "Altura = √35/√6 = √(35/6) ≈ <b>2,42</b>."]) +
+    w("vec_3d", "vectorial") +
+    ojo("El producto vectorial <b>solo existe en el espacio</b> (tres dimensiones) y su resultado es un <b>vector</b>; el escalar da un <b>número</b>. Si te piden «el área», es el módulo de u × v, no el vector.");
+
+  // ---------------------------------------------------------------- 4. Producto mixto
+  secciones[3] =
+    "<h5>Propiedades útiles del producto mixto</h5>" +
+    "<p>[u, v, w] = u·(v × w) = det de la matriz con filas u, v, w. Heredas todas las propiedades de los determinantes:</p>" +
+    "<ul>" +
+    "<li><b>Permutar dos vectores</b> cambia el signo: [v, u, w] = −[u, v, w]. Una permutación cíclica no lo cambia: [u, v, w] = [v, w, u] = [w, u, v].</li>" +
+    "<li>Es lineal en cada vector, y si uno es combinación lineal de los otros dos, vale 0.</li>" +
+    "<li><b>[u, v, w] = 0 ⟺ u, v, w son coplanarios</b> (están en un mismo plano) ⟺ son linealmente dependientes.</li>" +
+    "<li>El <b>signo</b> es la orientación: positivo si u, v, w siguen la regla de la mano derecha (como i, j, k).</li>" +
+    "</ul>" +
+    "<p>Geométricamente, el volumen del paralelepípedo es «área de la base × altura»: la base es el paralelogramo de u y v, de área |u × v|, y la altura es la proyección de w sobre u × v. De ahí, |[u, v, w]| = |u × v|·h.</p>" +
+    "<h5>Los dos usos típicos de la EvAU</h5>" +
+    "<p><b>1. Volumen de un tetraedro con cuatro vértices.</b> Fija un vértice como origen y usa las tres aristas que salen de él: V = (1/6)·|[AB, AC, AD]|. La altura desde D sobre la cara ABC sale de V = (1/3)·Área(ABC)·h, es decir, h = 3V / Área(ABC).</p>" +
+    ejemplo("Volumen y altura de un tetraedro",
+      "Halla el volumen del tetraedro de vértices A(1, 0, 0), B(0, 2, 0), C(0, 0, 3) y D(1, 1, 1) y la altura desde D sobre la cara ABC.",
+      ["AB = (−1, 2, 0), AC = (−1, 0, 3), AD = (0, 1, 1).",
+       "[AB, AC, AD] = |−1 2 0 ; −1 0 3 ; 0 1 1| = −1·(0·1 − 3·1) − 2·(−1·1 − 3·0) + 0 = 3 + 2 = 5.",
+       "Volumen = |5|/6 = <b>5/6 ≈ 0,833</b>.",
+       "AB × AC = (2·3 − 0·0, −((−1)·3 − 0·(−1)), (−1)·0 − 2·(−1)) = (6, 3, 2), de módulo √(36 + 9 + 4) = 7. Área(ABC) = 7/2.",
+       "Altura: h = 3V/Área = 3·(5/6)/(7/2) = (5/2)/(7/2) = <b>5/7 ≈ 0,714</b>."]) +
+    "<p><b>2. Cuatro puntos coplanarios.</b> A, B, C, D están en el mismo plano si y solo si AB, AC y AD son coplanarios: [AB, AC, AD] = 0. Con un parámetro, es una ecuación en m.</p>" +
+    ejemplo("¿Para qué valor de m son coplanarios?",
+      "Halla m para que A(1, 1, 1), B(2, 3, 4), C(0, 1, 2) y D(3, 5, m) estén en un mismo plano.",
+      ["AB = (1, 2, 3), AC = (−1, 0, 1), AD = (2, 4, m − 1).",
+       "[AB, AC, AD] = |1 2 3 ; −1 0 1 ; 2 4 m−1| = 1·(0 − 4) − 2·(−(m − 1) − 2) + 3·(−4 − 0) = −4 + 2m + 2 − 12 = 2m − 14.",
+       "2m − 14 = 0 ⟹ <b>m = 7</b>."]) +
+    w("vec_3d", "mixto") +
+    ojo("El volumen y el área son siempre positivos: lleva <b>valor absoluto</b>. El producto mixto sin valor absoluto puede ser negativo, y entonces solo informa de la orientación. Y no olvides el factor 1/6 del tetraedro (frente a 1 del paralelepípedo).");
+
+  B.parte.m2t4a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 4: Vectores en el espacio
+   (parte B: secciones nuevas 5 a 10)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "mates2/t4/" + ref); }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // -------------------------------------------------------------- 5
+    {
+      h: "5. Combinación lineal, dependencia e independencia",
+      html:
+        "<h5>Combinación lineal</h5>" +
+        "<p>Un vector w es <b>combinación lineal</b> de u y v si existen números a y b con <b>w = a·u + b·v</b>. Con más vectores, igual: w = a·u + b·v + c·t. Encontrar a y b es resolver un sistema de tres ecuaciones (una por componente), con dos incógnitas.</p>" +
+        ejemplo("Expresar un vector como combinación lineal",
+          "Escribe w = (3, −2, −1) como combinación lineal de u = (1, 0, 1) y v = (0, 1, 2), si es posible.",
+          ["w = a·u + b·v = (a, b, a + 2b).",
+           "Igualando componentes: a = 3, b = −2, a + 2b = −1.",
+           "Comprobamos la tercera con los valores de las dos primeras: 3 + 2·(−2) = −1 ✓. Luego <b>w = 3u − 2v</b>."]) +
+        ejemplo("Cuando no se puede",
+          "¿Es w = (1, 1, 1) combinación lineal de u = (1, 0, 1) y v = (0, 1, 2)?",
+          ["w = (a, b, a + 2b): las dos primeras ecuaciones dan a = 1, b = 1.",
+           "La tercera exigiría a + 2b = 3, pero w tiene 1. Contradicción: <b>no</b> es combinación lineal.",
+           "Geométricamente, w no está en el plano que generan u y v."]) +
+        "<h5>Dependencia e independencia lineal</h5>" +
+        "<p>Los vectores u₁, …, u<sub>n</sub> son <b>linealmente dependientes</b> si alguno es combinación lineal de los demás (o, equivalentemente, si a₁u₁ + … + a<sub>n</sub>u<sub>n</sub> = 0 con algún a<sub>i</sub> ≠ 0). Si no, son <b>independientes</b>. En ℝ³ hay un criterio para cada cantidad de vectores:</p>" +
+        tabla(["Cuántos vectores", "Son dependientes si…", "Geométricamente"], [
+          ["1 vector", "es el vector nulo", "—"],
+          ["2 vectores", "son proporcionales (u × v = 0)", "están en la misma recta"],
+          ["3 vectores", "<b>det (u, v, w) = 0</b> (producto mixto 0)", "están en el mismo plano (coplanarios)"],
+          ["4 o más vectores", "<b>siempre</b> (en ℝ³ no cabe más)", "—"]
+        ]) +
+        "<p>Dicho con matrices (Tema 3 de Sistemas): el <b>rango</b> de la matriz cuyas filas son los vectores es el número máximo de vectores independientes. Los tres vectores son independientes ⟺ el rango es 3 ⟺ el determinante es distinto de 0.</p>" +
+        ejemplo("¿Dependientes? Y si lo son, ¿cómo?",
+          "Estudia si u = (1, 2, 3), v = (2, 1, 0) y t = (4, 5, 6) son linealmente independientes.",
+          ["det = |1 2 3 ; 2 1 0 ; 4 5 6| = 1·(6 − 0) − 2·(12 − 0) + 3·(10 − 4) = 6 − 24 + 18 = 0.",
+           "Son <b>dependientes</b>. Para ver la relación, buscamos t = a·u + b·v: a + 2b = 4 y 2a + b = 5 dan a = 2, b = 1; la tercera componente (3a + 0 = 6) lo confirma.",
+           "<b>t = 2u + v</b>: los tres vectores son coplanarios y el rango es 2."]) +
+        ejemplo("Dependencia con un parámetro",
+          "Halla los valores de m para los que u = (1, 1, m), v = (1, m, 1) y t = (m, 1, 1) son linealmente dependientes, y el rango en cada caso.",
+          ["det = |1 1 m ; 1 m 1 ; m 1 1| = 1·(m − 1) − 1·(1 − m) + m·(1 − m²) = 3m − 2 − m³ = −(m − 1)²(m + 2).",
+           "Se anula para m = 1 (doble) y m = −2. Para cualquier otro m, el rango es 3.",
+           "<b>m = 1</b>: los tres vectores son (1, 1, 1): rango 1.",
+           "<b>m = −2</b>: (1, 1, −2), (1, −2, 1), (−2, 1, 1). Los dos primeros no son proporcionales y la suma de los tres es (0, 0, 0): rango 2."]) +
+        ojo("«Dependientes» no significa «iguales» ni «paralelos»: tres vectores distintos y no paralelos de dos en dos pueden ser dependientes si están en un mismo plano. Por eso se mira el determinante y no solo si son proporcionales.")
+    },
+    // -------------------------------------------------------------- 6
+    {
+      h: "6. Bases y coordenadas",
+      html:
+        "<p>Una <b>base</b> de ℝ³ es un conjunto de <b>tres vectores linealmente independientes</b>. Todo vector del espacio se escribe de manera <b>única</b> como combinación lineal de ellos, y esos tres coeficientes son sus <b>coordenadas</b> en esa base. La base más cómoda es la canónica {i, j, k}, donde las coordenadas coinciden con las componentes: (x, y, z) = x·i + y·j + z·k.</p>" +
+        "<p><b>Comprobar que tres vectores forman base</b> = comprobar que el determinante es distinto de 0. <b>Hallar las coordenadas</b> de w = resolver un sistema 3×3 (Tema 3). Se pone w = a·e₁ + b·e₂ + c·e₃ y se igualan componentes.</p>" +
+        ejemplo("Base y coordenadas",
+          "Comprueba que B = {(1, 1, 0), (0, 1, 1), (1, 0, 1)} es una base y halla las coordenadas de w = (3, 4, 5) en esa base.",
+          ["det = |1 1 0 ; 0 1 1 ; 1 0 1| = 1·(1 − 0) − 1·(0 − 1) + 0 = 2 ≠ 0 ⟹ son independientes: es una base.",
+           "w = a(1, 1, 0) + b(0, 1, 1) + c(1, 0, 1) ⟹ a + c = 3, a + b = 4, b + c = 5.",
+           "Sumando las tres ecuaciones: 2(a + b + c) = 12, luego a + b + c = 6. Restando cada una: b = 6 − 3 = 3, c = 6 − 4 = 2, a = 6 − 5 = 1.",
+           "<b>w = (1, 3, 2)<sub>B</sub></b>. Comprobación: 1·(1,1,0) + 3·(0,1,1) + 2·(1,0,1) = (3, 4, 5) ✓."]) +
+        "<h5>Bases ortogonales y ortonormales</h5>" +
+        "<p>Una base es <b>ortogonal</b> si sus vectores son perpendiculares dos a dos, y <b>ortonormal</b> si además son unitarios. Su gran ventaja: las coordenadas se calculan <b>sin resolver ningún sistema</b>, con productos escalares:</p>" +
+        "<div class='formula-wrap'><div class='formula'>w = c₁e₁ + c₂e₂ + c₃e₃ &nbsp;con&nbsp; c<sub>i</sub> = (w·e<sub>i</sub>) / |e<sub>i</sub>|² &nbsp;(si es ortonormal, c<sub>i</sub> = w·e<sub>i</sub>)</div></div>" +
+        "<p>Es lo mismo que la proyección de la sección 2: c<sub>i</sub> es cuánto de w «cabe» en la dirección de e<sub>i</sub>. Una base ortogonal de vectores no nulos es siempre independiente (no hace falta calcular el determinante).</p>" +
+        ejemplo("Coordenadas en una base ortogonal",
+          "Comprueba que e₁ = (1, 2, 2), e₂ = (2, 1, −2) y e₃ = (2, −2, 1) son perpendiculares dos a dos y halla las coordenadas de w = (3, 0, 6).",
+          ["e₁·e₂ = 2 + 2 − 4 = 0; e₁·e₃ = 2 − 4 + 2 = 0; e₂·e₃ = 4 − 2 − 2 = 0 ✓. Los tres tienen módulo 3 (|e<sub>i</sub>|² = 9).",
+           "w·e₁ = 3 + 0 + 12 = 15; w·e₂ = 6 + 0 − 12 = −6; w·e₃ = 6 + 0 + 6 = 12.",
+           "Coordenadas: c₁ = 15/9 = 5/3, c₂ = −6/9 = −2/3, c₃ = 12/9 = 4/3.",
+           "Comprobación: (5/3)(1,2,2) − (2/3)(2,1,−2) + (4/3)(2,−2,1) = ((5 − 4 + 8)/3, (10 − 2 − 8)/3, (10 + 4 + 4)/3) = (3, 0, 6) ✓."]) +
+        ejemplo("Base con parámetro",
+          "¿Para qué valores de m forman base de ℝ³ los vectores (1, m, 0), (0, 1, m) y (m, 0, 1)?",
+          ["det = |1 m 0 ; 0 1 m ; m 0 1| = 1·(1 − 0) − m·(0 − m²) + 0 = 1 + m³.",
+           "1 + m³ = 0 ⟹ m³ = −1 ⟹ m = −1 (única raíz real).",
+           "Forman base para <b>todo m ≠ −1</b>. Para m = −1 son dependientes: (1,−1,0), (0,1,−1), (−1,0,1) suman (0,0,0)."]) +
+        ojo("Las coordenadas dependen de la base: el mismo vector w tiene coordenadas distintas en bases distintas. Cuando un enunciado dice «las coordenadas de w en la base B», <b>no</b> son las componentes que aparecen escritas, salvo que B sea la canónica.")
+    },
+    // -------------------------------------------------------------- 7
+    {
+      h: "7. Vectores con parámetro: el método de la EvAU",
+      html:
+        "<p>En Madrid casi todos los problemas de vectores traen una letra (m, a, k…). El esquema es siempre el mismo: <b>traduce la condición a una ecuación en m, y resuélvela</b>.</p>" +
+        tabla(["La condición dice…", "Se traduce en…", "Tipo de ecuación"], [
+          ["perpendiculares", "u·v = 0", "lineal o cuadrática"],
+          ["ángulo dado α", "u·v = |u||v|cos α", "cuadrática (cuidado: elevar al cuadrado crea soluciones falsas)"],
+          ["paralelos", "u × v = 0, o componentes proporcionales", "sistema"],
+          ["módulo dado", "|u|² = k²", "cuadrática"],
+          ["área dada", "|u × v| = A (o ½|u × v| = A en el triángulo)", "cuadrática"],
+          ["coplanarios / dependientes / no forman base", "[u, v, w] = 0", "cúbica o lineal: factoriza"],
+          ["volumen dado", "|[u, v, w]| = V (o V/6 en el tetraedro)", "con valor absoluto: dos casos"],
+          ["forman base", "[u, v, w] ≠ 0", "el complementario de las raíces"]
+        ]) +
+        "<p>Juega con el simulador: elige el tipo de condición y mueve el parámetro. Los puntos rojos son las soluciones de la ecuación; en ellos cambia la conclusión (el rango baja, el ángulo pasa a 90°, el volumen se anula…).</p>" +
+        w("vec_param") +
+        ejemplo("Problema 1 · Perpendicularidad y ángulo",
+          "Sean u = (1, 1, 0) y v = (1, m, 1). Halla m para que formen un ángulo de 60°.",
+          ["u·v = 1 + m; |u| = √2; |v| = √(m² + 2).",
+           "cos 60° = 1/2 ⟹ (1 + m)/(√2·√(m² + 2)) = 1/2 ⟹ 2(1 + m) = √2·√(m² + 2).",
+           "Elevamos al cuadrado: 4(1 + m)² = 2(m² + 2) ⟹ 2m² + 4m + 2 = m² + 2 ⟹ m² + 4m = 0 ⟹ m = 0 o m = −4.",
+           "Al elevar al cuadrado se pierde el signo: hay que comprobar. El lado izquierdo 2(1 + m) debe ser positivo (es igual a una raíz): m = −4 da 2·(−3) &lt; 0, <b>descartada</b> (formaría 120°).",
+           "<b>m = 0</b>. Comprobación: v = (1, 0, 1), u·v = 1, cos α = 1/(√2·√2) = 1/2 ✓."]) +
+        ejemplo("Problema 2 · Área con parámetro",
+          "Sean u = (1, 1, 0) y v = (m, 0, 1). Halla m para que el área del paralelogramo que forman sea √6.",
+          ["u × v = (1·1 − 0·0, −(1·1 − 0·m), 1·0 − 1·m) = (1, −1, −m).",
+           "|u × v|² = 1 + 1 + m² = m² + 2. Condición: m² + 2 = 6 ⟹ m² = 4.",
+           "<b>m = 2 o m = −2</b> (el área es la misma porque m aparece al cuadrado)."]) +
+        ejemplo("Problema 3 · Volumen con parámetro",
+          "Los vectores u = (1, 1, 1), v = (0, 2, 1) y t = (m, 0, 3) son aristas de un tetraedro de volumen 2. Halla m.",
+          ["[u, v, t] = |1 1 1 ; 0 2 1 ; m 0 3| = 1·(6 − 0) − 1·(0 − m) + 1·(0 − 2m) = 6 + m − 2m = 6 − m.",
+           "Volumen del tetraedro = |6 − m|/6 = 2 ⟹ |6 − m| = 12.",
+           "Dos casos: 6 − m = 12 ⟹ m = −6, o 6 − m = −12 ⟹ <b>m = 18</b>. Soluciones: <b>m = −6 y m = 18</b>."]) +
+        ejemplo("Problema 4 · ¿Cuándo forman base?",
+          "Halla los valores de m para los que u = (m, 1, 0), v = (1, m, 1) y t = (0, 1, m) <b>no</b> forman base de ℝ³.",
+          ["det = |m 1 0 ; 1 m 1 ; 0 1 m| = m·(m² − 1) − 1·(m − 0) + 0 = m³ − m − m = m³ − 2m = m(m² − 2).",
+           "m(m² − 2) = 0 ⟹ m = 0, m = √2 o m = −√2.",
+           "<b>No forman base para m = 0, √2, −√2</b>; para todos los demás valores sí (el simulador de arriba, tercera opción, muestra la curva)."]) +
+        ojo("Cuando elevas al cuadrado para quitar una raíz, <b>siempre comprueba</b> las soluciones en la ecuación original. Y con «volumen = V» no olvides los dos casos del valor absoluto: lo normal es que salgan dos soluciones.")
+    },
+    // -------------------------------------------------------------- 8
+    {
+      h: "8. Problemas tipo EvAU resueltos y calculadora",
+      html:
+        "<p>Antes de los problemas, una herramienta para <b>comprobar tus propias cuentas</b>: escribe los vectores y la calculadora te da cada operación con los pasos intermedios. Úsala para ver dónde te equivocas, no para saltarte el cálculo a mano.</p>" +
+        w("vec_calc") +
+        ejemplo("Problema 5 · Un triángulo en el espacio, completo",
+          "Sean A(2, 0, 1), B(3, 2, −1) y C(1, 1, 2). Calcula: (a) el ángulo en A; (b) el área del triángulo; (c) la altura desde C; (d) un vector unitario perpendicular al plano ABC.",
+          ["AB = (1, 2, −2) y AC = (−1, 1, 1). |AB| = 3 y |AC| = √3.",
+           "(a) AB·AC = −1 + 2 − 2 = −1 ⟹ cos A = −1/(3√3) ≈ −0,192 ⟹ <b>A ≈ 101,10°</b>.",
+           "(b) AB × AC = (2·1 − (−2)·1, −(1·1 − (−2)(−1)), 1·1 − 2·(−1)) = (4, 1, 3). |AB × AC| = √26. Área = <b>√26/2 ≈ 2,55</b>.",
+           "(c) altura desde C sobre AB: 2·Área/|AB| = √26/3 ≈ <b>1,70</b>.",
+           "(d) (4, 1, 3)/√26 ≈ <b>(0,784; 0,196; 0,588)</b>."]) +
+        ejemplo("Problema 6 · Pirámide sobre un paralelogramo",
+          "La base de una pirámide es el paralelogramo ABCD con A(0, 0, 0), B(2, 0, 0), D(1, 2, 0) y la cúspide es E(1, 1, 3). Halla C y el volumen.",
+          ["C = B + D − A = (3, 2, 0).",
+           "Área de la base: |AB × AD| = |(2, 0, 0) × (1, 2, 0)| = |(0, 0, 4)| = 4. La altura es la cota de E: 3.",
+           "Volumen de la pirámide = (1/3)·4·3 = <b>4</b>.",
+           "Con el producto mixto: [AB, AD, AE] = |2 0 0 ; 1 2 0 ; 1 1 3| = 12 es el volumen del paralelepípedo, y la pirámide con base paralelogramo es su tercera parte: 12/3 = 4 ✓."]) +
+        ejemplo("Problema 7 · Un vector perpendicular de módulo dado",
+          "Halla un vector de módulo 6 perpendicular a u = (1, 2, 2) y a v = (2, 1, −2).",
+          ["u × v = (2·(−2) − 2·1, −(1·(−2) − 2·2), 1·1 − 2·2) = (−6, 6, −3), de módulo √(36 + 36 + 9) = 9.",
+           "Unitario: (−6, 6, −3)/9 = (−2/3, 2/3, −1/3).",
+           "Módulo 6: 6·(−2/3, 2/3, −1/3) = <b>(−4, 4, −2)</b>. También sirve el opuesto (4, −4, 2): hay dos soluciones."]) +
+        ejemplo("Problema 8 · Módulos y producto escalar",
+          "Si |u| = 3, |v| = 4 y u·v = 6, calcula |u + v|, |u − v| y el coseno del ángulo.",
+          ["|u + v|² = (u + v)·(u + v) = |u|² + 2u·v + |v|² = 9 + 12 + 16 = 37 ⟹ <b>|u + v| = √37 ≈ 6,08</b>.",
+           "|u − v|² = |u|² − 2u·v + |v|² = 9 − 12 + 16 = 13 ⟹ <b>|u − v| = √13 ≈ 3,61</b>.",
+           "cos α = 6/(3·4) = 1/2 ⟹ α = 60°. Así se trabaja sin conocer las componentes."])
+    },
+    // -------------------------------------------------------------- 9
+    {
+      h: "9. ¿Qué falla aquí? Errores típicos",
+      html: "<p>Cada pregunta muestra un razonamiento con un fallo. Encuéntralo y entiende por qué importa.</p>" + w("quiz", "errores")
+    },
+    // -------------------------------------------------------------- 10
+    {
+      h: "10. Autocomprobación del tema",
+      html: "<p>Doce preguntas de test con explicación, tarjetas con las fórmulas, una actividad de emparejar, otra de clasificar y el orden correcto para resolver un problema con parámetro.</p>" +
+        w("quiz", "quiz1") + w("tarjetas", "tj1") + w("emparejar", "empar") + w("clasificar", "clas") + w("orden", "orden")
+    }
+  ];
+
+  B.parte.m2t4b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Matemáticas II · ampliaciones · Tema 4: Vectores en el espacio
+   (parte C: resumen, actividades, ejercicios, láminas y registro)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, fr = H.fr;
+
+  var resumen = [
+    "Un vector del espacio es u = (u₁, u₂, u₃); <b>AB = B − A</b> (final menos principio), punto medio (A + B)/2, módulo |u| = √(u₁² + u₂² + u₃²). El <b>unitario</b> es u/|u|; un vector de módulo k en esa dirección es k·u/|u|.",
+    "<b>Producto escalar</b> (da un número): u·v = u₁v₁ + u₂v₂ + u₃v₃ = |u||v|cos α. Ángulo: cos α = u·v/(|u||v|). Perpendiculares ⟺ u·v = 0. Proyección de u sobre v: (u·v/|v|²)·v.",
+    "<b>Producto vectorial</b> (da un vector): u × v = determinante simbólico con i, j, k. Es perpendicular a u y a v (regla de la mano derecha), v × u = −(u × v), y <b>|u × v| = área del paralelogramo</b> (la mitad, del triángulo). u × v = 0 ⟺ paralelos.",
+    "<b>Producto mixto</b> (da un número): [u, v, w] = u·(v × w) = det. |[u, v, w]| = volumen del paralelepípedo; <b>un sexto</b>, del tetraedro. [u, v, w] = 0 ⟺ coplanarios ⟺ linealmente dependientes. Cuatro puntos coplanarios: [AB, AC, AD] = 0.",
+    "<b>Base de ℝ³</b> = 3 vectores independientes (det ≠ 0); las coordenadas se hallan resolviendo un sistema (o con productos escalares si la base es ortogonal). Dos vectores dependientes = proporcionales; cuatro en ℝ³ siempre lo son.",
+    "<b>Con parámetro</b>: traduce la condición (u·v = 0, |u × v| = A, [u, v, w] = 0…) a una ecuación en m, resuélvela y comprueba (cuadrados falsos, valor absoluto con dos casos)."
+  ];
+
+  // ================================================================
+  //  DATOS DE ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«u × v = v × u, igual que en el producto escalar». ¿Qué falla?",
+          op: ["Nada, está bien", "El producto vectorial es anticonmutativo: v × u = −(u × v)", "El producto vectorial siempre vale 0", "Solo falla si u y v son perpendiculares"], ok: 1,
+          porque: "Al cambiar el orden se invierte el sentido (regla de la mano derecha), luego el vector cambia de signo. Con u = i y v = j: i × j = k, pero j × i = −k." },
+        { q: "«El área del triángulo ABC es |AB × AC|». ¿Qué falla?",
+          op: ["Nada", "Eso es el área del paralelogramo; el triángulo es la mitad: ½|AB × AC|", "Hay que usar AB·AC", "Hay que dividir entre 3"], ok: 1,
+          porque: "El módulo del producto vectorial es el área del paralelogramo de lados AB y AC, que está formado por dos triángulos iguales." },
+        { q: "«El volumen del tetraedro de aristas u, v, w es |[u, v, w]|». ¿Qué falla?",
+          op: ["Nada", "Es el volumen del paralelepípedo; el tetraedro es la sexta parte: |[u, v, w]|/6", "Hay que dividir entre 2", "Hay que elevar al cuadrado"], ok: 1,
+          porque: "El paralelepípedo contiene 6 tetraedros iguales (la base se parte en 2 triángulos y la pirámide es 1/3 del prisma: ½·⅓ = ⅙)." },
+        { q: "«u·v = (u₁v₁, u₂v₂, u₃v₃)». ¿Qué falla?",
+          op: ["Nada", "El producto escalar es un número: u₁v₁ + u₂v₂ + u₃v₃, hay que sumar", "Debería dar un vector perpendicular", "Falta dividir entre |u||v|"], ok: 1,
+          porque: "Escalar significa que el resultado es un escalar (un número). Multiplicar componente a componente y no sumar daría un vector, que no es el producto escalar." },
+        { q: "«u·v = 0, luego u = 0 o v = 0, como con números». ¿Qué falla?",
+          op: ["Nada", "Con vectores, u·v = 0 también ocurre si son perpendiculares: (1, 0, 0)·(0, 1, 0) = 0", "u·v = 0 implica α = 0°", "Solo falla en el plano"], ok: 1,
+          porque: "Es la gran diferencia con los números: el producto escalar se anula cuando el coseno es 0, es decir, para vectores perpendiculares no nulos." },
+        { q: "«Los vectores (1, 1, 0), (0, 1, 1) y (1, 2, 1) no son proporcionales dos a dos, así que son independientes». ¿Qué falla?",
+          op: ["Nada", "Para tres vectores hay que mirar el determinante: aquí (1,2,1) = (1,1,0) + (0,1,1), son coplanarios", "Son independientes pero no forman base", "Hay que comprobar que son perpendiculares"], ok: 1,
+          porque: "Tres vectores pueden ser dependientes sin que haya dos proporcionales: basta que uno sea combinación lineal de los otros (coplanarios). El criterio es det = 0." },
+        { q: "«Los vectores (1, 0, 0), (0, 1, 0), (0, 0, 1) y (1, 1, 1) forman una base de ℝ³». ¿Qué falla?",
+          op: ["Nada", "Una base de ℝ³ tiene exactamente tres vectores independientes; cuatro siempre son dependientes", "Falta un vector más", "El último no es unitario"], ok: 1,
+          porque: "(1, 1, 1) = i + j + k es combinación de los otros tres. En ℝ³ la dimensión es 3: más de tres vectores son siempre dependientes." },
+        { q: "«Las coordenadas de w = (3, 4, 5) en la base B = {(1,1,0), (0,1,1), (1,0,1)} son (3, 4, 5)». ¿Qué falla?",
+          op: ["Nada", "(3, 4, 5) son las componentes en la base canónica; en B hay que resolver w = a·e₁ + b·e₂ + c·e₃, y sale (1, 3, 2)", "Las coordenadas son siempre las componentes", "B no es una base"], ok: 1,
+          porque: "Las coordenadas dependen de la base. En B: 1·(1,1,0) + 3·(0,1,1) + 2·(1,0,1) = (3, 4, 5)." },
+        { q: "Al resolver cos 60° = u·v/(|u||v|) con parámetro y elevar al cuadrado salen m = 0 y m = −4, y se contestan «las dos». ¿Qué falla?",
+          op: ["Nada", "Al elevar al cuadrado aparece una solución falsa: hay que comprobar que u·v tenga el signo correcto (aquí m = −4 daría 120°)", "Siempre hay una sola solución", "Hay que quedarse con la menor"], ok: 1,
+          porque: "Elevar al cuadrado pierde el signo: x² = y² admite x = ±y. Se sustituye cada valor en la ecuación original y se descarta el que no la cumple." },
+        { q: "«|u × v| = |u||v|cos α». ¿Qué falla?",
+          op: ["Nada", "Es con el seno: |u × v| = |u||v| sen α (el coseno es del producto escalar)", "Es |u × v| = |u| + |v|", "Falta un factor ½"], ok: 1,
+          porque: "El área del paralelogramo es base × altura = |u|·(|v| sen α). Si u y v son paralelos, sen α = 0 y el área es 0, como debe." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test de vectores en el espacio",
+      preguntas: [
+        { q: "El vector AB con A(1, 2, 3) y B(4, 0, 5) es", op: ["(5, 2, 8)", "(3, −2, 2)", "(−3, 2, −2)", "(3, 2, 2)"], ok: 1, porque: "B − A = (4 − 1, 0 − 2, 5 − 3) = (3, −2, 2)." },
+        { q: "El módulo de (2, −2, 1) es", op: ["1", "3", "√5", "5"], ok: 1, porque: "√(4 + 4 + 1) = √9 = 3." },
+        { q: "El producto escalar (1, 2, 3)·(2, 0, −1) vale", op: ["−1", "5", "(2, 0, −3)", "0"], ok: 0, porque: "2 + 0 − 3 = −1. El resultado es un número." },
+        { q: "El resultado de u × v es", op: ["un número", "un vector perpendicular a u y a v", "un vector paralelo a u", "un ángulo"], ok: 1, porque: "El producto vectorial da un vector perpendicular al plano que forman u y v." },
+        { q: "El área del triángulo de lados u y v es", op: ["|u × v|", "½|u × v|", "|u·v|", "⅙|[u, v, w]|"], ok: 1, porque: "El triángulo es la mitad del paralelogramo." },
+        { q: "Si u × v = 0 (con u y v no nulos), los vectores", op: ["son perpendiculares", "son paralelos", "tienen el mismo módulo", "son unitarios"], ok: 1, porque: "|u × v| = |u||v| sen α = 0 ⟹ sen α = 0 ⟹ α = 0° o 180°." },
+        { q: "El volumen del tetraedro de aristas u, v, w es", op: ["|[u, v, w]|", "|[u, v, w]|/2", "|[u, v, w]|/3", "|[u, v, w]|/6"], ok: 3, porque: "Un sexto del volumen del paralelepípedo." },
+        { q: "Cuatro puntos A, B, C, D son coplanarios si", op: ["AB·AC·AD = 0", "[AB, AC, AD] = 0", "AB × AC = 0", "|AB| = |AC|"], ok: 1, porque: "El volumen del tetraedro ABCD es 0: los cuatro puntos están en un plano." },
+        { q: "Tres vectores de ℝ³ forman base si", op: ["son unitarios", "su producto mixto es distinto de 0", "su producto mixto es 0", "son paralelos"], ok: 1, porque: "det ≠ 0 ⟺ independientes ⟺ rango 3." },
+        { q: "Si u·v &lt; 0, el ángulo entre u y v es", op: ["agudo", "recto", "obtuso", "nulo"], ok: 2, porque: "cos α &lt; 0 ⟹ 90° &lt; α ≤ 180°." },
+        { q: "El número máximo de vectores linealmente independientes en ℝ³ es", op: ["2", "3", "4", "infinito"], ok: 1, porque: "La dimensión de ℝ³ es 3." },
+        { q: "El vector unitario en la dirección de (0, 3, 4) es", op: ["(0, 3, 4)", "(0, 3/5, 4/5)", "(0, 1/3, 1/4)", "(0, 4/5, 3/5)"], ok: 1, porque: "|u| = 5; se divide cada componente entre 5." }
+      ]
+    },
+    tj1: {
+      titulo: "Tarjetas de vectores en el espacio",
+      cartas: [
+        { a: "Vector entre dos puntos", b: "AB = B − A (final menos principio). Punto medio: (A + B)/2." },
+        { a: "Módulo de u", b: "|u| = √(u₁² + u₂² + u₃²). Unitario: u/|u|." },
+        { a: "Producto escalar", b: "u·v = u₁v₁ + u₂v₂ + u₃v₃ = |u||v|cos α. Es un número." },
+        { a: "Ángulo entre vectores", b: "cos α = u·v / (|u||v|)" },
+        { a: "Perpendiculares", b: "u·v = 0" },
+        { a: "Proyección de u sobre v", b: "Escalar: u·v/|v|. Vector: (u·v/|v|²)·v." },
+        { a: "Producto vectorial", b: "Vector ⟂ a u y v, con regla de la mano derecha; v × u = −(u × v). Es un determinante con i, j, k." },
+        { a: "|u × v|", b: "|u||v|sen α = área del paralelogramo. Triángulo: ½|u × v|." },
+        { a: "Paralelos", b: "u × v = 0 (o componentes proporcionales)" },
+        { a: "Producto mixto", b: "[u, v, w] = u·(v × w) = det de las tres filas. Es un número." },
+        { a: "Volumen", b: "Paralelepípedo: |[u, v, w]|. Tetraedro: ⅙|[u, v, w]|." },
+        { a: "Coplanarios / base", b: "[u, v, w] = 0 ⟺ coplanarios (dependientes). [u, v, w] ≠ 0 ⟺ base de ℝ³." }
+      ]
+    },
+    empar: {
+      titulo: "Condición y ecuación",
+      consigna: "Une cada condición geométrica con la ecuación que la expresa.",
+      pares: [
+        ["u y v son perpendiculares", "u·v = 0"],
+        ["u y v son paralelos", "u × v = 0"],
+        ["Los tres vectores son coplanarios", "[u, v, w] = 0"],
+        ["El área del paralelogramo vale A", "|u × v| = A"],
+        ["El volumen del tetraedro vale V", "|[u, v, w]| = 6V"],
+        ["El módulo de u vale k", "u·u = k²"],
+        ["Forman base de ℝ³", "[u, v, w] ≠ 0"]
+      ]
+    },
+    clas: {
+      titulo: "¿Número o vector?",
+      consigna: "Toca una operación y elige qué tipo de resultado da.",
+      categorias: ["Un número", "Un vector"],
+      items: [
+        { t: "u·v", c: 0 }, { t: "u × v", c: 1 }, { t: "[u, v, w]", c: 0 }, { t: "|u|", c: 0 },
+        { t: "AB = B − A", c: 1 }, { t: "El unitario u/|u|", c: 1 }, { t: "El área del paralelogramo", c: 0 },
+        { t: "El volumen del tetraedro", c: 0 }, { t: "La proyección vectorial de u sobre v", c: 1 }, { t: "u + v", c: 1 }
+      ]
+    },
+    orden: {
+      titulo: "Resolver un problema con parámetro",
+      consigna: "Ordena los pasos.",
+      items: [
+        { t: "Traducir la condición del enunciado a una ecuación (u·v = 0, |u × v| = A, [u, v, w] = 0…)" },
+        { t: "Calcular la expresión en función de m (producto escalar, vectorial o determinante)" },
+        { t: "Igualar y resolver la ecuación (factorizar; valor absoluto: dos casos)" },
+        { t: "Comprobar cada solución (cuadrados falsos, signos)" },
+        { t: "Escribir la conclusión con los valores de m que sirven" }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS
+  // ================================================================
+  function num(et, v, o) { var c = { tipo: "num", etiqueta: et, valor: v }; if (o) for (var k in o) c[k] = o[k]; return c; }
+  function lista(et, v, ph) { return { tipo: "lista", etiqueta: et, valores: v, ph: ph || "valores separados por comas" }; }
+  function opcion(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  function vec(a, b, c) { return [num("x =", a), num("y =", b), num("z =", c)]; }
+
+  var ejercicios = [
+    // ---------------------------------------------------------------- ★
+    { id: "v1", nivel: 1, enunciado: "Halla la distancia entre A(2, −1, 3) y B(5, 3, −9).", check: num("|AB| =", 13),
+      pistas: ["Calcula AB = B − A y su módulo."], pasos: ["AB = (3, 4, −12).", "|AB| = √(9 + 16 + 144) = √169 = 13."], resultado: "13" },
+    { id: "v2", nivel: 1, enunciado: "Calcula u·v para u = (2, −1, 3) y v = (1, 4, −2).", check: num("u·v =", -8),
+      pistas: ["Multiplica componente a componente y suma."], pasos: ["2·1 + (−1)·4 + 3·(−2) = 2 − 4 − 6 = −8."], resultado: "−8" },
+    { id: "v3", nivel: 1, enunciado: "Calcula el módulo de u = (2, 3, 6).", check: num("|u| =", 7),
+      pistas: ["Raíz de la suma de cuadrados."], pasos: ["√(4 + 9 + 36) = √49 = 7."], resultado: "7" },
+    { id: "v4", nivel: 1, enunciado: "¿Cuál de estas parejas de vectores es perpendicular?",
+      check: opcion("Respuesta", ["(1, 2, 3) y (3, 0, −1)", "(1, 1, 1) y (1, 2, 3)", "(2, 0, 1) y (1, 1, 1)", "(1, −1, 2) y (2, 1, 1)"], 0),
+      pistas: ["Calcula el producto escalar de cada pareja."], pasos: ["3 + 0 − 3 = 0 ✓ (primera pareja).", "Las otras dan 6, 3 y 3: no son perpendiculares."], resultado: "(1, 2, 3) y (3, 0, −1)" },
+    { id: "v5", nivel: 1, enunciado: "Calcula u × v para u = (1, 2, 0) y v = (0, 1, 3). Escribe las tres componentes.", check: vec(6, -3, 1),
+      pistas: ["Determinante con i, j, k; recuerda el signo menos de la componente j."],
+      pasos: ["i: 2·3 − 0·1 = 6.", "j: −(1·3 − 0·0) = −3.", "k: 1·1 − 2·0 = 1.", "u × v = (6, −3, 1). Comprueba: u·(u × v) = 6 − 6 + 0 = 0 ✓."], resultado: "(6, −3, 1)" },
+    { id: "v6", nivel: 1, enunciado: "Calcula el producto mixto de u = (1, 2, 0), v = (0, 1, 3) y w = (2, 0, 1).", check: num("[u, v, w] =", 13),
+      pistas: ["Es el determinante de las tres filas."], pasos: ["|1 2 0 ; 0 1 3 ; 2 0 1| = 1·(1 − 0) − 2·(0 − 6) + 0 = 1 + 12 = 13."], resultado: "13" },
+    { id: "v7", nivel: 1, enunciado: "Halla el área del paralelogramo de lados u = (1, 1, 0) y v = (0, 1, 1) (decimal).", check: num("Área =", Math.sqrt(3), { ph: "1,732" }),
+      pistas: ["Área = |u × v|."], pasos: ["u × v = (1·1 − 0·1, −(1·1 − 0·0), 1·1 − 1·0) = (1, −1, 1).", "|u × v| = √3 ≈ 1,732."], resultado: "√3" },
+    { id: "v8", nivel: 1, enunciado: "Para tres vectores se sabe que [u, v, w] = −18. Calcula el volumen del tetraedro que forman.", check: num("Volumen =", 3),
+      pistas: ["Un sexto del valor absoluto."], pasos: ["|−18|/6 = 3."], resultado: "3" },
+    { id: "v9", nivel: 1, enunciado: "Halla el punto medio del segmento de extremos A(1, −3, 4) y B(5, 1, −2).", check: vec(3, -1, 1),
+      pistas: ["Media de cada coordenada."], pasos: ["((1 + 5)/2, (−3 + 1)/2, (4 − 2)/2) = (3, −1, 1)."], resultado: "(3, −1, 1)" },
+    { id: "v10", nivel: 1, enunciado: "Halla el vector unitario de la dirección de u = (3, 0, 4). Escribe sus tres componentes separadas por comas.", check: lista("û =", [0, 0.6, 0.8], "tres valores"),
+      pistas: ["|u| = 5."], pasos: ["|u| = √(9 + 16) = 5.", "û = (3/5, 0, 4/5) = (0,6; 0; 0,8)."], resultado: "(0,6; 0; 0,8)" },
+    { id: "v11", nivel: 1, enunciado: "Los vectores (1, −2, 3) y (−2, 4, −6) ¿son linealmente dependientes?",
+      check: opcion("Respuesta", ["Sí: el segundo es −2 veces el primero", "No, tienen distinto módulo", "No, son perpendiculares", "No se puede saber"], 0),
+      pistas: ["Mira si son proporcionales."], pasos: ["(−2, 4, −6) = −2·(1, −2, 3): proporcionales ⟹ dependientes."], resultado: "Sí" },
+    { id: "v12", nivel: 1, enunciado: "¿Son coplanarios u = (1, 1, 0), v = (0, 1, 1) y w = (1, 2, 1)?",
+      check: opcion("Respuesta", ["Sí: w = u + v", "No: el determinante es 2", "No: u y v son perpendiculares", "Sí: los tres son unitarios"], 0),
+      pistas: ["Suma u y v."], pasos: ["u + v = (1, 2, 1) = w.", "Una combinación lineal ⟹ [u, v, w] = 0 ⟹ coplanarios."], resultado: "Sí" },
+    { id: "v13", nivel: 1, enunciado: "Si u × v = 0 con u y v no nulos, ¿qué se puede asegurar?",
+      check: opcion("Respuesta", ["u y v son paralelos", "u y v son perpendiculares", "u·v = 0", "|u| = |v|"], 0),
+      pistas: ["|u × v| = |u||v|sen α."], pasos: ["sen α = 0 ⟹ α = 0° o 180° ⟹ paralelos."], resultado: "Paralelos" },
+    { id: "v14", nivel: 1, enunciado: "Calcula el ángulo (en grados) entre u = (1, 1, 0) y v = (1, 0, 0).", check: num("α =", 45, { unidad: "°" }),
+      pistas: ["cos α = u·v/(|u||v|)."], pasos: ["u·v = 1, |u| = √2, |v| = 1.", "cos α = 1/√2 ⟹ α = 45°."], resultado: "45°" },
+    // ---------------------------------------------------------------- ★★
+    { id: "v15", nivel: 2, enunciado: "Calcula el ángulo (en grados) entre u = (2, −1, 2) y v = (1, 2, −2).", check: num("α =", 116.3878, { unidad: "°" }),
+      pistas: ["Producto escalar y módulos."], pasos: ["u·v = 2 − 2 − 4 = −4; |u| = |v| = 3.", "cos α = −4/9 ⟹ α ≈ 116,39°."], resultado: "116,39°" },
+    { id: "v16", nivel: 2, enunciado: "(EvAU) Halla m para que u = (m, 2, −1) y v = (3, m, 4) sean perpendiculares.", check: num("m =", 0.8),
+      pistas: ["u·v = 0."], pasos: ["3m + 2m − 4 = 0 ⟹ 5m = 4 ⟹ m = 4/5 = 0,8."], resultado: "4/5" },
+    { id: "v17", nivel: 2, enunciado: "Halla los valores de m para que u = (m, 2, 1) y v = (m, −3, 2) sean perpendiculares (de menor a mayor).", check: lista("m =", [-2, 2], "dos valores"),
+      pistas: ["u·v = m² − 6 + 2."], pasos: ["u·v = m² − 6 + 2 = m² − 4 = 0.", "m = −2 o m = 2."], resultado: "m = −2, m = 2" },
+    { id: "v18", nivel: 2, enunciado: "Halla la proyección vectorial de u = (3, 4, 0) sobre v = (1, 2, 2) (en decimales).", check: [num("x =", 11 / 9), num("y =", 22 / 9), num("z =", 22 / 9)],
+      pistas: ["((u·v)/|v|²)·v."], pasos: ["u·v = 11, |v|² = 9.", "(11/9)·(1, 2, 2) = (11/9, 22/9, 22/9) ≈ (1,222; 2,444; 2,444)."], resultado: "(11/9, 22/9, 22/9)" },
+    { id: "v19", nivel: 2, enunciado: "Halla el vector unitario perpendicular a u = (1, 2, −1) y v = (−1, 1, 2) cuya primera componente sea positiva (en decimales).", check: [num("x =", 5 / Math.sqrt(35)), num("y =", -1 / Math.sqrt(35)), num("z =", 3 / Math.sqrt(35))],
+      pistas: ["u × v y divide por su módulo."], pasos: ["u × v = (2·2 − (−1)·1, −(1·2 − (−1)(−1)), 1·1 − 2·(−1)) = (5, −1, 3).", "|u × v| = √35.", "(5, −1, 3)/√35 ≈ (0,845; −0,169; 0,507)."], resultado: "(5, −1, 3)/√35" },
+    { id: "v20", nivel: 2, enunciado: "Halla el área del triángulo de vértices A(1, 0, 1), B(2, 2, 0) y C(0, 1, 3) (decimal).", check: num("Área =", Math.sqrt(35) / 2, { ph: "2,958" }),
+      pistas: ["½|AB × AC|."], pasos: ["AB = (1, 2, −1), AC = (−1, 1, 2).", "AB × AC = (5, −1, 3), módulo √35.", "Área = √35/2 ≈ 2,958."], resultado: "√35/2" },
+    { id: "v21", nivel: 2, enunciado: "Tres vértices consecutivos de un paralelogramo ABCD son A(1, 0, 2), B(3, 1, 1) y C(4, 3, 0). Halla D.", check: vec(2, 2, 1),
+      pistas: ["D = A + C − B."], pasos: ["D = (1 + 4 − 3, 0 + 3 − 1, 2 + 0 − 1) = (2, 2, 1)."], resultado: "(2, 2, 1)" },
+    { id: "v22", nivel: 2, enunciado: "Halla el volumen del tetraedro de vértices A(0, 0, 0), B(1, 2, 0), C(0, 1, 3) y D(2, 1, 1) (decimal).", check: num("Volumen =", 5 / 3, { ph: "1,667" }),
+      pistas: ["⅙|[AB, AC, AD]|."], pasos: ["[AB, AC, AD] = |1 2 0 ; 0 1 3 ; 2 1 1| = 1·(1 − 3) − 2·(0 − 6) = −2 + 12 = 10.", "V = 10/6 = 5/3 ≈ 1,667."], resultado: "5/3" },
+    { id: "v23", nivel: 2, enunciado: "(EvAU) Halla m para que A(1, 1, 1), B(2, 3, 4), C(0, 1, 2) y D(3, 5, m) sean coplanarios.", check: num("m =", 7),
+      pistas: ["[AB, AC, AD] = 0."], pasos: ["AB = (1, 2, 3), AC = (−1, 0, 1), AD = (2, 4, m − 1).", "Determinante: 2m − 14 = 0 ⟹ m = 7."], resultado: "7" },
+    { id: "v24", nivel: 2, enunciado: "Escribe w = (3, −2, −1) como a·u + b·v con u = (1, 0, 1) y v = (0, 1, 2). Da a y b.", check: [num("a =", 3), num("b =", -2)],
+      pistas: ["w = (a, b, a + 2b)."], pasos: ["a = 3 y b = −2.", "Tercera componente: 3 + 2(−2) = −1 ✓."], resultado: "a = 3, b = −2" },
+    { id: "v25", nivel: 2, enunciado: "Halla los valores de m para los que u = (1, 1, m), v = (1, m, 1) y t = (m, 1, 1) son linealmente dependientes (de menor a mayor).", check: lista("m =", [-2, 1], "dos valores"),
+      pistas: ["det = −(m − 1)²(m + 2)."], pasos: ["det = 1·(m − 1) − 1·(1 − m) + m·(1 − m²) = 3m − 2 − m³ = −(m − 1)²(m + 2).", "Se anula en m = 1 y m = −2."], resultado: "m = −2, m = 1" },
+    { id: "v26", nivel: 2, enunciado: "¿Para qué valor de m <b>no</b> forman base de ℝ³ los vectores (1, m, 0), (0, 1, m) y (m, 0, 1)?", check: num("m =", -1),
+      pistas: ["Calcula el determinante: sale 1 + m³."], pasos: ["det = 1 + m³ = 0 ⟹ m = −1 (única raíz real)."], resultado: "−1" },
+    { id: "v27", nivel: 2, enunciado: "Halla las coordenadas de w = (5, 6, 7) en la base B = {(1, 1, 0), (0, 1, 1), (1, 0, 1)}.", check: [num("a =", 2), num("b =", 4), num("c =", 3)],
+      pistas: ["a + c = 5, a + b = 6, b + c = 7."], pasos: ["Suma: 2(a + b + c) = 18 ⟹ a + b + c = 9.", "b = 9 − 5 = 4; c = 9 − 6 = 3; a = 9 − 7 = 2.", "Comprobación: 2(1,1,0) + 4(0,1,1) + 3(1,0,1) = (5, 6, 7) ✓."], resultado: "(2, 4, 3)" },
+    { id: "v28", nivel: 2, enunciado: "(EvAU) Sean u = (1, m, 0) y v = (0, 1, 1). Halla m &gt; 0 para que el área del paralelogramo que forman sea √11.", check: num("m =", 3),
+      pistas: ["u × v = (m, −1, 1)."], pasos: ["u × v = (m·1 − 0·1, −(1·1 − 0·0), 1·1 − m·0) = (m, −1, 1).", "|u × v|² = m² + 2 = 11 ⟹ m² = 9 ⟹ m = 3 (m &gt; 0)."], resultado: "3" },
+    { id: "v29", nivel: 2, enunciado: "Los vectores u = (1, 0, 1), v = (0, 1, 1) y w = (1, 1, m) son aristas de un tetraedro de volumen 1/2. Halla los valores de m (de menor a mayor).", check: lista("m =", [-1, 5], "dos valores"),
+      pistas: ["[u, v, w] = m − 2; volumen = |m − 2|/6."], pasos: ["[u, v, w] = 1·(m − 1) − 0 + 1·(0 − 1) = m − 2.", "|m − 2|/6 = 1/2 ⟹ |m − 2| = 3 ⟹ m = 5 o m = −1."], resultado: "m = −1, m = 5" },
+    { id: "v30", nivel: 2, enunciado: "(EvAU) Halla m &gt; 0 para que u = (1, 0, 1) y v = (m, 1, 0) formen un ángulo de 60°.", check: num("m =", 1),
+      pistas: ["Eleva al cuadrado y comprueba el signo."], pasos: ["u·v = m, |u| = √2, |v| = √(m² + 1).", "m/(√2·√(m² + 1)) = 1/2 ⟹ 2m = √2·√(m² + 1) ⟹ 4m² = 2m² + 2 ⟹ m² = 1.", "m = ±1; con m &gt; 0 (cos positivo): m = 1."], resultado: "1" },
+    { id: "v31", nivel: 2, enunciado: "Si |u| = 2, |v| = 3 y el ángulo que forman es 30°, calcula |u × v| y u·v.", check: [num("|u × v| =", 3), num("u·v =", 3 * Math.sqrt(3), { ph: "5,196" })],
+      pistas: ["|u × v| = |u||v|sen α; u·v = |u||v|cos α."], pasos: ["|u × v| = 2·3·sen 30° = 3.", "u·v = 2·3·cos 30° = 3√3 ≈ 5,196."], resultado: "3 y 3√3" },
+    { id: "v32", nivel: 2, enunciado: "Halla la altura del paralelogramo de lados u = (2, 1, 2) y v = (0, 3, 4) sobre la base u (decimal).", check: num("Altura =", Math.sqrt(104) / 3, { ph: "3,399" }),
+      pistas: ["Altura = área / base."], pasos: ["u × v = (1·4 − 2·3, −(2·4 − 2·0), 2·3 − 1·0) = (−2, −8, 6).", "Área = √104 ≈ 10,198; base |u| = 3.", "Altura = √104/3 ≈ 3,399."], resultado: "√104/3" },
+    // ---------------------------------------------------------------- ★★★
+    { id: "v33", nivel: 3, enunciado: "Para el tetraedro A(0, 0, 0), B(1, 2, 0), C(0, 1, 3), D(2, 1, 1) del ejercicio v22 (V = 5/3), halla la altura desde D sobre la cara ABC (decimal).", check: num("h =", 10 / Math.sqrt(46), { ph: "1,474" }),
+      pistas: ["V = ⅓·Área(ABC)·h."], pasos: ["AB × AC = (2·3 − 0·1, −(1·3 − 0·0), 1·1 − 2·0) = (6, −3, 1), de módulo √46.", "Área(ABC) = √46/2.", "h = 3V/Área = 5/(√46/2) = 10/√46 ≈ 1,474."], resultado: "10/√46" },
+    { id: "v34", nivel: 3, enunciado: "Demuestra la identidad de Lagrange: |u × v|² = |u|²|v|² − (u·v)².",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 5, items: [
+        { t: "Usa |u × v| = |u||v|sen α", p: 0.5 }, { t: "Eleva al cuadrado: |u × v|² = |u|²|v|² sen²α", p: 0.5 },
+        { t: "Usa sen²α = 1 − cos²α", p: 0.5 }, { t: "Usa u·v = |u||v|cos α para llegar a |u|²|v|² − (u·v)²", p: 0.5 }] },
+      pasos: ["|u × v|² = |u|²|v|² sen²α = |u|²|v|²(1 − cos²α).", "= |u|²|v|² − (|u||v|cos α)² = |u|²|v|² − (u·v)². ∎"], resultado: "|u × v|² = |u|²|v|² − (u·v)²" },
+    { id: "v35", nivel: 3, enunciado: "Prueba que si u·v = 0 y u × v = 0, entonces u = 0 o v = 0.",
+      check: { tipo: "rubrica", etiqueta: "Tu razonamiento", filas: 5, items: [
+        { t: "Supone u y v no nulos", p: 0.5 }, { t: "u·v = 0 ⟹ cos α = 0 (α = 90°)", p: 0.5 },
+        { t: "u × v = 0 ⟹ sen α = 0", p: 0.5 }, { t: "Contradicción: sen² + cos² = 1 no puede dar 0, luego alguno es nulo", p: 0.5 }] },
+      pasos: ["Si ambos fueran no nulos, u·v = |u||v|cos α = 0 daría cos α = 0.", "u × v = 0 daría |u||v|sen α = 0, es decir, sen α = 0.", "Pero sen²α + cos²α = 1: imposible. Luego u = 0 o v = 0. ∎"], resultado: "u = 0 o v = 0" },
+    { id: "v36", nivel: 3, enunciado: "Los puntos O(0, 0, 0), A(1, 0, 0), B(0, 2, 0) y C(0, 0, m) forman un tetraedro de volumen 2. Halla m (de menor a mayor).", check: lista("m =", [-6, 6], "dos valores"),
+      pistas: ["[OA, OB, OC] = 2m."], pasos: ["[OA, OB, OC] = |1 0 0 ; 0 2 0 ; 0 0 m| = 2m.", "V = |2m|/6 = 2 ⟹ |m| = 6 ⟹ m = ±6."], resultado: "m = −6, m = 6" },
+    { id: "v37", nivel: 3, enunciado: "(EvAU) El triángulo de vértices O(0, 0, 0), A(1, 1, 0) y B(0, m, 1) tiene área 3/2. Halla m (de menor a mayor, en decimales).", check: lista("m =", [-Math.sqrt(7), Math.sqrt(7)], "dos valores"),
+      pistas: ["OA × OB = (1, −1, m)."], pasos: ["OA × OB = (1·1 − 0·m, −(1·1 − 0·0), 1·m − 1·0) = (1, −1, m).", "Área = ½·√(2 + m²) = 3/2 ⟹ 2 + m² = 9 ⟹ m² = 7.", "m = ±√7 ≈ ±2,646."], resultado: "m = ±√7" },
+    { id: "v38", nivel: 3, enunciado: "Halla un vector w de módulo √3 perpendicular a u = (1, 1, 0) y a v = (0, 1, 1), con primera componente positiva.", check: vec(1, -1, 1),
+      pistas: ["Empieza por u × v."], pasos: ["u × v = (1, −1, 1), de módulo √3: ya tiene el módulo pedido.", "Primera componente positiva: w = (1, −1, 1)."], resultado: "(1, −1, 1)" },
+    { id: "v39", nivel: 3, enunciado: "Con la base ortogonal e₁ = (1, 2, 2), e₂ = (2, 1, −2), e₃ = (2, −2, 1), halla las coordenadas de w = (6, 3, 0) (decimales).", check: [num("c₁ =", 4 / 3), num("c₂ =", 5 / 3), num("c₃ =", 2 / 3)],
+      pistas: ["c<sub>i</sub> = w·e<sub>i</sub>/9."], pasos: ["w·e₁ = 6 + 6 = 12; w·e₂ = 12 + 3 = 15; w·e₃ = 12 − 6 = 6.", "c₁ = 12/9 = 4/3; c₂ = 15/9 = 5/3; c₃ = 6/9 = 2/3.", "Comprobación: (4/3)(1,2,2) + (5/3)(2,1,−2) + (2/3)(2,−2,1) = (6, 3, 0) ✓."], resultado: "(4/3, 5/3, 2/3)" },
+    { id: "v40", nivel: 3, enunciado: "Si |u| = 2, |v| = 3 y u·v = −3, calcula |u + v| y |u − v| (decimales).", check: [num("|u + v| =", Math.sqrt(7)), num("|u − v| =", Math.sqrt(19))],
+      pistas: ["|u ± v|² = |u|² ± 2u·v + |v|²."], pasos: ["|u + v|² = 4 − 6 + 9 = 7 ⟹ √7 ≈ 2,646.", "|u − v|² = 4 + 6 + 9 = 19 ⟹ √19 ≈ 4,359."], resultado: "√7 y √19" },
+    { id: "v41", nivel: 3, enunciado: "Halla los vectores unitarios de la forma (x, x, z) perpendiculares a (1, 0, 1). Da los dos valores de x (de menor a mayor, en decimales).", check: lista("x =", [-1 / Math.sqrt(3), 1 / Math.sqrt(3)], "dos valores"),
+      pistas: ["Perpendicular: x + z = 0. Unitario: 2x² + z² = 1."], pasos: ["(x, x, z)·(1, 0, 1) = x + z = 0 ⟹ z = −x.", "Módulo 1: x² + x² + x² = 1 ⟹ x² = 1/3.", "x = ±1/√3 ≈ ±0,577; los vectores son ±(1, 1, −1)/√3."], resultado: "x = ±1/√3" },
+    { id: "v42", nivel: 3, enunciado: "Halla m para que u = (1, 2, m), v = (m, 1, 2) y w = (2, m, 1) sean coplanarios (solo hay un valor real).", check: num("m =", -3),
+      pistas: ["det = m³ − 6m + 9. Prueba m = −3."], pasos: ["det = 1·(1 − 2m) − 2·(m − 4) + m·(m² − 2) = m³ − 6m + 9.", "Ruffini con −3: m³ − 6m + 9 = (m + 3)(m² − 3m + 3).", "m² − 3m + 3 tiene discriminante 9 − 12 &lt; 0: la única raíz real es m = −3."], resultado: "−3" },
+    { id: "v43", nivel: 3, enunciado: "Demuestra que si u es perpendicular a v y a w, entonces u es perpendicular a cualquier combinación αv + βw.",
+      check: { tipo: "rubrica", etiqueta: "Tu demostración", filas: 4, items: [
+        { t: "Parte de u·v = 0 y u·w = 0", p: 0.5 }, { t: "Calcula u·(αv + βw)", p: 0.5 },
+        { t: "Usa la linealidad: α(u·v) + β(u·w)", p: 0.5 }, { t: "Concluye que vale 0", p: 0.5 }] },
+      pasos: ["u·(αv + βw) = α(u·v) + β(u·w).", "= α·0 + β·0 = 0. ∎ (Por eso u × v es perpendicular a todo el plano de u y v.)"], resultado: "u·(αv + βw) = 0" },
+    { id: "v44", nivel: 3, enunciado: "Se sabe que |u| = 1, |v| = 2 y que forman 60°. Calcula (2u − v)·(u + v).", check: num("Valor =", -1),
+      pistas: ["Desarrolla y usa u·v = |u||v|cos 60° = 1."], pasos: ["(2u − v)·(u + v) = 2|u|² + 2u·v − v·u − |v|² = 2|u|² + u·v − |v|².", "u·v = 1·2·½ = 1.", "= 2 + 1 − 4 = −1."], resultado: "−1" },
+    { id: "v45", nivel: 3, enunciado: "El paralelepípedo de aristas (1, m, 0), (0, 1, m) y (m, 0, 1) tiene volumen 9. Halla los valores de m (de menor a mayor, en decimales).", check: lista("m =", [-Math.cbrt(10), 2], "dos valores"),
+      pistas: ["Volumen = |1 + m³|."], pasos: ["[u, v, w] = 1 + m³; el volumen es |1 + m³| = 9.", "1 + m³ = 9 ⟹ m³ = 8 ⟹ m = 2.", "1 + m³ = −9 ⟹ m³ = −10 ⟹ m = −∛10 ≈ −2,154."], resultado: "m = −∛10, m = 2" }
+  ];
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Los tres productos",
+      tabla: { cab: ["Producto", "Fórmula", "Resultado", "Sirve para"], filas: [
+        ["Escalar u·v", "u₁v₁ + u₂v₂ + u₃v₃", "número", "ángulo, perpendicularidad, proyección"],
+        ["Vectorial u × v", "determinante con i, j, k", "vector ⟂ a u y v", "área, vector normal, paralelismo"],
+        ["Mixto [u, v, w]", "u·(v × w) = det", "número", "volumen, coplanaridad, bases"]
+      ] },
+      nota: "Escalar = número · Vectorial = vector · Mixto = número (determinante)." },
+    { titulo: "Áreas y volúmenes", ancha: true,
+      tabla: { cab: ["Figura", "Fórmula", "Vale 0 si…"], filas: [
+        ["Paralelogramo (u, v)", "|u × v|", "u ∥ v"], ["Triángulo ABC", "½|AB × AC|", "A, B, C alineados"],
+        ["Paralelepípedo (u, v, w)", "|[u, v, w]|", "u, v, w coplanarios"], ["Tetraedro", "⅙|[AB, AC, AD]|", "A, B, C, D coplanarios"],
+        ["Pirámide de base paralelogramo", "⅓|[u, v, w]|", "—"]
+      ] },
+      nota: "Altura del tetraedro sobre la cara ABC: h = 3V/Área(ABC)." },
+    { titulo: "Producto vectorial: reglas",
+      items: [
+        { label: "Dirección y sentido", formula: "⟂ a u y v · mano derecha de u hacia v" },
+        { label: "Módulo", formula: "|u × v| = |u||v|sen α" },
+        { label: "Anticonmutativa", formula: "v × u = −(u × v)" },
+        { label: "Paralelos", formula: "u × v = 0" },
+        { label: "Lagrange", formula: "|u × v|² = |u|²|v|² − (u·v)²" },
+        { label: "Comprobación", formula: "(u × v)·u = 0 y (u × v)·v = 0" }
+      ] },
+    { titulo: "Dependencia y bases", ancha: true,
+      tabla: { cab: ["Vectores en ℝ³", "Dependientes si…"], filas: [
+        ["2", "son proporcionales (u × v = 0)"], ["3", "[u, v, w] = 0 (coplanarios)"], ["4 o más", "siempre"],
+        ["Base de ℝ³", "3 vectores con [u, v, w] ≠ 0"], ["Coordenadas", "w = a·e₁ + b·e₂ + c·e₃ (sistema); si la base es ortogonal, c<sub>i</sub> = w·e<sub>i</sub>/|e<sub>i</sub>|²"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "u × v = v × u", bien: "v × u = −(u × v)", por: "Anticonmutativo." },
+        { mal: "Área del triángulo = |u × v|", bien: "½|u × v|", por: "El paralelogramo son dos triángulos." },
+        { mal: "Volumen del tetraedro = |[u, v, w]|", bien: "⅙|[u, v, w]|", por: "Eso es el paralelepípedo." },
+        { mal: "u·v es un vector", bien: "u·v es un número", por: "Se suman los productos." },
+        { mal: "u·v = 0 ⟹ u = 0 o v = 0", bien: "o son perpendiculares", por: "cos 90° = 0." },
+        { mal: "Elevar al cuadrado y quedarse con todo", bien: "Comprobar cada solución", por: "Aparecen soluciones falsas." }
+      ] }
+  ];
+
+  B.registrar("mates2", "t4", {
+    resumen: resumen, secciones: B.parte.m2t4a.secciones, nuevas: B.parte.m2t4b.nuevas,
     datos: datos, ejercicios: ejercicios, lamina: lamina
   });
 })(window);
