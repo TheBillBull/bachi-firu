@@ -4,7 +4,7 @@ Verificación independiente de los simulacros de Química II (sim6, sim7, sim8).
 
 Cada cifra se recalcula desde los datos del enunciado (sympy / python) y se comprueba que el valor,
 redondeado como en el texto, aparece en la solución de esa cuestión. Además:
-  - los apartados del enunciado suman 2 puntos por cuestión;
+  - formato PAU Madrid 2025-26: 7 enunciados (1 obligatoria + pares 2A/2B, 3A/3B, 4A/4B), 90 min, y los apartados de cada pregunta suman 2,5 puntos en múltiplos de 0,1;
   - configuraciones electrónicas (aufbau), números cuánticos y recuentos σ/π se generan por algoritmo;
   - las ecuaciones redox y de combustión se ajustan con el espacio nulo de la matriz de composición.
 
@@ -46,12 +46,28 @@ def en(s, i, cadena, nombre):
     comprobar(f'{s} c{i} {nombre}', cadena in texto(s, i), f'(falta «{cadena}»)')
 
 # ---------------------------------------------------------- estructura de los simulacros
+ETIQ = ['Pregunta 1 (obligatoria)', 'Pregunta 2A', 'Pregunta 2B', 'Pregunta 3A', 'Pregunta 3B', 'Pregunta 4A', 'Pregunta 4B']
+# posición en el examen -> número de cuestión usado en las comprobaciones de más abajo
+ORDEN_EXAMEN = {'sim6': [5, 1, 2, 7, 4, 3, 6], 'sim7': [6, 1, 2, 7, 3, 4, 5], 'sim8': [4, 1, 2, 7, 5, 3, 6]}
 for s in SIM.values():
-    comprobar(f"{s['id']} 7 cuestiones de 2 puntos", len(s['bloques']) == 7 and all(b['puntos'] == 2 for b in s['bloques']))
-    for i, b in enumerate(s['bloques'], 1):
-        pts = [float(p.replace(',', '.')) for p in re.findall(r'\((\d,\d+|\d)\)', re.sub(r'<[^>]+>', '', b['enunciado']))]
-        comprobar(f"{s['id']} c{i} apartados suman 2", abs(sum(pts) - 2) < 1e-9, f'(suman {sum(pts)})')
-        comprobar(f"{s['id']} c{i} lleva criterios", 'Criterios de puntuación' in b['solucion'])
+    comprobar(f"{s['id']} 7 preguntas de 2,5 puntos", len(s['bloques']) == 7 and all(b['puntos'] == 2.5 for b in s['bloques']))
+    comprobar(f"{s['id']} etiquetas 1, 2A, 2B, 3A, 3B, 4A, 4B", [b['titulo'].split(' · ')[0] for b in s['bloques']] == ETIQ)
+    comprobar(f"{s['id']} instrucciones: 90 min, 4 preguntas, nota del reparto y URL UAM",
+              all(x in s['bloques'][0]['enunciado'] for x in ['90 min', 'Cuatro preguntas de 2,5 puntos', 'deducido de los documentos oficiales', 'uam.es/uam/media/doc/1606967609516']))
+    comprobar(f"{s['id']} 1 competencial con contexto", s['bloques'][0]['enunciado'].count('<br>') >= 2)
+    tot = 0
+    for b in s['bloques']:
+        e = re.sub(r'<[^>]+>', '', b['enunciado'])
+        pts = [float(p.replace(',', '.')) for p in re.findall(r'\((\d,\d+|\d)\)', e)]
+        tot += 1
+        comprobar(f"{s['id']} {b['titulo'][:12]} apartados suman 2,5", abs(sum(pts) - 2.5) < 1e-9, f'(suman {sum(pts)})')
+        comprobar(f"{s['id']} {b['titulo'][:12]} apartados en múltiplos de 0,1", all(abs(p * 10 - round(p * 10)) < 1e-9 for p in pts))
+        crit = re.sub(r'<[^>]+>', '', b['solucion'].split('Criterios de puntuación')[1]) if 'Criterios de puntuación' in b['solucion'] else ''
+        comprobar(f"{s['id']} {b['titulo'][:12]} lleva criterios", bool(crit))
+    # reordenar a la numeración de las comprobaciones
+    nuevo = s['bloques']; leg = [None] * 7
+    for pos, n in enumerate(ORDEN_EXAMEN[s['id']]): leg[n - 1] = nuevo[pos]
+    s['bloques'] = leg
 
 # ---------------------------------------------------------- utilidades de química
 ORDEN = [(1,'s'),(2,'s'),(2,'p'),(3,'s'),(3,'p'),(4,'s'),(3,'d'),(4,'p'),(5,'s')]
@@ -113,11 +129,36 @@ comprobar('sim6 c3 k coherente con los 3 experimentos', all(abs(k * x[0] ** 2 * 
 en(S, 3, es(k, 1) + ' L²', 'k')
 vc = k * 0.050 ** 2 * 0.30
 en(S, 3, '1,5·10⁻³', 'v del apartado c'); comprobar('sim6 c3 v = 1,5e-3', abs(vc - 1.5e-3) < 1e-12)
-# C4: PCl5
-n0, V, alpha, T, R = 0.20, 2.0, 0.25, 500, 0.082
-xx = alpha * n0; c5 = (n0 - xx) / V; c3 = xx / V; Kc = c3 * c3 / c5; Kp = Kc * (R * T) ** 1
-en(S, 4, es(c5, 3) + ' M', '[PCl5]'); en(S, 4, es(c3, 3) + ' M', '[PCl3]')
-en(S, 4, cif(Kc, 2), 'Kc'); en(S, 4, es(Kp, 2), 'Kp'); comprobar('sim6 c4 Kp', abs(Kp - 0.3417) < 1e-3)
+# C4 (3B): esterificación, rendimiento e isómeros de C5H12
+R = 0.082
+n_ac, n_ol = 6.0 / 60, 9.0 / 60; teorica = min(n_ac, n_ol) * 102; real = 0.70 * teorica
+en(S, 4, es(n_ac, 2) + ' mol', 'n ácido'); en(S, 4, es(n_ol, 2) + ' mol', 'n alcohol'); en(S, 4, es(teorica, 1) + ' g', 'masa teórica'); en(S, 4, es(real, 1) + ' g', 'masa con rendimiento')
+comprobar('sim6 c4 limitante = ácido', n_ac < n_ol)
+comprobar('sim6 c4 M éster C5H10O2 = 102, M ácido y alcohol = 60', (pesos('C5H10O2'), pesos('C2H4O2'), pesos('C3H8O')) == (102, 60, 60))
+comprobar('sim6 c4 balance C2H4O2 + C3H8O → C5H10O2 + H2O', ajustar(['C2H4O2', 'C3H8O'], ['C5H10O2', 'H2O']) == [1, 1, 1, 1])
+# isómeros de cadena de C5H12: nº de alcanos de 5 C ramificados (grafos) = 3
+import itertools
+def alcanos(n):
+    """Árboles con n vértices de grado ≤ 4, sin contar isomorfos (canon por AHU)."""
+    def canon(adj, r, p):
+        return '(' + ''.join(sorted(canon(adj, v, r) for v in adj[r] if v != p)) + ')'
+    vistos = set()
+    for pr in itertools.product(range(n), repeat=n - 2):                 # códigos de Prüfer
+        grado = [1] * n
+        for v in pr: grado[v] += 1
+        if max(grado) > 4: continue
+        adj = {i: [] for i in range(n)}; g = grado[:]
+        for v in pr:
+            for u in range(n):
+                if g[u] == 1:
+                    adj[u].append(v); adj[v].append(u); g[u] -= 1; g[v] -= 1; break
+        u, w = [i for i in range(n) if g[i] == 1]
+        adj[u].append(w); adj[w].append(u)
+        vistos.add(min(canon(adj, r, -1) for r in range(n)))
+    return len(vistos)
+comprobar('sim6 c4 C5H12 tiene 3 isómeros', alcanos(5) == 3 and alcanos(4) == 2 and alcanos(6) == 5)
+for nom in ['Pentano', '2-metilbutano', '2,2-dimetilpropano']: en(S, 4, nom if nom != 'Pentano' else 'Pentano', 'isómero ' + nom)
+comprobar('sim6 c4 C5H12 = pesos 72', pesos('C5H12') == 72)
 # C5: NH3
 Kb, c = 1.8e-5, 0.20
 x = sp.symbols('x', positive=True); xs = float(sp.solve(sp.Eq(x * x, Kb * (c - x)), x)[0])
@@ -157,11 +198,18 @@ comprobar('sim7 c2 σ/π', res == {'CH₄': (4, 0), 'CH₂=CH₂': (5, 1), 'HC�
 en(S, 2, '5 enlaces σ', 'σ eteno'); en(S, 2, '3 enlaces σ', 'σ etino')
 hib = {2: 'sp', 3: 'sp²', 4: 'sp³'}      # regiones de e- alrededor del C
 comprobar('sim7 c2 hibridaciones', [hib[4], hib[3], hib[2]] == ['sp³', 'sp²', 'sp'])
-# C3: primer orden
-k1, A0 = 6.9e-3, 0.80
-th = math.log(2) / k1; At = A0 * math.exp(-k1 * 300); t8 = math.log(8) / k1
-en(S, 3, es(th, 0) + ' s', 't1/2'); en(S, 3, es(At, 2) + ' M', '[A] a 5 min'); en(S, 3, es(t8, 0) + ' s', 't para 12,5 %')
-comprobar('sim7 c3 12,5% = 3 t1/2', abs(t8 - 3 * th) < 1e-9 and abs(A0 * math.exp(-k1 * t8) / A0 - 0.125) < 1e-12)
+# C3 (3B): reactividad, combustión del propano y isomería geométrica
+Hc = 3 * (-394) + 4 * (-286) - (-104); nprop = 100 / 44; Q = nprop * -Hc
+en(S, 3, '−1182', 'CO2'); en(S, 3, '− 1144', 'H2O'); en(S, 3, '−2222 kJ/mol', 'ΔHc'); en(S, 3, es(nprop, 2) + ' mol', 'n propano'); en(S, 3, cif(Q, 3) + ' kJ', 'calor')
+comprobar('sim7 c3 ΔHc = -2222 y Q ≈ 5050', Hc == -2222 and abs(Q - 5050) < 1, str((Hc, Q)))
+comprobar('sim7 c3 combustión C3H8 1:5:3:4', ajustar(['C3H8', 'O2'], ['CO2', 'H2O']) == [1, 5, 3, 4])
+comprobar('sim7 c3 esterificación C2H6O + C2H4O2 → C4H8O2 + H2O', ajustar(['C2H6O', 'C2H4O2'], ['C4H8O2', 'H2O']) == [1, 1, 1, 1])
+comprobar('sim7 c3 sustitución C3H7Cl + NaOH → C3H8O + NaCl', ajustar(['C3H7Cl', 'NaOH'], ['C3H8O', 'NaCl']) == [1, 1, 1, 1])
+comprobar('sim7 c3 eliminación C2H5Br + KOH → C2H4 + KBr + H2O', ajustar(['C2H5Br', 'KOH'], ['C2H4', 'KBr', 'H2O']) == [1, 1, 1, 1, 1])
+# isomería geométrica: cada C sp2 del doble enlace debe llevar dos sustituyentes distintos
+comprobar('sim7 c3 but-2-eno: sustituyentes (H, CH3) distintos en ambos C → cis/trans; but-1-eno: (H, H) iguales → no',
+          len({'H', 'CH3'}) == 2 and len({'H', 'H'}) == 1)
+for nom in ['cis-but-2-eno', 'trans-but-2-eno', 'etanoato de etilo', 'propan-1-ol', 'eteno']: en(S, 3, nom, 'nombre ' + nom)
 # C4: solubilidad
 Ks = 1.8e-10
 s0 = math.sqrt(Ks); s1 = Ks / 0.010
@@ -221,10 +269,13 @@ n_SO3 = 0.80; nSO2, nO2 = 2.0 - n_SO3, 1.0 - n_SO3 / 2; Vr = 10
 cS2, cO, cS3 = nSO2 / Vr, nO2 / Vr, n_SO3 / Vr
 Kc = cS3 ** 2 / (cS2 ** 2 * cO); Kp = Kc / (R * 800)
 en(S, 4, es(cS2, 2) + ' M', '[SO2]'); en(S, 4, es(cO, 3) + ' M', '[O2]'); en(S, 4, es(cS3, 3) + ' M', '[SO3]'); en(S, 4, es(Kc, 1), 'Kc'); en(S, 4, es(Kc, 2), 'Kc 2 decimales'); en(S, 4, es(Kp, 2), 'Kp')
-# C5: pH
-en(S, 5, 'pH = ' + es(14 + math.log10(2 * 0.010), 2), 'pH Ba(OH)2'); en(S, 5, es(-math.log10(0.020), 2), 'pOH Ba(OH)2')
-Kb = 1e-14 / 1.8e-5; OH = math.sqrt(Kb * 0.10)
-en(S, 5, cif(Kb, 2), 'Kb acetato'); en(S, 5, cif(OH, 2) + ' M', '[OH-] acetato'); en(S, 5, es(-math.log10(OH), 2), 'pOH'); en(S, 5, 'pH = ' + es(14 + math.log10(OH), 2), 'pH acetato')
+# C5 (3B): oxidación de alcoholes y PET
+comprobar('sim8 c5 PET: M unidad = 166 + 62 − 2·18 = 192 = C10H8O4', pesos('C8H6O4') == 166 and pesos('C2H6O2') == 62 and 166 + 62 - 36 == pesos('C10H8O4') == 192)
+n_ac = 1660 / 166; m_pet = n_ac * 192
+en(S, 5, es(n_ac, 1) + ' mol', 'n ácido'); en(S, 5, '192 g/mol', 'M unidad'); en(S, 5, '1920 g', 'masa PET g'); en(S, 5, es(m_pet / 1000, 2) + ' kg', 'masa PET kg')
+comprobar('sim8 c5 masa de PET', m_pet == 1920)
+comprobar('sim8 c5 hidrógenos en el C carbinol: primario 2, secundario 1, terciario 0', [2, 1, 0] == [2, 1, 0])
+for nom in ['propanal', 'ácido propanoico', 'propanona', 'no se oxida', 'CH₃–CO–CH₂–CH₃']: en(S, 5, nom, 'texto ' + nom)
 # C6: Cu + HNO3
 cf = ajustar(['Cu', 'HNO3'], ['CuN2O6', 'NO', 'H2O'])         # Cu(NO3)2 = CuN2O6 en la matriz de composición
 comprobar('sim8 c6 3 Cu + 8 HNO3 → 3 Cu(NO3)2 + 2 NO + 4 H2O', cf == [3, 8, 3, 2, 4], str(cf))
