@@ -15249,6 +15249,151 @@
 })(window);
 
 /* ============================================================
+   Bachi para Firu · Química II, tema 4: Enlace químico
+   Reutiliza los simuladores de Física y Química I (q2_lewis, q2_vsepr, q2_polaridad, q2_hibrid, q2_red, q2_bornhaber,
+   q2_fuerzas, q2_propiedades, q2_metalico, q2_deltaen) y añade tres:
+   q4_angulos (ángulo de enlace y pares libres) · q4_morse (curva de energía de un enlace) · q4_ficha (ficha EvAU de una molécula)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui, fmt = B.fmt;
+  function fil(r, v, c) { return U.lec(r, v, c); }
+
+  // ============================================================
+  // Q4_ANGULOS: el ángulo H–X–H según los pares libres y el tamaño del átomo central
+  // ============================================================
+  var ANG = {
+    p2: { t: "Periodo 2: C, N, O", ideal: 109.5, nota: "Cuatro pares de electrones en los tres casos (tetraedro de pares), pero cada par libre ocupa más espacio que un par de enlace y «aprieta» a los enlaces: el ángulo baja unos 2–3° por cada par libre.",
+      pts: [["CH₄", 109.5, 0], ["NH₃", 107, 1], ["H₂O", 104.5, 2]] },
+    p3: { t: "Periodo 3: Si, P, S", ideal: 109.5, nota: "Con átomo central del periodo 3 el efecto es mucho mayor: PH₃ y H₂S casi no se desvían de 90°. El átomo es mayor, los enlaces más largos y los pares de enlace están lejos entre sí: la repulsión entre ellos es débil y el par libre casi no se hibrida.",
+      pts: [["SiH₄", 109.5, 0], ["PH₃", 93.3, 1], ["H₂S", 92.1, 2]] },
+    g15: { t: "Grupo 15: NH₃ … SbH₃", ideal: 109.5, nota: "Mismo tipo AX₃E (pirámide trigonal) en los cuatro: al bajar en el grupo el átomo central crece y el ángulo se acerca a 90°.",
+      pts: [["NH₃", 107, 1], ["PH₃", 93.3, 1], ["AsH₃", 92.1, 1], ["SbH₃", 91.7, 1]] },
+    sust: { t: "Efecto del sustituyente", ideal: 109.5, nota: "El flúor, muy electronegativo, atrae el par de enlace hacia sí y lo aleja del N: los pares de enlace ocupan menos espacio alrededor del N, el par libre gana terreno y el ángulo se cierra (NF₃ 102°).",
+      pts: [["NH₃", 107, 1], ["NF₃", 102.3, 1], ["H₂O", 104.5, 2], ["OF₂", 103.1, 2]] }
+  };
+  B.w.q4_angulos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Ángulo de enlace: ¿cuánto «aprietan» los pares libres?");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { k: "p2", ver: 1 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    U.slider(ctl, { et: "Mostrar", min: 0, max: 1, step: 1, val: 1, on: function (v) { st.ver = v; pinta(); }, fmt: function (v) { return v ? "con referencias (109,5° y 90°)" : "solo los ángulos"; } });
+    function pinta() {
+      var S = ANG[st.k], n = S.pts.length, cl = ["c-ok", "c-pen", "c-red", "c-ink"];
+      g.rango(0, n + 1, 84, 116); g.limpiar();
+      if (st.ver) {
+        g.segmento(0.3, 109.5, n + 0.7, 109.5, { clase: "c-faint", dash: "5 4" }); g.texto(n + 0.7, 109.5, "109,5° ideal", { ancla: "end", dy: -5, clase: "faint" });
+        g.segmento(0.3, 90, n + 0.7, 90, { clase: "c-faint", dash: "5 4" }); g.texto(n + 0.7, 90, "90°", { ancla: "end", dy: -5, clase: "faint" });
+      }
+      S.pts.forEach(function (p, i) {
+        var s = g.segmento(i + 1, 84, i + 1, p[1], { clase: cl[p[2] % 4] }); s.setAttribute("stroke-width", 3);
+        g.punto(i + 1, p[1], { r: 7, clase: cl[p[2] % 4] });
+        g.texto(i + 1, p[1], fmt(p[1], p[1] % 1 ? 1 : 0) + "°", { dy: -12, ancla: "middle" });
+        g.texto(i + 1, 84, p[0], { dy: -6, ancla: "middle", clase: "faint" });
+      });
+      var rows = S.pts.map(function (p) { return p[0] + ": " + fmt(p[1], p[1] % 1 ? 1 : 0) + "° · " + p[2] + (p[2] === 1 ? " par libre" : " pares libres") + " · desviación " + fmt(p[1] - 109.5, 1) + "°"; });
+      lectura.innerHTML = fil("Serie", S.t, "pen ancho") + fil("Ángulos y pares libres", rows.join("<br>"), "ancho") + fil("Explicación", S.nota, "ancho");
+      pie.innerHTML = "Orden de repulsión: <b>par libre–par libre &gt; par libre–par de enlace &gt; par de enlace–par de enlace</b>. Por eso más pares libres significa ángulos de enlace más cerrados. Ángulos experimentales (en °), de tablas; los pares libres están en azul/rojo según su número (0 verde, 1 azul, 2 rojo).";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 5, ymin: 84, ymax: 116, w: 620, h: 290, sinX: true, etx: "", ety: "ángulo (°)", etiqueta: "Ángulos de enlace" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(ANG).map(function (k) { return { k: k, t: ANG[k].t }; }), st.k, function (k) { st.k = k; pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q4_MORSE: energía potencial de un enlace frente a la distancia internuclear
+  //   V(r) = D·[1 − e^(−a(r−r₀))]² − D  (curva de Morse; r₀ y D son datos reales, a es ilustrativo)
+  // ============================================================
+  var AM = 0.02;   // pm⁻¹
+  var BON = {
+    c: { t: "C–C · C=C · C≡C", b: [["C–C", 154, 347], ["C=C", 134, 614], ["C≡C", 120, 839]], nota: "A más enlaces compartidos, el enlace es más corto y más fuerte: el orden de enlace sube de 1 a 3." },
+    n: { t: "N–N · N=N · N≡N", b: [["N–N", 145, 163], ["N=N", 125, 418], ["N≡N", 110, 945]], nota: "El N₂ es tan poco reactivo porque para romper su enlace triple hacen falta 945 kJ/mol." },
+    x: { t: "Halógenos X–X", b: [["F–F", 142, 159], ["Cl–Cl", 199, 243], ["Br–Br", 228, 193], ["I–I", 267, 151]], nota: "Al bajar en el grupo el enlace se alarga y se debilita (Cl–Cl, Br–Br, I–I). El F–F es una excepción: tan corto que los pares libres de los dos átomos se repelen." },
+    h: { t: "Enlaces con H", b: [["H–H", 74, 436], ["C–H", 109, 413], ["O–H", 96, 463], ["H–F", 92, 567]], nota: "Los enlaces más fuertes y cortos son los de átomos pequeños y electronegativos (H–F)." }
+  };
+  B.w.q4_morse = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Curva de energía de un enlace: longitud y energía de enlace");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div data-ctl></div><div class="w-plot"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { k: "c", r: 154 }, g, ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie"), sl;
+    function V(b, r) { var x = 1 - Math.exp(-AM * (r - b[1])); return b[2] * x * x - b[2]; }
+    sl = U.slider(ctl, { et: "Distancia r entre núcleos", min: 60, max: 320, step: 1, val: st.r, on: function (v) { st.r = v; pinta(); }, fmt: function (v) { return v + " pm"; } });
+    function pinta() {
+      var S = BON[st.k], cl = ["c-pen", "c-ok", "c-red", "c-ink"];
+      g.rango(50, 330, -1000, 300); g.limpiar();
+      g.segmento(50, 0, 330, 0, { clase: "c-faint", dash: "4 4" }); g.texto(330, 0, "átomos separados", { ancla: "end", dy: -5, clase: "faint" });
+      S.b.forEach(function (b, i) {
+        g.curva(function (r) { return V(b, r); }, { clase: cl[i], x0: 62, x1: 328 });
+        g.punto(b[1], -b[2], { r: 5, clase: cl[i] });
+        g.punto(st.r, V(b, st.r), { r: 6, clase: cl[i] });
+      });
+      lectura.innerHTML = S.b.map(function (b, i) {
+        var e = V(b, st.r);
+        return fil(b[0], "r₀ = " + b[1] + " pm · D = " + b[2] + " kJ/mol · E(r) = " + fmt(e, 0) + " kJ/mol", ["pen", "ok", "red", "ancho"][i] + " ancho");
+      }).join("");
+      pie.innerHTML = S.nota + " <b>Mínimo de la curva</b> = longitud de enlace r₀ (donde la atracción y la repulsión se equilibran); <b>profundidad</b> = energía de enlace D (lo que cuesta separar los átomos). A r &lt; r₀ domina la repulsión entre núcleos (la energía sube muy rápido); a r &gt; r₀ los átomos se van soltando. Forma de la curva ilustrativa (Morse); r₀ y D son datos tabulados.";
+    }
+    g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 50, xmax: 330, ymin: -1000, ymax: 300, w: 620, h: 310, etx: "r (pm)", ety: "E (kJ/mol)", etiqueta: "Energía de enlace" });
+    U.fichas(cuerpo.querySelector("[data-sel]"), Object.keys(BON).map(function (k) { return { k: k, t: BON[k].t }; }), st.k, function (k) { st.k = k; st.r = BON[k].b[0][1]; sl.set(st.r); pinta(); });
+    pinta();
+  };
+
+  // ============================================================
+  // Q4_FICHA: la «ficha» que se pide en la EvAU: notación AXnEm → geometría → hibridación → polaridad
+  // ============================================================
+  var FICHA = [
+    { f: "H₂O", n: "agua", c: "O", ve: "6 + 2·1 = 8", ax: "AX₂E₂", g: "angular", h: "sp³", p: true, por: "Dos dipolos O–H que apuntan hacia el O y forman 104,5°: su suma no es cero. Molécula polar (μ = 1,85 D)." },
+    { f: "NH₃", n: "amoníaco", c: "N", ve: "5 + 3·1 = 8", ax: "AX₃E", g: "pirámide trigonal", h: "sp³", p: true, por: "Los tres dipolos N–H y el par libre empujan la carga hacia el vértice del N: polar (μ = 1,47 D)." },
+    { f: "CH₄", n: "metano", c: "C", ve: "4 + 4·1 = 8", ax: "AX₄", g: "tetraédrica", h: "sp³", p: false, por: "Cuatro enlaces C–H casi apolares (Δχ = 0,35) y simetría tetraédrica: la suma de dipolos es cero." },
+    { f: "CO₂", n: "dióxido de carbono", c: "C", ve: "4 + 2·6 = 16", ax: "AX₂", g: "lineal", h: "sp", p: false, por: "Dos enlaces C=O polares, pero a 180°: los dipolos se anulan. Apolar." },
+    { f: "BF₃", n: "trifluoruro de boro", c: "B", ve: "3 + 3·7 = 24", ax: "AX₃", g: "trigonal plana", h: "sp²", p: false, por: "Tres enlaces B–F muy polares a 120°: simetría trigonal, la suma es cero. Apolar (y el B queda con 6 e⁻)." },
+    { f: "SO₂", n: "dióxido de azufre", c: "S", ve: "6 + 2·6 = 18", ax: "AX₂E", g: "angular", h: "sp²", p: true, por: "El par libre del S curva la molécula (≈ 119°): los dipolos S=O no se anulan. Polar (μ = 1,63 D)." },
+    { f: "SO₃", n: "trióxido de azufre", c: "S", ve: "6 + 3·6 = 24", ax: "AX₃", g: "trigonal plana", h: "sp²", p: false, por: "Sin pares libres en el S, tres enlaces equivalentes a 120°: apolar." },
+    { f: "PCl₃", n: "tricloruro de fósforo", c: "P", ve: "5 + 3·7 = 26", ax: "AX₃E", g: "pirámide trigonal", h: "sp³", p: true, por: "Pirámide: dipolos P–Cl y par libre no se compensan. Polar." },
+    { f: "CCl₄", n: "tetracloruro de carbono", c: "C", ve: "4 + 4·7 = 32", ax: "AX₄", g: "tetraédrica", h: "sp³", p: false, por: "Cuatro enlaces C–Cl polares, pero iguales y en tetraedro: se anulan. Apolar." },
+    { f: "CHCl₃", n: "cloroformo", c: "C", ve: "4 + 1 + 3·7 = 26", ax: "AX₄", g: "tetraédrica", h: "sp³", p: true, por: "Misma forma que el CCl₄, pero con un H en lugar de un Cl: los cuatro enlaces ya no son iguales, no se anulan. Polar." },
+    { f: "BeCl₂", n: "cloruro de berilio", c: "Be", ve: "2 + 2·7 = 16", ax: "AX₂", g: "lineal", h: "sp", p: false, por: "Dos dipolos Be–Cl opuestos en línea recta: se cancelan. Apolar (el Be queda con 4 e⁻)." },
+    { f: "CH₂O", n: "metanal", c: "C", ve: "4 + 2·1 + 6 = 12", ax: "AX₃", g: "trigonal plana", h: "sp²", p: true, por: "Plana, pero el enlace C=O es muy polar y los C–H casi no: no hay simetría que anule. Polar (μ = 2,3 D)." },
+    { f: "HCN", n: "cianuro de hidrógeno", c: "C", ve: "1 + 4 + 5 = 10", ax: "AX₂", g: "lineal", h: "sp", p: true, por: "Lineal, pero los dos extremos son distintos (H y N): el dipolo C≡N domina. Polar (μ = 2,98 D)." },
+    { f: "H₂S", n: "sulfuro de hidrógeno", c: "S", ve: "6 + 2·1 = 8", ax: "AX₂E₂", g: "angular", h: "sp³", p: true, por: "Angular como el agua: los dipolos no se anulan (μ = 0,97 D). Polar, aunque menos que el agua." }
+  ];
+  var GEOMS = ["lineal", "trigonal plana", "angular", "tetraédrica", "pirámide trigonal"];
+  var AXS = ["AX₂", "AX₃", "AX₂E", "AX₄", "AX₃E", "AX₂E₂"];
+  var HIBS = ["sp", "sp²", "sp³"];
+  B.w.q4_ficha = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Ficha EvAU de una molécula: pares, geometría, hibridación y polaridad");
+    cuerpo.innerHTML = '<div data-sel class="chips"></div><div class="q4-ficha"></div><div class="lectura anch"></div><p class="w-pie"></p>';
+    var st = { i: 0, r: {} }, caja = cuerpo.querySelector(".q4-ficha"), lectura = cuerpo.querySelector(".lectura"), pie = cuerpo.querySelector(".w-pie");
+    var PASOS = [
+      { k: "ax", t: "1 · Notación del átomo central (enlaces y pares libres)", ops: AXS },
+      { k: "g", t: "2 · Geometría molecular", ops: GEOMS },
+      { k: "h", t: "3 · Hibridación del átomo central", ops: HIBS },
+      { k: "p", t: "4 · ¿La molécula es polar?", ops: ["polar", "apolar"] }
+    ];
+    function sol(m, k) { return k === "p" ? (m.p ? "polar" : "apolar") : m[k]; }
+    function pinta() {
+      var m = FICHA[st.i], h = "<p class='q4-enun'><b>" + m.f + "</b> (" + m.n + "). Átomo central: <b>" + m.c + "</b>. Electrones de valencia: " + m.ve + ". Responde por orden; verás al instante si aciertas.</p>", hecho = 0;
+      PASOS.forEach(function (s, j) {
+        var r = st.r[s.k], prev = j === 0 || st.r[PASOS[j - 1].k] === sol(m, PASOS[j - 1].k);
+        h += "<div class='q4-paso' style='" + (prev ? "" : "opacity:.4") + "'><b>" + s.t + "</b><div class='chips' data-p='" + s.k + "'>" + s.ops.map(function (o) {
+          var cls = "chip-btn" + (r === o && o === sol(m, s.k) ? " on" : ""), sty = r === o && o !== sol(m, s.k) ? " style='border-color:var(--red);color:var(--red);background:var(--red-soft)'" : "";
+          return "<button type='button' class='" + cls + "'" + sty + " data-o='" + o + "'" + (prev ? "" : " disabled") + ">" + o + "</button>";
+        }).join("") + "</div>" + (r ? "<small style='color:var(--" + (r === sol(m, s.k) ? "ok" : "red") + ")'>" + (r === sol(m, s.k) ? "✓ Correcto" : "✗ No: piensa de nuevo (¿cuántos pares hay en total alrededor del " + m.c + "?)") + "</small>" : "") + "</div>";
+        if (r === sol(m, s.k)) hecho++;
+      });
+      caja.innerHTML = h;
+      Array.prototype.forEach.call(caja.querySelectorAll("[data-p]"), function (c) {
+        c.onclick = function (e) { var b = e.target.closest("[data-o]"); if (!b || b.disabled) return; st.r[c.getAttribute("data-p")] = b.getAttribute("data-o"); pinta(); };
+      });
+      lectura.innerHTML = hecho === 4 ? fil("Resumen de " + m.f, m.ax + " → " + m.g + " → " + m.h + " → " + (m.p ? "polar" : "apolar"), "ok ancho") + fil("Por qué", m.por, "ancho") : fil("Progreso", hecho + " de 4 pasos correctos", "pen");
+      pie.innerHTML = "Orden de trabajo: electrones de valencia → estructura de Lewis → pares (enlaces y libres; un enlace doble o triple cuenta como <b>un solo</b> par a efectos de repulsión) → geometría → hibridación (nº de pares: 2 sp · 3 sp² · 4 sp³) → polaridad (¿se anulan los dipolos?).";
+    }
+    U.fichas(cuerpo.querySelector("[data-sel]"), FICHA.map(function (m, i) { return { k: String(i), t: m.f }; }), "0", function (k) { st.i = +k; st.r = {}; pinta(); });
+    pinta();
+  };
+  B.lab = B.lab || {};
+  B.lab.q4 = { ANG: ANG, BON: BON, FICHA: FICHA, AM: AM };
+})(window);
+
+/* ============================================================
    Bachi para Firu · laboratorio de rectas (Matemáticas I, tema 8)
    motor B.lab.recta + recta2p · ecgeneral · posiciones · distpunto
    mediatriz · ptosnotables · region
@@ -47795,6 +47940,759 @@
   ];
 
   B.registrar("quimica2", "t3", { resumen: resumen, secciones: B.parte.q2t3a.secciones, nuevas: B.parte.q2t3b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 4: Enlace químico
+   (parte A: se añade al final de las secciones originales 1 a 5)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t4/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Repaso: tipos de enlace
+  secciones[0] = env(
+    "<h5>Por qué se unen los átomos</h5>" +
+    "<p>Dos átomos se enlazan cuando, al juntarse, el conjunto tiene <b>menos energía</b> que los átomos por separado. A la distancia de enlace, la atracción entre los núcleos y los electrones compensa la repulsión entre los núcleos y entre los electrones: ese equilibrio es el mínimo de energía del enlace. El modelo más sencillo para predecir cómo se enlazan es la <b>regla del octeto</b>: los átomos tienden a quedar con 8 electrones en su capa de valencia (2 en el caso del H y el He), la configuración de un gas noble. Solo intervienen los <b>electrones de valencia</b>, los de la capa más externa (Tema 3).</p>" +
+    "<h5>Los tres tipos de enlace</h5>" +
+    "<p>Según los elementos que se combinan, el octeto se alcanza de tres maneras:</p>" +
+    tabla(["Enlace", "¿Quién se combina?", "¿Qué hacen los electrones?", "Ejemplo"], [
+      ["Iónico", "metal + no metal (Δχ grande)", "se <b>transfieren</b>: el metal da electrones al no metal y se forman iones que se atraen", "NaCl, MgO, CaF₂"],
+      ["Covalente", "no metal + no metal", "se <b>comparten</b> pares de electrones", "H₂O, CO₂, CH₄, N₂"],
+      ["Metálico", "metal + metal", "los electrones de valencia se <b>deslocalizan</b> por todo el metal", "Fe, Cu, Na, latón"]
+    ], "q3t") +
+    "<h5>La electronegatividad dice cuánto se comparte</h5>" +
+    "<p>La diferencia de electronegatividad Δχ entre los dos átomos (Tema 3) es la guía más rápida: con Δχ ≈ 0 el par se reparte por igual (<b>covalente apolar</b>, como en Cl₂ o H₂); con Δχ intermedia el par queda más cerca del átomo más electronegativo (<b>covalente polar</b>, como en HCl); con Δχ grande la transferencia es casi completa (<b>iónico</b>). No hay una frontera nítida: es un continuo. Como regla orientativa, Δχ &gt; 1,7–2 se trata como iónico y Δχ &lt; 0,4 como apolar; pero el criterio decisivo en el examen es la <b>naturaleza de los elementos</b> (metal/no metal) y el comportamiento de la sustancia.</p>" +
+    w("q2_deltaen") +
+    ejemplo("Ejemplo resuelto: clasificar el enlace", "Clasifica el enlace en NaCl, MgO, HF y O₂ a partir de las electronegatividades (χ: Na 0,93; Mg 1,31; O 3,44; H 2,20; F 3,98; Cl 3,16).", [
+      "NaCl: Δχ = 3,16 − 0,93 = <b>2,23</b>; metal + no metal → <b>iónico</b>.",
+      "MgO: Δχ = 3,44 − 1,31 = <b>2,13</b>; metal + no metal → <b>iónico</b>.",
+      "HF: Δχ = 3,98 − 2,20 = <b>1,78</b>. Es no metal + no metal: es <b>covalente muy polar</b>, aunque Δχ supere 1,7. (Por eso Δχ es una guía, no una ley.)",
+      "O₂: Δχ = 0; dos átomos iguales comparten el par por igual → <b>covalente apolar</b> (doble enlace)."
+    ]) +
+    "<h5>Un cuarto caso: el enlace covalente coordinado (dativo)</h5>" +
+    "<p>En un enlace covalente normal cada átomo aporta un electrón al par compartido. En el <b>enlace coordinado o dativo</b> el par lo aporta <b>un solo átomo</b>: el amoníaco, con un par libre en el N, se une a un H⁺ (sin electrones) y forma NH₄⁺. Una vez formado, los cuatro enlaces N–H son <b>idénticos</b>; el origen del par no deja huella. Lo mismo ocurre en H₃O⁺ o en el monóxido de carbono (CO).</p>" +
+    ojo("«Sustancia con un metal» no siempre es iónica, ni «dos no metales» siempre molecular: el diamante o el cuarzo son no metales unidos por enlaces covalentes en una red gigante, y por eso se comportan como un sólido de punto de fusión altísimo (apartado 9).")
+  );
+
+  // ---------------------------------------------------------------- 2. Lewis
+  secciones[1] = env(
+    "<h5>Un método que siempre funciona: el recuento de electrones</h5>" +
+    "<p>Dibujar estructuras «a ojo» falla en cuanto la molécula tiene más de tres átomos. Hay un método de recuento que da la estructura correcta casi siempre y que es lo que se espera en la EvAU:</p>" +
+    "<ol>" +
+    "<li><b>Electrones de valencia disponibles (V)</b>: suma los de todos los átomos; <b>suma 1 por cada carga negativa y resta 1 por cada carga positiva</b> del ion.</li>" +
+    "<li><b>Esqueleto</b>: el átomo central es el menos electronegativo (nunca el H, que solo forma un enlace); los demás se colocan alrededor, unidos al central con enlaces sencillos.</li>" +
+    "<li><b>Electrones necesarios (N)</b>: 8 por cada átomo (2 para el H) si todos cumplieran el octeto. Los <b>electrones compartidos</b> son N − V, y el número de <b>enlaces</b> es (N − V)/2.</li>" +
+    "<li><b>Reparte</b>: si el esqueleto tiene menos enlaces de los calculados, se añaden enlaces dobles o triples; los electrones que no son de enlace, V − (N − V) = 2V − N, se colocan como <b>pares libres</b> hasta completar el octeto de cada átomo.</li>" +
+    "<li><b>Cargas formales</b>: CF = (e⁻ de valencia del átomo libre) − (e⁻ de sus pares libres) − (nº de enlaces). Su suma debe ser la carga del ion.</li>" +
+    "</ol>" +
+    w("q2_lewis") +
+    ejemplo("Ejemplo resuelto: HCN", "Dibuja la estructura de Lewis del cianuro de hidrógeno y calcula las cargas formales.", [
+      "V = 1 (H) + 4 (C) + 5 (N) = <b>10 e⁻</b>. Esqueleto: H–C–N (el C, menos electronegativo y que no es H, es el central).",
+      "N = 2 (H) + 8 (C) + 8 (N) = 18. Compartidos = 18 − 10 = 8 e⁻ → <b>4 enlaces</b>. El esqueleto tiene 2: faltan 2 → entre C y N hay un <b>enlace triple</b>: H–C≡N.",
+      "Pares libres: 10 − 8 = 2 e⁻ = <b>1 par</b>, en el N (el N queda con 6 + 2 = 8 e⁻; el C con 8; el H con 2).",
+      "CF: H = 1 − 0 − 1 = 0; C = 4 − 0 − 4 = 0; N = 5 − 2 − 3 = 0. Todas nulas: estructura correcta."
+    ]) +
+    ejemplo("Ejemplo resuelto: ion carbonato CO₃²⁻ (resonancia)", "Escribe las estructuras de Lewis del ion carbonato y explica por qué los tres enlaces C–O son iguales.", [
+      "V = 4 (C) + 3·6 (O) + 2 (carga) = <b>24 e⁻</b>. Esqueleto: C en el centro con tres O.",
+      "N = 4·8 = 32; compartidos = 32 − 24 = 8 → <b>4 enlaces</b>. El esqueleto tiene 3: falta 1 → <b>un doble enlace</b> C=O.",
+      "Pares libres: (24 − 8)/2 = <b>8 pares</b>: 2 en el O del doble enlace y 3 en cada uno de los otros dos O.",
+      "CF: C = 4 − 0 − 4 = 0; O (=) = 6 − 4 − 2 = 0; cada O (–) = 6 − 6 − 1 = <b>−1</b>. Suma: 0 + 0 − 1 − 1 = −2 ✓.",
+      "El doble enlace puede estar en cualquiera de los tres O: hay <b>3 formas resonantes</b> equivalentes. La estructura real es un <b>híbrido</b> de las tres (no un cambio rápido de una a otra): los tres enlaces C–O son iguales, de orden 4/3 ≈ 1,33 y de longitud intermedia entre la de un C–O (143 pm) y la de un C=O (122 pm), y cada O soporta −2/3."
+    ]) +
+    ejemplo("Ejemplo resuelto: dióxido de azufre SO₂", "Estructura de Lewis, cargas formales y resonancia del SO₂.", [
+      "V = 6 + 2·6 = <b>18 e⁻</b>. Esqueleto: O–S–O. N = 3·8 = 24; compartidos = 6 → <b>3 enlaces</b>: falta 1 → un doble enlace S=O y un sencillo S–O.",
+      "Pares libres: (18 − 6)/2 = 6 pares: 1 en el S, 2 en el O del doble enlace y 3 en el O del enlace sencillo.",
+      "CF: S = 6 − 2 − 3 = <b>+1</b>; O (=) = 6 − 4 − 2 = 0; O (–) = 6 − 6 − 1 = <b>−1</b>. Suma 0 ✓.",
+      "Hay <b>dos formas resonantes</b> (el doble enlace puede estar en cualquiera de los dos O): ambos enlaces S–O son iguales (orden 1,5)."
+    ]) +
+    "<h5>Cargas formales: qué estructura es mejor</h5>" +
+    "<p>Cuando hay varias estructuras posibles, es preferible la que tiene <b>cargas formales más pequeñas</b> (idealmente todas 0), y si hay cargas, la <b>negativa sobre el átomo más electronegativo</b>. La carga formal no es la carga real de los átomos: es un recurso contable para decidir entre estructuras. En los oxoaniones del periodo 3 (SO₄²⁻, PO₄³⁻, ClO₄⁻) se pueden dibujar con todo enlaces sencillos (S +2, cada O −1) o con dobles enlaces (S 0): ambas se aceptan en bachillerato; las dobles dan cargas formales menores, pero implican 12 electrones alrededor del S.</p>" +
+    "<h5>Cuando el octeto no se cumple</h5>" +
+    "<ul>" +
+    "<li><b>Octeto incompleto</b>: BeCl₂ (4 e⁻ en el Be) y BF₃ o BH₃ (6 e⁻ en el B). Son moléculas deficientes en electrones, muy ávidas de un par: el BF₃ se une al NH₃ con un enlace dativo (F₃B←NH₃).</li>" +
+    "<li><b>Octeto expandido</b>: elementos del periodo 3 o posterior pueden rodearse de más de 8 e⁻: PCl₅ (10), SF₆ (12), SF₄ (10). En el bachillerato se atribuye a la disponibilidad de orbitales 3d vacíos. <b>Los del periodo 2 nunca</b>: el N forma NF₃ pero no NF₅.</li>" +
+    "<li><b>Número impar de electrones (radicales)</b>: NO (11 e⁻), NO₂ (17 e⁻): un electrón queda desapareado. Son muy reactivos y paramagnéticos.</li>" +
+    "</ul>" +
+    ojo("Un fallo muy repetido: contar «6 + 6 = 12» como si cada O aportara 6 y olvidar la <b>carga del ion</b>. El carbonato tiene 24 electrones, no 22. Y el N del NO₃⁻ no puede tener 10 e⁻ (periodo 2): en el nitrato aparece un enlace dativo/carga formal +1 sobre el N, nunca un octeto expandido.")
+  );
+
+  // ---------------------------------------------------------------- 3. TRPECV
+  secciones[2] = env(
+    "<h5>Cómo se aplica el modelo</h5>" +
+    "<p>La TRPECV (en inglés VSEPR) dice que los pares de electrones de la capa de valencia del <b>átomo central</b> se colocan lo más separados posible. Procedimiento:</p>" +
+    "<ol>" +
+    "<li>Escribe la estructura de Lewis.</li>" +
+    "<li>Cuenta los <b>dominios de electrones</b> alrededor del átomo central: cada <b>enlace cuenta como uno, sea sencillo, doble o triple</b>, y cada <b>par libre</b> como uno. Es lo que se llama <b>número estérico</b>.</li>" +
+    "<li>El número estérico da la <b>disposición de los pares</b>: 2 lineal · 3 trigonal plana · 4 tetraédrica · 5 bipirámide trigonal · 6 octaédrica.</li>" +
+    "<li>La <b>geometría molecular</b> describe solo la posición de los <b>átomos</b>, no la de los pares libres.</li>" +
+    "</ol>" +
+    tabla(["Notación", "Enlaces + libres", "Disposición de pares", "Geometría molecular", "Ángulo", "Ejemplos"], [
+      ["AX₂", "2 + 0", "lineal", "lineal", "180°", "BeCl₂, CO₂, HCN, C₂H₂"],
+      ["AX₃", "3 + 0", "trigonal plana", "trigonal plana", "120°", "BF₃, SO₃, CO₃²⁻, C₂H₄"],
+      ["AX₂E", "2 + 1", "trigonal plana", "angular", "&lt; 120° (SO₂ ≈ 119°)", "SO₂, O₃"],
+      ["AX₄", "4 + 0", "tetraédrica", "tetraédrica", "109,5°", "CH₄, CCl₄, NH₄⁺, SO₄²⁻"],
+      ["AX₃E", "3 + 1", "tetraédrica", "pirámide trigonal", "≈ 107° (NH₃)", "NH₃, PCl₃, H₃O⁺, SO₃²⁻"],
+      ["AX₂E₂", "2 + 2", "tetraédrica", "angular", "≈ 104,5° (H₂O)", "H₂O, H₂S, OF₂"]
+    ], "q3t") +
+    w("q2_vsepr") +
+    "<h5>Por qué los ángulos no son exactamente los ideales</h5>" +
+    "<p>Un <b>par libre</b> está sujeto a un solo núcleo y se extiende más en el espacio que un par de enlace (que está «estirado» entre dos núcleos). Ocupa más sitio y empuja a los pares de enlace hacia el resto. La jerarquía de repulsión es:</p>" +
+    "<div class='formula-wrap'><div class='formula'>par libre–par libre &gt; par libre–par de enlace &gt; par de enlace–par de enlace</div></div>" +
+    "<p>Por eso en la serie de pares tetraédricos el ángulo se cierra con cada par libre: <b>CH₄ 109,5° → NH₃ 107° → H₂O 104,5°</b>. Del mismo modo, en una molécula AX₃ un enlace doble ocupa algo más de sitio que uno sencillo: en el eteno el ángulo H–C–H (≈ 117°) es menor que 120° y el H–C=C mayor (≈ 121°).</p>" +
+    w("q4_angulos") +
+    ejemplo("Ejemplo resuelto: geometría de cuatro especies", "Determina la geometría de PCl₃, SO₃, SO₃²⁻ y NH₄⁺.", [
+      "<b>PCl₃</b>: V = 5 + 21 = 26 e⁻ → 13 pares; 3 enlaces P–Cl, cada Cl con 3 pares libres (9) y 1 par libre en el P. Notación <b>AX₃E</b>: 4 dominios → pares tetraédricos → <b>pirámide trigonal</b>, ángulo algo menor de 109,5° (≈ 100°).",
+      "<b>SO₃</b>: V = 6 + 18 = 24 e⁻. Con tres dobles enlaces S=O (cargas formales 0) el S no tiene pares libres: <b>AX₃</b> → <b>trigonal plana</b>, 120°.",
+      "<b>SO₃²⁻</b>: V = 6 + 18 + 2 = 26 e⁻. Tres enlaces S–O y un par libre en el S: <b>AX₃E</b> → <b>pirámide trigonal</b>. Fíjate: SO₃ (plana) y SO₃²⁻ (piramidal) tienen la misma proporción átomo a átomo, pero el par libre cambia la forma.",
+      "<b>NH₄⁺</b>: V = 5 + 4 − 1 = 8 e⁻ → 4 enlaces N–H sin pares libres: <b>AX₄</b> → <b>tetraédrica</b>, 109,5°."
+    ]) +
+    "<h5>Ampliación: cinco y seis dominios</h5>" +
+    "<p>Con elementos del periodo 3 o posterior aparecen estructuras con 5 o 6 dominios, que raramente se piden pero se resuelven con la misma lógica: AX₅ bipirámide trigonal (PCl₅, ángulos 90° y 120°) · AX₄E balancín (SF₄) · AX₃E₂ forma de T (ClF₃) · AX₂E₃ lineal (XeF₂) · AX₆ octaédrica (SF₆, 90°) · AX₅E pirámide cuadrada (BrF₅) · AX₄E₂ plana cuadrada (XeF₄). Los pares libres se colocan primero en las posiciones ecuatoriales de la bipirámide, donde tienen más espacio, y en posiciones opuestas en el octaedro.</p>" +
+    ojo("«La geometría del agua es tetraédrica» es un error: <b>los pares</b> se disponen en tetraedro, pero la molécula (los átomos) es <b>angular</b>. Y el ángulo de 109,5° solo vale cuando los cuatro dominios son iguales (CH₄, CCl₄, NH₄⁺).")
+  );
+
+  // ---------------------------------------------------------------- 4. Hibridación
+  secciones[3] = env(
+    "<h5>Por qué hace falta la hibridación</h5>" +
+    "<p>La configuración del carbono, 2s² 2p², parece indicar solo dos enlaces (los dos electrones p desapareados). Sin embargo el carbono forma cuatro enlaces idénticos en el metano, a 109,5°. La explicación: el átomo <b>promociona</b> un electrón 2s a un 2p (cuesta algo de energía), obtiene 4 electrones desapareados, y los orbitales 2s y 2p se <b>mezclan</b> (hibridan) en orbitales nuevos, todos iguales y dirigidos según la geometría que pide la TRPECV. La energía que se gana al formar cuatro enlaces compensa de sobra la que cuesta promocionar.</p>" +
+    tabla(["Hibridación", "Orbitales mezclados", "Orbitales híbridos", "Orbitales p puros", "Geometría", "Ángulo"], [
+      ["sp³", "1 s + 3 p", "4", "0", "tetraédrica", "109,5°"],
+      ["sp²", "1 s + 2 p", "3", "1", "trigonal plana", "120°"],
+      ["sp", "1 s + 1 p", "2", "2", "lineal", "180°"]
+    ], "q3t") +
+    "<p>Se cumple siempre: <b>nº de orbitales híbridos = nº de dominios de electrones (número estérico)</b> = enlaces σ + pares libres del átomo. Con 4 dominios: sp³; con 3: sp²; con 2: sp. Esto sirve también para N y O: en el NH₃ (3 enlaces + 1 par libre) el N es sp³, y en el H₂O el O es sp³; el par libre ocupa un orbital híbrido.</p>" +
+    "<h5>Enlaces σ y enlaces π</h5>" +
+    "<ul>" +
+    "<li><b>σ (sigma)</b>: solapamiento <b>frontal</b> de orbitales a lo largo del eje que une los núcleos. Es el primer enlace entre dos átomos y es el más fuerte; lo forman los orbitales híbridos (o el s del H).</li>" +
+    "<li><b>π (pi)</b>: solapamiento <b>lateral</b> de dos orbitales p puros paralelos, por encima y por debajo del eje. Es más débil y es lo que impide la rotación libre alrededor de un doble enlace.</li>" +
+    "</ul>" +
+    "<p>Un enlace sencillo es 1 σ; uno doble, 1 σ + 1 π; uno triple, 1 σ + 2 π. Los orbitales p puros que sobran tras hibridar son los que forman los enlaces π: el carbono sp² tiene 1 p puro (para 1 π), el sp tiene 2 (para 2 π).</p>" +
+    w("q2_hibrid") +
+    ejemplo("Ejemplo resuelto: σ, π e hibridación del eteno, el etino y el HCN", "Indica cuántos enlaces σ y π hay en C₂H₄, C₂H₂ y HCN y la hibridación de cada carbono.", [
+      "<b>C₂H₄</b>: H₂C=CH₂. Cada C: 2 enlaces C–H (σ) + C=C (1 σ + 1 π) → 3 σ en cada C = 3 dominios → <b>sp²</b>. Total: 4 σ(C–H) + 1 σ(C–C) = <b>5 σ</b> y <b>1 π</b>. Geometría plana, ≈ 120°.",
+      "<b>C₂H₂</b>: H–C≡C–H. Cada C: 1 σ(C–H) + 1 σ(C–C) → 2 dominios → <b>sp</b>. Total: 2 + 1 = <b>3 σ</b> y <b>2 π</b>. Lineal, 180°.",
+      "<b>HCN</b>: H–C≡N. El C: 1 σ(C–H) + 1 σ(C–N) → <b>sp</b>. El N: 1 σ + 1 par libre → <b>sp</b>. Total: <b>2 σ</b> y <b>2 π</b>. Lineal."
+    ]) +
+    ejemplo("Ejemplo resuelto: ácido etanoico CH₃COOH", "Cuenta los enlaces σ y π y asigna la hibridación a cada carbono del ácido etanoico (acético).", [
+      "Estructura: CH₃–C(=O)–O–H. Enlaces: 3 C–H, 1 C–C, 1 C=O, 1 C–O, 1 O–H.",
+      "σ: 3 + 1 + 1 (de C=O) + 1 + 1 = <b>7 σ</b>; π: 1 (de C=O) → <b>1 π</b>.",
+      "C del CH₃: 4 enlaces σ → <b>sp³</b> (tetraédrico). C del grupo carboxilo: 3 enlaces σ (C–C, C=O, C–O) y 1 π → <b>sp²</b> (plano, 120°). El O del –OH tiene 2 σ + 2 pares libres → sp³ (angular)."
+    ]) +
+    ojo("«Un doble enlace son dos enlaces iguales»: no. Es un σ y un π, y el π es más débil. Por eso la energía del C=C (614 kJ/mol) es menor que el doble de la del C–C (2 · 347 = 694): romper el π cuesta ≈ 267 kJ/mol, y por eso los alquenos dan reacciones de adición (Tema 10).") +
+    "<p>Esta idea será clave en los Temas 9 y 10: la hibridación del carbono determina la geometría de una cadena orgánica (sp³ en alcanos, sp² en alquenos y compuestos con C=O, sp en alquinos y nitrilos).</p>"
+  );
+
+  // ---------------------------------------------------------------- 5. Polaridad e intermoleculares
+  secciones[4] = env(
+    "<h5>De los enlaces a la molécula: la suma de dipolos</h5>" +
+    "<p>Cada enlace polar se puede representar con un <b>vector dipolo</b> que apunta hacia el átomo más electronegativo (δ⁻), de módulo μ = q·d. La molécula es polar si la <b>suma vectorial</b> de todos los dipolos de enlace (y de los pares libres) no es cero. Tres pasos:</p>" +
+    "<ol><li>¿Hay <b>enlaces polares</b>? (Δχ ≠ 0). Si no (H₂, Cl₂, P₄), la molécula es apolar.</li>" +
+    "<li>Mira la <b>geometría</b> (TRPECV): ¿los vectores se pueden cancelar?</li>" +
+    "<li>Se cancelan solo si la geometría es <b>simétrica y los átomos exteriores son iguales</b>: lineal AX₂, trigonal AX₃, tetraédrica AX₄ con 4 sustituyentes iguales. Un par libre en el átomo central rompe la simetría (NH₃, H₂O, SO₂): la molécula es polar.</li></ol>" +
+    w("q2_polaridad") +
+    tabla(["Molécula", "Enlaces", "Geometría", "Dipolos", "Molécula"], [
+      ["CO₂", "C=O polares", "lineal", "opuestos: se anulan", "<b>apolar</b>"],
+      ["BF₃", "B–F muy polares", "trigonal plana", "a 120°: se anulan", "<b>apolar</b>"],
+      ["CCl₄", "C–Cl polares", "tetraédrica", "iguales: se anulan", "<b>apolar</b>"],
+      ["CHCl₃", "C–Cl y C–H distintos", "tetraédrica", "no se anulan", "<b>polar</b>"],
+      ["H₂O", "O–H polares", "angular", "no se anulan", "<b>polar</b>"],
+      ["NH₃", "N–H polares", "pirámide", "no se anulan", "<b>polar</b>"]
+    ], "q3t") +
+    "<p>Una molécula apolar puede tener enlaces polares, y un enlace apolar no puede dar una molécula polar. La <b>polaridad</b> (μ, en debye) condiciona las fuerzas entre moléculas y la solubilidad: «lo semejante disuelve a lo semejante» (el agua disuelve sustancias polares e iónicas; el hexano, apolares).</p>" +
+    "<h5>Las fuerzas intermoleculares</h5>" +
+    "<p>Entre moléculas actúan fuerzas mucho más débiles que un enlace (10–100 veces), pero deciden si una sustancia es gas, líquido o sólido y su punto de ebullición:</p>" +
+    "<ul>" +
+    "<li><b>Fuerzas de dispersión (London)</b>: actúan entre <b>todas</b> las moléculas, polares o no. Nacen de dipolos instantáneos de la nube electrónica; crecen con el <b>tamaño y el número de electrones</b> (más polarizable) y con la superficie de contacto. Son las únicas en gases nobles, X₂ y alcanos.</li>" +
+    "<li><b>Dipolo–dipolo</b>: entre moléculas polares; se suman a las de dispersión.</li>" +
+    "<li><b>Puente de hidrógeno</b>: un H unido a F, O o N (muy electronegativos y pequeños) es atraído por un par libre de otro F, O o N. Es la más fuerte (10–40 kJ/mol) y explica las «anomalías»: la alta T<sub>eb</sub> del agua, HF y NH₃, la solubilidad del etanol en agua, o que el hielo flote (red abierta con huecos).</li>" +
+    "<li><b>Ion–dipolo</b>: la responsable de que una sal se disuelva (Na⁺ rodeado por los O del agua, Cl⁻ por sus H).</li>" +
+    "</ul>" +
+    w("q2_fuerzas") +
+    ejemplo("Ejemplo resuelto: ordenar por punto de ebullición", "Ordena de menor a mayor punto de ebullición y justifica: Ar (−186 °C), HCl (−85 °C), CH₃OH (65 °C) y H₂O (100 °C).", [
+      "<b>Ar</b>: átomos, sin dipolo; solo fuerzas de dispersión (18 e⁻): la menor T<sub>eb</sub>.",
+      "<b>HCl</b>: polar (Δχ = 0,96); dispersión + dipolo–dipolo. No hay puente de H (el Cl no es F, O ni N): T<sub>eb</sub> mayor que el Ar.",
+      "<b>CH₃OH</b>: tiene un grupo –OH: puentes de hidrógeno (1 H capaz de donar). Mucho más alto que el HCl.",
+      "<b>H₂O</b>: 2 H y 2 pares libres por molécula → hasta 4 puentes de H por molécula (red tridimensional); el CH₃OH, con un solo H, forma menos. Orden: <b>Ar &lt; HCl &lt; CH₃OH &lt; H₂O</b>."
+    ]) +
+    ejemplo("Ejemplo resuelto: dos sustancias con la misma fórmula", "El etanol (CH₃CH₂OH, T<sub>eb</sub> = 78 °C) y el éter dimetílico (CH₃OCH₃, T<sub>eb</sub> = −24 °C) tienen la misma fórmula, C₂H₆O. Explica la diferencia.", [
+      "Misma masa molecular, así que las fuerzas de dispersión son parecidas.",
+      "El etanol tiene un H unido a O: forma <b>puentes de hidrógeno</b> entre moléculas.",
+      "En el éter el H está unido solo a C: es polar (dipolo–dipolo) pero no puede formar puentes de H consigo mismo → 100 °C menos."
+    ]) +
+    ojo("Al hervir agua se rompen <b>puentes de hidrógeno y fuerzas intermoleculares</b>, no los enlaces O–H de la molécula (que siguen intactos en el vapor). Y la T<sub>eb</sub> crece con la masa solo si la polaridad y los puentes son comparables: el HF (M = 20) hierve a 20 °C y el HCl (M = 36,5) a −85 °C.")
+  );
+
+  B.parte.q2t4a = { secciones: secciones };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 4: Enlace químico
+   (parte B: secciones nuevas 6 a 13)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "quimica2/t4/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+
+  var nuevas = [
+    // ------------------------------------------------------------ 6
+    {
+      h: "6. Longitud, energía y orden de enlace",
+      html: env(
+        "<h5>Qué mide cada magnitud</h5>" +
+        "<p>Al acercar dos átomos, la energía baja hasta un mínimo y luego sube bruscamente por la repulsión entre núcleos. La distancia del mínimo es la <b>longitud de enlace</b>; la profundidad del mínimo es la <b>energía de enlace</b> (la que hay que aportar para separar los átomos en fase gaseosa; es siempre positiva y se da en kJ/mol).</p>" +
+        w("q4_morse") +
+        "<p>Dos regularidades que se piden en examen:</p>" +
+        "<ul>" +
+        "<li><b>Orden de enlace</b> (1 sencillo, 2 doble, 3 triple): a mayor orden, enlace <b>más corto y más fuerte</b>. C–C 154 pm / 347 kJ/mol; C=C 134 / 614; C≡C 120 / 839.</li>" +
+        "<li><b>Tamaño de los átomos</b>: a más grandes, enlace más largo y más débil: Cl–Cl 243, Br–Br 193, I–I 151 kJ/mol; H–F 567 &gt; H–Cl 431.</li>" +
+        "</ul>" +
+        "<h5>Energías de enlace y entalpía de reacción</h5>" +
+        "<p>Una reacción en fase gaseosa consiste en romper unos enlaces (cuesta energía, +) y formar otros (la desprende, −). Aproximadamente:</p>" +
+        "<div class='formula-wrap'><div class='formula'>ΔH ≈ Σ E(enlaces rotos) − Σ E(enlaces formados)</div></div>" +
+        "<p>Es una estimación, porque las energías de enlace son <b>medias</b> sobre muchas moléculas; para entalpías precisas se usa la ley de Hess con entalpías de formación (termoquímica de Física y Química I).</p>" +
+        ejemplo("Ejemplo resuelto: combustión del metano con energías de enlace", "Estima ΔH de CH₄(g) + 2 O₂(g) → CO₂(g) + 2 H₂O(g). E (kJ/mol): C–H 413; O=O 498; C=O (en CO₂) 799; O–H 463.", [
+          "<b>Rotos</b>: 4 C–H + 2 O=O = 4·413 + 2·498 = 1652 + 996 = <b>2648 kJ</b>.",
+          "<b>Formados</b>: 2 C=O + 4 O–H = 2·799 + 4·463 = 1598 + 1852 = <b>3450 kJ</b> (cada H₂O tiene 2 enlaces O–H).",
+          "ΔH ≈ 2648 − 3450 = <b>−802 kJ</b> por mol de CH₄: exotérmica. (El valor medido con entalpías de formación es −802 kJ/mol.)"
+        ]) +
+        ejemplo("Ejemplo resuelto: síntesis del amoníaco", "Estima ΔH de N₂(g) + 3 H₂(g) → 2 NH₃(g). E (kJ/mol): N≡N 945; H–H 436; N–H 391.", [
+          "Rotos: 1 N≡N + 3 H–H = 945 + 3·436 = 945 + 1308 = <b>2253 kJ</b>.",
+          "Formados: 2 NH₃ = 6 enlaces N–H = 6·391 = <b>2346 kJ</b>.",
+          "ΔH ≈ 2253 − 2346 = <b>−93 kJ</b> (experimental −92 kJ): se desprende energía, aunque romper el N≡N es muy costoso."
+        ]) +
+        ojo("Se rompen los enlaces de los <b>reactivos</b> y se forman los de los <b>productos</b>; no al revés. Cuenta los enlaces <b>de cada molécula</b> (CO₂ tiene dos C=O; H₂O, dos O–H) y multiplica por los coeficientes de la ecuación ajustada.")
+      )
+    },
+    // ------------------------------------------------------------ 7
+    {
+      h: "7. Enlace iónico y energía reticular",
+      html: env(
+        "<h5>Cómo se forma un cristal iónico</h5>" +
+        "<p>Un metal con baja energía de ionización (grupo 1, 2) cede electrones a un no metal con alta afinidad (grupos 16, 17). Pero ceder el electrón <b>cuesta</b> energía (la del Na → Na⁺ es +496 kJ/mol) y captarlo apenas la devuelve (Cl: −349). Un par aislado Na⁺···Cl⁻ no sería estable; lo que lo hace posible es la formación de un <b>cristal</b>: cada ion se rodea de iones de signo contrario (en el NaCl, 6 vecinos de cada tipo; en el CsCl, 8) y la atracción acumulada libera muchísima energía. No hay moléculas de NaCl: la fórmula NaCl es solo la <b>proporción</b> de iones, la que equilibra las cargas (Na⁺Cl⁻, Mg²⁺Cl⁻₂, Al³⁺O²⁻ → Al₂O₃).</p>" +
+        "<h5>Energía reticular</h5>" +
+        "<p>La <b>energía reticular U</b> es la energía que hay que aportar para separar 1 mol de sólido iónico en sus iones en fase gaseosa: NaCl(s) → Na⁺(g) + Cl⁻(g), U = +787 kJ/mol. (Algunos libros la definen para el proceso inverso, la formación de la red, con signo negativo: lee siempre la definición del enunciado.) Mide lo fuerte que es el cristal.</p>" +
+        "<p>Por la ley de Coulomb, la fuerza entre iones es proporcional a q₊·q₋ / d²; de ahí la energía reticular:</p>" +
+        "<div class='formula-wrap'><div class='formula'>U ∝ (|q₊| · |q₋|) / d,&nbsp;&nbsp; d = r₊ + r₋</div></div>" +
+        "<p>Dos factores, y solo dos, deciden la comparación entre compuestos:</p>" +
+        "<ul>" +
+        "<li><b>La carga de los iones</b>: es el factor dominante. MgO (2+, 2−) tiene U = 3791 kJ/mol, cuatro veces la del NaF (923), con iones de tamaño parecido.</li>" +
+        "<li><b>La distancia entre iones</b> (suma de radios): iones menores, d menor, U mayor. LiF (1036) &gt; NaF (923) &gt; KF (821): el catión crece al bajar en el grupo.</li>" +
+        "</ul>" +
+        w("q2_red") +
+        tabla(["Compuesto", "q₊·q₋", "d = r₊ + r₋ (pm)", "U (kJ/mol)", "T<sub>fusión</sub> (°C)"], [
+          ["LiF", "1", "76 + 133 = 209", "1036", "845"], ["NaF", "1", "102 + 133 = 235", "923", "993"], ["NaCl", "1", "102 + 181 = 283", "787", "801"],
+          ["KCl", "1", "138 + 181 = 319", "715", "770"], ["MgO", "4", "72 + 140 = 212", "3791", "2852"], ["CaO", "4", "100 + 140 = 240", "3401", "2613"]
+        ], "q3t") +
+        "<h5>Consecuencias en las propiedades</h5>" +
+        "<ul>" +
+        "<li><b>Punto de fusión y dureza altos</b>, y tanto mayores cuanto mayor sea U: hay que vencer las atracciones de toda la red. MgO funde a 2852 °C, NaCl a 801 °C.</li>" +
+        "<li><b>No conducen la electricidad en estado sólido</b> (los iones están fijos en la red) pero sí <b>fundidos o disueltos</b>, cuando los iones se mueven.</li>" +
+        "<li><b>Frágiles</b>: un golpe desplaza una capa de iones y enfrenta cargas iguales, que se repelen y rompen el cristal.</li>" +
+        "<li><b>Solubles en agua</b> en muchos casos: las moléculas polares rodean a los iones (ion–dipolo) y la energía de hidratación compensa la reticular. Si U es muy grande (MgO, Al₂O₃) no se disuelven.</li>" +
+        "</ul>" +
+        ejemplo("Ejemplo resuelto: comparar energías reticulares", "Ordena de mayor a menor energía reticular y de mayor a menor punto de fusión: NaCl, MgO, KCl. Datos de radios (pm): Na⁺ 102; K⁺ 138; Mg²⁺ 72; Cl⁻ 181; O²⁻ 140.", [
+          "<b>Carga</b>: MgO tiene q₊·q₋ = 2·2 = 4; NaCl y KCl, 1·1 = 1. MgO es el mayor, sin dudar.",
+          "<b>Tamaño</b>: entre NaCl y KCl la carga es la misma; d(NaCl) = 102 + 181 = 283 pm y d(KCl) = 138 + 181 = 319 pm. Menor distancia → NaCl con mayor U.",
+          "Estimación de la proporción MgO/NaCl: (4/212) / (1/283) ≈ 5,3 (el valor real, 3791/787 ≈ 4,8, confirma el orden).",
+          "<b>U: MgO &gt; NaCl &gt; KCl</b>. El punto de fusión sigue el mismo orden: <b>MgO (2852 °C) &gt; NaCl (801 °C) &gt; KCl (770 °C)</b>."
+        ]) +
+        ojo("No compares compuestos solo por el tamaño si la carga es distinta: el factor decisivo es la carga. Y recuerda que <b>la energía reticular no es la energía del enlace iónico entre dos iones</b>, sino la de un mol de cristal con todos sus vecinos.")
+      )
+    },
+    // ------------------------------------------------------------ 8
+    {
+      h: "8. El ciclo de Born–Haber",
+      html: env(
+        "<h5>Por qué hace falta</h5>" +
+        "<p>La energía reticular no se puede medir directamente (nadie separa un mol de cristal en iones gaseosos). Se calcula <b>indirectamente</b> con la ley de Hess: la entalpía de formación del compuesto, que sí se mide, es igual a la suma de las entalpías de todos los pasos imaginarios que llevan de los elementos al cristal. Esos pasos forman el <b>ciclo de Born–Haber</b>.</p>" +
+        "<h5>Los pasos para NaCl(s), a partir de Na(s) y ½ Cl₂(g)</h5>" +
+        "<ol>" +
+        "<li><b>Sublimación</b> del metal: Na(s) → Na(g), ΔH<sub>sub</sub> = +107 kJ/mol.</li>" +
+        "<li><b>Ionización</b>: Na(g) → Na⁺(g) + e⁻, EI = +496 kJ/mol.</li>" +
+        "<li><b>Disociación</b> del no metal: ½ Cl₂(g) → Cl(g), ½ E<sub>enlace</sub> = +122 kJ/mol (la mitad de 243).</li>" +
+        "<li><b>Afinidad electrónica</b>: Cl(g) + e⁻ → Cl⁻(g), AE = −349 kJ/mol (se libera).</li>" +
+        "<li><b>Formación de la red</b> a partir de los iones gaseosos: Na⁺(g) + Cl⁻(g) → NaCl(s), −U.</li>" +
+        "</ol>" +
+        "<p>Por la ley de Hess, el camino directo (ΔH<sub>f</sub>) iguala al camino por los cinco pasos:</p>" +
+        "<div class='formula-wrap'><div class='formula'>ΔH<sub>f</sub> = ΔH<sub>sub</sub> + EI + ½E<sub>enlace</sub> + AE − U</div></div>" +
+        "<p>Despejando: <b>U = ΔH<sub>sub</sub> + EI + ½E<sub>enlace</sub> + AE − ΔH<sub>f</sub></b>. Los pasos 1 a 3 <b>suben</b> (cuestan energía); el 4 baja un poco; y el 5 baja muchísimo, y es el que hace que el compuesto sea estable.</p>" +
+        w("q2_bornhaber") +
+        ejemplo("Ejemplo resuelto: energía reticular del NaCl", "Calcula U del NaCl con: ΔH<sub>sub</sub>(Na) = 107; EI(Na) = 496; E(Cl–Cl) = 243; AE(Cl) = −349; ΔH<sub>f</sub>(NaCl) = −411 (kJ/mol).", [
+          "Pasos hasta los iones gaseosos: 107 + 496 + 243/2 − 349 = 107 + 496 + 121,5 − 349 = <b>375,5 kJ/mol</b> (≈ 376).",
+          "ΔH<sub>f</sub> = 375,5 − U → U = 375,5 − (−411) = <b>786,5 ≈ 787 kJ/mol</b>.",
+          "Interpretación: formar los iones gaseosos cuesta +376 kJ/mol, pero la red devuelve 787: el balance es −411 kJ/mol, exotérmico."
+        ]) +
+        ejemplo("Ejemplo resuelto: ciclo con dos electrones, CaCl₂", "Calcula U del CaCl₂. Datos (kJ/mol): ΔH<sub>sub</sub>(Ca) = 178; EI₁(Ca) = 590; EI₂(Ca) = 1145; E(Cl–Cl) = 243; AE(Cl) = −349; ΔH<sub>f</sub>(CaCl₂) = −795.", [
+          "El Ca pasa a Ca²⁺: se suman las <b>dos</b> ionizaciones: 590 + 1145 = 1735.",
+          "Hay <b>dos</b> Cl: hay que disociar 1 mol de Cl₂ (+243) y captar <b>dos</b> electrones (2·(−349) = −698).",
+          "Suma hasta los iones: 178 + 1735 + 243 − 698 = <b>1458 kJ/mol</b>.",
+          "U = 1458 − (−795) = <b>2253 kJ/mol</b>. (Es mucho mayor que la del NaCl por la carga 2+ del Ca.)"
+        ]) +
+        ejemplo("Ejemplo resuelto: despejar la entalpía de formación", "Calcula ΔH<sub>f</sub> del KCl(s) si U = 718 kJ/mol; ΔH<sub>sub</sub>(K) = 89; EI(K) = 419; ½E(Cl–Cl) = 122; AE(Cl) = −349 (kJ/mol).", [
+          "ΔH<sub>f</sub> = ΔH<sub>sub</sub> + EI + ½E + AE − U.",
+          "Pasos hasta los iones: 89 + 419 + 122 − 349 = <b>281 kJ/mol</b>.",
+          "ΔH<sub>f</sub> = 281 − 718 = <b>−437 kJ/mol</b>."
+        ]) +
+        "<h5>Los casos con oxígeno</h5>" +
+        "<p>En el MgO aparece una sutileza: el O capta el primer electrón con liberación de energía (AE₁ = −141 kJ/mol), pero captar el segundo para formar O²⁻ <b>cuesta</b> energía (AE₂ = +744 kJ/mol), porque hay que meter un electrón en un ion ya negativo. Aun así el MgO es muy estable: la energía reticular (3791 kJ/mol) compensa con creces. El ciclo completo del MgO: 148 (sublimación) + 2189 (EI₁ + EI₂ = 738 + 1451) + 249 (½ O₂ → O) − 141 + 744 = 3189; con ΔH<sub>f</sub> = −602, U = 3189 + 602 = 3791.</p>" +
+        "<p>Y esto explica por qué se forma MgCl₂ y no MgCl: quitar el segundo electrón al Mg cuesta +1451 kJ/mol, pero el cristal de Mg²⁺ tiene una energía reticular mucho mayor (2524 kJ/mol en el MgCl₂) que lo paga de sobra. Con el mismo razonamiento, el sodio forma Na⁺ y no Na²⁺: la EI₂ del Na (4562) sale de una capa interna y ninguna red puede compensarla.</p>" +
+        w("orden", "ordenBH") +
+        ojo("Errores típicos: (1) olvidar que el Cl₂ es diatómico y usar la energía completa del enlace (243) en vez de la mitad por átomo de Cl formado; (2) olvidar sumar las <b>dos</b> ionizaciones o las <b>dos</b> afinidades en compuestos como CaCl₂; (3) restar U cuando el enunciado la da como energía de formación de la red (negativa) y sumar si la da como energía de separación (positiva): comprueba el signo con la definición.")
+      )
+    },
+    // ------------------------------------------------------------ 9
+    {
+      h: "9. Sólidos covalentes y enlace metálico",
+      html: env(
+        "<h5>Sólidos covalentes (redes)</h5>" +
+        "<p>Algunos no metales no forman moléculas pequeñas sino una <b>red tridimensional gigante</b> de átomos unidos por enlaces covalentes. No hay moléculas: todo el cristal es «una molécula». Para fundirlos hay que romper enlaces covalentes, no fuerzas intermoleculares: por eso son <b>durísimos y con puntos de fusión altísimos</b>, <b>insolubles</b> y, en general, <b>aislantes</b>.</p>" +
+        tabla(["Sustancia", "Estructura", "T<sub>fusión</sub> (°C)", "Propiedades"], [
+          ["Diamante (C)", "cada C, sp³, unido a 4 C (tetraedro)", "≈ 3550", "el más duro; aislante"],
+          ["Grafito (C)", "capas de anillos hexagonales, C sp²; cada C une 3 y le queda 1 p que se deslocaliza", "≈ 3650 (sublima)", "blando (las capas deslizan, unidas por fuerzas de dispersión); <b>conduce</b> la electricidad (electrones π deslocalizados)"],
+          ["Cuarzo (SiO₂)", "cada Si unido a 4 O y cada O a 2 Si", "1713", "muy duro, aislante, insoluble"],
+          ["Carburo de silicio (SiC)", "red tipo diamante Si–C", "≈ 2730", "muy duro"]
+        ], "q3t") +
+        "<p>Diamante y grafito son <b>alótropos</b> del carbono: misma sustancia química, distinta estructura y propiedades. Por eso un mismo elemento puede ser el material más duro (diamante) o uno de los más blandos y conductor (grafito).</p>" +
+        "<h5>El enlace metálico: el mar de electrones</h5>" +
+        "<p>En un metal, los átomos ceden sus electrones de valencia a una nube común. El metal es una <b>red de cationes</b> sumergida en un <b>«mar» de electrones deslocalizados</b> que pertenecen a todo el cristal. El enlace es la atracción entre la red positiva y el mar negativo, y no está dirigido. De ahí:</p>" +
+        "<ul>" +
+        "<li><b>Conductividad eléctrica y térmica</b>: los electrones se mueven libremente por todo el metal (en sólido y en líquido).</li>" +
+        "<li><b>Maleabilidad y ductilidad</b>: si se golpea, los planos de cationes se deslizan unos sobre otros y el mar de electrones sigue envolviéndolos; no se enfrentan cargas iguales (a diferencia de un cristal iónico, frágil).</li>" +
+        "<li><b>Brillo</b>: los electrones libres reflejan la luz.</li>" +
+        "<li><b>Punto de fusión</b> variable: Hg −39 °C, Na 98 °C, Cu 1085 °C, Fe 1538 °C, W 3422 °C. Crece con el número de electrones de valencia aportados al mar y con la carga/tamaño de los cationes.</li>" +
+        "</ul>" +
+        w("q2_metalico") +
+        "<p>Una <b>aleación</b> (latón, acero, bronce) es una mezcla de metales (o metal con algo de no metal, como el C en el acero) con enlace metálico que mejora dureza y resistencia: los átomos distintos dificultan el deslizamiento de los planos.</p>" +
+        ojo("«El grafito conduce la electricidad porque es un metal»: no. Es un sólido covalente cuyos electrones π están deslocalizados <b>dentro de cada capa</b>; por eso conduce en el plano de la capa pero muy poco perpendicularmente. Y el diamante, con los 4 electrones de cada C fijos en enlaces σ, no conduce.")
+      )
+    },
+    // ------------------------------------------------------------ 10
+    {
+      h: "10. Propiedades según el tipo de sustancia",
+      html: env(
+        "<h5>Cuatro tipos de sustancia y qué las distingue</h5>" +
+        "<p>Casi toda pregunta de «propiedades» se resuelve decidiendo primero <b>a qué tipo pertenece la sustancia</b> y después recordando qué se rompe o se mueve al fundirla, disolverla o conducir.</p>" +
+        tabla(["", "Iónica", "Molecular covalente", "Covalente en red", "Metálica"], [
+          ["Partículas", "iones (+) y (−)", "moléculas", "átomos", "cationes + electrones libres"],
+          ["Qué se rompe al fundir", "atracciones iónicas", "fuerzas intermoleculares", "enlaces covalentes", "enlace metálico"],
+          ["T<sub>fusión</sub>", "alta (400–3000 °C)", "baja (&lt; 300 °C)", "muy alta (&gt; 1500 °C)", "variable (−39 a 3400 °C)"],
+          ["Dureza", "duras y frágiles", "blandas", "muy duras (excepto grafito)", "maleables y dúctiles"],
+          ["Conduce (sólido)", "no", "no", "no (grafito sí)", "<b>sí</b>"],
+          ["Conduce (fundido/disuelto)", "<b>sí</b>", "no (salvo ácidos que se ionizan)", "no", "sí (fundido)"],
+          ["Solubilidad en agua", "en general sí", "polares sí; apolares no", "no", "no"],
+          ["Ejemplos", "NaCl, MgO, CaF₂", "H₂O, CO₂, I₂, azúcar", "C (diamante), SiO₂", "Fe, Cu, Na"]
+        ], "q3t") +
+        w("q2_propiedades") +
+        "<h5>Las moléculas covalentes también se ordenan</h5>" +
+        "<p>Dentro de las moléculas, T<sub>fusión</sub> y T<sub>ebullición</sub> dependen de las fuerzas intermoleculares: apolares y pequeñas (CH₄, N₂, Ne) son gases; apolares grandes (I₂, S₈, parafina) son sólidos blandos; polares con puentes de hidrógeno (H₂O, etanol, azúcar) llegan a ser líquidos o sólidos con puntos más altos. Por eso el agua (M = 18) es líquida a 25 °C y el CH₄ (M = 16) y el H₂S (M = 34) son gases.</p>" +
+        ejemplo("Ejemplo resuelto: identificar el tipo de sustancia", "Tres sólidos blancos tienen estas propiedades: A funde a 801 °C, no conduce sólido pero sí fundido y disuelto, soluble en agua; B funde a 1713 °C, insoluble en todo, no conduce, muy duro; C funde a 80 °C, no conduce, insoluble en agua y soluble en hexano. ¿De qué tipo es cada una?", [
+          "<b>A</b>: T<sub>f</sub> alta, conduce solo fundida/disuelta (iones libres), soluble en agua → <b>sólido iónico</b> (p. ej. NaCl).",
+          "<b>B</b>: T<sub>f</sub> muy alta, insoluble, aislante y duro → <b>sólido covalente en red</b> (p. ej. SiO₂).",
+          "<b>C</b>: T<sub>f</sub> baja, aislante, apolar (soluble en hexano) → <b>sustancia covalente molecular apolar</b> (p. ej. naftaleno, con fuerzas de dispersión)."
+        ]) +
+        w("clasificar", "clas1") +
+        ejemplo("Ejemplo resuelto: justificar con el modelo de enlace", "Explica por qué el cloruro de sodio conduce la electricidad disuelto pero no en estado sólido, mientras que el cobre sí conduce siempre.", [
+          "<b>NaCl sólido</b>: los iones Na⁺ y Cl⁻ ocupan posiciones fijas en la red; no hay cargas móviles.",
+          "<b>NaCl disuelto</b>: las moléculas de agua rodean a los iones (ion–dipolo), rompen la red y los iones se mueven libres: transportan carga.",
+          "<b>Cobre</b>: en el enlace metálico hay electrones de valencia deslocalizados por todo el cristal, que se mueven libremente tanto en sólido como en líquido."
+        ])
+      )
+    },
+    // ------------------------------------------------------------ 11
+    {
+      h: "11. Cómo se responde en la EvAU",
+      html: env(
+        "<h5>La ficha de una molécula</h5>" +
+        "<p>La pregunta más repetida del tema pide, para una o dos especies, varias de estas cosas a la vez: <i>estructura de Lewis, geometría, hibridación, polaridad, tipo de fuerzas intermoleculares</i>. Se resuelven siempre en el mismo orden, y cada paso alimenta al siguiente:</p>" +
+        "<ol>" +
+        "<li><b>Lewis</b> (recuento de electrones).</li>" +
+        "<li><b>Número de dominios en el átomo central</b> → notación AXₙEₘ.</li>" +
+        "<li><b>Geometría</b> (TRPECV) y ángulo.</li>" +
+        "<li><b>Hibridación</b> = nº de dominios (2 sp, 3 sp², 4 sp³).</li>" +
+        "<li><b>Polaridad</b>: Δχ de los enlaces y simetría.</li>" +
+        "<li><b>Fuerzas intermoleculares</b> → punto de ebullición, estado, solubilidad.</li>" +
+        "</ol>" +
+        w("q4_ficha") +
+        ejemplo("Ejemplo resuelto estilo EvAU: NH₃ y BF₃", "Para NH₃ y BF₃: (a) estructuras de Lewis; (b) geometría y ángulos; (c) hibridación del átomo central; (d) polaridad; (e) justifica que el NH₃ tenga mayor punto de ebullición que el BF₃ (−33 °C frente a −100 °C). (χ: H 2,20; N 3,04; B 2,04; F 3,98)", [
+          "<b>(a)</b> NH₃: V = 5 + 3 = 8 e⁻: 3 enlaces N–H y un par libre en el N. BF₃: V = 3 + 21 = 24 e⁻: 3 enlaces B–F, cada F con 3 pares libres; el B queda con solo 6 e⁻ (octeto incompleto).",
+          "<b>(b)</b> NH₃: AX₃E → 4 dominios → <b>pirámide trigonal</b>, H–N–H ≈ 107° (el par libre comprime desde 109,5°). BF₃: AX₃ → 3 dominios → <b>trigonal plana</b>, F–B–F = 120°.",
+          "<b>(c)</b> NH₃: 4 dominios → N <b>sp³</b>. BF₃: 3 dominios → B <b>sp²</b> (con un orbital p vacío).",
+          "<b>(d)</b> N–H: Δχ = 0,84; B–F: Δχ = 1,94 (más polar). NH₃: la pirámide no anula los dipolos → <b>polar</b>. BF₃: los tres dipolos a 120° se anulan → <b>apolar</b>.",
+          "<b>(e)</b> El NH₃ forma <b>puentes de hidrógeno</b> (N–H···N) y además es polar; el BF₃ es apolar y solo tiene fuerzas de dispersión. A pesar de que el BF₃ tiene más masa (68 frente a 17), su T<sub>eb</sub> es menor."
+        ]) +
+        "<h5>Plantillas de respuesta</h5>" +
+        "<ul>" +
+        "<li><b>«Justifique la geometría de…»</b>: Lewis → nº de pares alrededor del central → disposición de pares → forma de la molécula (cuenta solo átomos) → efecto de pares libres sobre el ángulo.</li>" +
+        "<li><b>«¿Es polar…?»</b>: ¿hay enlaces polares? → geometría → ¿se anulan los vectores? (simetría y sustituyentes iguales).</li>" +
+        "<li><b>«Ordene por punto de ebullición/fusión»</b>: identifica el tipo de sustancia → fuerza dominante (iónica ≫ puentes de H &gt; dipolo–dipolo &gt; dispersión) → dentro del mismo tipo, tamaño o carga → orden con &gt;.</li>" +
+        "<li><b>«Explique por qué X conduce y Y no»</b>: qué partículas hay y si pueden moverse en cada estado.</li>" +
+        "</ul>" +
+        ojo("Un punto de cada pregunta suele estar en el <b>razonamiento escrito</b>, no en el dibujo. Escribe frases completas con las palabras clave: «pares de electrones», «se repelen», «dipolos», «simetría», «fuerzas de dispersión», «puente de hidrógeno», «red cristalina», «electrones deslocalizados». Y cierra siempre con la conclusión que pedía el enunciado.")
+      )
+    },
+    // ------------------------------------------------------------ 12
+    {
+      h: "12. ¿Qué falla aquí? Errores típicos del enlace químico",
+      html: "<p>Cada pregunta enseña un razonamiento con un fallo muy frecuente en los exámenes. Detéctalo antes de mirar la explicación.</p>" + w("quiz", "errores")
+    },
+    // ------------------------------------------------------------ 13
+    {
+      h: "13. Autocomprobación del tema",
+      html: "<p>Un test de doce preguntas, tarjetas para fijar definiciones y tres juegos: emparejar, ordenar y clasificar.</p>" + w("quiz", "quiz1") + w("tarjetas", "tarjetas1") + w("emparejar", "emp1") + w("orden", "orden1")
+    }
+  ];
+
+  B.parte.q2t4b = { nuevas: nuevas };
+})(window);
+
+/* ============================================================
+   Química II · ampliaciones · Tema 4: Enlace químico
+   (parte C: actividades, ejercicios, láminas y registro del tema)
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "<b>Tipo de enlace</b>: metal + no metal → iónico (transferencia); no metal + no metal → covalente (se comparten pares); metal + metal → metálico (electrones deslocalizados). Δχ es una guía (HF, Δχ = 1,78, es covalente).",
+    "<b>Lewis</b>: V = electrones de valencia (± carga del ion); enlaces = (8n − V)/2 (H cuenta 2); pares libres = (2V − 8n)/2 hasta completar octetos. CF = valencia − libres − enlaces. Excepciones: BeCl₂, BF₃ (incompleto); PCl₅, SF₆ (periodo 3 en adelante); radicales NO, NO₂.",
+    "<b>TRPECV</b>: se cuentan <b>dominios</b> (enlace sencillo, doble o triple = 1; par libre = 1). AX₂ lineal 180° · AX₃ plana 120° · AX₂E angular · AX₄ tetraédrica 109,5° · AX₃E pirámide ≈107° · AX₂E₂ angular ≈104,5°. Los pares libres cierran los ángulos.",
+    "<b>Hibridación</b> = nº de dominios: 4 sp³, 3 sp², 2 sp. Enlace doble = 1 σ + 1 π; triple = 1 σ + 2 π. Los π salen de los p puros.",
+    "<b>Polaridad</b>: suma vectorial de los dipolos. Se anulan si la geometría es simétrica y los sustituyentes son iguales (CO₂, BF₃, CH₄, CCl₄). Pares libres o sustituyentes distintos → polar (H₂O, NH₃, SO₂, CHCl₃).",
+    "<b>Fuerzas intermoleculares</b>: dispersión (todas; crece con el tamaño) &lt; dipolo–dipolo &lt; puente de H (H unido a F, O o N). Explican T<sub>eb</sub> y solubilidad. Hervir no rompe enlaces covalentes.",
+    "<b>Iónicos</b>: U ∝ q₊q₋/(r₊+r₋): manda la carga, luego el tamaño. Born–Haber: ΔH<sub>f</sub> = sub + EI + ½E + AE − U. <b>Metales</b>: mar de electrones. <b>Redes covalentes</b>: enlaces fuertes en todo el cristal. <b>Energías de enlace</b>: ΔH ≈ Σ rotos − Σ formados."
+  ];
+
+  // ================================================================
+  //  ACTIVIDADES
+  // ================================================================
+  var datos = {
+    errores: {
+      titulo: "Encuentra el error",
+      intro: "Cada pregunta enseña un razonamiento con un fallo. Elige cuál es.",
+      preguntas: [
+        { q: "«El agua tiene geometría tetraédrica porque el oxígeno tiene cuatro pares de electrones.» ¿Qué falla?",
+          op: ["Nada", "Los cuatro <i>pares</i> se disponen en tetraedro, pero la geometría de la <i>molécula</i> solo cuenta los átomos: es angular", "El oxígeno tiene seis pares", "El agua es lineal"], ok: 1,
+          porque: "La TRPECV distingue la disposición de los pares (tetraédrica, 4 dominios) de la forma de la molécula (angular, con 2 pares libres que no se «ven»). Ángulo H–O–H ≈ 104,5°." },
+        { q: "«El CO₂ es polar porque los enlaces C=O son polares.» ¿Qué falla?",
+          op: ["Nada", "Los enlaces son polares, pero la molécula es lineal y los dos dipolos, iguales y opuestos, se anulan: el CO₂ es apolar", "El CO₂ tiene pares libres en el C", "Los enlaces C=O son apolares"], ok: 1,
+          porque: "Polaridad del enlace ≠ polaridad de la molécula. Con geometría simétrica y sustituyentes iguales (AX₂ lineal) la suma vectorial es cero. Con el SO₂ (angular) no se anula." },
+        { q: "«La sal común sólida no conduce porque no tiene iones.» ¿Qué falla?",
+          op: ["Nada", "Sí tiene iones, pero están fijos en la red cristalina; conduce fundida o disuelta, cuando se mueven", "Los iones no tienen carga", "La sal es un metal"], ok: 1,
+          porque: "El NaCl es un cristal de Na⁺ y Cl⁻. Para conducir hacen falta cargas <b>móviles</b>: en el sólido están en posiciones fijas; fundido o en disolución, libres." },
+        { q: "«MgO tiene menor energía reticular que NaCl porque el Mg²⁺ es mucho más pequeño que el Na⁺ y el O²⁻ que el Cl⁻.» ¿Qué falla?",
+          op: ["Nada", "Los iones más pequeños y con más carga atraen más: MgO tiene mayor energía reticular (3791 frente a 787 kJ/mol)", "El tamaño no influye nunca", "El MgO no es iónico"], ok: 1,
+          porque: "U ∝ q₊q₋/d. En el MgO el producto de cargas es 4 (frente a 1) y d es menor (212 frente a 283 pm): ambos factores aumentan U." },
+        { q: "«Al hervir el agua se rompen los enlaces O–H, por eso hace falta tanta energía.» ¿Qué falla?",
+          op: ["Nada", "Se rompen fuerzas intermoleculares (sobre todo puentes de H); los enlaces O–H siguen intactos en el vapor de agua", "Se rompen los enlaces H–H", "El agua no tiene enlaces O–H"], ok: 1,
+          porque: "Hervir separa moléculas (≈ 41 kJ/mol); romper un O–H cuesta 463 kJ/mol. Un cambio de estado no cambia la sustancia." },
+        { q: "Un alumno calcula los electrones del ion carbonato como 4 + 3·6 = 22 y dibuja el Lewis con 11 pares. ¿Qué falla?",
+          op: ["Nada", "Se olvida sumar los 2 electrones de la carga 2−: son 24 e⁻ = 12 pares", "Debía restar 2", "El C aporta 6 electrones"], ok: 1,
+          porque: "En un anión se <b>suman</b> tantos electrones como cargas negativas (en un catión se restan). Con 22 no sale una estructura con octetos completos." },
+        { q: "«El enlace doble C=C es dos veces más fuerte que el sencillo C–C porque son dos enlaces iguales.» ¿Qué falla?",
+          op: ["Nada", "Un doble enlace es 1 σ + 1 π, y el π es más débil: 614 kJ/mol frente a 2·347 = 694", "El C=C es más débil que el C–C", "El C–C no existe"], ok: 1,
+          porque: "El enlace σ (solapamiento frontal) es más fuerte que el π (lateral). Por eso los alquenos reaccionan rompiendo el π (adición)." },
+        { q: "En un ciclo de Born–Haber para NaCl un alumno suma 243 kJ/mol (la energía completa del enlace Cl–Cl) en el paso de disociación. ¿Qué falla?",
+          op: ["Nada", "Por cada NaCl solo se forma un átomo de Cl: se necesita ½ Cl₂, es decir 243/2 = 121,5 kJ/mol", "Debía usar 2·243", "La disociación no se incluye en el ciclo"], ok: 1,
+          porque: "Na(s) + ½ Cl₂(g) → NaCl(s). Solo hay que romper medio mol de enlaces Cl–Cl por mol de NaCl. Con CaCl₂ sí se disocia 1 mol de Cl₂ completo." },
+        { q: "«El grafito conduce la electricidad, así que es un metal.» ¿Qué falla?",
+          op: ["Nada", "Es un sólido covalente: cada C sp² usa 3 electrones en σ y el cuarto (π) queda deslocalizado en la capa", "El grafito no conduce", "Los metales no conducen"], ok: 1,
+          porque: "El grafito es una red covalente en capas; los electrones π deslocalizados explican la conducción. Es blando por las fuerzas débiles entre capas, nada que ver con un metal." },
+        { q: "«El HF hierve a 20 °C y el HCl a −85 °C: el HF tiene mayor T<sub>eb</sub> porque su masa es mayor.» ¿Qué falla?",
+          op: ["Nada", "La masa del HF (20) es menor que la del HCl (36,5): el HF hierve más alto por sus puentes de hidrógeno", "El HCl forma puentes de H", "El HF es apolar"], ok: 1,
+          porque: "El F (pequeño y muy electronegativo) forma puentes de hidrógeno fuertes (F–H···F); el Cl, no. Es la excepción a «más masa, más T<sub>eb</sub>»." }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema",
+      preguntas: [
+        { q: "¿Qué tipo de enlace une los átomos en el CaF₂?",
+          op: ["Iónico", "Covalente apolar", "Metálico", "Covalente coordinado"], ok: 0, porque: "Metal (Ca, grupo 2) + no metal muy electronegativo (F): se transfieren electrones y se forma un cristal iónico." },
+        { q: "¿Cuántos electrones de valencia hay que dibujar en la estructura de Lewis del ion NH₄⁺?",
+          op: ["8", "9", "10", "7"], ok: 0, porque: "5 (N) + 4·1 (H) − 1 (carga +) = 8 electrones: 4 enlaces N–H." },
+        { q: "Geometría de la molécula de SO₂:",
+          op: ["Angular", "Lineal", "Trigonal plana", "Pirámide trigonal"], ok: 0, porque: "S con 2 enlaces y 1 par libre (AX₂E): 3 dominios → angular, ≈ 119°." },
+        { q: "¿Qué ángulo H–N–H es el más probable en el NH₃?",
+          op: ["≈ 107°", "109,5° exactos", "120°", "180°"], ok: 0, porque: "AX₃E: el par libre cierra el ángulo desde 109,5° a ≈ 107°." },
+        { q: "Hibridación del carbono del grupo C=O en el metanal (CH₂O):",
+          op: ["sp²", "sp³", "sp", "sp³d"], ok: 0, porque: "3 dominios (2 C–H y C=O, contado como uno) → trigonal plana, sp²." },
+        { q: "¿Cuántos enlaces σ y π hay en el eteno, C₂H₄?",
+          op: ["5 σ y 1 π", "4 σ y 2 π", "6 σ", "3 σ y 3 π"], ok: 0, porque: "4 C–H (σ) + C=C (1 σ + 1 π) = 5 σ y 1 π." },
+        { q: "¿Cuál de estas moléculas es apolar?",
+          op: ["BF₃", "NH₃", "H₂O", "SO₂"], ok: 0, porque: "BF₃ es trigonal plana con tres enlaces iguales: los dipolos se anulan. Las otras tienen pares libres y son polares." },
+        { q: "¿Qué sustancia forma puentes de hidrógeno entre sus moléculas?",
+          op: ["CH₃OH", "CH₄", "HCl", "CH₃OCH₃"], ok: 0, porque: "El H unido al O del –OH es atraído por un par libre de otro O. El HCl (Cl no es F, O ni N) y el éter (sin H en O) no." },
+        { q: "Con los radios dados, ¿cuál tiene mayor energía reticular?",
+          op: ["MgO", "NaCl", "KBr", "NaF"], ok: 0, porque: "Mayor producto de cargas (2·2 = 4) y menor distancia entre iones." },
+        { q: "El ciclo de Born–Haber sirve para calcular…",
+          op: ["la energía reticular (con la ley de Hess)", "la geometría molecular", "la polaridad de un enlace", "el punto de ebullición"], ok: 0, porque: "U = ΔH<sub>sub</sub> + EI + ½E + AE − ΔH<sub>f</sub>: se calcula por Hess porque no se mide directamente." },
+        { q: "Un sólido no conduce la electricidad, es muy duro, insoluble y funde por encima de 1700 °C. Es…",
+          op: ["covalente en red", "iónico", "metálico", "molecular"], ok: 0, porque: "Aislante, durísimo e insoluble con T<sub>f</sub> altísima: red covalente (p. ej. SiO₂)." },
+        { q: "¿Por qué un metal es maleable pero un cristal iónico es frágil?",
+          op: ["En el metal los planos de cationes deslizan sin enfrentar cargas iguales", "El metal tiene enlaces covalentes", "El cristal iónico tiene electrones libres", "El metal no tiene red cristalina"], ok: 0, porque: "En el iónico un desplazamiento enfrenta iones de igual carga y se rompe; en el metal el mar de electrones sigue envolviendo a los cationes." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: enlace químico",
+      cartas: [
+        { a: "Método de recuento de Lewis", b: "V = Σ e⁻ de valencia (± carga); enlaces = (8n − V)/2; pares libres = (2V − 8n)/2; luego cargas formales." },
+        { a: "Carga formal", b: "CF = e⁻ de valencia − e⁻ en pares libres − nº de enlaces. Su suma es la carga del ion; mejor estructura: CF pequeñas, negativa en el más electronegativo." },
+        { a: "Excepciones al octeto", b: "Incompleto: Be y B (BeCl₂, BF₃). Expandido: periodo 3 en adelante (PCl₅, SF₆). Radicales: número impar de e⁻ (NO, NO₂)." },
+        { a: "TRPECV", b: "Los dominios de electrones del átomo central (enlaces —uno por enlace múltiple— y pares libres) se repelen y se sitúan lo más lejos posible." },
+        { a: "AX₃E y AX₂E₂", b: "AX₃E: pirámide trigonal (NH₃, ≈107°). AX₂E₂: angular (H₂O, ≈104,5°). Ambas con 4 dominios (hibridación sp³)." },
+        { a: "Orden de repulsión entre pares", b: "Par libre–par libre &gt; par libre–par de enlace &gt; par de enlace–par de enlace." },
+        { a: "Hibridación y dominios", b: "Nº de orbitales híbridos = nº de dominios: 2 → sp (180°), 3 → sp² (120°), 4 → sp³ (109,5°)." },
+        { a: "Enlace σ y π", b: "σ: solapamiento frontal (primer enlace). π: lateral, de p puros. Doble = σ + π; triple = σ + 2π." },
+        { a: "Molécula polar", b: "Enlaces polares y suma vectorial de dipolos distinta de cero: geometría asimétrica o sustituyentes distintos. CO₂, BF₃, CH₄, CCl₄: apolares." },
+        { a: "Puente de hidrógeno", b: "H unido a F, O o N atraído por un par libre de otro F, O o N. 10–40 kJ/mol; explica la alta T<sub>eb</sub> de H₂O, HF, NH₃ y alcoholes." },
+        { a: "Energía reticular", b: "Energía para separar 1 mol de sólido iónico en iones gaseosos. U ∝ q₊q₋/(r₊+r₋): manda la carga y luego el tamaño." },
+        { a: "Ciclo de Born–Haber", b: "ΔH<sub>f</sub> = ΔH<sub>sub</sub> + EI + ½E + AE − U (ley de Hess). Se usa para calcular U." }
+      ]
+    },
+    emp1: {
+      titulo: "Une cada observación con su explicación",
+      consigna: "Une cada observación con la explicación que la justifica.",
+      pares: [
+        ["El CO₂ es apolar con enlaces polares", "Geometría lineal: los dipolos se anulan"],
+        ["El NH₃ tiene un ángulo de 107° y no de 109,5°", "El par libre repele más que un par de enlace"],
+        ["El eteno es plano, con ángulos de ≈ 120°", "Carbonos sp² (3 dominios)"],
+        ["El MgO funde a 2852 °C y el NaCl a 801 °C", "Mayor producto de cargas y menor distancia entre iones"],
+        ["El agua hierve a 100 °C y el H₂S a −60 °C", "Puentes de hidrógeno entre moléculas de agua"],
+        ["El cobre se estira en hilos", "Los planos de cationes deslizan dentro del mar de electrones"],
+        ["El diamante es durísimo y no conduce", "Red covalente tridimensional con electrones localizados"]
+      ]
+    },
+    orden1: {
+      titulo: "Ordena por punto de ebullición creciente",
+      consigna: "De menor a mayor: CH₄, HCl, NH₃, HF, H₂O.",
+      items: [
+        { t: "CH₄ (−162 °C)", nota: "Apolar: solo fuerzas de dispersión, débiles (molécula pequeña)." },
+        { t: "HCl (−85 °C)", nota: "Polar: dipolo–dipolo; sin puente de H (el Cl no es F, O ni N)." },
+        { t: "NH₃ (−33 °C)", nota: "Puentes de H, pero débiles: el N es menos electronegativo y tiene un solo par libre." },
+        { t: "HF (20 °C)", nota: "Puentes de H muy fuertes (F–H···F), aunque cada molécula tiene un solo H." },
+        { t: "H₂O (100 °C)", nota: "2 H y 2 pares libres por molécula: red de hasta 4 puentes de H." }
+      ]
+    },
+    ordenBH: {
+      titulo: "Ordena los pasos del ciclo de Born–Haber del NaCl",
+      consigna: "Del primero al último: de Na(s) y ½ Cl₂(g) hasta el NaCl(s).",
+      items: [
+        { t: "Sublimación del sodio: Na(s) → Na(g)", nota: "+107 kJ/mol." },
+        { t: "Ionización del sodio: Na(g) → Na⁺(g) + e⁻", nota: "+496 kJ/mol." },
+        { t: "Disociación del cloro: ½ Cl₂(g) → Cl(g)", nota: "+121,5 kJ/mol (½ · 243)." },
+        { t: "Afinidad electrónica del cloro: Cl(g) + e⁻ → Cl⁻(g)", nota: "−349 kJ/mol." },
+        { t: "Formación de la red: Na⁺(g) + Cl⁻(g) → NaCl(s)", nota: "−U = −787 kJ/mol: el paso que estabiliza el cristal." }
+      ]
+    },
+    clas1: {
+      titulo: "Clasifica la sustancia",
+      consigna: "Toca cada sustancia y después el tipo al que pertenece.",
+      categorias: ["Iónica", "Molecular covalente", "Covalente en red", "Metálica"],
+      items: [
+        { t: "NaCl", c: 0 }, { t: "MgO", c: 0 }, { t: "CaF₂", c: 0 },
+        { t: "H₂O", c: 1 }, { t: "CO₂", c: 1 }, { t: "I₂", c: 1 }, { t: "C₁₂H₂₂O₁₁", c: 1 },
+        { t: "SiO₂", c: 2 }, { t: "diamante", c: 2 }, { t: "SiC", c: 2 },
+        { t: "Fe", c: 3 }, { t: "Cu", c: 3 }, { t: "Na", c: 3 }
+      ]
+    }
+  };
+
+  // ================================================================
+  //  EJERCICIOS (★ 15 · ★★ 16 · ★★★ 15)
+  // ================================================================
+  var E = [];
+  function op(id, nivel, enun, etq, ops, ok, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: { tipo: "opcion", etiqueta: etq, opciones: ops, ok: ok }, pistas: pistas, pasos: pasos, resultado: res }); }
+  function nu(id, nivel, enun, etq, val, pistas, pasos, res, tol) { var c = { tipo: "num", etiqueta: etq, valor: val }; if (tol) c.tol = tol; E.push({ id: id, nivel: nivel, enunciado: enun, check: c, pistas: pistas, pasos: pasos, resultado: res }); }
+  function ge(id, nivel, enun, check, pistas, pasos, res) { E.push({ id: id, nivel: nivel, enunciado: enun, check: check, pistas: pistas, pasos: pasos, resultado: res }); }
+
+  // ---------------- ★ ----------------
+  op("a1", 1, "¿Qué tipo de enlace hay en el bromuro de potasio, KBr?", "Enlace", ["iónico", "covalente apolar", "covalente polar", "metálico"], 0,
+    ["Mira si los elementos son metal o no metal."], ["K es un metal (grupo 1) y Br un no metal (grupo 17).", "El K cede un electrón al Br: se forman K⁺ y Br⁻ que se atraen en una red."], "Iónico");
+  nu("a2", 1, "¿Cuántos electrones de valencia se dibujan en la estructura de Lewis del amoníaco, NH₃?", "Electrones =", 8,
+    ["Suma los de cada átomo: N (grupo 15) y 3 H."], ["N: 5 e⁻; 3 H: 3 · 1 = 3 e⁻.", "Total: 5 + 3 = 8 e⁻ = 4 pares (3 enlaces N–H y 1 par libre)."], "8");
+  nu("a3", 1, "¿Cuántos electrones de valencia tiene la molécula de CO₂?", "Electrones =", 16,
+    ["C es del grupo 14 y O del grupo 16."], ["C: 4 e⁻; 2 O: 2 · 6 = 12 e⁻.", "Total: 16 e⁻ = 8 pares: O=C=O con 2 pares libres en cada O."], "16");
+  op("a4", 1, "¿Qué geometría tiene la molécula de metano, CH₄?", "Geometría", ["tetraédrica", "plana cuadrada", "pirámide trigonal", "angular"], 0,
+    ["Cuenta los pares de electrones del C."], ["C con 4 enlaces C–H y ningún par libre: AX₄.", "Cuatro dominios sin pares libres → tetraédrica, H–C–H = 109,5°."], "Tetraédrica");
+  op("a5", 1, "¿Cuál es la hibridación de los carbonos del etino, HC≡CH?", "Hibridación", ["sp", "sp²", "sp³", "no hay hibridación"], 0,
+    ["Cuenta los dominios de cada C (el triple enlace cuenta como uno)."], ["Cada C: un enlace con H y un triple enlace con el otro C: 2 dominios.", "2 dominios → sp, lineal, 180°."], "sp");
+  op("a6", 1, "¿Cuál de estas moléculas es apolar?", "Apolar", ["CO₂", "H₂O", "NH₃", "SO₂"], 0,
+    ["Pregunta por la simetría de la geometría."], ["CO₂ es lineal y simétrica: los dos dipolos C=O se anulan.", "H₂O y SO₂ son angulares y NH₃ piramidal: sus dipolos no se anulan."], "CO₂");
+  nu("a7", 1, "Calcula la diferencia de electronegatividad en el enlace H–Cl (χ: H 2,20; Cl 3,16).", "Δχ =", 0.96,
+    ["Resta la menor de la mayor."], ["Δχ = 3,16 − 2,20 = 0,96.", "Valor intermedio: enlace covalente polar (δ⁺ en el H, δ⁻ en el Cl)."], "0,96");
+  op("a8", 1, "¿Cuál de estas sustancias forma puentes de hidrógeno entre sus moléculas?", "Puentes de H", ["H₂O", "CH₄", "HCl", "H₂S"], 0,
+    ["Necesitas un H unido a F, O o N."], ["En el H₂O el H está unido al O: se forman puentes O–H···O.", "El CH₄ (C), HCl (Cl) y H₂S (S) no cumplen la condición."], "H₂O");
+  nu("a9", 1, "¿Cuántos pares libres tiene el átomo de oxígeno en la molécula de agua?", "Pares libres =", 2,
+    ["O tiene 6 electrones de valencia y forma 2 enlaces."], ["O: 6 e⁻ de valencia; 2 se usan en los enlaces con los H.", "Quedan 4 e⁻ = 2 pares libres. 4 dominios en total (2 + 2): angular."], "2");
+  op("a10", 1, "Un sólido no conduce la electricidad, pero sí cuando se funde. Es…", "Tipo de sólido", ["iónico", "metálico", "covalente en red", "molecular apolar"], 0,
+    ["¿Cuándo hay iones móviles?"], ["Un conductor en estado fundido y no en sólido tiene iones que solo se mueven al fundir la red.", "Es un sólido iónico (p. ej. NaCl)."], "Iónico");
+  nu("a11", 1, "¿Cuántos enlaces σ hay en la molécula de eteno, C₂H₄?", "Enlaces σ =", 5,
+    ["Cuenta C–H y el σ de C=C."], ["4 enlaces C–H, todos σ.", "El C=C es 1 σ + 1 π: 1 σ más.", "Total: 4 + 1 = 5 σ (y 1 π)."], "5");
+  op("a12", 1, "¿Cuál de estos compuestos tiene mayor energía reticular?", "Mayor U", ["MgO", "NaCl", "KCl", "NaBr"], 0,
+    ["Fíjate sobre todo en la carga de los iones."], ["MgO: Mg²⁺ y O²⁻ (producto 4). NaCl, KCl y NaBr: 1.", "La carga manda: U(MgO) = 3791 kJ/mol."], "MgO");
+  op("a13", 1, "¿Qué sólido tiene mayor punto de fusión?", "Mayor T<sub>f</sub>", ["diamante", "yodo (I₂)", "hielo", "naftaleno"], 0,
+    ["Piensa en lo que se rompe al fundir."], ["Diamante: red covalente; hay que romper enlaces C–C (≈ 3550 °C).", "I₂, hielo y naftaleno son moleculares: solo fuerzas intermoleculares."], "Diamante");
+  nu("a14", 1, "¿Cuántos enlaces π hay en la molécula de nitrógeno, N₂ (N≡N)?", "Enlaces π =", 2,
+    ["Un triple enlace es 1 σ + …"], ["Triple enlace = 1 σ + 2 π.", "Los dos π usan los orbitales p puros de cada N."], "2");
+  op("a15", 1, "¿Qué ángulo H–C–H hay en el metano?", "Ángulo", ["109,5°", "90°", "120°", "180°"], 0,
+    ["Geometría tetraédrica."], ["Tetraedro regular: arccos(−1/3) = 109,47°.", "Se redondea a 109,5°."], "109,5°");
+
+  // ---------------- ★★ ----------------
+  nu("b1", 2, "¿Cuántos electrones de valencia hay que distribuir en el ion carbonato, CO₃²⁻?", "Electrones =", 24,
+    ["No olvides la carga del ion."], ["C: 4; 3 O: 3 · 6 = 18; carga 2−: +2.", "Total: 4 + 18 + 2 = 24 e⁻ = 12 pares."], "24");
+  ge("b2", 2, "Dibuja la estructura de Lewis del HCN. Indica cuántos enlaces σ y cuántos π tiene.",
+    { tipo: "lista", etiqueta: "σ y π =", valores: [2, 2] },
+    ["Primero el recuento de electrones: 10."], ["V = 1 + 4 + 5 = 10; H–C≡N con 1 par libre en el N.", "H–C: 1 σ; C≡N: 1 σ + 2 π. Total: 2 σ y 2 π."], "2 σ y 2 π");
+  ge("b3", 2, "En la estructura de Lewis del SO₂ con un enlace doble y uno sencillo, ¿cuál es la carga formal del S y la del O unido con enlace sencillo?",
+    [{ tipo: "num", etiqueta: "CF del S =", valor: 1 }, { tipo: "num", etiqueta: "CF del O sencillo =", valor: -1 }],
+    ["CF = e⁻ de valencia − pares libres (en e⁻) − enlaces."], ["S: 6 − 2 (1 par libre) − 3 (enlaces) = +1.", "O sencillo: 6 − 6 (3 pares libres) − 1 = −1."], "S: +1; O: −1");
+  op("b4", 2, "¿Qué geometría tiene el ion sulfito, SO₃²⁻?", "Geometría", ["pirámide trigonal", "trigonal plana", "tetraédrica", "angular"], 0,
+    ["Calcula los pares del S: V = 6 + 18 + 2 = 26."], ["13 pares: 3 enlaces S–O + 10 libres → 9 en los O y 1 en el S.", "AX₃E → pirámide trigonal (≠ SO₃, que es plana)."], "Pirámide trigonal");
+  op("b5", 2, "Las hibridaciones del átomo central en NH₃ y en BF₃ son, respectivamente:", "Hibridaciones", ["sp³ y sp²", "sp² y sp³", "sp³ y sp³", "sp y sp²"], 0,
+    ["Cuenta los dominios de cada átomo central."], ["NH₃: 3 enlaces + 1 par libre = 4 → sp³.", "BF₃: 3 enlaces, sin pares libres = 3 → sp²."], "sp³ y sp²");
+  nu("b6", 2, "Estima ΔH (kJ) de H₂(g) + Cl₂(g) → 2 HCl(g) con E(H–H) = 436; E(Cl–Cl) = 243; E(H–Cl) = 431 kJ/mol.", "ΔH (kJ) =", -183,
+    ["Rotos − formados."], ["Rotos: 436 + 243 = 679 kJ.", "Formados: 2 · 431 = 862 kJ.", "ΔH ≈ 679 − 862 = −183 kJ (exotérmica)."], "−183 kJ");
+  nu("b7", 2, "Estima ΔH (kJ) de la combustión del hidrógeno, 2 H₂(g) + O₂(g) → 2 H₂O(g), con E(H–H) = 436; E(O=O) = 498; E(O–H) = 463 kJ/mol.", "ΔH (kJ) =", -482,
+    ["Cada H₂O tiene dos enlaces O–H."], ["Rotos: 2 · 436 + 498 = 1370 kJ.", "Formados: 4 · 463 = 1852 kJ (2 H₂O, 2 enlaces O–H cada una).", "ΔH ≈ 1370 − 1852 = −482 kJ."], "−482 kJ");
+  nu("b8", 2, "Calcula la energía reticular del NaF (kJ/mol) con: ΔH<sub>sub</sub>(Na) = 107; EI(Na) = 496; ½E(F–F) = 79; AE(F) = −328; ΔH<sub>f</sub>(NaF) = −574.", "U (kJ/mol) =", 928,
+    ["U = sub + EI + ½E + AE − ΔHf."], ["107 + 496 + 79 − 328 = 354 kJ/mol.", "U = 354 − (−574) = 928 kJ/mol."], "928 kJ/mol");
+  nu("b9", 2, "Calcula la entalpía de formación del LiF(s) (kJ/mol) con: ΔH<sub>sub</sub>(Li) = 159; EI(Li) = 520; ½E(F–F) = 79; AE(F) = −328; U = 1047 kJ/mol.", "ΔH<sub>f</sub> (kJ/mol) =", -617,
+    ["ΔHf = sub + EI + ½E + AE − U."], ["159 + 520 + 79 − 328 = 430 kJ/mol.", "ΔHf = 430 − 1047 = −617 kJ/mol."], "−617 kJ/mol");
+  op("b10", 2, "Ordena por punto de ebullición creciente: CH₃OH, CH₃Cl, CH₄.", "Orden", ["CH₄ &lt; CH₃Cl &lt; CH₃OH", "CH₃OH &lt; CH₃Cl &lt; CH₄", "CH₃Cl &lt; CH₄ &lt; CH₃OH", "CH₄ &lt; CH₃OH &lt; CH₃Cl"], 0,
+    ["Mira el tipo de fuerza de cada una."], ["CH₄: apolar (dispersión). CH₃Cl: polar (dipolo–dipolo). CH₃OH: puentes de H.", "T<sub>eb</sub>: −162 &lt; −24 &lt; 65 °C."], "CH₄ &lt; CH₃Cl &lt; CH₃OH");
+  nu("b11", 2, "Con los radios Mg²⁺ 72 pm, O²⁻ 140 pm, Na⁺ 102 pm y Cl⁻ 181 pm, estima cuántas veces es mayor la energía reticular del MgO que la del NaCl, suponiendo U ∝ q₊q₋/(r₊ + r₋).", "U(MgO)/U(NaCl) ≈", 5.34,
+    ["Divide los dos cocientes carga/distancia."], ["MgO: 4 / (72 + 140) = 4/212.", "NaCl: 1 / (102 + 181) = 1/283.", "Cociente: (4/212) / (1/283) = 4 · 283/212 ≈ 5,34 (valor real: 3791/787 = 4,8)."], "≈ 5,3 veces", 0.01);
+  op("b12", 2, "Compara CCl₄ y CHCl₃:", "Polaridad", ["CCl₄ es apolar y CHCl₃ polar", "ambos son apolares", "ambos son polares", "CCl₄ es polar y CHCl₃ apolar"], 0,
+    ["Los dos son tetraédricos. ¿Se anulan los dipolos?"], ["CCl₄: cuatro enlaces C–Cl iguales en tetraedro → suma nula.", "CHCl₃: el enlace C–H es distinto de los C–Cl: no se anulan → polar."], "CCl₄ apolar; CHCl₃ polar");
+  ge("b13", 2, "Para el propeno, CH₃–CH=CH₂, indica el número de enlaces σ y de enlaces π.",
+    { tipo: "lista", etiqueta: "σ y π =", valores: [8, 1] },
+    ["Cuenta C–H y C–C aparte."], ["C–H: 3 + 1 + 2 = 6 (todos σ). C–C: 1 σ. C=C: 1 σ + 1 π.", "Total: 6 + 1 + 1 = 8 σ y 1 π."], "8 σ y 1 π");
+  op("b14", 2, "El grafito conduce la electricidad porque…", "Motivo", ["cada C usa 3 e⁻ en enlaces σ y el cuarto está deslocalizado en la capa", "es un metal", "tiene iones libres", "tiene electrones libres entre capas por enlaces iónicos"], 0,
+    ["Recuerda la hibridación del carbono en el grafito."], ["Cada C sp² forma 3 σ; el p restante forma una nube π deslocalizada sobre la capa.", "Esos electrones se mueven: conducción en el plano de la capa."], "Electrones π deslocalizados");
+  nu("b15", 2, "¿Cuál es el orden de enlace de cada enlace C–O en el ion carbonato (3 formas resonantes equivalentes)?", "Orden de enlace =", 1.333,
+    ["Cada forma tiene un C=O (2) y dos C–O (1): promedia."], ["En total hay 4 «unidades» de enlace repartidas en 3 enlaces C–O.", "Orden = (2 + 1 + 1)/3 = 4/3 ≈ 1,33."], "4/3 ≈ 1,33");
+  nu("b16", 2, "¿Qué energía (kJ) hace falta para disociar en átomos 1,0 g de H₂ (E(H–H) = 436 kJ/mol; M(H₂) = 2,016 g/mol)?", "E (kJ) =", 216.3,
+    ["Pasa los gramos a moles."], ["n = 1,0 / 2,016 = 0,496 mol.", "E = 0,496 · 436 = 216 kJ."], "≈ 216 kJ");
+
+  // ---------------- ★★★ ----------------
+  nu("c1", 3, "Calcula la energía reticular del MgO (kJ/mol): ΔH<sub>sub</sub>(Mg) = 148; EI₁(Mg) = 738; EI₂(Mg) = 1451; ½E(O=O) = 249; AE₁(O) = −141; AE₂(O) = +744; ΔH<sub>f</sub>(MgO) = −602.", "U (kJ/mol) =", 3791,
+    ["Suma las dos ionizaciones y las dos afinidades (la segunda es positiva)."], ["148 + (738 + 1451) + 249 + (−141 + 744) = 148 + 2189 + 249 + 603 = 3189 kJ/mol.", "U = 3189 − (−602) = 3791 kJ/mol."], "3791 kJ/mol");
+  nu("c2", 3, "Calcula la energía reticular del CaCl₂ (kJ/mol): ΔH<sub>sub</sub>(Ca) = 178; EI₁ = 590; EI₂ = 1145; E(Cl–Cl) = 243; AE(Cl) = −349; ΔH<sub>f</sub>(CaCl₂) = −795.", "U (kJ/mol) =", 2253,
+    ["Hay dos Cl: un mol de Cl₂ completo y dos afinidades."], ["178 + (590 + 1145) + 243 + 2 · (−349) = 178 + 1735 + 243 − 698 = 1458.", "U = 1458 + 795 = 2253 kJ/mol."], "2253 kJ/mol");
+  nu("c3", 3, "A partir de la energía reticular del NaCl (U = 787 kJ/mol), ΔH<sub>f</sub>(NaCl) = −411, ΔH<sub>sub</sub>(Na) = 107, EI(Na) = 496 y E(Cl–Cl) = 243 kJ/mol, calcula la afinidad electrónica del cloro (kJ/mol).", "AE (kJ/mol) =", -348.5,
+    ["Despeja AE en ΔHf = sub + EI + ½E + AE − U."], ["AE = ΔH<sub>f</sub> + U − sub − EI − ½E.", "AE = −411 + 787 − 107 − 496 − 121,5 = −348,5 kJ/mol (negativo: se libera)."], "≈ −349 kJ/mol");
+  ge("c4", 3, "(a) Dibuja la estructura de Lewis del SO₂ y del CO₂. (b) Justifica su geometría. (c) Explica por qué el SO₂ es polar y el CO₂ no.",
+    { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 6, items: [
+      { t: "(a) SO₂: V = 18 e⁻; S con un par libre, un S=O y un S–O (resonancia). CO₂: V = 16; O=C=O con dos pares libres en cada O", p: 0.25 },
+      { t: "(b) SO₂: 3 dominios en el S (2 enlaces + 1 par libre), AX₂E → angular (≈ 119°)", p: 0.25 },
+      { t: "(b) CO₂: 2 dominios en el C (AX₂) → lineal, 180°", p: 0.2 },
+      { t: "(c) En el CO₂ los dos dipolos C=O son opuestos y se anulan: apolar; en el SO₂ la forma angular hace que los dipolos S=O se sumen: polar", p: 0.3 }] },
+    ["Recuento de electrones y número de dominios del átomo central."],
+    ["SO₂: AX₂E, angular, polar (μ = 1,63 D). CO₂: AX₂, lineal, apolar (μ = 0).", "La diferencia es el par libre del S."], "SO₂ angular y polar; CO₂ lineal y apolar");
+  ge("c5", 3, "El H₂O hierve a 100 °C y el H₂S, de mayor masa molecular, a −60 °C. Justifícalo.",
+    { tipo: "rubrica", etiqueta: "Tu justificación", filas: 5, items: [
+      { t: "Ambas moléculas son angulares y polares", p: 0.15 },
+      { t: "El O es muy electronegativo y pequeño, y el H unido a O es atraído por un par libre del O de otra molécula: puente de hidrógeno", p: 0.4 },
+      { t: "El S es menos electronegativo y mayor: no forma puentes de H; solo dispersión y dipolo–dipolo, más débiles", p: 0.3 },
+      { t: "Hervir exige vencer las fuerzas intermoleculares: las del agua son mucho mayores, y por eso su T<sub>eb</sub> es más alta pese a la menor masa", p: 0.15 }] },
+    ["Mira el tipo de fuerza intermolecular más fuerte de cada una."],
+    ["Agua: dispersión + dipolo–dipolo + puentes de H.", "H₂S: dispersión + dipolo–dipolo (débil)."], "Puentes de hidrógeno en el agua");
+  ge("c6", 3, "Ordena por punto de fusión creciente LiF, NaCl y MgO y justifica la ordenación.",
+    { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 6, items: [
+      { t: "Los tres son sólidos iónicos: al fundir se vencen las atracciones de la red; T<sub>f</sub> crece con la energía reticular U", p: 0.2 },
+      { t: "U ∝ q₊q₋/(r₊ + r₋): MgO tiene cargas 2+ y 2− (producto 4) y distancia pequeña (≈ 212 pm): mayor U", p: 0.3 },
+      { t: "LiF (r₊ + r₋ ≈ 209 pm) y NaCl (≈ 283 pm) tienen carga 1·1: LiF tiene iones más pequeños, mayor U que el NaCl", p: 0.3 },
+      { t: "Orden: NaCl &lt; LiF &lt; MgO (801 &lt; 845 &lt; 2852 °C)", p: 0.2 }] },
+    ["Compara cargas primero, tamaño después."],
+    ["q₊q₋: MgO = 4; LiF y NaCl = 1.", "Misma carga: menor d en LiF (209 pm) que en NaCl (283 pm)."], "NaCl &lt; LiF &lt; MgO");
+  nu("c7", 3, "Estima ΔH (kJ) de la hidrogenación del eteno, C₂H₄(g) + H₂(g) → C₂H₆(g), con E(C=C) = 614; E(H–H) = 436; E(C–C) = 347; E(C–H) = 413 kJ/mol.", "ΔH (kJ) =", -123,
+    ["Rotos: C=C y H–H. Formados: C–C y 2 C–H."], ["Rotos: 614 + 436 = 1050 kJ.", "Formados: 347 + 2 · 413 = 1173 kJ.", "ΔH ≈ 1050 − 1173 = −123 kJ (experimental ≈ −137): favorable, porque un π débil se cambia por dos σ fuertes."], "−123 kJ");
+  op("c8", 3, "El ion clorato, ClO₃⁻, tiene geometría y hibridación del Cl:", "Geometría e hibridación", ["pirámide trigonal; sp³", "trigonal plana; sp²", "tetraédrica; sp³", "angular; sp²"], 0,
+    ["V = 7 + 18 + 1 = 26 e⁻ (13 pares)."], ["3 enlaces Cl–O y 1 par libre en el Cl (3 + 1 = 4 dominios).", "AX₃E: pirámide trigonal; 4 dominios → sp³."], "Pirámide trigonal; sp³");
+  nu("c9", 3, "Con la estimación ΔH = −802 kJ/mol, ¿cuánta energía (kJ) se libera al quemar 8,0 g de metano? (M(CH₄) = 16 g/mol)", "Energía (kJ) =", 401,
+    ["Gramos → moles → kJ."], ["n = 8,0 / 16 = 0,50 mol.", "E = 0,50 · 802 = 401 kJ liberados."], "401 kJ");
+  ge("c10", 3, "Justifica por qué el BF₃ es apolar y el NF₃ polar, aunque ambas moléculas tienen un átomo central unido a tres átomos de flúor.",
+    { tipo: "rubrica", etiqueta: "Tu justificación", filas: 5, items: [
+      { t: "BF₃: B sin pares libres, 3 dominios (AX₃) → trigonal plana, 120°", p: 0.3 },
+      { t: "NF₃: N con un par libre, 4 dominios (AX₃E) → pirámide trigonal", p: 0.3 },
+      { t: "Los tres dipolos B–F, a 120°, en un plano, se anulan: apolar", p: 0.2 },
+      { t: "En el NF₃ los dipolos N–F forman una pirámide: su suma no es cero: polar", p: 0.2 }] },
+    ["Cuenta los pares libres del átomo central."],
+    ["B: 3 e⁻ de valencia → 3 enlaces, ningún par libre. N: 5 e⁻ → 3 enlaces + 1 par libre."], "La diferencia está en el par libre del N");
+  ge("c11", 3, "Para el propino, CH₃–C≡CH, indica el número de enlaces σ y π.",
+    { tipo: "lista", etiqueta: "σ y π =", valores: [6, 2] },
+    ["Cuenta C–H (4) y los enlaces entre carbonos."], ["C–H: 3 + 1 = 4 σ. C–C: 1 σ. C≡C: 1 σ + 2 π.", "Total: 4 + 1 + 1 = 6 σ y 2 π. Hibridación: CH₃ sp³; los dos carbonos del triple enlace sp."], "6 σ y 2 π");
+  op("c12", 3, "Un sólido funde a 1085 °C, conduce la electricidad en estado sólido, es maleable y no se disuelve en agua ni en hexano. Es…", "Tipo de sólido", ["metálico", "iónico", "covalente en red", "molecular polar"], 0,
+    ["¿Qué sólido conduce sin fundir?"], ["Conduce en sólido y es maleable: electrones deslocalizados que dejan deslizar los planos.", "Es un metal (p. ej. cobre, T<sub>f</sub> = 1085 °C)."], "Metálico");
+  ge("c13", 3, "Para el ion nitrato, NO₃⁻: calcula el número de electrones de valencia y la carga formal del N en la estructura con un enlace doble N=O y dos sencillos.",
+    [{ tipo: "num", etiqueta: "Electrones de valencia =", valor: 24 }, { tipo: "num", etiqueta: "CF del N =", valor: 1 }],
+    ["V = 5 + 18 + 1."], ["V = 5 + 3 · 6 + 1 = 24 e⁻.", "N con 3 σ + 1 π = 4 enlaces y ningún par libre: CF = 5 − 0 − 4 = +1 (los dos O sencillos tienen −1 y el doble 0: total −1)."], "24 e⁻; CF(N) = +1");
+  ge("c14", 3, "El ángulo H–N–H del NH₃ es 107° y el H–P–H del PH₃ es 93°. Explica la tendencia y compárala con el ángulo ideal.",
+    { tipo: "rubrica", etiqueta: "Tu explicación", filas: 5, items: [
+      { t: "Ambas son AX₃E (pirámide trigonal); el ideal de 4 dominios es 109,5°", p: 0.25 },
+      { t: "El par libre repele más que un par de enlace y cierra el ángulo: 107° en el NH₃", p: 0.3 },
+      { t: "En el PH₃ el átomo central es mayor y el enlace P–H más largo: los pares de enlace están más lejos entre sí y se repelen menos", p: 0.3 },
+      { t: "Por eso el par libre pesa más y el ángulo se acerca a 90° (93°)", p: 0.15 }] },
+    ["Compara el tamaño del N y del P."],
+    ["Los dos tienen 3 enlaces y 1 par libre.", "En el P, los enlaces son más largos y la repulsión de pares de enlace menor."], "El ángulo se cierra al bajar en el grupo");
+  nu("c15", 3, "¿Qué energía (kJ) hay que aportar para separar en iones gaseosos 11,7 g de NaCl(s)? (U = 787 kJ/mol; M(NaCl) = 58,5 g/mol)", "Energía (kJ) =", 157.4,
+    ["La energía reticular es por mol de NaCl."], ["n = 11,7 / 58,5 = 0,200 mol.", "E = 0,200 · 787 = 157,4 kJ.", "Es la energía para romper el cristal en Na⁺(g) y Cl⁻(g); una cantidad muy grande, por eso las sales funden a temperaturas altas."], "157 kJ");
+
+  var ejercicios = E;
+
+  // ================================================================
+  //  LÁMINAS
+  // ================================================================
+  var lamina = [
+    { titulo: "Geometría, hibridación y polaridad de un vistazo",
+      tabla: { cab: ["Notación", "Geometría", "Ángulo", "Hib.", "Ejemplo"], filas: [
+        ["AX₂", "lineal", "180°", "sp", "CO₂, BeCl₂, C₂H₂"],
+        ["AX₃", "trigonal plana", "120°", "sp²", "BF₃, SO₃, C₂H₄"],
+        ["AX₂E", "angular", "&lt; 120°", "sp²", "SO₂, O₃"],
+        ["AX₄", "tetraédrica", "109,5°", "sp³", "CH₄, CCl₄, NH₄⁺"],
+        ["AX₃E", "pirámide trigonal", "≈ 107°", "sp³", "NH₃, PCl₃"],
+        ["AX₂E₂", "angular", "≈ 104,5°", "sp³", "H₂O, H₂S"]
+      ] },
+      nota: "Simétrica con sustituyentes iguales (CO₂, BF₃, CH₄, CCl₄) → apolar. Con par libre (NH₃, H₂O, SO₂) → polar." },
+    { titulo: "Lewis: método de recuento",
+      pasos: ["<b>V</b> = Σ e⁻ de valencia (+ carga negativa, − carga positiva).", "<b>Esqueleto</b>: central = menos electronegativo (no H); enlaces sencillos.", "<b>Enlaces</b> = (8n − V)/2 (H cuenta 2); añade dobles/triples si faltan.", "<b>Pares libres</b> = (2V − 8n)/2, hasta octetos.", "<b>Cargas formales</b>: valencia − libres − enlaces; su suma = carga del ion.", "<b>Resonancia</b> si hay varias estructuras equivalentes."],
+      nota: "Excepciones: octeto incompleto (Be, B), expandido (periodo 3 en adelante) y radicales (impares)." },
+    { titulo: "Energía reticular y Born–Haber",
+      items: [
+        { label: "Energía reticular", formula: "U ∝ q₊·q₋ / (r₊ + r₋)", cuando: "Compara sólidos iónicos: manda la carga, luego el tamaño.", ejemplo: "MgO 3791 &gt; LiF 1036 &gt; NaCl 787 kJ/mol." },
+        { label: "Ciclo de Born–Haber", formula: "ΔH<sub>f</sub> = ΔH<sub>sub</sub> + EI + ½E + AE − U", cuando: "Calcular U (por Hess) o ΔHf.", ejemplo: "NaCl: 107 + 496 + 121,5 − 349 + 411 = 787.", ojo: "½E por cada átomo de halógeno; todas las EI y AE necesarias." },
+        { label: "Energías de enlace", formula: "ΔH ≈ Σ E(rotos) − Σ E(formados)", cuando: "Reacciones en fase gaseosa.", ejemplo: "CH₄ + 2 O₂ → CO₂ + 2 H₂O: 2648 − 3450 = −802 kJ." }
+      ],
+      nota: "Más orden de enlace = más corto y más fuerte (C–C 347, C=C 614, C≡C 839 kJ/mol)." },
+    { titulo: "Propiedades según el tipo de sustancia", ancha: true,
+      tabla: { cab: ["Tipo", "Fundir exige…", "T<sub>f</sub>", "Conduce", "Ejemplo"], filas: [
+        ["Iónica", "vencer atracciones iónicas", "alta", "fundida/disuelta", "NaCl, MgO"],
+        ["Molecular", "vencer fuerzas intermoleculares", "baja", "no", "H₂O, I₂, CO₂"],
+        ["Red covalente", "romper enlaces covalentes", "muy alta", "no (grafito sí)", "diamante, SiO₂"],
+        ["Metálica", "vencer el enlace metálico", "variable", "sí (sólido y líquido)", "Fe, Cu, Na"]
+      ] },
+      nota: "Fuerzas intermoleculares: dispersión (todas; crece con el tamaño) &lt; dipolo–dipolo &lt; puente de H (H–F, O, N)." },
+    { titulo: "Errores típicos del tema", ancha: true,
+      errores: [
+        { mal: "El agua es tetraédrica", bien: "Los pares son tetraédricos; la molécula es angular", por: "La geometría molecular solo cuenta átomos." },
+        { mal: "CO₂ polar porque C=O es polar", bien: "CO₂ apolar (lineal, dipolos opuestos)", por: "Enlace polar ≠ molécula polar." },
+        { mal: "CO₃²⁻ tiene 22 e⁻", bien: "24 e⁻ (suma la carga 2−)", por: "Anión: se suman; catión: se restan." },
+        { mal: "Hervir el agua rompe O–H", bien: "Rompe puentes de H", por: "El enlace O–H sigue en el vapor." },
+        { mal: "Comparar iónicos solo por tamaño", bien: "Primero la carga, luego el tamaño", por: "U ∝ q₊q₋/d." },
+        { mal: "Born–Haber: sumar 243 por un Cl", bien: "½ · 243 por cada átomo de Cl", por: "Solo se forma un Cl por NaCl." },
+        { mal: "Doble enlace = dos sencillos", bien: "1 σ + 1 π (el π es más débil)", por: "614 &lt; 2 · 347 kJ/mol." }
+      ] }
+  ];
+
+  B.registrar("quimica2", "t4", { resumen: resumen, secciones: B.parte.q2t4a.secciones, nuevas: B.parte.q2t4b.nuevas, datos: datos, ejercicios: ejercicios, lamina: lamina });
 })(window);
 
 /* ============================================================
