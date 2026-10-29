@@ -48194,6 +48194,629 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 13: Marx
+   (parte A: teoría. Parte B, historia_fil_t13b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Crítica a Hegel (idealismo, «cabeza abajo») y a Feuerbach (materialismo contemplativo, esencia abstracta) → sección 2 + clasificar.
+   2. Fuerzas de producción, relaciones de producción y modo de producción (no son lo mismo) → sección 2 + tabla.
+   3. Infraestructura y superestructura: «condiciona» no es «es idéntica a»; el derecho y el Estado son superestructura → sección 3 + clasificar.
+   4. Ideología = conciencia que oculta intereses de clase; la religión como «opio» (matiz) → sección 3.
+   5. Lucha de clases y por qué el proletariado es el sujeto de la revolución → sección 4.
+   6. Los cuatro aspectos de la alienación (producto, actividad, ser genérico, otros) → sección 4 + emparejar.
+   7. Plusvalía: de dónde sale el beneficio (ejemplo numérico verificado) → sección 4.
+   8. Comunismo: dictadura del proletariado, dos fases, y que Marx no es la URSS → sección 5 + orden.
+   9. Dialéctica de Marx ≠ «tesis-antítesis-síntesis» (esa fórmula no es de Marx) → sección 2 (ojo).
+   10. Comentario de texto: el Prefacio de 1859 («no es la conciencia… sino el ser social») → comentario resuelto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t13/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Marx: vida, obra y la tesis XI
+  secciones[0] =
+    "<h5>La vida de Marx (1818–1883) paso a paso</h5>" +
+    "<ul><li><b>1818</b>: nace en <b>Tréveris</b> (Renania, entonces Prusia), en una familia de abogados de origen judío convertida al protestantismo.</li>" +
+    "<li><b>Años 1830–1841</b>: estudia Derecho en Bonn y en Berlín, pero acaba en la filosofía. En Berlín se mueve entre los <b>jóvenes hegelianos</b>, que usan la filosofía de Hegel (1770–1831) para criticar la religión y el Estado prusiano. Se doctora en <b>1841</b> con una tesis sobre Demócrito y Epicuro.</li>" +
+    "<li><b>1842–1843</b>: dirige la <i>Gaceta Renana</i>, un periódico que la censura acaba prohibiendo. Escribir sobre la miseria de los campesinos le hace ver que la filosofía sola no basta: hay que mirar la economía.</li>" +
+    "<li><b>1843–1845</b>: exiliado en <b>París</b>. Escribe los <i>Manuscritos económico-filosóficos</i> (1844) y conoce a <b>Friedrich Engels</b> (1820–1895), su amigo y colaborador de por vida. En 1845 redacta las <i>Tesis sobre Feuerbach</i> y empieza <i>La ideología alemana</i> (1845–1846).</li>" +
+    "<li><b>1848</b>: con Engels publica el <i>Manifiesto del Partido Comunista</i>, el año de las revoluciones europeas.</li>" +
+    "<li><b>1849–1883</b>: exiliado en <b>Londres</b>, vive casi en la pobreza y estudia economía en la biblioteca del Museo Británico. Publica el <i>Prefacio</i> a la <i>Contribución a la crítica de la economía política</i> (1859) y el libro I de <i>El capital</i> (1867). Muere en Londres en <b>1883</b>; Engels edita los libros II y III de <i>El capital</i> (1885 y 1894).</li></ul>" +
+    ojo("Dos de las obras más citadas de Marx, los <i>Manuscritos</i> de 1844 y <i>La ideología alemana</i>, <b>no se publicaron hasta 1932</b>: Marx las escribió para aclararse las ideas. Por eso a veces se habla del «joven Marx» (filosófico, centrado en la alienación) y del «Marx maduro» (economista, <i>El capital</i>); la mayoría de los estudiosos ve más continuidad que ruptura entre los dos.") +
+    "<h5>El mundo que Marx tiene delante</h5>" +
+    "<p>La <b>revolución industrial</b> ha llenado las ciudades de fábricas. Una persona que solo posee sus brazos trabaja 12 o 14 horas, a veces con sus hijos pequeños, por un salario que apenas le da para comer. Mientras, el dueño de la fábrica se hace rico. Marx se pregunta algo muy simple: <b>¿por qué unos viven de su trabajo y otros viven del trabajo de los demás?</b> Su filosofía es la respuesta, y por eso mezcla filosofía, economía, historia y política.</p>" +
+    "<h5>La frase que lo resume: la tesis XI</h5>" +
+    "<p>La última de las <i>Tesis sobre Feuerbach</i> (1845) dice, en la traducción habitual: <i>«Los filósofos no han hecho más que interpretar el mundo de diversas maneras; de lo que se trata es de transformarlo»</i>. No significa que Marx desprecie la teoría: significa que una teoría verdadera debe servir para <b>cambiar</b> la realidad. A esa unión de pensamiento y acción transformadora la llama <b>praxis</b>.</p>" +
+    ejemplo("Interpretar frente a transformar", "Imagina que en tu instituto hay un problema de acoso.", [
+      "<b>Interpretar</b> sería escribir un buen ensayo sobre por qué ocurre el acoso.",
+      "<b>Transformar</b> sería, además, actuar para que deje de ocurrir.",
+      "Marx no dice que el ensayo esté de más; dice que, si la filosofía se queda solo en el ensayo, se queda corta."
+    ]);
+
+  // ---------------------------------------------------------------- 2. Crítica a Hegel y Feuerbach; materialismo histórico
+  secciones[1] =
+    "<h5>Antes del materialismo histórico: a quién responde Marx</h5>" +
+    "<p>Marx se forma entre dos filósofos alemanes: <b>Hegel</b> y <b>Feuerbach</b> (1804–1872). Toma algo de cada uno y critica algo de cada uno. Si dominas este cuadro, entiendes de dónde sale todo lo demás.</p>" +
+    tabla(["Autor", "Qué aprovecha Marx", "Qué le critica"], [
+      ["Hegel (1770–1831)", "La <b>dialéctica</b> (la historia avanza por contradicciones), la historia como proceso y la idea de alienación.", "Es <b>idealista</b>: para él la historia es el despliegue del Espíritu (ideas). Marx dice que su dialéctica «está cabeza abajo» y hay que ponerla sobre sus pies (paráfrasis del epílogo de <i>El capital</i>, 1873). Además, el Estado no es la razón hecha realidad: defiende los intereses de la clase propietaria."],
+      ["Feuerbach (1804–1872)", "El <b>materialismo</b> y la crítica de la religión: Dios es una <b>proyección</b> de la esencia humana (<i>La esencia del cristianismo</i>, 1841).", "Su materialismo es <b>contemplativo</b>: no ve la práctica, la actividad real. Su «hombre» es <b>abstracto</b>, un individuo aislado; para Marx la esencia humana es «el conjunto de las relaciones sociales» (tesis VI, paráfrasis). Explica la religión, pero no por qué la gente necesita consuelo: eso es un problema social."]
+    ]) +
+    "<p>Fíjate en cómo se completan: Hegel tiene la <b>dialéctica</b> pero con ideas; Feuerbach tiene el <b>materialismo</b> pero sin historia ni dialéctica. Marx junta lo mejor de ambos: un materialismo <b>histórico</b> y <b>dialéctico</b>, centrado en la actividad práctica (la <b>praxis</b>) de los seres humanos reales.</p>" +
+    ejemplo("«Cabeza abajo» sin misterio", "¿Qué determina qué? Una pregunta con dos respuestas.", [
+      "<b>Hegel (idealismo)</b>: primero las ideas, y la realidad social las va realizando.",
+      "<b>Marx (materialismo)</b>: primero la vida material (cómo trabajamos y producimos), y de ahí surgen las ideas.",
+      "No dice que las ideas no importen, sino que <b>no explican la historia por sí solas</b>."
+    ]) +
+    w("clasificar", "quien") +
+    ojo("La fórmula «tesis–antítesis–síntesis» <b>no es de Marx ni de Hegel</b>: es una simplificación posterior. Marx habla de <b>contradicciones</b> reales (entre clases, entre fuerzas y relaciones de producción) que empujan el cambio histórico. Y el nombre «materialismo dialéctico» lo popularizan después Engels y Plejánov; Marx habla de «concepción materialista de la historia». En la PAU basta con decir <b>materialismo histórico</b>.") +
+    "<h5>Las tres piezas del materialismo histórico</h5>" +
+    "<p>Para explicar la historia, Marx pone tres conceptos que hay que distinguir:</p>" +
+    "<ul><li><b>Fuerzas productivas</b>: todo lo que permite producir. Los medios de producción (herramientas, máquinas, tierra, materias primas), la <b>fuerza de trabajo</b> de las personas y sus conocimientos técnicos.</li>" +
+    "<li><b>Relaciones de producción</b>: las relaciones <b>entre personas</b> al producir; sobre todo, <b>quién es propietario</b> de los medios de producción y quién trabaja para quién (amo y esclavo, señor y siervo, capitalista y obrero).</li>" +
+    "<li><b>Modo de producción</b>: la combinación de las dos anteriores en una época. Es lo que define cada etapa de la historia.</li></ul>" +
+    "<p>La clave está en una tensión: las fuerzas productivas <b>crecen</b> (aparecen técnicas nuevas) pero las relaciones de producción, que protegen los intereses de los propietarios, tienden a quedarse fijas. Cuando las relaciones frenan a las fuerzas aparece una <b>contradicción</b> y llega, en palabras del Prefacio de 1859 (paráfrasis), «una época de revolución social». Así se pasa de un modo de producción a otro.</p>" +
+    tabla(["Modo de producción", "Quién posee los medios", "Quién trabaja", "Clases enfrentadas"], [
+      ["Comunismo primitivo", "La comunidad (propiedad común)", "Todos", "No hay clases"],
+      ["Esclavista (Antigüedad)", "El amo, también dueño de las personas", "Los esclavos", "Amos y esclavos"],
+      ["Feudal (Edad Media)", "El señor (la tierra)", "Los siervos, ligados a la tierra", "Señores y siervos"],
+      ["Capitalista (burgués)", "La burguesía (fábricas, capital)", "Los proletarios, libres, que venden su fuerza de trabajo", "Burguesía y proletariado"]
+    ]) +
+    "<p>(En el Prefacio de 1859 Marx menciona también el modo de producción «asiático», pero en la PAU se trabaja la secuencia clásica de la tabla.) Mira el patrón: en cada etapa <b>cambia la forma de explotación</b>, pero siempre hay alguien que trabaja y otro que se queda con parte de lo producido, hasta que el comunismo acabe con esa división.</p>" +
+    w("orden", "modos") +
+    ejemplo("Por qué las fábricas «provocan» una revolución", "Un ejemplo histórico sencillo:", [
+      "En el feudalismo, la riqueza es la tierra y el señor manda sobre los siervos.",
+      "Crecen el comercio, las máquinas y las fábricas: una <b>fuerza productiva</b> nueva que no deja de crecer.",
+      "Los burgueses, que la controlan, chocan con las leyes feudales (privilegios, gremios, servidumbre).",
+      "Resultado: revoluciones burguesas (como la francesa de 1789) y un nuevo orden, el capitalista."
+    ]);
+
+  // ---------------------------------------------------------------- 3. Infraestructura, superestructura, ideología
+  secciones[2] =
+    "<h5>El edificio de la sociedad</h5>" +
+    "<p>Marx usa la imagen de un <b>edificio</b>. En el piso de abajo, los cimientos: la <b>infraestructura</b> (o base), que es la estructura económica, es decir, las fuerzas productivas y las relaciones de producción. Encima se levanta la <b>superestructura</b>: el derecho y el Estado (superestructura jurídica y política) y las formas de conciencia (religión, moral, arte, filosofía, ciencia).</p>" +
+    "<p>La frase clave, del <i>Prefacio</i> de 1859 (traducción habitual, que varía según la edición): <i>«El modo de producción de la vida material condiciona el proceso de la vida social, política y espiritual en general. No es la conciencia del hombre la que determina su ser, sino, por el contrario, el ser social es el que determina su conciencia»</i>.</p>" +
+    ejemplo("¿Infra o super? Tres casos", "Aplica el criterio: ¿es una relación económica o una forma de pensar y organizar el poder?", [
+      "Una <b>fábrica</b> y los contratos de trabajo → <b>infraestructura</b> (medios de producción y relaciones de producción).",
+      "La <b>ley que protege la propiedad privada</b> → <b>superestructura</b> (derecho): refleja y defiende esa base.",
+      "La <b>religión que enseña a aceptar la pobreza</b> como destino → <b>superestructura</b> (ideología)."
+    ]) +
+    w("clasificar", "infraestructura") +
+    "<h5>Ideología: ideas que ocultan intereses</h5>" +
+    "<p>Para Marx, la <b>ideología</b> es un conjunto de ideas que presentan los intereses de una clase como si fueran los intereses de <b>todos</b>, ocultando así la realidad de la explotación. Su frase de <i>La ideología alemana</i> (traducción habitual): <i>«las ideas de la clase dominante son, en cada época, las ideas dominantes»</i>. La clase que posee los medios de producción material controla también, en buena parte, los medios de producción de las ideas (escuela, prensa, iglesia, leyes).</p>" +
+    "<p>Un ejemplo: si se repite que «quien no tiene trabajo es porque no se esfuerza», se hace creer que el paro depende solo de cada persona y se esconde que el sistema económico necesita cierto número de parados. Eso es ideología: <b>una explicación que protege a quien se beneficia de la situación</b>.</p>" +
+    "<h5>La religión como «opio del pueblo»</h5>" +
+    "<p>En la <i>Introducción a la crítica de la filosofía del derecho de Hegel</i> (1844) escribe, en la traducción habitual, que la religión es «el suspiro de la criatura oprimida, el corazón de un mundo sin corazón» y también «el opio del pueblo». Ten cuidado con el matiz: el opio de entonces <b>calmaba el dolor</b>. Marx no se burla de quien cree: dice que la religión consuela de una miseria real y, a la vez, <b>la hace soportable en lugar de cambiarla</b>. Cambiar esa miseria (praxis) haría innecesario el consuelo ilusorio.</p>" +
+    "<h5>El Estado: ¿un árbitro neutral?</h5>" +
+    "<p>Para Hegel, el Estado representa el interés universal. Para Marx es parte de la superestructura y, en las sociedades divididas en clases, funciona como <b>instrumento de la clase dominante</b>: sus leyes, su policía y sus tribunales protegen sobre todo la propiedad de los medios de producción. Por eso Marx no cree que baste con reformar la ley: hay que cambiar la base.</p>" +
+    ojo("«Determina» o «condiciona» <b>no significa</b> que las ideas sean un simple reflejo mecánico ni que no tengan efecto. El propio Engels, en cartas de 1890, aclara que la economía es determinante «en última instancia» y que la superestructura también influye de vuelta sobre la base. Y no confundas: el <b>derecho y el Estado son superestructura</b>, aunque regulen la propiedad; la propiedad en sí (quién posee qué) es relación de producción, es decir, infraestructura.");
+
+  // ---------------------------------------------------------------- 4. Lucha de clases, alienación, plusvalía
+  secciones[3] =
+    "<h5>La lucha de clases</h5>" +
+    "<p>El <i>Manifiesto</i> (1848) empieza así, en la traducción habitual: <i>«La historia de todas las sociedades hasta nuestros días es la historia de la lucha de clases»</i> (en 1888 Engels añadió una nota para aclarar que se refería a la historia escrita). Una <b>clase social</b> no es lo mismo que «ser rico o pobre»: es el grupo que ocupa un mismo lugar en las relaciones de producción, es decir, <b>si posee o no medios de producción</b>.</p>" +
+    "<ul><li>La <b>burguesía</b>: propietaria de fábricas, capital y tierras. Vive de la <b>plusvalía</b> que genera el trabajo ajeno.</li>" +
+    "<li>El <b>proletariado</b>: no posee más que su <b>fuerza de trabajo</b> y debe venderla por un salario.</li></ul>" +
+    "<p>¿Por qué elige Marx al proletariado como motor del cambio? Porque es la clase más numerosa en el capitalismo, está concentrada en las fábricas (lo que facilita organizarse) y no tiene propiedad que defender, de modo que su liberación solo puede ser la de <b>toda</b> la sociedad: al abolir la propiedad privada de los medios de producción acaba con las clases. Esa es la idea de «conciencia de clase»: pasar de ser una clase «en sí» (con una situación común) a una clase «para sí» (que sabe lo que es y se organiza).</p>" +
+    "<h5>La alienación: cuatro maneras de sentirse extraño</h5>" +
+    "<p>La <b>alienación</b> (o enajenación; del latín <i>alienus</i>, «ajeno») es el centro de los <i>Manuscritos</i> de 1844. Para Marx, trabajar es lo que hace humano al ser humano: transformando la naturaleza se expresa y se realiza. Pero en el capitalismo el trabajo se convierte en un castigo. Distingue cuatro aspectos:</p>" +
+    tabla(["Aspecto", "En qué consiste", "Ejemplo cotidiano"], [
+      ["1. Respecto al <b>producto</b>", "Lo que fabrica el obrero no es suyo, sino del capitalista; cuanto más produce, más poderoso se hace lo ajeno.", "Quien cose zapatillas de marca que no podría comprar."],
+      ["2. Respecto a la <b>actividad</b>", "El trabajo es forzado y repetitivo; no se hace por gusto, sino para sobrevivir. Solo se siente libre fuera de él.", "Esperar el viernes porque el trabajo es solo un medio para cobrar."],
+      ["3. Respecto al <b>ser genérico</b> (la esencia humana)", "Se pierde lo que nos distingue como especie: trabajar de forma libre, consciente y creativa. Se vive como un animal que solo sobrevive.", "Un trabajo tan mecánico que no deja pensar ni crear."],
+      ["4. Respecto a los <b>otros seres humanos</b>", "Las personas se enfrentan: trabajador y capitalista tienen intereses opuestos, y los obreros compiten entre sí.", "Competir con tus compañeros por no ser el despedido."]
+    ]) +
+    w("emparejar", "alienacion") +
+    "<p>La causa, para Marx, no es la técnica ni la naturaleza humana, sino la <b>propiedad privada de los medios de producción</b> y la división del trabajo. Por eso solo se supera aboliendo esa propiedad: no basta con cambiar de actitud. (Marx también habla de alienación religiosa, siguiendo a Feuerbach, y de alienación política, pero la económica es la raíz.)</p>" +
+    "<h5>La plusvalía: de dónde sale el beneficio</h5>" +
+    "<p>En <i>El capital</i> (1867) Marx explica cómo se gana dinero en el capitalismo. Parte de un caso en el que todo se intercambia por su valor, para demostrar que <b>aun así</b> hay explotación. Pasos:</p>" +
+    "<ol><li>Una <b>mercancía</b> tiene <b>valor de uso</b> (para qué sirve) y <b>valor de cambio</b> (por cuánto se cambia). Su valor depende del <b>tiempo de trabajo socialmente necesario</b> para producirla.</li>" +
+    "<li>El obrero vende su <b>fuerza de trabajo</b>, que también es una mercancía. Su valor es lo que cuesta mantener al obrero (comida, vivienda, ropa), y eso es el <b>salario</b>.</li>" +
+    "<li>Pero la fuerza de trabajo es una mercancía especial: <b>al usarla crea más valor del que cuesta</b>. Esa diferencia es la <b>plusvalía</b>, que se queda el capitalista.</li></ol>" +
+    ejemplo("La plusvalía con números", "Simplificamos: no contamos máquinas ni materias primas, solo el trabajo.", [
+      "Jornada de <b>8 horas</b>. Cada hora de trabajo crea <b>20 €</b> de valor, así que el obrero crea <b>160 €</b> al día.",
+      "El salario (lo que cuesta mantenerle) es <b>80 €</b> al día.",
+      "El obrero tarda <b>4 horas</b> en crear esos 80 € (<b>trabajo necesario</b>). Las otras <b>4 horas</b> trabaja gratis (<b>plustrabajo</b>).",
+      "<b>Plusvalía = 160 − 80 = 80 €</b>. Tasa de plusvalía = plusvalía / salario = 80/80 = <b>100 %</b>."
+    ]) +
+    "<p>El capitalista puede aumentar la plusvalía alargando la jornada (plusvalía <i>absoluta</i>) o haciendo más productivo el trabajo con máquinas, de modo que el obrero tarde menos en producir su salario (plusvalía <i>relativa</i>). La competencia empuja a invertir en máquinas, concentra el capital en pocas manos y provoca <b>crisis</b> periódicas de sobreproducción: para Marx, esas son las contradicciones internas que debilitan el sistema.</p>" +
+    ojo("La plusvalía <b>no es un robo ilegal ni un engaño</b>: el obrero cobra lo pactado. Marx explica que la explotación es posible incluso con un intercambio «justo» según las reglas del mercado. Tampoco es sinónimo de «beneficio»: el beneficio es la forma en que el capitalista ve esa plusvalía, una vez descontados todos los costes.");
+
+  // ---------------------------------------------------------------- 5. Comunismo y valoración
+  secciones[4] =
+    "<h5>Del capitalismo al comunismo, paso a paso</h5>" +
+    "<p>Marx no escribió un «manual» del futuro: solo dio las líneas generales, sobre todo en el <i>Manifiesto</i> y en la <i>Crítica del programa de Gotha</i> (1875). El camino que sugiere es este:</p>" +
+    "<ol><li><b>Contradicciones del capitalismo</b>: explotación, concentración del capital y crisis periódicas.</li>" +
+    "<li><b>Revolución</b> del proletariado, que toma el poder político.</li>" +
+    "<li><b>Dictadura del proletariado</b>: etapa de transición en la que el poder está en manos de la mayoría obrera para acabar con la resistencia de la burguesía y colectivizar los medios de producción. «Dictadura» aquí significa <b>dominio de una clase</b> (igual que se habla de «dictadura de la burguesía» en el capitalismo), no régimen de un solo hombre.</li>" +
+    "<li><b>Fase inferior del comunismo</b> (lo que luego se llamó socialismo): se reparte «a cada cual según su trabajo».</li>" +
+    "<li><b>Fase superior</b>: abundancia y desaparición de las clases y del Estado como instrumento de dominación. Su lema, en la traducción habitual: «de cada cual según su capacidad, a cada cual según sus necesidades».</li></ol>" +
+    "<p>En esa sociedad se acaba la alienación: el trabajo vuelve a ser libre y creativo. El <i>Manifiesto</i> lo resume (traducción habitual) como una asociación en la que «el libre desarrollo de cada uno es la condición del libre desarrollo de todos».</p>" +
+    w("orden", "caminocomunismo") +
+    "<h5>Valoración crítica: lo que sigue vivo y lo que se discute</h5>" +
+    tabla(["Aportaciones que se mantienen", "Críticas y límites"], [
+      ["Mostró que las ideas, el derecho y el poder se relacionan con intereses económicos.", "Su <b>determinismo económico</b> reduce a veces la política, la cultura y la libertad individual a la economía."],
+      ["Describió la alienación del trabajo, vigente hoy (precariedad, trabajo mecánico).", "Muchas predicciones no se cumplieron: la revolución no estalló en los países más industrializados y creció una amplia clase media."],
+      ["Inspiró el análisis de la desigualdad, la historia económica y el sindicalismo.", "Los regímenes que se proclamaron marxistas en el siglo XX (URSS, etc.) suprimieron libertades."]
+    ]) +
+    ojo("Es un error muy frecuente decir «Marx fue como Stalin». Una cosa es la <b>teoría</b> de Marx (siglo XIX) y otra las <b>aplicaciones políticas</b> del siglo XX, a veces muy alejadas de lo que escribió. En la PAU, separa siempre ambas: explica a Marx y, en la valoración, puedes discutir cómo se aplicó, sin atribuirle a él lo que hicieron otros.");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Mapa del tema: Marx y los demás autores", html:
+    "<p>En el comentario de texto se pide relacionar con el autor y comparar con otro. Con Marx, las relaciones más rentables son:</p>" +
+    tabla(["Autor", "Relación con Marx"], [
+      ["Platón (T3)", "Para Platón, lo verdaderamente real es el mundo de las Ideas; Marx es materialista y parte de la vida material. Ambos piensan que la organización de la ciudad condiciona la vida de las personas."],
+      ["Aristóteles (T4)", "Aristóteles considera natural la esclavitud; Marx la analiza como una relación de producción histórica, no natural. Ambos ven al ser humano como social."],
+      ["Rousseau (T11)", "Comparten la crítica a la propiedad privada como origen de la desigualdad. Rousseau lo plantea en lo moral y político (voluntad general); Marx, con la economía y la lucha de clases."],
+      ["Kant (T12)", "Kant defiende la autonomía y el deber como ley moral universal; Marx piensa que la moral es en parte ideología ligada a la clase. Los dos buscan un ser humano libre."],
+      ["Hegel", "Marx hereda la dialéctica y la historia como proceso, pero invierte el idealismo: la base de la historia es material."],
+      ["Nietzsche (T14)", "Ambos sospechan de la moral y la religión dominantes (para Marx, ideología de clase; para Nietzsche, moral de esclavos), pero Marx busca un cambio social colectivo y Nietzsche una transformación de los valores."]
+    ]) +
+    "<h5>Cuadro-resumen: lo que sostiene Marx</h5>" +
+    tabla(["Ámbito", "Tesis de Marx"], [
+      ["Método", "Materialismo histórico: la vida material (producción) explica la historia. Dialéctica de contradicciones."],
+      ["Sociedad", "Infraestructura económica y superestructura (derecho, Estado, ideas). La ideología oculta intereses de clase."],
+      ["Historia", "Modos de producción y lucha de clases. Las revoluciones surgen del choque entre fuerzas y relaciones de producción."],
+      ["Economía", "Plusvalía: el beneficio nace del trabajo no pagado."],
+      ["Ser humano", "Alienación en cuatro aspectos: producto, actividad, ser genérico y otros seres humanos."],
+      ["Política", "Revolución proletaria, dictadura del proletariado y sociedad sin clases (comunismo)."]
+    ]) });
+
+  nuevas.push({ h: "7. Comentario de texto resuelto: el ser social determina la conciencia", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Marx, <em>Prefacio a la Contribución a la crítica de la economía política</em>, 1859; traducción española habitual, que varía levemente según la edición):<br><em>«El modo de producción de la vida material condiciona el proceso de la vida social, política y espiritual en general. No es la conciencia del hombre la que determina su ser, sino, por el contrario, el ser social es el que determina su conciencia.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Marx (1818–1883), <i>Prefacio</i> de 1859, donde resume su concepción materialista de la historia. Contexto: justo antes explica que las relaciones de producción forman la «base real» sobre la que se levanta la superestructura jurídica y política.</li>" +
+    "<li><b>2. Tema.</b> La relación entre la vida material (la producción) y la conciencia (las ideas): qué determina a qué.</li>" +
+    "<li><b>3. Idea principal.</b> La forma en que una sociedad produce lo necesario para vivir condiciona toda su vida social, política y espiritual: no son las ideas las que moldean la realidad social, sino la realidad social la que moldea las ideas.</li>" +
+    "<li><b>4. Términos y ideas secundarias.</b> (a) «Modo de producción de la vida material»: fuerzas y relaciones de producción, la infraestructura. (b) «Vida social, política y espiritual»: la superestructura (Estado, derecho, religión, moral, filosofía). (c) «Condiciona» y «determina»: relación de dependencia, no de identidad. (d) «Ser social» frente a «conciencia»: invierte el idealismo, que pone la conciencia primero.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Es la base del materialismo histórico y explica su crítica a Hegel (idealismo) y a Feuerbach (que no ve la práctica social). De aquí salen la ideología (ideas que reflejan intereses de la clase dominante), la lucha de clases y la tesis XI sobre transformar el mundo.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con Hegel: para Hegel la historia es el despliegue del Espíritu y las ideas mueven la realidad; Marx invierte la relación. Con Platón: el mundo de las Ideas es lo verdaderamente real y causa del sensible; para Marx, las ideas son producto de condiciones materiales. Con Kant: la razón moral es autónoma; Marx la ve condicionada por la posición de clase.</li>" +
+    "<li><b>7. Valora y concluye.</b> Fue muy fecundo para entender cómo los intereses económicos influyen en las ideas (ideología). Su límite: una lectura rígida (determinismo) olvida el papel de la libertad y de las ideas, como matizó Engels; y si toda idea dependiera solo de la economía, también la teoría de Marx estaría condicionada, lo que plantea un problema sobre su pretensión de verdad.</li></ol>" +
+    ojo("Errores típicos: (1) decir que Marx niega que las ideas importen; (2) escribir «el ser humano determina su conciencia» (el texto habla del <b>ser social</b>, no del individuo); (3) confundir «condiciona» con «es lo mismo que»; (4) comparar con Hegel o Platón sin explicar <b>en qué</b> difieren.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "8. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Explica el materialismo histórico", "Respuesta modelo:", [
+      "<b>Definición.</b> Teoría según la cual la historia se explica por las condiciones materiales de producción, no por las ideas.",
+      "<b>Piezas.</b> Fuerzas productivas, relaciones de producción y modo de producción.",
+      "<b>Edificio social.</b> Infraestructura económica y superestructura (derecho, Estado, ideas).",
+      "<b>Cambio.</b> Las contradicciones entre fuerzas y relaciones de producción provocan revoluciones y nuevos modos (esclavista, feudal, capitalista).",
+      "<b>Relación.</b> Invierte el idealismo de Hegel y supera el materialismo contemplativo de Feuerbach."
+    ]) +
+    ejemplo("Pregunta 2. La alienación en Marx", "Respuesta modelo:", [
+      "<b>Definición.</b> El trabajador se vuelve extraño a su trabajo, a lo que produce y a sí mismo.",
+      "<b>Cuatro aspectos.</b> Respecto al producto, a la actividad, al ser genérico y a los demás.",
+      "<b>Causa.</b> Propiedad privada de los medios de producción y división del trabajo.",
+      "<b>Superación.</b> Abolición de esa propiedad en una sociedad sin clases.",
+      "<b>Relación.</b> Toma de Hegel y Feuerbach la idea de alienación, pero la ve económica, no religiosa."
+    ]) +
+    ejemplo("Pregunta 3. Ideología y superestructura", "Respuesta modelo:", [
+      "<b>Superestructura.</b> Derecho, Estado, religión, moral, arte y filosofía, sobre la base económica.",
+      "<b>Ideología.</b> Ideas que presentan los intereses de la clase dominante como universales.",
+      "<b>Ejemplo.</b> Religión consoladora («opio del pueblo») que hace soportable la miseria sin cambiarla.",
+      "<b>Matiz.</b> Engels: la base es determinante «en última instancia» y la superestructura influye de vuelta."
+    ]) +
+    ejemplo("Pregunta 4. Lucha de clases, plusvalía y sociedad sin clases", "Respuesta modelo:", [
+      "<b>Clases.</b> Burguesía (posee medios de producción) y proletariado (solo fuerza de trabajo).",
+      "<b>Plusvalía.</b> Diferencia entre el valor creado por el trabajo y el salario; fuente del beneficio.",
+      "<b>Revolución.</b> Las contradicciones del capitalismo llevan a la revolución proletaria y a la dictadura del proletariado.",
+      "<b>Meta.</b> Comunismo: sin clases, sin propiedad privada de los medios de producción, trabajo libre.",
+      "<b>Valoración.</b> Vigencia del análisis de la desigualdad; límites: determinismo y aplicaciones del siglo XX."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf13a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 13 (parte B): Marx
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t13.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Marx (1818–1883) quiere <b>transformar</b> el mundo, no solo interpretarlo: su filosofía nace de la miseria obrera de la revolución industrial.",
+    "El <b>materialismo histórico</b> explica la historia por el modo de producción: la <b>infraestructura</b> económica condiciona la <b>superestructura</b> (derecho, Estado, ideas).",
+    "La historia es <b>lucha de clases</b>; en el capitalismo, la burguesía obtiene la <b>plusvalía</b> del trabajo del proletariado, que sufre <b>alienación</b>.",
+    "La <b>revolución</b> proletaria llevaría, tras una etapa de transición, a una sociedad <b>comunista</b> sin clases."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Marx · 1818–1883",
+    autores: [{ n: "Karl Marx", f: "1818–1883", l: "Tréveris; exiliado en París, Bruselas y Londres" }],
+    obras: ["Manuscritos económico-filosóficos (1844)", "Tesis sobre Feuerbach (1845)", "La ideología alemana (1845–1846)", "Manifiesto del Partido Comunista (1848, con Engels)", "Prefacio a la Contribución a la crítica de la economía política (1859)", "El capital, libro I (1867)"],
+    bloques: [
+      { t: "Contexto y punto de partida", frases: ["Revolución industrial: obreros miserables, fábricas y burguesía enriquecida.", "Parte de <b>Hegel</b> (dialéctica) y de <b>Feuerbach</b> (materialismo, crítica de la religión).", "Tesis XI: de lo que se trata es de <b>transformar</b> el mundo."],
+        tabla: { cab: ["Hegel", "Feuerbach"], filas: [["idealista: el Espíritu mueve la historia", "materialista, pero contemplativo"], ["Estado como razón universal", "esencia humana abstracta"]] } },
+      { t: "Materialismo histórico", frases: ["La vida material (producción) explica la historia, no las ideas.", "<b>Fuerzas productivas</b> y <b>relaciones de producción</b> forman el modo de producción.", "Su choque provoca revoluciones: esclavismo, feudalismo, capitalismo."] },
+      { t: "Infraestructura y superestructura", frases: ["La base económica condiciona el derecho, el Estado y las ideas.", "<b>Ideología</b>: ideas que ocultan los intereses de la clase dominante.", "La religión es «opio del pueblo»: consuela sin transformar."],
+        tabla: { cab: ["Infraestructura", "Superestructura"], filas: [["fuerzas y relaciones de producción", "derecho, Estado, religión, moral, arte"], ["propiedad de los medios de producción", "legitima el orden existente"]] } },
+      { t: "Lucha de clases", frases: ["Clase = lugar respecto a los medios de producción.", "<b>Burguesía</b> (posee) frente a <b>proletariado</b> (solo fuerza de trabajo).", "El proletariado, al liberarse, libera a toda la sociedad."] },
+      { t: "Alienación y plusvalía", frases: ["Alienación: el obrero se vuelve extraño a su trabajo.", "Plusvalía = valor creado por el trabajo − salario.", "El beneficio capitalista nace del trabajo no pagado."],
+        tabla: { cab: ["Alienación respecto a…", "Significa"], filas: [["el producto", "no le pertenece"], ["la actividad", "trabajo forzado"], ["el ser genérico", "pierde su esencia creativa"], ["los otros", "competencia y enfrentamiento"]] } },
+      { t: "Comunismo y valoración", frases: ["Revolución, dictadura del proletariado y comunismo sin clases.", "Se supera la alienación al abolir la propiedad privada de los medios.", "Límites: determinismo y aplicaciones del siglo XX."] }
+    ],
+    resumen: [
+      "El <b>modo de producción</b> condiciona toda la vida social: «el ser social determina la conciencia».",
+      "La historia avanza por <b>lucha de clases</b> y contradicciones entre fuerzas y relaciones de producción.",
+      "El capitalismo se basa en la <b>plusvalía</b> y produce <b>alienación</b>.",
+      "La meta es una sociedad <b>sin clases</b>, donde el trabajo vuelve a ser libre."
+    ],
+    conecta: [
+      { con: "Hegel y Feuerbach:", rel: "Marx toma la dialéctica y la crítica de la religión, pero las invierte." },
+      { con: "Platón y Aristóteles (T3–T4):", rel: "frente al idealismo platónico, Marx parte de la vida material." },
+      { con: "Rousseau (T11):", rel: "comparten la crítica a la propiedad privada y la desigualdad." },
+      { con: "Kant (T12):", rel: "frente a la moral autónoma, Marx ve la moral condicionada por la clase." },
+      { con: "Nietzsche (T14):", rel: "ambos sospechan de la moral y la religión dominantes." }
+    ],
+    claves: [
+      ["Materialismo histórico", "la historia se explica por las condiciones materiales de producción"],
+      ["Praxis", "actividad práctica que une pensamiento y transformación del mundo"],
+      ["Fuerzas productivas", "medios de producción, fuerza de trabajo y técnica"],
+      ["Relaciones de producción", "relaciones entre personas según la propiedad de los medios"],
+      ["Infraestructura / superestructura", "base económica frente a derecho, Estado e ideas"],
+      ["Ideología", "ideas que presentan los intereses de una clase como universales"],
+      ["Lucha de clases", "enfrentamiento entre quienes poseen los medios y quienes no"],
+      ["Alienación", "el trabajador se vuelve ajeno a su trabajo, producto y esencia"],
+      ["Plusvalía", "diferencia entre el valor que crea el trabajo y el salario"],
+      ["Comunismo", "sociedad sin clases ni propiedad privada de los medios de producción"]
+    ],
+    cita: { txt: "Los filósofos no han hecho más que interpretar el mundo de diversas maneras; de lo que se trata es de transformarlo.", autor: "Marx", obra: "Tesis sobre Feuerbach, XI (traducción habitual)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    infraestructura: {
+      titulo: "¿Infraestructura o superestructura?",
+      consigna: "Toca cada elemento y después el nivel del «edificio» social al que pertenece, según Marx.",
+      categorias: ["Infraestructura", "Superestructura"],
+      items: [
+        { t: "Una fábrica con sus máquinas", c: 0 },
+        { t: "La Constitución del país", c: 1 },
+        { t: "El contrato de trabajo asalariado", c: 0 },
+        { t: "La religión dominante", c: 1 },
+        { t: "Quién posee la tierra", c: 0 },
+        { t: "La moral de la época", c: 1 },
+        { t: "Los conocimientos técnicos para producir", c: 0 },
+        { t: "La ley que protege la propiedad privada", c: 1 },
+        { t: "El sistema educativo y sus ideas", c: 1 },
+        { t: "La fuerza de trabajo de los obreros", c: 0 }
+      ]
+    },
+    quien: {
+      titulo: "¿Hegel, Feuerbach o Marx?",
+      consigna: "Toca cada idea y después el autor al que corresponde.",
+      categorias: ["Hegel", "Feuerbach", "Marx"],
+      items: [
+        { t: "La historia es el despliegue del Espíritu", c: 0 },
+        { t: "El Estado representa el interés universal", c: 0 },
+        { t: "Su dialéctica es idealista", c: 0 },
+        { t: "Dios es una proyección de la esencia humana", c: 1 },
+        { t: "Su materialismo es contemplativo", c: 1 },
+        { t: "Su «hombre» es un individuo abstracto", c: 1 },
+        { t: "El ser social determina la conciencia", c: 2 },
+        { t: "De lo que se trata es de transformar el mundo", c: 2 },
+        { t: "La historia se explica por el modo de producción", c: 2 }
+      ]
+    },
+    alienacion: {
+      titulo: "Los cuatro aspectos de la alienación",
+      consigna: "Une cada aspecto con su descripción.",
+      pares: [["Respecto al producto", "Lo que fabrica no le pertenece"], ["Respecto a la actividad", "El trabajo es forzado: solo un medio para sobrevivir"], ["Respecto al ser genérico", "Pierde su capacidad de trabajar libre y creativamente"], ["Respecto a los otros", "Los trabajadores compiten y se enfrentan a quien los emplea"]]
+    },
+    modos: {
+      titulo: "Los modos de producción",
+      consigna: "Ordena las etapas de la historia según Marx, de la más antigua a la futura.",
+      items: [
+        { t: "Comunismo primitivo: propiedad común, sin clases" },
+        { t: "Esclavista: amos y esclavos" },
+        { t: "Feudal: señores y siervos" },
+        { t: "Capitalista: burguesía y proletariado" },
+        { t: "Sociedad comunista: sin clases" }
+      ]
+    },
+    caminocomunismo: {
+      titulo: "Del capitalismo al comunismo",
+      consigna: "Ordena los pasos del camino que sugiere Marx.",
+      items: [
+        { t: "Contradicciones y crisis del capitalismo" },
+        { t: "Revolución del proletariado" },
+        { t: "Dictadura del proletariado (transición)" },
+        { t: "Fase inferior del comunismo: a cada cual según su trabajo" },
+        { t: "Fase superior: a cada cual según sus necesidades" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 13",
+      preguntas: [
+        { q: "Marx nació en…", op: ["Tréveris", "Londres", "París", "Berlín"], ok: 0, porque: "Nació en Tréveris (Renania) en 1818 y murió en Londres en 1883." },
+        { q: "La tesis XI sobre Feuerbach dice que los filósofos…", op: ["han interpretado el mundo y de lo que se trata es de transformarlo", "deben dedicarse a la contemplación", "ya han transformado el mundo", "no deben ocuparse de la política"], ok: 0, porque: "Es la unión de teoría y praxis." },
+        { q: "El Manifiesto del Partido Comunista (1848) lo firmó Marx junto con…", op: ["Engels", "Hegel", "Feuerbach", "Rousseau"], ok: 0, porque: "Friedrich Engels (1820–1895) fue su colaborador de toda la vida." },
+        { q: "La infraestructura es…", op: ["la base económica: fuerzas y relaciones de producción", "el derecho y el Estado", "la religión y la moral", "las ideas de la clase dominante"], ok: 0, porque: "Lo demás es superestructura." },
+        { q: "Según Marx, la ideología…", op: ["presenta los intereses de una clase como universales", "es una ciencia neutral", "es solo la religión", "no depende de la clase social"], ok: 0, porque: "Oculta la explotación y legitima el orden existente." },
+        { q: "El proletariado es la clase que…", op: ["solo posee su fuerza de trabajo", "posee las fábricas", "posee la tierra", "gobierna siempre"], ok: 0, porque: "Para vivir debe vender su fuerza de trabajo por un salario." },
+        { q: "La plusvalía es…", op: ["la diferencia entre el valor creado por el trabajo y el salario", "el salario mínimo", "un impuesto del Estado", "el precio de la maquinaria"], ok: 0, porque: "Es el trabajo no pagado que se queda el capitalista." },
+        { q: "Marx critica a Hegel porque su filosofía es…", op: ["idealista", "materialista", "empirista", "escéptica"], ok: 0, porque: "Pone las ideas (el Espíritu) como motor de la historia." },
+        { q: "Marx critica a Feuerbach porque su materialismo es…", op: ["contemplativo y no ve la práctica social", "demasiado histórico", "demasiado religioso", "dialéctico"], ok: 0, porque: "Su «hombre» es abstracto y no ve las relaciones sociales." },
+        { q: "El objetivo final del proceso histórico según Marx es…", op: ["una sociedad sin clases", "el triunfo de la burguesía", "un Estado absoluto", "la vuelta al feudalismo"], ok: 0, porque: "El comunismo acaba con las clases y con la alienación." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre Marx es FALSA?", op: ["Para Marx las ideas no influyen nunca en la historia", "Para Marx la base económica condiciona las ideas", "Marx pidió unir teoría y praxis", "Marx escribió El capital"], ok: 0, porque: "Marx no niega la influencia de las ideas; dice que no explican la historia por sí solas (y Engels lo matizó)." },
+        { q: "¿Cuál de estas afirmaciones sobre la superestructura es FALSA?", op: ["Incluye las relaciones de producción", "Incluye el derecho y el Estado", "Incluye la religión", "Se levanta sobre la infraestructura"], ok: 0, porque: "Las relaciones de producción son infraestructura." },
+        { q: "¿Cuál de estas afirmaciones sobre la plusvalía es FALSA?", op: ["Es un robo ilegal que el capitalista comete", "Nace del trabajo no pagado", "Es la fuente del beneficio capitalista", "Es compatible con que el obrero cobre lo pactado"], ok: 0, porque: "Marx muestra que existe incluso con un intercambio «justo» según el mercado." },
+        { q: "¿Cuál de estas afirmaciones sobre la dialéctica es FALSA?", op: ["Marx basa su teoría en la fórmula tesis–antítesis–síntesis", "Marx habla de contradicciones entre fuerzas y relaciones de producción", "Marx toma la dialéctica de Hegel", "Marx dice que Hegel la tiene «cabeza abajo»"], ok: 0, porque: "La fórmula tesis–antítesis–síntesis no es de Marx ni de Hegel." },
+        { q: "¿Cuál de estas afirmaciones sobre la alienación es FALSA?", op: ["La causa es la naturaleza humana, que es egoísta", "Se da respecto al producto, la actividad, el ser genérico y los otros", "Su raíz es la propiedad privada de los medios de producción", "Se supera en una sociedad sin clases"], ok: 0, porque: "Para Marx la causa es social y económica, no una naturaleza egoísta." },
+        { q: "¿Cuál de estas afirmaciones sobre la religión es FALSA?", op: ["Para Marx la religión es la base económica de la sociedad", "Es «el opio del pueblo» en su sentido de consuelo", "Es «el suspiro de la criatura oprimida»", "Forma parte de la superestructura"], ok: 0, porque: "La religión es superestructura, no base." },
+        { q: "¿Cuál de estas afirmaciones sobre el comunismo es FALSA?", op: ["Marx lo identificaba con el régimen de la URSS", "Es una sociedad sin clases", "Prevé una etapa de transición", "Busca superar la alienación"], ok: 0, porque: "La URSS fue una aplicación política del siglo XX, no la teoría de Marx." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["Marx nació antes que Hegel", "Hegel murió en 1831", "Feuerbach publicó La esencia del cristianismo en 1841", "Marx murió en 1883"], ok: 0, porque: "Hegel (1770–1831) nació antes que Marx (1818–1883)." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Marx",
+      cartas: [
+        { a: "Materialismo histórico", b: "La historia se explica por las condiciones materiales de producción, no por las ideas." },
+        { a: "Praxis", b: "Actividad práctica que une pensamiento y transformación de la realidad." },
+        { a: "Fuerzas productivas", b: "Medios de producción, fuerza de trabajo y conocimientos técnicos." },
+        { a: "Relaciones de producción", b: "Relaciones entre las personas al producir; sobre todo, quién posee los medios." },
+        { a: "Modo de producción", b: "Combinación de fuerzas y relaciones de producción propia de cada época." },
+        { a: "Infraestructura", b: "Base económica de la sociedad: fuerzas y relaciones de producción." },
+        { a: "Superestructura", b: "Derecho, Estado, religión, moral, arte y filosofía, sobre la base económica." },
+        { a: "Ideología", b: "Ideas que presentan los intereses de la clase dominante como universales." },
+        { a: "Burguesía", b: "Clase propietaria de los medios de producción en el capitalismo." },
+        { a: "Proletariado", b: "Clase que solo posee su fuerza de trabajo y la vende por un salario." },
+        { a: "Lucha de clases", b: "Motor de la historia: enfrentamiento entre clases con intereses opuestos." },
+        { a: "Alienación", b: "El trabajador se vuelve extraño a su producto, su actividad, su esencia y los demás." },
+        { a: "Plusvalía", b: "Valor creado por el trabajo que excede al salario; se lo queda el capitalista." },
+        { a: "Dictadura del proletariado", b: "Etapa de transición: dominio de la clase obrera antes del comunismo." },
+        { a: "Comunismo", b: "Sociedad sin clases ni propiedad privada de los medios de producción." },
+        { a: "Tesis XI", b: "«De lo que se trata es de transformar el mundo» (Tesis sobre Feuerbach, 1845)." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  var cuenta = 0;
+  // En las opciones, la primera es la correcta; se rota para que no sea siempre la misma posición.
+  function rotar(ops) {
+    var k = (cuenta++) % ops.length;
+    return { ops: ops.slice(k).concat(ops.slice(0, k)), ok: (ops.length - k) % ops.length };
+  }
+  function O(id, nv, enun, ops, pasos, res, et) {
+    var r = rotar(ops);
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: r.ops, ok: r.ok }, pasos: pasos, resultado: res || ops[0] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, pasos) {
+    var r = rotar(justif);
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", r.ops, r.ok)], pasos: pasos, resultado: (ver ? "Verdadero: " : "Falso: ") + justif[0] });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("ma1", 1, "¿Dónde nació Marx?", ["Tréveris", "Londres", "París", "Königsberg"],
+    ["Nació en Tréveris (Renania) en 1818 y murió en Londres en 1883."]);
+  O("ma2", 1, "¿En qué año se publicó el <i>Manifiesto del Partido Comunista</i>?", ["1848", "1844", "1859", "1867"],
+    ["Es de 1848, escrito con Engels, el año de las revoluciones europeas."]);
+  O("ma3", 1, "¿Con quién escribió Marx el <i>Manifiesto</i>?", ["Friedrich Engels", "Hegel", "Feuerbach", "Rousseau"],
+    ["Engels (1820–1895) fue su amigo y colaborador de toda la vida."]);
+  T("ma4", 1, "Completa: la base económica de la sociedad se llama ______.", "Término =", ["infraestructura"],
+    ["Sobre ella se levanta la superestructura."], "infraestructura");
+  O("ma5", 1, "La tesis XI sobre Feuerbach dice que de lo que se trata es de…", ["transformar el mundo", "interpretar el mundo", "contemplar el mundo", "huir del mundo"],
+    ["Une teoría y praxis."]);
+  M("ma6", 1, "Empareja cada obra con su año.", [
+    C("Manuscritos económico-filosóficos", ["1844", "1848", "1859", "1867"], 0),
+    C("Manifiesto del Partido Comunista", ["1844", "1848", "1859", "1867"], 1),
+    C("Prefacio a la Contribución a la crítica de la economía política", ["1844", "1848", "1859", "1867"], 2),
+    C("El capital, libro I", ["1844", "1848", "1859", "1867"], 3)],
+    ["Manuscritos: 1844; Manifiesto: 1848; Prefacio: 1859; El capital I: 1867."], "1844, 1848, 1859, 1867");
+  O("ma7", 1, "¿Cuáles son las dos clases enfrentadas en el capitalismo?", ["Burguesía y proletariado", "Señores y siervos", "Amos y esclavos", "Nobles y clero"],
+    ["Señores y siervos eran del feudalismo; amos y esclavos, de la Antigüedad."]);
+  T("ma8", 1, "Completa: «alienación» viene del latín <i>alienus</i>, que significa ______.", "Término =", ["ajeno", "extraño"],
+    ["El trabajador se vuelve ajeno a su trabajo y a su producto."], "ajeno");
+  O("ma9", 1, "¿Qué es la plusvalía?", ["La diferencia entre el valor creado por el trabajo y el salario", "El sueldo del obrero", "El impuesto de la burguesía", "El precio de las máquinas"],
+    ["Es trabajo no pagado que se queda el capitalista."]);
+  O("ma10", 1, "¿Cuál de estas es superestructura?", ["El derecho", "Las fábricas", "Las máquinas", "La fuerza de trabajo"],
+    ["Derecho, Estado, religión, moral, arte y filosofía son superestructura."]);
+  O("ma11", 1, "¿Cuál es la obra económica principal de Marx?", ["El capital", "El Manifiesto", "Las Tesis sobre Feuerbach", "La ideología alemana"],
+    ["El libro I se publicó en 1867."]);
+  M("ma12", 1, "Empareja cada concepto con su definición.", [
+    C("Fuerzas productivas", ["Medios de producción, fuerza de trabajo y técnica", "Relaciones entre personas según la propiedad de los medios", "Combinación de ambas en una época"], 0),
+    C("Relaciones de producción", ["Medios de producción, fuerza de trabajo y técnica", "Relaciones entre personas según la propiedad de los medios", "Combinación de ambas en una época"], 1),
+    C("Modo de producción", ["Medios de producción, fuerza de trabajo y técnica", "Relaciones entre personas según la propiedad de los medios", "Combinación de ambas en una época"], 2)],
+    ["El modo de producción junta fuerzas y relaciones de producción."], "fuerzas, relaciones, modo");
+  O("ma13", 1, "¿Qué sostiene Feuerbach sobre la religión?", ["Que Dios es una proyección de la esencia humana", "Que Dios creó al ser humano", "Que la religión es la base de la economía", "Que la religión es una ciencia"],
+    ["<i>La esencia del cristianismo</i> (1841)."]);
+  O("ma14", 1, "El resultado final del proceso histórico según Marx es…", ["una sociedad comunista sin clases", "una monarquía absoluta", "el triunfo definitivo de la burguesía", "una sociedad feudal"],
+    ["Sin clases y sin propiedad privada de los medios de producción."]);
+
+  // ---- nivel 2
+  V("ma15", 2, "«Para Marx las ideas no influyen nunca en la historia.»", false, [
+    "Es falso: dice que la base económica condiciona las ideas, no que carezcan de efecto", "Es falso: Marx pensaba que solo las ideas importan", "Es verdad: por eso es materialista", "Es verdad: Engels lo defendió siempre"],
+    ["Engels aclaró que la superestructura influye de vuelta sobre la base."]);
+  V("ma16", 2, "«El derecho y el Estado forman parte de la superestructura.»", true, [
+    "Es verdad: se levantan sobre la base económica y suelen legitimarla", "Es verdad: porque son la base de la producción", "Es verdad: porque son fuerzas productivas", "Es verdad: porque no dependen de la economía"],
+    ["La superestructura incluye derecho, Estado y formas de conciencia."]);
+  V("ma17", 2, "«El proletariado es la clase que posee los medios de producción.»", false, [
+    "Es falso: solo posee su fuerza de trabajo, que vende por un salario", "Es falso: no existe en el capitalismo", "Es verdad: posee las fábricas", "Es verdad: posee la tierra"],
+    ["Los medios de producción son de la burguesía."]);
+  V("ma18", 2, "«Marx considera que la plusvalía es un robo ilegal.»", false, [
+    "Es falso: existe incluso cuando el obrero cobra lo pactado", "Es falso: Marx niega que exista plusvalía", "Es verdad: el capitalista incumple siempre la ley", "Es verdad: el obrero no recibe nada"],
+    ["La explotación se produce dentro de las reglas del mercado."]);
+  V("ma19", 2, "«Marx critica a Hegel por ser idealista.»", true, [
+    "Es verdad: para Hegel el Espíritu mueve la historia; Marx pone la vida material", "Es verdad: porque Hegel era empirista", "Es verdad: porque Hegel negaba la dialéctica", "Es verdad: porque Hegel era materialista"],
+    ["Marx conserva la dialéctica, pero «la pone sobre sus pies»."]);
+  V("ma20", 2, "«Para Marx, la esencia humana es algo abstracto que posee cada individuo aislado.»", false, [
+    "Es falso: es el conjunto de las relaciones sociales", "Es falso: no existe esencia humana de ningún tipo", "Es verdad: lo dice la tesis VI", "Es verdad: coincide con Feuerbach"],
+    ["Tesis VI sobre Feuerbach (paráfrasis)."]);
+  V("ma21", 2, "«Para Marx la raíz de la alienación económica es la propiedad privada de los medios de producción.»", true, [
+    "Es verdad: por eso solo se supera aboliendo esa propiedad", "Es verdad: porque el ser humano es egoísta por naturaleza", "Es verdad: porque la técnica es mala", "Es verdad: porque el trabajo es siempre un castigo"],
+    ["No basta con cambiar de actitud."]);
+  O("ma22", 2, "¿Qué modo de producción sigue al feudal en la secuencia clásica?", ["El capitalista", "El esclavista", "El comunismo primitivo", "El comunismo"],
+    ["Orden: primitivo, esclavista, feudal, capitalista y, en el futuro, comunista."]);
+  O("ma23", 2, "La alienación respecto al producto consiste en que…", ["lo que fabrica el obrero no le pertenece", "el trabajo es forzado", "pierde su capacidad creativa", "compite con sus compañeros"],
+    ["Las otras opciones son la alienación respecto a la actividad, al ser genérico y a los otros."]);
+  O("ma24", 2, "¿Qué crítica hace Marx al materialismo de Feuerbach?", ["Que es contemplativo y no considera la práctica social", "Que es demasiado dialéctico", "Que es idealista", "Que es demasiado histórico"],
+    ["Tesis sobre Feuerbach (1845)."]);
+  O("ma25", 2, "La religión como «opio del pueblo» significa que…", ["consuela de una miseria real y la hace soportable sin cambiarla", "es una droga que prohíbe el Estado", "es la causa de la pobreza", "es la base económica"],
+    ["El opio de la época calmaba el dolor."]);
+  O("ma26", 2, "¿Cuál es la afirmación correcta sobre la fórmula «tesis–antítesis–síntesis»?", ["No es una fórmula de Marx", "Es la fórmula central de El capital", "Está en las Tesis sobre Feuerbach", "La inventó Engels en 1848"],
+    ["Marx habla de contradicciones reales (entre clases, entre fuerzas y relaciones de producción)."]);
+  O("ma27", 2, "Según Marx, ¿qué provoca el paso de un modo de producción a otro?", ["La contradicción entre fuerzas productivas y relaciones de producción", "El cambio de ideas de los filósofos", "La voluntad de un gran personaje", "La religión"],
+    ["Prefacio de 1859."]);
+  O("ma28", 2, "La ideología es…", ["un conjunto de ideas que presentan los intereses de una clase como universales", "una ciencia neutral", "la base económica", "el conjunto de las fábricas"],
+    ["Oculta la explotación y legitima el orden existente."]);
+  O("ma29", 2, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Hegel → Feuerbach → Marx", "Feuerbach → Hegel → Marx", "Marx → Hegel → Feuerbach", "Hegel → Marx → Feuerbach"],
+    ["Hegel (1770), Feuerbach (1804), Marx (1818)."], "Hegel → Feuerbach → Marx");
+  O("ma30", 2, "«Dictadura del proletariado» significa…", ["dominio transitorio de la clase obrera antes del comunismo", "gobierno de un solo dictador", "dominio permanente de la burguesía", "ausencia de Estado desde el primer día"],
+    ["«Dictadura» se refiere al dominio de una clase, no al régimen de una persona."]);
+  T("ma31", 2, "Completa: lo que vende el obrero al capitalista es su ______ de trabajo.", "Término =", ["fuerza"],
+    ["Es una mercancía especial: al usarla crea más valor del que cuesta."], "fuerza");
+
+  // ---- nivel 3
+  O("ma32", 3, "Texto: «Los filósofos no han hecho más que interpretar el mundo de diversas maneras; de lo que se trata es de transformarlo» (<i>Tesis sobre Feuerbach</i>, XI; traducción habitual). Su idea principal es…",
+    ["que la filosofía debe unirse a la práctica para cambiar la realidad", "que la filosofía es inútil", "que hay que dejar de pensar", "que el mundo ya está transformado"],
+    ["Es la tesis de la praxis."]);
+  O("ma33", 3, "Texto: «No es la conciencia del hombre la que determina su ser, sino, por el contrario, el ser social es el que determina su conciencia» (<i>Prefacio</i>, 1859; traducción habitual). Su idea principal es…",
+    ["que las condiciones materiales y sociales condicionan las ideas", "que las ideas crean la realidad social", "que cada individuo decide su conciencia", "que el ser social no existe"],
+    ["Inversión del idealismo."]);
+  O("ma34", 3, "Texto: «La historia de todas las sociedades hasta nuestros días es la historia de la lucha de clases» (<i>Manifiesto</i>, 1848; traducción habitual). Su idea principal es…",
+    ["que el conflicto entre clases es el motor de la historia", "que la historia la hacen los grandes personajes", "que la historia carece de sentido", "que las clases nunca se enfrentan"],
+    ["Amos y esclavos, señores y siervos, burguesía y proletariado."]);
+  O("ma35", 3, "Una alumna afirma: «para Marx, el Estado es un árbitro neutral entre las clases». ¿Qué matiz es el correcto?",
+    ["Para Marx el Estado suele ser instrumento de la clase dominante", "Tiene razón: lo dice el Manifiesto", "Para Marx el Estado no existe", "Para Marx el Estado es la base económica"],
+    ["Es parte de la superestructura y protege los intereses de quien posee los medios de producción."]);
+  M("ma36", 3, "Empareja cada aspecto de la alienación con su descripción.", [
+    C("Respecto al producto", ["Lo fabricado pertenece al capitalista", "El trabajo es forzado y solo un medio de vida", "Se pierde la capacidad de trabajar libre y creativamente", "Los trabajadores compiten entre sí"], 0),
+    C("Respecto a la actividad", ["Lo fabricado pertenece al capitalista", "El trabajo es forzado y solo un medio de vida", "Se pierde la capacidad de trabajar libre y creativamente", "Los trabajadores compiten entre sí"], 1),
+    C("Respecto al ser genérico", ["Lo fabricado pertenece al capitalista", "El trabajo es forzado y solo un medio de vida", "Se pierde la capacidad de trabajar libre y creativamente", "Los trabajadores compiten entre sí"], 2),
+    C("Respecto a los otros", ["Lo fabricado pertenece al capitalista", "El trabajo es forzado y solo un medio de vida", "Se pierde la capacidad de trabajar libre y creativamente", "Los trabajadores compiten entre sí"], 3)],
+    ["Los cuatro aspectos de los <i>Manuscritos</i> de 1844."], "producto, actividad, ser genérico, otros");
+  var ops37 = ["El Espíritu mueve la historia", "Dios es proyección de la esencia humana", "El ser social determina la conciencia", "La propiedad privada origina la desigualdad", "La razón se da a sí misma la ley moral"];
+  M("ma37", 3, "Empareja cada autor con su idea.", [
+    C("Hegel", ops37, 0), C("Feuerbach", ops37, 1), C("Marx", ops37, 2), C("Rousseau", ops37, 3), C("Kant", ops37, 4)],
+    ["Cada autor, una idea distinta."], "Hegel, Feuerbach, Marx, Rousseau, Kant");
+  O("ma38", 3, "Una jornada dura 10 horas y cada hora de trabajo crea 12 € de valor. El salario diario es de 48 €. ¿Cuál es la plusvalía diaria?",
+    ["72 €", "48 €", "120 €", "60 €"],
+    ["Valor creado: 10 × 12 = 120 €.", "Plusvalía = 120 − 48 = 72 €; tasa de plusvalía = 72/48 = 150 %."], "72 €");
+  O("ma39", 3, "En el caso anterior (10 horas, 12 € por hora, salario de 48 €), ¿cuántas horas trabaja gratis el obrero?",
+    ["6 horas", "4 horas", "5 horas", "10 horas"],
+    ["Trabajo necesario: 48/12 = 4 horas.", "Plustrabajo: 10 − 4 = 6 horas."], "6 horas");
+  O("ma40", 3, "¿En qué se diferencia Marx de Rousseau al criticar la propiedad privada?",
+    ["Rousseau la critica en clave moral y política; Marx la analiza con la economía y la lucha de clases", "Rousseau la defiende y Marx la critica", "Marx la defiende como derecho natural", "No hay ninguna diferencia"],
+    ["Ambos critican la propiedad como origen de la desigualdad, pero con métodos distintos."]);
+  O("ma41", 3, "¿Qué matiz añadió Engels al materialismo histórico?",
+    ["Que la economía es determinante «en última instancia» y la superestructura influye de vuelta", "Que la economía no importa", "Que solo cuentan las ideas", "Que la historia no tiene leyes"],
+    ["Cartas de 1890 (paráfrasis)."]);
+  R("ma42", "Explica el materialismo histórico de Marx: fuerzas y relaciones de producción, infraestructura y superestructura. Valóralo críticamente. (Pregunta tipo PAU)", 9, [
+    { t: "Define el materialismo histórico (la historia se explica por la producción material, no por las ideas)", p: 0.4 },
+    { t: "Distingue fuerzas productivas, relaciones de producción y modo de producción", p: 0.4 },
+    { t: "Explica infraestructura y superestructura y su relación (condiciona)", p: 0.4 },
+    { t: "Explica el cambio histórico: contradicciones, revoluciones y modos de producción", p: 0.4 },
+    { t: "Relaciona con la crítica a Hegel y Feuerbach", p: 0.2 },
+    { t: "Valora (determinismo, matiz de Engels)", p: 0.2 }],
+    ["Definición.", "Fuerzas, relaciones y modo.", "Infra y superestructura.", "Cambio histórico.", "Relación con Hegel y Feuerbach.", "Valoración."], "La vida material explica la historia");
+  R("ma43", "Explica la alienación en Marx: sus cuatro aspectos, su causa y su superación. Relaciónala con Hegel y Feuerbach. (Pregunta tipo PAU)", 9, [
+    { t: "Define la alienación (el trabajador se vuelve ajeno a su trabajo)", p: 0.4 },
+    { t: "Explica los cuatro aspectos: producto, actividad, ser genérico y otros", p: 0.6 },
+    { t: "Explica la causa: propiedad privada y división del trabajo", p: 0.4 },
+    { t: "Explica la superación: sociedad sin clases", p: 0.3 },
+    { t: "Relaciona con Hegel y Feuerbach (alienación religiosa y económica)", p: 0.3 }],
+    ["Definición.", "Cuatro aspectos.", "Causa.", "Superación.", "Relación con Hegel y Feuerbach."], "Alienación económica: producto, actividad, ser genérico y otros");
+  R("ma44", "Explica el concepto marxista de ideología y la religión como «opio del pueblo», situándolos en la relación entre infraestructura y superestructura. (Pregunta tipo PAU)", 8, [
+    { t: "Define la ideología (ideas que ocultan intereses de clase y se presentan como universales)", p: 0.5 },
+    { t: "Sitúa ideología y religión en la superestructura", p: 0.4 },
+    { t: "Explica «las ideas dominantes son las de la clase dominante»", p: 0.4 },
+    { t: "Explica el matiz del «opio»: consuelo que hace soportable la miseria sin cambiarla", p: 0.4 },
+    { t: "Valora (matiz de Engels, relación con la praxis)", p: 0.3 }],
+    ["Definición.", "Superestructura.", "Ideas dominantes.", "Opio del pueblo.", "Valoración."], "La ideología oculta intereses de clase");
+  R("ma45", "Explica la lucha de clases, la plusvalía y el camino hacia la sociedad sin clases en Marx. Valora críticamente su propuesta. (Pregunta tipo PAU)", 10, [
+    { t: "Define burguesía y proletariado según su relación con los medios de producción", p: 0.4 },
+    { t: "Explica la plusvalía (valor creado menos salario) con claridad", p: 0.5 },
+    { t: "Explica las contradicciones del capitalismo y la revolución", p: 0.3 },
+    { t: "Explica la dictadura del proletariado y el comunismo", p: 0.4 },
+    { t: "Distingue la teoría de Marx de las aplicaciones políticas del siglo XX", p: 0.2 },
+    { t: "Valora (determinismo, predicciones no cumplidas, vigencia del análisis)", p: 0.2 }],
+    ["Clases.", "Plusvalía.", "Revolución.", "Comunismo.", "Teoría y aplicaciones.", "Valoración."], "Lucha de clases, plusvalía y comunismo");
+  R("ma46", "Comenta este texto: «El modo de producción de la vida material condiciona el proceso de la vida social, política y espiritual en general. No es la conciencia del hombre la que determina su ser, sino, por el contrario, el ser social es el que determina su conciencia» (Marx, <i>Prefacio a la Contribución a la crítica de la economía política</i>, 1859; traducción habitual). Indica tema, ideas, relación con el autor y comparación con otro. (Pregunta tipo PAU)", 12, [
+    { t: "Tema: relación entre la vida material y la conciencia", p: 0.3 },
+    { t: "Idea principal: las condiciones materiales y sociales condicionan las ideas", p: 0.4 },
+    { t: "Aclara términos: modo de producción, ser social, conciencia, condiciona", p: 0.4 },
+    { t: "Relaciona con el autor: materialismo histórico, infraestructura y superestructura, ideología", p: 0.5 },
+    { t: "Compara con otro autor (Hegel, Platón o Kant) con diferencias precisas", p: 0.3 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario del Prefacio de 1859");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "El edificio social", ancha: true,
+      tabla: { cab: ["Infraestructura", "Superestructura"], filas: [
+        ["fuerzas productivas", "derecho y Estado"],
+        ["relaciones de producción", "religión, moral, arte, filosofía"],
+        ["la base", "reflejan y legitiman la base"]
+      ] } },
+    { titulo: "Modos de producción", ancha: true,
+      tabla: { cab: ["Modo", "Clases enfrentadas"], filas: [
+        ["Esclavista", "amos y esclavos"],
+        ["Feudal", "señores y siervos"],
+        ["Capitalista", "burguesía y proletariado"]
+      ] } },
+    { titulo: "La plusvalía", ancha: true,
+      tabla: { cab: ["Concepto", "Ejemplo (8 h, 20 €/h, salario 80 €)"], filas: [
+        ["Valor creado", "160 €"],
+        ["Salario", "80 €"],
+        ["Plusvalía", "80 €"]
+      ] } },
+    { titulo: "Del capitalismo al comunismo",
+      pasos: ["Crisis del capitalismo.", "Revolución proletaria.", "Dictadura del proletariado.", "Fase inferior (según su trabajo).", "Fase superior (según necesidades)."],
+      nota: "Meta: sociedad sin clases." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Marx dice que las ideas no importan", bien: "Dice que no explican la historia por sí solas", por: "Condiciona no es lo mismo que anula." },
+        { mal: "Las relaciones de producción son superestructura", bien: "Son infraestructura", por: "La superestructura es derecho, Estado e ideas." },
+        { mal: "La plusvalía es un robo ilegal", bien: "Existe aunque el obrero cobre lo pactado", por: "Es trabajo no pagado, no un engaño." },
+        { mal: "Marx es lo mismo que la URSS", bien: "La URSS fue una aplicación política del siglo XX", por: "Separa teoría y aplicación." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t13", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf13a.secciones,
+    nuevas: B.parte.hf13a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Matemáticas I · ampliaciones · Tema 1: Números reales
    Lo original de pagina.html no se toca: esto se añade al final de cada
    sección, como secciones nuevas, ejercicios nuevos y bloques de lámina.
