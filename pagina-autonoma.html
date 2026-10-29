@@ -7918,6 +7918,51 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Historia de la Filosofía, tema 9 (Descartes)
+   filo_duda: la escalera de la duda metódica (sentidos, sueño, genio maligno) y lo que resiste (el cogito):
+   en cada escalón, qué cae y qué sigue en pie.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("ft9-estilos")) return;
+    var s = document.createElement("style"); s.id = "ft9-estilos";
+    s.textContent =
+      ".ft9-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}" +
+      ".ft9-c{padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14.5px;line-height:1.45;color:var(--ink)}" +
+      ".ft9-c>b:first-child{display:block;font-size:12.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}" +
+      ".ft9-c.q{border-color:var(--pen);background:var(--pen-soft)}" +
+      ".ft9-why{margin-top:8px;padding:8px 10px;border-radius:10px;border:1.5px dashed var(--line);font-size:14.5px;line-height:1.45;color:var(--ink)}" +
+      "@media(max-width:520px){.ft9-cols{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  var NIV = [
+    { k: 1, t: "1. Los sentidos", why: "Los sentidos me han engañado alguna vez, y no es prudente fiarse del todo de quien nos ha engañado aunque sea una sola vez (idea de la <i>Meditación I</i>, en paráfrasis). Ejemplo: una torre cuadrada vista de lejos parece redonda.",
+      cae: "Lo que percibo de lejos o con poca claridad.", queda: "Que estoy aquí, que tengo manos, que esto es un papel… parece indudable. Y las matemáticas." },
+    { k: 2, t: "2. El sueño", why: "No hay indicios seguros para distinguir la vigilia del sueño: en sueños también «veo» mi cuerpo, mi cuarto, mis manos. Quizá ahora mismo estoy soñando.",
+      cae: "Toda percepción sensible: la existencia del mundo exterior y de mi propio cuerpo.", queda: "Las verdades matemáticas: dormido o despierto, 2 + 3 = 5 y el cuadrado tiene cuatro lados." },
+    { k: 3, t: "3. El genio maligno", why: "Hipótesis hiperbólica: un ser poderosísimo y astuto me engaña siempre, incluso cuando sumo 2 + 3. No hay que creer que exista; basta con que sea posible para tener motivo de duda.",
+      cae: "Incluso las verdades matemáticas y todo lo que parecía evidente.", queda: "Parece que nada… pero, para ser engañado, tengo que existir." },
+    { k: 4, t: "4. Lo que resiste", why: "Dudar es pensar, y para pensar hay que ser. Aunque el genio me engañe en todo, no puede hacer que yo no sea mientras pienso que soy: <b>pienso, luego existo</b>.",
+      cae: "Nada: esta verdad no cae ni con la hipótesis más extrema.", queda: "Existo, en cuanto <b>cosa que piensa</b> (<i>res cogitans</i>): la primera certeza." }
+  ];
+  B.w.filo_duda = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "La escalera de la duda");
+    cuerpo.innerHTML = '<p class="w-intro">Sube escalón a escalón: en cada uno, mira qué cae y qué sigue en pie. En el último aparece lo que resiste.</p><div data-ctl></div><div class="ft9-det"></div>';
+    var det = cuerpo.querySelector(".ft9-det"), cur = 1;
+    U.fichas(cuerpo.querySelector("[data-ctl]"), NIV.map(function (o) { return { k: o.k, t: o.t }; }), cur, function (k) { cur = +k; pinta(); });
+    function pinta() {
+      var o = NIV[cur - 1];
+      det.innerHTML = '<div class="ft9-cols"><div class="ft9-c"><b>Qué cae</b>' + o.cae + '</div><div class="ft9-c q"><b>Qué queda</b>' + o.queda + '</div></div><div class="ft9-why">' + o.why + "</div>";
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · motor de formulación y nomenclatura inorgánica (Física y Química I, tema 3)
    B.lab.formulacion: tablas de elementos y números de oxidación, y un catálogo de compuestos
    (óxidos, peróxidos, hidróxidos, hidruros, hidrácidos, oxoácidos, sales binarias, oxisales, sales
@@ -45487,6 +45532,611 @@
     vistazo: vistazo,
     secciones: B.parte.hf8a.secciones,
     nuevas: B.parte.hf8a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 9: El racionalismo: Descartes
+   (parte A: teoría. Parte B, historia_fil_t09b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. La duda metódica NO es escepticismo: es provisional, metódica, universal e hiperbólica → sección 2 + widget filo_duda.
+   2. Las cuatro reglas del método (evidencia, análisis, síntesis, enumeración) con ejemplo cotidiano → sección 1 + ordenar.
+   3. El cogito: qué prueba (existo como cosa pensante) y qué no (no es un silogismo, no prueba el cuerpo) → sección 3.
+   4. El criterio de evidencia: idea clara y distinta; ideas innatas, adventicias y facticias → sección 3 + sección 6 + clasificar.
+   5. Las tres pruebas de la existencia de Dios (idea de infinito, imperfección, ontológica) → sección 4 + emparejar.
+   6. Dios como garante, el origen del error y el «círculo cartesiano» → sección 4.
+   7. Las tres sustancias (pensante, extensa, infinita) y el dualismo; mecanicismo y animales-máquina → sección 5 + clasificar.
+   8. El problema de la interacción (Elisabeth de Bohemia, glándula pineal) → sección 5.
+   9. Comparaciones: Platón (innatismo), Aristóteles (hilemorfismo/causas finales), Agustín (si fallor), Hume y Kant → sección 8.
+   10. Comentario de texto: el cogito (Discurso del método, IV) → comentario resuelto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t9/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Descartes: en busca de un fundamento seguro
+  secciones[0] =
+    "<h5>La vida de Descartes (1596–1650) paso a paso</h5>" +
+    "<p>René Descartes nació en 1596 en La Haye, un pueblo de Francia (hoy se llama Descartes en su honor). Su vida cabe en cinco etapas:</p>" +
+    "<ul><li><b>Estudios (c. 1607–1615):</b> pasa ocho años en el colegio de los jesuitas de <b>La Flèche</b>. Allí aprende lo que había: filosofía aristotélica y escolástica, y matemáticas. Las matemáticas le encantan por su <b>certeza</b>; la filosofía, en cambio, le parece un campo de discusiones sin fin, donde «no hay cosa alguna de que no se dispute».</li>" +
+    "<li><b>Soldado y viajero (1618–1628):</b> se alista en el ejército holandés del príncipe Mauricio de Nassau y luego viaja por Europa. En <b>1619</b>, con 23 años, tiene una noche de sueños (el 10 de noviembre) que le convence de que debe buscar un método único para todas las ciencias.</li>" +
+    "<li><b>Los Países Bajos (desde 1628):</b> se instala allí veinte años para trabajar en paz. Escribe <i>El mundo</i>, un tratado de física, pero en <b>1633</b> condenan a Galileo y Descartes, prudente, <b>retira la obra</b> sin publicarla.</li>" +
+    "<li><b>Las grandes obras:</b> el <i>Discurso del método</i> (<b>1637</b>), las <i>Meditaciones metafísicas</i> (<b>1641</b>), los <i>Principios de la filosofía</i> (<b>1644</b>) y <i>Las pasiones del alma</i> (<b>1649</b>). Las <i>Reglas para la dirección del espíritu</i>, escritas hacia 1628, solo se publicaron después de su muerte.</li>" +
+    "<li><b>Suecia (1649–1650):</b> la reina Cristina lo invita a Estocolmo. Obligado a madrugar para darle clases en pleno invierno, enferma de pulmonía y muere en <b>febrero de 1650</b>.</li></ul>" +
+    ojo("El <i>Discurso del método</i> está escrito en <b>francés</b> (no en latín) para que lo entendiera cualquiera que usara bien su razón, no solo los sabios. Las <i>Meditaciones</i>, en cambio, son más técnicas y se escribieron en latín. Es un detalle que puede aparecer en preguntas de contexto: Descartes confía en que <b>la razón es universal</b>, igual en todos (el «buen sentido» es la cosa mejor repartida del mundo).") +
+    "<h5>El contexto: un siglo de dudas, una ciencia nueva</h5>" +
+    "<p>Descartes vive en el siglo XVII, entre la <b>Revolución científica</b> (Copérnico, Galileo; tema 8) y la Guerra de los Treinta Años (1618–1648). Todo lo que parecía firme se tambalea: la Tierra ya no es el centro del universo, la física de Aristóteles (tema 4) falla, la Reforma ha roto la unidad religiosa de Europa y los escépticos del Renacimiento recuperan los argumentos de Sexto Empírico (tema 5). Si los antiguos se equivocaron en tantas cosas, ¿en qué podemos apoyarnos? Descartes responde con una idea: hay que <b>reconstruir todo el saber desde cero</b>, con la seguridad de las matemáticas.</p>" +
+    "<h5>El proyecto: un edificio sobre roca</h5>" +
+    "<p>Descartes lo explica con imágenes. Un edificio construido sobre arena (opiniones heredadas) se cae; hay que cavar hasta encontrar la roca. Y quien sospecha que alguna manzana de la cesta está podrida, no se queda con las que parecen sanas: <b>vacía la cesta entera</b> y revisa una a una antes de volver a meter las buenas. Ese es el sentido de la duda que veremos: no es una manía, es una <b>revisión general</b> para encontrar un primer principio absolutamente seguro.</p>" +
+    "<p>Y su filosofía completa tiene forma de <b>árbol</b> (así lo cuenta en la carta-prefacio de los <i>Principios</i>, en paráfrasis): las <b>raíces</b> son la metafísica (la duda, el cogito, Dios), el <b>tronco</b> es la física y las <b>ramas</b> son la medicina, la mecánica y la moral. Los frutos se recogen de las ramas, pero todo depende de las raíces.</p>" +
+    "<h5>El método: cuatro reglas sencillas</h5>" +
+    "<p>Descartes está harto de la lógica silogística escolástica, que sirve para ordenar lo que ya sabes, pero no para descubrir nada. Quiere un método <b>inspirado en las matemáticas</b>: pocas reglas, simples y que se cumplan siempre. En la segunda parte del <i>Discurso</i> las resume en cuatro:</p>" +
+    tabla(["Regla", "Qué dice", "Ejemplo cotidiano"], [
+      ["1. <b>Evidencia</b>", "No admitir nada como verdadero si no se ve con evidencia: evitar la precipitación y la prevención, y aceptar solo lo que se presenta tan <b>clara y distintamente</b> que no se pueda dudar.", "No creerte un rumor del grupo de clase hasta comprobar que es cierto."],
+      ["2. <b>Análisis</b>", "Dividir cada dificultad en tantas partes como sea posible para resolverla mejor.", "Un problema largo de física: separar los datos, las incógnitas y las fórmulas."],
+      ["3. <b>Síntesis</b> (orden)", "Conducir los pensamientos con orden, empezando por lo más simple y fácil de conocer, para subir poco a poco a lo más complejo.", "Estudiar primero el vocabulario y la gramática, después traducir un texto."],
+      ["4. <b>Enumeración</b> (revisión)", "Hacer recuentos tan completos y revisiones tan generales que se esté seguro de no omitir nada.", "Repasar el examen antes de entregarlo, mirando cada pregunta."]
+    ]) +
+    ojo("La <b>regla de la evidencia</b> es la más importante y la que más cae. Una idea es <b>clara</b> cuando está presente y manifiesta a la mente atenta, y <b>distinta</b> cuando está tan separada de las demás que solo contiene lo que es claro. No es «lo que me convence» ni «lo que siento seguro»: es lo que se ve con la luz de la razón, sin posibilidad de duda.") +
+    w("orden", "reglas") +
+    "<p>Esas reglas son el método; pero para aplicarlas a la metafísica hay que empezar por el principio: una primera verdad. Para encontrarla, Descartes empieza a dudar.</p>";
+
+  // ---------------------------------------------------------------- 2. La duda metódica
+  secciones[1] =
+    "<h5>Cuatro rasgos de la duda de Descartes</h5>" +
+    "<p>Para no confundirla con otras posturas (tema 5, el escepticismo), recuerda que la duda cartesiana es:</p>" +
+    "<ul><li><b>Metódica:</b> es un <i>instrumento</i> para encontrar la verdad, no un fin. El escéptico duda para quedarse dudando; Descartes duda para llegar a una certeza.</li>" +
+    "<li><b>Universal:</b> se aplica a todo lo que se pueda dudar, sin dejar excepciones. Pero no se examinan las ideas una a una: basta con minar los <i>principios</i> en que se apoyan, igual que, si se hunde la base, cae el edificio.</li>" +
+    "<li><b>Provisional:</b> dura solo hasta encontrar un principio indudable. Después se reconstruye lo que se pueda.</li>" +
+    "<li><b>Hiperbólica</b> (exagerada a propósito): se considera <i>falso</i> todo lo que sea simplemente <i>dudoso</i>. Descartes sabe que no todo es falso; pero usa esa exageración como prueba de fuego.</li></ul>" +
+    ojo("La duda es <b>teórica, no práctica</b>: Descartes no deja de comer, de pagar sus deudas ni de obedecer las leyes mientras duda. Para la vida diaria se da una «moral provisional» (sección 7). Tampoco duda de la fe revelada ni de la moral: su duda es una investigación metafísica.") +
+    "<h5>Los tres motivos de duda, de menos a más radical</h5>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Los sentidos.</b> A veces me engañan: la torre que de lejos parece redonda es cuadrada; un palo metido en el agua parece quebrado. Si me han engañado alguna vez, no es prudente fiarme del todo. Pero esto solo afecta a cosas lejanas o poco claras. Que ahora estoy aquí, sentado, con este papel, parece indudable.</li>" +
+    "<li><b>El sueño.</b> Muchas veces he soñado con total viveza que estaba aquí, sentado, y estaba en la cama. No hay <b>indicios seguros</b> que separen la vigilia del sueño. Cae así toda percepción de cosas corporales, incluido mi propio cuerpo. Pero las matemáticas resisten: tanto dormido como despierto, dos más tres son cinco y el cuadrado tiene cuatro lados.</li>" +
+    "<li><b>El genio maligno</b> (o Dios engañador). Supongamos que no hay un Dios bueno, sino un genio maligno, astuto y poderosísimo, que emplea toda su industria en engañarme: incluso cuando sumo dos y tres, o cuento los lados de un cuadrado. No digo que exista; digo que <b>puede</b> existir, y con eso basta para tener una razón (aunque sea metafísica) de duda. Si hasta las matemáticas son dudosas, no queda nada que no se pueda poner en duda.</li></ol>" +
+    w("filo_duda") +
+    "<h5>Por qué las matemáticas tardan en caer</h5>" +
+    "<p>Fíjate en la lógica de la escalada: el primer nivel solo toca a lo sensible; el segundo, a todo lo sensible (aunque no a lo matemático); el tercero, a <b>todo</b>. Las matemáticas hablan de realidades muy simples (números, figuras), que valen igual si hay mundo exterior o no, por eso aguantan hasta el último escalón. Descartes necesita el genio maligno justo para llegar a ese punto.</p>" +
+    ejemplo("Un ejemplo para entender el genio maligno", "Imagina que alguien te hace creer que 7 × 8 = 54, con tanta habilidad que nunca lo notas. Cada vez que lo calculas, te sale 54 y te parece evidente. Desde dentro, ¿podrías saber que te engañan? No. De eso va la hipótesis: tu «evidencia» podría ser un engaño de fábrica. Para salir de ahí necesitas algo que ni el mejor engañador pueda tocar.", [
+      "Conclusión de la duda: ya no tengo <b>ninguna</b> certeza por la vía de los sentidos ni por la de las matemáticas.",
+      "Pregunta: ¿queda algo? Sí: la propia duda."
+    ]);
+
+  // ---------------------------------------------------------------- 3. El cogito
+  secciones[2] =
+    "<h5>El camino al cogito, paso a paso</h5>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Lo dudo todo.</b> Hasta lo más evidente puede ser un engaño del genio maligno.</li>" +
+    "<li><b>Pero «dudar» es una forma de pensar.</b> Si dudo, pienso.</li>" +
+    "<li><b>Para pensar hay que ser.</b> Si el genio maligno me engaña, es que hay alguien a quien engaña. Que me engañe cuanto pueda, jamás hará que yo no sea nada mientras piense que soy algo.</li>" +
+    "<li><b>Luego, siempre que lo pienso o lo digo, es verdadero: «pienso, luego existo»</b> (<i>cogito, ergo sum</i>). Es la primera verdad, tan firme que ni las suposiciones más extravagantes de los escépticos pueden conmoverla. Descartes la acepta como el <b>primer principio</b> de su filosofía.</li></ol>" +
+    ojo("El cogito <b>no es un silogismo</b> («todo lo que piensa existe; yo pienso; luego existo»), sino una <b>intuición</b>: se ve de un solo golpe, con evidencia inmediata, que pensar y existir van juntos. Y atención: lo que se prueba es que <b>existo como cosa que piensa</b>, no que tenga un cuerpo, ni un mundo a mi alrededor. Todo eso sigue en duda.") +
+    "<h5>¿Qué soy, entonces? Una «cosa que piensa»</h5>" +
+    "<p>Descartes se pregunta qué es ese «yo» cuya existencia acaba de descubrir. No es un cuerpo (el cuerpo sigue dudoso, porque puede ser un sueño o un engaño). Es solo <b>una cosa que piensa</b> (<i>res cogitans</i>), y «pensar» significa aquí cualquier acto consciente: dudar, entender, afirmar, negar, querer, imaginar y sentir. El «yo» es, por tanto, una <b>sustancia pensante</b> y su esencia es el pensamiento. Esto es crucial: el dualismo del apartado 5 nace aquí.</p>" +
+    "<p>Para ver que el entendimiento conoce mejor que los sentidos, Descartes propone el <b>ejemplo de la cera</b> (<i>Meditación II</i>): un trozo de cera de abeja recién sacada de la colmena tiene sabor a miel, olor a flores, color, forma, dureza y sonido al golpearlo. Al acercarla al fuego, todo eso cambia: pierde el sabor, el olor, el color y la forma, ¡y sigue siendo la misma cera! Lo que permanece no lo captan los sentidos ni la imaginación (que no puede recorrer todas las formas posibles), sino <b>el entendimiento</b>: la cera es algo extenso, flexible y mudable. Conclusión: conocemos los cuerpos mejor con la razón que con los sentidos, y, de paso, nos conocemos mejor a nosotros mismos, que entendemos.</p>" +
+    "<h5>Un precedente: Agustín</h5>" +
+    "<p>San Agustín (354–430) ya había escrito algo parecido: «si me equivoco, existo» (<i>si fallor, sum</i>; tema 6). El parecido es real, pero Descartes lo usa de otra manera: en Agustín es un argumento contra los escépticos que lleva a Dios; en Descartes es el <b>punto de partida</b> de un sistema nuevo que se apoya en el sujeto pensante (la llamada «vuelta al sujeto» de la filosofía moderna).</p>" +
+    "<h5>Del cogito al criterio de verdad</h5>" +
+    "<p>Pregunta clave: ¿por qué estoy seguro de que «pienso, luego existo»? Porque lo veo <b>clara y distintamente</b>. Descartes extrae de ahí una regla general, el <b>criterio de evidencia</b>: «es verdadero todo aquello que concibo muy clara y distintamente». Es el criterio que formuló en la primera regla del método, y ahora lo ha encontrado funcionando en un caso. El problema es que aún no sabe si puede <b>fiarse</b> de este criterio en otros casos: el genio maligno podría estar engañándole incluso cuando algo le parece clarísimo. Por eso necesita a Dios.</p>";
+
+  // ---------------------------------------------------------------- 4. Dios como garante de la verdad
+  secciones[3] =
+    "<h5>Tres tipos de ideas</h5>" +
+    "<p>Para encontrar un puente entre «yo» y «el mundo», Descartes clasifica las ideas que encuentra en su mente según su origen:</p>" +
+    tabla(["Tipo", "Origen", "Ejemplos"], [
+      ["<b>Innatas</b>", "Nacen con la razón misma; las pone Dios en nuestra mente.", "El yo, Dios, el infinito, el número, la figura, los principios lógicos (todo lo que se ve claro y distinto)."],
+      ["<b>Adventicias</b>", "Parecen venir de fuera, por los sentidos.", "El calor, el ruido, el color, el sol que veo."],
+      ["<b>Facticias</b>", "Las fabrica la imaginación combinando otras.", "La sirena, el centauro, un caballo alado."]
+    ]) +
+    ojo("Las ideas innatas son la clave del <b>racionalismo</b>: la razón posee por sí misma ideas verdaderas, que no vienen de la experiencia. Esto separa a Descartes de Aristóteles y, después, de los empiristas (tema 10). Pero ojo: «innatas» no significa que el bebé ya piense en Dios, sino que la mente tiene <b>por naturaleza</b> la capacidad y los contenidos básicos para formar esas ideas.") +
+    "<h5>La existencia de Dios: tres pruebas</h5>" +
+    "<p>Tras el cogito Descartes está encerrado en su propia mente: sabe que existe como cosa pensante y tiene ideas, pero no sabe si le corresponde algo fuera. Necesita probar que existe un Dios <b>perfecto</b> que no puede engañarle. Lo hace con tres argumentos:</p>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>La idea de infinito (<i>Meditación III</i>).</b> Encuentro en mí la idea de un ser <b>infinito, perfecto, omnisciente y omnipotente</b>. Esa idea tiene más «realidad» que yo, que soy finito e imperfecto. Pero la causa de una idea debe tener al menos tanta realidad como la idea misma («de la nada, nada sale»). Yo no puedo ser la causa de una idea más perfecta que yo. Luego esa idea ha sido puesta en mí por un ser realmente infinito: <b>Dios existe</b>.</li>" +
+    "<li><b>Mi existencia imperfecta (<i>Meditación III</i>).</b> Yo, que dudo y no lo sé todo, soy imperfecto. Si me hubiera hecho yo, me habría dado todas las perfecciones. Y no solo hay que explicar cómo comencé a existir, sino por qué <b>sigo</b> existiendo en cada instante (mi vida no se sostiene por inercia). Mi causa debe ser un ser perfecto que me conserva: <b>Dios</b>.</li>" +
+    "<li><b>El argumento ontológico (<i>Meditación V</i>).</b> Dios es, por definición, el ser <b>sumamente perfecto</b>. La existencia es una perfección. Un Dios sin existencia no sería sumamente perfecto, luego no puedo concebir a Dios sin existencia, igual que no puedo concebir un triángulo cuyos ángulos no sumen dos rectos. Es una versión de la prueba de San Anselmo (1033–1109) del siglo XI.</li></ol>" +
+    w("emparejar", "pruebas") +
+    "<h5>Dios veraz: el puente hacia el mundo</h5>" +
+    "<p>Una vez probado que Dios existe, Descartes razona: Dios es perfecto; el engaño es una imperfección (nace de un defecto o de malicia); luego <b>Dios no puede ser engañador</b>. Esto, por fin, resuelve el problema del genio maligno y <b>garantiza el criterio de evidencia</b>: lo que concibo clara y distintamente es verdadero, porque si no, mi razón (que Dios me dio) me llevaría siempre al error y Dios sería el culpable. Con esta garantía recupera todo lo que había puesto en duda: las matemáticas, la memoria, y, al final de la <i>Meditación VI</i>, la existencia del mundo corpóreo (porque Dios no me engañaría haciéndome creer con tanta fuerza en cuerpos que no existen).</p>" +
+    "<h5>Si Dios no engaña, ¿por qué nos equivocamos?</h5>" +
+    "<p>Descartes lo explica en la <i>Meditación IV</i>: el error no viene del entendimiento (que es finito pero no falla) ni de Dios, sino de un <b>mal uso de la libertad</b>. La <b>voluntad</b> es infinita (puedo afirmar o negar cualquier cosa), pero el <b>entendimiento</b> es limitado. El error aparece cuando mi voluntad afirma algo que mi entendimiento todavía no ve con claridad y distinción. El remedio es simple: <b>suspender el juicio</b> mientras la idea no sea evidente. Es la regla de la evidencia aplicada a la conducta.</p>" +
+    ojo("La crítica clásica al sistema es el <b>círculo cartesiano</b>: Descartes usa la evidencia (clara y distinta) para probar que Dios existe, y luego usa a Dios para garantizar que la evidencia es fiable. Descartes responde que el cogito y las ideas claras son verdaderas <b>mientras se ven</b>; Dios sirve para sostener la verdad cuando ya no las estoy mirando (la memoria de demostraciones pasadas). Aun así, es un punto débil que mencionan muchos comentaristas, y es un buen argumento para la valoración crítica de una pregunta de la PAU.");
+
+  // ---------------------------------------------------------------- 5. El dualismo: tres sustancias
+  secciones[4] =
+    "<h5>Qué es una sustancia</h5>" +
+    "<p>Descartes define <b>sustancia</b> como una cosa que existe de tal manera que no necesita de ninguna otra para existir (<i>Principios</i>, I; fórmula parafraseada). En sentido estricto, solo Dios cumple esa definición; las otras dos dependen de Él para existir, pero no dependen entre sí. Por eso las llama «sustancias» en un sentido derivado. Hay <b>tres</b>:</p>" +
+    tabla(["Sustancia", "Qué es", "Atributo esencial", "Es…"], [
+      ["<b>Res cogitans</b> (cosa pensante)", "El alma, la mente, el «yo»", "El <b>pensamiento</b>", "Finita, creada"],
+      ["<b>Res extensa</b> (cosa extensa)", "La materia y el cuerpo", "La <b>extensión</b> (longitud, anchura y profundidad)", "Finita, creada"],
+      ["<b>Res infinita</b> (sustancia infinita)", "Dios", "La <b>perfección infinita</b>", "Infinita, increada"]
+    ]) +
+    "<p>Para cada sustancia hay un <b>atributo principal</b> que es su esencia: no se puede concebir el alma sin pensamiento ni el cuerpo sin extensión. Todo lo demás (imaginar, sentir; figura, movimiento) son <b>modos</b> de ese atributo.</p>" +
+    w("clasificar", "sustancias") +
+    "<h5>Por qué el alma y el cuerpo son distintos</h5>" +
+    "<p>El argumento de Descartes (en la <i>Meditación VI</i>) es: puedo concebir clara y distintamente mi mente como una cosa pensante y <b>no extensa</b>, y mi cuerpo como una cosa extensa y <b>no pensante</b>. Lo que se puede concebir clara y distintamente por separado, Dios puede crearlo por separado; luego mente y cuerpo son realmente distintos. Además, el cuerpo es <b>divisible</b> (puede cortarse en partes), mientras que la mente es <b>indivisible</b> (no hay «medio pensamiento»). De ahí una consecuencia: el alma no se desintegra con el cuerpo y puede ser inmortal.</p>" +
+    ojo("Compáralo con Platón y Aristóteles. Platón (tema 3) era dualista, pero el alma estaba en el cuerpo como en una cárcel. Aristóteles (tema 4) decía que el alma es la <b>forma</b> del cuerpo, no una sustancia separada. Descartes va más lejos que Platón: mente y cuerpo son dos sustancias completas, con esencias opuestas (pensar frente a ocupar espacio), y rechaza a Aristóteles. Este es el dualismo cartesiano o <b>dualismo de sustancias</b>.") +
+    "<h5>Un mundo-máquina: el mecanicismo</h5>" +
+    "<p>Si la materia es solo extensión, su física es la geometría: un cuerpo es lo que ocupa espacio, tiene figura y se mueve. Desaparecen las <b>causas finales</b> de Aristóteles («la piedra cae porque busca su lugar natural»): la naturaleza se explica por <b>causas mecánicas</b> (choques y movimientos), como el funcionamiento de un reloj. Los colores, olores y sabores no son propiedades de las cosas, sino sensaciones en el que percibe. Así, el universo es una gran máquina que se explica con leyes matemáticas; Dios la creó y la mantiene en movimiento.</p>" +
+    "<p>Una consecuencia llamativa: el cuerpo humano, y los <b>animales</b>, son máquinas. Los animales no tienen alma pensante (para Descartes, no hablan ni razonan de forma flexible), son «autómatas» muy complejos. Solo el ser humano es máquina <b>más</b> alma racional.</p>" +
+    "<h5>El problema de la interacción</h5>" +
+    "<p>Si mente y cuerpo son tan distintos, ¿cómo se influyen? Decido levantar el brazo y el brazo se levanta; me pillo un dedo y siento dolor. En 1643 la princesa <b>Elisabeth de Bohemia</b> se lo preguntó por carta a Descartes, y él no logró una respuesta satisfactoria. En <i>Las pasiones del alma</i> (1649) propone que el alma se comunica con el cuerpo en la <b>glándula pineal</b> (en el cerebro), pero eso solo cambia la pregunta: ¿cómo una cosa sin extensión mueve a una extensa? Es la gran dificultad del dualismo, y sus sucesores (Spinoza, Leibniz, Malebranche) intentarán resolverla de maneras muy distintas.</p>" +
+    ojo("En la PAU, cuando se pide una valoración crítica de Descartes, el problema de la interacción es el argumento más rentable: «si el alma es inextensa, no puede mover un cuerpo extenso, y sin embargo lo hace a diario». También se puede mencionar el círculo cartesiano (sección 4) y la crítica de Hume al yo (tema 10).");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Ideas y racionalismo: qué las distingue del empirismo", html:
+    "<p>Con el cogito, la razón se convierte en la fuente del saber. Esa postura se llama <b>racionalismo</b>: la fuente principal del conocimiento verdadero es la razón, no la experiencia, y existen ideas innatas que no vienen de los sentidos. Sus grandes nombres del siglo XVII son Descartes, Spinoza (1632–1677) y Leibniz (1646–1716). Enfrente estarán los empiristas (Locke 1632–1704 y Hume 1711–1776; tema 10), para quienes todo el conocimiento viene de la experiencia.</p>" +
+    tabla(["", "Racionalismo (Descartes)", "Empirismo (Locke, Hume)"], [
+      ["Fuente del saber", "La <b>razón</b> (intuición y deducción)", "La <b>experiencia</b> (sentidos)"],
+      ["Ideas innatas", "Sí: yo, Dios, el infinito, las matemáticas", "No: la mente es «papel en blanco»"],
+      ["Modelo de ciencia", "Matemáticas (deducción)", "Ciencias de la naturaleza (observación)"],
+      ["Papel de los sentidos", "Engañosos o confusos", "Origen de todas las ideas"],
+      ["Método", "Deductivo: de principios evidentes a consecuencias", "Inductivo: de casos a generalizaciones"]
+    ]) +
+    "<h5>Intuición y deducción</h5>" +
+    "<p>En las <i>Reglas</i> Descartes distingue dos operaciones de la razón que dan certeza: la <b>intuición</b> (ver de golpe una verdad simple, como el cogito) y la <b>deducción</b> (encadenar intuiciones, de modo que cada paso sea evidente). Todo el saber es una cadena de intuiciones, como una demostración geométrica. Los sentidos y la imaginación no dan certeza.</p>" +
+    w("clasificar", "ideas") +
+    ojo("Distingue <b>racionalismo</b> de <b>idealismo</b> o de «ser racional». El racionalismo es una teoría sobre el <i>origen</i> del conocimiento. No dice que los racionalistas sean más «lógicos»; Hume también razona muy bien.") });
+
+  nuevas.push({ h: "7. La moral provisional y las pasiones", html:
+    "<p>Mientras duda, Descartes necesita vivir. En la tercera parte del <i>Discurso</i> se da una <b>moral provisional</b>, para no quedarse paralizado como quien derriba su casa sin tener donde alojarse. Sus máximas son:</p>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Obedecer las leyes y costumbres de su país</b>, mantener su religión y seguir las opiniones más moderadas.</li>" +
+    "<li><b>Ser firme y resuelto en sus acciones</b>: igual que el viajero perdido en un bosque debe caminar siempre en línea recta y no dar vueltas, aunque la dirección no sea la mejor.</li>" +
+    "<li><b>Vencerse a sí mismo antes que a la fortuna</b>: cambiar los propios deseos antes que el orden del mundo. Solo nuestros pensamientos están totalmente en nuestro poder.</li></ol>" +
+    "<p>Es una moral de prudencia y serenidad, de aire estoico (tema 5). Su moral «definitiva», que nunca desarrolló por completo, sería el fruto del árbol del saber: la más alta y perfecta, que supone el conocimiento completo de las demás ciencias.</p>" +
+    "<h5>Las pasiones del alma (1649)</h5>" +
+    "<p>Aquí Descartes aplica su dualismo a las emociones. Las <b>pasiones</b> (admiración, amor, odio, deseo, alegría, tristeza) son estados del alma causados por el movimiento de los «espíritus animales» (partículas finas de la sangre) en el cuerpo. Son útiles: nos empujan a buscar lo conveniente. Pero hay que gobernarlas. La virtud principal es la <b>generosidad</b>: reconocer que lo único realmente nuestro es el buen uso del libre albedrío y estar resueltos a usarlo bien. En esto, Descartes se separa de Spinoza, que niega el libre albedrío.</p>" });
+
+  nuevas.push({ h: "8. Mapa del tema: Descartes y los demás autores", html:
+    "<p>En el comentario de texto se pide relacionar con el autor y comparar con otro. Estas son las relaciones más rentables:</p>" +
+    tabla(["Autor", "Relación con Descartes"], [
+      ["Platón (T3)", "Comparten el innatismo y la desconfianza hacia los sentidos; pero Platón explica las ideas por la reminiscencia y Descartes las pone en la mente por Dios."],
+      ["Aristóteles (T4)", "Descartes rechaza su física (causas finales, hilemorfismo) y su empirismo; sustituye el alma-forma por el dualismo."],
+      ["Escepticismo (T5)", "Usa la duda de los escépticos, pero como método, para vencerlos."],
+      ["San Agustín (T6)", "El <i>si fallor, sum</i> es un precedente del cogito, pero Agustín lo integra en la fe y Descartes lo convierte en inicio del sistema."],
+      ["Tomás de Aquino (T7)", "Ambos prueban a Dios, pero Tomás parte del mundo sensible (cinco vías); Descartes parte de la idea de Dios en la mente. Descartes admite el argumento ontológico que Tomás rechazaba."],
+      ["Galileo (T8)", "Comparte el ideal de una naturaleza matemática; por prudencia no publica <i>El mundo</i> tras 1633."],
+      ["Locke y Hume (T10)", "Rechazan las ideas innatas; Hume critica el yo como sustancia (solo hay un haz de percepciones)."],
+      ["Kant (T12)", "Intenta superar racionalismo y empirismo; critica las pruebas de Dios (la existencia no es una perfección ni un predicado) y el uso de la razón más allá de la experiencia."]
+    ]) +
+    "<h5>Cuadro-resumen: lo que sostiene Descartes</h5>" +
+    tabla(["Ámbito", "Tesis de Descartes"], [
+      ["Método", "Cuatro reglas: evidencia, análisis, síntesis y enumeración; modelo matemático."],
+      ["Conocimiento", "Duda metódica (sentidos, sueño, genio maligno); cogito como primera verdad; criterio de claridad y distinción; ideas innatas."],
+      ["Dios", "Tres pruebas (idea de infinito, mi imperfección, ontológica); Dios veraz garantiza la evidencia."],
+      ["Realidad", "Tres sustancias (pensante, extensa, infinita); mecanicismo; animales-máquina."],
+      ["Ser humano", "Dualismo mente–cuerpo; unión por la glándula pineal; libre albedrío."],
+      ["Moral", "Moral provisional (tres máximas) y generosidad."]
+    ]) });
+
+  nuevas.push({ h: "9. Comentario de texto resuelto: el cogito", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Descartes, <em>Discurso del método</em>, cuarta parte; traducción española habitual, que varía levemente según la edición):<br><em>«Advertí que, mientras quería pensar de este modo que todo era falso, era necesario que yo, que lo pensaba, fuese algo. Y notando que esta verdad: pienso, luego existo, era tan firme y segura que las suposiciones más extravagantes de los escépticos no eran capaces de conmoverla, juzgué que podía admitirla sin escrúpulo como el primer principio de la filosofía que buscaba.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> René Descartes (1596–1650), <i>Discurso del método</i> (1637), cuarta parte, donde expone las bases de su metafísica tras haber dudado de todo. Es el momento clave del racionalismo moderno.</li>" +
+    "<li><b>2. Tema.</b> El descubrimiento del cogito como primera verdad indudable, que resiste incluso a la duda más radical.</li>" +
+    "<li><b>3. Idea principal.</b> Si lo pienso todo falso, necesito ser algo que piensa; por tanto «pienso, luego existo» es tan firme que ninguna duda escéptica la derriba, y sirve como primer principio de la filosofía.</li>" +
+    "<li><b>4. Términos e ideas secundarias.</b> (a) «Todo era falso»: es la duda hiperbólica (sentidos, sueño, genio maligno). (b) «Pienso, luego existo»: intuición, no silogismo; prueba la existencia del yo como cosa pensante. (c) «Escépticos»: Descartes usa la duda de ellos, pero para vencerlos. (d) «Primer principio»: el cimiento de todo el edificio del saber.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Es la raíz de su metafísica. Del cogito saca el criterio de evidencia (lo claro y distinto es verdadero) y la naturaleza del yo (<i>res cogitans</i>), que lleva al dualismo. Pero el criterio solo queda garantizado después, cuando prueba a Dios veraz (ideas de infinito, ontológico). Enlaza con la regla de la evidencia del <i>Discurso</i>.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con San Agustín: su <i>si fallor, sum</i> es parecido, pero se integra en la fe y no funda un sistema. Con Hume (tema 10): rechaza que haya un «yo» sustancial; solo percibe un haz de percepciones. Con Kant (tema 12): critica que se pase de «pienso» a «existo como sustancia pensante» sin intuición empírica.</li>" +
+    "<li><b>7. Valora y concluye.</b> El cogito inauguró la filosofía moderna centrada en el sujeto y la conciencia. Su límite: de la certeza del pensar no se sigue sin más que el yo sea una sustancia distinta del cuerpo, y la reconstrucción posterior depende de Dios (círculo cartesiano).</li></ol>" +
+    ojo("Errores típicos: (1) decir que Descartes <b>es escéptico</b> (la duda es un método); (2) presentar el cogito como silogismo; (3) concluir del cogito que existe el cuerpo o el mundo (todavía no); (4) olvidar a Dios como garante; (5) confundir la duda con la hipótesis del genio maligno, que es solo su nivel máximo.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "10. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Explica la duda metódica y el cogito", "Respuesta modelo:", [
+      "<b>Objetivo.</b> Buscar un fundamento absolutamente seguro para la ciencia; modelo: las matemáticas.",
+      "<b>Duda metódica.</b> Provisional, universal e hiperbólica; no es escepticismo. Tres niveles: sentidos, sueño, genio maligno.",
+      "<b>Cogito.</b> Pienso, luego existo: resiste al genio maligno; es una intuición y prueba el yo como cosa pensante.",
+      "<b>Criterio.</b> Lo claro y distinto es verdadero.",
+      "<b>Relación.</b> Precedente: Agustín. Valoración: el yo como sustancia (Hume, Kant)."
+    ]) +
+    ejemplo("Pregunta 2. Explica el papel de Dios en el sistema cartesiano", "Respuesta modelo:", [
+      "<b>Problema.</b> Tras el cogito, solo sé que existo; el genio maligno podría falsear lo demás.",
+      "<b>Pruebas.</b> Idea de infinito, mi imperfección y argumento ontológico.",
+      "<b>Dios veraz.</b> No es engañador, luego garantiza el criterio de evidencia y permite recuperar el mundo.",
+      "<b>Error.</b> Viene del mal uso de la voluntad, que afirma lo que el entendimiento no ve.",
+      "<b>Crítica.</b> Círculo cartesiano; Kant rechaza la prueba ontológica."
+    ]) +
+    ejemplo("Pregunta 3. Dualismo y sustancias", "Respuesta modelo:", [
+      "<b>Sustancia.</b> Lo que existe sin necesitar otra cosa (en sentido estricto, Dios).",
+      "<b>Tres sustancias.</b> Pensante (pensamiento), extensa (extensión), infinita (Dios).",
+      "<b>Dualismo.</b> Mente y cuerpo, distintos: divisible el cuerpo, indivisible la mente.",
+      "<b>Consecuencias.</b> Mecanicismo y animales-máquina.",
+      "<b>Problema.</b> Interacción (Elisabeth de Bohemia; glándula pineal). Comparación con Platón y Aristóteles."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf9a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 9 (parte B): El racionalismo: Descartes
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t9.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Descartes (1596–1650) busca un <b>fundamento indudable</b> para el saber con un método de cuatro reglas inspirado en las matemáticas.",
+    "La <b>duda metódica</b> (sentidos, sueño, genio maligno) deja una sola verdad: <b>pienso, luego existo</b>.",
+    "Lo <b>claro y distinto</b> es verdadero, pero solo un <b>Dios veraz</b>, cuya existencia prueba, lo garantiza.",
+    "Hay <b>tres sustancias</b>: pensante, extensa e infinita. Mente y cuerpo son distintos (dualismo) y la materia es mecánica."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Descartes · 1596–1650",
+    autores: [{ n: "René Descartes", f: "1596–1650", l: "La Haye (Francia); Países Bajos; muere en Estocolmo" }],
+    obras: ["Reglas para la dirección del espíritu", "Discurso del método", "Meditaciones metafísicas", "Principios de la filosofía", "Las pasiones del alma"],
+    bloques: [
+      { t: "Contexto", frases: ["Siglo XVII: Revolución científica y crisis de las certezas heredadas.", "Estudia con los jesuitas en <b>La Flèche</b>; ama las matemáticas.", "Retira <i>El mundo</i> tras la condena de Galileo (1633)."] },
+      { t: "Método y duda", frases: ["Cuatro reglas: <b>evidencia, análisis, síntesis y enumeración</b>.", "Duda <b>metódica</b>, provisional, universal e hiperbólica.", "No es escepticismo: duda para llegar a una certeza."],
+        tabla: { cab: ["Nivel de duda", "Motivo"], filas: [["Sentidos", "a veces me engañan"], ["Sueño", "no distingo sueño y vigilia"], ["Genio maligno", "podría engañarme hasta en matemáticas"]] } },
+      { t: "Cogito y criterio", frases: ["<b>Pienso, luego existo</b>: resiste incluso al genio maligno.", "Es una <b>intuición</b>, no un silogismo; prueba el yo como cosa pensante.", "Criterio de verdad: la <b>evidencia</b>, lo claro y distinto."] },
+      { t: "Dios", frases: ["Tres pruebas: idea de infinito, mi imperfección y la ontológica.", "Dios es perfecto, luego <b>veraz</b>: garantiza la evidencia.", "El error nace de la voluntad que afirma sin ver claro."] },
+      { t: "Realidad: tres sustancias", frases: ["Tres sustancias: pensante, extensa e infinita (Dios).", "El mundo material es una <b>máquina</b>: mecanicismo.", "Los animales son autómatas sin alma racional."],
+        tabla: { cab: ["Res cogitans", "Res extensa"], filas: [["alma, mente, «yo»", "cuerpo y materia"], ["atributo: pensamiento", "atributo: extensión"], ["indivisible", "divisible"]] } },
+      { t: "Ser humano y moral", frases: ["Dualismo: mente y cuerpo son sustancias distintas.", "Problema de la interacción: la glándula pineal no lo resuelve.", "Moral provisional (tres máximas) y <b>generosidad</b>."] }
+    ],
+    resumen: [
+      "El saber necesita un <b>fundamento</b>: el sujeto que piensa (<b>cogito</b>).",
+      "La <b>razón</b>, con ideas innatas, es la fuente del conocimiento: racionalismo.",
+      "<b>Dios veraz</b> garantiza que lo claro y distinto es verdadero.",
+      "Dos mundos de sustancias: <b>pensante y extensa</b>; el cuerpo, una máquina."
+    ],
+    conecta: [
+      { con: "Platón (T3):", rel: "comparte el innatismo y la desconfianza en los sentidos." },
+      { con: "Aristóteles (T4):", rel: "rechaza su hilemorfismo y las causas finales." },
+      { con: "San Agustín (T6):", rel: "su <i>si fallor, sum</i> es un precedente del cogito." },
+      { con: "Tomás de Aquino (T7):", rel: "prueba a Dios desde la idea, no desde el mundo." },
+      { con: "Galileo (T8):", rel: "comparte la naturaleza matemática y mecánica." },
+      { con: "Hume (T10):", rel: "niega las ideas innatas y el yo como sustancia." },
+      { con: "Kant (T12):", rel: "critica la prueba ontológica y el uso de la razón sin experiencia." }
+    ],
+    claves: [
+      ["Duda metódica", "duda provisional y universal para hallar una certeza"],
+      ["Genio maligno", "hipótesis de un ser que me engaña hasta en las matemáticas"],
+      ["Cogito", "«pienso, luego existo»: primera verdad indudable"],
+      ["Claridad y distinción", "criterio de evidencia: lo que no admite duda es verdadero"],
+      ["Ideas innatas", "ideas que la razón posee sin la experiencia (Dios, yo, infinito)"],
+      ["Dios veraz", "ser perfecto que no engaña y garantiza la evidencia"],
+      ["Res cogitans", "sustancia pensante: alma o mente"],
+      ["Res extensa", "sustancia extensa: materia y cuerpo"],
+      ["Dualismo", "mente y cuerpo son sustancias distintas"],
+      ["Mecanicismo", "la naturaleza es una máquina explicada por movimiento"]
+    ],
+    cita: { txt: "Pienso, luego existo.", autor: "Descartes", obra: "Discurso del método, IV (traducción habitual de «je pense, donc je suis»)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    reglas: {
+      titulo: "Las cuatro reglas del método",
+      consigna: "Ordena las reglas del método en el orden en que las enuncia Descartes en el Discurso.",
+      items: [
+        { t: "Evidencia: no admitir nada como verdadero si no se ve clara y distintamente" },
+        { t: "Análisis: dividir cada dificultad en tantas partes como sea posible" },
+        { t: "Síntesis: ir ordenadamente de lo simple a lo complejo" },
+        { t: "Enumeración: hacer recuentos y revisiones tan completos que no se omita nada" }
+      ]
+    },
+    pruebas: {
+      titulo: "Las pruebas de la existencia de Dios",
+      consigna: "Une cada prueba con su idea central.",
+      pares: [
+        ["Idea de infinito", "La causa de la idea debe tener al menos tanta realidad como ella"],
+        ["Mi imperfección", "Yo, ser finito, no me he dado ni me conservo la existencia"],
+        ["Argumento ontológico", "La existencia es una perfección y Dios es el ser perfecto"]
+      ]
+    },
+    sustancias: {
+      titulo: "Tres sustancias",
+      consigna: "Toca cada término y después la sustancia a la que corresponde.",
+      categorias: ["Res cogitans", "Res extensa", "Res infinita (Dios)"],
+      items: [
+        { t: "Dudar", c: 0 },
+        { t: "Querer", c: 0 },
+        { t: "Imaginar", c: 0 },
+        { t: "Ocupar espacio", c: 1 },
+        { t: "Tener figura", c: 1 },
+        { t: "Moverse", c: 1 },
+        { t: "Infinito", c: 2 },
+        { t: "Perfecto", c: 2 },
+        { t: "Garante de la verdad", c: 2 }
+      ]
+    },
+    ideas: {
+      titulo: "Innatas, adventicias y facticias",
+      consigna: "Clasifica cada idea según su origen para Descartes.",
+      categorias: ["Innata", "Adventicia", "Facticia"],
+      items: [
+        { t: "La idea de Dios", c: 0 },
+        { t: "La idea de número", c: 0 },
+        { t: "La idea de infinito", c: 0 },
+        { t: "El calor del fuego", c: 1 },
+        { t: "El ruido de un trueno", c: 1 },
+        { t: "El sabor de una naranja", c: 1 },
+        { t: "Una sirena", c: 2 },
+        { t: "Un centauro", c: 2 },
+        { t: "Un caballo alado", c: 2 }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 9",
+      preguntas: [
+        { q: "La duda metódica de Descartes es…", op: ["provisional: un método para hallar una certeza", "un escepticismo definitivo", "una duda solo sobre la religión", "una duda práctica para la vida diaria"], ok: 0, porque: "Duda para llegar a una verdad indudable; no se queda en la duda." },
+        { q: "El orden de la escalada de la duda es…", op: ["sentidos, sueño y genio maligno", "genio maligno, sueño y sentidos", "sueño, sentidos y Dios", "razón, sentidos y sueño"], ok: 0, porque: "De la menos radical (los sentidos) a la más radical (el genio maligno)." },
+        { q: "El cogito resiste al genio maligno porque…", op: ["para ser engañado tengo que existir pensando", "las matemáticas son siempre verdaderas", "Dios no engaña", "los sentidos son fiables"], ok: 0, porque: "Aunque me engañe en todo, no puede hacer que no exista mientras pienso." },
+        { q: "Lo que prueba el cogito es que existo como…", op: ["cosa que piensa", "cuerpo extenso", "parte de la naturaleza", "criatura sin alma"], ok: 0, porque: "El cuerpo sigue en duda; solo es indudable el yo que piensa." },
+        { q: "El criterio de verdad de Descartes es…", op: ["la claridad y distinción de las ideas", "el consenso de los sabios", "la experiencia sensible", "la autoridad de Aristóteles"], ok: 0, porque: "Es verdadero lo que concibo clara y distintamente." },
+        { q: "Una idea que fabrica la imaginación, como la de una sirena, es…", op: ["facticia", "innata", "adventicia", "evidente"], ok: 0, porque: "Combina ideas anteriores; no viene de fuera ni es innata." },
+        { q: "El argumento ontológico sostiene que…", op: ["Dios existe porque la existencia es una perfección", "Dios existe porque el mundo es causado", "Dios existe porque lo dice la Biblia", "Dios no puede probarse"], ok: 0, porque: "Un ser sumamente perfecto no puede carecer de existencia." },
+        { q: "Dios garantiza la verdad de las ideas claras y distintas porque…", op: ["es perfecto y por tanto no puede ser engañador", "creó las matemáticas", "lo revela la Iglesia", "es una idea innata"], ok: 0, porque: "El engaño es una imperfección." },
+        { q: "El atributo esencial de la res extensa es…", op: ["la extensión", "el pensamiento", "la perfección infinita", "la voluntad"], ok: 0, porque: "La materia es lo que ocupa espacio." },
+        { q: "El problema más grave del dualismo cartesiano es…", op: ["explicar la interacción entre alma y cuerpo", "demostrar que existe el cuerpo", "probar el cogito", "explicar los sueños"], ok: 0, porque: "Sustancias tan distintas, sin nada en común, ¿cómo se influyen?" }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre la duda de Descartes es FALSA?", op: ["Es un escepticismo definitivo que niega la posibilidad de conocer", "Es provisional", "Es universal e hiperbólica", "Su fin es hallar una certeza"], ok: 0, porque: "Es un método; el escéptico duda para quedarse dudando." },
+        { q: "¿Cuál de estas afirmaciones sobre el cogito es FALSA?", op: ["Prueba que existe el mundo exterior", "Es una intuición", "Prueba que existo como cosa que piensa", "Resiste a la hipótesis del genio maligno"], ok: 0, porque: "El mundo exterior solo se recupera después, gracias a un Dios veraz." },
+        { q: "¿Cuál de estas afirmaciones sobre el genio maligno es FALSA?", op: ["Descartes afirma que existe de verdad", "Es una hipótesis para dudar", "Puede engañar incluso en las matemáticas", "Es el nivel más radical de la duda"], ok: 0, porque: "Es una hipótesis: basta con que sea posible." },
+        { q: "¿Cuál de estas afirmaciones sobre Dios en Descartes es FALSA?", op: ["Descartes parte del mundo sensible para probarlo, como Tomás de Aquino", "Dios garantiza la verdad de la evidencia", "Una prueba parte de la idea de infinito", "Dios es perfecto y no engaña"], ok: 0, porque: "Sus pruebas parten de las ideas de la mente, no del mundo." },
+        { q: "¿Cuál de estas afirmaciones sobre el dualismo es FALSA?", op: ["La mente es extensa y divisible, como el cuerpo", "La mente es la res cogitans", "El cuerpo es la res extensa", "Descartes no resolvió bien la interacción"], ok: 0, porque: "La mente es indivisible y no extensa; el cuerpo es divisible." },
+        { q: "¿Cuál de estas afirmaciones sobre el error es FALSA?", op: ["Dios es el culpable de nuestros errores", "El error nace de la voluntad que afirma más de lo que el entendimiento ve", "El remedio es suspender el juicio", "La voluntad es más amplia que el entendimiento"], ok: 0, porque: "Dios es veraz; el error es un mal uso de la libertad." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["Descartes es anterior a San Agustín", "Descartes nació en 1596", "El Discurso del método es de 1637", "Descartes murió en 1650"], ok: 0, porque: "Agustín (354–430) es muy anterior a Descartes (1596–1650)." },
+        { q: "¿Cuál de estas afirmaciones sobre los animales es FALSA?", op: ["Tienen alma pensante igual que las personas", "Son máquinas o autómatas complejos", "Solo el ser humano une máquina y alma racional", "Su cuerpo se explica mecánicamente"], ok: 0, porque: "Para Descartes los animales no tienen alma pensante." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Descartes",
+      cartas: [
+        { a: "Duda metódica", b: "Duda provisional, universal e hiperbólica, usada como método para hallar una verdad indudable." },
+        { a: "Genio maligno", b: "Hipótesis de un ser poderoso que me engaña hasta en las matemáticas; es el nivel más radical de la duda." },
+        { a: "Cogito", b: "«Pienso, luego existo»: primera verdad, intuición que resiste a toda duda." },
+        { a: "Evidencia", b: "Primera regla del método: solo admito como verdadero lo que veo clara y distintamente." },
+        { a: "Clara y distinta", b: "Clara: presente y manifiesta a la mente. Distinta: separada de todas las demás y sin nada confuso." },
+        { a: "Idea innata", b: "Idea que la razón posee por sí misma, sin la experiencia (Dios, yo, infinito, matemáticas)." },
+        { a: "Idea adventicia", b: "Idea que parece venir de fuera, por los sentidos (el calor, el ruido)." },
+        { a: "Idea facticia", b: "Idea fabricada por la imaginación combinando otras (la sirena)." },
+        { a: "Argumento ontológico", b: "Dios es el ser sumamente perfecto; la existencia es una perfección; luego Dios existe." },
+        { a: "Dios veraz", b: "Dios, perfecto, no puede engañar: garantiza que lo claro y distinto es verdadero." },
+        { a: "Res cogitans", b: "Sustancia pensante: el alma o mente. Atributo esencial: el pensamiento." },
+        { a: "Res extensa", b: "Sustancia extensa: la materia y el cuerpo. Atributo esencial: la extensión." },
+        { a: "Mecanicismo", b: "La naturaleza es una máquina que se explica por movimiento y sin causas finales." },
+        { a: "Glándula pineal", b: "Lugar del cerebro donde Descartes sitúa la unión de alma y cuerpo (<i>Las pasiones del alma</i>, 1649)." },
+        { a: "Círculo cartesiano", b: "Crítica: usa la evidencia para probar a Dios y a Dios para garantizar la evidencia." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("hd1", 1, "¿En qué ciudad murió Descartes?", ["Estocolmo", "París", "Ámsterdam", "La Flèche"], 0,
+    ["Había aceptado la invitación de la reina Cristina de Suecia y murió allí de pulmonía en 1650."]);
+  O("hd2", 1, "¿En qué año se publicó el <i>Discurso del método</i>?", ["1637", "1641", "1644", "1649"], 0,
+    ["1637. Las <i>Meditaciones</i> son de 1641; los <i>Principios</i>, de 1644; <i>Las pasiones del alma</i>, de 1649."]);
+  O("hd3", 1, "¿Qué obra de Descartes se publicó en 1641?", ["Meditaciones metafísicas", "Discurso del método", "Las pasiones del alma", "Principios de la filosofía"], 0,
+    ["Las <i>Meditaciones metafísicas</i> (1641), escritas en latín."]);
+  O("hd4", 1, "¿En qué lengua escribió Descartes el <i>Discurso del método</i>?", ["En francés", "En latín", "En griego", "En alemán"], 0,
+    ["Lo escribió en francés para que lo entendiera quien usara bien su razón, no solo los sabios."]);
+  T("hd5", 1, "Completa: la primera verdad que resiste incluso a la hipótesis del genio maligno se llama ______ (<i>ergo sum</i>).", "Término =", ["cogito", "el cogito", "cogito ergo sum"],
+    ["Del latín <i>cogito, ergo sum</i>: «pienso, luego existo»."], "cogito");
+  M("hd6", 1, "Empareja cada regla del método con su idea.", [
+    C("Evidencia", ["No admitir como verdadero lo que no se vea clara y distintamente", "Dividir cada dificultad en partes", "Ir de lo simple a lo complejo", "Hacer revisiones completas"], 0),
+    C("Análisis", ["No admitir como verdadero lo que no se vea clara y distintamente", "Dividir cada dificultad en partes", "Ir de lo simple a lo complejo", "Hacer revisiones completas"], 1),
+    C("Síntesis", ["No admitir como verdadero lo que no se vea clara y distintamente", "Dividir cada dificultad en partes", "Ir de lo simple a lo complejo", "Hacer revisiones completas"], 2),
+    C("Enumeración", ["No admitir como verdadero lo que no se vea clara y distintamente", "Dividir cada dificultad en partes", "Ir de lo simple a lo complejo", "Hacer revisiones completas"], 3)],
+    ["Las cuatro reglas de la segunda parte del <i>Discurso</i>."], "Evidencia, análisis, síntesis y enumeración");
+  O("hd7", 1, "¿Cuál es el primer nivel de la duda de Descartes?", ["Los sentidos", "El sueño", "El genio maligno", "La existencia de Dios"], 0,
+    ["Primero duda de los sentidos, después del sueño y por último del genio maligno."]);
+  O("hd8", 1, "¿Cuál es el nivel más radical de la duda?", ["El genio maligno", "Los sentidos", "El sueño", "La memoria"], 0,
+    ["Con el genio maligno cae incluso lo matemático."]);
+  O("hd9", 1, "La duda cartesiana es…", ["metódica y provisional", "definitiva", "solo práctica", "solo religiosa"], 0,
+    ["Es un método para hallar una certeza; no un fin."]);
+  M("hd10", 1, "Empareja cada sustancia con su atributo esencial.", [
+    C("Res cogitans", ["El pensamiento", "La extensión", "La perfección infinita"], 0),
+    C("Res extensa", ["El pensamiento", "La extensión", "La perfección infinita"], 1),
+    C("Res infinita (Dios)", ["El pensamiento", "La extensión", "La perfección infinita"], 2)],
+    ["El alma piensa; la materia ocupa espacio; Dios es perfecto e infinito."], "Cogitans–pensamiento, extensa–extensión, infinita–perfección");
+  O("hd11", 1, "¿Cuál de estas es una idea facticia?", ["Una sirena", "La idea de Dios", "El calor del fuego", "La idea de número"], 0,
+    ["La fabrica la imaginación combinando otras (mujer y pez)."]);
+  T("hd12", 1, "Completa: la sustancia cuyo atributo es el pensamiento se llama <i>res</i> ______.", "Término =", ["cogitans"],
+    ["<i>Res cogitans</i> = «cosa pensante»."], "cogitans");
+  O("hd13", 1, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Aristóteles → San Agustín → Tomás de Aquino → Descartes", "San Agustín → Aristóteles → Tomás de Aquino → Descartes", "Aristóteles → Tomás de Aquino → San Agustín → Descartes", "Descartes → Tomás de Aquino → San Agustín → Aristóteles"], 0,
+    ["Aristóteles (384–322 a. C.), Agustín (354–430), Tomás (1225–1274) y Descartes (1596–1650)."], "Aristóteles → San Agustín → Tomás de Aquino → Descartes");
+  O("hd14", 1, "¿Qué filósofo anticipó el cogito con su «si me equivoco, existo»?", ["San Agustín", "Platón", "Hume", "Kant"], 0,
+    ["Agustín: <i>si fallor, sum</i>, unos once siglos antes."]);
+
+  // ---- nivel 2
+  V("hd15", 2, "«La duda metódica de Descartes es un escepticismo: concluye que nada puede conocerse.»", false, [
+    "Es falso: es un método provisional para llegar a una certeza", "Es falso: Descartes no duda de nada", "Es verdad: Descartes duda siempre", "Es verdad: por el genio maligno"], 0,
+    ["El escéptico duda para quedarse dudando; Descartes, para salir de la duda."]);
+  V("hd16", 2, "«El cogito es una intuición inmediata, no un silogismo.»", true, [
+    "Es verdad: se ve de golpe que pensar y existir van unidos", "Es verdad: porque se deduce de la existencia de Dios", "Es verdad: porque viene de los sentidos", "Es verdad: porque es una idea facticia"], 0,
+    ["Descartes lo presenta como evidencia directa, sin premisas intermedias."]);
+  V("hd17", 2, "«Tras el cogito, Descartes sabe ya que el mundo exterior existe.»", false, [
+    "Es falso: el mundo exterior solo se recupera después, con la ayuda de un Dios veraz", "Es falso: el mundo no existe", "Es verdad: el cogito prueba el cuerpo", "Es verdad: los sentidos lo prueban"], 0,
+    ["El cogito solo prueba el yo como cosa pensante."]);
+  V("hd18", 2, "«Para Descartes, Dios garantiza que lo claro y distinto es verdadero.»", true, [
+    "Es verdad: un Dios perfecto no puede ser engañador", "Es verdad: porque Dios es una idea adventicia", "Es verdad: porque Dios no existe", "Es verdad: porque los sentidos lo dicen"], 0,
+    ["Dios veraz descarta que el genio maligno exista de verdad."]);
+  V("hd19", 2, "«Para Descartes, los animales tienen alma racional como las personas.»", false, [
+    "Es falso: son máquinas o autómatas sin alma pensante", "Es falso: los animales no existen", "Es verdad: todos los seres tienen res cogitans", "Es verdad: por el hilemorfismo"], 0,
+    ["Solo el ser humano une máquina corporal y alma racional."]);
+  V("hd20", 2, "«Para Descartes, el cuerpo es divisible y la mente indivisible.»", true, [
+    "Es verdad: el cuerpo puede dividirse en partes; no hay «medio pensamiento»", "Es verdad: porque la mente ocupa espacio", "Es verdad: porque ambos son extensos", "Es verdad: porque el cuerpo piensa"], 0,
+    ["Es un argumento para distinguir realmente mente y cuerpo."]);
+  V("hd21", 2, "«El argumento ontológico de Descartes parte del mundo sensible, como las vías de Tomás.»", false, [
+    "Es falso: parte de la idea de Dios como ser perfecto que hay en la mente", "Es falso: no tiene argumentos", "Es verdad: parte del movimiento", "Es verdad: parte de los sentidos"], 0,
+    ["Las vías de Tomás son pruebas <i>a posteriori</i>; la ontológica es <i>a priori</i>."]);
+  O("hd22", 2, "El criterio de verdad de Descartes es…", ["la claridad y distinción", "el consenso", "la experiencia", "la autoridad"], 0,
+    ["Evidencia: lo que no admite duda alguna."]);
+  O("hd23", 2, "Para Descartes, el error nace…", ["de la voluntad, que afirma más de lo que el entendimiento ve", "de Dios", "del entendimiento infinito", "de los sueños"], 0,
+    ["La voluntad es infinita; el entendimiento, limitado. Remedio: suspender el juicio."]);
+  O("hd24", 2, "¿Para qué necesita Descartes la hipótesis del genio maligno?", ["Para poner en duda incluso las verdades matemáticas", "Para probar a Dios", "Para explicar el sueño", "Para criticar a los sentidos"], 0,
+    ["Los sentidos y el sueño no bastan para dudar de lo matemático."]);
+  O("hd25", 2, "Se llama «círculo cartesiano» a la crítica de que…",
+    ["la evidencia prueba a Dios y Dios garantiza la evidencia", "el yo es una ilusión", "el cuerpo no existe", "el método no tiene reglas"], 0,
+    ["Parece que se presupone lo que se quiere probar."]);
+  O("hd26", 2, "Con el ejemplo de la cera, Descartes muestra que la esencia de los cuerpos…", ["la capta el entendimiento, no los sentidos", "la captan los sentidos", "es el olor", "es el color"], 0,
+    ["Todas las cualidades sensibles cambian, pero la cera sigue siendo la misma."]);
+  O("hd27", 2, "Los racionalistas defienden que…", ["la razón posee ideas innatas", "toda idea viene de los sentidos", "no hay ideas", "la mente es papel en blanco"], 0,
+    ["Frente al empirismo."]);
+  O("hd28", 2, "Para explicar la naturaleza, Descartes recurre a…", ["causas mecánicas (movimiento)", "causas finales", "las cuatro causas", "la reminiscencia"], 0,
+    ["Mecanicismo: la naturaleza como máquina, sin finalidad."]);
+  O("hd29", 2, "¿Quién interrogó a Descartes en 1643 sobre cómo el alma mueve al cuerpo?", ["La princesa Elisabeth de Bohemia", "La reina Cristina", "Galileo", "Hume"], 0,
+    ["Es el origen del famoso problema de la interacción."]);
+  O("hd30", 2, "La regla del método que manda dividir cada dificultad en partes es la del…", ["análisis", "la evidencia", "la síntesis", "la enumeración"], 0,
+    ["Segunda regla."]);
+
+  // ---- nivel 3
+  O("hd31", 3, "Texto: «Pienso, luego existo» (<i>Discurso del método</i>, IV; traducción habitual). Su idea principal es…",
+    ["que el yo que piensa existe, con una certeza que ninguna duda puede derribar", "que el cuerpo es lo primero que existe", "que Dios crea el mundo", "que no se puede conocer nada"], 0,
+    ["Tema: primera verdad indudable que resiste incluso al genio maligno."]);
+  O("hd32", 3, "Idea del <i>Discurso</i>, I (paráfrasis): el buen sentido o razón es lo mejor repartido del mundo, pues todos creen tener suficiente. Significa que…",
+    ["la razón es igual en todos, y lo que cambia es cómo se usa", "unos nacen sin razón", "la razón se aprende en la escuela", "el buen sentido no existe"], 0,
+    ["Universalismo de la razón; lo que importa es el método."]);
+  O("hd33", 3, "Una alumna dice: «según Descartes, el genio maligno existe de verdad». ¿Qué matiz es el correcto?",
+    ["Es solo una hipótesis para dudar; no afirma que exista", "Tiene razón: lo afirma", "Es Dios quien engaña", "Es el cuerpo"], 0,
+    ["Basta con que sea posible; luego Dios veraz lo descarta."]);
+  O("hd34", 3, "¿En qué argumento (<i>Meditación VI</i>) se apoya Descartes para decir que mente y cuerpo son realmente distintos?",
+    ["Puede concebirlos clara y distintamente por separado, y lo que se concibe así puede existir así", "Los ve con los ojos", "Los sueños lo prueban", "Lo dice la Biblia"], 0,
+    ["Mente: cosa pensante no extensa. Cuerpo: cosa extensa no pensante."]);
+  O("hd35", 3, "¿En qué se diferencian Descartes y Aristóteles sobre el alma?",
+    ["Descartes la concibe como sustancia pensante distinta del cuerpo; Aristóteles, como su forma", "No se diferencian", "Aristóteles defiende el dualismo de sustancias", "Descartes niega el alma"], 0,
+    ["Dualismo de sustancias frente a hilemorfismo."]);
+  O("hd36", 3, "¿En qué se diferencian Tomás de Aquino y Descartes al probar a Dios?",
+    ["Tomás parte del mundo sensible; Descartes, de la idea de Dios que tiene en la mente", "Ambos parten del movimiento", "Descartes usa cinco vías", "Tomás usa el cogito"], 0,
+    ["Pruebas <i>a posteriori</i> (Tomás) y <i>a priori</i> (la ontológica)."]);
+  O("hd37", 3, "¿Cuál es la crítica empirista (Hume) a Descartes?",
+    ["No hay ideas innatas ni un yo sustancial: todo viene de la experiencia", "Que dude demasiado poco", "Que prueba a Dios sin razón", "Que defiende el empirismo"], 0,
+    ["Para Hume, el yo es un haz de percepciones."]);
+  M("hd38", 3, "Empareja cada nivel de duda con su razón.", [
+    C("Los sentidos", ["A veces me engañan", "No hay indicios seguros para distinguir sueño y vigilia", "Podría engañarme incluso en las matemáticas"], 0),
+    C("El sueño", ["A veces me engañan", "No hay indicios seguros para distinguir sueño y vigilia", "Podría engañarme incluso en las matemáticas"], 1),
+    C("El genio maligno", ["A veces me engañan", "No hay indicios seguros para distinguir sueño y vigilia", "Podría engañarme incluso en las matemáticas"], 2)],
+    ["Cada nivel amplía lo que cae."], "Sentidos–engañan; sueño–sin indicios; genio–incluso matemáticas");
+  M("hd39", 3, "Empareja cada pensador o hecho con su relación con Descartes.", [
+    C("San Agustín", ["Precedente del cogito (<i>si fallor, sum</i>)", "Condena de 1633 que le hace retirar <i>El mundo</i>", "Niega las ideas innatas y el yo sustancial", "Precedente del argumento ontológico"], 0),
+    C("Galileo", ["Precedente del cogito (<i>si fallor, sum</i>)", "Condena de 1633 que le hace retirar <i>El mundo</i>", "Niega las ideas innatas y el yo sustancial", "Precedente del argumento ontológico"], 1),
+    C("Hume", ["Precedente del cogito (<i>si fallor, sum</i>)", "Condena de 1633 que le hace retirar <i>El mundo</i>", "Niega las ideas innatas y el yo sustancial", "Precedente del argumento ontológico"], 2),
+    C("San Anselmo", ["Precedente del cogito (<i>si fallor, sum</i>)", "Condena de 1633 que le hace retirar <i>El mundo</i>", "Niega las ideas innatas y el yo sustancial", "Precedente del argumento ontológico"], 3)],
+    ["Agustín 354–430; Galileo 1564–1642; Hume 1711–1776; Anselmo 1033–1109."], "Agustín–cogito, Galileo–condena, Hume–crítica, Anselmo–ontológico");
+  R("hd40", "Explica la duda metódica de Descartes y el cogito. Compáralo con San Agustín. (Pregunta tipo PAU)", 9, [
+    { t: "Caracteriza la duda: metódica, provisional, universal e hiperbólica (no escepticismo)", p: 0.4 },
+    { t: "Expone los tres niveles: sentidos, sueño y genio maligno", p: 0.5 },
+    { t: "Explica el cogito: resiste al genio maligno; es intuición; prueba el yo como cosa pensante", p: 0.5 },
+    { t: "Enuncia el criterio de evidencia: claridad y distinción", p: 0.3 },
+    { t: "Compara con Agustín (<i>si fallor, sum</i>): punto de partida del sistema frente a argumento puntual", p: 0.3 }],
+    ["Duda.", "Tres niveles.", "Cogito.", "Evidencia.", "Agustín."], "Duda metódica → cogito → criterio de evidencia");
+  R("hd41", "Explica el papel de Dios en el sistema de Descartes: las pruebas de su existencia, su veracidad y el origen del error. Valora críticamente. (Pregunta tipo PAU)", 9, [
+    { t: "Explica por qué necesita a Dios tras el cogito (genio maligno, criterio de evidencia)", p: 0.3 },
+    { t: "Expone al menos dos pruebas: idea de infinito, mi imperfección, ontológica", p: 0.6 },
+    { t: "Explica Dios veraz y garantía de la evidencia", p: 0.4 },
+    { t: "Explica el origen del error: voluntad frente a entendimiento", p: 0.3 },
+    { t: "Valora: círculo cartesiano, crítica de Hume o Kant", p: 0.4 }],
+    ["Por qué Dios.", "Pruebas.", "Dios veraz.", "Error.", "Crítica."], "Dios veraz garantiza la evidencia; error = mal uso de la voluntad");
+  R("hd42", "Explica las tres sustancias y el dualismo cartesiano, y su problema principal. Compáralo con Platón o Aristóteles. (Pregunta tipo PAU)", 8, [
+    { t: "Define sustancia y las tres sustancias con su atributo (pensamiento, extensión, perfección)", p: 0.5 },
+    { t: "Explica el dualismo y el argumento (clara y distintamente por separado; mente indivisible, cuerpo divisible)", p: 0.5 },
+    { t: "Expone el mecanicismo y los animales-máquina", p: 0.3 },
+    { t: "Plantea el problema de la interacción (Elisabeth de Bohemia, glándula pineal)", p: 0.4 },
+    { t: "Compara con Platón o Aristóteles (hilemorfismo)", p: 0.3 }],
+    ["Sustancias.", "Dualismo.", "Mecanicismo.", "Interacción.", "Comparación."], "Dualismo de sustancias: pensante y extensa");
+  R("hd43", "Explica las cuatro reglas del método de Descartes y el criterio de evidencia, con un ejemplo. (Pregunta tipo PAU)", 8, [
+    { t: "Enuncia las cuatro reglas: evidencia, análisis, síntesis y enumeración", p: 0.6 },
+    { t: "Explica la evidencia: claro y distinto, sin precipitación ni prevención", p: 0.5 },
+    { t: "Pone un ejemplo coherente (resolver un problema, estudiar un tema)", p: 0.3 },
+    { t: "Relaciona con las matemáticas como modelo", p: 0.3 },
+    { t: "Relaciona con el contexto: crisis de las certezas y ciencia moderna", p: 0.3 }],
+    ["Cuatro reglas.", "Evidencia.", "Ejemplo.", "Matemáticas.", "Contexto."], "Método de cuatro reglas modelado en las matemáticas");
+  R("hd44", "Comenta este texto: «Advertí que, mientras quería pensar de este modo que todo era falso, era necesario que yo, que lo pensaba, fuese algo. Y notando que esta verdad: pienso, luego existo, era tan firme y segura que las suposiciones más extravagantes de los escépticos no eran capaces de conmoverla, juzgué que podía admitirla sin escrúpulo como el primer principio de la filosofía que buscaba» (Descartes, <i>Discurso del método</i>, IV; traducción habitual). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: el cogito como primera verdad indudable", p: 0.3 },
+    { t: "Idea principal: aunque todo sea falso, el que lo piensa existe; es el primer principio", p: 0.4 },
+    { t: "Aclara términos: duda hiperbólica, intuición, escépticos, primer principio", p: 0.4 },
+    { t: "Relaciona con el autor: criterio de evidencia, res cogitans, Dios veraz, dualismo", p: 0.5 },
+    { t: "Compara con Agustín, Hume o Kant", p: 0.3 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario del cogito");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "La escalera de la duda",
+      pasos: ["Los sentidos: a veces me engañan.", "El sueño: no distingo sueño de vigilia.", "El genio maligno: me engaña hasta en matemáticas.", "Lo que resiste: pienso, luego existo."],
+      nota: "Duda metódica: provisional, universal e hiperbólica." },
+    { titulo: "Las tres sustancias", ancha: true,
+      tabla: { cab: ["Sustancia", "Qué es", "Atributo"], filas: [
+        ["Res cogitans", "alma, mente", "pensamiento"],
+        ["Res extensa", "materia, cuerpo", "extensión"],
+        ["Res infinita", "Dios", "perfección infinita"]
+      ] } },
+    { titulo: "Racionalismo y empirismo", ancha: true,
+      tabla: { cab: ["", "Descartes", "Hume"], filas: [
+        ["Fuente del saber", "la razón", "la experiencia"],
+        ["Ideas innatas", "sí", "no"],
+        ["Modelo", "matemáticas", "observación"],
+        ["Yo", "sustancia pensante", "haz de percepciones"]
+      ] } },
+    { titulo: "Tres pruebas de Dios", ancha: true,
+      tabla: { cab: ["Prueba", "Idea central"], filas: [
+        ["Idea de infinito", "la causa tiene tanta realidad como el efecto"],
+        ["Mi imperfección", "no me doy ni me conservo la existencia"],
+        ["Ontológica", "la existencia es una perfección"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Descartes es escéptico", bien: "La duda es un método provisional", por: "Duda para llegar a una certeza." },
+        { mal: "El cogito es un silogismo", bien: "Es una intuición inmediata", por: "No hay premisas intermedias." },
+        { mal: "El cogito prueba el mundo exterior", bien: "Prueba el yo como cosa pensante", por: "El mundo se recupera con Dios veraz." },
+        { mal: "El genio maligno existe de verdad", bien: "Es una hipótesis para dudar", por: "Basta con que sea posible." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t9", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf9a.secciones,
+    nuevas: B.parte.hf9a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
