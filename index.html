@@ -44900,6 +44900,609 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 8: El Renacimiento y el nacimiento de la ciencia moderna
+   (parte A: teoría. Parte B, historia_fil_t08b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Teocentrismo frente a antropocentrismo: no es «ateísmo», es otro centro de atención → sección 1 + humanismo (nueva 6) + tabla.
+   2. Geocentrismo frente a heliocentrismo: quién propuso qué y por qué importó (no solo astronomía) → sección 2 + tabla.
+   3. Copérnico (hipótesis matemática, 1543) frente a Galileo (descripción verdadera, con telescopio) → sección 2 + ojo.
+   4. El caso Galileo (1616, 1633): qué pasó de verdad; no fue quemado ni torturado → nueva 8.
+   5. Qué es el método científico moderno: matemáticas + experimentación; hipótesis, deducción y contraste → sección 3 + nueva 7 (con cifras).
+   6. «El libro de la naturaleza está escrito en lenguaje matemático» (Galileo, El Ensayador) → sección 3 + comentario.
+   7. Maquiavelo: la «verdad efectiva de la cosa» y la autonomía de la política; «el fin justifica los medios» como caricatura → sección 4 + nueva 9.
+   8. Virtù y fortuna; el zorro y el león; mejor ser temido que amado (si hay que elegir) → nueva 9.
+   9. Cómo cambia la imagen del ser humano y por qué se pasa a la pregunta del conocimiento (Descartes, T9) → sección 5 + mapa.
+   10. Comentario de texto: Maquiavelo, El Príncipe, cap. XV (la verdad efectiva) → comentario resuelto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t8/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. El Renacimiento
+  secciones[0] =
+    "<h5>Qué cambió en el mundo entre 1450 y 1550</h5>" +
+    "<p>Una mentalidad no cambia por capricho: cambia cuando cambia la vida. En la segunda mitad del siglo XV y la primera del XVI ocurren, casi a la vez, varias cosas que sacuden Europa. Conviene saberlas porque en el comentario de texto <b>sitúan al autor</b>.</p>" +
+    "<ul><li><b>Hacia 1450:</b> Gutenberg perfecciona la <b>imprenta</b> de tipos móviles. Los libros dejan de ser un lujo copiado a mano y las ideas circulan con una rapidez nueva.</li>" +
+    "<li><b>1453:</b> los turcos toman <b>Constantinopla</b>. Muchos sabios bizantinos huyen a Italia con manuscritos griegos: se recupera a Platón y a otros autores en su lengua original.</li>" +
+    "<li><b>1492:</b> Colón llega a <b>América</b>. El mundo conocido se agranda y las ideas antiguas sobre la geografía quedan en entredicho.</li>" +
+    "<li><b>1517:</b> Lutero inicia la <b>Reforma protestante</b>: la unidad religiosa de la Europa occidental se rompe.</li>" +
+    "<li><b>1543:</b> se publican <i>Sobre las revoluciones de las esferas celestes</i> (Copérnico) y <i>Sobre la estructura del cuerpo humano</i> (Vesalio, anatomía basada en la disección).</li></ul>" +
+    "<p>Fíjate en el patrón: <b>nuevos textos</b> (imprenta, manuscritos griegos), <b>nuevas tierras</b> (América), <b>nuevas creencias</b> (Reforma) y <b>nuevos instrumentos</b> (telescopio, disección). Cuando tantas «verdades» heredadas se tambalean, es lógico que la gente empiece a fiarse más de su propia razón y de su propia experiencia.</p>" +
+    "<h5>Teocentrismo y antropocentrismo: una diferencia de acento</h5>" +
+    tabla(["", "Mentalidad medieval (T6–T7)", "Mentalidad renacentista"], [
+      ["Centro del interés", "Dios (teocentrismo)", "El ser humano y su dignidad (antropocentrismo)"],
+      ["Modelo de sabiduría", "La Biblia y los Padres de la Iglesia; la escolástica", "Los clásicos grecolatinos, leídos directamente (humanismo)"],
+      ["Idea de esta vida", "Camino hacia la vida eterna", "Vale por sí misma: se puede ser feliz y creador aquí"],
+      ["Lugar de la razón", "Colabora con la fe (Agustín, Tomás)", "Se aprecia por su capacidad de investigar y crear"],
+      ["Ideal de persona", "El santo, el monje, el teólogo", "El hombre «universal»: artista, sabio y hombre de acción (Leonardo)"]
+    ]) +
+    ojo("Antropocentrismo <b>no</b> significa ateísmo. Casi todos los humanistas eran creyentes. Lo que cambia es el <b>acento</b>: sin negar a Dios, se valora más al ser humano, su libertad y su capacidad de conocer y transformar el mundo. Es un error muy típico escribir «en el Renacimiento se abandona la religión».");
+
+  // ---------------------------------------------------------------- 2. Revolución astronómica
+  secciones[1] =
+    "<h5>El universo que se heredaba</h5>" +
+    "<p>La imagen del cielo que se daba por buena venía de Aristóteles (tema 4) y de <b>Ptolomeo</b> (siglo II d. C., autor del <i>Almagesto</i>). Era un universo ordenado en capas: en el centro, la <b>Tierra inmóvil</b>; alrededor, esferas de cristal que arrastraban la Luna, el Sol, los planetas y las estrellas. Tenía dos ventajas: coincidía con lo que <b>vemos</b> (nadie siente moverse la Tierra y el Sol parece cruzar el cielo) y encajaba con la idea de que el ser humano ocupaba un lugar privilegiado. Su inconveniente: para explicar que los planetas a veces «retroceden» en el cielo hacía falta añadir círculos sobre círculos (los epiciclos), con cálculos cada vez más enrevesados.</p>" +
+    "<h5>Copérnico: poner el Sol en el centro</h5>" +
+    "<p><b>Nicolás Copérnico</b> (1473–1543, Polonia) propuso en <i>Sobre las revoluciones de las esferas celestes</i> (1543) que el <b>Sol</b> está en el centro y que la Tierra es un planeta más, con dos movimientos: gira sobre sí misma cada día (por eso parece que el Sol se mueve) y da una vuelta al Sol cada año. Con ello las trayectorias «hacia atrás» de los planetas se explican con facilidad: es como cuando adelantas a otro coche en la autopista y el que adelantas parece ir hacia atrás.</p>" +
+    ojo("Copérnico <b>no</b> inventó la idea desde cero: Aristarco de Samos (siglo III a. C.) ya la había propuesto, pero fue olvidada. Y el sistema de Copérnico todavía conservaba <b>órbitas circulares</b> perfectas y una esfera de estrellas fijas; las órbitas <b>elípticas</b> las formulará Kepler (1571–1630) en 1609. Tampoco fue Copérnico quien chocó con la Inquisición: murió en 1543 y su libro se suspendió «hasta ser corregido» en 1616.") +
+    "<h5>Galileo: mirar por el telescopio y atreverse a decirlo</h5>" +
+    "<p><b>Galileo Galilei</b> (1564–1642) no inventó el telescopio (se fabricaba ya en Holanda), pero en 1609 construyó uno mejor y lo apuntó al cielo. En 1610 publicó <i>El mensajero sideral</i> con lo que había visto: montañas y cráteres en la <b>Luna</b> (el cielo no es perfecto ni liso), cuatro <b>lunas de Júpiter</b> (no todo gira alrededor de la Tierra), las fases de Venus (que encajan con un Venus que gira alrededor del Sol) y muchas más estrellas de las que se veían a simple vista.</p>" +
+    tabla(["", "Copérnico (1473–1543)", "Galileo (1564–1642)"], [
+      ["Cuándo", "Obra de 1543", "Observaciones de 1609–1610; <i>Diálogo</i> de 1632"],
+      ["Con qué argumenta", "Sencillez y orden matemático del modelo", "Observaciones con telescopio y razonamiento físico"],
+      ["Cómo ve el heliocentrismo", "Hipótesis matemática útil para calcular (al principio)", "Descripción <b>verdadera</b> del universo"],
+      ["Consecuencia", "Libro suspendido «hasta ser corregido» en 1616", "Proceso y retractación en 1633"]
+    ]) +
+    "<h5>Por qué fue también un problema filosófico</h5>" +
+    "<p>Si la Tierra es un planeta más, tres cosas se tambalean a la vez: (1) la <b>física de Aristóteles</b>, que distinguía un mundo terrestre cambiante de un cielo perfecto e inmutable; (2) la lectura <b>literal</b> de pasajes bíblicos (como el de Josué deteniendo el Sol), y (3) la sensación de que el ser humano vive en el <b>centro</b> del universo. De ahí que no fuera solo un debate de astrónomos.</p>";
+
+  // ---------------------------------------------------------------- 3. Método
+  secciones[2] =
+    "<h5>Qué es un método y por qué fue la verdadera revolución</h5>" +
+    "<p>Un <b>método</b> es un camino ordenado para llegar a conocimientos fiables. Los griegos habían observado mucho y razonado muy bien, pero la ciencia moderna añade dos cosas que casi no se habían hecho de forma sistemática. Piensa en cómo averiguarías si un coche gasta más con las ventanillas abiertas: el método antiguo sería «razonar» sobre ello; el moderno, <b>hacer la prueba dos veces, cambiando solo esa condición, y medir los litros</b>.</p>" +
+    ejemplo("Los dos ingredientes", "Qué aporta cada uno", [
+      "<b>Matemáticas:</b> las leyes se escriben con números y fórmulas, así que se pueden <b>medir, predecir y comprobar</b>. «Los cuerpos pesados caen más deprisa» es una idea vaga; «la distancia es proporcional al cuadrado del tiempo» es una ley que se puede contrastar.",
+      "<b>Experimentación:</b> no basta con mirar; se <b>provoca</b> el fenómeno en condiciones controladas, variando una cosa cada vez. Si la hipótesis predice un resultado y no sale, se descarta.",
+      "<b>Resultado:</b> un conocimiento que cualquiera puede repetir y que no depende de la autoridad de nadie, ni siquiera de Aristóteles."
+    ]) +
+    "<h5>La frase de Galileo, comentada</h5>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Galileo, <em>El Ensayador</em>, 1623; traducción española habitual, abreviada, que varía según la edición):<br><em>«La filosofía está escrita en ese grandísimo libro que tenemos abierto ante los ojos, quiero decir, el universo; pero no se puede entender si antes no se aprende su lengua y se conocen los caracteres en que está escrito. Está escrito en lengua matemática, y sus caracteres son triángulos, círculos y otras figuras geométricas.»</em></blockquote>" +
+    "<p>Tres ideas: (1) la naturaleza es <b>inteligible</b>, tiene un orden que se puede descifrar; (2) ese orden es <b>matemático</b>; (3) por tanto, quien quiera entender la naturaleza debe aprender matemáticas, no solo leer a los antiguos. Galileo distingue además entre lo que se puede <b>medir</b> (tamaño, figura, movimiento) y lo que depende de quien lo percibe (sabores, olores, colores); la ciencia se ocupará de lo primero. Esa distinción reaparecerá en Descartes (tema 9) y en Locke (tema 10).</p>" +
+    ojo("«Observar» y «experimentar» no son sinónimos. Aristóteles observaba muy bien (por ejemplo, animales), pero casi nunca <b>manipulaba</b> las condiciones. Experimentar es preguntar a la naturaleza con una situación preparada y esperar su respuesta medible.");
+
+  // ---------------------------------------------------------------- 4. Maquiavelo
+  secciones[3] =
+    "<h5>Quién fue Maquiavelo y por qué escribe</h5>" +
+    "<p><b>Nicolás Maquiavelo</b> (1469–1527) fue un funcionario de la república de <b>Florencia</b>: durante años negoció con reyes, papas y mercenarios. Cuando los Médici recuperaron el poder (1512) lo apartaron, lo encarcelaron un tiempo y se retiró al campo. Allí escribió, hacia <b>1513</b>, <i>El Príncipe</i>, que no se publicó hasta 1532, cinco años después de su muerte. Italia estaba dividida en ciudades-Estado débiles, invadidas por Francia y España; a Maquiavelo le preocupaba cómo <b>conseguir y conservar un Estado fuerte</b>.</p>" +
+    "<h5>El método de Maquiavelo: partir de la realidad</h5>" +
+    "<p>El capítulo XV de <i>El Príncipe</i> lo dice con claridad: prefiere ir a «la verdad efectiva de la cosa» antes que a «la imaginación de ella». Los autores anteriores (Platón en la <i>República</i>, Agustín en <i>La Ciudad de Dios</i>, Tomás con su ley natural) describían cómo <b>debería</b> ser un buen gobierno. Maquiavelo describe cómo <b>funciona</b> el poder en la práctica, igual que otros estaban describiendo cómo funciona la naturaleza. Por eso se le considera un fundador de la <b>política moderna</b>.</p>" +
+    tabla(["", "Política medieval", "Maquiavelo"], [
+      ["Punto de partida", "Un ideal moral y religioso (ley natural, bien común)", "La experiencia: historia y trato con los hombres"],
+      ["Pregunta", "¿Cómo debe gobernar un príncipe justo?", "¿Cómo se consigue y se conserva el poder?"],
+      ["Relación con la moral", "La política está subordinada a la moral", "La política tiene su propia lógica, autónoma"],
+      ["Criterio de éxito", "Cumplir la ley de Dios y el bien común", "Mantener el Estado estable y seguro"]
+    ]) +
+    ojo("«El fin justifica los medios» no aparece así en <i>El Príncipe</i>. Resume una idea suya (en los asuntos de Estado se juzga por el resultado), pero Maquiavelo <b>no</b> dice que todo valga: aconseja evitar ser odiado y desaconseja la crueldad inútil. Y tampoco dice que la moral sea falsa; dice que el príncipe que quiera ser siempre bueno entre malos «se arruinará».");
+
+  // ---------------------------------------------------------------- 5. Nuevo lugar del ser humano
+  secciones[4] =
+    "<h5>De la síntesis medieval a la pregunta moderna</h5>" +
+    "<p>Pon juntos los cuatro cambios: (1) el ser humano ocupa el <b>centro del interés</b> (humanismo); (2) la Tierra deja de ser el centro del universo (Copérnico, Galileo); (3) la naturaleza se estudia con <b>matemáticas y experimentos</b>, no solo con citas de autoridades; (4) el poder político se explica por <b>causas humanas</b> y no por un orden divino (Maquiavelo). Es paradójico: el ser humano gana importancia como sujeto que conoce y decide, y a la vez pierde el centro físico del cosmos.</p>" +
+    "<p>La síntesis de fe y razón de Agustín y Tomás (temas 6 y 7) ya no basta como punto de partida. Surge una pregunta nueva, que organiza los temas 9 a 12: <b>si la autoridad ya no garantiza la verdad, ¿cómo puede la razón, por sí sola, llegar a un conocimiento seguro?</b> Dos respuestas competirán: el <b>racionalismo</b> (Descartes, tema 9: la razón y las ideas innatas) y el <b>empirismo</b> (Locke y Hume, tema 10: la experiencia), y entre medias Rousseau (tema 11) piensa la sociedad desde el ser humano; hasta que Kant (tema 12) intente unir razón y experiencia.</p>" +
+    ejemplo("Un esquema para recordarlo", "De la Edad Media a la Edad Moderna", [
+      "<b>Antes:</b> Dios en el centro → la verdad se apoya en la autoridad (Biblia, Aristóteles, la Iglesia).",
+      "<b>Después:</b> el ser humano investiga → la verdad se busca con la razón y la experiencia.",
+      "<b>Pregunta resultante:</b> ¿cómo conocemos con seguridad? (Descartes, Locke, Hume, Kant)."
+    ]);
+
+  // ---------------------------------------------------------------- Secciones nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. El humanismo: la dignidad del ser humano", html:
+    "<p>El <b>humanismo</b> fue un movimiento cultural que defendía estudiar las «humanidades» (gramática, retórica, historia, poesía y filosofía moral) leyendo a los clásicos en su lengua original y sin filtro medieval. Algunas figuras que conviene reconocer:</p>" +
+    tabla(["Autor", "Fechas", "Obra y aportación"], [
+      ["Petrarca", "1304–1374", "Considerado el «padre» del humanismo; recupera a los clásicos latinos."],
+      ["Pico della Mirandola", "1463–1494", "<i>Discurso sobre la dignidad del hombre</i> (1486): el ser humano no tiene naturaleza fija y se hace a sí mismo."],
+      ["Erasmo de Róterdam", "1466–1536", "<i>Elogio de la locura</i> (1511): sátira de la ignorancia y los abusos; defensa de un cristianismo más interior."],
+      ["Tomás Moro", "1478–1535", "<i>Utopía</i> (1516): una sociedad imaginaria que critica la injusticia de la Europa de su tiempo."],
+      ["Leonardo da Vinci", "1452–1519", "Pintor, ingeniero y científico: el ideal del hombre «universal»."]
+    ]) +
+    "<p>La idea más famosa del humanismo es la de Pico. Parafraseando su texto: Dios coloca a Adán en el mundo sin darle un lugar, un rostro ni una función fijos, y le dice que será él mismo quien, con su libertad, elija ser algo inferior (como un animal) o elevarse hasta lo divino. Así, la <b>dignidad</b> humana consiste en poder <b>hacerse a sí mismo</b>. Compara: en la visión medieval cada uno ocupa un lugar en el orden querido por Dios; aquí cada uno lo construye.</p>" +
+    ojo("Pico no está contra la religión: su ser humano libre sigue siendo criatura de Dios. Y el humanismo no inventa la razón: la <b>reorienta</b> hacia el mundo y hacia el ser humano.") });
+
+  nuevas.push({ h: "7. El método de Galileo paso a paso, con un experimento", html:
+    "<p>El método de Galileo se suele resumir como <b>hipotético-deductivo</b>: se parte de una observación, se formula una hipótesis, se deducen sus consecuencias medibles y se contrastan con un experimento. Veámoslo con su problema más famoso: la <b>caída de los cuerpos</b>.</p>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Problema.</b> Aristóteles sostenía que los cuerpos pesados caen más deprisa. ¿Es cierto?</li>" +
+    "<li><b>Idea simplificadora.</b> Galileo razona que, si se elimina la resistencia del aire, todos los cuerpos caerían igual. Pero caer es demasiado rápido para medirlo con los relojes de la época.</li>" +
+    "<li><b>Experimento.</b> Hace rodar bolas por un <b>plano inclinado</b>, que «frena» la caída y permite medirla (con un reloj de agua). Mide cuánto recorre la bola en tiempos iguales.</li>" +
+    "<li><b>Hipótesis matemática.</b> Si el movimiento es uniformemente acelerado, la distancia recorrida es proporcional al <b>cuadrado del tiempo</b>.</li>" +
+    "<li><b>Deducción comprobable.</b> En tiempos iguales sucesivos, los trozos recorridos están en la proporción de los <b>números impares</b>: 1 : 3 : 5 : 7…</li>" +
+    "<li><b>Contraste.</b> Los resultados medidos coinciden con la predicción: la hipótesis se mantiene (de momento).</li></ol>" +
+    ejemplo("Compruébalo con números", "Si desde el reposo la distancia total es proporcional a t²", [
+      "En 1, 2, 3 y 4 unidades de tiempo, la distancia total es proporcional a 1, 4, 9 y 16.",
+      "El trozo recorrido en cada unidad de tiempo es la diferencia: 1, 3, 5 y 7.",
+      "Esos son los números impares consecutivos: la <b>regla de los impares</b> de Galileo. Una consecuencia medible que confirma la hipótesis."
+    ]) +
+    "<p>Fíjate en lo importante: la ley (distancia ∝ tiempo²) <b>no depende del peso</b> del cuerpo, lo que contradice a Aristóteles. Y la ciencia ha ganado una forma de decidir quién tiene razón: no el prestigio, sino el <b>experimento</b>.</p>" +
+    ojo("Es una leyenda que Galileo dejara caer bolas desde la Torre de Pisa (no hay prueba de ello). Sus experimentos reales fueron con el plano inclinado. Tampoco ocurrió que la ciencia «naciera de golpe» con Galileo: hubo precedentes (Leonardo, Copérnico, Kepler) y después vendrán Bacon (inducción, <i>Novum Organum</i>, 1620), Descartes (deducción) y Newton.") +
+    tabla(["", "Física aristotélica", "Ciencia de Galileo"], [
+      ["Cómo se conoce", "Observación cualitativa y razonamiento", "Medición y experimento"],
+      ["Lenguaje", "Conceptos y causas finales", "Matemáticas y leyes"],
+      ["Cielo y Tierra", "Dos mundos distintos", "Mismas leyes en todo el universo"],
+      ["Árbitro final", "La autoridad de los antiguos", "El contraste con la experiencia"]
+    ]) });
+
+  nuevas.push({ h: "8. Ciencia e Iglesia: el caso Galileo", html:
+    "<p>Para entender el caso Galileo hay que evitar dos simplificaciones: «la Iglesia odiaba la ciencia» y «Galileo era un mártir quemado». La realidad es más precisa.</p>" +
+    "<ul><li><b>1610:</b> Galileo publica sus observaciones. Astrónomos jesuitas las confirman; también tiene detractores académicos.</li>" +
+    "<li><b>1616:</b> la Iglesia declara que el heliocentrismo, como descripción verdadera del mundo, es contrario a la Escritura; el libro de Copérnico se suspende «hasta ser corregido». Se pide a Galileo que no lo defienda como verdad.</li>" +
+    "<li><b>1632:</b> Galileo publica el <i>Diálogo sobre los dos máximos sistemas del mundo</i> (el ptolemaico y el copernicano), donde el defensor del sistema antiguo queda en ridículo.</li>" +
+    "<li><b>1633:</b> el Santo Oficio le juzga; con 69 años, se <b>retracta</b> y es condenado a arresto domiciliario, que cumple hasta su muerte en <b>1642</b>.</li>" +
+    "<li><b>1638:</b> aun así consigue publicar en Holanda sus <i>Discursos sobre dos nuevas ciencias</i>, con su física del movimiento.</li></ul>" +
+    ojo("Galileo <b>no</b> fue quemado (eso le pasó a Giordano Bruno en 1600, por razones teológicas más amplias) ni encarcelado en una mazmorra. La frase «<i>Eppur si muove</i>» («y sin embargo se mueve») es una tradición posterior, no un hecho comprobado.") +
+    "<p>Lo importante para la filosofía: el choque no fue «ciencia contra fe» en abstracto, sino sobre <b>quién decide</b> lo que se sabe de la naturaleza. Galileo defendía que la Biblia enseña cómo se va al cielo, no cómo va el cielo; es decir, que fe y ciencia tienen ámbitos distintos. Esa separación será una de las bases de la modernidad.</p>" });
+
+  nuevas.push({ h: "9. Maquiavelo con más detalle: virtù, fortuna y razón de Estado", html:
+    "<p>Para comentar <i>El Príncipe</i> basta con dominar unas pocas ideas, bien explicadas.</p>" +
+    "<ul><li><b>Realismo político.</b> Parte de cómo son los hombres: según Maquiavelo, en general son ingratos, volubles e interesados. Un gobernante que confíe en su bondad se arruina.</li>" +
+    "<li><b>Virtù.</b> No es «virtud moral» cristiana, sino la <b>capacidad, energía y habilidad</b> del gobernante para actuar con eficacia, aprovechar las ocasiones y mantener el poder.</li>" +
+    "<li><b>Fortuna.</b> El azar y las circunstancias. Maquiavelo la compara con un río que se desborda: no se puede impedir, pero con diques construidos a tiempo se reducen los daños. La fortuna decide quizá la mitad de lo que ocurre; la otra mitad depende de la <b>virtù</b>.</li>" +
+    "<li><b>El zorro y el león.</b> El príncipe debe saber ser como el zorro (para reconocer las trampas) y como el león (para espantar a los lobos): astucia y fuerza.</li>" +
+    "<li><b>¿Amado o temido?</b> Lo ideal sería ser ambas cosas; como es difícil, aconseja ser temido, pero no odiado. Respeta los bienes y las mujeres de los súbditos, porque nada provoca más odio.</li>" +
+    "<li><b>Razón de Estado.</b> Cuando está en juego la supervivencia del Estado, el gobernante puede verse obligado a actuar contra la moral corriente (engañar, usar la fuerza). Se juzga por los <b>resultados</b>.</li></ul>" +
+    tabla(["Concepto", "Significado en Maquiavelo", "Error típico"], [
+      ["Virtù", "Capacidad y habilidad políticas", "Confundirla con la virtud moral cristiana"],
+      ["Fortuna", "Circunstancias y azar", "Pensar que no se puede hacer nada frente a ella"],
+      ["Verità effettuale", "La realidad tal como funciona", "Creer que niega toda moral"],
+      ["Autonomía de la política", "Tiene su propia lógica", "Decir que «la política no tiene reglas»"]
+    ]) +
+    "<p><b>Otra obra importante:</b> los <i>Discursos sobre la primera década de Tito Livio</i> (compuestos hacia 1513–1519), donde Maquiavelo admira la <b>república</b> romana y defiende que el conflicto entre grupos puede, bien encauzado, fortalecer la libertad. No fue, por tanto, un simple defensor del tirano: fue un republicano que escribió para un príncipe.</p>" });
+
+  nuevas.push({ h: "10. Mapa del tema: relaciones con otros autores", html:
+    "<p>En la PAU se pide relacionar y comparar. Estas son las comparaciones más rentables:</p>" +
+    tabla(["Autor / tema", "Relación"], [
+      ["Aristóteles (T4)", "Su física y su geocentrismo son el blanco de la nueva ciencia; en la política, Aristóteles hacía del bien común el fin de la polis, mientras Maquiavelo parte del poder real."],
+      ["Platón (T3)", "Platón proponía la ciudad ideal gobernada por filósofos; Maquiavelo critica a quienes se imaginan «repúblicas que nunca se han visto». Los humanistas, además, redescubren a Platón en su lengua original."],
+      ["Agustín (T6)", "Historia lineal bajo el plan de Dios; en Maquiavelo, el poder se explica por causas humanas (virtù y fortuna)."],
+      ["Tomás de Aquino (T7)", "Política sometida a la ley natural; Maquiavelo separa política y moral. Tomás integraba a Aristóteles en la fe; la nueva ciencia rompe con la física aristotélica."],
+      ["Descartes (T9)", "Continúa la reflexión sobre el método, ahora desde la razón (deducción y matemáticas); Bacon (1561–1626) había propuesto partir de la experiencia (inducción)."],
+      ["Locke y Hume (T10)", "Desarrollan el camino de la experiencia que abre la nueva ciencia."],
+      ["Rousseau (T11)", "Piensa la sociedad y el poder desde el ser humano, no desde un orden divino: un camino que abre Maquiavelo."]
+    ]) +
+    "<h5>Cuadro-resumen: lo que hay que saber</h5>" +
+    tabla(["Ámbito", "Idea clave"], [
+      ["Mentalidad", "Del teocentrismo al antropocentrismo; humanismo: vuelta a los clásicos y dignidad del ser humano."],
+      ["Astronomía", "Copérnico (1543): heliocentrismo; Galileo: lo defiende como verdadero con el telescopio (1610) y es condenado en 1633."],
+      ["Método", "Matemáticas + experimentación controlada; el libro de la naturaleza está escrito en lenguaje matemático."],
+      ["Política", "Maquiavelo (<i>El Príncipe</i>, 1513): realismo; la política como técnica autónoma, separada de la moral."],
+      ["Consecuencia", "El ser humano pierde el centro del cosmos y gana protagonismo como sujeto que conoce: nace el problema del conocimiento (Descartes)."]
+    ]) });
+
+  nuevas.push({ h: "11. Comentario de texto resuelto: la verdad efectiva de la cosa", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Maquiavelo, <em>El Príncipe</em>, cap. XV; traducción española habitual, abreviada, que varía según la edición):<br><em>«Siendo mi intención escribir algo útil para quien lo entienda, me ha parecido más conveniente ir directamente a la verdad efectiva de la cosa que a la imaginación de ella. Muchos se han imaginado repúblicas y principados que jamás se han visto ni se ha sabido que existieran de verdad; porque hay tanta distancia de cómo se vive a cómo se debería vivir, que quien deja lo que se hace por lo que se debería hacer aprende más bien su ruina que su preservación.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Nicolás Maquiavelo (1469–1527), <i>El Príncipe</i>, escrito hacia 1513 y publicado en 1532, en la Florencia del Renacimiento, dividida en ciudades-Estado débiles.</li>" +
+    "<li><b>2. Tema.</b> El método que debe seguir quien reflexiona sobre la política: partir de lo real, no de lo ideal.</li>" +
+    "<li><b>3. Idea principal.</b> Hay que estudiar el poder como es («verdad efectiva»), porque quien actúa según cómo «debería» ser el mundo en vez de cómo es, se arruina.</li>" +
+    "<li><b>4. Términos e ideas secundarias.</b> (a) «Verdad efectiva de la cosa»: la realidad tal como funciona. (b) «Imaginación»: los modelos ideales, como la ciudad de Platón o la Ciudad de Dios. (c) «Distancia entre cómo se vive y cómo se debería vivir»: el problema de la política. (d) «Ruina / preservación»: el criterio de acierto es conservar el Estado.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Con su idea de virtù (actuar con eficacia), con la fortuna, con la autonomía de la política respecto de la moral y con su consejo de ser «zorro y león». Todo parte del mismo realismo.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con Platón (T3): para Platón la política debe imitar el Bien y gobiernan los filósofos; para Maquiavelo importa lo que funciona. Con Tomás (T7): la ley humana debe ajustarse a la ley natural; Maquiavelo no subordina el poder a la moral religiosa. Con Galileo: el mismo giro hacia la realidad medida y observada frente al ideal heredado.</li>" +
+    "<li><b>7. Valora y concluye.</b> Aporta una descripción lúcida del poder y funda la ciencia política; pero se le critica que, si el éxito es el único criterio, se justifique cualquier abuso. Su influencia llega a la teoría moderna del Estado.</li></ol>" +
+    ojo("Errores típicos: (1) decir que Maquiavelo defiende «todo vale»; (2) no explicar qué es la «verdad efectiva»; (3) olvidar situarlo en la Florencia renacentista; (4) comparar con Platón sin decir en qué difieren.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema. Otro comentario habitual es el de Galileo sobre el libro de la naturaleza (sección 3): tema, tres ideas (inteligibilidad, lenguaje matemático, necesidad de aprenderlo), relación con el método y comparación con Aristóteles.</p>" });
+
+  nuevas.push({ h: "12. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Del teocentrismo al antropocentrismo", "Respuesta modelo:", [
+      "<b>Definir.</b> Teocentrismo: Dios como centro del pensamiento y de la vida (Edad Media). Antropocentrismo: el ser humano, su razón y su creatividad, en el centro (Renacimiento).",
+      "<b>Explicar.</b> Humanismo: recuperación de los clásicos grecolatinos; la dignidad humana (Pico della Mirandola). Se valora la vida terrena. No se niega a Dios.",
+      "<b>Relacionar.</b> Con la síntesis de Agustín y Tomás y con la ciencia de Galileo.",
+      "<b>Concluir.</b> Prepara la pregunta moderna sobre el conocimiento."
+    ]) +
+    ejemplo("Pregunta 2. El método científico moderno", "Respuesta modelo:", [
+      "<b>Definir.</b> Combina matemáticas y experimentación controlada.",
+      "<b>Explicar.</b> Ley matemática, hipótesis, deducción de consecuencias medibles, experimento (plano inclinado). Frase del libro de la naturaleza.",
+      "<b>Relacionar.</b> Frente a la física de Aristóteles (cualitativa y sin experimentos).",
+      "<b>Concluir.</b> La autoridad es sustituida por el contraste con la experiencia."
+    ]) +
+    ejemplo("Pregunta 3. Copérnico y Galileo", "Respuesta modelo:", [
+      "<b>Contexto.</b> Geocentrismo de Ptolomeo y Aristóteles frente al heliocentrismo de Copérnico (1543).",
+      "<b>Diferencia.</b> Copérnico lo propone como hipótesis matemática; Galileo lo defiende como verdadero con el telescopio (1610) y es obligado a retractarse (1633).",
+      "<b>Alcance filosófico.</b> Cuestiona la física aristotélica y el lugar privilegiado del ser humano."
+    ]) +
+    ejemplo("Pregunta 4. Maquiavelo y la política", "Respuesta modelo:", [
+      "<b>Idea.</b> Realismo: analiza el poder tal como es, no como debería ser.",
+      "<b>Aportación.</b> La política es una técnica autónoma, separada de la moral y la religión; conceptos de virtù y fortuna.",
+      "<b>Relación y crítica.</b> Frente a Tomás (ley natural); riesgo de justificar cualquier abuso; fundamento de la ciencia política moderna."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Une, clasifica y ordena</h5>" +
+    w("clasificar", "mentalidad") + w("emparejar", "autores") + w("orden", "camino") +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf8a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 8 (parte B): El Renacimiento y el nacimiento de la ciencia moderna
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t8.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "El <b>Renacimiento</b> pasa del teocentrismo al <b>antropocentrismo</b>: el ser humano, su razón y su dignidad ganan protagonismo.",
+    "<b>Copérnico</b> (1543) y <b>Galileo</b> (1610–1633) sustituyen el geocentrismo por el <b>heliocentrismo</b>.",
+    "La revolución es de <b>método</b>: matemáticas + experimentación controlada.",
+    "<b>Maquiavelo</b> (1513) estudia el poder tal como es: la política se separa de la moral.",
+    "Sin la autoridad como garantía, nace la pregunta moderna: ¿cómo conocemos con seguridad?"
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Renacimiento y ciencia moderna · siglos XV–XVII",
+    autores: [
+      { n: "Nicolás Copérnico", f: "1473–1543", l: "Polonia" },
+      { n: "Nicolás Maquiavelo", f: "1469–1527", l: "Florencia" },
+      { n: "Galileo Galilei", f: "1564–1642", l: "Pisa, Padua, Florencia" }
+    ],
+    obras: ["Sobre las revoluciones de las esferas celestes", "El Príncipe", "El mensajero sideral", "El Ensayador", "Diálogo sobre los dos máximos sistemas del mundo"],
+    bloques: [
+      { t: "Contexto", frases: ["Imprenta (hacia 1450), Constantinopla (1453), América (1492), Reforma (1517).", "Se tambalean las verdades heredadas de la Edad Media."] },
+      { t: "Mentalidad: humanismo", frases: ["Recuperación de los clásicos grecolatinos.", "El ser humano y su dignidad pasan al centro.", "No se abandona a Dios: cambia el acento."],
+        tabla: { cab: ["Edad Media", "Renacimiento"], filas: [["teocentrismo", "antropocentrismo"], ["Biblia y escolástica", "clásicos grecolatinos"]] } },
+      { t: "Revolución astronómica", frases: ["Copérnico (1543): el Sol en el centro.", "Galileo: telescopio (1610) y defensa del heliocentrismo.", "Condena en 1633; arresto domiciliario hasta 1642."],
+        tabla: { cab: ["Geocentrismo", "Heliocentrismo"], filas: [["Tierra inmóvil en el centro", "Sol en el centro"], ["Aristóteles y Ptolomeo", "Copérnico y Galileo"]] } },
+      { t: "Nuevo método científico", frases: ["Matemáticas para expresar las leyes con precisión.", "Experimentación controlada para contrastar hipótesis.", "El libro de la naturaleza está escrito en lenguaje matemático."] },
+      { t: "Política: Maquiavelo", frases: ["<i>El Príncipe</i> (1513): el poder tal como es.", "Virtù y fortuna; el zorro y el león.", "La política es autónoma respecto de la moral."],
+        tabla: { cab: ["Política medieval", "Maquiavelo"], filas: [["subordinada a la moral", "técnica autónoma"], ["cómo debe ser", "cómo funciona"]] } },
+      { t: "El ser humano y el cosmos", frases: ["Pierde el centro físico del universo.", "Gana protagonismo como sujeto que conoce.", "Prepara la pregunta de Descartes sobre el conocimiento."] }
+    ],
+    resumen: [
+      "Del <b>teocentrismo</b> al <b>antropocentrismo</b>; humanismo y vuelta a los clásicos.",
+      "<b>Heliocentrismo</b>: Copérnico lo propone y Galileo lo defiende como verdadero.",
+      "La ciencia moderna es <b>matemática y experimental</b>.",
+      "<b>Maquiavelo</b>: realismo político, política autónoma de la moral.",
+      "Nace el problema del <b>conocimiento</b>: Descartes, empiristas, Kant."
+    ],
+    conecta: [
+      { con: "Aristóteles (T4):", rel: "su física y su geocentrismo quedan superados." },
+      { con: "Agustín y Tomás (T6–T7):", rel: "la síntesis medieval de fe y razón deja de ser el punto de partida." },
+      { con: "Descartes (T9):", rel: "recoge el ideal matemático y se pregunta cómo conocer con seguridad." },
+      { con: "Locke y Hume (T10), Kant (T12):", rel: "siguen el camino de la experiencia y su unión con la razón." }
+    ],
+    claves: [
+      ["Antropocentrismo", "el ser humano y su razón en el centro del interés"],
+      ["Humanismo", "recuperación de los clásicos grecolatinos y de la dignidad humana"],
+      ["Geocentrismo", "la Tierra inmóvil en el centro del universo"],
+      ["Heliocentrismo", "el Sol en el centro, la Tierra como planeta más"],
+      ["Método experimental", "contrastar hipótesis con experimentos controlados"],
+      ["Lenguaje matemático", "la naturaleza se describe con números y geometría"],
+      ["Hipótesis", "explicación provisional cuyas consecuencias se contrastan"],
+      ["Verdad efectiva", "la realidad del poder tal como funciona (Maquiavelo)"],
+      ["Virtù y fortuna", "capacidad del gobernante y circunstancias que no controla"],
+      ["Autonomía de la política", "tiene su propia lógica, separada de la moral y la religión"]
+    ],
+    cita: { txt: "Está escrito en lengua matemática, y sus caracteres son triángulos, círculos y otras figuras geométricas.", autor: "Galileo Galilei", obra: "El Ensayador, 1623 (traducción habitual, abreviada)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    mentalidad: {
+      titulo: "¿Edad Media o Renacimiento?",
+      consigna: "Toca cada rasgo y después la época a la que corresponde.",
+      categorias: ["Edad Media", "Renacimiento"],
+      items: [
+        { t: "Dios como centro del pensamiento", c: 0 },
+        { t: "El ser humano y su dignidad en el centro", c: 1 },
+        { t: "Modelo: la Biblia y los Padres de la Iglesia", c: 0 },
+        { t: "Modelo: los clásicos grecolatinos", c: 1 },
+        { t: "Política subordinada a la ley natural", c: 0 },
+        { t: "Política como técnica autónoma", c: 1 }
+      ]
+    },
+    autores: {
+      titulo: "Autor e idea",
+      consigna: "Une cada autor con su idea.",
+      pares: [["Copérnico", "Heliocentrismo"], ["Galileo", "Libro de la naturaleza"], ["Maquiavelo", "Verdad efectiva"], ["Pico della Mirandola", "Dignidad del hombre"]]
+    },
+    camino: {
+      titulo: "Del Renacimiento a la ciencia moderna",
+      consigna: "Ordena de más antiguo a más reciente.",
+      items: [
+        { t: "1453: los turcos toman Constantinopla" },
+        { t: "1492: Colón llega a América" },
+        { t: "1543: Copérnico publica su obra" },
+        { t: "1610: Galileo publica El mensajero sideral" },
+        { t: "1633: Galileo se retracta ante el Santo Oficio" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 8",
+      preguntas: [
+        { q: "El teocentrismo medieval sitúa en el centro…", op: ["a Dios", "al ser humano", "al Sol", "al Estado"], ok: 0, porque: "El antropocentrismo renacentista desplaza el acento al ser humano." },
+        { q: "El humanismo renacentista se caracteriza por…", op: ["recuperar a los clásicos grecolatinos", "rechazar toda religión", "defender el geocentrismo", "negar la razón"], ok: 0, porque: "Vuelve a los textos clásicos en su lengua original." },
+        { q: "Copérnico publicó su obra en…", op: ["1543", "1492", "1610", "1633"], ok: 0, porque: "Es el año de su muerte y de <i>Sobre las revoluciones de las esferas celestes</i>." },
+        { q: "El heliocentrismo sostiene que…", op: ["el Sol está en el centro", "la Tierra está inmóvil en el centro", "todo gira alrededor de la Luna", "el universo es infinito"], ok: 0, porque: "La Tierra es un planeta más." },
+        { q: "Galileo apoyó el heliocentrismo con…", op: ["observaciones con el telescopio", "un pasaje bíblico", "la física de Aristóteles", "un viaje a América"], ok: 0, porque: "Montañas lunares, lunas de Júpiter, fases de Venus." },
+        { q: "Las dos herramientas del método científico moderno son…", op: ["matemáticas y experimentación", "fe y tradición", "intuición y revelación", "lógica y retórica"], ok: 0, porque: "Leyes cuantitativas contrastadas con experimentos." },
+        { q: "Según Galileo, el libro de la naturaleza está escrito en…", op: ["lenguaje matemático", "latín", "lenguaje simbólico religioso", "griego antiguo"], ok: 0, porque: "Sus caracteres son figuras geométricas." },
+        { q: "<i>El Príncipe</i> fue escrito por…", op: ["Maquiavelo", "Pico della Mirandola", "Erasmo", "Tomás Moro"], ok: 0, porque: "Hacia 1513; se publicó en 1532." },
+        { q: "Para Maquiavelo, la política…", op: ["tiene una lógica propia, autónoma de la moral", "debe subordinarse a la ley natural", "es imposible de estudiar", "es siempre injusta por naturaleza"], ok: 0, porque: "Parte de la «verdad efectiva de la cosa»." },
+        { q: "La pregunta que deja abierta el Renacimiento es…", op: ["cómo puede la razón alcanzar un conocimiento seguro", "si existe el mundo exterior", "dónde está el paraíso", "cuál es el mejor régimen político"], ok: 0, porque: "Es la pregunta de Descartes (tema 9)." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre el Renacimiento es FALSA?", op: ["Los humanistas abandonaron la fe en Dios", "Recuperó a los clásicos grecolatinos", "Valoró la dignidad del ser humano", "Fue posible en parte gracias a la imprenta"], ok: 0, porque: "Casi todos los humanistas eran creyentes: cambia el acento, no se niega a Dios." },
+        { q: "¿Cuál de estas afirmaciones sobre Galileo es FALSA?", op: ["Inventó el telescopio", "Perfeccionó el telescopio en 1609", "Fue condenado en 1633", "Publicó <i>El mensajero sideral</i> en 1610"], ok: 0, porque: "El telescopio ya se fabricaba en Holanda; Galileo lo mejoró y lo usó para observar el cielo." },
+        { q: "¿Cuál de estas afirmaciones sobre el caso Galileo es FALSA?", op: ["Fue quemado vivo", "Se retractó en 1633", "Cumplió arresto domiciliario", "Murió en 1642"], ok: 0, porque: "No fue quemado: eso le ocurrió a Giordano Bruno en 1600." },
+        { q: "¿Cuál de estas afirmaciones sobre Copérnico es FALSA?", op: ["Fue condenado por la Inquisición durante su vida", "Publicó su obra en 1543", "Propuso el heliocentrismo", "Conservó órbitas circulares"], ok: 0, porque: "Murió en 1543; su libro se suspendió «hasta ser corregido» en 1616." },
+        { q: "¿Cuál de estas afirmaciones sobre el método científico es FALSA?", op: ["Basta con observar sin intervenir", "Usa las matemáticas", "Contrasta hipótesis con experimentos", "Repite y mide los fenómenos"], ok: 0, porque: "Experimentar es provocar el fenómeno en condiciones controladas." },
+        { q: "¿Cuál de estas afirmaciones sobre Maquiavelo es FALSA?", op: ["Escribió literalmente «el fin justifica los medios»", "Escribió <i>El Príncipe</i> hacia 1513", "Parte de la «verdad efectiva de la cosa»", "Separa la política de la moral"], ok: 0, porque: "Es una simplificación posterior de su pensamiento." },
+        { q: "¿Cuál de estas afirmaciones sobre virtù y fortuna es FALSA?", op: ["La virtù es la virtud moral cristiana", "La virtù es capacidad y habilidad políticas", "La fortuna son las circunstancias", "Ambas determinan el éxito del gobernante"], ok: 0, porque: "Para Maquiavelo la virtù es eficacia, no virtud moral." },
+        { q: "¿Cuál de estas afirmaciones sobre la nueva ciencia es FALSA?", op: ["Se apoya sobre todo en la autoridad de Aristóteles", "Usa leyes matemáticas", "Acepta el contraste con la experiencia como árbitro", "Aplica las mismas leyes al cielo y a la Tierra"], ok: 0, porque: "La nueva ciencia sustituye la autoridad por el contraste con la experiencia." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Renacimiento y ciencia moderna",
+      cartas: [
+        { a: "Teocentrismo", b: "Dios como centro de todo el pensamiento y la vida (Edad Media)." },
+        { a: "Antropocentrismo", b: "El ser humano y su razón en el centro (Renacimiento)." },
+        { a: "Humanismo", b: "Recuperación de los clásicos grecolatinos y de la dignidad humana." },
+        { a: "Pico della Mirandola", b: "1463–1494. Discurso sobre la dignidad del hombre: el ser humano se hace a sí mismo." },
+        { a: "Geocentrismo", b: "La Tierra inmóvil en el centro del universo (Aristóteles, Ptolomeo)." },
+        { a: "Heliocentrismo", b: "El Sol en el centro; la Tierra es un planeta más (Copérnico)." },
+        { a: "Copérnico", b: "1473–1543. Sobre las revoluciones de las esferas celestes (1543)." },
+        { a: "Galileo", b: "1564–1642. Telescopio, método matemático-experimental, condena de 1633." },
+        { a: "Método científico moderno", b: "Matemáticas + experimentación controlada." },
+        { a: "Plano inclinado", b: "Experimento de Galileo: la distancia recorrida es proporcional al cuadrado del tiempo." },
+        { a: "Maquiavelo", b: "1469–1527. El Príncipe (hacia 1513): realismo político." },
+        { a: "Virtù y fortuna", b: "Capacidad del gobernante y circunstancias que no controla." },
+        { a: "Autonomía de la política", b: "La política tiene su propia lógica, separada de la moral y la religión." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("re1", 1, "El teocentrismo medieval es la mentalidad que sitúa en el centro…", ["a Dios", "al ser humano", "al Sol", "al Estado"], 0,
+    ["Teo- = Dios. Frente a él, antropo- = ser humano."]);
+  O("re2", 1, "¿Cómo se llama el movimiento cultural que recupera los textos y el ideal clásico grecolatino?", ["Humanismo", "Patrística", "Escolástica", "Sofística"], 0,
+    ["Estudia las «humanidades» leyendo a los clásicos directamente."]);
+  O("re3", 1, "Copérnico propuso un modelo del universo llamado…", ["heliocéntrico", "geocéntrico", "atomista", "idealista"], 0,
+    ["Helios = Sol: el Sol en el centro."]);
+  O("re4", 1, "¿En qué año se publicó <i>Sobre las revoluciones de las esferas celestes</i> de Copérnico?", ["1543", "1492", "1610", "1633"], 0,
+    ["1543, el año de su muerte. 1492 es América; 1610, <i>El mensajero sideral</i>; 1633, la condena de Galileo."]);
+  O("re5", 1, "¿Qué instrumento perfeccionó Galileo y dirigió al cielo en 1609?", ["El telescopio", "El microscopio", "El reloj de péndulo", "La brújula"], 0,
+    ["Con el telescopio vio las montañas de la Luna y las lunas de Júpiter."]);
+  T("re6", 1, "Completa: el modelo que sitúa a la Tierra inmóvil en el centro del universo se llama ______céntrico.", "Prefijo =", ["geo", "geocentrico", "geocéntrico", "geocentrismo"],
+    ["Geo = Tierra: geocentrismo."], "geo (geocentrismo)");
+  M("re7", 1, "Empareja cada obra con su autor.", [
+    C("El Príncipe", ["Maquiavelo", "Copérnico", "Galileo"], 0),
+    C("Sobre las revoluciones de las esferas celestes", ["Maquiavelo", "Copérnico", "Galileo"], 1),
+    C("Diálogo sobre los dos máximos sistemas del mundo", ["Maquiavelo", "Copérnico", "Galileo"], 2)],
+    ["<i>El Príncipe</i> (hacia 1513), Maquiavelo; la obra de 1543, Copérnico; el <i>Diálogo</i> (1632), Galileo."], "El Príncipe–Maquiavelo, Revoluciones–Copérnico, Diálogo–Galileo");
+  O("re8", 1, "Las dos herramientas del método científico moderno son…", ["las matemáticas y la experimentación", "la fe y la tradición", "la intuición y la revelación", "la retórica y la lógica"], 0,
+    ["Leyes cuantitativas y experimentos controlados."]);
+  O("re9", 1, "¿De qué ciudad era Maquiavelo?", ["Florencia", "Roma", "Atenas", "Milán"], 0,
+    ["Fue funcionario de la república de Florencia."]);
+  T("re10", 1, "Completa: Galileo afirma que el libro de la naturaleza está escrito en lenguaje ______.", "Término =", ["matemático", "matemáticas", "matematico", "matematicas"],
+    ["Sus caracteres son triángulos, círculos y otras figuras geométricas."], "matemático");
+  O("re11", 1, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Maquiavelo → Copérnico → Galileo", "Copérnico → Maquiavelo → Galileo", "Galileo → Copérnico → Maquiavelo", "Maquiavelo → Galileo → Copérnico"], 0,
+    ["Maquiavelo (1469), Copérnico (1473), Galileo (1564)."], "Maquiavelo → Copérnico → Galileo");
+  O("re12", 1, "¿Quién fue obligado a retractarse ante el Santo Oficio en 1633?", ["Galileo", "Copérnico", "Maquiavelo", "Pico della Mirandola"], 0,
+    ["Galileo, con 69 años; Copérnico había muerto en 1543."]);
+  O("re13", 1, "¿En qué año llegó Colón a América?", ["1492", "1453", "1517", "1543"], 0,
+    ["1492. 1453 es la toma de Constantinopla; 1517, la Reforma."]);
+  O("re14", 1, "Maquiavelo escribió <i>El Príncipe</i> hacia…", ["1513", "1543", "1610", "1633"], 0,
+    ["Hacia 1513; se publicó en 1532, tras su muerte."]);
+
+  // ---- nivel 2
+  V("re15", 2, "«El antropocentrismo renacentista supone abandonar la fe en Dios.»", false, [
+    "Es falso: cambia el acento hacia el ser humano, pero casi todos los humanistas eran creyentes", "Es falso: porque el Renacimiento fue un movimiento puramente científico", "Es verdad: porque el humanismo rechaza toda religión", "Es verdad: porque la Reforma suprimió el cristianismo"], 0,
+    ["El antropocentrismo es un cambio de acento, no ateísmo."]);
+  V("re16", 2, "«Para Galileo, el heliocentrismo era una descripción verdadera del universo y no solo un recurso de cálculo.»", true, [
+    "Es verdad: lo defendió con observaciones del telescopio", "Es verdad: porque la Iglesia lo apoyaba", "Es falso: solo lo consideró un truco de cálculo", "Es falso: defendió el geocentrismo"], 0,
+    ["Frente a la lectura instrumental inicial de Copérnico, Galileo lo sostiene como verdadero."]);
+  V("re17", 2, "«Galileo inventó el telescopio.»", false, [
+    "Es falso: el telescopio ya se fabricaba; Galileo lo perfeccionó y lo usó para observar el cielo", "Es falso: Galileo nunca usó telescopio", "Es verdad: nadie lo había construido antes", "Es verdad: lo inventó en 1633"], 0,
+    ["Su mérito fue mejorarlo y apuntarlo al cielo en 1609."]);
+  V("re18", 2, "«Galileo fue quemado vivo por la Inquisición.»", false, [
+    "Es falso: se retractó en 1633 y cumplió arresto domiciliario hasta su muerte en 1642", "Es falso: nunca tuvo problemas con la Iglesia", "Es verdad: murió en la hoguera en 1633", "Es verdad: fue ejecutado en 1616"], 0,
+    ["La hoguera fue la suerte de Giordano Bruno (1600), no de Galileo."]);
+  V("re19", 2, "«La ciencia moderna combina matemáticas y experimentación controlada.»", true, [
+    "Es verdad: expresa leyes con precisión y las contrasta con experimentos", "Es verdad: porque se basa solo en la autoridad de los antiguos", "Es falso: solo usa la observación pasiva", "Es falso: rechaza las matemáticas"], 0,
+    ["Es la gran novedad de método."]);
+  V("re20", 2, "«Maquiavelo escribió literalmente en <i>El Príncipe</i> la frase “el fin justifica los medios”.»", false, [
+    "Es falso: es una simplificación posterior de su pensamiento", "Es falso: Maquiavelo nunca habló de política", "Es verdad: aparece en el capítulo XV", "Es verdad: es el título de un capítulo"], 0,
+    ["Resume el espíritu de su obra, pero no es una cita literal."]);
+  V("re21", 2, "«Para Maquiavelo la política tiene una lógica propia, separada de la moral y la religión.»", true, [
+    "Es verdad: analiza el poder como es, no como debería ser", "Es verdad: porque la política es siempre inmoral", "Es falso: la subordina a la ley natural", "Es falso: la identifica con la teología"], 0,
+    ["Autonomía de la política."]);
+  O("re22", 2, "¿Por qué la revolución astronómica fue también un desafío filosófico?",
+    ["Porque cuestionó la física de Aristóteles y el lugar central del ser humano en el cosmos", "Porque demostró que Dios no existe", "Porque prohibió las matemáticas", "Porque inventó la imprenta"], 0,
+    ["Tocó la física, la lectura de la Biblia y la autoimagen humana."]);
+  O("re23", 2, "¿Qué añade la experimentación a la simple observación?",
+    ["Provoca el fenómeno en condiciones controladas para contrastar una hipótesis", "Solo describe lo que ocurre sin intervenir", "Sustituye a las matemáticas", "Se apoya en la autoridad de un sabio"], 0,
+    ["Observar es mirar; experimentar es preguntar a la naturaleza con una prueba preparada."]);
+  O("re24", 2, "En Maquiavelo, la «virtù» es…",
+    ["la capacidad y habilidad del gobernante para actuar con eficacia", "la virtud moral cristiana", "la ayuda de Dios al príncipe", "la suerte"], 0,
+    ["No es virtud moral: es energía y habilidad políticas."]);
+  O("re25", 2, "En Maquiavelo, la «fortuna» designa…",
+    ["las circunstancias y el azar, que el gobernante no controla del todo", "la riqueza del príncipe", "la voluntad de Dios", "la ley natural"], 0,
+    ["Se compara con un río que se desborda: con diques se reducen los daños."]);
+  O("re26", 2, "¿Qué diferencia a Galileo de Copérnico respecto al heliocentrismo?",
+    ["Copérnico lo planteó al principio como hipótesis matemática; Galileo lo defendió como descripción verdadera", "Copérnico usó el telescopio y Galileo no", "Galileo defendía el geocentrismo", "No hay ninguna diferencia"], 0,
+    ["Copérnico (1543) no tenía telescopio; Galileo (1610) sí."]);
+  O("re27", 2, "Según Pico della Mirandola, la dignidad humana consiste en…",
+    ["poder hacerse a sí mismo con su libertad", "ocupar un lugar fijo en el orden del mundo", "obedecer sin pensar", "estar libre de toda religión"], 0,
+    ["El ser humano no tiene naturaleza fija: elige qué ser."]);
+  O("re28", 2, "En el plano inclinado, un cuerpo parte del reposo y recorre 2 m en el primer segundo con aceleración constante. ¿Cuánto ha recorrido en total tras 3 segundos?",
+    ["18 m", "6 m", "12 m", "9 m"], 0,
+    ["La distancia es proporcional a t²: 2 · 3² = 18 m. (6 m sería suponer velocidad constante.)"], "18 m");
+  O("re29", 2, "Con los mismos datos (2 m en el primer segundo), ¿cuánto recorre solo durante el tercer segundo?",
+    ["10 m", "18 m", "6 m", "8 m"], 0,
+    ["Total en 3 s: 18 m; total en 2 s: 2 · 4 = 8 m; el tercer segundo: 18 − 8 = 10 m. Es la regla de los impares: 2, 6, 10."], "10 m");
+  O("re30", 2, "Ante un desacuerdo entre una teoría y un experimento bien hecho, la ciencia de Galileo…",
+    ["da la razón al experimento y revisa la teoría", "conserva la teoría porque la defendió un sabio antiguo", "ignora el experimento", "recurre a la autoridad de la Iglesia"], 0,
+    ["El contraste con la experiencia sustituye a la autoridad."]);
+
+  // ---- nivel 3
+  O("re31", 3, "Texto: «Está escrito en lengua matemática, y sus caracteres son triángulos, círculos y otras figuras geométricas» (Galileo, <i>El Ensayador</i>; traducción habitual, abreviada). Su idea principal es…",
+    ["que la naturaleza es inteligible y su orden es matemático", "que las matemáticas son un invento humano sin relación con la realidad", "que la Biblia basta para conocer la naturaleza", "que los sentidos son siempre engañosos"], 0,
+    ["Tema: el lenguaje de la naturaleza. Idea: hay que aprender matemáticas para entenderla."]);
+  O("re32", 3, "Texto: «Me ha parecido más conveniente ir directamente a la verdad efectiva de la cosa que a la imaginación de ella» (Maquiavelo, <i>El Príncipe</i>, XV; traducción habitual). Su idea principal es…",
+    ["que hay que estudiar el poder tal como funciona y no como debería ser", "que el príncipe debe imitar a un santo", "que la política es imposible", "que la moral no existe"], 0,
+    ["Realismo político frente a los modelos ideales."]);
+  O("re33", 3, "¿Qué diferencia a Maquiavelo de Santo Tomás (tema 7) en política?",
+    ["Maquiavelo analiza el poder con lógica propia; Tomás subordina la ley humana a la ley natural", "Los dos subordinan la política a la moral", "Maquiavelo defiende la ley natural", "Tomás niega que exista el poder"], 0,
+    ["Autonomía de la política frente a política subordinada."]);
+  O("re34", 3, "Una alumna escribe: «Copérnico fue condenado por la Inquisición por defender el heliocentrismo». ¿Qué matiz es correcto?",
+    ["Murió en 1543 sin ser condenado; su libro se suspendió «hasta ser corregido» en 1616", "Tiene razón: fue quemado en 1543", "Fue Galileo quien lo escribió", "El libro nunca se prohibió"], 0,
+    ["La condena afectó a Galileo en 1633; a Copérnico, solo a su libro en 1616."]);
+  O("re35", 3, "Una alumna escribe: «Para Maquiavelo todo vale en política». ¿Qué matiz es correcto?",
+    ["Su criterio es mantener el Estado; aconseja evitar el odio y la crueldad inútil", "Tiene razón: no pone ningún límite", "Maquiavelo era partidario de la ley natural", "Maquiavelo rechaza el poder"], 0,
+    ["Es la caricatura de «el fin justifica los medios»."]);
+  O("re36", 3, "¿Por qué el Renacimiento prepara la pregunta de Descartes sobre el conocimiento?",
+    ["Porque, sin la autoridad medieval como garantía de la verdad, hay que justificar con la razón cómo conocemos", "Porque la ciencia moderna demostró que no se puede conocer nada", "Porque Descartes fue discípulo de Copérnico", "Porque la Reforma suprimió la filosofía"], 0,
+    ["Se tambalea la autoridad y se necesita un fundamento propio."]);
+  M("re37", 3, "Empareja cada autor con su idea central.", [
+    C("Pico della Mirandola", ["Dignidad humana: el ser humano se hace a sí mismo", "La verdad efectiva de la cosa", "El libro de la naturaleza en lenguaje matemático"], 0),
+    C("Maquiavelo", ["Dignidad humana: el ser humano se hace a sí mismo", "La verdad efectiva de la cosa", "El libro de la naturaleza en lenguaje matemático"], 1),
+    C("Galileo", ["Dignidad humana: el ser humano se hace a sí mismo", "La verdad efectiva de la cosa", "El libro de la naturaleza en lenguaje matemático"], 2)],
+    ["Pico: dignidad; Maquiavelo: realismo; Galileo: matemáticas."], "Pico–dignidad, Maquiavelo–verdad efectiva, Galileo–lenguaje matemático");
+  M("re38", 3, "Empareja cada concepto de Maquiavelo con su significado.", [
+    C("Virtù", ["Capacidad y habilidad políticas", "Circunstancias y azar", "Actuar contra la moral corriente cuando el Estado lo exige"], 0),
+    C("Fortuna", ["Capacidad y habilidad políticas", "Circunstancias y azar", "Actuar contra la moral corriente cuando el Estado lo exige"], 1),
+    C("Razón de Estado", ["Capacidad y habilidad políticas", "Circunstancias y azar", "Actuar contra la moral corriente cuando el Estado lo exige"], 2)],
+    ["Virtù: eficacia; fortuna: azar; razón de Estado: la supervivencia del Estado manda."], "Virtù–capacidad, fortuna–azar, razón de Estado–supervivencia del Estado");
+  O("re39", 3, "¿Qué ejemplo muestra mejor el método moderno frente al aristotélico?",
+    ["Medir con un plano inclinado cuánto recorre una bola en tiempos iguales y deducir una ley matemática", "Afirmar que los cuerpos pesados caen más deprisa porque tienden a su lugar natural", "Citar a un autor antiguo para zanjar una discusión", "Deducir la forma del universo solo por razonamiento lógico"], 0,
+    ["Medición + experimento + ley matemática."]);
+  O("re40", 3, "Hipótesis de Galileo: la distancia recorrida desde el reposo es proporcional a t². ¿Qué consecuencia medible se deduce para tiempos iguales sucesivos?",
+    ["Los trozos recorridos están en la proporción 1 : 3 : 5 : 7", "Los trozos recorridos son iguales", "Los trozos están en la proporción 1 : 2 : 3 : 4", "Los trozos disminuyen"], 0,
+    ["t² da 1, 4, 9, 16; las diferencias son 1, 3, 5, 7."]);
+  O("re41", 3, "¿Cuál de estos hechos es anterior al nacimiento de Galileo (1564)?",
+    ["La publicación de la obra de Copérnico (1543)", "<i>El mensajero sideral</i> (1610)", "El <i>Diálogo</i> (1632)", "La retractación (1633)"], 0,
+    ["Solo 1543 es anterior a 1564."]);
+  R("re42", "Explica el paso del teocentrismo al antropocentrismo y el papel del humanismo. Valora su alcance. (Pregunta tipo PAU)", 9, [
+    { t: "Define teocentrismo y antropocentrismo", p: 0.4 },
+    { t: "Contextualiza: imprenta, Constantinopla (1453), América (1492)", p: 0.3 },
+    { t: "Explica el humanismo: vuelta a los clásicos y dignidad humana (Pico della Mirandola)", p: 0.5 },
+    { t: "Aclara que no es ateísmo: cambio de acento", p: 0.3 },
+    { t: "Relaciona con la ciencia o con la síntesis medieval (Agustín, Tomás)", p: 0.3 },
+    { t: "Valoración o conclusión", p: 0.2 }],
+    ["Definiciones.", "Contexto.", "Humanismo.", "Aclaración.", "Relación.", "Conclusión."], "Del Dios en el centro al ser humano que se hace a sí mismo");
+  R("re43", "Explica la revolución astronómica de Copérnico a Galileo y por qué fue también un desafío filosófico. (Pregunta tipo PAU)", 9, [
+    { t: "Geocentrismo (Aristóteles, Ptolomeo) frente a heliocentrismo", p: 0.4 },
+    { t: "Copérnico (1543): modelo y carácter de hipótesis matemática", p: 0.4 },
+    { t: "Galileo: telescopio (1610) y defensa del heliocentrismo como verdadero", p: 0.4 },
+    { t: "Caso Galileo: retractación en 1633 (sin quemado)", p: 0.3 },
+    { t: "Alcance filosófico: física aristotélica y lugar del ser humano", p: 0.4 },
+    { t: "Conexión con el problema del conocimiento o valoración", p: 0.1 }],
+    ["Modelos.", "Copérnico.", "Galileo.", "Caso Galileo.", "Alcance.", "Conclusión."], "El Sol en el centro: nueva astronomía y nueva imagen del ser humano");
+  R("re44", "Explica el método científico moderno y comenta la frase de Galileo sobre el libro de la naturaleza. Compáralo con Aristóteles. (Pregunta tipo PAU)", 9, [
+    { t: "Define el método: matemáticas + experimentación controlada", p: 0.4 },
+    { t: "Ilustra con un ejemplo (plano inclinado, ley de t²)", p: 0.4 },
+    { t: "Comenta la frase: naturaleza inteligible y lenguaje matemático", p: 0.5 },
+    { t: "Compara con la física aristotélica (cualitativa, sin experimentos)", p: 0.4 },
+    { t: "Consecuencia: el experimento sustituye a la autoridad", p: 0.2 },
+    { t: "Valoración o relación con Descartes", p: 0.1 }],
+    ["Método.", "Ejemplo.", "Frase.", "Comparación.", "Consecuencia.", "Valoración."], "Matemáticas y experimento: la naturaleza se pregunta con números");
+  R("re45", "Explica el pensamiento político de Maquiavelo y su ruptura con la tradición medieval. Valora críticamente. (Pregunta tipo PAU)", 9, [
+    { t: "Contexto: Florencia, <i>El Príncipe</i> (hacia 1513)", p: 0.3 },
+    { t: "Realismo: la «verdad efectiva de la cosa»", p: 0.4 },
+    { t: "Virtù y fortuna", p: 0.4 },
+    { t: "Autonomía de la política frente a moral y religión", p: 0.4 },
+    { t: "Ruptura con la ley natural de Tomás (tema 7)", p: 0.3 },
+    { t: "Valoración crítica (riesgo de justificar el abuso; matiz sobre «el fin justifica los medios»)", p: 0.2 }],
+    ["Contexto.", "Realismo.", "Virtù y fortuna.", "Autonomía.", "Ruptura.", "Valoración."], "Realismo político y política autónoma");
+  R("re46", "Comenta este texto: «Me ha parecido más conveniente ir directamente a la verdad efectiva de la cosa que a la imaginación de ella. [...] Hay tanta distancia de cómo se vive a cómo se debería vivir, que quien deja lo que se hace por lo que se debería hacer aprende más bien su ruina que su preservación» (Maquiavelo, <i>El Príncipe</i>, cap. XV; traducción habitual, abreviada). Indica tema, ideas, relación con el autor y comparación con otro autor.", 10, [
+    { t: "Tema: el método de la reflexión política", p: 0.3 },
+    { t: "Idea principal: estudiar el poder tal como es", p: 0.4 },
+    { t: "Aclara términos: verdad efectiva, imaginación, ruina y preservación", p: 0.4 },
+    { t: "Relaciona con el autor: virtù, fortuna, autonomía de la política", p: 0.4 },
+    { t: "Compara con Platón o con Tomás de Aquino", p: 0.3 },
+    { t: "Valoración o contexto renacentista", p: 0.2 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario de la verdad efectiva");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Edad Media y Renacimiento", ancha: true,
+      tabla: { cab: ["", "Edad Media", "Renacimiento"], filas: [
+        ["Centro", "Dios (teocentrismo)", "El ser humano (antropocentrismo)"],
+        ["Modelo", "Biblia y escolástica", "Clásicos grecolatinos"],
+        ["Política", "Subordinada a la moral", "Autónoma (Maquiavelo)"]
+      ] } },
+    { titulo: "Geocentrismo y heliocentrismo", ancha: true,
+      tabla: { cab: ["", "Geocentrismo", "Heliocentrismo"], filas: [
+        ["Centro", "La Tierra inmóvil", "El Sol"],
+        ["Autores", "Aristóteles, Ptolomeo", "Copérnico (1543), Galileo"],
+        ["Argumento", "Lo que vemos y la física aristotélica", "Orden matemático y telescopio (1610)"]
+      ] } },
+    { titulo: "El método de Galileo",
+      pasos: ["Problema y observación.", "Hipótesis matemática.", "Deducción de consecuencias medibles.", "Experimento (plano inclinado).", "Contraste y conclusión."],
+      nota: "Distancia ∝ t²: en tiempos iguales, 1 : 3 : 5 : 7." },
+    { titulo: "Maquiavelo en cuatro ideas", ancha: true,
+      tabla: { cab: ["Idea", "Significado"], filas: [
+        ["Verdad efectiva", "El poder tal como funciona"],
+        ["Virtù", "Capacidad y habilidad del gobernante"],
+        ["Fortuna", "Circunstancias y azar"],
+        ["Autonomía de la política", "Lógica propia, separada de la moral"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Renacimiento = abandonar la religión", bien: "Cambia el acento hacia el ser humano", por: "Casi todos los humanistas eran creyentes." },
+        { mal: "Galileo inventó el telescopio y fue quemado", bien: "Lo perfeccionó; se retractó en 1633 y cumplió arresto domiciliario", por: "La hoguera fue la de Giordano Bruno (1600)." },
+        { mal: "Copérnico fue condenado por la Inquisición", bien: "Murió en 1543; su libro se suspendió en 1616", por: "La condena personal fue la de Galileo." },
+        { mal: "Maquiavelo dice que todo vale", bien: "Analiza el poder para mantener el Estado", por: "«El fin justifica los medios» es una simplificación." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t8", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf8a.secciones,
+    nuevas: B.parte.hf8a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Matemáticas I · ampliaciones · Tema 1: Números reales
    Lo original de pagina.html no se toca: esto se añade al final de cada
    sección, como secciones nuevas, ejercicios nuevos y bloques de lámina.
