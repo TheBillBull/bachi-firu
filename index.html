@@ -46850,6 +46850,624 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 11: Rousseau y la Ilustración
+   (parte A: teoría. Parte B, historia_fil_t11b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. El estado de naturaleza es una hipótesis para pensar, no una época histórica; «bueno» no es «virtuoso» → sección 2 + errores.
+   2. Amor de sí frente a amor propio (de dónde sale el mal) y perfectibilidad → sección 2 + clasificar.
+   3. Origen de la desigualdad: la propiedad privada y el falso pacto de los ricos → sección 2 + orden.
+   4. La crítica a las ciencias y las artes: Rousseau no es un enemigo de la razón → sección 2 (ojo).
+   5. El contrato social legítimo: cesión total a la comunidad y libertad civil → sección 3.
+   6. Voluntad general ≠ voluntad de todos (la que más cae) → sección 3 + emparejar.
+   7. Soberanía popular inalienable, rechazo de la representación, «forzado a ser libre» → sección 3.
+   8. Comparación con Hobbes y Locke (otros contractualistas) → sección 3 y tabla del mapa.
+   9. Emilio: educación negativa y etapas; la religión natural del vicario → sección 4.
+   10. Contexto ilustrado: razón, progreso, Enciclopedia, despotismo ilustrado, Kant y «sapere aude» → secciones 1 y 5.
+   11. Comentario de texto: el problema del contrato (Contrato social, I, 6) → comentario resuelto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t11/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. La Ilustración
+  secciones[0] =
+    "<h5>Qué cambia en Europa en el siglo XVIII</h5>" +
+    "<p>Imagina que durante siglos te han dicho qué pensar: lo que dice la Iglesia, lo que ordena el rey, lo que «siempre se ha hecho». La Ilustración es el momento en que muchas personas deciden <b>preguntar «¿por qué?» a todo</b> y aceptar solo lo que se puede justificar con la razón y la experiencia. Venía preparada por los siglos anteriores: la ciencia de Galileo y Newton (tema 8), el racionalismo de Descartes (tema 9) y el empirismo de Locke y Hume (tema 10) habían enseñado que la razón humana, bien usada, entiende el mundo.</p>" +
+    "<p>Se la llama «siglo de las luces» (en francés, <i>les Lumières</i>; en alemán, <i>Aufklärung</i>) porque la razón se imagina como una luz que disipa la oscuridad de la ignorancia y la superstición. Su centro fue <b>Francia</b>, con París y sus salones, pero llegó a toda Europa y a América.</p>" +
+    "<h5>Quién es quién (con fechas, para no confundirse)</h5>" +
+    tabla(["Pensador", "Fechas", "Aportación que conviene recordar"], [
+      ["Locke", "1632–1704", "Gobierno limitado y derechos naturales (vida, libertad, propiedad); tolerancia."],
+      ["Montesquieu", "1689–1755", "<i>El espíritu de las leyes</i> (1748): separación de poderes."],
+      ["Voltaire", "1694–1778", "Tolerancia y crítica del fanatismo (<i>Tratado sobre la tolerancia</i>, 1763)."],
+      ["Hume", "1711–1776", "Empirismo; la razón no basta para fundar la moral (tema 10)."],
+      ["Rousseau", "1712–1778", "Crítica a la civilización y soberanía popular."],
+      ["Diderot", "1713–1784", "Dirige la <i>Enciclopedia</i> (1751–1772) junto a D'Alembert (1717–1783)."],
+      ["Kant", "1724–1804", "Resume la época: «¿Qué es la Ilustración?» (1784) y su lema «sapere aude» (tema 12)."]
+    ]) +
+    "<p>Fíjate en un dato curioso: <b>Voltaire y Rousseau murieron el mismo año, 1778</b>, y fueron grandes rivales. Voltaire admiraba el progreso y el lujo de la civilización; Rousseau desconfiaba de ellos. Ese contraste es el corazón del tema.</p>" +
+    "<h5>El lema de Kant, paso a paso</h5>" +
+    "<p><i>Sapere aude</i> es una expresión latina del poeta Horacio que Kant hizo famosa: «atrévete a saber». En su artículo <i>¿Qué es la Ilustración?</i> (1784) explica que la Ilustración es la salida del ser humano de su <b>minoría de edad</b>: es decir, de la incapacidad de usar el propio entendimiento sin la guía de otro. Y añade que la causa no es falta de inteligencia, sino de <b>decisión y valor</b>: es cómodo que otro piense por ti (el tutor, el cura, el médico). Pensar por uno mismo da un poco de vértigo, pero es la condición para ser libre.</p>" +
+    ejemplo("Una alumna ilustrada y una que no lo es", "Dos amigas oyen en redes que «los gatos negros dan mala suerte».", [
+      "La primera lo repite porque «lo dice todo el mundo»: acepta la autoridad sin examen.",
+      "La segunda pregunta <b>en qué se apoya</b>, busca datos y, si no los hay, no lo cree. Eso es <i>sapere aude</i>.",
+      "Ilustrar no significa creer en todo lo nuevo, sino <b>examinar</b> también lo viejo."
+    ]) +
+    ojo("La Ilustración <b>no es lo mismo que la Revolución Francesa</b> (1789), aunque la preparó en parte, ni tampoco rechaza toda religión: Voltaire y Rousseau creían en Dios; lo que critican es el fanatismo y la autoridad sin razones. Y no todos los ilustrados querían democracia: muchos defendían el <b>despotismo ilustrado</b> (monarcas absolutos que reforman «con luces»). Lema de ese despotismo: «<i>todo para el pueblo, pero sin el pueblo</i>». Rousseau, como verás, irá mucho más lejos.");
+
+  // ---------------------------------------------------------------- 2. Rousseau: crítica a la civilización
+  secciones[1] =
+    "<h5>La vida de Rousseau en cuatro pinceladas</h5>" +
+    "<ul><li><b>1712</b>: nace en <b>Ginebra</b>; su madre muere al darle a luz y su padre, relojero, lo deja pronto. Se educa casi solo, leyendo.</li>" +
+    "<li><b>Años 1740</b>: llega a París; se mueve entre los ilustrados y colabora en la <i>Enciclopedia</i> (escribe sobre música).</li>" +
+    "<li><b>1750</b>: su <i>Discurso sobre las ciencias y las artes</i> gana el premio de la Academia de Dijon y lo hace famoso de golpe.</li>" +
+    "<li><b>1762</b>: publica <i>Del contrato social</i> y <i>Emilio</i>; ambos se condenan en París y en Ginebra, y Rousseau debe huir. Muere en <b>1778</b>.</li></ul>" +
+    "<h5>La pregunta del Discurso de 1750</h5>" +
+    "<p>La Academia de Dijon preguntó: «¿Ha contribuido el restablecimiento de las ciencias y las artes a depurar las costumbres?». Todo el mundo esperaba un «sí». Rousseau respondió <b>«no»</b>: el progreso del saber y del lujo ha producido gente más hábil y refinada, pero no más buena. Las apariencias educadas esconden egoísmo, y las artes sirven muchas veces para adornar la desigualdad y entretener a quien debería protestar.</p>" +
+    ojo("Rousseau <b>no odia la razón ni el saber</b> (escribió filosofía, música y una novela de éxito). Su tesis es que el progreso <b>material y científico no garantiza el progreso moral</b>. Por eso es «paradójico» en la Ilustración: usa la razón crítica para criticar la fe ciega en el progreso.") +
+    "<h5>El estado de naturaleza: una hipótesis, no un cuento de la historia</h5>" +
+    "<p>En el <i>Discurso sobre el origen de la desigualdad entre los hombres</i> (1755), Rousseau se pregunta de dónde viene la desigualdad social y si es «natural». Para saberlo, quita con la imaginación todo lo que la sociedad ha añadido al ser humano y se pregunta cómo sería <b>el hombre natural</b>. Ese estado de naturaleza es un <b>experimento mental</b>; el propio Rousseau advierte en el prefacio que quizá no existió nunca. Lo que quiere es separar lo que viene de la naturaleza de lo que es obra de la sociedad.</p>" +
+    "<p>¿Cómo es ese ser humano natural?</p>" +
+    "<ul><li><b>Libre y autosuficiente</b>: vive aislado o en grupos pequeños, sin depender de otros.</li>" +
+    "<li><b>Sin maldad</b>: no es bueno por haber elegido el bien, sino porque no tiene motivos para el mal. Es <b>amoral</b> (ni bueno ni malo en sentido moral), no virtuoso. La virtud aparece con la sociedad y la razón.</li>" +
+    "<li><b>Con dos impulsos básicos</b>: el <b>amor de sí</b> (cuidar la propia conservación) y la <b>piedad</b> o compasión natural (rechazo a ver sufrir a otro).</li>" +
+    "<li><b>Perfectible</b>: tiene la capacidad de mejorar y aprender; lo que le hará salir de la naturaleza, para bien y para mal.</li></ul>" +
+    "<h5>De dónde sale el mal: amor de sí y amor propio</h5>" +
+    "<p>Esta es una distinción clave. El <b>amor de sí</b> (<i>amour de soi</i>) es natural y sano: quiero comer, dormir y estar a salvo. El <b>amor propio</b> (<i>amour-propre</i>) nace solo en sociedad, cuando empiezo a <b>compararme</b>: ya no me basta con estar bien, quiero estar <b>mejor que los demás</b>. De ahí vienen la envidia, la vanidad, el afán de dominar y la desigualdad.</p>" +
+    ejemplo("Amor de sí frente a amor propio", "Una chica compra unas zapatillas.", [
+      "<b>Amor de sí</b>: las compra porque son cómodas y le hacen falta.",
+      "<b>Amor propio</b>: las compra porque son las de moda y quiere que la vean con ellas, o porque su vecina no las tiene.",
+      "La primera necesidad es natural; la segunda nace de <b>mirarse en los demás</b>."
+    ]) +
+    "<h5>La historia de la desigualdad según Rousseau</h5>" +
+    "<p>Rousseau distingue dos desigualdades: la <b>natural o física</b> (edad, fuerza, salud: viene de la naturaleza y no es injusta) y la <b>moral o política</b> (riqueza, honores, poder: depende de convenciones humanas y es la que critica). Los pasos del cambio son, resumidos:</p>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Estado de naturaleza</b>: libres, aislados, con amor de sí y compasión.</li>" +
+    "<li><b>Primeras sociedades</b>: aparece la comparación (amor propio), el agricultor y el herrero, la <b>división del trabajo</b>.</li>" +
+    "<li><b>Propiedad privada</b>: «el primero a quien, habiendo cercado un terreno, se le ocurrió decir <i>esto es mío</i>, y encontró gentes bastante simples para creerle, fue el verdadero fundador de la sociedad civil» (traducción española habitual; varía según la edición). Con la propiedad llegan la riqueza desigual, la rivalidad y la guerra de todos contra todos.</li>" +
+    "<li><b>Pacto engañoso</b>: los ricos, amenazados, proponen unas leyes «para todos» que, en realidad, <b>consolidan sus privilegios</b>. Los pobres, sin saberlo, aceptan sus cadenas.</li>" +
+    "<li><b>Despotismo</b>: la desigualdad llega al extremo cuando todos son iguales de nuevo, pero en la esclavitud ante un déspota.</li></ol>" +
+    ojo("Mucha gente resume a Rousseau con «<b>el hombre es bueno por naturaleza y la sociedad lo corrompe</b>» y el «buen salvaje». La frase vale como idea general, pero cuidado: (1) la expresión «buen salvaje» <b>no la usa Rousseau</b>; (2) <b>no propone volver al bosque</b>: dice que ya no se puede volver atrás; (3) su remedio no es abandonar la sociedad, sino <b>construir una sociedad justa</b> (el contrato social) y una educación adecuada (el <i>Emilio</i>). Un fragmento del <i>Emilio</i> lo resume: «Todo está bien al salir de las manos del Autor de las cosas; todo degenera entre las manos del hombre» (traducción habitual).") +
+    w("clasificar", "naturaleza") +
+    w("orden", "ordendesigualdad");
+
+  // ---------------------------------------------------------------- 3. Contrato social y voluntad general
+  secciones[2] =
+    "<h5>El problema que quiere resolver, con sus propias palabras</h5>" +
+    "<p>El <i>Contrato social</i> (1762) empieza con una frase que se ha hecho famosa: «El hombre ha nacido libre, y sin embargo, en todas partes se encuentra encadenado» (traducción habitual). El Discurso explicaba <b>cómo</b> llegamos a esas cadenas; el Contrato pregunta <b>cómo podrían hacerse legítimas</b>: ¿existe una forma de vivir bajo leyes sin perder la libertad? Rousseau lo plantea así (paráfrasis de <i>Contrato social</i>, I, 6): hay que encontrar una forma de asociación que proteja a cada miembro con la fuerza de todos y en la que cada uno, uniéndose a todos, <b>no obedezca sino a sí mismo</b> y siga tan libre como antes.</p>" +
+    "<h5>El pacto y sus cláusulas</h5>" +
+    "<p>La solución es el <b>contrato social</b>. Se reduce a una sola cláusula: <b>cada asociado se entrega por entero, con todos sus derechos, a la comunidad</b>. Y esto tiene tres consecuencias que conviene entender:</p>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Igualdad</b>: como todos se entregan por completo y en las mismas condiciones, nadie tiene interés en hacer las condiciones pesadas para los demás.</li>" +
+    "<li><b>Sin superior ajeno</b>: no cedo mis derechos a un rey (Hobbes) ni a una élite, sino a la comunidad de la que yo mismo soy parte. Recibo de ella tanto como entrego.</li>" +
+    "<li><b>Un nuevo cuerpo</b>: el pacto crea una persona pública, el <b>pueblo soberano</b> (el Estado cuando es pasivo, el soberano cuando es activo).</li></ol>" +
+    "<h5>Tres tipos de libertad</h5>" +
+    tabla(["Libertad", "Qué es", "Dónde está"], [
+      ["Libertad natural", "Hacer lo que uno puede, limitado solo por su fuerza.", "Estado de naturaleza; se pierde con el pacto."],
+      ["Libertad civil", "Vivir bajo leyes que protegen a todos por igual.", "Se gana con el pacto."],
+      ["Libertad moral", "Obedecer la ley que uno mismo se ha dado, no el impulso.", "Se gana con el pacto: «la obediencia a la ley que se ha prescrito uno mismo es libertad»."]
+    ]) +
+    "<h5>La voluntad general, paso a paso</h5>" +
+    "<p>Es la idea más difícil y la que más cae. Piensa en una clase que debe elegir el destino del viaje de fin de curso:</p>" +
+    ejemplo("Voluntad particular, voluntad de todos y voluntad general", "La clase decide el viaje de fin de curso.", [
+      "<b>Voluntad particular</b>: cada alumno piensa en lo que le conviene (uno quiere playa, otro fiesta, otro el más barato).",
+      "<b>Voluntad de todos</b>: es la <b>suma</b> de esas preferencias personales; puede salir un viaje que nadie considera justo.",
+      "<b>Voluntad general</b>: lo que quiere la clase <b>como grupo</b> pensando en el bien común: que pueda ir todo el mundo, que no deje fuera a nadie por dinero. Cada alumno participa pensando como miembro de la clase, no solo como individuo."
+    ]) +
+    "<p>Por tanto: la voluntad general <b>mira siempre al bien común</b> y es <b>siempre recta</b> (si se forma bien); no es la mayoría numérica ni un capricho del gobernante. Se expresa en la <b>ley</b>, y la ley, por ser general, debe valer igual para todos y nunca apuntar a una persona concreta. Para que se forme bien, Rousseau pide que los ciudadanos decidan informados, sin grupos de presión que arrastren la votación.</p>" +
+    ojo("<b>Confundir voluntad general con voluntad de todos</b> es el error más habitual. La segunda es una suma de intereses privados; la primera es lo que cada uno quiere <b>en cuanto ciudadano</b>, pensando en lo común. También conviene no decir que es «la voluntad de la mayoría»: la mayoría puede equivocarse si vota guiada por intereses particulares.") +
+    "<h5>Soberanía popular: dos características que explican su fama</h5>" +
+    "<ul><li><b>Inalienable</b>: el pueblo no puede transferir su soberanía a nadie. Puede encargar tareas, pero no renunciar a mandar.</li>" +
+    "<li><b>Indivisible</b>: la soberanía no se reparte entre poderes que se oponen (aquí discrepa de Montesquieu y de Locke).</li></ul>" +
+    "<p>De ahí que critique la <b>representación</b>: el pueblo inglés, dice, solo es libre durante las elecciones; después vuelve a ser esclavo. Prefiere la democracia directa, adecuada a Estados pequeños (como las ciudades-república). Los gobernantes no son dueños, sino <b>comisionados</b> del pueblo y pueden ser sustituidos.</p>" +
+    "<h5>«Forzado a ser libre» sin malentendidos</h5>" +
+    "<p>Rousseau escribe que quien rehúse obedecer la voluntad general será «forzado a ser libre». Suena a amenaza, pero la idea es esta: si la ley expresa lo que yo mismo quiero como ciudadano, al obligarme a cumplirla me obligan a ser coherente con mi voluntad racional, no con mi impulso del momento. Críticos posteriores han señalado el <b>riesgo</b>: si alguien se arroga el derecho de decir cuál es la voluntad general, esta puede acabar justificando la presión sobre las minorías. Es un buen punto para una valoración crítica.</p>" +
+    "<h5>Rousseau frente a Hobbes y Locke</h5>" +
+    tabla(["", "Hobbes (1588–1679)", "Locke (1632–1704)", "Rousseau (1712–1778)"], [
+      ["Estado de naturaleza", "guerra de todos contra todos", "libre e igual, con ley natural, pero inseguro", "libre, pacífico y aislado; el mal viene de la sociedad"],
+      ["Pacto", "se cede el poder a un soberano absoluto", "se cede a un gobierno limitado para proteger derechos", "se cede a la comunidad entera"],
+      ["Soberano", "el monarca", "el Parlamento / el pueblo, con confianza revocable", "el pueblo, inalienable e indivisible"],
+      ["Libertad", "obedecer para estar seguro", "derechos individuales frente al poder", "obedecer la ley que uno mismo se ha dado"]
+    ]) +
+    w("emparejar", "voluntades");
+
+  // ---------------------------------------------------------------- 4. Educación natural
+  secciones[3] =
+    "<h5>La idea de partida del <i>Emilio</i></h5>" +
+    "<p>El <i>Emilio, o De la educación</i> (1762) es una novela pedagógica: sigue la educación de un niño imaginario desde el nacimiento hasta que se casa. Su idea central: si el ser humano es bueno al nacer y la sociedad lo corrompe, la educación debe <b>proteger al niño de los vicios sociales</b> el tiempo suficiente para que desarrolle sus facultades naturales. Por eso la llama <b>educación negativa</b>: no consiste en meter ideas ajenas, sino en <b>evitar que lo dañe</b> lo que lo desvía.</p>" +
+    "<h5>Etapas, según el ritmo natural</h5>" +
+    tabla(["Edad aprox.", "Qué se trabaja", "Cómo"], [
+      ["Hasta 2 años", "Cuerpo y primeras sensaciones", "Libertad de movimiento, sin ataduras ni miedos."],
+      ["2–12 años", "Los sentidos y la experiencia", "Aprender haciendo y tocando; que el niño no lea todavía por obligación ni se le razone moralmente."],
+      ["12–15 años", "Razón y curiosidad", "Preguntas sobre el mundo, un oficio, cómo funcionan las cosas."],
+      ["15–20 años", "Sentimientos, moral y religión", "Convivencia, compasión y la «religión natural»."],
+      ["Edad adulta", "Ciudadano", "Elige pareja (Sofía) y se hace miembro de la comunidad."]
+    ]) +
+    ejemplo("Un ejemplo de método «natural»", "Rousseau prefiere que el niño que rompe una ventana pase una noche de frío, a sermonearlo.", [
+      "El niño aprende de las <b>consecuencias</b> de sus actos, no de la autoridad del adulto.",
+      "El adulto no castiga ni regaña: <b>prepara el entorno</b> para que aprenda.",
+      "Idea de fondo: la libertad se aprende ejerciéndola, no obedeciendo órdenes."
+    ]) +
+    "<h5>La religión natural y el vicario saboyano</h5>" +
+    "<p>En un pasaje famoso del libro IV, <i>Profesión de fe del vicario saboyano</i>, Rousseau defiende una <b>religión natural</b> sin dogmas ni intermediarios: creer en Dios y en la inmortalidad del alma, y encontrar la guía moral en la <b>conciencia</b>, a la que llama «instinto divino». Esto provocó la condena del libro por la Iglesia católica y por los calvinistas de Ginebra, aunque no era ateísmo.</p>" +
+    ojo("El <i>Emilio</i> no pide «dejar al niño hacer lo que quiera». Pide <b>respetar el ritmo del desarrollo</b> y que el adulto guíe sin imponer. Y recuerda: Rousseau habla del niño varón; su visión de la educación de Sofía (la mujer) es <b>subordinada</b> y hoy no se defiende. En un comentario, valora lo vigente (respetar etapas, aprender por experiencia) y critica lo caduco.") +
+    w("orden", "etapasemilio");
+
+  // ---------------------------------------------------------------- 5. La Ilustración como proyecto
+  secciones[4] =
+    "<h5>Los grandes rasgos del proyecto ilustrado</h5>" +
+    "<ul><li><b>Razón crítica</b>: nada queda a salvo del examen racional (religión, política, costumbres).</li>" +
+    "<li><b>Progreso</b>: la historia avanza hacia lo mejor si se extiende el saber.</li>" +
+    "<li><b>Tolerancia y libertad de pensamiento</b>: contra el fanatismo y la censura.</li>" +
+    "<li><b>Naturaleza y derechos naturales</b>: todos nacemos iguales en dignidad y derechos.</li>" +
+    "<li><b>Educación y divulgación</b>: la <i>Enciclopedia</i> (1751–1772) quiso reunir todo el saber para que lo pudiera usar cualquier persona instruida.</li></ul>" +
+    "<h5>Cómo encaja Rousseau: acuerdos y desacuerdos</h5>" +
+    tabla(["Tema", "Ilustración dominante (Voltaire, Diderot)", "Rousseau"], [
+      ["Progreso", "Más saber y civilización, más felicidad.", "Progreso material, pero decadencia moral si no hay justicia."],
+      ["Sentimiento y razón", "Prima la razón.", "Reivindica también el sentimiento y la conciencia."],
+      ["Política", "Muchos aceptan monarcas ilustrados o una élite.", "Soberanía del pueblo; las leyes las hace la comunidad."],
+      ["Religión", "Deísmo crítico o escepticismo.", "Religión natural y sentimiento religioso."],
+      ["Base común", "Razón crítica, igualdad de derechos, libertad.", "Comparte los mismos ideales, pero los lleva más lejos."]
+    ]) +
+    "<h5>La herencia: de las ideas a los hechos</h5>" +
+    "<p>La <b>Revolución Francesa de 1789</b> (once años después de su muerte) tomó muchas ideas de este periodo: la <b>Declaración de Derechos del Hombre y del Ciudadano</b> (1789) habla de soberanía nacional y de la ley como «expresión de la voluntad general». También lo recogió el <b>constitucionalismo</b> posterior. Las ideas de Rousseau influyeron en el pensamiento democrático y en Kant (la <b>autonomía</b> moral: darse uno mismo la ley), de quien trata el tema 12.</p>" +
+    ojo("Cuidado con las atribuciones: la <b>separación de poderes</b> es de Montesquieu y Locke, no de Rousseau (que defiende una soberanía indivisible); la <b>tolerancia</b> se asocia sobre todo a Voltaire; y el <b>«sapere aude»</b> es de Kant (retomando a Horacio), no de Rousseau.");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Mapa del tema: Rousseau y los demás autores", html:
+    "<p>En el comentario de texto se pide relacionar con el autor y comparar con otro. Con Rousseau, estas son las relaciones más rentables:</p>" +
+    tabla(["Autor", "Relación con Rousseau"], [
+      ["Platón (T3)", "Ambos buscan una comunidad justa guiada por el bien común; pero Platón confía en los filósofos-reyes y Rousseau en el pueblo soberano."],
+      ["Aristóteles (T4)", "Ambos ven al ser humano como social; Aristóteles dice que es político por naturaleza, Rousseau que la sociedad lo transforma (y puede corromperlo)."],
+      ["Descartes (T9)", "Confianza en la razón como guía; Rousseau añade el sentimiento y la conciencia como guía moral."],
+      ["Locke y Hume (T10)", "Locke comparte el contractualismo pero con gobierno limitado y propiedad como derecho natural; Rousseau critica la propiedad como origen de la desigualdad."],
+      ["Kant (T12)", "Toma de Rousseau la idea de autonomía: darse a uno mismo la ley. Resume la Ilustración con el «sapere aude»."],
+      ["Marx (T13)", "Comparte la crítica a la propiedad privada y a la desigualdad; Marx la analiza con la economía y la lucha de clases."]
+    ]) +
+    "<h5>Cuadro-resumen: lo que sostiene Rousseau</h5>" +
+    tabla(["Ámbito", "Tesis de Rousseau"], [
+      ["Naturaleza humana", "El ser humano natural es libre, amoral, con amor de sí y piedad; es perfectible."],
+      ["Crítica", "La civilización genera amor propio, propiedad y desigualdad; las ciencias y las artes no hacen mejores a las personas."],
+      ["Política", "Contrato social: cesión a la comunidad; voluntad general, soberanía popular inalienable e indivisible."],
+      ["Educación", "Educación negativa y natural, que respeta las etapas del desarrollo."],
+      ["Religión", "Religión natural basada en la conciencia."]
+    ]) });
+
+  nuevas.push({ h: "7. Comentario de texto resuelto: el problema del contrato", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Rousseau, <em>Del contrato social</em>, libro I, cap. 6; traducción española habitual, que varía levemente según la edición):<br><em>«Encontrar una forma de asociación que defienda y proteja con toda la fuerza común la persona y los bienes de cada asociado, y por la cual cada uno, uniéndose a todos, no obedezca sin embargo sino a sí mismo y permanezca tan libre como antes.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Rousseau (1712–1778), <i>Del contrato social</i> (1762), obra central de su filosofía política. Contexto: Rousseau ha dicho antes que «el hombre ha nacido libre y en todas partes está encadenado», y aquí plantea el <b>problema</b> cuya solución es el contrato.</li>" +
+    "<li><b>2. Tema.</b> El problema fundamental de la política: cómo vivir en sociedad, protegidos por la fuerza común, sin perder la libertad.</li>" +
+    "<li><b>3. Idea principal.</b> Una asociación política legítima es la que protege a cada miembro y, al mismo tiempo, deja a cada uno tan libre como antes, porque solo obedece a sí mismo.</li>" +
+    "<li><b>4. Términos y ideas secundarias.</b> (a) «Forma de asociación»: el contrato social. (b) «Fuerza común»: la fuerza de la comunidad protege a cada uno. (c) «Uniéndose a todos»: el pacto es con la comunidad, no con un gobernante. (d) «No obedezca sino a sí mismo»: las leyes expresan la <b>voluntad general</b>, de la que cada ciudadano participa; así la obediencia es autonomía y se llama libertad civil y moral.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Este problema enlaza con su crítica a la civilización: el <i>Discurso sobre la desigualdad</i> mostró cómo la sociedad real encadena; el contrato propone la sociedad justa. Se apoya en la voluntad general, la soberanía del pueblo y la libertad civil, y se complementa con el <i>Emilio</i>, que forma ciudadanos libres.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con Hobbes: para él el pacto cede todo el poder a un soberano absoluto para tener seguridad; para Rousseau se cede a la comunidad y se conserva la libertad. Con Locke: este defiende un gobierno limitado que protege derechos preexistentes; Rousseau pone la soberanía en el pueblo. Con Kant (tema 12): la idea de obedecer la ley que uno se da es la base de su <b>autonomía</b> moral.</li>" +
+    "<li><b>7. Valora y concluye.</b> La idea de legitimidad democrática (el poder viene del pueblo) sigue vigente. Su límite: la voluntad general es difícil de determinar en sociedades grandes y plurales, y puede servir para justificar el poder sobre las minorías.</li></ol>" +
+    ojo("Errores típicos: (1) decir que el pacto cede los derechos <b>a un rey</b> (eso es Hobbes); (2) confundir voluntad general con <b>mayoría</b> o con suma de intereses; (3) olvidar que el texto habla de <b>libertad</b>, no solo de seguridad; (4) comparar con Hobbes o Locke sin decir en qué se diferencian.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "8. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Explica la crítica de Rousseau a la civilización", "Respuesta modelo:", [
+      "<b>Punto de partida.</b> Estado de naturaleza como hipótesis: ser humano libre, con amor de sí y piedad.",
+      "<b>Crítica.</b> La sociedad produce amor propio, comparación, propiedad privada y desigualdad moral y política.",
+      "<b>Discurso de 1750.</b> Las ciencias y las artes no mejoran las costumbres.",
+      "<b>Matiz.</b> No propone volver a la naturaleza, sino una sociedad justa (el contrato).",
+      "<b>Relación.</b> Es la paradoja de un ilustrado que critica el progreso."
+    ]) +
+    ejemplo("Pregunta 2. Explica el contrato social y la voluntad general", "Respuesta modelo:", [
+      "<b>Problema.</b> Cómo vivir en sociedad sin perder la libertad.",
+      "<b>Pacto.</b> Cada uno se entrega a la comunidad entera, no a un gobernante.",
+      "<b>Voluntad general.</b> Lo que quiere la comunidad pensando en el bien común, distinta de la voluntad de todos (suma de intereses).",
+      "<b>Soberanía.</b> Del pueblo; inalienable e indivisible.",
+      "<b>Comparación.</b> Con Hobbes (soberano absoluto) o Locke (gobierno limitado)."
+    ]) +
+    ejemplo("Pregunta 3. El <i>Emilio</i> y la educación natural", "Respuesta modelo:", [
+      "<b>Idea.</b> Si el niño nace bueno, hay que protegerlo de la corrupción social.",
+      "<b>Educación negativa.</b> Respetar las etapas y el ritmo; aprender por la experiencia.",
+      "<b>Religión natural.</b> Conciencia como guía moral.",
+      "<b>Valoración.</b> Influencia en la pedagogía moderna; límites en su visión de la mujer."
+    ]) +
+    ejemplo("Pregunta 4. La Ilustración", "Respuesta modelo:", [
+      "<b>Definición.</b> Siglo XVIII: confianza en la razón crítica y el progreso.",
+      "<b>Lema.</b> «Sapere aude» (Kant, 1784): salir de la minoría de edad.",
+      "<b>Proyecto.</b> Enciclopedia, tolerancia, derechos naturales, educación.",
+      "<b>Rousseau.</b> Comparte los ideales pero cuestiona que el progreso mejore moralmente."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf11a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 11 (parte B): Rousseau y la Ilustración
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t11.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Rousseau (1712–1778) comparte la fe ilustrada en la razón crítica, pero duda de que el <b>progreso</b> haya hecho mejores a las personas.",
+    "En el <b>estado de naturaleza</b> (hipótesis) el ser humano es libre y de buen natural; la sociedad crea el <b>amor propio</b>, la propiedad y la desigualdad.",
+    "El <b>contrato social</b> cede los derechos a la comunidad entera y funda la <b>voluntad general</b> (bien común, distinta de la voluntad de todos) y la soberanía popular.",
+    "El <i>Emilio</i> propone una <b>educación natural</b> que respete las etapas del desarrollo infantil."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Rousseau · 1712–1778 · y la Ilustración",
+    autores: [{ n: "Jean-Jacques Rousseau", f: "1712–1778", l: "Ginebra; vivió sobre todo en Francia" }],
+    obras: ["Discurso sobre las ciencias y las artes (1750)", "Discurso sobre el origen de la desigualdad (1755)", "Del contrato social (1762)", "Emilio (1762)"],
+    bloques: [
+      { t: "Contexto: la Ilustración", frases: ["Siglo XVIII, «siglo de las luces»: confianza en la <b>razón crítica</b> y el progreso.", "Lema de Kant: <b>sapere aude</b> («atrévete a saber»).", "Rousseau colabora en la <i>Enciclopedia</i> y luego discrepa de los ilustrados."] },
+      { t: "Estado de naturaleza", frases: ["Es una <b>hipótesis</b>, no una época histórica.", "El ser humano natural es libre, aislado y <b>amoral</b>, con piedad.", "Es <b>perfectible</b>: puede mejorar (y empeorar)."],
+        tabla: { cab: ["Amor de sí", "Amor propio"], filas: [["natural: conservarse", "social: compararse"], ["sano", "origen de envidia y vanidad"]] } },
+      { t: "Crítica a la civilización", frases: ["Las ciencias y las artes no mejoran las costumbres (1750).", "La <b>propiedad privada</b> funda la sociedad civil desigual (1755).", "El pacto de los ricos consolida sus privilegios."] },
+      { t: "Contrato social", frases: ["Problema: vivir con otros y seguir <b>libre</b>.", "Cada uno se entrega a la <b>comunidad entera</b>, no a un rey.", "Libertad civil y moral: obedecer la ley que uno se da."] },
+      { t: "Voluntad general y soberanía", frases: ["<b>Soberanía popular</b>: inalienable e indivisible.", "Critica la representación; el gobierno es comisionado del pueblo."],
+        tabla: { cab: ["Voluntad de todos", "Voluntad general"], filas: [["suma de intereses particulares", "bien común"], ["puede ser injusta", "siempre recta"]] } },
+      { t: "Educación y religión", frases: ["<i>Emilio</i>: educación <b>negativa</b>, que respeta las etapas.", "Se aprende por experiencia y consecuencias.", "Religión natural: la conciencia como guía."] }
+    ],
+    resumen: [
+      "El mal viene de la <b>sociedad</b> (amor propio, propiedad, desigualdad), no de una naturaleza perversa.",
+      "No hay vuelta atrás: la solución es una sociedad justa, el <b>contrato social</b>.",
+      "La ley legítima expresa la <b>voluntad general</b> y el pueblo es <b>soberano</b>.",
+      "Educar es proteger y respetar el desarrollo natural del niño."
+    ],
+    conecta: [
+      { con: "Platón y Aristóteles (T3–T4):", rel: "también buscan la comunidad justa y el bien común." },
+      { con: "Descartes (T9):", rel: "heredan la confianza en la razón; Rousseau añade el sentimiento." },
+      { con: "Hobbes y Locke (T10):", rel: "otros contractualistas: soberano absoluto o gobierno limitado." },
+      { con: "Kant (T12):", rel: "toma la autonomía (darse la ley) y resume la Ilustración." },
+      { con: "Marx (T13):", rel: "continúa la crítica a la propiedad y la desigualdad." }
+    ],
+    claves: [
+      ["Ilustración", "movimiento del siglo XVIII que confía en la razón crítica y el progreso"],
+      ["Sapere aude", "«atrévete a saber»: lema ilustrado en la versión de Kant"],
+      ["Estado de naturaleza", "hipótesis del ser humano antes de la sociedad: libre, aislado y amoral"],
+      ["Amor de sí / amor propio", "conservarse (natural) frente a compararse con los demás (social)"],
+      ["Perfectibilidad", "capacidad humana de mejorar, que saca al ser humano de la naturaleza"],
+      ["Propiedad privada", "origen de la sociedad civil desigual"],
+      ["Contrato social", "pacto por el que cada uno se entrega a la comunidad entera"],
+      ["Voluntad general", "la que busca el bien común; distinta de la voluntad de todos"],
+      ["Soberanía popular", "el poder pertenece al pueblo, inalienable e indivisible"],
+      ["Educación negativa", "proteger al niño de lo que lo desvía y respetar sus etapas"]
+    ],
+    cita: { txt: "El hombre ha nacido libre, y sin embargo, en todas partes se encuentra encadenado.", autor: "Rousseau", obra: "Del contrato social, I, 1 (traducción habitual)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    naturaleza: {
+      titulo: "¿Amor de sí o amor propio?",
+      consigna: "Toca cada situación y después el tipo de amor que corresponde, según Rousseau.",
+      categorias: ["Amor de sí (natural)", "Amor propio (social)"],
+      items: [
+        { t: "Comer cuando tengo hambre", c: 0 },
+        { t: "Querer tener más que mi vecina", c: 1 },
+        { t: "Protegerme del peligro", c: 0 },
+        { t: "Envidiar el éxito de otro", c: 1 },
+        { t: "Dormir cuando tengo sueño", c: 0 },
+        { t: "Presumir para que me admiren", c: 1 },
+        { t: "Compararme con los demás para sentirme superior", c: 1 },
+        { t: "Buscar refugio contra el frío", c: 0 }
+      ]
+    },
+    ordendesigualdad: {
+      titulo: "La historia de la desigualdad",
+      consigna: "Ordena los pasos del Discurso sobre la desigualdad, del principio al final.",
+      items: [
+        { t: "Estado de naturaleza: libres, aislados, con amor de sí y piedad" },
+        { t: "Primeras sociedades: aparece la comparación y la división del trabajo" },
+        { t: "Propiedad privada: «esto es mío»" },
+        { t: "Pacto engañoso de los ricos: leyes que consolidan sus privilegios" },
+        { t: "Despotismo: todos iguales, pero esclavos del déspota" }
+      ]
+    },
+    voluntades: {
+      titulo: "Las tres voluntades",
+      consigna: "Une cada voluntad con su definición.",
+      pares: [["Voluntad particular", "Lo que le conviene a cada individuo"], ["Voluntad de todos", "La suma de los intereses particulares"], ["Voluntad general", "Lo que busca el bien común"]]
+    },
+    etapasemilio: {
+      titulo: "Las etapas del Emilio",
+      consigna: "Ordena las etapas de la educación de Emilio, de la más temprana a la última.",
+      items: [
+        { t: "Primera infancia (hasta 2 años): cuerpo y primeras sensaciones" },
+        { t: "Infancia (2–12 años): sentidos y experiencia" },
+        { t: "Preadolescencia (12–15 años): razón y curiosidad" },
+        { t: "Adolescencia (15–20 años): sentimientos, moral y religión" },
+        { t: "Edad adulta: ciudadano" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 11",
+      preguntas: [
+        { q: "El lema «sapere aude» significa…", op: ["atrévete a saber", "conócete a ti mismo", "pienso, luego existo", "solo sé que no sé nada"], ok: 0, porque: "Es de Horacio, hecho famoso por Kant en 1784." },
+        { q: "Rousseau nació en…", op: ["Ginebra", "París", "Londres", "Berlín"], ok: 0, porque: "Nació en Ginebra en 1712." },
+        { q: "En el Discurso de 1750, Rousseau sostiene que las ciencias y las artes…", op: ["no han mejorado las costumbres", "han hecho a la gente más virtuosa", "deben prohibirse", "solo sirven a la Iglesia"], ok: 0, porque: "Su tesis: el progreso material no es progreso moral." },
+        { q: "El estado de naturaleza de Rousseau es…", op: ["una hipótesis para entender al ser humano", "una época histórica comprobada", "una guerra de todos contra todos", "un reino gobernado por un rey"], ok: 0, porque: "Él mismo advierte que quizá nunca existió; la guerra de todos es de Hobbes." },
+        { q: "El amor propio (amour-propre) es…", op: ["el afán de compararse y estar por encima de los demás", "el instinto de conservación", "la compasión natural", "el amor a la patria"], ok: 0, porque: "Nace en sociedad; el instinto de conservación es el amor de sí." },
+        { q: "Según el Discurso de 1755, la sociedad civil nace con…", op: ["la propiedad privada", "el contrato social", "la Enciclopedia", "la religión natural"], ok: 0, porque: "«Esto es mío»: el cercado del terreno." },
+        { q: "En el contrato social, cada uno cede sus derechos a…", op: ["la comunidad entera", "un rey absoluto", "los ricos", "la Iglesia"], ok: 0, porque: "Ceder a un soberano absoluto es la solución de Hobbes." },
+        { q: "La voluntad general es…", op: ["la que busca el bien común", "la suma de los deseos de cada uno", "la voluntad del monarca", "la de la mayoría, sea cual sea"], ok: 0, porque: "La suma de intereses es la voluntad de todos." },
+        { q: "Para Rousseau la soberanía es…", op: ["del pueblo, inalienable e indivisible", "del rey por derecho divino", "repartida entre tres poderes", "de los filósofos"], ok: 0, porque: "El pueblo no puede transferirla ni dividirla." },
+        { q: "El Emilio propone una educación…", op: ["natural, que respeta las etapas del desarrollo", "basada en la memoria y el castigo", "sin ninguna guía del adulto", "exclusivamente religiosa"], ok: 0, porque: "Educación negativa: proteger y respetar el ritmo del niño." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre Rousseau es FALSA?", op: ["Rousseau rechaza la razón y el saber en todos los casos", "Rousseau colaboró en la Enciclopedia", "Rousseau cuestiona que el progreso mejore la moral", "Rousseau escribió el Emilio"], ok: 0, porque: "Usa la razón crítica; lo que cuestiona es el progreso moral." },
+        { q: "¿Cuál de estas afirmaciones sobre el estado de naturaleza es FALSA?", op: ["Fue una época histórica comprobada que Rousseau documentó", "Es una hipótesis para pensar", "En él el ser humano es amoral", "El ser humano tiene amor de sí y piedad"], ok: 0, porque: "Rousseau advierte que quizá nunca existió." },
+        { q: "¿Cuál de estas afirmaciones sobre el amor propio es FALSA?", op: ["Es natural y existe antes de toda sociedad", "Nace al compararse con los demás", "Alimenta la envidia y la vanidad", "Se distingue del amor de sí"], ok: 0, porque: "El natural es el amor de sí; el amor propio es social." },
+        { q: "¿Cuál de estas afirmaciones sobre la voluntad general es FALSA?", op: ["Es la suma de las voluntades particulares", "Busca el bien común", "Se expresa en la ley", "Se distingue de la voluntad de todos"], ok: 0, porque: "Esa suma es la voluntad de todos." },
+        { q: "¿Cuál de estas afirmaciones sobre el contrato social es FALSA?", op: ["Cada uno cede sus derechos a un monarca absoluto", "Cada uno se entrega a la comunidad entera", "Busca conservar la libertad", "Funda la soberanía popular"], ok: 0, porque: "Ceder el poder a un soberano absoluto es la propuesta de Hobbes." },
+        { q: "¿Cuál de estas afirmaciones sobre la Ilustración es FALSA?", op: ["Todos los ilustrados defendían la democracia", "Su lema, según Kant, es «sapere aude»", "La Enciclopedia fue un proyecto de divulgación", "Hubo defensores del despotismo ilustrado"], ok: 0, porque: "Muchos ilustrados defendían monarcas reformistas." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["Rousseau nació antes que Locke", "Locke nació en 1632", "Rousseau murió en 1778", "Kant nació en 1724"], ok: 0, porque: "Locke (1632–1704) es anterior a Rousseau (1712–1778)." },
+        { q: "¿Cuál de estas afirmaciones sobre el Emilio es FALSA?", op: ["Propone dejar al niño hacer siempre lo que quiera", "Propone respetar las etapas del desarrollo", "Es una novela pedagógica", "Defiende aprender por la experiencia"], ok: 0, porque: "Pide guía sin imposición, no ausencia de guía." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Rousseau y la Ilustración",
+      cartas: [
+        { a: "Ilustración", b: "Movimiento del siglo XVIII basado en la razón crítica, el progreso y la tolerancia." },
+        { a: "Sapere aude", b: "«Atrévete a saber». Lema de la Ilustración según Kant." },
+        { a: "Enciclopedia", b: "Obra dirigida por Diderot y D'Alembert (1751–1772) para divulgar el saber." },
+        { a: "Despotismo ilustrado", b: "«Todo para el pueblo, pero sin el pueblo»: reformas desde una monarquía absoluta." },
+        { a: "Estado de naturaleza (Rousseau)", b: "Hipótesis del ser humano antes de la sociedad: libre, aislado y amoral." },
+        { a: "Amor de sí", b: "Impulso natural de conservarse; sano." },
+        { a: "Amor propio", b: "Afán social de compararse y estar por encima de los demás; origen del mal." },
+        { a: "Piedad", b: "Rechazo natural a ver sufrir a otro." },
+        { a: "Perfectibilidad", b: "Capacidad humana de mejorar, que saca al ser humano del estado de naturaleza." },
+        { a: "Propiedad privada", b: "Para Rousseau, origen de la sociedad civil desigual (Discurso de 1755)." },
+        { a: "Contrato social", b: "Pacto por el que cada uno se entrega a la comunidad entera para ser libre bajo leyes." },
+        { a: "Voluntad general", b: "La que busca el bien común; se expresa en la ley." },
+        { a: "Voluntad de todos", b: "La suma de intereses particulares; no es la voluntad general." },
+        { a: "Soberanía popular", b: "El poder pertenece al pueblo; es inalienable e indivisible." },
+        { a: "Educación negativa", b: "Proteger al niño de lo que lo desvía y respetar sus etapas (Emilio)." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  var cuenta = 0;
+  // En las opciones, la primera es la correcta; se rota para que no sea siempre la misma posición.
+  function rotar(ops) {
+    var k = (cuenta++) % ops.length;
+    return { ops: ops.slice(k).concat(ops.slice(0, k)), ok: (ops.length - k) % ops.length };
+  }
+  function O(id, nv, enun, ops, pasos, res, et) {
+    var r = rotar(ops);
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: r.ops, ok: r.ok }, pasos: pasos, resultado: res || ops[0] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, pasos) {
+    var r = rotar(justif);
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", r.ops, r.ok)], pasos: pasos, resultado: (ver ? "Verdadero: " : "Falso: ") + justif[0] });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("ro1", 1, "¿Dónde nació Rousseau?", ["Ginebra", "París", "Roma", "Königsberg"],
+    ["Nació en Ginebra en 1712 y murió en 1778."]);
+  O("ro2", 1, "¿En qué año se publicaron <i>Del contrato social</i> y el <i>Emilio</i>?", ["1762", "1750", "1789", "1651"],
+    ["Ambos son de 1762 y fueron condenados ese mismo año."]);
+  O("ro3", 1, "El lema ilustrado «sapere aude» significa…", ["atrévete a saber", "conócete a ti mismo", "pienso, luego existo", "todo fluye"],
+    ["Lo popularizó Kant en <i>¿Qué es la Ilustración?</i> (1784)."]);
+  T("ro4", 1, "Completa: Rousseau distingue la voluntad de todos de la voluntad ______.", "Término =", ["general"],
+    ["La voluntad general busca el bien común."], "general");
+  O("ro5", 1, "¿Cuál es la obra pedagógica de Rousseau?", ["Emilio", "Del contrato social", "El espíritu de las leyes", "Leviatán"],
+    ["<i>Emilio, o De la educación</i> (1762)."]);
+  M("ro6", 1, "Empareja cada obra con su año.", [
+    C("Discurso sobre las ciencias y las artes", ["1750", "1755", "1762"], 0),
+    C("Discurso sobre el origen de la desigualdad", ["1750", "1755", "1762"], 1),
+    C("Del contrato social", ["1750", "1755", "1762"], 2),
+    C("Emilio", ["1750", "1755", "1762"], 2)],
+    ["Primer Discurso: 1750; segundo: 1755; Contrato y Emilio: 1762."], "1750, 1755, 1762, 1762");
+  O("ro7", 1, "¿Quiénes dirigieron la <i>Enciclopedia</i>?", ["Diderot y D'Alembert", "Voltaire y Rousseau", "Locke y Hume", "Kant y Hegel"],
+    ["Se publicó entre 1751 y 1772."]);
+  M("ro8", 1, "Clasifica cada situación como amor de sí, amor propio o piedad.", [
+    C("Comer porque tengo hambre", ["Amor de sí", "Amor propio", "Piedad"], 0),
+    C("Querer tener más que los demás", ["Amor de sí", "Amor propio", "Piedad"], 1),
+    C("Me duele ver sufrir a otro", ["Amor de sí", "Amor propio", "Piedad"], 2)],
+    ["Amor de sí = conservarse; amor propio = compararse; piedad = compasión natural."], "Amor de sí, amor propio, piedad");
+  T("ro9", 1, "Completa: la capacidad humana de mejorar, que saca al ser humano del estado de naturaleza, es la ______.", "Término =", ["perfectibilidad"],
+    ["Puede llevar al progreso y también a la corrupción."], "perfectibilidad");
+  O("ro10", 1, "¿Quién defendió la separación de poderes en <i>El espíritu de las leyes</i> (1748)?", ["Montesquieu", "Rousseau", "Voltaire", "Hobbes"],
+    ["Rousseau, en cambio, defiende una soberanía indivisible."]);
+  O("ro11", 1, "Para Rousseau, el soberano es…", ["el pueblo", "el rey", "el Parlamento", "los filósofos"],
+    ["Soberanía popular, inalienable e indivisible."]);
+  O("ro12", 1, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Locke → Rousseau → Kant", "Rousseau → Locke → Kant", "Kant → Rousseau → Locke", "Locke → Kant → Rousseau"],
+    ["Locke (1632), Rousseau (1712), Kant (1724)."], "Locke → Rousseau → Kant");
+  O("ro13", 1, "¿Con qué obra ganó Rousseau el premio de la Academia de Dijon?", ["Discurso sobre las ciencias y las artes", "Del contrato social", "Emilio", "Confesiones"],
+    ["Fue en 1750 y lo hizo famoso."]);
+  T("ro14", 1, "Completa: en el contrato social, cada uno cede sus derechos a la ______ entera.", "Término =", ["comunidad"],
+    ["No a un rey, sino a la comunidad de la que forma parte."], "comunidad");
+
+  // ---- nivel 2
+  V("ro15", 2, "«Rousseau presenta el estado de naturaleza como una época histórica comprobada.»", false, [
+    "Es falso: es una hipótesis para pensar, que quizá nunca existió", "Es falso: no existe estado de naturaleza en ningún sentido", "Es verdad: lo documentó con textos antiguos", "Es verdad: coincide con la Edad Media"],
+    ["Experimento mental para separar lo natural de lo social."]);
+  V("ro16", 2, "«El ser humano natural de Rousseau es amoral: ni bueno ni malo en sentido moral.»", true, [
+    "Es verdad: no tiene motivos para el mal, pero la virtud aparece con la sociedad y la razón", "Es verdad: porque es perverso por naturaleza", "Es verdad: porque ya conoce el deber", "Es verdad: porque vive en guerra permanente"],
+    ["Bueno por ausencia de maldad, no por elegir el bien."]);
+  V("ro17", 2, "«El amor propio es un impulso natural que existe antes de toda sociedad.»", false, [
+    "Es falso: nace en sociedad, al compararse con los demás", "Es falso: no tiene nada que ver con la comparación", "Es verdad: es el instinto de conservación", "Es verdad: aparece en el estado de naturaleza"],
+    ["El natural es el amor de sí."]);
+  V("ro18", 2, "«Para Rousseau, la propiedad privada está en el origen de la sociedad civil desigual.»", true, [
+    "Es verdad: el primero que cercó un terreno y dijo «esto es mío» fundó la sociedad civil", "Es verdad: porque la propiedad es un derecho natural intocable", "Es verdad: porque elimina la rivalidad", "Es verdad: porque la inventó el Estado de naturaleza"],
+    ["Discurso sobre la desigualdad, segunda parte."]);
+  V("ro19", 2, "«La voluntad general es la suma de las voluntades particulares de todos los ciudadanos.»", false, [
+    "Es falso: esa suma es la voluntad de todos; la general busca el bien común", "Es falso: la voluntad general es la del rey", "Es verdad: se calcula sumando los votos", "Es verdad: coincide con la voluntad de la mayoría"],
+    ["No se calcula por suma de intereses."]);
+  V("ro20", 2, "«Rousseau defiende repartir la soberanía entre varios poderes independientes.»", false, [
+    "Es falso: la soberanía popular es indivisible", "Es falso: no cree en la soberanía", "Es verdad: igual que Montesquieu", "Es verdad: ese es el mensaje del Emilio"],
+    ["La división de poderes es de Montesquieu y Locke."]);
+  V("ro21", 2, "«El Emilio propone respetar el ritmo natural del desarrollo infantil.»", true, [
+    "Es verdad: es una educación natural, que protege y no impone", "Es verdad: porque el niño debe aprender solo a memorizar", "Es verdad: porque se suprime toda guía del adulto", "Es verdad: porque se educa para ser rey"],
+    ["Educación negativa: evitar lo que corrompe."]);
+  O("ro22", 2, "¿A quién ceden sus derechos los individuos en el pacto de Rousseau?",
+    ["A la comunidad entera, de la que ellos mismos forman parte", "A un soberano absoluto", "A un parlamento con poder limitado", "A la Iglesia"],
+    ["Hobbes cede a un soberano; Locke a un gobierno limitado."]);
+  O("ro23", 2, "¿En qué se diferencia Rousseau de Hobbes?",
+    ["En que el poder no se cede a un soberano, sino a la comunidad, y se conserva la libertad", "En que Rousseau cree en la guerra de todos contra todos", "En que Hobbes defiende la soberanía popular", "En que no hay diferencia"],
+    ["Hobbes: soberano absoluto por seguridad; Rousseau: soberanía del pueblo."]);
+  O("ro24", 2, "¿Qué opina Rousseau de la representación política?",
+    ["Que el pueblo solo es libre al elegir y luego deja de serlo", "Que es la mejor forma de democracia", "Que garantiza la voluntad general", "Que debe ser vitalicia"],
+    ["Prefiere la democracia directa en Estados pequeños."]);
+  O("ro25", 2, "¿Qué respondió Rousseau en 1750 a la pregunta de la Academia de Dijon?",
+    ["Que el progreso de las ciencias y las artes no ha mejorado las costumbres", "Que las ha depurado por completo", "Que hay que quemar los libros", "Que no sabe contestar"],
+    ["Era una respuesta inesperada."]);
+  O("ro26", 2, "La libertad civil es…",
+    ["vivir bajo leyes que protegen a todos por igual", "hacer lo que uno puede sin límite", "obedecer a un rey sabio", "no tener ninguna ley"],
+    ["La libertad natural se pierde; se gana la civil y la moral."]);
+  O("ro27", 2, "El lema del despotismo ilustrado «todo para el pueblo, pero sin el pueblo» significa…",
+    ["reformas desde el poder, sin dar participación al pueblo", "soberanía popular directa", "revolución contra el rey", "vuelta a la naturaleza"],
+    ["Rousseau va más lejos: el pueblo es soberano."]);
+  O("ro28", 2, "¿Con qué otro gran ilustrado coincide Rousseau en el año de su muerte (1778)?",
+    ["Voltaire", "Diderot", "Locke", "Kant"],
+    ["Voltaire (1694–1778) y Rousseau murieron el mismo año."]);
+  O("ro29", 2, "Para Kant, la «minoría de edad» que supera la Ilustración es…",
+    ["la incapacidad de usar el propio entendimiento sin la guía de otro", "tener menos de dieciocho años", "no tener estudios", "no ser rico"],
+    ["Su causa es la falta de decisión y valor, no de inteligencia."]);
+  O("ro30", 2, "¿Cuál de estas es una desigualdad natural o física, según Rousseau?",
+    ["La diferencia de edad o de fuerza", "La diferencia de riqueza", "Los honores", "El poder político"],
+    ["Las desigualdades de riqueza, honores y poder son morales o políticas: dependen de convenciones."]);
+  O("ro31", 2, "La «educación negativa» del Emilio consiste en…",
+    ["proteger al niño de lo que lo desvía en lugar de llenarlo de ideas ajenas", "prohibirle todo", "castigarlo siempre", "no educarlo"],
+    ["Educación negativa no es ausencia de educación."]);
+
+  // ---- nivel 3
+  O("ro32", 3, "Texto: «El hombre ha nacido libre, y sin embargo, en todas partes se encuentra encadenado» (<i>Del contrato social</i>, I, 1; traducción habitual). Su idea principal es…",
+    ["que la libertad natural contrasta con la falta de libertad en las sociedades reales", "que el ser humano es esclavo por naturaleza", "que debemos volver al bosque", "que las cadenas son físicas"],
+    ["Plantea el problema que el contrato quiere resolver."]);
+  O("ro33", 3, "Texto: «El primero a quien, habiendo cercado un terreno, se le ocurrió decir <i>esto es mío</i>… fue el verdadero fundador de la sociedad civil» (<i>Discurso sobre la desigualdad</i>; traducción habitual). Su idea principal es…",
+    ["que la propiedad privada está en el origen de la sociedad civil desigual", "que la propiedad es un derecho natural sagrado", "que la sociedad nace del amor", "que el cercado protege a los débiles"],
+    ["Crítica a la propiedad como origen de la desigualdad moral y política."]);
+  O("ro34", 3, "Una alumna afirma: «la voluntad general es lo que vota la mayoría». ¿Qué matiz es el correcto?",
+    ["La mayoría puede votar por intereses particulares; la voluntad general mira al bien común", "Tiene razón: son lo mismo", "La voluntad general es la del monarca", "La mayoría nunca puede equivocarse"],
+    ["Voluntad de todos ≠ voluntad general."]);
+  O("ro35", 3, "¿Qué significa «forzado a ser libre»?",
+    ["Que obedecer la ley que expresa la voluntad general es obedecerse a sí mismo como ciudadano", "Que el Estado puede obligar a cualquiera a lo que sea", "Que la libertad es una ilusión", "Que hay que obedecer al rey"],
+    ["Idea de autonomía; el riesgo está en quién interpreta la voluntad general."]);
+  O("ro36", 3, "¿Qué idea de Rousseau recoge Kant en su ética?",
+    ["La autonomía: darse uno mismo la ley", "El estado de naturaleza", "El buen salvaje", "La educación negativa"],
+    ["Obedecer la ley que uno se ha dado es libertad."]);
+  var ops37 = ["Soberano absoluto por seguridad", "Gobierno limitado y derechos naturales", "Soberanía popular inalienable", "Separación de poderes", "Tolerancia y crítica del fanatismo"];
+  M("ro37", 3, "Empareja cada autor con su idea.", [
+    C("Hobbes", ops37, 0), C("Locke", ops37, 1), C("Rousseau", ops37, 2), C("Montesquieu", ops37, 3), C("Voltaire", ops37, 4)],
+    ["Cada autor, una idea política distinta."], "Hobbes, Locke, Rousseau, Montesquieu, Voltaire");
+  var ops38 = ["Hacer lo que uno puede, con el único límite de su fuerza", "Vivir bajo leyes que protegen a todos por igual", "Obedecer la ley que uno mismo se ha dado"];
+  M("ro38", 3, "Empareja cada tipo de libertad con su definición.", [
+    C("Libertad natural", ops38, 0), C("Libertad civil", ops38, 1), C("Libertad moral", ops38, 2)],
+    ["La natural se pierde con el pacto; la civil y la moral se ganan."], "natural, civil, moral");
+  O("ro39", 3, "¿En qué discrepa Rousseau del resto de ilustrados como Voltaire?",
+    ["En que duda de que el progreso de la civilización haya mejorado moralmente a las personas", "En que rechaza la razón", "En que defiende el despotismo ilustrado", "En que apoya la Enciclopedia sin matices"],
+    ["Comparte los ideales de razón y libertad, pero critica el progreso."]);
+  R("ro40", "Explica la crítica de Rousseau a la civilización: estado de naturaleza, amor de sí y amor propio, y origen de la desigualdad. Valórala críticamente. (Pregunta tipo PAU)", 9, [
+    { t: "Presenta el estado de naturaleza como hipótesis: ser humano libre, amoral, con amor de sí y piedad", p: 0.5 },
+    { t: "Distingue amor de sí y amor propio, y dice dónde nace el mal", p: 0.4 },
+    { t: "Explica el origen de la desigualdad: propiedad privada y pacto engañoso de los ricos", p: 0.4 },
+    { t: "Menciona el Discurso de 1750 y su tesis sobre el progreso moral", p: 0.3 },
+    { t: "Valora (no propone volver a la naturaleza; paradoja del ilustrado)", p: 0.4 }],
+    ["Estado de naturaleza.", "Amor de sí y amor propio.", "Propiedad y desigualdad.", "Discurso de 1750.", "Valoración."], "La sociedad, no la naturaleza, produce el mal");
+  R("ro41", "Explica el contrato social y la voluntad general en Rousseau, y compáralos con Hobbes o Locke. (Pregunta tipo PAU)", 9, [
+    { t: "Plantea el problema: vivir en sociedad sin perder la libertad", p: 0.3 },
+    { t: "Explica el pacto: cesión a la comunidad entera, no a un gobernante", p: 0.4 },
+    { t: "Define voluntad general y la distingue de la voluntad de todos", p: 0.5 },
+    { t: "Soberanía popular inalienable e indivisible; crítica a la representación", p: 0.4 },
+    { t: "Compara con Hobbes o Locke con diferencias precisas", p: 0.4 }],
+    ["Problema.", "Pacto.", "Voluntad general.", "Soberanía.", "Comparación."], "Pacto con la comunidad; voluntad general = bien común");
+  R("ro42", "Explica la propuesta pedagógica del <i>Emilio</i> y relaciónala con la idea de ser humano de Rousseau. (Pregunta tipo PAU)", 8, [
+    { t: "Relaciona la educación con la bondad natural y la corrupción social", p: 0.5 },
+    { t: "Explica la educación negativa y el respeto de las etapas", p: 0.5 },
+    { t: "Aprender por experiencia y consecuencias (ejemplo)", p: 0.3 },
+    { t: "Religión natural y conciencia (vicario saboyano)", p: 0.3 },
+    { t: "Valora su influencia y sus límites (visión de la mujer)", p: 0.4 }],
+    ["Bondad natural.", "Educación negativa.", "Experiencia.", "Religión natural.", "Valoración."], "Educación natural y negativa");
+  R("ro43", "Explica qué es la Ilustración y sitúa en ella a Rousseau: coincidencias y diferencias con otros ilustrados. (Pregunta tipo PAU)", 8, [
+    { t: "Define la Ilustración: razón crítica, progreso, tolerancia (siglo XVIII)", p: 0.5 },
+    { t: "Explica «sapere aude» y la minoría de edad (Kant, 1784)", p: 0.4 },
+    { t: "Menciona la Enciclopedia y autores (Diderot, Voltaire, Montesquieu)", p: 0.3 },
+    { t: "Señala la paradoja de Rousseau: confianza en la razón crítica pero crítica al progreso", p: 0.5 },
+    { t: "Concluye con su herencia (Revolución Francesa, Kant)", p: 0.3 }],
+    ["Definición.", "Sapere aude.", "Enciclopedia.", "Paradoja.", "Herencia."], "Razón crítica y progreso; Rousseau cuestiona el progreso moral");
+  R("ro44", "Comenta este texto: «Encontrar una forma de asociación que defienda y proteja con toda la fuerza común la persona y los bienes de cada asociado, y por la cual cada uno, uniéndose a todos, no obedezca sin embargo sino a sí mismo y permanezca tan libre como antes» (Rousseau, <i>Del contrato social</i>, I, 6; traducción habitual). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: el problema fundamental de la política (sociedad y libertad)", p: 0.3 },
+    { t: "Idea principal: asociación que protege y deja a cada uno libre porque solo se obedece a sí mismo", p: 0.4 },
+    { t: "Aclara términos: asociación, fuerza común, uniéndose a todos, voluntad general", p: 0.4 },
+    { t: "Relaciona con el autor: crítica a la civilización, contrato, soberanía popular", p: 0.5 },
+    { t: "Compara con Hobbes, Locke o Kant", p: 0.3 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario del problema del contrato");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Hobbes, Locke y Rousseau", ancha: true,
+      tabla: { cab: ["", "Hobbes", "Locke", "Rousseau"], filas: [
+        ["Estado de naturaleza", "guerra de todos", "libre e igual, inseguro", "libre y pacífico"],
+        ["Pacto", "al soberano absoluto", "al gobierno limitado", "a la comunidad"],
+        ["Soberano", "el monarca", "Parlamento / pueblo", "el pueblo"]
+      ] } },
+    { titulo: "Amor de sí y amor propio", ancha: true,
+      tabla: { cab: ["Amor de sí", "Amor propio"], filas: [
+        ["natural", "social"],
+        ["conservarse", "compararse"],
+        ["sano", "envidia y vanidad"]
+      ] } },
+    { titulo: "Las tres voluntades", ancha: true,
+      tabla: { cab: ["Voluntad", "Qué busca"], filas: [
+        ["particular", "lo que conviene a uno"],
+        ["de todos", "suma de intereses"],
+        ["general", "el bien común"]
+      ] } },
+    { titulo: "Historia de la desigualdad",
+      pasos: ["Estado de naturaleza.", "Primeras sociedades.", "Propiedad privada.", "Pacto engañoso de los ricos.", "Despotismo."],
+      nota: "El contrato social propone una sociedad justa." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Rousseau propone volver a la naturaleza", bien: "Propone una sociedad justa (contrato) y una educación natural", por: "El estado de naturaleza es una hipótesis." },
+        { mal: "La voluntad general es la suma de los deseos de todos", bien: "Es lo que busca el bien común", por: "La suma es la voluntad de todos." },
+        { mal: "El pacto cede el poder a un rey", bien: "Se cede a la comunidad entera", por: "Eso es Hobbes." },
+        { mal: "Rousseau rechaza la razón", bien: "Usa la razón crítica y cuestiona el progreso moral", por: "Es un ilustrado paradójico." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t11", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf11a.secciones,
+    nuevas: B.parte.hf11a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Matemáticas I · ampliaciones · Tema 1: Números reales
    Lo original de pagina.html no se toca: esto se añade al final de cada
    sección, como secciones nuevas, ejercicios nuevos y bloques de lámina.
