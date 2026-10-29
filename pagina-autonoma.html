@@ -7717,6 +7717,48 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Historia de la Filosofía, tema 10 (Locke y Hume)
+   filo_hume: «rastrea la idea». Se elige una idea y se sigue hasta su impresión de origen (principio de copia de Hume);
+   el veredicto dice si la idea es legítima, es una combinación o no tiene impresión externa que la respalde.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("ft10-estilos")) return;
+    var s = document.createElement("style"); s.id = "ft10-estilos";
+    s.textContent =
+      ".ft10-cad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:12px 0 6px}" +
+      ".ft10-p{padding:8px 8px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;line-height:1.4;color:var(--ink)}" +
+      ".ft10-p em{display:block;font-style:normal;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}" +
+      ".ft10-p.v{border-color:var(--pen);background:var(--pen-soft)}" +
+      ".ft10-nota{margin-top:8px;padding:8px 10px;border-radius:10px;border:1.5px dashed var(--line);font-size:14.5px;line-height:1.45;color:var(--ink)}" +
+      "@media(max-width:520px){.ft10-cad{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  var IDEAS = [
+    { k: 1, t: "Rojo", imp: "Ver algo rojo: una impresión de sensación, directa y viva.", ver: "Idea simple legítima", nota: "Es la copia pálida de una impresión que tuviste. Sin haber visto nunca el rojo, no tendrías esta idea." },
+    { k: 2, t: "Montaña de oro", imp: "Impresión de «montaña» y de «oro», vistas por separado.", ver: "Idea compleja legítima", nota: "Nunca has visto una, pero la imaginación junta dos ideas que sí vienen de impresiones. Imaginar es combinar, no inventar de la nada." },
+    { k: 3, t: "Unicornio", imp: "Impresión de un caballo y de un cuerno, por separado.", ver: "Idea compleja legítima", nota: "Ficción hecha de piezas reales: cada pieza se rastrea hasta una impresión. El principio de copia no prohíbe imaginar." },
+    { k: 4, t: "Conexión necesaria", imp: "Solo se ve que A va seguido de B. La «necesidad» no se ve ni se toca. Lo único que hay es una impresión interna: la expectativa que la costumbre crea en nosotros.", ver: "Sin impresión externa", nota: "Para Hume, la causalidad no está en las cosas sino en el hábito de la mente, que proyecta su expectativa sobre el mundo." },
+    { k: 5, t: "Yo (sustancia)", imp: "Al mirar dentro solo se encuentran percepciones sueltas: calor, alegría, un recuerdo. Nunca un «yo» aparte de ellas.", ver: "Sin impresión", nota: "Hume concluye que el yo no es una sustancia fija sino un haz de percepciones en continuo cambio." }
+  ];
+  B.w.filo_hume = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Rastrea la idea hasta su impresión");
+    cuerpo.innerHTML = '<p class="w-intro">Hume exige que toda idea tenga una impresión de origen. Elige una idea y síguela hasta ella.</p><div data-ctl></div><div class="ft10-det"></div>';
+    var det = cuerpo.querySelector(".ft10-det"), cur = 1;
+    U.fichas(cuerpo.querySelector("[data-ctl]"), IDEAS.map(function (o) { return { k: o.k, t: o.t }; }), cur, function (k) { cur = +k; pinta(); });
+    function pinta() {
+      var o = IDEAS[cur - 1];
+      det.innerHTML = '<div class="ft10-cad"><div class="ft10-p"><em>Idea</em>' + o.t + '</div><div class="ft10-p"><em>¿De qué impresión viene?</em>' + o.imp + '</div><div class="ft10-p v"><em>Veredicto</em><b>' + o.ver + '</b></div></div><div class="ft10-nota">' + o.nota + "</div>";
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · Historia de la Filosofía, tema 3 (Platón)
    filo_caverna: el mito de la caverna paso a paso, con lo que simboliza cada etapa y el nivel de la
    línea dividida (eikasía, pístis, diánoia, nóesis) al que corresponde. Se elige la etapa pulsando.
@@ -46137,6 +46179,661 @@
     vistazo: vistazo,
     secciones: B.parte.hf9a.secciones,
     nuevas: B.parte.hf9a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 10: El empirismo (Locke y Hume)
+   (parte A: teoría. Parte B, historia_fil_t10b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Empirismo frente a racionalismo: no hay ideas innatas; la mente parte «en blanco» → secciones 1 y 2 + tabla.
+   2. Sensación y reflexión (Locke), e ideas simples/complejas; la reflexión también depende de la sensación → sección 2 y 3.
+   3. Cualidades primarias y secundarias (qué está en el objeto y qué depende de nosotros) → sección 3 + clasificar.
+   4. Impresiones e ideas (Hume): la diferencia es de intensidad; principio de copia y matiz de azul → sección 4 + widget filo_hume.
+   5. Relaciones de ideas frente a cuestiones de hecho (el «tenedor» de Hume) → sección 4 + emparejar.
+   6. Crítica a la causalidad: nunca vemos la «conexión necesaria»; es hábito → sección 5 (bolas de billar) + widget.
+   7. El problema de la inducción: el futuro no está garantizado por el pasado → sección 5 + ejercicios.
+   8. Crítica al yo y a la sustancia (haz de percepciones) frente al cogito de Descartes → sección nueva 7.
+   9. Emotivismo/sentimentalismo moral: la razón no mueve a actuar; ley de Hume (de «es» a «debe») → sección nueva 8.
+   10. Locke político: derechos naturales, propiedad por el trabajo, contrato, poder limitado y resistencia, tolerancia → sección nueva 6.
+   11. Comentario de texto: Hume sobre el yo (Tratado I, iv, 6) → comentario resuelto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t10/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Racionalismo frente a empirismo
+  secciones[0] =
+    "<h5>Dos respuestas a la misma pregunta</h5>" +
+    "<p>En el siglo XVII los filósofos se preguntan: <b>¿de dónde sale lo que sabemos?</b> Descartes (1596–1650, tema 9) responde: de la <b>razón</b>, que posee ideas innatas (el yo, Dios, las verdades matemáticas) y puede construir la ciencia casi sin salir de su cabeza. En Inglaterra, al otro lado del Canal, <b>Locke</b> (1632–1704) y <b>Hume</b> (1711–1776) responden lo contrario: <b>de la experiencia</b>. Nadie nace sabiendo nada; todo lo que pensamos ha entrado antes por los sentidos o por la observación de nuestra propia mente.</p>" +
+    tabla(["", "Racionalismo (Descartes)", "Empirismo (Locke, Hume)"], [
+      ["Origen del conocimiento", "La razón", "La experiencia"],
+      ["Ideas innatas", "Sí (yo, Dios, extensión)", "No: la mente nace «en blanco»"],
+      ["Modelo de ciencia", "Las matemáticas: deducir", "La observación: inducir"],
+      ["Confianza en la razón", "Muy alta", "Moderada (en Hume, muy limitada)"],
+      ["Método", "Deducción desde ideas evidentes", "Observación y generalización"]
+    ]) +
+    "<p>Una imagen cotidiana: el racionalista es como quien cree que dentro de su cabeza ya viene instalado un programa de fábrica; el empirista, como quien piensa que el móvil sale vacío y todo lo que contiene lo ha ido descargando él después.</p>" +
+    ojo("«Empirismo» no significa «solo vale lo que se ve». Significa que <b>todo material del pensamiento viene de la experiencia</b>. Los empiristas también razonan; lo que discuten es de dónde sacan sus ideas las razones.") +
+    "<h5>Contexto histórico</h5>" +
+    "<p>Es la Inglaterra de la <b>revolución científica</b> (Newton, 1643–1727, trabajaba por esas décadas) y de las <b>revoluciones políticas</b>: la Revolución Gloriosa de 1688 limita el poder del rey y da el poder al Parlamento. Los empiristas quieren una filosofía modesta, que sirva a la ciencia y que respete la libertad de las personas.</p>";
+
+  // ---------------------------------------------------------------- 2. Locke: la mente como tabula rasa
+  secciones[1] =
+    "<h5>Quién fue John Locke</h5>" +
+    "<p>Nació en Wrington (Inglaterra) en 1632 y murió en Oates en 1704. Estudió en Oxford, se formó también como <b>médico</b> y fue secretario y consejero del político lord Shaftesbury. Por motivos políticos tuvo que exiliarse en Holanda (1683–1689) y volvió a Inglaterra tras la Revolución Gloriosa. Sus obras principales se publican ya en la madurez: la <i>Carta sobre la tolerancia</i> (1689), los <i>Dos tratados sobre el gobierno civil</i> (1689, fechados en 1690) y el <i>Ensayo sobre el entendimiento humano</i> (1690).</p>" +
+    "<h5>Contra las ideas innatas: los argumentos de Locke</h5>" +
+    "<p>El Libro I del <i>Ensayo</i> ataca la idea de que traemos principios grabados desde el nacimiento. Sus razones son fáciles de recordar:</p>" +
+    "<ul><li><b>No hay consenso universal.</b> Si ciertos principios fueran innatos, todo el mundo los conocería. Pero los niños pequeños y las personas sin formación no saben enunciar «lo que es, es», ni «es imposible que algo sea y no sea a la vez».</li>" +
+    "<li><b>Las ideas morales y religiosas varían</b> de un pueblo a otro. Lo que unos consideran un deber otros lo consideran un crimen; la idea de Dios tampoco es igual en todas partes.</li>" +
+    "<li><b>Lo innato no se aprende:</b> si estuviera en la mente desde siempre, no haría falta descubrirlo con esfuerzo, y sin embargo lo descubrimos al crecer.</li></ul>" +
+    "<p>Para Locke, la mente al nacer es un <b>«papel en blanco»</b> (<i>tabula rasa</i>, «tabla rasa»: una tablilla de cera sin escritura). La experiencia es lo que escribe en ella.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (John Locke, <em>Ensayo sobre el entendimiento humano</em>, libro II, cap. 1; traducción habitual, que varía según la edición):<br><em>«Supongamos, pues, que la mente es, como se dice, un papel en blanco, vacío de todo carácter, sin ninguna idea. ¿Cómo llega a tenerlas? [...] A esto respondo con una sola palabra: de la experiencia.»</em></blockquote>" +
+    "<h5>Las dos fuentes de la experiencia</h5>" +
+    tabla(["Fuente", "Qué es", "Ejemplo"], [
+      ["<b>Sensación</b>", "La experiencia del mundo exterior a través de los sentidos", "Ver el rojo de una manzana; notar el frío de la nieve"],
+      ["<b>Reflexión</b>", "La observación de las operaciones de nuestra propia mente", "Darte cuenta de que dudas, recuerdas o quieres algo"]
+    ]) +
+    "<p>Ojo con la reflexión: <b>no es una fuente independiente</b>. Para poder reflexionar sobre «dudar» o «recordar», antes tiene que haber habido sensaciones sobre las que dudar o que recordar. Por eso Locke sigue siendo empirista sin ninguna ambigüedad.</p>" +
+    ejemplo("¿Y la idea de «Dios»? ¿No será innata?", "Locke responde que tampoco: la formamos nosotros a partir de experiencias.", [
+      "Partimos de ideas simples de la reflexión: existencia, conocimiento, poder.",
+      "Las <b>ampliamos sin límite</b> en la imaginación: un poder infinito, un saber infinito.",
+      "Resultado: una idea compleja de «Dios», construida a partir de la experiencia, no recibida de fábrica."
+    ]);
+
+  // ---------------------------------------------------------------- 3. Ideas simples y complejas, cualidades
+  secciones[2] =
+    "<h5>La mente recibe y la mente construye</h5>" +
+    "<p>Locke distingue dos momentos. Ante las <b>ideas simples</b> la mente es <b>pasiva</b>: no puede inventarlas ni destruirlas, solo recibirlas (no puedes decidir ver «rojo» cuando miras algo rojo). Con ellas, sin embargo, trabaja <b>activamente</b> para formar las <b>ideas complejas</b> mediante tres operaciones: <b>combinar</b>, <b>comparar</b> (para obtener ideas de relaciones) y <b>abstraer</b> (separar lo común para formar ideas generales).</p>" +
+    tabla(["Tipo de idea compleja", "Qué es", "Ejemplo"], [
+      ["<b>Modos</b>", "Combinaciones que no existen por sí mismas", "Belleza, gratitud, un «tres»"],
+      ["<b>Sustancias</b>", "Conjuntos de ideas simples que suponemos que van juntas en una cosa", "Oro, hombre, manzana"],
+      ["<b>Relaciones</b>", "Lo que resulta de comparar dos ideas", "Causa y efecto, mayor que, padre de"]
+    ]) +
+    "<h5>La sustancia: «algo, no sé qué»</h5>" +
+    "<p>Cuando percibimos una manzana percibimos color, forma, sabor y textura, pero no «la manzana en sí». Suponemos que debe existir <b>algo que sostiene</b> esas cualidades. Locke lo llama <b>sustancia</b>, y reconoce honestamente que su idea es muy oscura: es «un no sé qué» que imaginamos debajo de las cualidades. Aquí deja abierta una grieta que Hume ensanchará.</p>" +
+    "<h5>Cualidades primarias y secundarias</h5>" +
+    "<p>Locke adopta el modelo de la nueva ciencia (Galileo, Boyle, Newton): el mundo físico es materia en movimiento. Así que separa dos clases de cualidades:</p>" +
+    tabla(["", "Cualidades primarias", "Cualidades secundarias"], [
+      ["Ejemplos", "Extensión, figura, solidez, número, movimiento o reposo", "Color, sonido, sabor, olor, calor percibido"],
+      ["¿Están en el objeto?", "Sí, tal como las percibimos", "No tal como las percibimos: son <i>poderes</i> del objeto para producir sensaciones en nosotros"],
+      ["¿Dependen del observador?", "No", "En parte sí (de nuestros sentidos)"],
+      ["Se parecen al objeto", "La idea se parece a la cualidad", "La idea no se parece a lo que la produce"]
+    ]) +
+    "<p>Un ejemplo de Locke: si metes una mano muy fría y otra muy caliente en el mismo agua tibia, el agua te parece caliente a una y fría a la otra. El calor percibido depende de quien lo siente; en cambio, que el agua ocupe un volumen no cambia según quién la toque.</p>" +
+    ojo("«Secundaria» <b>no</b> significa «falsa» ni «de menos importancia». Significa que la sensación de color está producida por el objeto <i>y</i> por nuestros órganos. Un daltónico y tú ven colores distintos del mismo objeto; los dos medís lo mismo con un metro.") +
+    w("clasificar", "cualidades");
+
+  // ---------------------------------------------------------------- 4. Hume: impresiones e ideas
+  secciones[3] =
+    "<h5>Quién fue David Hume</h5>" +
+    "<p>Nació en Edimburgo (Escocia) en 1711 y murió allí en 1776. Estudió derecho sin ganas y se dedicó a la filosofía. Entre 1735 y 1737 vivió en <b>La Flèche</b> (Francia), en la misma ciudad donde estudió Descartes, y allí escribió su <i>Tratado de la naturaleza humana</i> (1739–1740) con apenas 28 años. El libro pasó sin pena ni gloria (él mismo dijo que «salió muerto de la imprenta»), así que lo reescribió, más corto y claro, en la <i>Investigación sobre el entendimiento humano</i> (1748) y la <i>Investigación sobre los principios de la moral</i> (1751). Fue también historiador (<i>Historia de Inglaterra</i>) y ensayista, y sus <i>Diálogos sobre la religión natural</i> se publicaron tras su muerte, en 1779.</p>" +
+    "<h5>Todo lo que hay en la mente son percepciones</h5>" +
+    "<p>Hume llama <b>percepciones</b> a todo lo que está presente en la mente, y las divide en dos clases según su <b>intensidad</b> (fuerza y viveza):</p>" +
+    tabla(["", "Impresiones", "Ideas"], [
+      ["Qué son", "Percepciones vivas y directas: sentir, ver, amar, odiar", "Copias débiles de impresiones: recordar o imaginar"],
+      ["Intensidad", "Fuerte", "Débil"],
+      ["Ejemplo", "Quemarte la mano con la sartén", "Recordar mañana esa quemadura"],
+      ["Subtipos", "De sensación (externas) y de reflexión (pasiones, emociones)", "Simples y complejas"]
+    ]) +
+    "<p>Fíjate en la diferencia con Locke: Locke llamaba «idea» a todo contenido de la mente; Hume reserva «idea» para el pensamiento débil, y llama «impresión» a lo vivo. La diferencia entre las dos es <b>solo de grado</b>: la idea de dolor no duele como el dolor.</p>" +
+    "<h5>El principio de copia</h5>" +
+    "<p>La tesis central: <b>toda idea simple procede de una impresión previa y se parece a ella</b>. Es un test para detectar palabras vacías: ante una idea sospechosa, hay que preguntarse <b>«¿de qué impresión viene?»</b>. Si no se encuentra ninguna, la idea es una palabra sin contenido. Es una especie de «control de aduana» para los conceptos.</p>" +
+    ejemplo("¿Y si nunca hemos visto un color?", "Hume propone un caso curioso: el «matiz de azul que falta».", [
+      "Imagina a alguien que ha visto todos los tonos de azul menos uno, y se le muestran en orden.",
+      "Hume piensa que esa persona <b>podría</b> imaginar el tono ausente, rellenando el hueco entre sus vecinos.",
+      "Él mismo admite que es una <b>excepción</b> y que no basta para derribar la regla general: casi todas las ideas siguen viniendo de impresiones."
+    ]) +
+    "<h5>Cómo se enlazan las ideas: la asociación</h5>" +
+    "<p>La imaginación puede combinar ideas libremente (un unicornio), pero normalmente las enlaza siguiendo tres principios de asociación: <b>semejanza</b> (un retrato nos recuerda a la persona), <b>contigüidad</b> en el espacio o el tiempo (pensar en una casa nos lleva a pensar en su vecina) y <b>causa y efecto</b>. Hume compara estos principios con la <i>gravedad</i> de la mente: son la fuerza que une unas ideas con otras.</p>" +
+    "<h5>Relaciones de ideas y cuestiones de hecho</h5>" +
+    "<p>En la <i>Investigación</i>, Hume reparte todo el conocimiento en dos grandes cajones (a veces llamados su «tenedor»):</p>" +
+    tabla(["", "Relaciones de ideas", "Cuestiones de hecho"], [
+      ["Ejemplos", "«2 + 2 = 4»; «un triángulo tiene tres lados»", "«El sol saldrá mañana»; «hoy llueve en Madrid»"],
+      ["Cómo se conocen", "Solo pensando (a priori)", "Por experiencia (a posteriori)"],
+      ["Su contrario", "Es una contradicción", "Es posible, no contradice nada"],
+      ["Certeza", "Necesaria y segura", "Probable, nunca absolutamente segura"],
+      ["Ciencias", "Matemáticas, lógica", "Física, historia, vida diaria"]
+    ]) +
+    "<p>¿Cómo comprobar en qué cajón está una frase? Intenta negarla. «Dos más dos no son cuatro» se contradice a sí misma. «Mañana no saldrá el sol» es falsa, seguramente, pero <b>no es una contradicción</b>: puedo imaginarlo sin absurdo. Por eso las cuestiones de hecho nunca son necesarias.</p>" +
+    w("filo_hume");
+
+  // ---------------------------------------------------------------- 5. La causalidad
+  secciones[4] =
+    "<h5>La mejor ilustración: dos bolas de billar</h5>" +
+    "<p>Hume usa un caso muy cotidiano. Una bola blanca avanza y choca con una bola roja, y la roja sale despedida. Todos decimos: «la blanca <i>causó</i> el movimiento de la roja». Pero ¿qué hemos <b>visto</b> en realidad?</p>" +
+    "<ol class='lam-pasos'><li><b>Contigüidad:</b> la blanca toca a la roja (están juntas en el espacio y en el tiempo).</li>" +
+    "<li><b>Prioridad temporal:</b> el movimiento de la blanca viene antes que el de la roja.</li>" +
+    "<li><b>Conjunción constante:</b> siempre que hemos visto un choque así, ha pasado lo mismo.</li></ol>" +
+    "<p>Eso es todo lo que vemos. Lo que <b>no</b> vemos, aunque lo afirmemos, es la «fuerza» o «conexión necesaria» que obligaría a la roja a moverse. Por mucho que mires, nunca ves el «tiene que». Y si el origen de toda idea es una impresión, la idea de «conexión necesaria» no puede venir de lo que los sentidos nos muestran en las bolas.</p>" +
+    "<h5>Entonces, ¿de dónde sale la idea de causa?</h5>" +
+    "<p>De nosotros mismos. Tras ver muchas veces que a un suceso A sigue un suceso B, la imaginación se <b>acostumbra</b>: cuando aparece A, nuestra mente espera B. Esa expectativa es una impresión interna (una especie de sentimiento), y la <b>proyectamos</b> sobre las cosas como si fuera una necesidad del mundo. La conexión necesaria no está en las bolas: está en la <b>costumbre o hábito</b> de quien las mira.</p>" +
+    ejemplo("Un ejemplo de tu vida", "Cada día pulsas el interruptor y se enciende la luz.", [
+      "Observas contigüidad (la luz se enciende al pulsar), prioridad (primero pulsas) y conjunción constante (siempre).",
+      "Nunca observas el «tiene que encenderse»; lo que tienes es una <b>expectativa fuerte</b> creada por la repetición.",
+      "El día que salta el fusible, no te contradices con nada que hayas visto: solo se rompe una expectativa."
+    ]) +
+    "<h5>El problema de la inducción</h5>" +
+    "<p>La <b>inducción</b> es el razonamiento que generaliza desde casos observados («todos los cuervos que he visto son negros») a casos no observados («todos los cuervos lo son»; «mañana saldrá el sol»). Es la base de toda la ciencia experimental. Hume pregunta: <b>¿qué la justifica?</b></p>" +
+    "<ul><li>No puede justificarla la <b>lógica</b>: lo contrario del futuro no es una contradicción (es una cuestión de hecho).</li>" +
+    "<li>Tampoco la <b>experiencia</b>: decir «la naturaleza ha sido uniforme hasta ahora, así que lo seguirá siendo» usa la inducción para justificar la inducción. Es un <b>círculo</b>.</li></ul>" +
+    "<p>Conclusión de Hume: lo que nos hace creer que el futuro se parecerá al pasado no es una razón, sino el <b>hábito</b>. No es un motivo para dejar de hacer ciencia ni para dejar de comer por miedo a no vivir mañana: Hume era un hombre muy práctico. Es un aviso de que nuestro conocimiento de los hechos es <b>probable</b>, nunca absolutamente cierto. La filosofía de la ciencia sigue discutiendo este problema hoy.</p>" +
+    ojo("Hume <b>no niega</b> que existan causas ni que la ciencia funcione. Lo que niega es que podamos <b>demostrar</b> racionalmente o <b>ver</b> la necesidad que unimos a ellas. Es una crítica sobre el <i>origen y la justificación</i> de la idea, no una negación del mundo.");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Locke: conocimiento, política y tolerancia", html:
+    "<h5>Los grados del conocimiento</h5>" +
+    "<p>Para Locke, conocer es percibir el <b>acuerdo o desacuerdo entre ideas</b>. Hay tres grados, de más a menos seguro:</p>" +
+    tabla(["Grado", "Cómo se conoce", "Ejemplo"], [
+      ["<b>Intuitivo</b>", "De golpe, sin pruebas", "Que existo yo; que blanco no es negro"],
+      ["<b>Demostrativo</b>", "Con una cadena de razonamientos", "Que Dios existe (según Locke)"],
+      ["<b>Sensitivo</b>", "Con los sentidos, para las cosas presentes", "Que hay un árbol delante de mí"]
+    ]) +
+    "<p>Fuera de estos límites solo hay <b>probabilidad</b> y creencia razonable. Locke es modesto: la mente humana no puede conocerlo todo, y hay que contentarse con saber lo suficiente para vivir y actuar.</p>" +
+    "<h5>El estado de naturaleza y los derechos naturales</h5>" +
+    "<p>En los <i>Dos tratados sobre el gobierno civil</i>, el primero refuta a Filmer, que defendía que el rey recibe su poder de Adán, y el segundo expone su propia teoría. Locke imagina cómo viviríamos <b>sin gobierno</b>, en el <b>estado de naturaleza</b>. A diferencia de Hobbes (1588–1679), que lo pintaba como una guerra de todos contra todos, para Locke es un estado de <b>libertad e igualdad</b> regido por una <b>ley natural</b>, que la razón descubre y que dice que nadie debe dañar a otro en su <b>vida, libertad y bienes</b>. Estos son los <b>derechos naturales</b>: no los concede nadie, se tienen por ser persona.</p>" +
+    "<h5>La propiedad: el trabajo</h5>" +
+    "<p>Si la tierra es de todos, ¿cómo se hace algo mío? Respuesta de Locke: <b>con el trabajo</b>. Cada uno es dueño de su propio cuerpo y, por tanto, de su trabajo; al mezclar tu trabajo con algo (recoger bellotas, cultivar un campo), lo incorporas a lo tuyo. Pero impone dos <b>límites</b>:</p>" +
+    "<ul><li>No se puede acumular más de lo que se puede <b>usar antes de que se estropee</b>.</li>" +
+    "<li>Debe quedar <b>suficiente y de igual calidad</b> para los demás.</li></ul>" +
+    "<p>La invención del <b>dinero</b>, que no se estropea, permite acumular sin desperdicio, y por eso aparecen las grandes desigualdades. Locke admite este paso como consentido por la gente.</p>" +
+    ejemplo("La manzana de Locke", "Un grupo recoge manzanas de árboles que no son de nadie.", [
+      "La manzana que <b>recoges</b> con tu esfuerzo pasa a ser tuya: has puesto tu trabajo en ella.",
+      "Si recoges tantas que se pudren sin que las puedas comer ni dar, <b>has cogido de más</b>: sobra e incumples el primer límite.",
+      "Y si dejas el huerto pelado, incumples el segundo: ya no queda «suficiente y tan bueno» para los demás."
+    ]) +
+    "<h5>El contrato social y el gobierno limitado</h5>" +
+    "<p>El estado de naturaleza tiene un inconveniente: <b>falta un juez imparcial</b>. Cada cual juzga y castiga su propio caso, y eso produce conflictos. Por eso las personas, libremente, firman un <b>pacto o contrato</b> mediante el cual crean la sociedad civil y un gobierno, que sirva para <b>proteger los derechos naturales</b> (sobre todo la propiedad en sentido amplio). Rasgos clave:</p>" +
+    "<ul><li><b>Consentimiento</b>: el poder político es legítimo solo si descansa en el acuerdo de los gobernados. Las decisiones se toman por <b>mayoría</b>.</li>" +
+    "<li><b>El gobierno es una confianza</b> (en inglés <i>trust</i>): recibe un encargo del pueblo, no es dueño de él.</li>" +
+    "<li><b>División de poderes</b>: legislativo (el supremo, representa al pueblo), ejecutivo (aplica las leyes) y federativo (relaciones exteriores). Esta idea influirá en Montesquieu.</li>" +
+    "<li><b>Derecho de resistencia</b>: si el gobierno viola los derechos que debía proteger, deja de ser legítimo y el pueblo puede resistirse y cambiarlo.</li></ul>" +
+    tabla(["", "Hobbes (1588–1679)", "Locke (1632–1704)"], [
+      ["Estado de naturaleza", "Guerra de todos contra todos", "Libertad e igualdad con ley natural, pero sin juez"],
+      ["Para qué se hace el pacto", "Salvar la vida y tener paz", "Proteger los derechos naturales"],
+      ["Poder del gobierno", "Absoluto", "Limitado, revocable"],
+      ["Resistencia", "No", "Sí, si el gobierno abusa"]
+    ]) +
+    "<h5>La tolerancia</h5>" +
+    "<p>En la <i>Carta sobre la tolerancia</i>, Locke defiende la <b>separación entre Iglesia y Estado</b>: la tarea del Estado es proteger los bienes civiles, y la fe no se puede imponer por la fuerza (nadie cree solo porque le obliguen). Por eso las distintas confesiones deben ser toleradas. Él mismo pone límites que hoy nos sorprenden: excluye a los ateos (porque, según él, no se puede fiar de sus promesas) y a quienes obedecen a un poder extranjero. Es un buen recordatorio de que los clásicos hay que valorarlos con ojo crítico.</p>" +
+    ojo("Locke da a los <b>derechos naturales</b> un papel que Hobbes no les da: son <b>anteriores al Estado</b> y le ponen un límite. Por eso Locke es el gran punto de partida del <b>liberalismo</b>, y sus ideas aparecen en la Declaración de Independencia de Estados Unidos (1776)." ) +
+    w("emparejar", "contrato") });
+
+  nuevas.push({ h: "7. Hume: el yo y la sustancia", html:
+    "<p>Si la idea de causa no sale de una impresión, ¿qué pasa con la idea de «yo»? Descartes (tema 9) estaba seguro: «pienso, luego existo», y lo que existe es una <b>sustancia pensante</b>. Hume aplica su test: <b>¿de qué impresión viene la idea de un yo?</b></p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (David Hume, <em>Tratado de la naturaleza humana</em>, libro I, parte IV, sección 6; paráfrasis cercana a la traducción habitual):<br><em>«Cuando penetro más íntimamente en lo que llamo mi yo, tropiezo siempre con una percepción particular u otra, de calor o frío, de luz o sombra, de amor u odio, de dolor o placer. Nunca puedo atraparme a mí mismo sin una percepción, y nunca puedo observar nada más que la percepción.»</em></blockquote>" +
+    "<h5>Qué concluye</h5>" +
+    "<ul><li>Introspección: miro dentro y solo encuentro <b>percepciones sueltas</b>, nunca un «yo» aparte de ellas.</li>" +
+    "<li>Una impresión de un yo fijo tendría que ser <b>constante</b> durante toda la vida, y no hay ninguna impresión constante: todas pasan.</li>" +
+    "<li>Así que la idea de un yo-sustancia no tiene impresión de origen. El yo es un <b>haz o colección de percepciones</b> que se suceden con enorme rapidez y están en perpetuo flujo.</li></ul>" +
+    "<p>Hume ofrece una comparación: la mente se parece a un teatro donde las percepciones aparecen, pasan y se mezclan. Pero añade que la comparación puede engañar, porque no hay «un lugar» ni un escenario permanente: solo las escenas.</p>" +
+    "<h5>¿Y por qué creemos que somos el mismo?</h5>" +
+    "<p>Porque la <b>imaginación</b> enlaza las percepciones por semejanza y causalidad, y la <b>memoria</b> nos las muestra encadenadas. Tu yo es como un río o una república: algo que mantiene un nombre y una continuidad aunque todas sus partes cambien. La identidad personal es una <b>ficción útil</b> de la imaginación, no una sustancia que descubramos.</p>" +
+    tabla(["", "Descartes (tema 9)", "Hume"], [
+      ["¿Qué es el yo?", "Sustancia pensante, evidente", "Haz de percepciones"],
+      ["Conocimiento del yo", "Intuición clara y distinta", "No hay impresión del yo"],
+      ["Identidad personal", "Un yo permanente", "Ficción de la imaginación y la memoria"]
+    ]) +
+    "<h5>Sustancia, Dios y milagros</h5>" +
+    "<p>La misma crítica vale para la <b>sustancia material</b>: de una manzana solo percibimos cualidades; la idea de un soporte detrás es otra palabra sin impresión. De ahí un <b>escepticismo moderado</b>: Hume no duda de todo, pero no admite pretensiones de saber que superen la experiencia. En el último capítulo de la <i>Investigación</i> propone una prueba radical: de un libro de metafísica hay que preguntar si contiene razonamientos sobre cantidad o número (relaciones de ideas) o razonamientos sobre hechos basados en la experiencia; si no contiene ninguno de los dos, «arrójese a las llamas», porque solo puede contener sofistería e ilusión. Y en la sección sobre los <b>milagros</b> sostiene que el testimonio humano nunca basta para creer algo que contradice la experiencia constante.</p>" +
+    ojo("Hume <b>no dice</b> que el yo no exista ni que no haya personas. Dice que no tenemos una <b>impresión</b> de un yo fijo, y que lo que existe es una sucesión de percepciones enlazadas. Es una crítica a la <i>sustancia</i>, no a la vida diaria.") });
+
+  nuevas.push({ h: "8. Hume: la moral y la política", html:
+    "<h5>La razón no mueve a actuar</h5>" +
+    "<p>Hume sostiene en el <i>Tratado</i> que la razón por sí sola no mueve a nadie a actuar: solo compara ideas o comprueba hechos. Lo que nos pone en marcha son las <b>pasiones</b> (deseos, emociones). La frase famosa (traducción habitual) dice que la razón «es, y debe ser, solo la esclava de las pasiones». Quiere decir que la razón dice <i>cómo</i> alcanzar un fin, pero el fin lo pone un sentimiento.</p>" +
+    "<h5>El origen de la moral: el sentimiento</h5>" +
+    "<p>Por tanto, distinguir el bien del mal no puede ser obra de la razón. Piensa en una acción mala, el asesinato. Si examinas el hecho (quién, cuándo, con qué arma) no encuentras ahí una propiedad llamada «maldad»; lo que encuentras, mirando dentro de ti, es un <b>sentimiento de desaprobación</b>. Así que «esto es malo» expresa una reacción de nuestra sensibilidad, no una verdad descubierta por la razón. Esta postura se suele llamar <b>sentimentalismo moral</b>, y en el siglo XX, <b>emotivismo</b>.</p>" +
+    tabla(["", "Racionalismo moral", "Hume"], [
+      ["Fuente del juicio moral", "La razón", "El sentimiento de aprobación o rechazo"],
+      ["«Esto es bueno» dice…", "Una verdad objetiva", "Una reacción de nuestra sensibilidad"],
+      ["Motivo para actuar", "La razón", "La pasión"]
+    ]) +
+    "<p>¿Y por qué compartimos juicios morales, si cada uno tiene sus sentimientos? Por la <b>simpatía</b>: tendemos a sentir con los demás y a ponernos en su lugar, y eso hace que aprobemos lo que es <b>útil o agradable</b> para nosotros mismos y para los demás. Las virtudes son las cualidades que tienen estas ventajas.</p>" +
+    "<h5>La «ley de Hume»: de «es» a «debe»</h5>" +
+    "<p>En una página muy citada del <i>Tratado</i> (libro III, parte I, sección 1), Hume observa que muchos autores empiezan hablando con «es» y «no es» y, de repente, pasan a «debe» y «no debe» sin explicar cómo. Una conclusión sobre <b>lo que debe ser</b> no puede salir solo de premisas sobre <b>lo que es</b>. Es una advertencia lógica que se llama a veces la <b>ley de Hume</b> o «guillotina de Hume».</p>" +
+    ejemplo("¿Qué hay de malo en este razonamiento?", "«Los humanos siempre han hecho la guerra; por tanto, debemos hacer la guerra.»", [
+      "Premisa: un <b>hecho</b> (lo que es: siempre se ha hecho).",
+      "Conclusión: un <b>deber</b> (lo que debe ser).",
+      "Falta una premisa moral («lo que siempre se hizo se debe hacer») que no sale de ningún hecho: ese es el salto que Hume señala."
+    ]) +
+    "<h5>Política: sin contrato, por utilidad</h5>" +
+    "<p>En su ensayo «Del contrato original», Hume critica a Locke: nadie ha firmado nunca ningún pacto; los gobiernos han nacido de la <b>fuerza y de la costumbre</b>, y si les obedecemos es porque el orden social nos resulta <b>útil</b>, no porque hayamos consentido. Con esto lleva su empirismo también a la política. Su respuesta a la pregunta «¿por qué obedecer?» es la <b>utilidad</b>, no el contrato.</p>" +
+    ojo("No confundas: Locke defiende que la autoridad nace de un <b>pacto</b>; Hume piensa que el pacto es una <b>ficción</b> y que lo que mantiene el orden es el hábito y la utilidad. Y recuerda: es Locke quien hace que el poder político sea revocable.") });
+
+  nuevas.push({ h: "9. Mapa del tema: Locke, Hume y los demás autores", html:
+    "<p>En el comentario de texto se pide relacionar con el autor y comparar con otro. Con Locke y Hume, estas son las relaciones más rentables:</p>" +
+    tabla(["Con…", "Locke", "Hume"], [
+      ["<b>Descartes</b> (1596–1650)", "Sin ideas innatas; mente en blanco", "Sin yo-sustancia; el cogito no prueba una sustancia; la razón es limitada"],
+      ["<b>Platón</b>", "Rechaza el innatismo y la anamnesis", "Las ideas son copias de impresiones, no recuerdos de Ideas"],
+      ["<b>Aristóteles</b>", "Comparte el origen sensible del conocimiento (la máxima escolástica de tradición aristotélica: «nada hay en el entendimiento que no haya estado antes en los sentidos»)", "Critica las causas y la sustancia"],
+      ["<b>Hobbes</b>", "Contrato con derechos naturales y poder limitado", "Sustituye el contrato por la utilidad"],
+      ["<b>Kant</b> (1724–1804, tema 12)", "El entendimiento no es «papel en blanco»: pone formas", "Despertó a Kant de su «sueño dogmático»; Kant intenta salvar la causalidad como categoría"],
+      ["<b>Rousseau</b> (tema 11)", "Contrato y consentimiento, con gobierno limitado", "Ambos dan peso al sentimiento en la moral; Rousseau lo une a la soberanía popular"]
+    ]) +
+    "<p>Una frase para recordar la herencia: <b>Locke</b> abre el camino del empirismo y del liberalismo político; <b>Hume</b> lo lleva al límite (no hay causalidad demostrable, ni yo sustancial, ni moral racional) y despierta a Kant.</p>" +
+    "<h5>Mapa mental en una línea</h5>" +
+    "<ol class='lam-pasos'><li><b>Experiencia</b> como fuente (Locke: sensación y reflexión).</li>" +
+    "<li><b>Ideas</b> simples y complejas (Locke) o impresiones e ideas (Hume).</li>" +
+    "<li><b>Límites</b>: sustancia oscura (Locke) → crítica de causa, yo y Dios (Hume).</li>" +
+    "<li><b>Ser humano y sociedad</b>: derechos y contrato (Locke) → sentimiento y utilidad (Hume).</li></ol>" });
+
+  nuevas.push({ h: "10. Comentario de texto resuelto: Hume y el yo", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (David Hume, <em>Tratado de la naturaleza humana</em>, I, IV, 6; paráfrasis cercana a la traducción habitual):<br><em>«Por mi parte, cuando penetro más íntimamente en lo que llamo mi yo, siempre tropiezo con una percepción particular u otra, de calor o frío, de luz o sombra, de amor u odio, de dolor o placer. Nunca puedo atraparme a mí mismo sin una percepción, y nunca puedo observar nada más que la percepción.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> David Hume (1711–1776), filósofo empirista escocés; <i>Tratado de la naturaleza humana</i> (1739–1740), su primera obra, escrita con unos 28 años. Contexto: tras reducir el conocimiento a impresiones e ideas, examina si hay una impresión del yo.</li>" +
+    "<li><b>2. Tema.</b> La negación de que tengamos una idea de un yo sustancial distinto de nuestras percepciones.</li>" +
+    "<li><b>3. Idea principal.</b> Al mirar en su interior, Hume no encuentra un «yo» sino solo percepciones particulares (sensaciones, emociones); por tanto, el yo no es una sustancia fija sino un haz de percepciones.</li>" +
+    "<li><b>4. Términos y ideas secundarias.</b> (a) «Percepción»: todo contenido de la mente (impresiones e ideas). (b) «Penetrar íntimamente»: es la introspección, el método empirista aplicado a la mente. (c) «Nunca puedo atraparme sin una percepción»: no hay impresión del yo aparte de las otras percepciones.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Aplica el <b>principio de copia</b>: toda idea viene de una impresión; si no hay impresión, no hay idea legítima. Es el mismo método que usa con la causalidad (tampoco hay impresión de la conexión necesaria) y se prolonga en su moral (sentimentalismo) y en su escepticismo moderado. La identidad personal es una ficción de la imaginación y la memoria.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con <b>Descartes</b> (1596–1650): este deducía, desde el cogito, una sustancia pensante; Hume sostiene que solo se encuentran pensamientos, no un sujeto aparte. Con <b>Locke</b>: este admitía la sustancia aunque la consideraba oscura, y consideraba la identidad personal ligada a la conciencia y la memoria; Hume rechaza la sustancia sin más. Con <b>Kant</b> (tema 12): este responderá que el «yo pienso» es la unidad necesaria que acompaña a toda experiencia, aunque no sea una sustancia conocible.</li>" +
+    "<li><b>7. Valora y concluye.</b> Hume obliga a justificar nuestras ideas con la experiencia, y anticipa debates actuales sobre la identidad y el cerebro. Límite: si el yo es un haz, no explica quién percibe ni por qué tengo la sensación de unidad; el propio Hume admitió cierta insatisfacción con su explicación.</li></ol>" +
+    ojo("Errores típicos: (1) decir que Hume niega que existas (niega la <b>sustancia</b> fija, no tu vida diaria); (2) no mencionar el <b>principio de copia</b>; (3) confundir «impresión» con «idea»; (4) comparar con Descartes sin nombrar el cogito.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. El empirismo de Locke", "Respuesta modelo:", [
+      "<b>Contexto.</b> Frente al racionalismo de Descartes, el empirismo afirma que el conocimiento procede de la experiencia.",
+      "<b>Tabula rasa.</b> No hay ideas innatas; la mente es un papel en blanco. Argumentos: no hay consenso universal ni entre niños ni entre culturas.",
+      "<b>Fuentes.</b> Sensación y reflexión; la reflexión depende de la sensación.",
+      "<b>Ideas.</b> Simples (recibidas pasivamente) y complejas (construidas por la mente); cualidades primarias y secundarias.",
+      "<b>Valoración.</b> Dio un impulso a la ciencia, pero su noción de sustancia es oscura y Hume la criticará."
+    ]) +
+    ejemplo("Pregunta 2. La crítica de Hume a la causalidad", "Respuesta modelo:", [
+      "<b>Principio de copia.</b> Toda idea viene de una impresión.",
+      "<b>Análisis.</b> En la causalidad solo vemos contigüidad, sucesión y conjunción constante; nunca la conexión necesaria.",
+      "<b>Origen.</b> La idea de necesidad nace del hábito: la expectativa tras la repetición.",
+      "<b>Consecuencia.</b> El problema de la inducción: nada garantiza que el futuro se parezca al pasado.",
+      "<b>Valoración.</b> Despertó a Kant; la ciencia es probable, no segura."
+    ]) +
+    ejemplo("Pregunta 3. El yo en Hume", "Respuesta modelo:", [
+      "<b>Planteamiento.</b> Aplica el principio de copia a la idea de yo.",
+      "<b>Introspección.</b> Solo encuentra percepciones, nunca un yo.",
+      "<b>Conclusión.</b> El yo es un haz de percepciones; la identidad es una ficción de imaginación y memoria.",
+      "<b>Comparación.</b> Frente al cogito de Descartes."
+    ]) +
+    ejemplo("Pregunta 4. Política de Locke", "Respuesta modelo:", [
+      "<b>Estado de naturaleza.</b> Libertad e igualdad con ley natural y derechos naturales (vida, libertad, bienes).",
+      "<b>Propiedad.</b> Nace del trabajo, con límites.",
+      "<b>Contrato.</b> Se crea el gobierno con consentimiento para proteger los derechos; poder limitado y división de poderes.",
+      "<b>Resistencia y tolerancia.</b> Si el gobierno abusa, se puede resistir; separación Iglesia–Estado.",
+      "<b>Comparación.</b> Con Hobbes o con Rousseau."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf10a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 10 (parte B): Locke y Hume
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t10.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "El <b>empirismo</b> (Locke, 1632–1704; Hume, 1711–1776) sostiene que todo conocimiento procede de la <b>experiencia</b>: la mente nace como una <b>tabula rasa</b>, sin ideas innatas.",
+    "Locke: experiencia = <b>sensación</b> y <b>reflexión</b>; ideas simples y complejas; cualidades <b>primarias</b> y <b>secundarias</b>.",
+    "Hume: <b>impresiones</b> e <b>ideas</b> (copias débiles). La <b>causalidad</b> es solo hábito, y de ello se sigue el <b>problema de la inducción</b>; el yo es un <b>haz de percepciones</b>; la moral nace del <b>sentimiento</b>.",
+    "Locke político: <b>derechos naturales</b> (vida, libertad, bienes), <b>propiedad</b> por el trabajo, <b>contrato</b> con consentimiento, poder limitado y <b>derecho de resistencia</b>."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Locke y Hume · el empirismo",
+    autores: [
+      { n: "John Locke", f: "1632–1704", l: "Wrington; Oxford; exilio en Holanda; Oates" },
+      { n: "David Hume", f: "1711–1776", l: "Edimburgo; La Flèche (Francia); Edimburgo" }
+    ],
+    obras: ["Ensayo sobre el entendimiento humano", "Dos tratados sobre el gobierno civil", "Carta sobre la tolerancia", "Tratado de la naturaleza humana", "Investigación sobre el entendimiento humano", "Investigación sobre los principios de la moral"],
+    bloques: [
+      { t: "Contexto", frases: ["Revolución científica (Newton) y Revolución Gloriosa (1688).", "Frente al racionalismo de Descartes: <b>todo viene de la experiencia</b>.", "Hume escribe su <i>Tratado</i> con unos 28 años."],
+        tabla: { cab: ["Racionalismo", "Empirismo"], filas: [["ideas innatas", "mente «en blanco»"], ["razón y deducción", "experiencia e inducción"]] } },
+      { t: "Locke: origen de las ideas", frases: ["Mente al nacer = <b>tabula rasa</b>: no hay ideas innatas.", "Fuentes: <b>sensación</b> (exterior) y <b>reflexión</b> (interior).", "Ideas <b>simples</b> (recibidas) y <b>complejas</b> (construidas)."],
+        tabla: { cab: ["Primarias", "Secundarias"], filas: [["extensión, figura, movimiento", "color, sabor, olor"], ["están en el objeto", "dependen del sujeto"]] } },
+      { t: "Hume: ideas y causalidad", frases: ["<b>Impresión</b> (viva) e <b>idea</b> (copia débil); principio de copia.", "De la causa solo vemos contigüidad, sucesión y repetición.", "La «conexión necesaria» es <b>hábito</b>; sin garantía para el futuro (<b>inducción</b>)."] },
+      { t: "Hume: el yo", frases: ["Introspección: solo hay percepciones, nunca un «yo» aparte.", "El yo es un <b>haz de percepciones</b>, no una sustancia.", "Critica el cogito sustancial de Descartes."] },
+      { t: "Hume: moral", frases: ["La razón no mueve a actuar: lo hacen las <b>pasiones</b>.", "Juzgar «bueno» o «malo» es expresar <b>sentimiento</b> (emotivismo).", "<b>Ley de Hume</b>: del «es» no se deduce el «debe»."] },
+      { t: "Locke: política", frases: ["Estado de naturaleza con ley natural; <b>derechos naturales</b>: vida, libertad, bienes.", "La <b>propiedad</b> nace del trabajo, con límites.", "<b>Contrato</b> con consentimiento; poder limitado; <b>derecho de resistencia</b>; tolerancia."],
+        tabla: { cab: ["Hobbes", "Locke"], filas: [["poder absoluto", "poder limitado"], ["sin resistencia", "resistencia si hay abuso"]] } }
+    ],
+    resumen: [
+      "Todo conocimiento nace de la <b>experiencia</b>; no hay ideas innatas.",
+      "Locke funda el empirismo y el <b>liberalismo político</b>: derechos naturales y gobierno por consentimiento.",
+      "Hume lo lleva al límite: causa, yo y moral dependen de <b>hábito y sentimiento</b>, no de la razón.",
+      "El resultado es un conocimiento <b>probable</b>, no absoluto; Kant intentará responder a Hume."
+    ],
+    conecta: [
+      { con: "Descartes (T9):", rel: "el racionalismo al que responden; Hume critica el yo como sustancia." },
+      { con: "Aristóteles (T4):", rel: "comparten el origen sensible del conocimiento; Hume critica sustancia y causas." },
+      { con: "Hobbes:", rel: "Locke cambia su poder absoluto por un contrato con derechos." },
+      { con: "Rousseau (T11):", rel: "retoma el contrato social, con soberanía popular." },
+      { con: "Kant (T12):", rel: "Hume lo «despertó del sueño dogmático»; Kant responde con las categorías." }
+    ],
+    claves: [
+      ["Tabula rasa", "la mente al nacer es un papel en blanco; no hay ideas innatas"],
+      ["Sensación y reflexión", "las dos fuentes de experiencia (Locke): mundo exterior y mente propia"],
+      ["Cualidades primarias y secundarias", "las que están en el objeto frente a las que dependen del sujeto"],
+      ["Impresión e idea", "percepción viva frente a su copia débil (Hume)"],
+      ["Principio de copia", "toda idea procede de una impresión"],
+      ["Conexión necesaria", "lo que no se percibe en la causalidad; es hábito"],
+      ["Problema de la inducción", "no hay garantía lógica de que el futuro repita el pasado"],
+      ["Haz de percepciones", "el yo según Hume, no una sustancia"],
+      ["Emotivismo moral", "los juicios morales expresan sentimientos, no verdades de la razón"],
+      ["Contrato y derechos naturales", "el gobierno nace del consentimiento para proteger vida, libertad y bienes (Locke)"]
+    ],
+    cita: { txt: "Supongamos, pues, que la mente es, como se dice, un papel en blanco, vacío de todo carácter [...]. A esto respondo con una sola palabra: de la experiencia.", autor: "Locke", obra: "Ensayo sobre el entendimiento humano, II, 1 (traducción habitual)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    cualidades: {
+      titulo: "¿Cualidad primaria o secundaria?",
+      consigna: "Según Locke, ¿cada característica es una cualidad primaria o secundaria?",
+      categorias: ["Primaria", "Secundaria"],
+      items: [
+        { t: "Extensión", c: 0 },
+        { t: "Figura (forma)", c: 0 },
+        { t: "Solidez", c: 0 },
+        { t: "Movimiento o reposo", c: 0 },
+        { t: "Color", c: 1 },
+        { t: "Sabor", c: 1 },
+        { t: "Olor", c: 1 },
+        { t: "Sonido", c: 1 }
+      ]
+    },
+    contrato: {
+      titulo: "El pensamiento político de Locke",
+      consigna: "Une cada concepto con su idea.",
+      pares: [
+        ["Derechos naturales", "Vida, libertad y bienes"],
+        ["Propiedad", "Nace del trabajo, con límites"],
+        ["Contrato social", "Consentimiento para proteger los derechos"],
+        ["Poder legislativo", "El supremo; representa al pueblo"],
+        ["Derecho de resistencia", "Si el gobierno abusa, deja de ser legítimo"]
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 10",
+      preguntas: [
+        { q: "Para Locke, la mente al nacer es…", op: ["una tabula rasa", "un conjunto de ideas innatas", "una sustancia pensante", "un haz de impulsos"], ok: 0, porque: "Papel en blanco: la experiencia escribe en ella." },
+        { q: "Las dos fuentes de la experiencia en Locke son…", op: ["sensación y reflexión", "razón e intuición", "memoria e imaginación", "fe y razón"], ok: 0, porque: "Sensación (mundo exterior) y reflexión (operaciones de la propia mente)." },
+        { q: "El color es, según Locke, una cualidad…", op: ["secundaria", "primaria", "innata", "intuitiva"], ok: 0, porque: "Depende en parte de nuestros sentidos: es un poder del objeto para producir sensaciones." },
+        { q: "Para Hume, la diferencia entre impresión e idea es…", op: ["de intensidad (viveza)", "de origen: unas son innatas", "de verdad o falsedad", "de lugar: unas externas y otras internas"], ok: 0, porque: "La idea es una copia más débil de la impresión." },
+        { q: "El principio de copia de Hume dice que…", op: ["toda idea simple procede de una impresión", "toda impresión viene de una idea", "las ideas son innatas", "la razón crea las ideas"], ok: 0, porque: "Si no hay impresión de origen, la idea es una palabra vacía." },
+        { q: "Según Hume, la «conexión necesaria» entre causa y efecto…", op: ["no se percibe: nace del hábito", "se percibe con la vista", "es una verdad lógica", "es una idea innata"], ok: 0, porque: "Solo vemos contigüidad, sucesión y repetición; la expectativa es nuestra." },
+        { q: "El problema de la inducción plantea que…", op: ["no hay garantía lógica de que el futuro repita el pasado", "la ciencia es deductiva", "las matemáticas son falsas", "todo lo que existe es una impresión"], ok: 0, porque: "Justificarlo con la experiencia pasada sería un círculo." },
+        { q: "Para Hume, el yo es…", op: ["un haz de percepciones", "una sustancia pensante", "un alma inmortal", "una idea innata"], ok: 0, porque: "Al mirar dentro solo encuentra percepciones sueltas." },
+        { q: "La propiedad, según Locke, nace…", op: ["del trabajo", "de la herencia divina", "de la fuerza", "de la ley del soberano"], ok: 0, porque: "Mezclar el trabajo propio con algo lo hace nuestro, dentro de ciertos límites." },
+        { q: "Los juicios morales, para Hume, expresan…", op: ["sentimientos de aprobación o rechazo", "verdades deducidas por la razón", "órdenes de Dios", "leyes del soberano"], ok: 0, porque: "La razón no mueve a actuar: lo hacen las pasiones." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre Locke es FALSA?", op: ["Defiende que la mente tiene ideas innatas", "La mente nace como una tabula rasa", "Sus fuentes son sensación y reflexión", "Distingue cualidades primarias y secundarias"], ok: 0, porque: "Locke rechaza las ideas innatas." },
+        { q: "¿Cuál de estas afirmaciones sobre las cualidades es FALSA?", op: ["Las secundarias son ilusorias y no tienen relación con el objeto", "Extensión y figura son primarias", "Color y sabor son secundarias", "Las secundarias son poderes del objeto para producir sensaciones"], ok: 0, porque: "No son ilusorias: son poderes del objeto que producen sensaciones en nosotros." },
+        { q: "¿Cuál de estas afirmaciones sobre Hume es FALSA?", op: ["Las ideas son más vivas que las impresiones", "Las ideas son copias de impresiones", "La causalidad nace del hábito", "El yo es un haz de percepciones"], ok: 0, porque: "Las impresiones son más vivas; las ideas, copias más débiles." },
+        { q: "¿Cuál de estas afirmaciones sobre la causalidad en Hume es FALSA?", op: ["Percibimos directamente la conexión necesaria entre causa y efecto", "Solo observamos contigüidad y sucesión", "La necesidad se proyecta desde la mente", "Hay conjunción constante"], ok: 0, porque: "La conexión necesaria nunca se percibe." },
+        { q: "¿Cuál de estas afirmaciones sobre el yo en Hume es FALSA?", op: ["Es una sustancia simple y permanente que percibimos", "Es un haz de percepciones", "La memoria ayuda a crear la sensación de identidad", "No hay impresión de un yo fijo"], ok: 0, porque: "Hume rechaza el yo-sustancia." },
+        { q: "¿Cuál de estas afirmaciones sobre la moral en Hume es FALSA?", op: ["La razón es la que mueve a actuar", "Las pasiones mueven a actuar", "De un «es» no se deduce un «debe»", "El juicio moral expresa un sentimiento"], ok: 0, porque: "Para Hume la razón es «esclava de las pasiones»." },
+        { q: "¿Cuál de estas afirmaciones sobre Locke político es FALSA?", op: ["El poder del gobierno es absoluto y no se puede resistir", "Existen derechos naturales anteriores al Estado", "La propiedad nace del trabajo", "El gobierno se basa en el consentimiento"], ok: 0, porque: "Locke defiende un gobierno limitado y el derecho de resistencia." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["Hume es anterior a Locke", "Locke nació en 1632", "Hume nació en 1711", "Descartes es anterior a Locke"], ok: 0, porque: "Locke (1632–1704) es anterior a Hume (1711–1776)." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Locke y Hume",
+      cartas: [
+        { a: "Empirismo", b: "El conocimiento procede de la experiencia; no hay ideas innatas." },
+        { a: "Tabula rasa", b: "La mente al nacer es un papel en blanco, sin ideas." },
+        { a: "Sensación", b: "Experiencia del mundo exterior por los sentidos (Locke)." },
+        { a: "Reflexión", b: "Experiencia de las operaciones de la propia mente (Locke); depende de la sensación." },
+        { a: "Ideas simples y complejas", b: "Las simples se reciben; las complejas las construye la mente combinando, comparando y abstrayendo." },
+        { a: "Cualidades primarias", b: "Extensión, figura, solidez, movimiento: están en el objeto." },
+        { a: "Cualidades secundarias", b: "Color, sabor, olor, sonido: dependen en parte de nuestros sentidos." },
+        { a: "Impresiones", b: "Percepciones vivas y directas (Hume)." },
+        { a: "Ideas (Hume)", b: "Copias más débiles de las impresiones, en la memoria o imaginación." },
+        { a: "Principio de copia", b: "Toda idea simple procede de una impresión previa." },
+        { a: "Relaciones de ideas", b: "Matemáticas y lógica; su contrario es una contradicción." },
+        { a: "Cuestiones de hecho", b: "Conocimiento por experiencia; su contrario es posible." },
+        { a: "Conexión necesaria", b: "Lo que creemos ver entre causa y efecto; en realidad, un hábito de la mente." },
+        { a: "Problema de la inducción", b: "Nada garantiza que el futuro se parezca al pasado." },
+        { a: "Haz de percepciones", b: "El yo según Hume: percepciones en flujo, sin sustancia." },
+        { a: "Emotivismo moral", b: "Los juicios morales expresan sentimientos de aprobación o rechazo." },
+        { a: "Ley de Hume", b: "De lo que es no se deduce lo que debe ser." },
+        { a: "Derechos naturales", b: "Vida, libertad y bienes; anteriores al Estado (Locke)." },
+        { a: "Contrato social (Locke)", b: "Pacto de consentimiento para crear un gobierno limitado que proteja los derechos." },
+        { a: "Derecho de resistencia", b: "Si el gobierno abusa, el pueblo puede resistirse y cambiarlo." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("hl1", 1, "¿En qué año nació John Locke?", ["1632", "1596", "1711", "1724"], 0,
+    ["Locke (1632–1704). Descartes nació en 1596, Hume en 1711 y Kant en 1724."]);
+  O("hl2", 1, "¿Cuándo se publicó el <i>Tratado de la naturaleza humana</i> de Hume?", ["1739–1740", "1690", "1651", "1781"], 0,
+    ["Hume lo escribió con unos 28 años. 1690 es el <i>Ensayo</i> de Locke."]);
+  O("hl3", 1, "¿Quién escribió el <i>Ensayo sobre el entendimiento humano</i> (1690)?", ["Locke", "Hume", "Descartes", "Kant"], 0,
+    ["Locke. Hume escribió una <i>Investigación</i> sobre el entendimiento humano en 1748."]);
+  T("hl4", 1, "Completa: según Locke, la mente al nacer es una ______ (<i>tabula rasa</i>, «papel en blanco»).", "Término =", ["tabula rasa", "tabla rasa"],
+    ["No hay ideas innatas: la experiencia escribe en ella."], "tabula rasa");
+  M("hl5", 1, "Indica si cada ejemplo de experiencia es sensación o reflexión (Locke).", [
+    C("Ver el rojo de una manzana", ["Sensación", "Reflexión"], 0),
+    C("Darte cuenta de que dudas", ["Sensación", "Reflexión"], 1),
+    C("Notar el frío de la nieve", ["Sensación", "Reflexión"], 0),
+    C("Recordar lo que pensaste ayer", ["Sensación", "Reflexión"], 1)],
+    ["Sensación = mundo exterior; reflexión = operaciones de la propia mente."], "Sensación, reflexión, sensación, reflexión");
+  O("hl6", 1, "Para Hume, las percepciones vivas y directas se llaman…", ["impresiones", "ideas", "sustancias", "categorías"], 0,
+    ["Las ideas son sus copias más débiles."]);
+  O("hl7", 1, "Las copias más débiles de las impresiones se llaman…", ["ideas", "impresiones", "pasiones", "hábitos"], 0,
+    ["En Hume, idea = copia débil de una impresión."]);
+  O("hl8", 1, "Según Locke, ¿cuál es una cualidad primaria?", ["La extensión", "El color", "El sabor", "El olor"], 0,
+    ["Extensión, figura, solidez y movimiento son primarias; color, sabor y olor, secundarias."]);
+  T("hl9", 1, "Completa: para Hume, la «conexión necesaria» entre causa y efecto no se percibe: es un ______ de la mente (algo adquirido por repetición).", "Término =", ["hábito", "habito", "costumbre"],
+    ["Tras ver muchas veces A y B juntos, la mente espera B cuando aparece A."], "hábito");
+  O("hl10", 1, "Los derechos naturales de Locke son…", ["vida, libertad y bienes", "solo la propiedad", "igualdad y fraternidad", "obediencia y orden"], 0,
+    ["Son anteriores al Estado y este debe protegerlos."]);
+  O("hl11", 1, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Descartes → Locke → Hume → Kant", "Locke → Descartes → Hume → Kant", "Hume → Locke → Descartes → Kant", "Descartes → Hume → Locke → Kant"], 0,
+    ["Descartes (1596), Locke (1632), Hume (1711), Kant (1724)."], "Descartes → Locke → Hume → Kant");
+  O("hl12", 1, "¿Cuál es la obra política principal de Locke?", ["Dos tratados sobre el gobierno civil", "Tratado de la naturaleza humana", "Leviatán", "Crítica de la razón pura"], 0,
+    ["El <i>Leviatán</i> es de Hobbes; el <i>Tratado</i>, de Hume; la <i>Crítica</i>, de Kant."]);
+  O("hl13", 1, "Para Hume, el yo es…", ["un haz de percepciones", "una sustancia pensante", "un alma inmortal", "una idea innata"], 0,
+    ["Al mirar dentro solo encuentra percepciones sueltas."]);
+  M("hl14", 1, "Clasifica cada frase como relación de ideas o cuestión de hecho (Hume).", [
+    C("«2 + 2 = 4»", ["Relación de ideas", "Cuestión de hecho"], 0),
+    C("«Mañana lloverá en Madrid»", ["Relación de ideas", "Cuestión de hecho"], 1),
+    C("«Un triángulo tiene tres lados»", ["Relación de ideas", "Cuestión de hecho"], 0),
+    C("«El agua hierve a 100 °C al nivel del mar»", ["Relación de ideas", "Cuestión de hecho"], 1)],
+    ["Si negarla es una contradicción: relación de ideas. Si es posible imaginar lo contrario: cuestión de hecho."], "Relación, hecho, relación, hecho");
+
+  // ---- nivel 2
+  V("hl15", 2, "«Locke defiende, como Descartes, que la mente tiene ideas innatas.»", false, [
+    "Es falso: para Locke la mente nace como un papel en blanco", "Es falso: Locke no cree en ninguna idea", "Es verdad: era racionalista", "Es verdad: aceptaba la idea de Dios como innata"], 0,
+    ["Locke rechaza las ideas innatas (Libro I del <i>Ensayo</i>)."]);
+  V("hl16", 2, "«Para Locke, la reflexión depende de que antes haya habido sensaciones.»", true, [
+    "Es verdad: solo se puede reflexionar sobre ideas ya recibidas", "Es verdad: porque la reflexión es innata", "Es verdad: porque la reflexión sustituye a los sentidos", "Es verdad: porque sin sensación no hay razón"], 0,
+    ["Nadie duda o recuerda en el vacío: hacen falta ideas previas."]);
+  V("hl17", 2, "«Para Locke, las cualidades secundarias son ilusiones sin relación con el objeto.»", false, [
+    "Es falso: son poderes del objeto que producen sensaciones, y dependen en parte del sujeto", "Es falso: son las únicas reales", "Es verdad: el color no existe", "Es verdad: el objeto no tiene ninguna cualidad"], 0,
+    ["Las produce el objeto, pero el resultado depende de nuestros órganos."]);
+  V("hl18", 2, "«Para Hume, la diferencia entre una impresión y una idea es solo de intensidad.»", true, [
+    "Es verdad: la idea es una copia más débil de la impresión", "Es verdad: porque las ideas son innatas", "Es verdad: porque las impresiones son falsas", "Es verdad: porque las ideas son más vivas"], 0,
+    ["La idea de dolor no duele como el dolor."]);
+  V("hl19", 2, "«Hume niega que existan causas y que el sol vaya a salir mañana.»", false, [
+    "Es falso: critica nuestra justificación de la causalidad, no su uso en la vida diaria", "Es falso: demuestra que el sol saldrá siempre", "Es verdad: era un escéptico total", "Es verdad: negaba el mundo exterior"], 0,
+    ["Su crítica es al origen y la justificación de la idea, no una negación del mundo."]);
+  V("hl20", 2, "«Para Hume, el yo es una sustancia simple que se percibe por introspección.»", false, [
+    "Es falso: la introspección solo encuentra percepciones, no un yo", "Es falso: el yo es el cuerpo", "Es verdad: es el cogito de Descartes", "Es verdad: se percibe con la vista"], 0,
+    ["Haz de percepciones, no sustancia."]);
+  V("hl21", 2, "«Para Locke, el poder político es legítimo solo si se basa en el consentimiento de los gobernados.»", true, [
+    "Es verdad: el gobierno nace de un pacto para proteger los derechos", "Es verdad: porque el rey recibe el poder de Dios", "Es verdad: porque la fuerza crea el derecho", "Es verdad: porque el pueblo no puede resistirse"], 0,
+    ["Consentimiento y confianza (<i>trust</i>); si hay abuso, puede resistirse."]);
+  O("hl22", 2, "Según el principio de copia, una idea es legítima si…", ["procede de una impresión", "es innata", "la deduce la razón", "la admite la mayoría"], 0,
+    ["Si no se rastrea hasta una impresión, es una palabra vacía."]);
+  O("hl23", 2, "Negar una relación de ideas, como «2 + 2 = 4», produce…", ["una contradicción", "una probabilidad", "una expectativa", "una impresión"], 0,
+    ["Por eso son necesarias; las cuestiones de hecho no."]);
+  O("hl24", 2, "Para Hume, la idea de necesidad causal nace de…", ["la costumbre de esperar B tras ver A", "una impresión de la fuerza oculta", "una idea innata", "la razón deductiva"], 0,
+    ["La expectativa nace de la repetición y se proyecta sobre las cosas."]);
+  O("hl25", 2, "El problema de la inducción consiste en que…", ["no hay garantía lógica de que el futuro se parezca al pasado", "la ciencia usa solo deducción", "la inducción siempre da conclusiones falsas", "no existen las matemáticas"], 0,
+    ["La experiencia pasada no demuestra la futura sin círculo."]);
+  O("hl26", 2, "Según Locke, ¿de dónde nace la propiedad?", ["Del trabajo", "De la herencia divina", "De la fuerza", "De la decisión del soberano"], 0,
+    ["Al mezclar tu trabajo con algo, pasa a ser tuyo (con límites)."]);
+  O("hl27", 2, "El emotivismo moral de Hume afirma que juzgar algo como bueno o malo es…", ["expresar un sentimiento de aprobación o rechazo", "descubrir una verdad con la razón", "obedecer a Dios", "cumplir la ley del soberano"], 0,
+    ["La razón no mueve a actuar; lo hace la pasión."]);
+  O("hl28", 2, "La «ley de Hume» advierte de que…", ["de lo que es no se deduce lo que debe ser", "todo lo que existe debe existir", "la razón decide la moral", "todo deber es un hecho"], 0,
+    ["No se puede saltar de un «es» a un «debe» sin una premisa moral."]);
+  O("hl29", 2, "¿En qué se diferencia el estado de naturaleza de Locke del de Hobbes?", ["En Locke hay ley natural y libertad; en Hobbes, guerra de todos contra todos", "En Locke es una guerra; en Hobbes, paz", "No se diferencian", "En Locke no hay derechos"], 0,
+    ["Hobbes → poder absoluto; Locke → poder limitado."]);
+  M("hl30", 2, "Según Hume, ¿se observa o no se observa esto en el choque de dos bolas de billar?", [
+    C("El choque entre las bolas", ["Se observa", "No se observa"], 0),
+    C("La «fuerza» que obliga a la segunda a moverse", ["Se observa", "No se observa"], 1),
+    C("Que una se mueva después de la otra", ["Se observa", "No se observa"], 0),
+    C("La conexión necesaria", ["Se observa", "No se observa"], 1)],
+    ["Observamos contigüidad, sucesión y repetición; la necesidad la pone la mente."], "Se observa, no, se observa, no");
+  T("hl31", 2, "Completa: para Hume, las matemáticas tratan de ______ de ideas.", "Término =", ["relaciones"],
+    ["Relaciones de ideas (necesarias) frente a cuestiones de hecho."], "relaciones");
+
+  // ---- nivel 3
+  O("hl32", 3, "¿Por qué no se puede justificar la inducción diciendo «hasta ahora la naturaleza ha sido uniforme»?",
+    ["Porque sería un círculo: usa la inducción para justificar la inducción", "Porque la naturaleza no es uniforme", "Porque la lógica ya la demuestra", "Porque Hume la considera una verdad matemática"], 0,
+    ["Se supone lo que había que probar."]);
+  O("hl33", 3, "Hume y Descartes se oponen sobre el yo porque…",
+    ["Descartes lo considera una sustancia pensante evidente; Hume solo encuentra un haz de percepciones", "ambos lo consideran un haz de percepciones", "Hume lo deduce del cogito", "Descartes niega que exista"], 0,
+    ["Cogito sustancial frente a identidad como ficción de la imaginación."]);
+  O("hl34", 3, "Respecto a la sustancia, Locke y Hume se diferencian en que…",
+    ["Locke la admite aunque la considera oscura («un no sé qué»), y Hume la rechaza por carecer de impresión", "ambos la aceptan sin dudas", "Hume la admite y Locke la rechaza", "ninguno habla de sustancia"], 0,
+    ["Hume ensancha la grieta que Locke dejó."]);
+  O("hl35", 3, "En el texto «Nunca puedo atraparme a mí mismo sin una percepción», Hume usa…",
+    ["la introspección, el método empirista aplicado a la mente", "la deducción matemática", "la fe religiosa", "el argumento del sueño"], 0,
+    ["Mira dentro y solo encuentra percepciones."]);
+  O("hl36", 3, "El razonamiento «siempre se ha hecho así; por tanto, debe hacerse» comete el error que señala…",
+    ["la ley de Hume (salto del «es» al «debe»)", "el principio de copia", "el problema de la inducción", "la crítica al yo"], 0,
+    ["Pasa de un hecho a un deber sin premisa moral."]);
+  O("hl37", 3, "Los límites de Locke a la propiedad son…",
+    ["no acumular lo que se estropea y dejar suficiente y de igual calidad para los demás", "no tener más de una casa", "pagar impuestos al rey", "compartir todo con la comunidad"], 0,
+    ["Dos límites: no desperdiciar y dejar bastante para otros."]);
+  O("hl38", 3, "La crítica de Hume al contrato social de Locke sostiene que…",
+    ["nadie firmó nunca ese pacto: obedecemos por costumbre y por utilidad", "el contrato es la única base posible", "el poder es de origen divino", "el pueblo no debe obedecer nunca"], 0,
+    ["Aplica su empirismo a la política."]);
+  M("hl39", 3, "Atribuye cada concepto a su autor (Locke o Hume).", [
+    C("Tabula rasa", ["Locke", "Hume"], 0),
+    C("Haz de percepciones", ["Locke", "Hume"], 1),
+    C("Derecho de resistencia", ["Locke", "Hume"], 0),
+    C("Ley «es–debe»", ["Locke", "Hume"], 1)],
+    ["Locke: tabula rasa, derechos y contrato. Hume: haz de percepciones y ley es–debe."], "Locke, Hume, Locke, Hume");
+  R("hl40", "Explica el empirismo de Locke: la tabula rasa, las fuentes de las ideas y las cualidades primarias y secundarias. (Pregunta tipo PAU)", 9, [
+    { t: "Contrapone empirismo a racionalismo (Descartes) y niega las ideas innatas", p: 0.4 },
+    { t: "Explica la tabula rasa y los argumentos contra el innatismo", p: 0.4 },
+    { t: "Distingue sensación y reflexión (y que la segunda depende de la primera)", p: 0.4 },
+    { t: "Explica ideas simples y complejas (la mente recibe y construye)", p: 0.4 },
+    { t: "Distingue cualidades primarias y secundarias con ejemplos", p: 0.4 }],
+    ["Empirismo frente a racionalismo.", "Tabula rasa.", "Sensación y reflexión.", "Ideas simples y complejas.", "Cualidades primarias y secundarias."], "Toda idea viene de la experiencia; la mente nace en blanco");
+  R("hl41", "Explica la crítica de Hume a la causalidad y el problema de la inducción. (Pregunta tipo PAU)", 9, [
+    { t: "Expone impresiones e ideas y el principio de copia", p: 0.4 },
+    { t: "Explica qué se observa en la causalidad (contigüidad, sucesión, conjunción) y qué no (conexión necesaria)", p: 0.5 },
+    { t: "Explica que la necesidad es un hábito proyectado por la mente", p: 0.4 },
+    { t: "Expone el problema de la inducción y su carácter circular", p: 0.4 },
+    { t: "Valora la influencia (Kant, filosofía de la ciencia)", p: 0.3 }],
+    ["Impresiones e ideas.", "Qué se observa.", "Hábito.", "Inducción.", "Valoración."], "La causalidad es hábito; no hay garantía lógica para el futuro");
+  R("hl42", "Explica la crítica de Hume al yo y su teoría moral (emotivismo). Compáralo con Descartes. (Pregunta tipo PAU)", 9, [
+    { t: "Aplica el principio de copia al yo y concluye que no hay impresión de un yo fijo", p: 0.4 },
+    { t: "Explica el yo como haz de percepciones y la identidad como ficción", p: 0.4 },
+    { t: "Expone que la razón no mueve a actuar: las pasiones", p: 0.3 },
+    { t: "Explica el juicio moral como sentimiento (emotivismo) y la ley de Hume", p: 0.5 },
+    { t: "Compara con Descartes (cogito, sustancia pensante)", p: 0.4 }],
+    ["Principio de copia aplicado al yo.", "Haz de percepciones.", "Razón y pasión.", "Emotivismo y ley de Hume.", "Comparación con Descartes."], "Yo = haz de percepciones; moral = sentimiento");
+  R("hl43", "Explica el pensamiento político de Locke (estado de naturaleza, propiedad, contrato y tolerancia) y compáralo con Hobbes o con Hume. (Pregunta tipo PAU)", 9, [
+    { t: "Describe el estado de naturaleza y los derechos naturales (vida, libertad, bienes)", p: 0.4 },
+    { t: "Explica la propiedad como fruto del trabajo y sus límites", p: 0.4 },
+    { t: "Explica el contrato, el consentimiento y el gobierno limitado con división de poderes", p: 0.4 },
+    { t: "Explica el derecho de resistencia y la tolerancia", p: 0.4 },
+    { t: "Compara con Hobbes (poder absoluto) o Hume (crítica al contrato)", p: 0.4 }],
+    ["Estado de naturaleza.", "Propiedad.", "Contrato.", "Resistencia y tolerancia.", "Comparación."], "Gobierno limitado que protege derechos naturales");
+  R("hl44", "Comenta este texto: «Supongamos, pues, que la mente es, como se dice, un papel en blanco, vacío de todo carácter, sin ninguna idea. ¿Cómo llega a tenerlas? [...] A esto respondo con una sola palabra: de la experiencia» (Locke, <i>Ensayo sobre el entendimiento humano</i>, II, 1; traducción habitual). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: el origen de las ideas en la experiencia", p: 0.3 },
+    { t: "Idea principal: la mente es una tabula rasa y toda idea viene de la experiencia", p: 0.4 },
+    { t: "Aclara términos: papel en blanco, experiencia (sensación y reflexión)", p: 0.4 },
+    { t: "Relaciona con el autor: rechazo del innatismo, ideas simples y complejas, cualidades", p: 0.5 },
+    { t: "Compara con Descartes (ideas innatas) o Hume (impresiones e ideas)", p: 0.3 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario de la tabula rasa");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Locke y Hume", ancha: true,
+      tabla: { cab: ["", "Locke", "Hume"], filas: [
+        ["Origen del conocimiento", "Experiencia: sensación y reflexión", "Impresiones; las ideas son copias"],
+        ["Mente", "Tabula rasa", "Haz de percepciones"],
+        ["Sustancia", "Admitida, pero «un no sé qué»", "Rechazada: sin impresión"],
+        ["Causalidad", "Relación entre ideas", "Hábito; sin conexión necesaria"],
+        ["Moral y política", "Derechos naturales y contrato", "Sentimiento y utilidad"]
+      ] } },
+    { titulo: "Impresiones e ideas (Hume)", ancha: true,
+      tabla: { cab: ["Impresión", "Idea"], filas: [
+        ["Percepción viva y directa", "Copia débil en memoria o imaginación"],
+        ["Quemarte la mano", "Recordar la quemadura"],
+        ["De sensación y de reflexión", "Simples y complejas"]
+      ] } },
+    { titulo: "La causalidad según Hume",
+      pasos: ["Contigüidad: A y B están juntos.", "Prioridad: A viene antes que B.", "Conjunción constante: siempre pasa igual.", "No se ve la «conexión necesaria».", "La mente la proyecta por hábito."],
+      nota: "De ahí, el problema de la inducción." },
+    { titulo: "Locke político", ancha: true,
+      tabla: { cab: ["Concepto", "Idea"], filas: [
+        ["Derechos naturales", "Vida, libertad y bienes"],
+        ["Propiedad", "Nace del trabajo; sin desperdicio y dejando bastante"],
+        ["Contrato", "Consentimiento para proteger derechos"],
+        ["Resistencia", "Si el gobierno abusa, se puede cambiar"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Las cualidades secundarias son ilusiones", bien: "Son poderes del objeto que producen sensaciones en nosotros", por: "Dependen en parte del sujeto, no son inventadas." },
+        { mal: "Hume niega que existan causas", bien: "Niega que veamos o podamos demostrar la conexión necesaria", por: "Su crítica es sobre el origen de la idea." },
+        { mal: "Para Hume el yo no existe", bien: "El yo es un haz de percepciones, no una sustancia", por: "Critica la sustancia, no la vida diaria." },
+        { mal: "Locke defiende un poder absoluto", bien: "Defiende un gobierno limitado y el derecho de resistencia", por: "El absolutista es Hobbes." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t10", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf10a.secciones,
+    nuevas: B.parte.hf10a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
