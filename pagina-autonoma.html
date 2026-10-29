@@ -3028,9 +3028,10 @@
     ".vz-pie { display: flex; align-items: center; gap: 12px; margin-top: 12px; }",
     "@media (max-width: 760px) { .vz-cab, .vz-2 { grid-template-columns: 1fr; } .vz-cuerpo { padding: 14px 14px 16px; } .vz-sub { display: none; } }",
     "@media print {",
-    "  body.vz-solo * { visibility: hidden !important; }",
-    "  body.vz-solo .vz, body.vz-solo .vz * { visibility: visible !important; }",
-    "  body.vz-solo .vz { position: absolute; left: 0; top: 0; width: 100%; }",
+    "  body.vz-solo .vz-fuera { display: none !important; }",
+    "  body.vz-solo .vz-camino { margin: 0 !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; min-height: 0 !important; height: auto !important; overflow: visible !important; position: static !important; }",
+    "  body.vz-solo .vz-imprimir { width: 100%; zoom: 0.8; }",
+    "  @page { margin: 10mm; }",
     "  .vz { box-shadow: none; border: 1px solid #999; border-radius: 0; margin: 0; }",
     "  .vz > summary { background: #fff; border-bottom: 1px solid #999; }",
     "  .vz > summary::before, .vz-sub, .vz-pie { display: none !important; }",
@@ -3083,7 +3084,7 @@
     }
     if (d.cita) h += '<blockquote class="vz-cita">«' + d.cita.txt + "»" + (d.cita.autor ? "<cite>" + d.cita.autor + (d.cita.obra ? ", <i>" + d.cita.obra + "</i>" : "") + "</cite>" : "") + "</blockquote>";
     // dentro de claude.ai el visor bloquea window.print(): el botón solo se ofrece en la web publicada
-    if (!(global.claude && global.claude.use)) h += '<div class="vz-pie no-print"><button type="button" class="chip-btn" data-vz-print>🖨 Imprimir esta ficha</button><span class="hand-note">cabe en una hoja: llévatela de chuleta</span></div>';
+    if (!(global.claude && global.claude.use)) h += '<div class="vz-pie no-print"><button type="button" class="chip-btn" data-vz-print>🖨 Imprimir esta ficha</button><span class="hand-note">cabe en una hoja (alguna, en dos): llévatela de chuleta</span></div>';
     return h + "</div></details>";
   };
 
@@ -3100,11 +3101,25 @@
     document.addEventListener("click", function (e) {
       if (!e.target.closest || !e.target.closest("[data-vz-print]")) return;
       var ficha = e.target.closest(".vz");
-      if (ficha) ficha.open = true;
+      if (!ficha) return;
+      ficha.open = true;
+      // solo la ficha: se ocultan (display:none, no visibility) los hermanos de cada antepasado,
+      // así el resto de la página no ocupa hojas en blanco
+      ficha.classList.add("vz-imprimir");
+      for (var n = ficha; n && n !== document.body && n.parentNode; n = n.parentNode) {
+        if (n !== ficha) n.classList.add("vz-camino");
+        Array.prototype.forEach.call(n.parentNode.children, function (h) { if (h !== n) h.classList.add("vz-fuera"); });
+      }
       document.body.classList.add("vz-solo");
       window.print();
-      document.body.classList.remove("vz-solo");
+      vzLimpiar();
     });
+    var vzLimpiar = function () {
+      document.body.classList.remove("vz-solo");
+      ["vz-fuera", "vz-camino", "vz-imprimir"].forEach(function (c) {
+        Array.prototype.forEach.call(document.querySelectorAll("." + c), function (el) { el.classList.remove(c); });
+      });
+    };
     if (typeof window.addEventListener === "function") {
       var abiertas = [];
       window.addEventListener("beforeprint", function () {
@@ -3113,7 +3128,7 @@
       });
       window.addEventListener("afterprint", function () {
         abiertas.forEach(function (p) { p[0].open = p[1]; });
-        document.body.classList.remove("vz-solo");
+        vzLimpiar();
       });
     }
   } catch (e) { /* sin DOM */ }
