@@ -53,14 +53,22 @@ const { lanzar, abrirTema } = require('./e2e_common.js');
       await p.evaluate(() => window.dispatchEvent(new Event('afterprint')));
       chk('impresión: afterprint restaura (plegada)', await vz.evaluate(e => e.open), false);
       await vz.locator('summary').click();
-      await p.evaluate(() => document.body.classList.add('vz-solo'));
+      // botón real: window.print se intercepta (lanza) para que la página quede en modo «solo ficha» y medirla
+      await p.evaluate(() => { window.__printOrig = window.print; window.print = () => { throw new Error('stop'); }; });
+      await vz.locator('[data-vz-print]').click().catch(() => {});
+      await p.waitForTimeout(200);
+      for (let i = errs.length - 1; i >= 0; i--) if (String(errs[i]).includes('stop')) errs.splice(i, 1);  // el lanzamiento provocado
       await p.emulateMedia({ media: 'print' });
-      chk('impresión: solo la ficha visible (barra superior oculta)', await p.locator('.topbar').first().evaluate(e => getComputedStyle(e).visibility), 'hidden');
-      chk('impresión: ficha visible', await vz.locator('.vz-grid').evaluate(e => getComputedStyle(e).visibility), 'visible');
+      chk('impresión: resto de la página fuera (display:none, no ocupa hojas)', await p.locator('.topbar').first().evaluate(e => getComputedStyle(e).display), 'none');
+      chk('impresión: ficha visible', await vz.locator('.vz-grid').evaluate(e => getComputedStyle(e).display !== 'none'), true);
       chk('impresión: 3 columnas', await vz.locator('.vz-grid').evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length), 3);
       chk('impresión: botón de imprimir oculto', await vz.locator('.vz-pie').evaluate(e => getComputedStyle(e).display), 'none');
+      const pdf = await p.pdf({ format: 'A4', printBackground: true });
+      const hojas = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+      chk('impresión: la ficha cabe en 1 hoja (sin hojas en blanco), hojas=' + hojas, hojas, 1);
       await p.emulateMedia({ media: 'screen' });
-      await p.evaluate(() => document.body.classList.remove('vz-solo'));
+      await p.evaluate(() => { window.print = window.__printOrig; window.dispatchEvent(new Event('afterprint')); });
+      chk('impresión: tras imprimir la página vuelve a la normalidad', await p.evaluate(() => !document.querySelector('.vz-fuera') && !document.body.classList.contains('vz-solo')), true);
     }
     chk(cfg.nom + ': sin errores JS', errs.length, 0);
     if (errs.length) console.log(errs.slice(0, 3));
