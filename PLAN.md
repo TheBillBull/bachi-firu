@@ -122,7 +122,8 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t11 Rousseau e Ilustración (44 ej., 240 comprob.) | ≈162k | |
 | Filosofía t12 Kant (45 ej., 260 comprob.) | ≈160k | |
 | Filosofía t13 Marx (46 ej., 260 comprob.) | ≈155k | |
-| Filosofía t14 Nietzsche (45 ej., 266 comprob.) | ≈160k | |
+| Filosofía t14 Nietzsche (45 ej., 266 comprob.) | ≈178k | |
+| Filosofía t15 fenomenología y existencialismo (41 ej., 279 comprob.) | ≈157k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -202,3 +203,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 29-oct: Filosofía t12 fusionado. Lanzado t14.
 - 29-oct: Filosofía t13 fusionado. Lanzado t15.
 - 29-oct: Filosofía t14 fusionado. Lanzado t16.
+- 29-oct: Filosofía t15 fusionado. Lanzado t16 (último).
