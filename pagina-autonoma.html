@@ -48808,6 +48808,657 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 14: Nietzsche
+   (parte A: teoría. Parte B, historia_fil_t14b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Apolíneo y dionisíaco: no son «bueno» y «malo»; la tragedia nace de su unión y Sócrates la mata → sección 2 + clasificar.
+   2. Lenguaje y verdad («Sobre verdad y mentira»): la verdad como ejército de metáforas olvidadas → sección nueva 6 + comentario.
+   3. Crítica a la metafísica: «mundo verdadero» de Platón que acaba en fábula; cristianismo = platonismo para el pueblo → sección nueva 7.
+   4. Crítica a la ciencia y a Sócrates: la fe en la verdad como último ídolo → sección nueva 7.
+   5. «Dios ha muerto»: diagnóstico cultural (no ateísmo de manual) y nihilismo (pasivo y activo) → sección 3 + comentario resuelto.
+   6. Moral de señores y de esclavos: resentimiento, mala conciencia, ideal ascético; no es elogio de la violencia → sección 4 + clasificar.
+   7. Voluntad de poder: no es «mandar sobre otros», es impulso de crecer y superarse → sección nueva 8.
+   8. Superhombre (tres metamorfosis, último hombre) y eterno retorno (amor fati) → sección 5 + orden.
+   9. Perspectivismo: no es «todo vale»; más perspectivas, mejor conocimiento → sección nueva 6.
+   10. Comparaciones PAU (Platón, Kant, Marx, existencialismo) y malentendidos (nazismo, hermana) → sección nueva 9.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t14/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Vida, obra y estilo
+  secciones[0] =
+    "<h5>La vida de Nietzsche (1844–1900) paso a paso</h5>" +
+    "<p>Nietzsche no es un filósofo de cátedra tranquilo: su vida es corta, solitaria y muy ligada a su obra. Conviene conocer cinco momentos, porque las preguntas de contexto de la PAU suelen salir de aquí.</p>" +
+    "<ul><li><b>1844: nace en Röcken</b> (Sajonia, entonces Prusia), hijo y nieto de pastores luteranos. Su padre muere cuando él tiene 4 años. Crece, pues, rodeado de religión y de mujeres de su familia; después se enfrentará con toda esa herencia cristiana.</li>" +
+    "<li><b>Estudios de filología clásica</b> en Bonn y Leipzig (la filología es el estudio de los textos antiguos: griego y latín). Descubre a <b>Schopenhauer</b>, que será su primer maestro, y conoce al compositor <b>Richard Wagner</b>.</li>" +
+    "<li><b>1869: catedrático en Basilea</b> (Suiza) a los 24 años, algo casi inaudito. En 1872 publica su primer libro, <i>El nacimiento de la tragedia</i>, que escandaliza a los filólogos por mezclar filosofía, arte y polémica.</li>" +
+    "<li><b>1879: deja la cátedra</b> por la mala salud (migrañas, problemas de vista). Hasta 1888 vive viajando (Suiza, Italia, Francia) en pensiones baratas y escribe casi todas sus obras mayores. Rompe con Wagner (hacia 1876–78) porque ve en él un artista que se acomoda al cristianismo y al nacionalismo.</li>" +
+    "<li><b>1889: colapso en Turín</b> (según la anécdota, abrazado a un caballo maltratado por la calle). Pasa sus últimos años enfermo mental, cuidado por su madre y luego por su hermana Elisabeth; muere en <b>Weimar</b> en 1900.</li></ul>" +
+    "<h5>Sus obras, ordenadas</h5>" +
+    "<p>Se suelen distinguir tres etapas. No hace falta memorizar todos los títulos: sí saber a qué idea va unida cada obra, porque la PAU da un fragmento y pide reconocerlo.</p>" +
+    tabla(["Etapa", "Obras", "Idea principal"], [
+      ["<b>1.ª · Arte y cultura</b> (influencia de Schopenhauer y Wagner)", "<i>El nacimiento de la tragedia</i> (1872); <i>Sobre verdad y mentira en sentido extramoral</i> (escrito en 1873, publicado después de su muerte)", "Lo apolíneo y lo dionisíaco; la verdad como metáfora"],
+      ["<b>2.ª · Crítica «ilustrada»</b>", "<i>Humano, demasiado humano</i> (1878); <i>Aurora</i> (1881); <i>La gaya ciencia</i> (1882)", "Sospecha de la metafísica y de la moral; «Dios ha muerto» (aforismo 125)"],
+      ["<b>3.ª · Madurez</b>", "<i>Así habló Zaratustra</i> (1883–1885); <i>Más allá del bien y del mal</i> (1886); <i>La genealogía de la moral</i> (1887); <i>El crepúsculo de los ídolos</i> y <i>El anticristo</i> (escritos en 1888); <i>Ecce homo</i> (escrito en 1888)", "Superhombre, eterno retorno, voluntad de poder, moral de señores y esclavos"]
+    ]) +
+    w("orden", "cronologia") +
+    "<h5>Cómo escribe y por qué importa</h5>" +
+    "<p>Nietzsche escribe con <b>aforismos</b> (frases breves y contundentes), poemas, parábolas y gritos. No es descuido: cree que un sistema cerrado, como los de Platón o Kant, es una forma de <b>engañarse</b> con una falsa seguridad. Dice, más o menos, que desconfía de todos los que construyen sistemas. Además filosofa «a martillazos»: quiere comprobar si los ídolos (valores muy admirados) están huecos, golpeándolos y oyendo cómo suenan.</p>" +
+    ojo("Una obra famosa, <i>La voluntad de poder</i>, <b>no la publicó Nietzsche</b>: es una recopilación de sus apuntes inéditos que montaron su hermana Elisabeth y su amigo Peter Gast tras su muerte (1901, ampliada en 1906). Por eso los especialistas la usan con cautela y la PAU se apoya sobre todo en las obras que él mismo publicó.");
+
+  // ---------------------------------------------------------------- 2. Apolíneo y dionisíaco
+  secciones[1] =
+    "<h5>Dos dioses, dos formas de vivir</h5>" +
+    "<p>Nietzsche toma dos dioses griegos como símbolos. <b>Apolo</b> es el dios de la luz, la medida, las formas bellas y los sueños. <b>Dioniso</b> es el dios del vino, la música, la fiesta y la embriaguez. Imagina la diferencia entre <b>ver una escultura perfecta</b> en un museo (todo claro, ordenado, cada cosa en su sitio) y <b>bailar en un concierto</b> con miles de personas, olvidándote de quién eres y fundiéndote con la multitud. Lo primero es apolíneo; lo segundo, dionisíaco.</p>" +
+    tabla(["", "Apolíneo", "Dionisíaco"], [
+      ["Símbolo", "El sueño: imágenes claras y bellas", "La embriaguez: el éxtasis y la fiesta"],
+      ["Arte", "Escultura, pintura, poesía épica", "Música y danza"],
+      ["Individuo", "Cada uno es distinto y tiene límites (<i>principio de individuación</i>)", "Los límites se disuelven; uno se funde con los demás y con la naturaleza"],
+      ["Valores", "Medida, orden, forma, razón", "Instinto, desmesura, vida que brota, también dolor"],
+      ["Peligro si falta el otro", "Frialdad y rigidez", "Caos y destrucción"]
+    ]) +
+    "<h5>La tragedia: la unión de los dos</h5>" +
+    "<p>La <b>tragedia griega</b> (Esquilo, Sófocles) nació, según Nietzsche, del coro que cantaba y bailaba en honor de Dioniso (impulso dionisíaco) y de los actores que mostraban en escena imágenes claras de héroes y destinos (impulso apolíneo). El espectador veía el dolor de la vida, no lo escondía, pero la belleza de la forma le permitía <b>soportarlo y hasta celebrarlo</b>. Por eso los griegos, un pueblo muy sensible al sufrimiento, no se hundieron en el pesimismo: lo transformaron en arte.</p>" +
+    "<h5>La muerte de la tragedia y la acusación a Sócrates</h5>" +
+    "<p>La tesis polémica del libro es que la tragedia murió con <b>Eurípides</b> y, sobre todo, con <b>Sócrates</b> (Tema 2). El «socratismo» pretende que todo se puede entender, justificar y explicar con la razón («virtud = conocimiento», «solo es feliz el que sabe»). Para Nietzsche eso es un exceso apolíneo: la razón se convierte en <b>un tirano</b> que desprecia el instinto, la música y el cuerpo, y la cultura queda «anémica». Es el origen de lo que después criticará en Platón (Tema 3) y en el cristianismo: desconfiar de la vida real a favor de algo «más alto».</p>" +
+    ejemplo("Aplica la idea: ¿dónde están hoy lo apolíneo y lo dionisíaco?", "Es un buen ejercicio de PAU explicar un concepto con un ejemplo propio:", [
+      "<b>Apolíneo</b>: un examen bien preparado, un horario organizado, un museo de escultura.",
+      "<b>Dionisíaco</b>: un festival de música, una fiesta de pueblo, el momento en que un grito colectivo en un estadio os une a todos.",
+      "<b>Equilibrio</b>: un gran concierto bien organizado (orden en el escenario, éxtasis en el público): ambos impulsos a la vez, como en la tragedia.",
+      "<b>Desequilibrio</b>: una vida de solo agendas (apolíneo) o de solo excesos (dionisíaco)."
+    ]) +
+    ojo("Apolíneo no es «bueno» ni dionisíaco «malo» (ni al revés). Nietzsche no los enfrenta: los necesita <b>juntos</b>. Lo que critica es que la cultura occidental, desde Sócrates, <b>sacrificó</b> el lado dionisíaco. Más adelante defenderá lo dionisíaco con fuerza, pero la idea de equilibrio de la tragedia está en su primera obra.") +
+    w("clasificar", "apodio");
+
+  // ---------------------------------------------------------------- 3. Dios ha muerto y nihilismo
+  secciones[2] =
+    "<h5>Quién dice «Dios ha muerto» y dónde</h5>" +
+    "<p>La frase aparece en <i>La gaya ciencia</i> (1882, aforismo 125) y se repite en <i>Así habló Zaratustra</i>. La escena es famosa: <b>un loco</b> enciende una linterna a plena luz del día, corre por el mercado y grita «¡busco a Dios!». La gente, que no cree en Dios, se ríe de él. El loco responde que Dios ha muerto y que <b>lo hemos matado nosotros</b>. Pero, aclara, ha llegado «demasiado pronto»: la gente todavía no ha comprendido lo que ha hecho. La escena importa por una razón: <b>el que habla no es un creyente ni un ateo militante, sino un loco que describe un hecho cultural</b>.</p>" +
+    "<h5>Qué significa exactamente</h5>" +
+    "<ul><li><b>No es un argumento contra la existencia de Dios</b> (no demuestra nada). Es un <i>diagnóstico</i>: la fe en el Dios cristiano ya no sostiene de verdad la vida europea.</li>" +
+    "<li><b>Lo que ha muerto es un fundamento</b>. Durante siglos, «Dios» garantizaba tres cosas: que hay un orden moral objetivo, que la vida tiene un sentido final, y que la verdad existe y es una. Sin esa garantía, ¿qué queda?</li>" +
+    "<li><b>Quienes lo mataron</b> no son criminales: es la ciencia, la Ilustración, la crítica de la razón (Hume T10, Kant T12…), que fueron quitando a Dios el papel de explicarlo todo. Y lo siguen «matando» cada vez que obran sin contar con Él.</li></ul>" +
+    "<h5>Nihilismo: la consecuencia</h5>" +
+    "<p>Si no hay un fundamento absoluto, se abre el <b>nihilismo</b> (del latín <i>nihil</i>, «nada»): la sensación de que nada tiene valor ni sentido. Nietzsche distingue dos formas:</p>" +
+    tabla(["", "Nihilismo pasivo", "Nihilismo activo"], [
+      ["Actitud", "Cansancio y desánimo: «nada importa, todo da igual»", "Fuerza: «los viejos valores están muertos, los derribo para crear otros»"],
+      ["Ejemplo", "El <b>último hombre</b> de Zaratustra: busca comodidad y seguridad, quiere vivir sin esfuerzo y «parpadea»", "El que rompe con la moral heredada y arriesga una nueva"],
+      ["Valoración de Nietzsche", "Es el peligro real de la cultura moderna", "Es el paso necesario hacia la superación del nihilismo"]
+    ]) +
+    "<p>Nietzsche no es un nihilista que se alegre del vacío: se ve a sí mismo como el <b>médico de la cultura</b> que diagnostica la enfermedad (el nihilismo europeo) y propone una salida: la <b>transvaloración de todos los valores</b>, es decir, crear una escala de valores nueva que diga <i>sí</i> a la vida en vez de negarla.</p>" +
+    ojo("«Dios ha muerto» <b>no significa</b> «Nietzsche demuestra que Dios no existe» ni «Nietzsche se alegra». Es el anuncio de un hecho cultural y, a la vez, un aviso: viene una época de nihilismo y hay que decidir si caeremos en él o crearemos algo nuevo.");
+
+  // ---------------------------------------------------------------- 4. Moral de señores y de esclavos
+  secciones[3] =
+    "<h5>La genealogía: preguntar de dónde viene la moral</h5>" +
+    "<p>La palabra <b>genealogía</b> significa «historia del origen» (como un árbol genealógico). Hasta Nietzsche, los filósofos discutían <i>qué</i> es bueno. Él pregunta otra cosa: <b>¿de dónde sale la idea misma de «bueno» y «malo»? ¿Quién la inventó y a quién le conviene?</b> Su método es sospechar: tras los valores más respetables puede haber intereses, miedos o resentimientos disfrazados. Por eso se le llama, junto a Marx y Freud, uno de los «maestros de la sospecha».</p>" +
+    "<h5>Dos morales, dos formas de valorar</h5>" +
+    tabla(["", "Moral de señores", "Moral de esclavos"], [
+      ["Quién valora", "Los fuertes, nobles y sanos, desde su propia plenitud", "Los débiles y oprimidos, desde su impotencia"],
+      ["Pareja de valores", "<b>Bueno / malo</b>: bueno = lo noble, fuerte y orgulloso; malo = lo vulgar y pobre", "<b>Bueno / malvado</b>: malvado = el fuerte que oprime; bueno = el que no hace daño"],
+      ["Qué se valora", "Fuerza, orgullo, valentía, creatividad, afirmación de uno mismo", "Humildad, paciencia, compasión, obediencia, igualdad"],
+      ["Origen del valor", "Se dice «sí» a uno mismo primero (valor activo)", "Se dice «no» al otro primero (valor reactivo, nacido del <b>resentimiento</b>)"]
+    ]) +
+    "<p>La clave es la palabra <b>resentimiento</b> (en alemán, <i>Ressentiment</i>). Imagina a alguien que no puede vengarse de quien le humilla: en lugar de actuar, <b>imagina una venganza moral</b>. Decide que lo que él no puede (ser fuerte) es «malo», y que su impotencia (ser inofensivo) es «virtud». Es la conocida fábula de la zorra y las uvas: «no es que no llegue, es que están verdes». El esclavo no dice «soy débil», dice «soy bueno». Así se invierten los valores.</p>" +
+    "<h5>Del resentimiento a la culpa y al ideal ascético</h5>" +
+    "<ul><li><b>Mala conciencia.</b> Cuando una sociedad ya no puede descargar sus instintos agresivos hacia fuera, los vuelve contra sí misma: aparece el sentimiento de culpa. Nietzsche observa que en alemán <i>Schuld</i> significa «culpa» y también «deuda»: la culpa nace de sentirse deudor.</li>" +
+    "<li><b>Ideal ascético.</b> El sacerdote da sentido al sufrimiento diciendo «sufres por tus pecados, pero tu sufrimiento tiene premio en otra vida». No cura al enfermo: le da un motivo para seguir sufriendo. Para Nietzsche es la señal de que el ser humano prefiere querer <i>la nada</i> antes que no querer nada.</li>" +
+    "<li><b>El cristianismo</b> es, para Nietzsche, la forma triunfante de la moral de esclavos: predica humildad, compasión, perdón y esperanza en otro mundo. Y la ética moderna del deber (Kant, Tema 12) y la compasión universal siguen, a su juicio, esa misma lógica.</li></ul>" +
+    ojo("Nietzsche <b>no elogia la crueldad</b> ni el abuso del poderoso. Su «señor» es un tipo humano (el que se afirma y crea valores), no una clase social ni una raza. Y no pide volver a la antigüedad: pide una <i>nueva</i> moral de la afirmación. Es un error de lectura grave asociarlo al nazismo (ver sección 9).") +
+    w("clasificar", "morales");
+
+  // ---------------------------------------------------------------- 5. Superhombre y eterno retorno
+  secciones[4] =
+    "<h5>El superhombre (Übermensch)</h5>" +
+    "<p>El superhombre aparece en <i>Así habló Zaratustra</i>, una obra mezcla de poema, parábola y evangelio invertido. Zaratustra baja de la montaña y dice a la gente: «Yo os enseño el superhombre. El hombre es algo que debe ser superado» (traducción habitual del Prólogo). Aclaraciones esenciales:</p>" +
+    "<ul><li><b>No es un tipo físico, ni una raza, ni un dictador.</b> «Über» significa «por encima de» o «más allá de». Es el ser humano que <b>se supera a sí mismo</b>, que crea valores propios en lugar de repetir los heredados.</li>" +
+    "<li><b>Es fiel «a la tierra»</b>: afirma esta vida, este cuerpo y este mundo, en vez de esperar otro mundo prometido. Es una respuesta directa a la muerte de Dios.</li>" +
+    "<li><b>Es un ideal, un horizonte</b>, no un resultado ya alcanzado. El «último hombre» (cómodo, mediocre, sin ambición) es su contrario.</li></ul>" +
+    "<h5>Las tres metamorfosis del espíritu</h5>" +
+    "<p>En el primer discurso de <i>Zaratustra</i>, Nietzsche explica con una parábola cómo se llega a crear valores propios, en tres etapas:</p>" +
+    tabla(["Etapa", "Símbolo", "Qué dice", "Qué significa"], [
+      ["1.ª", "<b>Camello</b>", "«Tú debes»", "El espíritu carga con el deber y las normas heredadas; es obediente, resistente y respetuoso."],
+      ["2.ª", "<b>León</b>", "«Yo quiero»", "Se rebela contra el «tú debes» y conquista la libertad; sabe decir «no», pero todavía no crea."],
+      ["3.ª", "<b>Niño</b>", "«Sí»", "Inocencia y juego: empieza algo nuevo, crea valores propios y dice sí a la vida."]
+    ]) +
+    "<p>La idea es muy didáctica: <b>no basta con rebelarse</b> (el león); hace falta además <b>crear</b> (el niño). Un adolescente que se limita a llevar la contraria a todo sigue dependiendo de aquello que rechaza.</p>" +
+    w("orden", "metamorfosis") +
+    "<h5>El eterno retorno</h5>" +
+    "<p>El pensamiento aparece en <i>La gaya ciencia</i> (aforismo 341, «El peso más grande») y reaparece en <i>Zaratustra</i>. Nietzsche propone un experimento mental: supón que un demonio te dijera que <b>esta misma vida, con cada alegría, cada dolor y cada detalle, tendrás que vivirla otra vez e innumerables veces más</b>, sin ningún cambio. ¿Te lanzarías al suelo rechinando los dientes y maldiciendo, o responderías «nunca oí nada más divino»?</p>" +
+    "<ul><li><b>Es una prueba de afirmación</b>: quien deseara que su vida se repitiera exactamente así, la ha aceptado entera. Esa aceptación se llama <b><i>amor fati</i></b> («amor al destino»).</li>" +
+    "<li><b>Es una brújula para decidir</b>: pregúntate, ante cada elección, «¿querría repetir esto eternamente?». Así convierte cada instante en algo decisivo, no en un trámite hacia el más allá.</li>" +
+    "<li>Nietzsche lo formula también como idea sobre el mundo (un tiempo cíclico), pero la PAU insiste sobre todo en su función ética y existencial.</li></ul>" +
+    ojo("El eterno retorno <b>no es</b> la reencarnación ni una promesa de premio: no hay jueces ni recompensa. Es la contraposición exacta de la vida cristiana, que vale por lo que ocurrirá <i>después</i>; aquí la vida vale por lo que es <i>ahora</i>.");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Lenguaje, verdad y perspectivismo", html:
+    "<h5>«Sobre verdad y mentira en sentido extramoral» (1873)</h5>" +
+    "<p>Es un texto breve, escrito en 1873 y publicado tras su muerte. Su pregunta: ¿de dónde sale la idea de «verdad»? Su respuesta, muy brusca: de una necesidad de <b>supervivencia</b>. El intelecto humano es débil (no tiene garras ni cuernos) y su arma es la <b>ficción</b>: formamos conceptos para entendernos y vivir en sociedad. La famosa frase (traducción habitual, varía según la edición):</p>" +
+    "<blockquote class='cita-fil'><em>«¿Qué es entonces la verdad? Un ejército móvil de metáforas, metonimias, antropomorfismos […]. Las verdades son ilusiones de las que se ha olvidado que lo son; metáforas gastadas […], monedas que han perdido su troquelado y ya no se consideran monedas, sino metal.»</em></blockquote>" +
+    "<p>Paso a paso:</p>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>Una cosa y una palabra no son lo mismo.</b> Entre un estímulo (algo que vemos) y la palabra hay saltos: el nervio, la imagen, el sonido. Cada salto es una <i>metáfora</i> (una transposición).</li>" +
+    "<li><b>Los conceptos olvidan las diferencias.</b> La palabra «hoja» sirve para millones de hojas distintas: ignora lo propio de cada una. Todo concepto nace de <i>igualar lo desigual</i>.</li>" +
+    "<li><b>Se olvida el origen.</b> Tras mucho uso, una sociedad olvida que sus palabras fueron metáforas, y las toma por la realidad misma. Eso se llama «verdad». Como una moneda tan gastada que ya no se ve la efigie.</li>" +
+    "<li><b>Resultado:</b> «verdad» es un acuerdo útil, no un espejo de lo real. Mentir sería romper el acuerdo, no traicionar a las cosas.</li></ol>" +
+    ejemplo("Ejemplo cotidiano: la palabra «árbol»", "Para explicarlo con tus propias palabras:", [
+      "Ves un pino, un roble, un almendro: no hay dos iguales.",
+      "La palabra «árbol» los agrupa e ignora todo lo que los distingue: <b>iguala lo desigual</b>.",
+      "Nadie recuerda ya el salto de la imagen a la palabra; parece que «árbol» es lo que las cosas son.",
+      "Conclusión de Nietzsche: nuestro lenguaje no copia el mundo, lo <b>interpreta y simplifica</b>."
+    ]) +
+    "<h5>Perspectivismo</h5>" +
+    "<p>De esa crítica sale el <b>perspectivismo</b>: no hay conocimiento «desde ninguna parte». Todo ser que conoce lo hace desde un cuerpo, una historia, un interés y un lenguaje, es decir, desde una <b>perspectiva</b>. Una frase suya muy citada (de sus apuntes póstumos): «no hay hechos, solo interpretaciones» (traducción habitual). Más matizado, en <i>La genealogía de la moral</i> (III, 12) dice, parafraseado: cuantos más ojos, distintos ojos, sepamos usar para mirar una cosa, más completo será nuestro concepto de ella y más «objetiva» nuestra visión.</p>" +
+    ojo("El perspectivismo <b>no equivale a «todo vale»</b>. Nietzsche no dice que cualquier opinión sea tan buena como otra, sino que no existe una única mirada absoluta y que la objetividad se logra <i>sumando</i> perspectivas, no suprimiéndolas. Tampoco es lo mismo que el perspectivismo de Ortega (Tema 16), aunque ambos parten de que conocemos desde un punto de vista.") +
+    "<h5>La gramática y los ídolos</h5>" +
+    "<p>Nietzsche añade que el lenguaje nos engaña: la gramática nos hace ver «sujetos» que hacen cosas (el rayo «produce» la luz, yo «pienso»), cuando en realidad hay solo procesos. De ahí su sospecha del «yo pienso» cartesiano (Tema 9) y su frase, que parafraseamos, de que no nos libraremos de Dios mientras sigamos creyendo en la gramática." });
+
+  nuevas.push({ h: "7. Crítica de la metafísica, la religión y la ciencia", html:
+    "<h5>La metafísica: el «mundo verdadero» que acaba en fábula</h5>" +
+    "<p>Para Nietzsche, toda la metafísica occidental repite un mismo gesto: <b>inventa un «mundo verdadero» y degrada el mundo real</b>. Es el esquema platónico (Tema 3): el mundo sensible es apariencia, el mundo de las Ideas es lo verdadero. En <i>El crepúsculo de los ídolos</i> resume esa historia en pasos (aquí en versión muy resumida):</p>" +
+    tabla(["Paso", "El «mundo verdadero»…"], [
+      ["Platón", "…es accesible al sabio y virtuoso (el filósofo vive en él)"],
+      ["Cristianismo", "…se promete para después de la muerte, a quien lo merezca"],
+      ["Kant", "…es inalcanzable e indemostrable, pero sigue siendo un deber creerlo"],
+      ["Positivismo", "…es desconocido y, por tanto, ya no obliga ni consuela"],
+      ["Final", "…es una idea inútil, ya refutada: queda eliminada. Pero con él <b>desaparece también el «mundo aparente»</b>: solo queda el mundo único, y hay que aprender a vivir en él"]
+    ]) +
+    "<p>La conclusión: hemos creído en un mundo ficticio porque <b>sufrir</b> en este mundo es duro y necesitamos un consuelo. Cambiar de metafísica no basta; hay que cambiar de actitud: <b>afirmar el único mundo que hay</b>.</p>" +
+    "<h5>La religión: platonismo para el pueblo</h5>" +
+    "<p>En el prólogo de <i>Más allá del bien y del mal</i> (1886), Nietzsche dice que el cristianismo es «platonismo para el pueblo»: la misma doctrina de los dos mundos, pero repartida en forma de promesa popular. Resumen para la PAU: <b>metafísica, religión y moral forman un solo sistema</b>: un mundo «verdadero» arriba, un deber abajo, y la vida real como lugar de paso. Si se cae uno, los demás se tambalean; por eso «Dios ha muerto» es también la muerte de la metafísica y de la moral tradicional.</p>" +
+    "<h5>Sócrates, decadente</h5>" +
+    "<p>En <i>El crepúsculo de los ídolos</i> («El problema de Sócrates») retoma la crítica de <i>El nacimiento de la tragedia</i>: Sócrates, feo y racionalista, es para Nietzsche un síntoma de <b>decadencia</b>. Su fórmula «razón = virtud = felicidad» trata el instinto como enemigo; es una enfermedad que se presenta como remedio. Se trata de una valoración muy polémica: la PAU pide exponerla, no necesariamente compartirla.</p>" +
+    "<h5>La ciencia: no es el último refugio</h5>" +
+    "<p>Alguien podría pensar que, muerto Dios, la ciencia ocupa su lugar. Nietzsche responde que <b>no</b>: la ciencia moderna sigue creyendo, sin demostrarlo, que <b>la verdad vale más que nada</b>. Esa fe es heredera del ideal ascético (preferir una verdad única a la vida). Por eso la ciencia es, para él, el último escondite de la creencia en el «mundo verdadero» y no una vía de salvación. Tampoco la desprecia: quiere una ciencia «gaya», alegre, que sepa que es una interpretación entre otras (perspectivismo).</p>" +
+    "<h5>Qué critica y qué propone</h5>" +
+    tabla(["Ámbito", "Qué critica", "Qué propone"], [
+      ["Metafísica", "Dos mundos, uno «verdadero»", "Un solo mundo; fidelidad a la tierra"],
+      ["Moral", "Moral de esclavos (humildad, compasión, culpa)", "Transvaloración: valores que afirman la vida"],
+      ["Religión", "Platonismo para el pueblo; ideal ascético", "Asumir la muerte de Dios y crear valores"],
+      ["Conocimiento y ciencia", "Verdad absoluta; fe en lo «objetivo»", "Perspectivismo; ciencia como interpretación"],
+      ["Racionalismo", "Sócrates y Platón: exceso apolíneo", "Equilibrio con lo dionisíaco (el cuerpo, el arte)"]
+    ]) });
+
+  nuevas.push({ h: "8. La voluntad de poder", html:
+    "<p>La <b>voluntad de poder</b> (<i>Wille zur Macht</i>) es la idea con la que Nietzsche intenta explicar <b>qué es la vida</b>. Se suele malinterpretar, así que atiende:</p>" +
+    "<ul><li><b>No significa «querer mandar sobre los demás».</b> «Poder» (<i>Macht</i>) es más bien <i>capacidad de crecer, de expandirse y de superarse</i>. Un árbol que busca más luz, un deportista que mejora cada día, un artista que crea… todos expresan voluntad de poder.</li>" +
+    "<li><b>Corrige a Schopenhauer</b> (su primer maestro). Schopenhauer decía que la esencia del mundo es una «voluntad de vivir» ciega que solo produce sufrimiento, y recomendaba negarla. Nietzsche responde que la vida no es mero deseo de conservarse, sino <b>impulso de más</b> y que hay que afirmarla, también con su dolor.</li>" +
+    "<li><b>Es el criterio para valorar.</b> Un valor es bueno si <i>aumenta</i> la vitalidad y la capacidad de crear; es malo si la debilita. Así justifica su crítica a la moral de esclavos: niega la vida.</li>" +
+    "<li><b>El cuerpo es la «gran razón».</b> En <i>Zaratustra</i> afirma (paráfrasis) que el cuerpo es más sabio que el alma y que «alma» es solo una palabra para algo del cuerpo. Esto es lo opuesto al dualismo de Platón (Tema 3) y de Descartes (Tema 9).</li>" +
+    "<li><b>Se aplica al conocimiento.</b> Conocer es interpretar, y toda interpretación es una forma de dominar la realidad y hacerla manejable: por eso la verdad es «voluntad de poder» y no un espejo (enlaza con la sección 6).</li></ul>" +
+    ejemplo("Conectar las ideas del autor", "Un buen comentario relaciona los conceptos. Mira cómo se enlazan:", [
+      "<b>Voluntad de poder</b>: la vida es impulso de crecer y de superarse.",
+      "<b>Moral de esclavos</b>: la niega, porque convierte la debilidad en virtud.",
+      "<b>Muerte de Dios</b>: caen los viejos valores; vuelve a estar abierta la creación.",
+      "<b>Superhombre</b>: es el que ejerce esa voluntad creando valores nuevos.",
+      "<b>Eterno retorno</b>: la prueba de que se afirma la vida entera."
+    ]) +
+    ojo("Los nazis usaron de forma tramposa el nombre de Nietzsche. La edición de <i>La voluntad de poder</i> hecha por su hermana Elisabeth (casada con un antisemita) falseó el sentido de su obra. Nietzsche despreciaba el antisemitismo y el nacionalismo alemán; la versión «nazi» es una distorsión histórica.") });
+
+  nuevas.push({ h: "9. Comparaciones, vigencia y malentendidos", html:
+    "<p>En la PAU de Madrid, el comentario de texto pide a veces <b>comparar</b> al autor con otro. Estas son las comparaciones más rentables:</p>" +
+    tabla(["Autor", "Punto de contacto", "Diferencia con Nietzsche"], [
+      ["Platón (T3)", "Ambos hablan de dos mundos… para Nietzsche, un error", "Platón desprecia el cuerpo y lo sensible; Nietzsche los exalta (fidelidad a la tierra)"],
+      ["Sócrates (T2)", "Ambos desconfían de las opiniones aceptadas", "Sócrates cree que el saber lleva a la virtud; Nietzsche lo ve como decadencia"],
+      ["Kant (T12)", "Ambos critican los límites de la razón", "Kant fundamenta la moral en el deber universal; Nietzsche la ve como moral de esclavos; Kant conserva la cosa en sí, Nietzsche la elimina"],
+      ["Marx (T13)", "Los dos critican la religión y sospechan de los valores establecidos", "Marx: la religión nace de condiciones materiales injustas y se cambia con la revolución colectiva; Nietzsche: nace del resentimiento y se supera con la creación individual de valores"],
+      ["Sartre (T15)", "Sin Dios, el ser humano debe crear sus valores", "Sartre parte de la libertad radical; Nietzsche de la voluntad de poder y el eterno retorno"],
+      ["Ortega (T16)", "Parten de la vida y de la perspectiva", "Ortega busca una razón vital y una verdad que suma perspectivas; Nietzsche es mucho más radical con la verdad"]
+    ]) +
+    "<h5>Vigencia</h5>" +
+    "<p>Nietzsche inaugura la filosofía contemporánea de la <b>sospecha</b>: tras los grandes valores puede haber intereses. Influye en el existencialismo (T15), en Heidegger, en Foucault (poder y genealogía) y en buena parte de la filosofía y la literatura del siglo XX. Su defensa del cuerpo, del arte y de la creación sigue siendo un reto para quien cree que la razón basta.</p>" +
+    "<h5>Cinco malentendidos frecuentes</h5>" +
+    "<ol><li>«Nietzsche era nazi o antisemita». <b>Falso</b>: los despreciaba; la tergiversación vino de su hermana y de la propaganda posterior.</li>" +
+    "<li>«El superhombre es una raza superior». <b>Falso</b>: es un ideal de superación personal y creación de valores.</li>" +
+    "<li>«La voluntad de poder es querer dominar a otros». <b>Falso</b>: es impulso de crecimiento y superación.</li>" +
+    "<li>«Dios ha muerto: Nietzsche lo celebra». <b>Falso</b>: lo diagnostica con preocupación y propone qué hacer.</li>" +
+    "<li>«Perspectivismo = todo vale». <b>Falso</b>: más perspectivas, más conocimiento.</li></ol>" +
+    "<h5>Valoración crítica</h5>" +
+    "<p>Para una respuesta con matiz, puedes añadir una valoración personal: su diagnóstico de la crisis de valores y su crítica a la moral como instrumento de poder siguen siendo fecundos; pero su desprecio a la compasión, su elitismo y la dificultad de fundar valores solo en la voluntad individual son discutibles (¿qué impide a alguien crear «valores» que dañen a otros?). La PAU valora que expliques el pensamiento antes de criticarlo.</p>" +
+    w("emparejar", "obras") });
+
+  nuevas.push({ h: "10. Comentario de texto resuelto: «Dios ha muerto»", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno paso a paso.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Nietzsche, <em>La gaya ciencia</em>, aforismo 125; traducción habitual, que varía según la edición; se omiten pasajes con […]):<br><em>«¿No habéis oído hablar de aquel loco que en pleno día encendió una linterna y echó a correr por la plaza gritando sin cesar: ¡Busco a Dios! […] ¿Adónde se ha ido Dios? ¡Os lo voy a decir! Lo hemos matado: ¡vosotros y yo! […] Dios ha muerto. Dios sigue muerto. Y nosotros lo hemos matado.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Nietzsche (1844–1900), <i>La gaya ciencia</i> (1882, ampliada en 1887), obra de la etapa intermedia en la que sospecha de la metafísica y de la moral. Es la primera aparición de su célebre sentencia.</li>" +
+    "<li><b>2. Tema.</b> El anuncio de la muerte de Dios como acontecimiento cultural de Europa.</li>" +
+    "<li><b>3. Idea principal.</b> Dios, entendido como fundamento de valores y de sentido, ha dejado de ser creíble para la cultura moderna, y los propios europeos lo han «matado», aunque aún no lo sepan.</li>" +
+    "<li><b>4. Ideas secundarias y términos.</b> (a) «Loco» con linterna a plena luz: quien ve lo que los demás aún no ven (los demás son creyentes de costumbre o ateos superficiales). (b) «Lo hemos matado»: la ciencia y la razón crítica, no un crimen puntual. (c) «Dios sigue muerto»: el hecho es irreversible. (d) En el resto del aforismo, la pregunta de cómo consolarnos: la muerte de Dios exige que seamos nosotros los que creemos valores.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Es el punto de apoyo de su pensamiento posterior: desaparecidos Dios y el mundo verdadero, surge el <b>nihilismo</b>; la respuesta es la <b>transvaloración</b> de los valores, el <b>superhombre</b> (que crea valores) y el <b>eterno retorno</b> (que afirma la vida). Explica también su crítica a la metafísica y a la moral de esclavos, ligadas al Dios cristiano.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con Marx (T13): ambos critican la religión, pero Marx la explica por las condiciones sociales («opio del pueblo») y Nietzsche por el resentimiento y la debilidad; el marxismo busca una solución colectiva; Nietzsche, individual. También con Kant (T12): Kant conserva a Dios como postulado de la razón práctica; Nietzsche considera esa operación el último disfraz del dios muerto.</li>" +
+    "<li><b>7. Valora y concluye.</b> El texto describe bien una secularización que sigue en marcha. Su límite: no explica cómo fundar valores comunes sin Dios (¿basta la creación individual?). Es una pregunta abierta que recogerá el existencialismo.</li></ol>" +
+    ojo("Errores típicos: (1) decir que Nietzsche «demuestra» que Dios no existe; (2) pensar que se alegra; (3) olvidar el nihilismo y la transvaloración; (4) no citar la obra ni el aforismo; (5) comparar sin precisar en qué coinciden y en qué se separan.") +
+    "<p>Practica con los comentarios con rúbrica de los ejercicios de este tema.</p>" });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Explica lo apolíneo y lo dionisíaco", "Respuesta modelo:", [
+      "<b>Contexto.</b> <i>El nacimiento de la tragedia</i> (1872), primera obra de Nietzsche.",
+      "<b>Definiciones.</b> Apolíneo: orden, forma, medida, razón individualizadora; dionisíaco: instinto, embriaguez, fusión colectiva.",
+      "<b>Tesis.</b> La tragedia griega los unía; Sócrates y la razón la mataron al imponer lo apolíneo.",
+      "<b>Relación.</b> Anticipa la crítica a la metafísica y a la moral."
+    ]) +
+    ejemplo("Pregunta 2. «Dios ha muerto» y nihilismo", "Respuesta modelo:", [
+      "<b>Frase.</b> <i>La gaya ciencia</i>, aforismo 125: diagnóstico cultural, no demostración.",
+      "<b>Sentido.</b> La fe en Dios, garantía de valores y sentido, ha perdido fuerza en Europa por la ciencia y la razón.",
+      "<b>Consecuencia.</b> Nihilismo: pasivo (desánimo, último hombre) o activo (crear valores).",
+      "<b>Propuesta.</b> Transvaloración de todos los valores; superhombre."
+    ]) +
+    ejemplo("Pregunta 3. Moral de señores y de esclavos", "Respuesta modelo:", [
+      "<b>Obra.</b> <i>La genealogía de la moral</i> (1887): método genealógico.",
+      "<b>Señores.</b> Bueno/malo; fuerza, orgullo, afirmación.",
+      "<b>Esclavos.</b> Bueno/malvado; resentimiento; humildad, compasión.",
+      "<b>Crítica.</b> El cristianismo universaliza la moral de esclavos y genera mala conciencia.",
+      "<b>Valoración.</b> Propone una moral de afirmación de la vida."
+    ]) +
+    ejemplo("Pregunta 4. Superhombre y eterno retorno", "Respuesta modelo:", [
+      "<b>Obra.</b> <i>Así habló Zaratustra</i>.",
+      "<b>Superhombre.</b> Quien crea valores propios, fiel a la tierra; tres metamorfosis: camello, león, niño.",
+      "<b>Eterno retorno.</b> Prueba de afirmación de la vida; <i>amor fati</i>.",
+      "<b>Relación.</b> Respuesta al nihilismo tras la muerte de Dios."
+    ]) +
+    "<p>Para practicar, resuelve los ejercicios del final del tema: los de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf14a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 14 (parte B): Nietzsche
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t14.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Nietzsche (1844–1900) critica toda la cultura occidental: la <b>metafísica</b> de los dos mundos, la <b>moral</b> de esclavos, la <b>religión</b> y la fe ciega en la verdad.",
+    "«<b>Dios ha muerto</b>»: la fe en un fundamento absoluto se ha perdido; la consecuencia es el <b>nihilismo</b>, que puede ser pasivo o activo.",
+    "La respuesta es la <b>transvaloración</b> de los valores: el <b>superhombre</b> crea valores propios y el <b>eterno retorno</b> pone a prueba si afirmamos la vida entera.",
+    "No hay verdad absoluta: conocemos desde <b>perspectivas</b>, y la vida es <b>voluntad de poder</b> (impulso de crecer y superarse)."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Nietzsche · 1844–1900",
+    autores: [{ n: "Friedrich Nietzsche", f: "1844–1900", l: "Röcken (Sajonia); Basilea; Weimar" }],
+    obras: ["El nacimiento de la tragedia", "Sobre verdad y mentira en sentido extramoral", "La gaya ciencia", "Así habló Zaratustra", "Más allá del bien y del mal", "La genealogía de la moral", "El crepúsculo de los ídolos"],
+    bloques: [
+      { t: "Contexto", frases: ["Filólogo clásico; catedrático en Basilea a los 24 años (1869).", "Influido por Schopenhauer y Wagner; rompe con ambos.", "Escribe en aforismos; enferma y se derrumba en Turín (1889)."] },
+      { t: "Arte y cultura", frases: ["La tragedia griega une lo <b>apolíneo</b> y lo <b>dionisíaco</b>.", "Sócrates y la razón matan la tragedia.", "<i>El nacimiento de la tragedia</i> (1872)."],
+        tabla: { cab: ["Apolíneo", "Dionisíaco"], filas: [["orden, forma, medida", "instinto, embriaguez"], ["sueño, escultura", "música, danza, fiesta"]] } },
+      { t: "Verdad y conocimiento", frases: ["La verdad es un <b>ejército de metáforas</b> olvidadas.", "No hay hechos, sino interpretaciones: <b>perspectivismo</b>.", "Más perspectivas, más objetividad; no «todo vale»."] },
+      { t: "Crítica de la moral", frases: ["Genealogía: ¿de dónde viene el «bien»?", "El resentimiento invierte los valores.", "El cristianismo universaliza la moral de esclavos."],
+        tabla: { cab: ["Moral de señores", "Moral de esclavos"], filas: [["bueno / malo", "bueno / malvado"], ["fuerza, orgullo", "humildad, compasión"], ["afirma la vida", "nace del resentimiento"]] } },
+      { t: "Dios ha muerto y nihilismo", frases: ["Es un diagnóstico cultural, no una demostración.", "Sin fundamento absoluto llega el <b>nihilismo</b>.", "Pasivo (último hombre) o activo (crear valores)."] },
+      { t: "Superhombre, retorno y voluntad de poder", frases: ["<b>Superhombre</b>: crea valores propios, fiel a la tierra.", "<b>Eterno retorno</b>: ¿querrías repetir tu vida? (<i>amor fati</i>).", "<b>Voluntad de poder</b>: la vida es impulso de crecer y superarse."] }
+    ],
+    resumen: [
+      "La cultura occidental inventó un <b>mundo verdadero</b> (Platón, cristianismo) para consolarse: Nietzsche lo desmonta.",
+      "Muerto Dios, hay que elegir entre el <b>nihilismo pasivo</b> y la <b>creación de valores</b> nuevos (superhombre).",
+      "Los valores se juzgan por si <b>afirman la vida</b>: la moral de esclavos la niega.",
+      "El conocimiento es <b>interpretación</b> desde perspectivas, no espejo de la realidad."
+    ],
+    conecta: [
+      { con: "Sócrates y Platón (T2–T3):", rel: "los acusa de matar la tragedia y de inventar el mundo verdadero." },
+      { con: "Kant (T12):", rel: "su moral del deber le parece moral de esclavos." },
+      { con: "Marx (T13):", rel: "también critica la religión, pero la explica por el resentimiento y no por la economía." },
+      { con: "Existencialismo (T15):", rel: "sin Dios, el ser humano debe crear sus valores." },
+      { con: "Ortega (T16):", rel: "otro perspectivismo, que busca la verdad sumando perspectivas." }
+    ],
+    claves: [
+      ["Apolíneo", "orden, medida, forma y razón individualizadora"],
+      ["Dionisíaco", "instinto, embriaguez y fusión colectiva"],
+      ["Muerte de Dios", "la fe en un fundamento absoluto se ha perdido en Europa"],
+      ["Nihilismo", "pérdida de valor y de sentido; pasivo o activo"],
+      ["Moral de señores", "valora la fuerza y afirma la vida (bueno/malo)"],
+      ["Moral de esclavos", "nace del resentimiento y convierte la debilidad en virtud"],
+      ["Voluntad de poder", "impulso de crecer y superarse; esencia de la vida"],
+      ["Superhombre", "quien crea valores propios, fiel a la tierra"],
+      ["Eterno retorno", "prueba de afirmación: desear repetir esta vida para siempre"],
+      ["Perspectivismo", "todo conocimiento se hace desde una perspectiva"]
+    ],
+    cita: { txt: "Yo os enseño el superhombre. El hombre es algo que debe ser superado.", autor: "Nietzsche", obra: "Así habló Zaratustra, Prólogo (traducción habitual)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    apodio: {
+      titulo: "¿Apolíneo o dionisíaco?",
+      consigna: "Toca cada palabra y después el impulso al que pertenece.",
+      categorias: ["Apolíneo", "Dionisíaco"],
+      items: [
+        { t: "Escultura", c: 0 },
+        { t: "Música y danza", c: 1 },
+        { t: "Medida y orden", c: 0 },
+        { t: "Embriaguez", c: 1 },
+        { t: "Sueño de imágenes bellas", c: 0 },
+        { t: "Fusión con la multitud", c: 1 },
+        { t: "Razón que separa y distingue", c: 0 },
+        { t: "Instinto y desmesura", c: 1 },
+        { t: "Forma clara y límites", c: 0 },
+        { t: "Fiesta del dios del vino", c: 1 }
+      ]
+    },
+    morales: {
+      titulo: "¿Moral de señores o de esclavos?",
+      consigna: "Toca cada rasgo y después la moral a la que corresponde, según Nietzsche.",
+      categorias: ["Moral de señores", "Moral de esclavos"],
+      items: [
+        { t: "Orgullo", c: 0 },
+        { t: "Humildad", c: 1 },
+        { t: "Afirmación de uno mismo", c: 0 },
+        { t: "Resentimiento", c: 1 },
+        { t: "Bueno = noble y fuerte", c: 0 },
+        { t: "Compasión convertida en virtud", c: 1 },
+        { t: "Valentía y creatividad", c: 0 },
+        { t: "Resignación", c: 1 },
+        { t: "Malvado = el fuerte que oprime", c: 1 },
+        { t: "Fuerza y nobleza", c: 0 }
+      ]
+    },
+    metamorfosis: {
+      titulo: "Las tres metamorfosis del espíritu",
+      consigna: "Ordena las tres etapas que describe Zaratustra, de la primera a la última.",
+      items: [
+        { t: "Camello: carga con el «tú debes»" },
+        { t: "León: dice «yo quiero» y se rebela" },
+        { t: "Niño: inocencia y juego; crea valores («sí»)" }
+      ]
+    },
+    obras: {
+      titulo: "Obras e ideas",
+      consigna: "Une cada obra de Nietzsche con la idea que más se asocia a ella.",
+      pares: [["El nacimiento de la tragedia", "Apolíneo y dionisíaco"], ["La gaya ciencia", "«Dios ha muerto»"], ["La genealogía de la moral", "Moral de señores y de esclavos"], ["Así habló Zaratustra", "El superhombre"], ["Sobre verdad y mentira", "La verdad como metáforas gastadas"]]
+    },
+    cronologia: {
+      titulo: "Cronología de obras",
+      consigna: "Ordena estas obras de Nietzsche por su fecha, de la más antigua a la más reciente.",
+      items: [
+        { t: "El nacimiento de la tragedia (1872)" },
+        { t: "Humano, demasiado humano (1878)" },
+        { t: "La gaya ciencia (1882)" },
+        { t: "Así habló Zaratustra (1883–1885)" },
+        { t: "La genealogía de la moral (1887)" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 14",
+      preguntas: [
+        { q: "En «El nacimiento de la tragedia», la tragedia griega es…", op: ["la unión de lo apolíneo y lo dionisíaco", "puro dionisismo sin forma", "puro racionalismo", "un invento de Sócrates"], ok: 0, porque: "Une el orden de Apolo con la embriaguez de Dioniso." },
+        { q: "¿Quién mata la tragedia, según Nietzsche?", op: ["Sócrates y la razón", "Los dioses", "Los poetas", "Los sofistas por dinero"], ok: 0, porque: "El socratismo impone un exceso de razón apolínea." },
+        { q: "«Dios ha muerto» es, sobre todo…", op: ["un diagnóstico cultural", "una demostración lógica", "una burla personal", "una oración"], ok: 0, porque: "Describe la pérdida de fe real en un fundamento absoluto." },
+        { q: "El nihilismo consiste en…", op: ["la pérdida de valor y de sentido", "la fe en la ciencia", "creer en dos mundos", "la fiesta dionisíaca"], ok: 0, porque: "De <i>nihil</i>, «nada»." },
+        { q: "La moral de esclavos nace…", op: ["del resentimiento de los débiles", "de la fuerza de los nobles", "de la razón pura", "del arte griego"], ok: 0, porque: "Invierte los valores: convierte la debilidad en virtud." },
+        { q: "El superhombre es…", op: ["quien crea valores propios, fiel a la tierra", "una raza superior", "un dictador", "un santo"], ok: 0, porque: "Es un ideal de superación personal." },
+        { q: "El eterno retorno plantea…", op: ["si desearías repetir tu vida exactamente igual", "la reencarnación premiada", "un ciclo cósmico demostrado", "un castigo"], ok: 0, porque: "Es una prueba de afirmación de la vida (<i>amor fati</i>)." },
+        { q: "La voluntad de poder es…", op: ["el impulso de crecer y superarse", "el deseo de dominar siempre a otros", "la voluntad de vivir de Schopenhauer", "un deber moral"], ok: 0, porque: "No es solo dominar a otros: es la esencia de la vida." },
+        { q: "El perspectivismo sostiene que…", op: ["todo conocimiento se hace desde una perspectiva", "todas las opiniones valen igual", "hay una verdad absoluta", "no se puede conocer nada"], ok: 0, porque: "Sumar perspectivas aumenta la objetividad." },
+        { q: "Según «Sobre verdad y mentira», las verdades son…", op: ["metáforas olvidadas como tales", "copias exactas de las cosas", "ideas innatas", "mandatos divinos"], ok: 0, porque: "Monedas gastadas que ya no parecen monedas." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre «Dios ha muerto» es FALSA?", op: ["Nietzsche demuestra con argumentos que Dios no existe", "Describe la pérdida cultural de fe en un fundamento absoluto", "Aparece en La gaya ciencia", "Conduce al problema del nihilismo"], ok: 0, porque: "Es un diagnóstico cultural, no una demostración." },
+        { q: "¿Cuál de estas afirmaciones sobre el superhombre es FALSA?", op: ["Es una raza superior", "Crea valores propios", "Es un ideal de superación", "Aparece en Así habló Zaratustra"], ok: 0, porque: "No es raza ni dictador: es superación personal." },
+        { q: "¿Cuál de estas afirmaciones sobre la voluntad de poder es FALSA?", op: ["Es el deseo de mandar sobre los demás", "Es impulso de crecer y superarse", "Corrige la voluntad de vivir de Schopenhauer", "Es criterio para valorar"], ok: 0, porque: "No se reduce a dominar a otros." },
+        { q: "¿Cuál de estas afirmaciones sobre lo apolíneo y lo dionisíaco es FALSA?", op: ["Nietzsche considera dionisíaco lo malo y apolíneo lo bueno", "Se complementan en la tragedia", "Apolo representa la forma y la medida", "Dioniso representa la embriaguez y el instinto"], ok: 0, porque: "No son bueno y malo: se necesitan juntos." },
+        { q: "¿Cuál de estas afirmaciones sobre el perspectivismo es FALSA?", op: ["Significa que todo vale por igual", "Todo conocimiento se hace desde una perspectiva", "Sumar perspectivas aumenta la objetividad", "Rechaza una única mirada absoluta"], ok: 0, porque: "No es relativismo vulgar." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["Nietzsche es anterior a Kant", "Kant nació en 1724", "Marx nació en 1818", "Nietzsche murió en 1900"], ok: 0, porque: "Kant (1724–1804) es anterior a Nietzsche (1844–1900)." },
+        { q: "¿Cuál de estas afirmaciones sobre el eterno retorno es FALSA?", op: ["Es una promesa de premio tras la muerte", "Es una prueba de afirmación de la vida", "Se expone en La gaya ciencia, aforismo 341", "Se relaciona con el amor fati"], ok: 0, porque: "No hay premio ni castigo: se trata de aceptar esta vida." },
+        { q: "¿Cuál de estas afirmaciones sobre La voluntad de poder es FALSA?", op: ["La publicó el propio Nietzsche como su gran sistema", "La editaron su hermana y Peter Gast tras su muerte", "Recoge apuntes inéditos", "Hay que usarla con cautela"], ok: 0, porque: "Es una recopilación póstuma de apuntes." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Nietzsche",
+      cartas: [
+        { a: "Apolíneo", b: "Impulso de orden, medida, forma clara y razón individualizadora (Apolo)." },
+        { a: "Dionisíaco", b: "Impulso de instinto, embriaguez y fusión colectiva (Dioniso)." },
+        { a: "Tragedia griega", b: "Unión de lo apolíneo y lo dionisíaco; muere con Sócrates y Eurípides." },
+        { a: "Genealogía", b: "Método que pregunta por el origen histórico y el interés de los valores." },
+        { a: "Moral de señores", b: "Valora la fuerza y la afirmación de uno mismo (bueno/malo)." },
+        { a: "Moral de esclavos", b: "Nace del resentimiento; convierte la debilidad en virtud (bueno/malvado)." },
+        { a: "Resentimiento", b: "Venganza imaginaria del débil, que invierte los valores." },
+        { a: "Muerte de Dios", b: "Diagnóstico: la fe en un fundamento absoluto ha desaparecido de Europa." },
+        { a: "Nihilismo", b: "Pérdida de valor y de sentido; pasivo (desánimo) o activo (crear valores)." },
+        { a: "Transvaloración", b: "Crear una nueva escala de valores que afirme la vida." },
+        { a: "Superhombre", b: "Quien supera la moral heredada y crea valores propios, fiel a la tierra." },
+        { a: "Eterno retorno", b: "Prueba: ¿querrías repetir esta vida exactamente igual, eternamente?" },
+        { a: "Voluntad de poder", b: "Impulso de crecer y superarse; esencia de la vida." },
+        { a: "Perspectivismo", b: "Todo conocimiento se hace desde una perspectiva; no hay hechos puros." },
+        { a: "Amor fati", b: "Amor al destino: aceptar y querer la propia vida entera." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("ni1", 1, "¿En qué localidad nació Nietzsche en 1844?", ["Röcken", "Basilea", "Weimar", "Turín"], 0,
+    ["Nació en Röcken (Sajonia). Basilea fue su cátedra; Turín, su colapso; Weimar, el lugar de su muerte."]);
+  O("ni2", 1, "¿A qué edad fue nombrado catedrático en Basilea (1869)?", ["24 años", "34 años", "44 años", "18 años"], 0,
+    ["Nació en octubre de 1844 y fue nombrado en la primavera de 1869: tenía 24 años."]);
+  O("ni3", 1, "¿Cuál es la primera obra importante de Nietzsche?", ["El nacimiento de la tragedia", "Así habló Zaratustra", "La genealogía de la moral", "La gaya ciencia"], 0,
+    ["Se publicó en 1872. Las otras son posteriores."]);
+  O("ni4", 1, "¿En qué obra aparece la famosa sentencia «Dios ha muerto» (aforismo 125)?", ["La gaya ciencia", "El nacimiento de la tragedia", "La genealogía de la moral", "Ecce homo"], 0,
+    ["En <i>La gaya ciencia</i> (1882); se repite en <i>Zaratustra</i>."]);
+  O("ni5", 1, "¿En qué obra aparece sobre todo la figura del superhombre?", ["Así habló Zaratustra", "El nacimiento de la tragedia", "La gaya ciencia", "Aurora"], 0,
+    ["Lo anuncia Zaratustra al bajar de la montaña."]);
+  T("ni6", 1, "Completa: el impulso del orden, la medida y la forma clara, simbolizado por Apolo, se llama ______.", "Término =", ["apolíneo", "apolínea", "lo apolíneo"],
+    ["Apolo → apolíneo; Dioniso → dionisíaco."], "apolíneo");
+  M("ni7", 1, "Clasifica cada rasgo como apolíneo o dionisíaco.", [
+    C("Escultura de formas claras", ["Apolíneo", "Dionisíaco"], 0),
+    C("Embriaguez de la fiesta", ["Apolíneo", "Dionisíaco"], 1),
+    C("Medida y orden", ["Apolíneo", "Dionisíaco"], 0),
+    C("Música y danza colectiva", ["Apolíneo", "Dionisíaco"], 1)],
+    ["Apolo = forma y límite; Dioniso = éxtasis y fusión."], "Escultura–apolíneo, embriaguez–dionisíaco, medida–apolíneo, música–dionisíaco");
+  O("ni8", 1, "¿Qué moral nace del resentimiento de los débiles, según Nietzsche?", ["La moral de esclavos", "La moral de señores", "La moral kantiana pura", "La moral de la tragedia griega"], 0,
+    ["Invierte los valores y convierte la debilidad en virtud."]);
+  T("ni9", 1, "Completa: <i>nihilismo</i> viene del latín <i>nihil</i>, que significa ______.", "Término =", ["nada"],
+    ["Nihil = nada."], "nada");
+  O("ni10", 1, "En «Así habló Zaratustra», ¿qué figura simboliza la tercera metamorfosis del espíritu?", ["El niño", "El camello", "El león", "El dragón"], 0,
+    ["Camello → león → niño. El dragón es el «tú debes» que combate el león."]);
+  O("ni11", 1, "¿Qué filósofo fue el primer maestro de Nietzsche, antes de que se distanciara de él?", ["Schopenhauer", "Marx", "Descartes", "Hume"], 0,
+    ["Descubrió a Schopenhauer en su juventud y luego corrigió su «voluntad de vivir» con la voluntad de poder."]);
+  O("ni12", 1, "¿Qué orden cronológico (por nacimiento) es correcto?",
+    ["Kant → Marx → Nietzsche", "Marx → Kant → Nietzsche", "Nietzsche → Kant → Marx", "Kant → Nietzsche → Marx"], 0,
+    ["Kant (1724), Marx (1818), Nietzsche (1844)."], "Kant → Marx → Nietzsche");
+  M("ni13", 1, "Empareja cada obra con su idea.", [
+    C("El nacimiento de la tragedia", ["Apolíneo y dionisíaco", "«Dios ha muerto»", "Moral de señores y de esclavos", "El superhombre"], 0),
+    C("La gaya ciencia", ["Apolíneo y dionisíaco", "«Dios ha muerto»", "Moral de señores y de esclavos", "El superhombre"], 1),
+    C("La genealogía de la moral", ["Apolíneo y dionisíaco", "«Dios ha muerto»", "Moral de señores y de esclavos", "El superhombre"], 2),
+    C("Así habló Zaratustra", ["Apolíneo y dionisíaco", "«Dios ha muerto»", "Moral de señores y de esclavos", "El superhombre"], 3)],
+    ["Piensa en la etapa de cada obra."], "Tragedia–apolíneo/dionisíaco, Gaya ciencia–Dios ha muerto, Genealogía–señores/esclavos, Zaratustra–superhombre");
+  O("ni14", 1, "El eterno retorno es…", ["una prueba: ¿desearías repetir tu vida exactamente igual?", "la promesa de otra vida mejor", "la reencarnación de las almas", "un castigo por los pecados"], 0,
+    ["Experimento mental de afirmación de la vida (<i>amor fati</i>)."]);
+
+  // ---- nivel 2
+  V("ni15", 2, "«Con la frase “Dios ha muerto”, Nietzsche demuestra que Dios no existe.»", false, [
+    "Es falso: es un diagnóstico cultural, no una demostración", "Es falso: Nietzsche era creyente", "Es verdad: lo demuestra con la ciencia", "Es verdad: la frase es un silogismo"], 0,
+    ["Describe que la fe en un fundamento absoluto ha perdido vigencia en Europa."]);
+  V("ni16", 2, "«Según Nietzsche, la tragedia griega equilibraba lo apolíneo y lo dionisíaco.»", true, [
+    "Es verdad: el coro dionisíaco y las imágenes apolíneas se unían", "Es verdad: porque era solo dionisíaca", "Es verdad: porque era solo racional", "Es verdad: porque no había música"], 0,
+    ["Su equilibrio es lo que la hace grande; la razón socrática lo rompe."]);
+  V("ni17", 2, "«La voluntad de poder de Nietzsche es el deseo de dominar a los demás.»", false, [
+    "Es falso: es impulso de crecer y superarse, no solo mandar", "Es falso: no existe tal idea en Nietzsche", "Es verdad: porque todos buscan mandar", "Es verdad: porque lo dice Schopenhauer"], 0,
+    ["Poder = capacidad de crecer y expandirse; es la esencia de la vida."]);
+  V("ni18", 2, "«El superhombre es una raza superior que debe dominar a las demás.»", false, [
+    "Es falso: es un ideal de superación y creación de valores", "Es falso: es un santo cristiano", "Es verdad: lo defendió el nazismo con razón", "Es verdad: lo explica en La gaya ciencia"], 0,
+    ["Nietzsche despreciaba el nacionalismo y el antisemitismo."]);
+  V("ni19", 2, "«Para Nietzsche, la ciencia moderna sigue creyendo que la verdad tiene un valor absoluto.»", true, [
+    "Es verdad: esa fe es heredera del ideal ascético", "Es verdad: porque la ciencia no usa lenguaje", "Es verdad: porque Nietzsche era científico", "Es verdad: porque la ciencia cree en Dios"], 0,
+    ["La ciencia no es para él la salida de la metafísica sino su último refugio."]);
+  V("ni20", 2, "«El perspectivismo de Nietzsche significa que cualquier opinión vale igual que otra.»", false, [
+    "Es falso: sumar perspectivas aumenta la objetividad", "Es falso: Nietzsche defiende una verdad absoluta", "Es verdad: no hay criterios", "Es verdad: nadie puede conocer nada"], 0,
+    ["No es relativismo vulgar: hay perspectivas más ricas que otras."]);
+  V("ni21", 2, "«Nietzsche publicó él mismo “La voluntad de poder” como culminación de su sistema.»", false, [
+    "Es falso: es una recopilación póstuma de apuntes", "Es falso: nunca habló de la voluntad de poder", "Es verdad: se publicó en 1888", "Es verdad: fue su obra sistemática"], 0,
+    ["La editaron Elisabeth Förster-Nietzsche y Peter Gast (1901, ampliada en 1906)."]);
+  O("ni22", 2, "¿Qué es el nihilismo activo?", ["Destruir los valores muertos para crear otros nuevos", "Desanimarse y pensar que nada importa", "Creer en un mundo verdadero", "Aceptar la moral de esclavos"], 0,
+    ["El pasivo es cansancio (último hombre); el activo es fuerza creadora."]);
+  O("ni23", 2, "¿Cómo se llama la actitud de aceptar y querer la propia vida entera, incluso el dolor?", ["Amor fati", "Resentimiento", "Mala conciencia", "Ideal ascético"], 0,
+    ["Es la respuesta afirmativa al eterno retorno."]);
+  O("ni24", 2, "¿Cuál de estos es el mejor ejemplo de resentimiento?", ["Decir que las uvas están verdes porque no llegas a ellas", "Alegrarse del éxito propio", "Crear una obra nueva", "Aceptar el destino con alegría"], 0,
+    ["Se inventa un valor para consolar la impotencia."]);
+  M("ni25", 2, "Relaciona cada fase de las tres metamorfosis con su lema.", [
+    C("«Tú debes»", ["Camello", "León", "Niño"], 0),
+    C("«Yo quiero»", ["Camello", "León", "Niño"], 1),
+    C("«Sí» (inocencia y juego)", ["Camello", "León", "Niño"], 2)],
+    ["Cargar → rebelarse → crear."], "Camello–tú debes, león–yo quiero, niño–sí");
+  M("ni26", 2, "Completa las parejas de valores de las dos morales.", [
+    C("Moral de señores", ["Bueno / malo", "Bueno / malvado", "Verdadero / falso"], 0),
+    C("Moral de esclavos", ["Bueno / malo", "Bueno / malvado", "Verdadero / falso"], 1)],
+    ["Señor: bueno = noble, malo = vulgar. Esclavo: malvado = fuerte que oprime, bueno = inofensivo."], "Señores: bueno/malo · Esclavos: bueno/malvado");
+  O("ni27", 2, "Texto: «¿Qué es entonces la verdad? Un ejército móvil de metáforas […]». ¿Qué tesis expresa?", ["La verdad es una construcción del lenguaje, olvidada como tal", "La verdad se descubre con la razón pura", "La verdad es una Idea eterna", "La verdad está en los mandatos de Dios"], 0,
+    ["Procede de <i>Sobre verdad y mentira en sentido extramoral</i>."]);
+  O("ni28", 2, "Texto: un loco con linterna en pleno día grita «¡Busco a Dios!». ¿Qué ilustra?", ["El anuncio de la muerte de Dios como hecho cultural", "La demostración de la existencia de Dios", "La moral de señores", "El eterno retorno"], 0,
+    ["<i>La gaya ciencia</i>, aforismo 125."]);
+  O("ni29", 2, "Texto: «¿Querrías vivir esta vida otra vez, con cada detalle, innumerables veces?». ¿Qué idea plantea?", ["El eterno retorno", "El nihilismo pasivo", "El perspectivismo", "La mala conciencia"], 0,
+    ["<i>La gaya ciencia</i>, 341, «El peso más grande»."]);
+  O("ni30", 2, "¿A qué filósofo acusa Nietzsche de iniciar la metafísica de los dos mundos?", ["Platón", "Heráclito", "Hume", "Marx"], 0,
+    ["Mundo sensible (apariencia) y mundo de las Ideas (verdadero)."]);
+  O("ni31", 2, "¿Cómo critica Nietzsche la moral kantiana del deber?", ["La ve como heredera de la moral de esclavos, que niega la vida", "La considera un modelo de moral de señores", "La acepta como fundamento de su ética", "Le parece prueba de la existencia de Dios"], 0,
+    ["Kant (T12) sigue la lógica de renuncia y deber que Nietzsche critica."]);
+  O("ni32", 2, "¿Cuál es una diferencia entre Marx y Nietzsche ante la religión?", ["Marx la explica por condiciones sociales; Nietzsche, por resentimiento y debilidad", "Marx la defiende y Nietzsche la ataca", "Nietzsche la explica por la economía", "Los dos la consideran necesaria"], 0,
+    ["Los dos la critican, con causas distintas."]);
+  O("ni33", 2, "¿Qué resume mejor el método genealógico de Nietzsche?", ["Preguntarse de dónde vienen los valores y a quién favorecen", "Deducir la moral de la razón pura", "Imitar la moral cristiana", "Buscar el bien en las Ideas"], 0,
+    ["Genealogía = historia del origen; método de sospecha."]);
+
+  // ---- nivel 3
+  O("ni34", 3, "En el aforismo 125, el loco dice haber llegado «demasiado pronto». ¿Por qué?", ["La gente aún no comprende lo que ha ocurrido ni sus consecuencias", "Dios todavía vivía", "Nadie creía en Dios", "Había llegado antes de la fiesta"], 0,
+    ["El hecho ya ha sucedido, pero su significado todavía no ha llegado a la conciencia colectiva."]);
+  O("ni35", 3, "¿Qué figura encarna el peligro del nihilismo pasivo?", ["El último hombre, que busca comodidad sin esfuerzo", "El superhombre", "El niño de las tres metamorfosis", "El loco de la linterna"], 0,
+    ["Quiere seguridad y no se arriesga a crear."]);
+  O("ni36", 3, "¿Qué relación hay entre el eterno retorno y el superhombre?", ["El superhombre es quien podría desear que su vida se repitiera para siempre", "Son ideas opuestas", "El retorno prueba que existe el alma inmortal", "El superhombre solo vive una vez, sin retorno"], 0,
+    ["El retorno es la prueba de afirmación que el superhombre supera."]);
+  O("ni37", 3, "Al final de la historia del «mundo verdadero» en «El crepúsculo de los ídolos», ¿qué queda?", ["Un único mundo, sin “verdadero” ni “aparente”", "Solo el mundo aparente", "Solo el mundo de las Ideas", "El mundo de Kant"], 0,
+    ["Suprimido el mundo verdadero, desaparece también el aparente."]);
+  M("ni38", 3, "Relaciona cada ámbito con la crítica que le dirige Nietzsche.", [
+    C("Metafísica", ["Inventa un mundo verdadero para despreciar este", "Nace del resentimiento de los débiles", "Cree sin pruebas que la verdad vale más que nada", "Es platonismo para el pueblo"], 0),
+    C("Moral tradicional", ["Inventa un mundo verdadero para despreciar este", "Nace del resentimiento de los débiles", "Cree sin pruebas que la verdad vale más que nada", "Es platonismo para el pueblo"], 1),
+    C("Ciencia", ["Inventa un mundo verdadero para despreciar este", "Nace del resentimiento de los débiles", "Cree sin pruebas que la verdad vale más que nada", "Es platonismo para el pueblo"], 2),
+    C("Cristianismo", ["Inventa un mundo verdadero para despreciar este", "Nace del resentimiento de los débiles", "Cree sin pruebas que la verdad vale más que nada", "Es platonismo para el pueblo"], 3)],
+    ["Cuatro críticas, cuatro ámbitos."], "Metafísica–mundo verdadero; moral–resentimiento; ciencia–fe en la verdad; cristianismo–platonismo para el pueblo");
+  O("ni39", 3, "¿En qué corrige Nietzsche a Schopenhauer?", ["Frente a una voluntad que conviene negar, defiende afirmar la vida como voluntad de poder", "Rechaza la idea de voluntad", "Aprueba la renuncia ascética", "Defiende la compasión como esencia de la moral"], 0,
+    ["Schopenhauer niega la voluntad de vivir; Nietzsche la afirma y la convierte en voluntad de poder."]);
+
+  R("ni40", "Explica lo apolíneo y lo dionisíaco en «El nacimiento de la tragedia» y la acusación de Nietzsche a Sócrates. (Pregunta tipo PAU)", 9, [
+    { t: "Define lo apolíneo (orden, medida, forma, razón) y lo dionisíaco (instinto, embriaguez, fusión)", p: 0.6 },
+    { t: "Pone ejemplos o símbolos (escultura/sueño; música/danza)", p: 0.3 },
+    { t: "Explica que la tragedia griega equilibraba ambos impulsos", p: 0.4 },
+    { t: "Explica la crítica a Sócrates y a la razón (socratismo) como muerte de la tragedia", p: 0.5 },
+    { t: "Relaciona con la crítica posterior a la metafísica y a la moral", p: 0.2 }],
+    ["Define ambos impulsos.", "Ejemplos.", "Equilibrio en la tragedia.", "Crítica a Sócrates.", "Relación con el resto."], "Tragedia = unión de Apolo y Dioniso; Sócrates la mata con exceso de razón");
+  R("ni41", "Explica el sentido de «Dios ha muerto» y el nihilismo, y la respuesta de Nietzsche. (Pregunta tipo PAU)", 9, [
+    { t: "Cita la obra (La gaya ciencia, aforismo 125) y la escena del loco con la linterna", p: 0.3 },
+    { t: "Explica que es un diagnóstico cultural, no una demostración ni un ateísmo declarativo", p: 0.5 },
+    { t: "Explica qué se pierde (fundamento de valores, sentido, verdad) y quién “mata” a Dios (ciencia y razón)", p: 0.4 },
+    { t: "Define el nihilismo y distingue pasivo y activo (último hombre)", p: 0.5 },
+    { t: "Expone la salida: transvaloración, superhombre", p: 0.3 }],
+    ["Obra y escena.", "Diagnóstico cultural.", "Qué se pierde.", "Nihilismo.", "Respuesta."], "Dios ha muerto = pérdida cultural de fundamento → nihilismo → transvaloración");
+  R("ni42", "Explica la moral de señores y la moral de esclavos y la crítica de Nietzsche al cristianismo. (Pregunta tipo PAU)", 9, [
+    { t: "Presenta la genealogía de la moral como método (La genealogía de la moral, 1887)", p: 0.3 },
+    { t: "Caracteriza la moral de señores (bueno/malo; afirmación)", p: 0.4 },
+    { t: "Caracteriza la moral de esclavos (bueno/malvado; resentimiento; humildad, compasión)", p: 0.5 },
+    { t: "Explica la inversión de valores y la mala conciencia o el ideal ascético", p: 0.4 },
+    { t: "Relaciona con el cristianismo y valora críticamente (no es apología de la violencia)", p: 0.4 }],
+    ["Genealogía.", "Señores.", "Esclavos.", "Inversión y culpa.", "Cristianismo y valoración."], "Señores afirman; esclavos, por resentimiento, invierten los valores; el cristianismo la universaliza");
+  R("ni43", "Explica el superhombre y el eterno retorno como respuesta al nihilismo. (Pregunta tipo PAU)", 8, [
+    { t: "Presenta Así habló Zaratustra y define el superhombre (no raza; crea valores; fiel a la tierra)", p: 0.5 },
+    { t: "Explica las tres metamorfosis (camello, león, niño)", p: 0.4 },
+    { t: "Explica el eterno retorno como prueba de afirmación y el amor fati", p: 0.5 },
+    { t: "Distingue el superhombre del último hombre", p: 0.2 },
+    { t: "Relaciona ambas ideas con la muerte de Dios y la voluntad de poder", p: 0.4 }],
+    ["Superhombre.", "Metamorfosis.", "Eterno retorno.", "Último hombre.", "Relación."], "Superhombre = crea valores y afirma la vida; el retorno es su prueba");
+  R("ni44", "Comenta este texto: «¿Qué es entonces la verdad? Un ejército móvil de metáforas, metonimias, antropomorfismos […]. Las verdades son ilusiones de las que se ha olvidado que lo son» (Nietzsche, <i>Sobre verdad y mentira en sentido extramoral</i>; traducción habitual). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: el origen del lenguaje y la verdad como construcción", p: 0.3 },
+    { t: "Idea principal: la verdad son metáforas gastadas cuyo origen se ha olvidado", p: 0.4 },
+    { t: "Aclara términos: metáfora, concepto que iguala lo desigual, moneda sin troquelado", p: 0.4 },
+    { t: "Relaciona con el autor: perspectivismo, crítica a la metafísica y a la ciencia, voluntad de poder", p: 0.5 },
+    { t: "Compara con otro autor (Platón, Descartes o Kant) o con Ortega", p: 0.3 },
+    { t: "Valoración o contexto", p: 0.1 }],
+    ["Tema → idea principal → términos → relación → comparación → valoración."], "Comentario de «Sobre verdad y mentira»");
+  R("ni45", "Explica la voluntad de poder y el perspectivismo y compara a Nietzsche con Platón. (Pregunta tipo PAU)", 8, [
+    { t: "Define la voluntad de poder (impulso de crecer y superarse; no dominar a otros)", p: 0.5 },
+    { t: "Explica que corrige la voluntad de vivir de Schopenhauer o sirve de criterio de valor", p: 0.3 },
+    { t: "Define el perspectivismo (no hay hechos puros; sumar perspectivas) y lo distingue del “todo vale”", p: 0.5 },
+    { t: "Explica la crítica a la verdad absoluta y a la metafísica de los dos mundos", p: 0.3 },
+    { t: "Compara con Platón: dos mundos y desprecio del cuerpo frente a fidelidad a la tierra", p: 0.4 }],
+    ["Voluntad de poder.", "Schopenhauer.", "Perspectivismo.", "Crítica a la metafísica.", "Platón."], "Vida = voluntad de poder; conocimiento = perspectiva; Platón inventa el mundo verdadero");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Apolíneo y dionisíaco", ancha: true,
+      tabla: { cab: ["", "Apolíneo", "Dionisíaco"], filas: [
+        ["Dios", "Apolo", "Dioniso"],
+        ["Imagen", "sueño, escultura", "embriaguez, música"],
+        ["Valores", "orden, medida, razón", "instinto, desmesura"],
+        ["Individuo", "límites claros", "fusión colectiva"]
+      ] } },
+    { titulo: "Moral de señores y de esclavos", ancha: true,
+      tabla: { cab: ["", "Señores", "Esclavos"], filas: [
+        ["Pareja de valores", "bueno / malo", "bueno / malvado"],
+        ["Origen", "afirmación", "resentimiento"],
+        ["Virtudes", "fuerza, orgullo", "humildad, compasión"],
+        ["Vida", "la afirma", "la niega"]
+      ] } },
+    { titulo: "Las tres metamorfosis",
+      pasos: ["Camello: carga con el «tú debes».", "León: dice «yo quiero» y se rebela.", "Niño: crea valores y dice «sí»."],
+      nota: "No basta rebelarse: hay que crear." },
+    { titulo: "De la muerte de Dios al superhombre",
+      pasos: ["Dios ha muerto (diagnóstico).", "Nihilismo: pasivo o activo.", "Transvaloración de los valores.", "Superhombre y eterno retorno."],
+      nota: "La salida es crear valores que afirmen la vida." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Nietzsche demuestra que Dios no existe", bien: "Diagnostica la pérdida cultural de fe", por: "«Dios ha muerto» es un hecho cultural." },
+        { mal: "El superhombre es una raza superior", bien: "Es un ideal de superación y creación de valores", por: "Nietzsche despreciaba el nacionalismo." },
+        { mal: "Voluntad de poder = dominar a otros", bien: "Es impulso de crecer y superarse", por: "Esencia de la vida, no solo política." },
+        { mal: "Perspectivismo = todo vale", bien: "Sumar perspectivas aumenta la objetividad", por: "No es relativismo vulgar." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t14", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf14a.secciones,
+    nuevas: B.parte.hf14a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Matemáticas I · ampliaciones · Tema 1: Números reales
    Lo original de pagina.html no se toca: esto se añade al final de cada
    sección, como secciones nuevas, ejercicios nuevos y bloques de lámina.
