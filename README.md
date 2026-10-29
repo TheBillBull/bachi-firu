@@ -18,7 +18,7 @@ Los temas vistos y los borradores de los ejercicios se guardan en el navegador d
 
 1. Editar `pagina.html` o los archivos de `ampliaciones/`.
 2. `sh build.sh`
-3. `git add -A && git commit && git push` — GitHub Pages (que sirve `main`) se actualiza solo en un par de minutos. Si se trabaja en la rama `claude/admiring-keller-1be6ou`, hay que fusionarla en `main` con una PR. La versión de Pages no tiene corrección con Claude: eso solo funciona en la página publicada en claude.ai.
+3. `git add -A && git commit && git push` — GitHub Pages (que sirve `main`) se actualiza solo en un par de minutos. Si se trabaja en la rama `claude/admiring-keller-1be6ou`, se publica con `git push origin claude/admiring-keller-1be6ou:main` (o con una PR). La versión de Pages no tiene corrección con Claude: eso solo funciona en la página publicada en claude.ai.
 
 > Si la página se publica en claude.ai, usa `pagina-autonoma.html` (lleva todo incrustado en un solo archivo).
 
@@ -50,7 +50,9 @@ El progreso de las actividades se guarda en `localStorage` (por dispositivo).
 |---|---|---|---|---|---|---|
 | **Matemáticas I** | 1–13 (todos) | ≈ 100.000 | 611 (663) | ≈ 220 | 129 | 13 (20) |
 | **Física y Química I** | 1–13 (todos) | ≈ 117.000 | 622 (674) | ≈ 240 | 115 | 4 (11) |
-| Química II (piloto) | 6 | — | 10 | simulador de Le Chatelier, tabla ICE | 1 | — |
+| **Química II** | 1–11 (todos) | — | 525 | ≈45 interactivos | — | 3 (8) |
+| **Matemáticas II** | 1–14 (todos) | ≈ 98.000 | 660 | 53 interactivos | — | — |
+| **Historia de la Filosofía** | 1–16 (todos), con ficha «de un vistazo» por tema | ≈ 80.000 | 707 | 8 interactivos + actividades | ≈ 70 | — |
 | Historia de España (piloto) | 7 | — | 7 | línea del tiempo, diagramas, comentario guiado | 1 | — |
 
 \* Estimación a partir del texto de las secciones nuevas y de las actividades incrustadas en la teoría (sin contar enunciados de ejercicios ni simulacros).
@@ -90,7 +92,7 @@ Con Playwright y Chromium (`herramientas/pruebas/`; ver `GUIA_TEMA.md`):
 
 ## Continuar el trabajo
 
-- **`PLAN.md`** es el punto de partida: estado exacto de cada asignatura, pendientes, siguiente tanda (Química II), estándar de calidad, reglas de coste y plantilla de encargo. `CLAUDE.md` recoge las reglas del proyecto y el protocolo para retomar.
+- **`PLAN.md`** es el punto de partida: estado exacto de cada asignatura, pendientes, cómo seguir con el resto (§1b), estándar de calidad, reglas de coste y plantilla de encargo. `CLAUDE.md` recoge las reglas del proyecto y el protocolo para retomar.
 - **`sh herramientas/comprobar_todo.sh`** comprueba todo de una vez (build, regresión, botones, ejercicios y todas las verificaciones) y termina en «TODO CUADRA» o lista los fallos (`completo` añade la prueba de móvil de los 26 temas).
 - **`sh herramientas/preparar_publicacion.sh <ruta.html>`** genera el archivo que se publica como artefacto de claude.ai.
 - `herramientas/GUIA_TEMA.md` explica el flujo paso a paso para ampliar un tema.
