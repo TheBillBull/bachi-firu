@@ -121,6 +121,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t10 Locke y Hume (44 ej., 252 comprob.) | ≈150k | |
 | Filosofía t11 Rousseau e Ilustración (44 ej., 240 comprob.) | ≈162k | |
 | Filosofía t12 Kant (45 ej., 260 comprob.) | ≈160k | |
+| Filosofía t13 Marx (46 ej., 260 comprob.) | ≈155k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -198,3 +199,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 29-oct: Filosofía t10 fusionado. Lanzado t12.
 - 29-oct: Filosofía t11 fusionado. Lanzado t13.
 - 29-oct: Filosofía t12 fusionado. Lanzado t14.
+- 29-oct: Filosofía t13 fusionado. Lanzado t15.
