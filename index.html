@@ -7768,6 +7768,107 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Historia de la Filosofía, tema 12 (Kant)
+   filo_juicios:   «clasifica el juicio». Se elige un juicio, se responden dos preguntas (¿el predicado está ya en el sujeto?,
+                   ¿hace falta la experiencia?) y se ve en qué casilla de la tabla 2×2 cae.
+   filo_universal: «el test de la ley universal». Se elige una máxima, se universaliza y se ve si hay contradicción
+                   (los cuatro ejemplos de la Fundamentación y uno cotidiano).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("ft12-estilos")) return;
+    var s = document.createElement("style"); s.id = "ft12-estilos";
+    s.textContent =
+      "[data-w=filo_juicios] .chip-btn,[data-w=filo_universal] .chip-btn{white-space:normal;text-align:left;max-width:100%}" +
+      ".ft12-q{margin:10px 0 2px;font-size:14.5px;font-weight:600;color:var(--ink)}" +
+      ".ft12-m{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:6px;margin:12px 0 6px;font-size:14px;line-height:1.35}" +
+      ".ft12-m>div{min-width:0;overflow-wrap:anywhere;padding:8px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink)}" +
+      ".ft12-m>.h{background:transparent;border-color:transparent;font-size:12.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;align-self:center}" +
+      ".ft12-m>.on{border-color:var(--pen);background:var(--pen-soft)}" +
+      ".ft12-m>.vacia{border-style:dashed;color:var(--ink-faint)}" +
+      ".ft12-nota{margin-top:8px;padding:8px 10px;border-radius:10px;border:1.5px dashed var(--line);font-size:14.5px;line-height:1.45;color:var(--ink)}" +
+      ".ft12-cad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:12px 0 6px}" +
+      ".ft12-p{padding:8px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;line-height:1.4;color:var(--ink)}" +
+      ".ft12-p em{display:block;font-style:normal;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}" +
+      ".ft12-p.v{border-color:var(--pen);background:var(--pen-soft)}" +
+      "@media(max-width:520px){.ft12-cad{grid-template-columns:1fr}.ft12-m{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);font-size:12.5px;gap:4px}.ft12-m>div{padding:6px}}";
+    document.head.appendChild(s);
+  })();
+
+  // an = analítico (1) / sintético (0); ap = a priori (1) / a posteriori (0)
+  var JUICIOS = [
+    { k: 1, t: "Todos los cuerpos son extensos", an: 1, ap: 1, nota: "Ejemplo de Kant. «Extenso» ya está en el concepto de cuerpo: basta analizarlo. No añade nada nuevo." },
+    { k: 2, t: "Todos los cuerpos son pesados", an: 0, ap: 0, nota: "Ejemplo de Kant. El peso no forma parte del concepto de cuerpo: hay que pesarlos. Amplía lo que sabemos y depende de la experiencia." },
+    { k: 3, t: "7 + 5 = 12", an: 0, ap: 1, nota: "Para Kant, «12» no está contenido en «7 + 5»: hay que construir la suma en la intuición (con los dedos, con puntos). Sin embargo, es necesario y universal, sin mirar el mundo." },
+    { k: 4, t: "La línea recta es la más corta entre dos puntos", an: 0, ap: 1, nota: "Ejemplo de Kant: «recta» habla de cualidad, «más corta» de cantidad; la segunda no sale del concepto de la primera. Y vale siempre." },
+    { k: 5, t: "Todo lo que sucede tiene una causa", an: 0, ap: 1, nota: "Es el principio de causalidad, el que Hume dejó sin base. Kant lo salva: es una categoría que la mente aporta, no algo que la experiencia enseñe." },
+    { k: 6, t: "Los solteros no están casados", an: 1, ap: 1, nota: "Verdadero por definición: el predicado repite lo que ya dice el sujeto. No hace falta salir a la calle a comprobarlo." },
+    { k: 7, t: "Hoy llueve en Madrid", an: 0, ap: 0, nota: "Solo se sabe mirando por la ventana (o consultando el tiempo), y puede ser falso mañana." },
+    { k: 8, t: "El agua hierve a 100 °C al nivel del mar", an: 0, ap: 0, nota: "Es un hecho que se descubre con experimentos. Podría haber sido de otra manera." }
+  ];
+  var CELDAS = [
+    ["Analítico + a priori", "Analítico + a posteriori"],
+    ["Sintético + a priori", "Sintético + a posteriori"]
+  ];
+  var CAS = { "1,1": [0, 0], "1,0": [0, 1], "0,1": [1, 0], "0,0": [1, 1] };
+
+  B.w.filo_juicios = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Clasifica el juicio");
+    cuerpo.innerHTML = '<p class="w-intro">Elige un juicio y responde a las dos preguntas de Kant. Verás en qué casilla cae.</p>' +
+      '<div data-j></div><div class="ft12-q">1. ¿El predicado ya está contenido en el concepto del sujeto?</div><div data-an></div>' +
+      '<div class="ft12-q">2. ¿Hace falta la experiencia para saber que es verdadero?</div><div data-ap></div><div class="ft12-det"></div>';
+    var det = cuerpo.querySelector(".ft12-det"), cur = 1, an = null, ap = null;
+    U.fichas(cuerpo.querySelector("[data-j]"), JUICIOS.map(function (o) { return { k: o.k, t: o.t }; }), cur, function (k) { cur = +k; an = ap = null; reinicia(); });
+    function reinicia() {
+      U.fichas(cuerpo.querySelector("[data-an]"), [{ k: 1, t: "Sí (analítico)" }, { k: 0, t: "No (sintético)" }], null, function (k) { an = +k; pinta(); });
+      U.fichas(cuerpo.querySelector("[data-ap]"), [{ k: 0, t: "Sí (a posteriori)" }, { k: 1, t: "No (a priori)" }], null, function (k) { ap = +k; pinta(); });
+      pinta();
+    }
+    function pinta() {
+      var o = JUICIOS[cur - 1], cas = CAS[o.an + "," + o.ap], hecho = an !== null && ap !== null;
+      var h = '<div class="ft12-m"><div class="h"></div><div class="h">A priori</div><div class="h">A posteriori</div>';
+      [0, 1].forEach(function (f) {
+        h += '<div class="h">' + (f ? "Sintético" : "Analítico") + "</div>";
+        [0, 1].forEach(function (c) {
+          var vacia = f === 0 && c === 1, on = hecho && cas[0] === f && cas[1] === c;
+          h += '<div class="' + (on ? "on" : vacia ? "vacia" : "") + '">' + (vacia ? "No existe" : f === 0 ? "Explica, no amplía" : c === 0 ? "Amplía y es universal" : "Amplía, es empírico") + "</div>";
+        });
+      });
+      h += "</div>";
+      if (hecho) {
+        var bien = an === o.an && ap === o.ap;
+        h += '<div class="ft12-nota"><b>' + (bien ? "Correcto: " : "Revisa, es: ") + CELDAS[cas[0]][cas[1]] + ".</b> " + o.nota + "</div>";
+      } else h += '<div class="ft12-nota">Responde a las dos preguntas.</div>';
+      det.innerHTML = h;
+    }
+    reinicia();
+  };
+
+  var MAXIMAS = [
+    { k: 1, t: "Prometer sin intención de cumplir", max: "Cuando necesite dinero, prometeré devolverlo aunque sepa que no podré.", uni: "Todo el mundo hace promesas falsas cuando le conviene.", res: "Contradicción en el concepto", nota: "Si todos prometieran en falso, nadie se fiaría de ninguna promesa y prometer perdería su sentido. La máxima se destruye a sí misma. Es un deber perfecto (Kant, Fundamentación)." },
+    { k: 2, t: "Quitarse la vida por desgracia", max: "Por amor a mí mismo, acabaré con mi vida si prolongarla me trae más males que alegrías.", uni: "Todo el mundo se quita la vida cuando sufre más de lo que disfruta.", res: "Contradicción en el concepto", nota: "Kant razona que el amor a sí mismo, cuyo fin es impulsar la vida, acabaría destruyéndola: una naturaleza así se contradeciría. Es otro deber perfecto (ejemplo de la Fundamentación)." },
+    { k: 3, t: "Dejar los talentos sin cultivar", max: "Prefiero entregarme al placer que cultivar mis talentos.", uni: "Todo el mundo deja sin cultivar sus talentos.", res: "Contradicción en la voluntad", nota: "Se puede pensar un mundo así, pero no se puede querer: un ser racional quiere que se desarrollen sus facultades, que sirven para muchos fines. Es un deber imperfecto." },
+    { k: 4, t: "No ayudar a quien lo necesita", max: "Que cada uno sea feliz como pueda o como Dios quiera: yo no daré nada a nadie.", uni: "Nadie ayuda nunca a nadie.", res: "Contradicción en la voluntad", nota: "Un mundo así es posible, pero yo no podría quererlo: algún día necesitaré ayuda y me quedaría sin ella. Es un deber imperfecto." },
+    { k: 5, t: "Copiar en un examen", max: "Copiaré en los exámenes cuando no esté segura de aprobar.", uni: "Todo el mundo copia cuando no está segura.", res: "Contradicción en el concepto", nota: "Ejemplo nuestro, en el estilo de Kant: si todos copiaran, el examen dejaría de probar nada y copiar no serviría de nada. La máxima solo funciona porque los demás no la siguen: es una excepción para mí." }
+  ];
+
+  B.w.filo_universal = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El test de la ley universal");
+    cuerpo.innerHTML = '<p class="w-intro">Imperativo categórico: ¿puedes querer que tu máxima sea ley para todos? Elige una máxima y pásala por el test.</p><div data-ctl></div><div class="ft12-det"></div>';
+    var det = cuerpo.querySelector(".ft12-det"), cur = 1;
+    U.fichas(cuerpo.querySelector("[data-ctl]"), MAXIMAS.map(function (o) { return { k: o.k, t: o.t }; }), cur, function (k) { cur = +k; pinta(); });
+    function pinta() {
+      var o = MAXIMAS[cur - 1];
+      det.innerHTML = '<div class="ft12-cad"><div class="ft12-p"><em>1. Máxima</em>' + o.max + '</div><div class="ft12-p"><em>2. Universalizada</em>' + o.uni + '</div><div class="ft12-p v"><em>3. Resultado</em><b>' + o.res + '</b></div></div><div class="ft12-nota">' + o.nota + "</div>";
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · Historia de la Filosofía, tema 3 (Platón)
    filo_caverna: el mito de la caverna paso a paso, con lo que simboliza cada etapa y el nivel de la
    línea dividida (eikasía, pístis, diánoia, nóesis) al que corresponde. Se elige la etapa pulsando.
@@ -47461,6 +47562,631 @@
     vistazo: vistazo,
     secciones: B.parte.hf11a.secciones,
     nuevas: B.parte.hf11a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 12: Kant
+   (parte A: teoría. Parte B, historia_fil_t12b.js: ejercicios, actividades, ficha de un vistazo y registro.)
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. La Ilustración: «minoría de edad», «sapere aude», uso público y privado de la razón → sección nueva 8 + comentario.
+   2. Juicios analíticos/sintéticos y a priori/a posteriori; el sintético a priori → sección 3 + widget filo_juicios.
+   3. Giro copernicano: la mente aporta la forma, la experiencia la materia → sección 2.
+   4. Estética, Analítica y Dialéctica: qué hace cada facultad (sensibilidad, entendimiento, razón) → sección nueva 6.
+   5. Fenómeno y noúmeno: el noúmeno es concepto límite, no un «mundo oculto» → sección 4.
+   6. Imperativo hipotético y categórico y sus formulaciones; autonomía frente a heteronomía → sección 5 + widget filo_universal.
+   7. Postulados de la razón práctica (libertad, inmortalidad, Dios) y bien supremo → sección nueva 7.
+   8. Paz perpetua, república y derecho cosmopolita → sección nueva 8.
+   9. Relación con Hume, Descartes, Platón, Aristóteles y Rousseau → sección nueva 9.
+   10. Comentario de texto: «¿Qué es la Ilustración?» → comentario resuelto (sección 10).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "historia_fil/t12/" + ref); }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Kant: vida, obra y plan
+  secciones[0] =
+    "<h5>La vida de Kant (1724–1804) paso a paso</h5>" +
+    "<p>Immanuel Kant nació el 22 de abril de 1724 en <b>Königsberg</b> (Prusia Oriental), en una familia modesta y de religiosidad <b>pietista</b>, y murió en la misma ciudad el 12 de febrero de 1804. Casi no salió de ella: toda su aventura fue intelectual. Su vida cabe en cuatro etapas:</p>" +
+    "<ul><li><b>1740: entra en la universidad de Königsberg</b>, donde estudia filosofía, física y matemáticas (Newton le fascina).</li>" +
+    "<li><b>Años de preceptor y profesor sin cátedra</b> (hasta 1770): escribe sobre ciencia natural y metafísica. Es la etapa <b>precrítica</b>, todavía bastante racionalista (influido por Leibniz y Wolff).</li>" +
+    "<li><b>1770: catedrático de lógica y metafísica</b>. Sigue entonces un largo «silencio» de unos once años en el que prepara su gran obra.</li>" +
+    "<li><b>1781: <i>Crítica de la razón pura</i></b>, con 57 años. Empieza la etapa <b>crítica</b>: en veinte años escribe casi todo lo que le hará célebre.</li></ul>" +
+    "<p>Vivió en la <b>Prusia de Federico II el Grande</b> (rey de 1740 a 1786), un «déspota ilustrado» que toleraba la libertad de pensar. Tras su muerte, el nuevo rey endureció la censura: en 1794 Kant recibió una reprimenda por sus escritos sobre religión.</p>" +
+    tabla(["Año", "Obra", "De qué trata"], [
+      ["1781 (2.ª ed. 1787)", "<i>Crítica de la razón pura</i>", "Qué podemos conocer y qué no (razón teórica)"],
+      ["1783", "<i>Prolegómenos a toda metafísica futura</i>", "Resumen más claro de la Crítica"],
+      ["1784", "<i>¿Qué es la Ilustración?</i> e <i>Idea de una historia universal</i>", "Ilustración e historia"],
+      ["1785", "<i>Fundamentación de la metafísica de las costumbres</i>", "Fundamento de la moral"],
+      ["1788", "<i>Crítica de la razón práctica</i>", "Moral, libertad y postulados"],
+      ["1790", "<i>Crítica del juicio</i>", "Belleza y finalidad"],
+      ["1793", "<i>La religión dentro de los límites de la mera razón</i>", "Religión racional"],
+      ["1795", "<i>Hacia la paz perpetua</i>", "Política y relaciones internacionales"]
+    ]) +
+    "<h5>Las cuatro preguntas</h5>" +
+    "<p>Kant resume su proyecto en cuatro preguntas: <b>¿Qué puedo saber?</b> (metafísica y conocimiento), <b>¿qué debo hacer?</b> (moral), <b>¿qué me cabe esperar?</b> (religión) y <b>¿qué es el ser humano?</b> (antropología, a la que las otras remiten). Las tres primeras ordenan este tema.</p>" +
+    "<p>Ordena tú sus obras principales:</p>" + w("orden", "obras") +
+    ojo("Kant no es «un empirista» ni «un racionalista». Acepta del empirismo que <b>sin experiencia no hay conocimiento</b> y del racionalismo que <b>la razón aporta principios propios</b>. Esa es la síntesis.");
+
+  // ---------------------------------------------------------------- 2. Giro copernicano
+  secciones[1] =
+    "<h5>La imagen de las gafas</h5>" +
+    "<p>Imagina que llevas <b>gafas de color verde</b> pegadas a la cara desde que naciste. Todo lo que ves es verde, y no por eso el mundo es verde: el color lo pone el modo en que miras. Kant dice algo parecido (con una diferencia: tus «gafas» no se pueden quitar). Para conocer algo, la <b>experiencia</b> te da el contenido (<b>materia</b>) y tu mente lo ordena con sus propias estructuras (<b>forma</b>): espacio, tiempo y categorías.</p>" +
+    tabla(["", "Antes (racionalistas y empiristas)", "Kant"], [
+      ["Papel de la mente", "Copia lo que hay fuera", "Pone la forma del conocimiento"],
+      ["Se adapta…", "el sujeto al objeto", "el objeto (como lo conocemos) al sujeto"],
+      ["¿Conocemos la cosa en sí?", "Se suponía que sí", "No: solo el fenómeno"]
+    ]) +
+    "<p>Fíjate en la analogía con Copérnico: él dejó de suponer que el Sol giraba alrededor de nosotros y probó lo contrario; Kant deja de suponer que la mente gira alrededor de los objetos y prueba a ver qué pasa si <b>los objetos, tal como los conocemos, giran alrededor de las condiciones de la mente</b>. Y gracias a ello explica por qué hay conocimiento necesario y universal.</p>" +
+    "<p>Su frase más citada sobre esto (traducción habitual): «los pensamientos sin contenido son vacíos; las intuiciones sin conceptos son ciegas». Sin sentidos no hay nada que pensar; sin conceptos, lo que sentimos no se entiende.</p>" +
+    ojo("«Giro copernicano» <b>no</b> significa que Kant crea que todo es subjetivo o inventado. Las estructuras son las mismas en todos los seres humanos, y por eso la ciencia es objetiva.");
+
+  // ---------------------------------------------------------------- 3. Juicios
+  secciones[2] =
+    "<h5>Un test de dos preguntas</h5>" +
+    "<p>Para clasificar cualquier juicio, hazte dos preguntas independientes:</p>" +
+    "<ol><li><b>¿El predicado ya está dentro del sujeto?</b> Si sí, es <b>analítico</b> (explica); si no, es <b>sintético</b> (amplía).</li>" +
+    "<li><b>¿Hace falta la experiencia para saber que es verdadero?</b> Si no, es <b>a priori</b> (necesario y universal); si sí, <b>a posteriori</b>.</li></ol>" +
+    tabla(["", "A priori", "A posteriori"], [
+      ["<b>Analítico</b>", "«Todos los cuerpos son extensos»", "No existe"],
+      ["<b>Sintético</b>", "«7 + 5 = 12»; «todo suceso tiene causa»", "«Todos los cuerpos son pesados»; «hoy llueve»"]
+    ]) +
+    "<p>El empirismo de Hume dejaba solo dos opciones: o analítico a priori (verdad lógica, sin novedad) o sintético a posteriori (hecho, sin necesidad). Pero <b>matemáticas y física newtoniana</b> parecen dar conocimiento nuevo <i>y</i> necesario. Por eso la pregunta de la <i>Crítica</i> es: <b>¿cómo son posibles los juicios sintéticos a priori?</b> Se despliega en tres: ¿en matemáticas? (Estética), ¿en física? (Analítica), ¿en metafísica? (Dialéctica). Respuesta: sí en las dos primeras; en la tercera, no.</p>" +
+    ojo("Un error frecuente: decir que «a priori» significa «anterior en el tiempo» o «innato». Significa <b>independiente de la experiencia particular</b> en su justificación. Tampoco hay juicios analíticos a posteriori.") +
+    "<p>Pruébalo tú:</p>" + w("filo_juicios");
+
+  // ---------------------------------------------------------------- 4. Fenómeno y noúmeno
+  secciones[3] =
+    "<h5>Dos palabras, un límite</h5>" +
+    "<p><b>Fenómeno</b> (del griego <i>phainómenon</i>, «lo que aparece») es la realidad tal como la conocemos, ya organizada por espacio, tiempo y categorías. <b>Noúmeno</b> («lo pensado») o <b>cosa en sí</b> es la realidad independiente de nuestra manera de conocer. No es un segundo mundo escondido, como las Ideas de Platón: es un <b>concepto límite</b> que recuerda que nuestro conocimiento tiene fronteras.</p>" +
+    ejemplo("Un ejemplo con tu móvil", "¿Cómo lo aplica Kant?", [
+      "Ves el móvil con forma, color y lugar: eso es <b>fenómeno</b>.",
+      "Lo ves en el espacio, durante un tiempo y como causa del sonido: eso lo pone tu mente.",
+      "Cómo es el móvil «por sí mismo», sin ser percibido: el <b>noúmeno</b>. De eso no podemos saber nada."
+    ]) +
+    "<p>Consecuencia: la ciencia es válida, pero <b>solo dentro de la experiencia posible</b>. La metafísica tradicional (Dios, alma, mundo como totalidad) no puede ser ciencia. Kant lo resume (traducción habitual): «tuve que suprimir el saber para dejar sitio a la fe». Es decir: se limita el saber para dejar espacio a la moral.</p>";
+
+  // ---------------------------------------------------------------- 5. Ética
+  secciones[4] =
+    "<h5>Buena voluntad y deber</h5>" +
+    "<p>La <i>Fundamentación</i> empieza así (traducción habitual): «ni en el mundo ni fuera de él es posible pensar nada que pueda considerarse bueno sin restricción, excepto una <b>buena voluntad</b>». La inteligencia, el valor o la riqueza pueden usarse mal; la voluntad buena es buena por <b>querer cumplir el deber</b>, no por lo que consiga.</p>" +
+    ejemplo("El tendero honesto", "Un tendero no cobra de más a un niño que no sabe contar. ¿Es una acción moral?", [
+      "Si lo hace porque así conserva clientes, actúa <b>conforme al deber</b>, pero por interés: no tiene valor moral.",
+      "Si lo hace porque es lo debido, actúa <b>por deber</b>: solo esa acción tiene valor moral.",
+      "Por eso la moral de Kant se llama <b>deontológica</b>: lo importante es la intención, no las consecuencias."
+    ]) +
+    "<h5>Imperativos: hipotético y categórico</h5>" +
+    tabla(["", "Hipotético", "Categórico"], [
+      ["Forma", "«Si quieres X, haz Y»", "«Haz Y» (sin condición)"],
+      ["Ejemplo", "«Si quieres aprobar, estudia»", "«No mientas»"],
+      ["Vale…", "solo para quien quiere ese fin", "para todo ser racional"],
+      ["Pertenece a…", "técnica y prudencia", "moral"]
+    ]) +
+    w("clasificar", "imperativos") +
+    "<h5>Las formulaciones del imperativo categórico</h5>" +
+    "<ul><li><b>Ley universal</b>: «obra solo según aquella máxima por la cual puedas querer que al mismo tiempo se convierta en ley universal» (traducción habitual).</li>" +
+    "<li><b>Ley de la naturaleza</b>: obra como si tu máxima fuera a convertirse en ley universal de la naturaleza.</li>" +
+    "<li><b>Humanidad como fin</b>: trata a la humanidad, en ti y en los demás, siempre como un fin y nunca solamente como un medio.</li>" +
+    "<li><b>Autonomía</b>: considera tu voluntad como legisladora universal; así formamos un «reino de los fines».</li></ul>" +
+    "<p>Una <b>máxima</b> es el principio subjetivo por el que actúas («yo miento cuando me conviene»). El imperativo categórico no te dice qué hacer, sino <b>cómo comprobar</b> tu máxima: por eso la ética kantiana es <b>formal</b>, frente a las éticas <b>materiales</b> (como la de Aristóteles) que indican un fin como la felicidad.</p>" +
+    ojo("<b>Autonomía</b>: la voluntad se da a sí misma la ley (la razón). <b>Heteronomía</b>: la voluntad obedece algo externo (deseos, castigos, premios, autoridad). Solo la autonomía es moral.") +
+    "<p>Prueba el test con los ejemplos de Kant:</p>" + w("filo_universal") + "<p>Y ordena los pasos del test:</p>" + w("orden", "prueba") +
+    "<p>Kant distingue <b>deberes perfectos</b> (no admiten excepción: no mentir, no suicidarse) e <b>imperfectos</b> (dejan margen: ayudar a otros, cultivar talentos). Críticas habituales: es demasiado <b>rigorista</b> (¿ni siquiera mentir al asesino?) y <b>formalista</b>, y no resuelve bien los conflictos de deberes.</p>";
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Las tres partes de la Crítica: sensibilidad, entendimiento y razón", html:
+    "<p>La <i>Crítica de la razón pura</i> examina tres facultades y cada una tiene su parte:</p>" +
+    tabla(["Parte", "Facultad", "Qué hace", "Resultado"], [
+      ["<b>Estética trascendental</b>", "Sensibilidad", "Recibe las impresiones y las ordena en <b>espacio</b> (sentido externo) y <b>tiempo</b> (sentido interno)", "Fundamenta matemáticas y geometría"],
+      ["<b>Analítica trascendental</b>", "Entendimiento", "Piensa con <b>categorías</b>", "Fundamenta la física: conocimiento válido de fenómenos"],
+      ["<b>Dialéctica trascendental</b>", "Razón", "Busca lo incondicionado: <b>ideas</b> de alma, mundo y Dios", "Ilusión: no hay conocimiento"]
+    ]) +
+    w("clasificar", "facultades") +
+    "<h5>Estética: espacio y tiempo</h5>" +
+    "<p>Espacio y tiempo no son cosas ni conceptos sacados de la experiencia: son las <b>formas puras de la intuición</b>, el «molde» en el que recibimos lo sensible. Por eso la geometría (espacio) y la aritmética (tiempo, sucesión) valen necesariamente para todo lo que experimentemos.</p>" +
+    "<h5>Analítica: las doce categorías</h5>" +
+    tabla(["Grupo", "Categorías"], [
+      ["Cantidad", "unidad, pluralidad, totalidad"],
+      ["Cualidad", "realidad, negación, limitación"],
+      ["Relación", "sustancia–accidente, causa–efecto, acción recíproca"],
+      ["Modalidad", "posibilidad, existencia, necesidad"]
+    ]) +
+    "<p>La causalidad no la <i>vemos</i> (como decía Hume): la <b>ponemos</b> nosotros al ordenar la experiencia, y por eso toda experiencia la cumple necesariamente. Así Kant responde a Hume. Todas las categorías se unifican en el «yo pienso» (<b>apercepción trascendental</b>): la unidad de la conciencia que acompaña todas mis representaciones.</p>" +
+    "<h5>Dialéctica: la ilusión de la metafísica</h5>" +
+    "<p>La razón quiere ir más allá de la experiencia y completar el conocimiento con tres <b>ideas</b>. Al tratarlas como si fueran objetos de conocimiento cae en errores:</p>" +
+    tabla(["Idea", "Disciplina tradicional", "Error de la razón"], [
+      ["<b>Alma</b>", "Psicología racional", "<b>Paralogismos</b>: del «yo pienso» se deduce falsamente un alma-sustancia (crítica a Descartes)"],
+      ["<b>Mundo</b>", "Cosmología racional", "<b>Antinomias</b>: se pueden «demostrar» tesis opuestas (mundo finito o infinito, libertad o determinismo)"],
+      ["<b>Dios</b>", "Teología racional", "Las pruebas (ontológica, cosmológica, físico-teológica) no prueban nada"]
+    ]) +
+    "<p>Sobre la prueba ontológica, Kant dice que «existir» no es una propiedad que añadamos a un concepto: cien táleros reales no contienen ni una moneda más que cien táleros pensados (paráfrasis). Pero las ideas sirven de <b>uso regulativo</b>: no amplían el conocimiento, pero orientan la investigación hacia una unidad cada vez mayor.</p>" +
+    ojo("Kant <b>no demuestra que Dios no exista</b>: dice que la razón teórica no puede ni probarlo ni refutarlo. La esperanza se recupera en la razón práctica.") });
+
+  nuevas.push({ h: "7. Razón práctica: libertad, postulados y bien supremo", html:
+    "<p>Si en la razón teórica no podemos conocer lo que está más allá de la experiencia, ¿qué pasa con la libertad, el alma y Dios? En la <i>Crítica de la razón práctica</i> (1788) Kant los recupera como <b>postulados</b>: no son conocimientos, sino <b>supuestos necesarios para que la moral tenga sentido</b>.</p>" +
+    tabla(["Postulado", "Por qué hace falta"], [
+      ["<b>Libertad</b>", "Si debo, puedo («debes, luego puedes»): sin libertad el deber carece de sentido. En el mundo fenoménico todo está causado; como ser racional (noúmeno) soy libre."],
+      ["<b>Inmortalidad del alma</b>", "La santidad (adecuación total de la voluntad a la ley) exige un progreso infinito que no cabe en una vida."],
+      ["<b>Existencia de Dios</b>", "Garantiza que al final virtud y felicidad coincidan (el <b>bien supremo</b>)."]
+    ]) +
+    "<p>El <b>bien supremo</b> es la virtud unida a la felicidad merecida. Importante: <b>no actuamos moralmente para ser felices</b> (eso sería heteronomía), sino que esperamos ser dignos de la felicidad. Esa esperanza es una <b>fe racional</b> o moral.</p>" +
+    ojo("Los postulados no son pruebas. Para Kant sigue siendo imposible <i>demostrar</i> a Dios con la razón teórica; lo que hace es mostrar que la moral lo <i>presupone</i>. Cierra el famoso pasaje de la <i>Crítica de la razón práctica</i> (traducción habitual): «el cielo estrellado sobre mí y la ley moral en mí».") +
+    w("emparejar", "postulados") });
+
+  nuevas.push({ h: "8. Ilustración, historia y política", html:
+    "<h5>¿Qué es la Ilustración? (1784)</h5>" +
+    "<p>Kant respondió en diciembre de 1784, en la revista <i>Berlinische Monatsschrift</i>, a la pregunta de qué es la Ilustración. Su respuesta (traducción habitual, que varía según la edición): la Ilustración es la salida del ser humano de su <b>minoría de edad</b>, de la que él mismo es culpable. La minoría de edad es la incapacidad de servirse del propio entendimiento sin la guía de otro. Es culpable porque la causa no es falta de inteligencia, sino de <b>decisión y valor</b>. De ahí el lema <b>«<i>Sapere aude</i>»</b>: «¡Ten el valor de servirte de tu propio entendimiento!» (expresión tomada de Horacio).</p>" +
+    "<ul><li><b>Causas</b>: la <b>pereza</b> y la <b>cobardía</b>; es cómodo que otros (el tutor, el médico, el pastor) piensen por mí.</li>" +
+    "<li><b>Condición</b>: la <b>libertad</b>, en concreto la de hacer <b>uso público de la razón</b>.</li></ul>" +
+    tabla(["", "Uso público", "Uso privado"], [
+      ["Quién", "El sabio que escribe ante todo el público lector", "La persona en su puesto o función civil"],
+      ["Ejemplo", "Criticar un impuesto en un escrito", "Un oficial que ejecuta las órdenes; un cura que enseña el catecismo"],
+      ["Libertad", "Debe ser <b>ilimitada</b>", "Puede restringirse (obediencia)"]
+    ]) +
+    "<p>La paráfrasis que resume: «razonad cuanto queráis y sobre lo que queráis, pero obedeced». Kant añade que vivía <b>en una época de Ilustración, no en una época ilustrada</b>: el proceso está en marcha, pero sin terminar.</p>" +
+    ojo("«Uso privado» no es lo que haces en casa. Es el que haces <b>desde un cargo</b>; el «público» es el de cualquier ciudadano que habla ante el público como sabio.") +
+    "<h5>Historia y política</h5>" +
+    "<p>En la <i>Idea de una historia universal</i> (1784), Kant habla de la <b>insociable sociabilidad</b>: los humanos necesitan vivir juntos pero compiten entre sí, y ese conflicto empuja al progreso hasta una sociedad regida por el derecho. En <i>Hacia la paz perpetua</i> (1795) propone tres condiciones:</p>" +
+    tabla(["Artículo definitivo", "Contenido"], [
+      ["1.º", "La constitución de cada Estado debe ser <b>republicana</b> (libertad, igualdad ante la ley, separación de poderes y representación)"],
+      ["2.º", "El derecho de gentes se funda en una <b>federación de Estados libres</b>"],
+      ["3.º", "El derecho cosmopolita se limita a la <b>hospitalidad universal</b>"]
+    ]) +
+    "<p>Una república no es lo mismo que una democracia directa: para Kant, el poder ejecutivo y el legislativo deben estar separados. Estas ideas inspiraron la Sociedad de Naciones y la ONU.</p>" });
+
+  nuevas.push({ h: "9. Mapa del tema: Kant y los demás autores", html:
+    "<p>En el comentario de texto se pide relacionar y comparar. Las relaciones más rentables de Kant:</p>" +
+    tabla(["Autor", "Relación con Kant"], [
+      ["Platón (T3)", "Fenómeno/noúmeno recuerda a sensible/inteligible, pero Kant niega que podamos conocer el noúmeno."],
+      ["Aristóteles (T4)", "Ética material de la felicidad y las virtudes frente a ética formal del deber."],
+      ["Descartes (T9)", "Critica el cogito como sustancia (paralogismos): el «yo pienso» es forma, no una cosa conocida."],
+      ["Locke y Hume (T10)", "Acepta que todo conocimiento empieza con la experiencia, pero no que todo proceda de ella. Hume le «despertó del sueño dogmático»."],
+      ["Rousseau (T11)", "Admira su idea de libertad y de voluntad general; Kant la formula como autonomía moral."]
+    ]) +
+    "<h5>Cuadro-resumen: lo que sostiene Kant</h5>" +
+    tabla(["Ámbito", "Tesis de Kant"], [
+      ["Conocimiento", "Experiencia (materia) + estructuras de la mente (forma); juicios sintéticos a priori; giro copernicano."],
+      ["Realidad", "Solo conocemos fenómenos; el noúmeno es concepto límite."],
+      ["Metafísica", "Alma, mundo y Dios: ideas de la razón con uso regulativo; no hay conocimiento."],
+      ["Moral", "Buena voluntad, deber, imperativo categórico, autonomía; postulados de la razón práctica."],
+      ["Sociedad", "Ilustración, república, federación de Estados y paz perpetua."]
+    ]) });
+
+  nuevas.push({ h: "10. Comentario de texto resuelto: ¿Qué es la Ilustración?", html:
+    "<p>El comentario de la PAU pide <b>tema, ideas, relación con el autor y comparación con otro</b>. Resolvemos uno.</p>" +
+    "<blockquote class='cita-fil'><b>Texto</b> (Kant, <em>¿Qué es la Ilustración?</em>, 1784; fragmento en traducción española habitual, que varía según la edición):<br><em>«La Ilustración es la salida del hombre de su minoría de edad. Él mismo es culpable de ella. La minoría de edad es la incapacidad de servirse de su propio entendimiento sin la guía de otro. [...] ¡Sapere aude! ¡Ten el valor de servirte de tu propio entendimiento! He aquí el lema de la Ilustración.»</em></blockquote>" +
+    "<ol class='lam-pasos'>" +
+    "<li><b>1. Localiza el texto.</b> Kant (1724–1804), artículo de 1784 en la <i>Berlinische Monatsschrift</i>, en la etapa crítica, entre la <i>Crítica de la razón pura</i> (1781) y la <i>Fundamentación</i> (1785).</li>" +
+    "<li><b>2. Tema.</b> La definición de la Ilustración como salida de la minoría de edad.</li>" +
+    "<li><b>3. Idea principal.</b> La Ilustración consiste en atreverse a pensar por uno mismo; la minoría de edad es culpable porque falta valor, no inteligencia.</li>" +
+    "<li><b>4. Términos y ideas secundarias.</b> (a) «Minoría de edad»: dependencia de un tutor. (b) «Culpable»: se debe a pereza y cobardía. (c) «<i>Sapere aude</i>»: lema que invita a la autonomía intelectual.</li>" +
+    "<li><b>5. Relaciona con el autor.</b> Es la versión social de su <b>autonomía</b> moral (la razón se da su propia ley) y del giro copernicano (la razón como sujeto activo). Enlaza con la libertad de uso público de la razón y con su idea de progreso hacia la república.</li>" +
+    "<li><b>6. Compara con otro autor.</b> Con <b>Descartes</b>: ambos defienden la razón propia frente a la autoridad, pero Kant la limita con la crítica. Con <b>Rousseau</b>: ambos valoran la libertad, pero Kant confía en el progreso por la educación y el uso público de la razón.</li>" +
+    "<li><b>7. Valora y concluye.</b> Sigue vigente: pensar por uno mismo frente a la propaganda y la desinformación. Límite: la Ilustración puede ser difícil si no hay educación ni libertad reales.</li></ol>" +
+    ojo("Errores típicos: (1) decir que la minoría de edad es falta de inteligencia (es falta de <b>valor</b>); (2) confundir uso público y privado; (3) olvidar la <b>libertad</b> como condición; (4) no citar la obra ni el año.") });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html:
+    "<p>El orden de una buena respuesta es siempre: <b>definir → explicar → relacionar → concluir</b>.</p>" +
+    ejemplo("Pregunta 1. Explica el giro copernicano y los juicios sintéticos a priori", "Respuesta modelo:", [
+      "<b>Giro.</b> El sujeto pone la forma (espacio, tiempo, categorías) y la experiencia la materia.",
+      "<b>Juicios.</b> Analítico = predicado contenido en el sujeto; sintético = amplía; a priori = independiente de la experiencia.",
+      "<b>Pregunta.</b> ¿Cómo son posibles los sintéticos a priori (matemáticas y física)?",
+      "<b>Relación.</b> Responde a Hume; solo conocemos fenómenos."
+    ]) +
+    ejemplo("Pregunta 2. Fenómeno y noúmeno", "Respuesta modelo:", [
+      "<b>Fenómeno</b>: realidad conocida; <b>noúmeno</b>: cosa en sí, inaccesible.",
+      "<b>Consecuencia</b>: la metafísica tradicional no es ciencia (alma, mundo, Dios).",
+      "<b>Valoración</b>: limita el saber para dejar sitio a la fe moral."
+    ]) +
+    ejemplo("Pregunta 3. Ética kantiana", "Respuesta modelo:", [
+      "<b>Buena voluntad y deber</b>: ética formal y deontológica.",
+      "<b>Imperativos</b>: hipotético frente a categórico, con sus formulaciones.",
+      "<b>Autonomía</b> y postulados de la razón práctica.",
+      "<b>Comparación</b>: con Aristóteles (felicidad) o Hume (sentimiento)."
+    ]) +
+    ejemplo("Pregunta 4. Ilustración y política", "Respuesta modelo:", [
+      "<b>Minoría de edad</b>, <i>sapere aude</i>, uso público de la razón.",
+      "<b>Política</b>: república, federación de Estados, paz perpetua."
+    ]) +
+    "<p>Los ejercicios de nivel ★★★ traen una rúbrica con la que ver qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1") });
+
+  B.parte.hf12a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Historia de la Filosofía · ampliaciones · Tema 12 (parte B): Kant
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio de opción tiene UNA respuesta correcta (lo comprueba herramientas/verificar_historia_fil_t12.py).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Kant (1724–1804) sintetiza racionalismo y empirismo: el conocimiento exige <b>experiencia</b> (materia) y <b>estructuras de la mente</b> (forma). Es el <b>giro copernicano</b>.",
+    "Los juicios <b>sintéticos a priori</b> fundamentan matemáticas y física; solo conocemos <b>fenómenos</b>, nunca el <b>noúmeno</b>.",
+    "La metafísica (alma, mundo, Dios) no es ciencia; las ideas de la razón solo tienen uso <b>regulativo</b>.",
+    "Su ética es formal y autónoma: <b>imperativo categórico</b>, deber y buena voluntad; la razón práctica postula <b>libertad, inmortalidad y Dios</b>.",
+    "Defiende la <b>Ilustración</b> («<i>sapere aude</i>»), la república y la paz perpetua."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Kant · el idealismo trascendental",
+    autores: [{ n: "Immanuel Kant", f: "1724–1804", l: "Königsberg (Prusia Oriental)" }],
+    obras: ["Crítica de la razón pura", "Fundamentación de la metafísica de las costumbres", "Crítica de la razón práctica", "¿Qué es la Ilustración?", "Hacia la paz perpetua"],
+    bloques: [
+      { t: "Contexto", frases: ["Siglo de la <b>Ilustración</b> y de la física de Newton.", "Hume lo «despierta del sueño dogmático».", "Vive en la Prusia de Federico II."],
+        tabla: { cab: ["Racionalismo", "Empirismo"], filas: [["ideas innatas", "todo de la experiencia"], ["aporta la forma (a priori)", "aporta la materia (experiencia)"]] } },
+      { t: "Conocimiento", frases: ["<b>Giro copernicano</b>: el objeto se adapta al sujeto.", "Experiencia = materia; mente = forma (espacio, tiempo, categorías).", "Pregunta clave: ¿cómo son posibles los juicios <b>sintéticos a priori</b>?"],
+        tabla: { cab: ["Analítico", "Sintético"], filas: [["explica", "amplía"], ["predicado en el sujeto", "predicado fuera del sujeto"]] } },
+      { t: "Realidad", frases: ["Solo conocemos <b>fenómenos</b>, no la cosa en sí.", "El <b>noúmeno</b> es un concepto límite.", "Sensibilidad, entendimiento y razón."],
+        tabla: { cab: ["Fenómeno", "Noúmeno"], filas: [["lo que aparece", "cosa en sí"], ["cognoscible", "no cognoscible"]] } },
+      { t: "Metafísica", frases: ["La razón busca lo incondicionado: <b>alma, mundo y Dios</b>.", "Cae en paralogismos, antinomias e ideal.", "Las ideas tienen uso <b>regulativo</b>."] },
+      { t: "Ética", frases: ["Buena voluntad y <b>deber</b>; ética formal y autónoma.", "Máxima que puedas querer como <b>ley universal</b>.", "Trata la humanidad como <b>fin</b>, no solo como medio."],
+        tabla: { cab: ["Hipotético", "Categórico"], filas: [["«si quieres X, haz Y»", "«haz Y»"], ["condicionado", "incondicionado"]] } },
+      { t: "Razón práctica y política", frases: ["<b>Postulados</b>: libertad, inmortalidad del alma y Dios.", "<b>Ilustración</b>: salir de la minoría de edad.", "<b>Paz perpetua</b>: repúblicas y federación de Estados."] }
+    ],
+    resumen: [
+      "El conocimiento combina <b>experiencia</b> y <b>formas de la mente</b>; solo alcanza los <b>fenómenos</b>.",
+      "La metafísica tradicional no es ciencia; la fe en Dios y el alma se apoya en la <b>razón práctica</b>.",
+      "La moral es <b>deber</b> autónomo y universal, no cálculo de consecuencias.",
+      "La Ilustración exige <b>pensar por uno mismo</b> con libertad de uso público de la razón."
+    ],
+    conecta: [
+      { con: "Platón (T3):", rel: "fenómeno/noúmeno recuerda a sensible/inteligible, pero el noúmeno no se conoce." },
+      { con: "Aristóteles (T4):", rel: "ética formal del deber frente a ética material de la felicidad." },
+      { con: "Descartes (T9):", rel: "critica el yo como sustancia en los paralogismos." },
+      { con: "Locke y Hume (T10):", rel: "Hume lo despierta; responde con las categorías." },
+      { con: "Rousseau (T11):", rel: "libertad y voluntad general, que Kant formula como autonomía." }
+    ],
+    claves: [
+      ["Giro copernicano", "el objeto, tal como se conoce, se adapta a las estructuras del sujeto"],
+      ["Juicio sintético a priori", "amplía el conocimiento y es necesario y universal"],
+      ["Fenómeno y noúmeno", "lo que aparece frente a la cosa en sí, incognoscible"],
+      ["Categorías", "doce conceptos puros del entendimiento, como causa y sustancia"],
+      ["Ideas de la razón", "alma, mundo y Dios; no dan conocimiento, orientan la investigación"],
+      ["Imperativo categórico", "mandato incondicional: obra según una máxima universalizable"],
+      ["Autonomía", "la voluntad se da a sí misma la ley moral"],
+      ["Postulados", "libertad, inmortalidad y Dios: supuestos de la moral"],
+      ["Bien supremo", "virtud más felicidad merecida"],
+      ["Sapere aude", "«atrévete a pensar por ti mismo»"]
+    ],
+    cita: { txt: "Obra solo según aquella máxima por la cual puedas querer que al mismo tiempo se convierta en ley universal.", autor: "Kant", obra: "Fundamentación de la metafísica de las costumbres, II (traducción habitual)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    facultades: {
+      titulo: "¿Sensibilidad, entendimiento o razón?",
+      consigna: "Une cada elemento con la facultad a la que pertenece en la Crítica de la razón pura.",
+      categorias: ["Sensibilidad", "Entendimiento", "Razón"],
+      items: [
+        { t: "Espacio", c: 0 }, { t: "Tiempo", c: 0 }, { t: "Intuición", c: 0 },
+        { t: "Causalidad", c: 1 }, { t: "Sustancia", c: 1 }, { t: "Categorías", c: 1 },
+        { t: "Idea de Dios", c: 2 }, { t: "Idea de alma", c: 2 }, { t: "Antinomias", c: 2 }
+      ]
+    },
+    imperativos: {
+      titulo: "¿Hipotético o categórico?",
+      consigna: "Clasifica cada mandato según la distinción de Kant.",
+      categorias: ["Hipotético", "Categórico"],
+      items: [
+        { t: "Si quieres aprobar, estudia", c: 0 },
+        { t: "No mientas", c: 1 },
+        { t: "Si quieres adelgazar, come menos", c: 0 },
+        { t: "Cumple tus promesas", c: 1 },
+        { t: "Si quieres un buen trabajo, aprende inglés", c: 0 },
+        { t: "Trata a la humanidad como fin y no solo como medio", c: 1 }
+      ]
+    },
+    postulados: {
+      titulo: "Los postulados de la razón práctica",
+      consigna: "Une cada concepto con su función.",
+      pares: [
+        ["Libertad", "Condición del deber: «debes, luego puedes»"],
+        ["Inmortalidad del alma", "Progreso infinito hacia la santidad"],
+        ["Existencia de Dios", "Garantiza que virtud y felicidad coincidan"],
+        ["Bien supremo", "Virtud unida a la felicidad merecida"],
+        ["Autonomía", "La voluntad se da a sí misma la ley"]
+      ]
+    },
+    obras: {
+      titulo: "Las obras de Kant",
+      consigna: "Ordena de la más antigua a la más reciente.",
+      items: [
+        { t: "Crítica de la razón pura (1781)" },
+        { t: "¿Qué es la Ilustración? (1784)" },
+        { t: "Fundamentación de la metafísica de las costumbres (1785)" },
+        { t: "Crítica de la razón práctica (1788)" },
+        { t: "Hacia la paz perpetua (1795)" }
+      ]
+    },
+    prueba: {
+      titulo: "El test de la ley universal",
+      consigna: "Ordena los pasos para examinar una máxima.",
+      items: [
+        { t: "Formula la máxima de tu acción" },
+        { t: "Imagina que todo el mundo actúa según ella" },
+        { t: "Comprueba si hay contradicción al pensarla o al quererla" },
+        { t: "Si hay contradicción, la acción es contraria al deber" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 12",
+      preguntas: [
+        { q: "El «giro copernicano» de Kant consiste en suponer que…", op: ["el objeto conocido se adapta a las estructuras del sujeto", "la mente copia pasivamente el mundo", "la Tierra gira alrededor del Sol", "el conocimiento es innato"], ok: 0, porque: "Como Copérnico cambió el punto de vista, Kant coloca en el sujeto las condiciones del conocimiento." },
+        { q: "Un juicio analítico es aquel en el que…", op: ["el predicado está contenido en el sujeto", "el predicado añade información nueva", "hace falta la experiencia", "se refiere a la moral"], ok: 0, porque: "Analizar el concepto basta; no se amplía el conocimiento." },
+        { q: "«7 + 5 = 12» es, para Kant, un juicio…", op: ["sintético a priori", "analítico a priori", "sintético a posteriori", "analítico a posteriori"], ok: 0, porque: "Amplía el conocimiento y es necesario y universal." },
+        { q: "Las formas puras de la sensibilidad son…", op: ["el espacio y el tiempo", "las doce categorías", "alma, mundo y Dios", "el deber y la libertad"], ok: 0, porque: "Estética trascendental: espacio y tiempo." },
+        { q: "El noúmeno es…", op: ["la cosa en sí, incognoscible", "la realidad que conocemos", "una idea innata", "un sentimiento moral"], ok: 0, porque: "Es un concepto límite del conocimiento." },
+        { q: "La Dialéctica trascendental trata de…", op: ["las ideas de la razón: alma, mundo y Dios", "el espacio y el tiempo", "las categorías", "la moral"], ok: 0, porque: "La razón se extravía al tratar de conocer lo incondicionado." },
+        { q: "Un imperativo categórico es…", op: ["un mandato incondicional", "un mandato condicionado a un deseo", "una ley física", "un consejo de prudencia"], ok: 0, porque: "«Haz Y», sin «si quieres X»." },
+        { q: "Según Kant, tratar a las personas «solo como medio» es…", op: ["contrario al imperativo categórico", "obligatorio", "indiferente moralmente", "propio de la ética de Aristóteles"], ok: 0, porque: "Las personas son fines en sí mismas." },
+        { q: "Los postulados de la razón práctica son…", op: ["libertad, inmortalidad del alma y Dios", "espacio, tiempo y causalidad", "deber, placer y utilidad", "alma, mundo y materia"], ok: 0, porque: "Son supuestos de la moral, no conocimientos." },
+        { q: "El lema de la Ilustración según Kant es…", op: ["Sapere aude", "Cogito, ergo sum", "Conócete a ti mismo", "Pienso, luego existo"], ok: 0, porque: "«Atrévete a servirte de tu propio entendimiento»." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre Kant es FALSA?", op: ["Es un empirista como Hume", "Responde a Hume con las categorías", "Habla de juicios sintéticos a priori", "Distingue fenómeno y noúmeno"], ok: 0, porque: "Acepta que el conocimiento comienza con la experiencia, pero no que proceda solo de ella." },
+        { q: "¿Cuál de estas afirmaciones sobre los juicios es FALSA?", op: ["Los juicios analíticos amplían el conocimiento", "«Todos los cuerpos son extensos» es analítico", "«Todos los cuerpos son pesados» es sintético", "Los sintéticos a priori son la base de la física"], ok: 0, porque: "Los analíticos solo explican lo que ya está en el sujeto." },
+        { q: "¿Cuál de estas afirmaciones sobre fenómeno y noúmeno es FALSA?", op: ["Podemos conocer el noúmeno con la ciencia", "El fenómeno es lo que aparece", "El noúmeno es un concepto límite", "Espacio y tiempo pertenecen al fenómeno"], ok: 0, porque: "El noúmeno es incognoscible." },
+        { q: "¿Cuál de estas afirmaciones sobre la metafísica en Kant es FALSA?", op: ["Demuestra que Dios no existe", "Las ideas tienen uso regulativo", "Las antinomias muestran contradicciones de la razón", "La razón teórica no puede probar a Dios"], ok: 0, porque: "No lo demuestra ni lo refuta: lo deja fuera del saber teórico." },
+        { q: "¿Cuál de estas afirmaciones sobre la ética kantiana es FALSA?", op: ["Se basa en las consecuencias de la acción", "Es deontológica", "Es formal", "Su criterio es la universalidad de la máxima"], ok: 0, porque: "Lo que cuenta es la intención por deber, no las consecuencias." },
+        { q: "¿Cuál de estas afirmaciones sobre la autonomía es FALSA?", op: ["Es obedecer a una autoridad externa", "La voluntad se da a sí misma la ley", "Se opone a la heteronomía", "Es la base de la dignidad humana"], ok: 0, porque: "Obedecer lo externo es heteronomía." },
+        { q: "¿Cuál de estas afirmaciones sobre la Ilustración es FALSA?", op: ["La minoría de edad es falta de inteligencia", "El lema es sapere aude", "Exige libertad de uso público de la razón", "La causa es la pereza y la cobardía"], ok: 0, porque: "Es falta de decisión y valor, no de inteligencia." },
+        { q: "¿Cuál de estas afirmaciones cronológicas es FALSA?", op: ["La Crítica de la razón práctica es anterior a la Crítica de la razón pura", "La Crítica de la razón pura es de 1781", "Hume es anterior a Kant", "Hacia la paz perpetua es de 1795"], ok: 0, porque: "La razón pura (1781) precede a la práctica (1788)." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: Kant",
+      cartas: [
+        { a: "Giro copernicano", b: "El objeto, tal como se conoce, se adapta a las estructuras del sujeto." },
+        { a: "Juicio analítico", b: "El predicado está contenido en el sujeto; explica, no amplía." },
+        { a: "Juicio sintético", b: "El predicado añade algo nuevo al sujeto." },
+        { a: "Juicio a priori", b: "Independiente de la experiencia; necesario y universal." },
+        { a: "Juicio a posteriori", b: "Depende de la experiencia." },
+        { a: "Sintético a priori", b: "Amplía el conocimiento y es necesario: matemáticas y física." },
+        { a: "Estética trascendental", b: "Estudia la sensibilidad: espacio y tiempo." },
+        { a: "Analítica trascendental", b: "Estudia el entendimiento y sus doce categorías." },
+        { a: "Dialéctica trascendental", b: "Estudia la razón y la ilusión de la metafísica." },
+        { a: "Categorías", b: "Conceptos puros del entendimiento, como causa y sustancia." },
+        { a: "Fenómeno", b: "La realidad tal como se nos aparece." },
+        { a: "Noúmeno", b: "La cosa en sí; concepto límite, incognoscible." },
+        { a: "Ideas de la razón", b: "Alma, mundo y Dios; uso regulativo." },
+        { a: "Buena voluntad", b: "Lo único bueno sin restricción: querer cumplir el deber." },
+        { a: "Imperativo hipotético", b: "«Si quieres X, haz Y»: condicionado a un deseo." },
+        { a: "Imperativo categórico", b: "Mandato incondicional de la razón." },
+        { a: "Fórmula de la ley universal", b: "Obra según una máxima que puedas querer como ley universal." },
+        { a: "Fórmula de la humanidad", b: "Trata a las personas como fin y nunca solo como medio." },
+        { a: "Autonomía y heteronomía", b: "La voluntad se da a sí misma la ley / obedece algo externo." },
+        { a: "Postulados de la razón práctica", b: "Libertad, inmortalidad del alma y Dios." },
+        { a: "Bien supremo", b: "Virtud unida a la felicidad merecida." },
+        { a: "Sapere aude", b: "Atrévete a servirte de tu propio entendimiento." },
+        { a: "Uso público de la razón", b: "El del sabio ante el público lector; debe ser libre." },
+        { a: "Hacia la paz perpetua", b: "Repúblicas, federación de Estados y derecho cosmopolita (1795)." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, filas, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: filas, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("kt1", 1, "¿En qué año nació Immanuel Kant?", ["1724", "1596", "1711", "1632"], 0,
+    ["Kant (1724–1804). Descartes nació en 1596, Locke en 1632 y Hume en 1711."]);
+  O("kt2", 1, "¿En qué ciudad nació y vivió casi toda su vida?", ["Königsberg", "Berlín", "París", "Viena"], 0,
+    ["Königsberg, en Prusia Oriental; apenas salió de allí."]);
+  O("kt3", 1, "¿Qué filósofo «despertó a Kant de su sueño dogmático»?", ["Hume", "Descartes", "Locke", "Leibniz"], 0,
+    ["Kant lo cuenta en los <i>Prolegómenos</i>: la crítica de Hume a la causalidad."]);
+  O("kt4", 1, "¿Cuál es su obra de 1781?", ["Crítica de la razón pura", "Crítica de la razón práctica", "Fundamentación de la metafísica de las costumbres", "Hacia la paz perpetua"], 0,
+    ["La <i>Crítica de la razón pura</i> es de 1781; la práctica, de 1788; la <i>Fundamentación</i>, de 1785; la <i>Paz perpetua</i>, de 1795."]);
+  T("kt5", 1, "Completa: el cambio de punto de vista de Kant se llama revolución o giro ______ (por el astrónomo Copérnico).", "Término =", ["copernicana", "copernicano"],
+    ["Como Copérnico cambió el centro, Kant cambia lo que gira alrededor de qué."], "copernicana");
+  M("kt6", 1, "Clasifica cada juicio como analítico o sintético.", [
+    C("Todos los cuerpos son extensos", ["Analítico", "Sintético"], 0),
+    C("Todos los cuerpos son pesados", ["Analítico", "Sintético"], 1),
+    C("Los solteros no están casados", ["Analítico", "Sintético"], 0),
+    C("Hoy llueve en Madrid", ["Analítico", "Sintético"], 1)],
+    ["Analítico si el predicado ya está en el sujeto."], "Analítico, sintético, analítico, sintético");
+  M("kt7", 1, "Clasifica cada juicio como a priori o a posteriori.", [
+    C("7 + 5 = 12", ["A priori", "A posteriori"], 0),
+    C("El agua hierve a 100 °C al nivel del mar", ["A priori", "A posteriori"], 1),
+    C("Todo suceso tiene una causa", ["A priori", "A posteriori"], 0),
+    C("Hoy hace frío", ["A priori", "A posteriori"], 1)],
+    ["A priori = no depende de la experiencia."], "A priori, a posteriori, a priori, a posteriori");
+  O("kt8", 1, "Los juicios sobre los que Kant funda matemáticas y física son…", ["sintéticos a priori", "analíticos a priori", "sintéticos a posteriori", "analíticos a posteriori"], 0,
+    ["Amplían el conocimiento y son necesarios y universales."]);
+  O("kt9", 1, "El fenómeno es…", ["la realidad tal como se nos aparece", "la cosa en sí", "una idea innata", "un sentimiento"], 0,
+    ["Es lo que aparece, organizado por nuestra mente."]);
+  O("kt10", 1, "El noúmeno es…", ["la cosa en sí, que no podemos conocer", "la realidad que conocemos", "la forma del tiempo", "una categoría"], 0,
+    ["Es un concepto límite: se piensa pero no se conoce."]);
+  O("kt11", 1, "Las dos formas puras de la sensibilidad son…", ["espacio y tiempo", "causa y efecto", "alma y mundo", "deber y libertad"], 0,
+    ["Se estudian en la Estética trascendental."]);
+  O("kt12", 1, "¿Cuántas categorías distingue Kant?", ["12", "3", "4", "10"], 0,
+    ["Doce, en cuatro grupos de tres: cantidad, cualidad, relación y modalidad."]);
+  O("kt13", 1, "La ética de Kant es…", ["deontológica (basada en el deber)", "basada en las consecuencias", "hedonista", "basada en el sentimiento"], 0,
+    ["Importa la intención de cumplir el deber, no el resultado."]);
+  T("kt14", 1, "Completa: el mandato incondicional de la moral kantiana es el imperativo ______.", "Término =", ["categórico", "categorico"],
+    ["Frente al hipotético, que depende de un deseo."], "categórico");
+  O("kt15", 1, "«Sapere aude» significa…", ["Ten el valor de servirte de tu propio entendimiento", "Conócete a ti mismo", "Pienso, luego existo", "Obedece a la autoridad"], 0,
+    ["Es el lema de la Ilustración, tomado de Horacio."]);
+
+  // ---- nivel 2
+  V("kt16", 2, "«Kant piensa, como Hume, que todo el conocimiento procede de la experiencia.»", false, [
+    "Es falso: la experiencia da la materia, pero la forma la pone la mente", "Es falso: Kant niega la experiencia", "Es verdad: era empirista", "Es verdad: rechazaba las categorías"], 0,
+    ["Empieza con la experiencia pero no procede solo de ella."]);
+  V("kt17", 2, "«Un juicio analítico no amplía el conocimiento.»", true, [
+    "Es verdad: el predicado ya está contenido en el sujeto", "Es verdad: porque depende de la experiencia", "Es verdad: porque es falso", "Es verdad: porque es moral"], 0,
+    ["Solo explica el concepto."]);
+  V("kt18", 2, "«Todos los juicios a priori son analíticos.»", false, [
+    "Es falso: las matemáticas son sintéticas a priori", "Es falso: los a priori dependen de la experiencia", "Es verdad: los a priori nunca amplían", "Es verdad: Kant los consideraba lógicos"], 0,
+    ["Los sintéticos a priori son el caso decisivo."]);
+  V("kt19", 2, "«Para Kant, espacio y tiempo son formas puras de la sensibilidad.»", true, [
+    "Es verdad: son el molde en que recibimos lo sensible", "Es verdad: son conceptos del entendimiento", "Es verdad: son cosas en sí", "Es verdad: se sacan de la experiencia"], 0,
+    ["Son intuiciones puras, no conceptos."]);
+  V("kt20", 2, "«El noúmeno es un mundo oculto que la ciencia acabará explorando.»", false, [
+    "Es falso: es un concepto límite inaccesible al conocimiento", "Es falso: es el mundo que vemos", "Es verdad: Kant era platónico", "Es verdad: la física lo estudia"], 0,
+    ["El conocimiento está limitado a la experiencia posible."]);
+  V("kt21", 2, "«Kant demuestra que Dios no existe.»", false, [
+    "Es falso: la razón teórica no puede probarlo ni refutarlo", "Es falso: demuestra que existe con la prueba ontológica", "Es verdad: critica las pruebas", "Es verdad: era ateo"], 0,
+    ["Lo traslada a la razón práctica como postulado."]);
+  V("kt22", 2, "«Para Kant, una acción tiene valor moral por la intención de cumplir el deber, no por sus consecuencias.»", true, [
+    "Es verdad: su ética es deontológica", "Es verdad: lo que importa es la felicidad", "Es verdad: lo que importa es el placer", "Es verdad: lo decide el Estado"], 0,
+    ["Ejemplo del tendero honesto."]);
+  V("kt23", 2, "«El imperativo hipotético vale para todos los seres racionales con independencia de sus deseos.»", false, [
+    "Es falso: vale solo para quien desea el fin; es el categórico el incondicional", "Es falso: es un mandato moral", "Es verdad: es la ley moral", "Es verdad: no depende de nada"], 0,
+    ["«Si quieres X, haz Y» depende de X."]);
+  M("kt24", 2, "Indica a qué facultad pertenece cada elemento.", [
+    C("Espacio", ["Sensibilidad", "Entendimiento", "Razón"], 0),
+    C("Causalidad", ["Sensibilidad", "Entendimiento", "Razón"], 1),
+    C("Idea de Dios", ["Sensibilidad", "Entendimiento", "Razón"], 2),
+    C("Tiempo", ["Sensibilidad", "Entendimiento", "Razón"], 0)],
+    ["Sensibilidad: formas de la intuición; entendimiento: categorías; razón: ideas."], "Sensibilidad, entendimiento, razón, sensibilidad");
+  M("kt25", 2, "Clasifica cada mandato.", [
+    C("Si quieres ahorrar, evita los caprichos", ["Hipotético", "Categórico"], 0),
+    C("Cumple tus promesas", ["Hipotético", "Categórico"], 1),
+    C("Si quieres aprobar, estudia", ["Hipotético", "Categórico"], 0),
+    C("Nunca trates a nadie solo como medio", ["Hipotético", "Categórico"], 1)],
+    ["Hipotético = condicionado a un fin deseado."], "Hipotético, categórico, hipotético, categórico");
+  M("kt26", 2, "Uso público o privado de la razón (¿Qué es la Ilustración?).", [
+    C("Un sabio publica un escrito criticando un impuesto", ["Uso público", "Uso privado"], 0),
+    C("Un oficial ejecuta la orden de su superior", ["Uso público", "Uso privado"], 1),
+    C("Un profesor escribe un libro criticando el sistema educativo", ["Uso público", "Uso privado"], 0),
+    C("Un clérigo enseña el catecismo desde su cargo", ["Uso público", "Uso privado"], 1)],
+    ["Público = ante todo el público lector; privado = desde un cargo."], "Público, privado, público, privado");
+  T("kt27", 2, "Completa: los postulados de la razón práctica son libertad, inmortalidad del alma y la existencia de ______.", "Término =", ["dios", "la existencia de dios"],
+    ["Garantiza que virtud y felicidad coincidan."], "Dios");
+  T("kt28", 2, "Completa: cuando la voluntad se da a sí misma la ley, hablamos de ______ (frente a heteronomía).", "Término =", ["autonomía", "autonomia"],
+    ["Auto = uno mismo; nomos = ley."], "autonomía");
+  O("kt29", 2, "Según Kant, la causa de la minoría de edad es…", ["la pereza y la cobardía", "la falta de inteligencia", "la tiranía exclusivamente", "la voluntad de Dios"], 0,
+    ["No falta entendimiento, sino decisión y valor."]);
+  O("kt30", 2, "¿Qué formulación del imperativo categórico prohíbe usar a otros solo como instrumento?", ["La de la humanidad como fin", "La de la ley universal", "La de la ley de la naturaleza", "El imperativo hipotético"], 0,
+    ["La persona tiene dignidad, no precio."]);
+
+  // ---- nivel 3
+  O("kt31", 3, "¿Por qué «7 + 5 = 12» es sintético para Kant?", ["Porque 12 no está contenido en el concepto «7 + 5»; hay que construir la suma en la intuición", "Porque se aprende con la experiencia", "Porque es una contradicción", "Porque es una opinión"], 0,
+    ["El concepto de 7 + 5 solo expresa la unión; el resultado exige la intuición."]);
+  O("kt32", 3, "¿Cómo responde Kant a Hume sobre la causalidad?", ["Es una categoría que el entendimiento aporta y vale para toda experiencia", "La causalidad no existe", "Es solo un hábito, como dice Hume", "Es una idea innata de Dios"], 0,
+    ["Fundamenta su validez universal."]);
+  O("kt33", 3, "¿Por qué la metafísica tradicional no puede ser ciencia?", ["Porque sus ideas (alma, mundo, Dios) exceden la experiencia posible", "Porque es falsa", "Porque no usa la lógica", "Porque no tiene historia"], 0,
+    ["Sin intuición sensible no hay conocimiento."]);
+  O("kt34", 3, "¿Por qué la máxima «hacer una promesa falsa» no pasa el test?", ["Universalizada destruiría la práctica de prometer", "Porque produce malas consecuencias", "Porque no gusta a Dios", "Porque lo prohíbe la ley"], 0,
+    ["Contradicción en el concepto."]);
+  O("kt35", 3, "¿Qué diferencia una ética formal (Kant) de una material (Aristóteles)?", ["La formal fija cómo debe ser la máxima; la material señala un fin como la felicidad", "La formal depende de la religión", "La material no usa la razón", "No hay diferencia"], 0,
+    ["Kant no dice qué hacer, sino cómo comprobarlo."]);
+  O("kt36", 3, "El postulado de la libertad se resume en «debes, luego puedes». Significa que…", ["el deber presupone la libertad para cumplirlo", "la libertad es una ilusión", "el deber no existe", "la libertad es sinónimo de placer"], 0,
+    ["Sin libertad, la obligación sería absurda."]);
+  O("kt37", 3, "Un tendero no engaña a los niños para no perder clientes. Según Kant, su acción es…", ["conforme al deber, pero no por deber", "por deber y con valor moral", "inmoral", "un imperativo hipotético imposible"], 0,
+    ["El motivo es el interés."]);
+  O("kt38", 3, "¿Qué significa el uso regulativo de las ideas de la razón?", ["No amplían el conocimiento, pero orientan la investigación", "Dan conocimiento de Dios", "Son innatas", "Sustituyen a la experiencia"], 0,
+    ["Funcionan como horizontes."]);
+  O("kt39", 3, "¿Cuál es el orden cronológico de las tres Críticas?", ["Razón pura → razón práctica → juicio", "Razón práctica → razón pura → juicio", "Juicio → razón pura → razón práctica", "Razón pura → juicio → razón práctica"], 0,
+    ["1781, 1788 y 1790."], "Razón pura → razón práctica → juicio");
+  O("kt40", 3, "En ética, a diferencia de Hume, Kant funda la moral en…", ["la razón y el deber", "el sentimiento", "la utilidad", "la costumbre"], 0,
+    ["Hume la basaba en el sentimiento."]);
+  R("kt41", "Explica el giro copernicano de Kant y los juicios sintéticos a priori. (Pregunta tipo PAU)", 9, [
+    { t: "Explica el giro copernicano (el objeto se adapta al sujeto)", p: 0.4 },
+    { t: "Distingue materia (experiencia) y forma (espacio, tiempo, categorías)", p: 0.4 },
+    { t: "Define analítico/sintético y a priori/a posteriori", p: 0.4 },
+    { t: "Explica por qué matemáticas y física son sintéticas a priori", p: 0.4 },
+    { t: "Relaciona con Hume (causalidad)", p: 0.4 }],
+    ["Giro copernicano.", "Materia y forma.", "Tipos de juicios.", "Sintético a priori.", "Respuesta a Hume."], "El sujeto pone la forma; la ciencia es posible porque hay juicios sintéticos a priori");
+  R("kt42", "Explica la distinción entre fenómeno y noúmeno y la crítica de Kant a la metafísica. (Pregunta tipo PAU)", 9, [
+    { t: "Define fenómeno y noúmeno", p: 0.4 },
+    { t: "Explica que el noúmeno es un concepto límite", p: 0.4 },
+    { t: "Menciona las ideas: alma, mundo y Dios", p: 0.4 },
+    { t: "Explica paralogismos, antinomias e ideal de la razón", p: 0.4 },
+    { t: "Señala el uso regulativo y que no demuestra ni refuta a Dios", p: 0.4 }],
+    ["Fenómeno y noúmeno.", "Concepto límite.", "Ideas de la razón.", "Errores de la razón.", "Uso regulativo."], "Solo hay conocimiento de fenómenos; la metafísica es ilusión necesaria");
+  R("kt43", "Expón la ética kantiana (buena voluntad, imperativo categórico, formulaciones y autonomía) y compárala con la de Aristóteles. (Pregunta tipo PAU)", 9, [
+    { t: "Explica la buena voluntad y el deber (ética deontológica)", p: 0.4 },
+    { t: "Distingue imperativo hipotético y categórico", p: 0.4 },
+    { t: "Expone al menos dos formulaciones del imperativo categórico", p: 0.4 },
+    { t: "Explica autonomía frente a heteronomía y ética formal", p: 0.4 },
+    { t: "Compara con Aristóteles (felicidad y virtud frente a deber)", p: 0.4 }],
+    ["Buena voluntad.", "Imperativos.", "Formulaciones.", "Autonomía y formalismo.", "Comparación."], "Moral autónoma del deber frente a ética material de la felicidad");
+  R("kt44", "Explica la Ilustración, el uso público de la razón y la propuesta política de la paz perpetua. (Pregunta tipo PAU)", 9, [
+    { t: "Define la Ilustración como salida de la minoría de edad y el lema «sapere aude»", p: 0.4 },
+    { t: "Explica las causas: pereza y cobardía", p: 0.4 },
+    { t: "Distingue uso público y uso privado de la razón", p: 0.4 },
+    { t: "Explica los tres artículos definitivos de la paz perpetua", p: 0.4 },
+    { t: "Relaciona con la libertad y la autonomía", p: 0.4 }],
+    ["Minoría de edad.", "Pereza y cobardía.", "Uso público y privado.", "Paz perpetua.", "Relación con la autonomía."], "Ilustración = pensar por uno mismo con libertad pública");
+  R("kt45", "Comenta este texto: «Obra de tal modo que uses la humanidad, tanto en tu persona como en la persona de cualquier otro, siempre como un fin al mismo tiempo y nunca solamente como un medio» (Kant, <i>Fundamentación de la metafísica de las costumbres</i>, sección II; traducción habitual). Indica tema, ideas, relación con el autor y comparación con otro pensador.", 9, [
+    { t: "Tema: una formulación del imperativo categórico (la humanidad como fin)", p: 0.3 },
+    { t: "Idea principal: las personas tienen dignidad y no pueden ser solo instrumento", p: 0.4 },
+    { t: "Aclara términos: fin y medio, humanidad, imperativo categórico", p: 0.4 },
+    { t: "Relaciona con la ética formal, la autonomía y el reino de los fines", p: 0.5 },
+    { t: "Compara con otro autor (Aristóteles, Hume o Rousseau)", p: 0.4 }],
+    ["Tema.", "Idea principal.", "Términos.", "Relación con Kant.", "Comparación."], "Dignidad de la persona como fin en sí mismo");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Los cuatro tipos de juicios", ancha: true,
+      tabla: { cab: ["", "A priori", "A posteriori"], filas: [
+        ["Analítico", "todos los cuerpos son extensos", "no existe"],
+        ["Sintético", "7 + 5 = 12; todo suceso tiene causa", "todos los cuerpos son pesados"]
+      ] } },
+    { titulo: "Las tres partes de la Crítica", ancha: true,
+      tabla: { cab: ["Parte", "Facultad", "Objeto"], filas: [
+        ["Estética", "sensibilidad", "espacio y tiempo"],
+        ["Analítica", "entendimiento", "categorías"],
+        ["Dialéctica", "razón", "alma, mundo, Dios"]
+      ] } },
+    { titulo: "Imperativos",
+      tabla: { cab: ["Hipotético", "Categórico"], filas: [
+        ["«si quieres X, haz Y»", "«haz Y»"],
+        ["condicionado", "incondicionado"]
+      ] } },
+    { titulo: "Postulados de la razón práctica",
+      pasos: ["Libertad: condición del deber.", "Inmortalidad: progreso infinito hacia la santidad.", "Dios: virtud y felicidad coinciden."],
+      nota: "No son conocimientos: son supuestos de la moral." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Kant es empirista", bien: "Combina experiencia y estructuras a priori", por: "Materia y forma." },
+        { mal: "El noúmeno es un mundo oculto explorable", bien: "Es un concepto límite incognoscible", por: "Solo hay fenómenos." },
+        { mal: "Kant demuestra que Dios no existe", bien: "Ni lo prueba ni lo refuta en la razón teórica", por: "Lo postula la razón práctica." },
+        { mal: "La minoría de edad es falta de inteligencia", bien: "Es falta de decisión y valor", por: "Pereza y cobardía." }
+      ] }
+  ];
+
+  B.registrar("historia_fil", "t12", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.hf12a.secciones,
+    nuevas: B.parte.hf12a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
