@@ -118,6 +118,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t7 Santo Tomás (44 ej., 243 comprob.) | ≈155k | |
 | Filosofía t8 Renacimiento y ciencia (46 ej., 258 comprob.) | ≈151k | |
 | Filosofía t9 Descartes (44 ej., 241 comprob.) | ≈150k | |
+| Filosofía t10 Locke y Hume (44 ej., 252 comprob.) | ≈150k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -192,3 +193,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 29-oct: Filosofía t7 fusionado. Lanzado t9.
 - 29-oct: Filosofía t8 fusionado. Lanzado t10.
 - 29-oct: Filosofía t9 fusionado. Lanzado t11.
+- 29-oct: Filosofía t10 fusionado. Lanzado t12.
