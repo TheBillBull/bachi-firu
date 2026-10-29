@@ -1,13 +1,16 @@
 # PLAN.md — cómo retomar el proyecto (léelo entero antes de tocar nada)
 
-## 0. ESTADO AL PARAR (28-oct-2026, ~20:00 UTC) — LEER PRIMERO
+## 0. ESTADO AL PARAR (29-oct-2026: Historia de la Filosofía cerrada; antes 28-oct Mates II) — LEER PRIMERO
+
+- 29-oct: Historia de la Filosofía terminada (16 temas con ficha de vista rápida). comprobar_todo: TODO CUADRA (64 grupos, 27.847 cifras). Publicado en artefacto (v12) y en `main`. Bill pidió PARAR tras Filosofía. Pendiente menor: cotejar con edición algunas citas marcadas como «traducción habitual».
+
 - **Parado por el usuario** («por ahora paramos»). No empezar nada nuevo hasta que diga «continuamos» y qué asignatura.
 - **Hecho y verificado**: Mates I, FyQ I, **Química II (11 temas + 8 simulacros, 3 nuevos en formato oficial PAU Madrid 2025-26)** y **Matemáticas II (14 temas)**. `comprobar_todo.sh` → «TODO CUADRA» (47 grupos, 24.100 comprobaciones de cifras, 0 fallos). Todo commiteado y subido a `claude/admiring-keller-1be6ou`.
 - **DOS publicaciones (no confundir)**:
   1. **Web PÚBLICA = GitHub Pages**: https://thebillbull.github.io/bachi-firu/ — se sirve desde la rama `main` (raíz, `index.html`). Para actualizarla: abrir una PR de `claude/admiring-keller-1be6ou` hacia `main` (la sesión de Claude NO tiene permiso para empujar a `main`) y que el usuario la fusione; Pages se actualiza en 1–2 min. El 28-oct-2026 (20:06 UTC) `main` se actualizó con Química II y Mates II (avance rápido, commit 1abb82f; PR #1). Con permiso del usuario, la sesión puede empujar la rama de trabajo a `main` en avance rápido (`git push origin claude/admiring-keller-1be6ou:main`); si el permiso se deniega, PR y que fusione el usuario. **No lleva corrección con Claude** (es normal: fuera de claude.ai no existe `window.claude`); la página lo detecta sola (`EN_CLAUDE` en `pagina.html`): guarda el progreso en el navegador y, si se pulsa «corregir con Claude», muestra un aviso (`SIN_IA`). No hay que quitar nada a mano para la versión pública.
   2. **Artefacto privado de claude.ai** (con corrección de Claude en Comentario de texto e Inglés): https://claude.ai/artifact/PBj2wEg4PKUru2SyFq2T2c (versión 11 = Mates II completa), capacidades `sample` y `db`.
 - **Republicar desde una conversación NUEVA** exige que esa conversación lea la página entera (≈6 MB): inviable. Opciones: publicar en una dirección nueva (pasando `capabilities: {sample:{}, db:{}}`) y anotarla aquí, avisando de que el progreso guardado en el navegador no se traslada; o seguir siempre desde la misma conversación.
-- **Pendiente sin empezar**: Física II (12), Biología II (16), Lengua (22), Historia de la Filosofía (16), Historia de España (14 de 15); simulacros nuevos de Mates II. Pegas menores: 1 px de desborde en móvil en Química II t10–t11; `q7_reacciones` abre siempre en «Adición»; en Mates «2e-1» se lee como 0,2 (escribir «2*e-1»).
+- **Pendiente sin empezar**: Física II (12), Biología II (16), Lengua (22), Historia de España (14 de 15); simulacros nuevos de Mates II. Pegas menores: 1 px de desborde en móvil en Química II t10–t11; `q7_reacciones` abre siempre en «Adición»; en Mates «2e-1» se lee como 0,2 (escribir «2*e-1»).
 - **Cómo se trabajó (funciona bien)**: sesión principal solo orquesta; 2 agentes nuevos a la vez (modelo Sonnet, `isolation: worktree`), un tema cada uno, con el encargo común `herramientas/ENCARGO_COMUN_MATES2.txt` adaptado a la asignatura + 5–8 ideas EvAU del tema; al acabar cada uno: `sh herramientas/validar_tema.sh <id> <asig> <N>` (fusiona, prueba y verifica; el índice debe estar limpio antes), apuntar coste en §7, lanzar el siguiente, publicar cada 2–3 temas. Coste medido: ≈200.000–300.000 tokens por tema. Ajuste previo necesario en un contenedor nuevo: `~/.claude/settings.json` con `{"worktree":{"baseRef":"head"}}` (si no, los worktrees fallan) y `pip install sympy scipy rdkit py2opsin mendeleev`.
 - **Prompt para retomar**: `herramientas/PROMPT_RETOMAR.md`.
 
@@ -28,7 +31,8 @@
 | Química II (11 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 11 temas ampliados · 525 ejercicios en temas (t6 incluye 10 antiguos) · 8 simulacros (3 nuevos) · ≈45 interactivos nuevos, todos probados pulsándolos · ≈4.500 comprobaciones de cifras nuevas sin fallos |
 | Historia de España (15 temas) | **A medias a propósito**: solo el tema 7 (Restauración) con el estándar antiguo (7 ejercicios, línea del tiempo, diagramas, comentario guiado) | Después de Química II, si el usuario lo decide |
 | Matemáticas II (14 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 14 temas ampliados (≈98.000 palabras) · 660 ejercicios · 53 interactivos nuevos, todos probados pulsándolos · 2.896 comprobaciones de cifras sin fallos · sin simulacros nuevos |
-| Física II (12), Biología II (16), Lengua (22), Historia de la Filosofía (16) | Sin empezar (solo el contenido original) | — |
+| Historia de la Filosofía (16) | **Cerrada 29-oct**: 16 temas ampliados, cada uno con ficha «de un vistazo» (componente `vistazo`, lab_0vistazo.js); 707 ejercicios, 3.747 comprobaciones sin fallos | ≈2,5 M tokens (≈157k/tema) |
+| Física II (12), Biología II (16), Lengua (22) | Sin empezar (solo el contenido original) | — |
 
 «A medias a propósito» = no hay nada roto ni sin terminar en el código: esos dos temas funcionan y están verificados; simplemente se ampliarán más cuando toque su asignatura.
 
@@ -124,6 +128,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t13 Marx (46 ej., 260 comprob.) | ≈155k | |
 | Filosofía t14 Nietzsche (45 ej., 266 comprob.) | ≈178k | |
 | Filosofía t15 fenomenología y existencialismo (41 ej., 279 comprob.) | ≈157k | |
+| Filosofía t16 Ortega (44 ej., 226 comprob.) | ≈156k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -204,3 +209,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 29-oct: Filosofía t13 fusionado. Lanzado t15.
 - 29-oct: Filosofía t14 fusionado. Lanzado t16.
 - 29-oct: Filosofía t15 fusionado. Lanzado t16 (último).
+- 29-oct: Filosofía t16 fusionado. TODO CUADRA. Artefacto v12 y `main` actualizados. PARADA.
