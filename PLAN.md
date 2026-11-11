@@ -1,8 +1,22 @@
 # PLAN.md — cómo retomar el proyecto (léelo entero antes de tocar nada)
 
-## 0. ESTADO AL PARAR (29-oct-2026: Historia de la Filosofía cerrada; antes 28-oct Mates II) — LEER PRIMERO
+## 0. ESTADO AL PARAR — LEER PRIMERO
 
-- **29-oct-2026: 5 asignaturas listas** — Mates I, FyQ I, Química II, Matemáticas II e **Historia de la Filosofía** (16 temas, cada uno con ficha «de un vistazo»; 707 ejercicios, 3.747 comprobaciones). `comprobar_todo.sh` → TODO CUADRA (64 grupos, 27.847 comprobaciones de cifras, 0 fallos). Publicado en el artefacto (versión 12) y en `main` (Pages, commit 8bbf02b). Bill pidió PARAR tras Filosofía. Pendiente menor: cotejar con una edición las citas marcadas «traducción habitual».
+**Revisado el 11-nov-2026.** Último cambio en la web: **29-oct-2026, 04:17 UTC** (commit `2dfbe8d`, ficha imprimible). Desde entonces no se ha tocado contenido. Estas fechas son las mismas que lleva la nota del vault (`Documentación-IT/05-Proyectos/Bachi Firu.md`); si cambias una, cambia la otra.
+
+**Cronología (todas en UTC):**
+| Fecha | Qué |
+|---|---|
+| 27-oct-2026 | Cierre de la versión 1: Matemáticas I y Física y Química I completas. Obsidian/iPad descartado. |
+| 28-oct-2026 ~13:20 | Química II cerrada (11 temas + 3 simulacros nuevos). |
+| 28-oct-2026 ~20:06 | Primera publicación en `main` (GitHub Pages) con lo ampliado. |
+| 28-oct-2026 ~21:30 | Matemáticas II cerrada (14 temas). |
+| 29-oct-2026 ~01:20 | Historia de la Filosofía cerrada (16 temas, ficha «de un vistazo»). Artefacto privado versión 12. `main` actualizado. |
+| 29-oct-2026 04:17 | Arreglo: imprimir la ficha ya no saca hojas en blanco (commit `2dfbe8d`, en `main`; no afecta al artefacto, que no muestra el botón). |
+| 11-nov-2026 | Revisión de la documentación (este archivo, README, CLAUDE.md, PROMPT_RETOMAR y la nota del vault). Sin cambios de contenido. |
+
+
+- **5 asignaturas listas** (desde el 29-oct-2026) — Mates I, FyQ I, Química II, Matemáticas II e **Historia de la Filosofía** (16 temas, cada uno con ficha «de un vistazo»; 707 ejercicios, 3.747 comprobaciones). `comprobar_todo.sh` → TODO CUADRA (64 grupos, 27.847 comprobaciones de cifras, 0 fallos). Publicado en el artefacto (versión 12, 29-oct) y en `main` (Pages; hoy en el commit `2dfbe8d`). Bill pidió PARAR tras Filosofía. Pendiente menor: cotejar con una edición las citas marcadas «traducción habitual».
 - **Siguiente (cuando Bill diga «continuamos» y qué asignatura)**: quedan Historia de España (14 de 15 temas), Física II (12), Biología II (16) y Lengua (22). Ver §1b para el método exacto y el coste esperado.
 
 - **Parado por el usuario** («por ahora paramos»). No empezar nada nuevo hasta que diga «continuamos» y qué asignatura.
@@ -15,7 +29,7 @@
 - **Cómo se trabajó (funciona bien)**: sesión principal solo orquesta; 2 agentes nuevos a la vez (modelo Sonnet, `isolation: worktree`), un tema cada uno, con el encargo común `herramientas/ENCARGO_COMUN_FILOSOFIA.txt` (letras) o `ENCARGO_COMUN_MATES2.txt` (ciencias) adaptado a la asignatura + 5–8 ideas EvAU del tema; al acabar cada uno: `sh herramientas/validar_tema.sh <id> <asig> <N>` (fusiona, prueba y verifica; el índice debe estar limpio antes), apuntar coste en §7, lanzar el siguiente, publicar cada 2–3 temas. Coste medido: ≈200.000–300.000 tokens por tema en ciencias; ≈157.000 por tema en Filosofía. Ajuste previo necesario en un contenedor nuevo: `~/.claude/settings.json` con `{"worktree":{"baseRef":"head"}}` (si no, los worktrees fallan) y `pip install sympy scipy rdkit py2opsin mendeleev`.
 - **Prompt para retomar**: `herramientas/PROMPT_RETOMAR.md`.
 
-Última actualización: cierre de la versión 1 (fin de octubre de 2026). Si algo de aquí no coincide con el repositorio, **manda el repositorio**: dilo y corrige este archivo.
+Última revisión: 11-nov-2026 (ver la cronología de arriba). Si algo de aquí no coincide con el repositorio, **manda el repositorio**: dilo y corrige este archivo.
 
 ## 1. Cómo retomar (3 pasos)
 1. El usuario dice **«continuamos»** (el protocolo está en `CLAUDE.md`).
@@ -46,7 +60,7 @@
 ## 3. Pendientes y notas conocidas (nada de esto bloquea el uso)
 - **Publicación**: la dirección de uso es https://claude.ai/artifact/PBj2wEg4PKUru2SyFq2T2c (**nueva desde el 28-oct-2026**, versión 1 = commit `6805024`; la anterior, 4rJafyZA7j7pVvMX8QJaTC, queda como copia con lo publicado hasta `3efb0c7`: republicarla desde otra conversación exigía leer sus 5,7 MB enteros). Tiene las capacidades `sample` y `db` (correcciones de Claude en Comentario de texto e Inglés); al republicar **no se pasa `capabilities`**. Para generar el archivo: `sh herramientas/preparar_publicacion.sh <ruta.html>` y publicar con la herramienta Artifact (`url` = esa dirección). **Si `git log` muestra commits posteriores a `3efb0c7` que cambien `ampliaciones/` o `pagina.html`, hay que republicar.**
 - **Dos direcciones**: la antigua (`https://claude.ai/artifact/XQLuNYX6Bk5A2LSEtHkdxZ`) conserva la página original sin ampliar (comprobado: es idéntica al `pagina.html` del primer commit). Sobrescribirla exige leer sus 17.018 líneas (≈450.000 tokens) por una regla de la herramienta: solo si el usuario lo pide. El progreso (temas marcados, borradores) se guarda en el navegador **por dirección**, así que no se traslada de una a otra.
-- **GitHub Pages / `main`**: ver §0 (web pública = Pages desde `main`, se actualiza con una PR que fusiona el usuario).
+- **GitHub Pages / `main`**: ver §0 (web pública = Pages desde `main`; se actualiza con `git push origin claude/admiring-keller-1be6ou:main`, autorizado por el usuario el 28-oct-2026).
 - **Formulación (FyQ I tema 3)**: los libros no coinciden en algunas variantes de nomenclatura (p. ej. «tetraoxidosulfato(VI) de hidrógeno» frente a «ácido tetraoxosulfúrico(VI)»). La corrección solo acepta las variantes del catálogo (`ampliaciones/lab_formulacion_0motor.js`). Pendiente de que alguien con el libro del curso lo revise; si el entrenador rechaza una variante válida, se añade ahí.
 - **Pruebas en móvil**: se hacen con Chromium emulado a 390 px, no en un teléfono real.
 - **Lo que las comprobaciones no cubren**: las cifras y fórmulas sí se recalculan de forma independiente; que una explicación sea clara o pedagógica no se puede verificar a máquina.
@@ -217,3 +231,5 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 29-oct: Filosofía t14 fusionado. Lanzado t16.
 - 29-oct: Filosofía t15 fusionado. Lanzado t16 (último).
 - 29-oct: Filosofía t16 fusionado. TODO CUADRA. Artefacto v12 y `main` actualizados. PARADA.
+- 29-oct 04:17 UTC: ficha de un vistazo imprimible sin hojas en blanco (display:none en vez de visibility; zoom 0,8 → 13 de 16 fichas en 1 hoja). `main` = `2dfbe8d`.
+- 11-nov-2026: revisión de documentación y fechas (repo + vault). Sin cambios de contenido.

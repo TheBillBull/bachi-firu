@@ -99,4 +99,7 @@ Con Playwright y Chromium (`herramientas/pruebas/`; ver `GUIA_TEMA.md`):
 
 ## Versión Obsidian (iPad) — descartada
 
-Se probó un generador de vault de Obsidian (`obsidian/`), pero se descartó el 27-oct-2026 (no encaja con quien estudia con la web). Queda solo como histórico, sin mantenimiento ni la capa de ampliaciones; la web de uso es la página de claude.ai (ver `PLAN.md`).
+Se probó un generador de vault de Obsidian (`obsidian/`), pero se descartó el 27-oct-2026 (no encaja con quien estudia con la web). Queda solo como histórico, sin mantenimiento ni la capa de ampliaciones; la web de uso es GitHub Pages (y la versión con corrección, el artefacto de claude.ai; ver `PLAN.md`).
+
+---
+Estado: 5 asignaturas listas. Último cambio en la web: 29-oct-2026; documentación revisada el 11-nov-2026. Cronología completa en `PLAN.md` §0.
