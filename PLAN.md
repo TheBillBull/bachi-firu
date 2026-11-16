@@ -13,6 +13,7 @@
 | 28-oct-2026 ~21:30 | Matemáticas II cerrada (14 temas). |
 | 29-oct-2026 ~01:20 | Historia de la Filosofía cerrada (16 temas, ficha «de un vistazo»). Artefacto privado versión 12. `main` actualizado. |
 | 29-oct-2026 04:17 | Arreglo: imprimir la ficha ya no saca hojas en blanco (commit `2dfbe8d`, en `main`; no afecta al artefacto, que no muestra el botón). |
+| 16-nov-2026 | Empieza Biología II (16 temas), encargo `herramientas/ENCARGO_COMUN_BIOLOGIA.txt`, con ficha «de un vistazo». |
 | 11-nov-2026 | Revisión de la documentación (este archivo, README, CLAUDE.md, PROMPT_RETOMAR y la nota del vault). Sin cambios de contenido. |
 
 
@@ -233,3 +234,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 29-oct: Filosofía t16 fusionado. TODO CUADRA. Artefacto v12 y `main` actualizados. PARADA.
 - 29-oct 04:17 UTC: ficha de un vistazo imprimible sin hojas en blanco (display:none en vez de visibility; zoom 0,8 → 13 de 16 fichas en 1 hoja). `main` = `2dfbe8d`.
 - 11-nov-2026: revisión de documentación y fechas (repo + vault). Sin cambios de contenido.
+- 16-nov-2026: Biología II empieza; lanzados t1 y t2.
