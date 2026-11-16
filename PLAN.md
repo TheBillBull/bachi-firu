@@ -153,7 +153,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t16 Ortega (44 ej., 226 comprob.) | ≈156k | |
 | Biología II t1 bioelementos (44 ej., 303 comprob.) | ≈179k | |
 | Biología II t2 glúcidos (45 ej., 313 comprob.) | ≈206k | |
-| Biología II t3 lípidos (44 ej., 321 comprob.) | ≈180k (estim.) | |
+| Biología II t3 lípidos (44 ej., 321 comprob.) | ≈157k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
