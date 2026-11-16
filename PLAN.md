@@ -152,6 +152,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Filosofía t15 fenomenología y existencialismo (41 ej., 279 comprob.) | ≈157k | |
 | Filosofía t16 Ortega (44 ej., 226 comprob.) | ≈156k | |
 | Biología II t1 bioelementos (44 ej., 303 comprob.) | ≈179k | |
+| Biología II t2 glúcidos (45 ej., 313 comprob.) | ≈206k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -237,3 +238,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 11-nov-2026: revisión de documentación y fechas (repo + vault). Sin cambios de contenido.
 - 16-nov-2026: Biología II empieza; lanzados t1 y t2.
 - 16-nov: Biología t1 fusionado. Lanzado t3.
+- 16/17-nov: Biología t2 fusionado. Lanzado t4.
