@@ -13,8 +13,8 @@
 | 28-oct-2026 ~21:30 | Matemáticas II cerrada (14 temas). |
 | 29-oct-2026 ~01:20 | Historia de la Filosofía cerrada (16 temas, ficha «de un vistazo»). Artefacto privado versión 12. `main` actualizado. |
 | 29-oct-2026 04:17 | Arreglo: imprimir la ficha ya no saca hojas en blanco (commit `2dfbe8d`, en `main`; no afecta al artefacto, que no muestra el botón). |
-| 16-nov-2026 | Empieza Biología II (16 temas), encargo `herramientas/ENCARGO_COMUN_BIOLOGIA.txt`, con ficha «de un vistazo». |
 | 11-nov-2026 | Revisión de la documentación (este archivo, README, CLAUDE.md, PROMPT_RETOMAR y la nota del vault). Sin cambios de contenido. |
+| 16-nov-2026 | Empieza Biología II (16 temas), encargo `herramientas/ENCARGO_COMUN_BIOLOGIA.txt`, con ficha «de un vistazo». |
 
 
 - **5 asignaturas listas** (desde el 29-oct-2026) — Mates I, FyQ I, Química II, Matemáticas II e **Historia de la Filosofía** (16 temas, cada uno con ficha «de un vistazo»; 707 ejercicios, 3.747 comprobaciones). `comprobar_todo.sh` → TODO CUADRA (64 grupos, 27.847 comprobaciones de cifras, 0 fallos). Publicado en el artefacto (versión 12, 29-oct) y en `main` (Pages; hoy en el commit `2dfbe8d`). Bill pidió PARAR tras Filosofía. Pendiente menor: cotejar con una edición las citas marcadas «traducción habitual».
