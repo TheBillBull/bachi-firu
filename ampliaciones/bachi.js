@@ -3883,6 +3883,86 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 3 (Lípidos)
+   bio_acidograso: cinco ácidos grasos de 16–18 carbonos; dibujo de la cadena (los dobles enlaces cis «doblan» la cadena),
+   datos (fórmula, masa molar, punto de fusión) y estado sólido/líquido a la temperatura que elijas.
+   Estilos inyectados desde aquí. Los datos los recalcula herramientas/verificar_bio2_t3.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio3-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio3-estilos";
+    s.textContent =
+      ".bio3-svg{display:block;width:100%;max-width:560px;height:auto;margin:6px auto}" +
+      ".bio3-svg text{font:600 12px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio3-svg .b3-cad{fill:none;stroke:var(--pen);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}" +
+      ".bio3-svg .b3-dob{fill:none;stroke:var(--red);stroke-width:3;stroke-linecap:round}" +
+      ".bio3-svg .b3-cab{fill:var(--red-soft);stroke:var(--red);stroke-width:2}" +
+      ".bio3-svg .b3-marco{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio3-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio3-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio3-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio3-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio3-veredicto.liq{border-color:var(--ok);background:var(--ok-soft)}" +
+      "@media(max-width:520px){.bio3-dato{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  // clave, nombre, notación, nº de C, carbonos donde empieza cada doble enlace, fórmula, Mr, punto de fusión (°C), dónde está
+  var ACIDOS = [
+    { k: "pal", t: "Palmítico", nt: "C16:0", c: 16, d: [], f: "C₁₆H₃₂O₂", mr: 256.43, tf: 63, en: "aceite de palma, grasa animal" },
+    { k: "est", t: "Esteárico", nt: "C18:0", c: 18, d: [], f: "C₁₈H₃₆O₂", mr: 284.48, tf: 70, en: "sebo, manteca de cacao" },
+    { k: "ole", t: "Oleico", nt: "C18:1 Δ9", c: 18, d: [9], f: "C₁₈H₃₄O₂", mr: 282.47, tf: 13, en: "aceite de oliva" },
+    { k: "lin", t: "Linoleico", nt: "C18:2 Δ9,12", c: 18, d: [9, 12], f: "C₁₈H₃₂O₂", mr: 280.45, tf: -5, en: "girasol (esencial, ω-6)" },
+    { k: "lnc", t: "α-Linolénico", nt: "C18:3 Δ9,12,15", c: 18, d: [9, 12, 15], f: "C₁₈H₃₀O₂", mr: 278.44, tf: -11, en: "lino, nueces (esencial, ω-3)" }
+  ];
+  B.lab = B.lab || {};
+  B.lab.acidosGrasos = ACIDOS;
+
+  B.w.bio_acidograso = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Ácidos grasos: forma, fórmula y estado");
+    cuerpo.innerHTML = '<p class="w-intro">Elige un ácido graso y una temperatura. Cada doble enlace cis (en rojo) dobla la cadena: así se empaquetan peor y funden antes.</p>' +
+      '<div data-ac></div><div data-ctl></div><div class="bio3-dibujo"></div><div class="bio3-dato"></div><div class="bio3-veredicto"></div>' +
+      '<p class="w-pie">Puntos de fusión de tablas habituales (varían 1–2 °C según la fuente). Nº de H = 2·C − 2·(dobles enlaces).</p>';
+    var cur = ACIDOS[2], temp = 20;
+    U.fichas(cuerpo.querySelector("[data-ac]"), ACIDOS.map(function (a) { return { k: a.k, t: a.t }; }), cur.k, function (k) {
+      cur = ACIDOS.filter(function (a) { return a.k === k; })[0]; pinta();
+    });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Temperatura", min: -20, max: 80, step: 1, val: temp, fmt: function (v) { return Math.round(v) + " °C"; }, on: function (v) { temp = v; pinta(); } });
+    var dib = cuerpo.querySelector(".bio3-dibujo"), dat = cuerpo.querySelector(".bio3-dato"), ver = cuerpo.querySelector(".bio3-veredicto");
+
+    function pinta() {
+      var n = cur.c, paso = 22, off = 0, pts = [], dob = "", i;
+      for (i = 1; i <= n; i++) {
+        if (i > 1 && cur.d.indexOf(i - 1) >= 0) off = off ? 0 : 1;      // tras un doble enlace cis la cadena se desvía
+        pts.push([30 + (i - 1) * paso, 40 + (i % 2 ? 0 : 14) + off * 30]);
+      }
+      for (i = 1; i < n; i++) {
+        if (cur.d.indexOf(i) >= 0) dob += '<line class="b3-dob" x1="' + pts[i - 1][0] + '" y1="' + (pts[i - 1][1] + 6) + '" x2="' + pts[i][0] + '" y2="' + (pts[i][1] + 6) + '"/>';
+      }
+      var ancho = 30 + (n - 1) * paso + 36;
+      dib.innerHTML = '<svg class="bio3-svg" viewBox="0 0 ' + ancho + ' 120" role="img" aria-label="Cadena de ácido ' + cur.t + '"><rect class="b3-marco" x="2" y="2" width="' + (ancho - 4) + '" height="116" rx="12"/>' +
+        '<polyline class="b3-cad" points="' + pts.map(function (p) { return p[0] + "," + p[1]; }).join(" ") + '"/>' + dob +
+        '<circle class="b3-cab" cx="' + pts[0][0] + '" cy="' + pts[0][1] + '" r="9"/>' +
+        '<text x="22" y="22">COOH</text>' +
+        '<text x="' + (pts[n - 1][0] - 8) + '" y="' + (pts[n - 1][1] + 28) + '">CH₃</text></svg>';
+      var liquido = temp >= cur.tf, nd = cur.d.length;
+      dat.innerHTML = "<div><b>Notación</b>" + cur.nt + "</div><div><b>Fórmula</b>" + cur.f + "</div>" +
+        "<div><b>Masa molar</b>" + B.fmt(cur.mr, 2) + " g/mol</div><div><b>Dobles enlaces</b>" + nd + (nd ? " (insaturado)" : " (saturado)") + "</div>" +
+        "<div><b>Punto de fusión</b>" + cur.tf + " °C</div><div><b>Dónde está</b>" + cur.en + "</div>";
+      ver.className = "bio3-veredicto" + (liquido ? " liq" : "");
+      ver.textContent = "A " + Math.round(temp) + " °C el ácido " + cur.t.toLowerCase() + " es " + (liquido ? "LÍQUIDO" : "SÓLIDO") + " (funde a " + cur.tf + " °C). " +
+        (nd === 0 ? "Su cadena es recta y encaja con las vecinas: hace falta mucha temperatura para separarlas."
+          : "Con " + nd + (nd > 1 ? " dobles enlaces cis" : " doble enlace cis") + " la cadena está doblada y se empaqueta mal: funde antes.");
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · laboratorio de números complejos (Matemáticas I, tema 6)
    motor B.lab.cx + potenciasi · operaciones · plano · conversor
    raices · lugar · mandelbrot
@@ -27060,6 +27140,543 @@
     vistazo: vistazo,
     secciones: B.parte.bio2t2a.secciones,
     nuevas: B.parte.bio2t2a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 3: Lípidos
+   (parte A: teoría. Parte B, bio2_t03b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widget nuevo en ampliaciones/lab_bio_t3.js (bio_acidograso). Cifras recalculadas en herramientas/verificar_bio2_t3.py.
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Qué es un lípido y cómo se clasifican (saponificables / insaponificables) → sección 1 + clasificar.
+   2. Ácido graso: saturado frente a insaturado, cis frente a trans, y por qué cambia el punto de fusión → sección 2 + widget bio_acidograso.
+   3. Formación del triacilglicérido (esterificación: glicerina + 3 AG → grasa + 3 H₂O) y su función de reserva → sección 2 + orden.
+   4. Saponificación: reacción, jabón y por qué limpia (anfipático, micela, emulsión) → sección 5 + sección 6 con cálculos.
+   5. Fosfolípidos: estructura anfipática y bicapa; diferencia con triacilglicéridos → sección 3 + esquema.
+   6. Membrana: fluidez, colesterol y temperatura; mosaico fluido; experimento de Gorter y Grendel → sección 3.
+   7. Ceras, esteroides, terpenos y eicosanoides: ejemplos y función de cada uno → secciones 3 y 4.
+   8. Colesterol: estructura, funciones y lipoproteínas LDL/HDL → sección 4.
+   9. Interpretar un experimento (emulsión con jabón o bilis; tinción Sudán III) y datos de puntos de fusión → sección 7.
+   10. Cálculos: masa molar, reactivos de la saponificación, hidrogenación, índices y energía → sección 6.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t3/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // esquema de una bicapa (SVG generado: cabezas, colas, agua a ambos lados)
+  function bicapa() {
+    var s = "<svg class='bio3-svg' viewBox='0 0 420 190' role='img' aria-label='Bicapa de fosfolípidos: cabezas hacia el agua, colas hacia dentro'><rect class='b3-marco' x='2' y='2' width='416' height='186' rx='12'/>", i, x;
+    for (i = 0; i < 10; i++) {
+      x = 30 + i * 40;
+      s += "<circle class='b3-cab' cx='" + x + "' cy='58' r='11'/><path class='b3-cad' d='M" + (x - 4) + " 69 q-4 14 0 24 t0 24' /><path class='b3-cad' d='M" + (x + 4) + " 69 q4 14 0 24 t0 24' />";
+      s += "<circle class='b3-cab' cx='" + x + "' cy='154' r='11'/><path class='b3-cad' d='M" + (x - 4) + " 143 q-4 -14 0 -24 t0 -24' /><path class='b3-cad' d='M" + (x + 4) + " 143 q4 -14 0 -24 t0 -24' />";
+    }
+    s += "<text x='12' y='24'>AGUA (medio externo)</text><text x='12' y='182'>AGUA (citoplasma)</text><text x='150' y='108'>colas apolares (sin agua)</text></svg>";
+    return s;
+  }
+
+  // ---------------------------------------------------------------- 1. ¿Qué son los lípidos?
+  secciones[0] = env(
+    "<h5>Una familia definida por lo que NO hacen: no se disuelven en agua</h5>" +
+    "<p>A diferencia de los glúcidos o las proteínas, los lípidos <b>no comparten una estructura</b>: una grasa, una cera, el colesterol y la vitamina A parecen moléculas sin relación. Lo que los une es una <b>propiedad física</b>: son <b>hidrofóbicos</b> (insolubles en agua) y <b>solubles en disolventes orgánicos</b> (éter, cloroformo, acetona, benceno). La razón es la que ya conoces: están formados casi solo por C e H, y los enlaces C–H son <b>apolares</b>; el agua es polar, así que no hay puentes de hidrógeno con los que «agarrarlos».</p>" +
+    "<p>Por eso un lípido tiene <b>tacto untuoso</b>, <b>flota</b> en el agua (densidad menor que 1 g/cm³) y deja en el papel una <b>mancha translúcida que no se seca</b>: el agua se evapora, la grasa no.</p>" +
+    "<h5>La clasificación que hay que saber</h5>" +
+    tabla(["Grupo", "¿Tiene ácidos grasos?", "Ejemplos", "Idea clave"], [
+      ["<b>Saponificables</b>", "Sí: se rompen con una base (NaOH) y dan jabón", "triacilglicéridos (grasas y aceites), ceras, fosfolípidos, glucolípidos", "tienen enlace <b>éster</b>"],
+      ["<b>Insaponificables</b>", "No", "esteroides (colesterol, hormonas sexuales), terpenos (carotenos, vitaminas A, E, K), eicosanoides*", "derivan de unidades de 5 C (isopreno) o de ciclos"]
+    ], "q3t") +
+    "<p style='font-size:14px'>* Los eicosanoides (prostaglandinas, tromboxanos, leucotrienos) derivan de un ácido graso de 20 C, el araquidónico, pero no son saponificables: se suelen estudiar aparte.</p>" +
+    w("clasificar", "familias") +
+    "<h5>Funciones: no solo «grasa de reserva»</h5>" +
+    tabla(["Función", "Ejemplo", "Lípido"], [
+      ["<b>Energética</b> (reserva)", "tejido adiposo; semillas de girasol o de oliva", "triacilglicéridos"],
+      ["<b>Estructural</b>", "membranas de todas las células", "fosfolípidos y colesterol"],
+      ["<b>Protectora y aislante</b>", "grasa bajo la piel de la foca; amortigua el riñón; cutícula de las hojas", "triacilglicéridos y ceras"],
+      ["<b>Hormonal</b>", "testosterona, estradiol, cortisol; prostaglandinas", "esteroides y eicosanoides"],
+      ["<b>Vitamínica</b>", "A (visión), D (huesos), E (antioxidante), K (coagulación)", "terpenos y esteroides"],
+      ["<b>Digestiva</b>", "las sales biliares emulsionan las grasas", "derivados del colesterol"]
+    ], "q3t") +
+    ojo("«Lípido» no es sinónimo de «grasa». La grasa (triacilglicérido) es solo un tipo de lípido; el colesterol, por ejemplo, <b>no</b> tiene ácidos grasos y no es una grasa.")
+  );
+
+  // ---------------------------------------------------------------- 2. Ácidos grasos y triacilglicéridos
+  secciones[1] = env(
+    "<h5>El ladrillo: el ácido graso</h5>" +
+    "<p>Un <b>ácido graso</b> es una cadena larga de carbonos con un grupo <b>carboxilo (–COOH)</b> en un extremo: CH<sub>3</sub>–(CH<sub>2</sub>)<sub>n</sub>–COOH. Casi siempre tiene un número <b>par</b> de carbonos (entre 14 y 22), porque la célula los construye de dos en dos. El carboxilo es la «cabeza» polar (reacciona y se une a otras moléculas); la cadena es la «cola» apolar. Eso hace que sea una molécula <b>anfipática</b>, aunque con una cola tan larga domina lo apolar.</p>" +
+    "<p>Se escriben con una notación corta: <b>C18:1 Δ9</b> significa «18 carbonos, 1 doble enlace, que empieza en el carbono 9 contando desde el carboxilo».</p>" +
+    tabla(["Tipo", "Dobles enlaces", "Forma de la cadena", "A 20 °C", "Ejemplos"], [
+      ["<b>Saturado</b>", "ninguno (todo enlaces sencillos)", "recta, encajan como lápices en un estuche", "sólido", "palmítico C16:0, esteárico C18:0"],
+      ["<b>Monoinsaturado</b>", "uno C=C (cis)", "doblada", "líquido", "oleico C18:1 (aceite de oliva)"],
+      ["<b>Poliinsaturado</b>", "dos o más", "muy doblada", "líquido", "linoleico C18:2, linolénico C18:3"]
+    ], "q3t") +
+    "<p>Fórmula general: un ácido graso saturado es C<sub>n</sub>H<sub>2n</sub>O<sub>2</sub>, y cada doble enlace quita <b>2 H</b>: el oleico es C<sub>18</sub>H<sub>34</sub>O<sub>2</sub>, el linoleico C<sub>18</sub>H<sub>32</sub>O<sub>2</sub> y el linolénico C<sub>18</sub>H<sub>30</sub>O<sub>2</sub>.</p>" +
+    w("bio_acidograso") +
+    "<h5>Por qué las grasas animales son sólidas y los aceites vegetales líquidos</h5>" +
+    "<p>Es una cuestión de <b>empaquetamiento</b>. Las cadenas rectas de los ácidos saturados se pegan unas a otras con muchas fuerzas de Van der Waals: hace falta bastante calor para separarlas (el esteárico funde a 70 °C). Un doble enlace <b>cis</b> «rompe» la cadena con un codo de unos 30°; esas cadenas dobladas no encajan, se atraen menos y funden mucho antes (el oleico, a 13 °C; el linolénico, a −11 °C). Por eso la <b>manteca</b> y el <b>sebo</b> son sólidos y el <b>aceite de oliva</b> es líquido.</p>" +
+    ojo("Si el doble enlace es <b>trans</b> la cadena queda casi recta y el ácido se comporta como un saturado. Las <b>grasas trans</b> aparecen cuando la industria <b>hidrogena parcialmente</b> un aceite para hacerlo sólido (margarinas, bollería): se pierden dobles enlaces cis y alguno se convierte en trans. Elevan el colesterol LDL y bajan el HDL, por lo que están muy limitadas en la alimentación.") +
+    "<h5>Ácidos grasos esenciales</h5>" +
+    "<p>Los animales sabemos fabricar saturados y monoinsaturados, pero <b>no</b> sabemos introducir dobles enlaces más allá del carbono 9. Por eso necesitamos tomar con la dieta el <b>linoleico (ω-6)</b> y el <b>α-linolénico (ω-3)</b>: son los <b>ácidos grasos esenciales</b>. «ω-3» significa que el primer doble enlace está a tres carbonos del extremo CH<sub>3</sub>. Se encuentran en el pescado azul, las nueces y las semillas de lino.</p>" +
+    "<h5>El triacilglicérido: tres ácidos grasos atados a una glicerina</h5>" +
+    "<p>La <b>glicerina</b> (propanotriol, C<sub>3</sub>H<sub>8</sub>O<sub>3</sub>) tiene tres grupos –OH. Cada uno reacciona con el –COOH de un ácido graso: es una <b>esterificación</b>, que forma un <b>enlace éster</b> y libera una molécula de agua. Para unir tres ácidos se liberan <b>3 H<sub>2</sub>O</b>.</p>" +
+    "<div class='formula-wrap'><div class='formula'>glicerina + 3 ácidos grasos → triacilglicérido + 3 H<sub>2</sub>O</div></div>" +
+    "<p>Los tres ácidos pueden ser iguales o distintos; en una grasa real hay mezcla. Si los tres son sólidos a temperatura ambiente hablamos de <b>grasa</b> (sebo, manteca); si predominan los insaturados, de <b>aceite</b> (oliva, girasol). El proceso inverso, con agua, es la <b>hidrólisis</b>; en el intestino la hacen las <b>lipasas</b>.</p>" +
+    w("orden", "ordentg") +
+    "<h5>Por qué la grasa es la reserva ideal</h5>" +
+    "<ul><li><b>Más energía por gramo:</b> unas <b>9 kcal/g</b> frente a unas 4 kcal/g de glúcidos y proteínas. Tiene muchos enlaces C–H (muy «reducidos»), y al oxidarlos se libera más energía.</li>" +
+    "<li><b>Se guarda «seca»:</b> es hidrofóbica y no arrastra agua. El glucógeno se almacena muy hidratado y ocupa mucho más volumen por kcal. Por eso las aves migratorias y los animales que hibernan acumulan grasa, no glucógeno.</li>" +
+    "<li><b>Además aísla y protege:</b> la grasa subcutánea de focas y ballenas, el «cojín» que rodea los riñones.</li>" +
+    "<li><b>Limitación:</b> se moviliza más despacio que la glucosa; el cerebro y los hematíes dependen sobre todo de glucosa.</li></ul>" +
+    "<p>Con las cifras: para almacenar 2000 kcal hacen falta 2000/9 ≈ 222 g de grasa, pero 2000/4 = 500 g de glúcidos en seco (y bastante más con el agua asociada).</p>"
+  );
+
+  // ---------------------------------------------------------------- 3. Fosfolípidos y ceras
+  secciones[2] = env(
+    "<h5>El fosfolípido: dos colas y una cabeza</h5>" +
+    "<p>El fosfolípido más habitual (<b>glicerofosfolípido</b>) sale de una glicerina con <b>dos</b> ácidos grasos (en los carbonos 1 y 2, uno suele ser saturado y otro insaturado) y, en el carbono 3, un <b>grupo fosfato</b> unido a un alcohol polar (colina, etanolamina, serina…). Resultado: una <b>cabeza polar e hidrofílica</b> (con carga) y <b>dos colas apolares e hidrofóbicas</b>. Es la molécula <b>anfipática</b> por excelencia. Otro grupo, los <b>esfingolípidos</b> (esfingomielina), usan esfingosina en lugar de glicerina y abundan en la vaina de mielina de las neuronas.</p>" +
+    tabla(["", "Triacilglicérido", "Fosfolípido"], [
+      ["Unidades", "glicerina + 3 ácidos grasos", "glicerina + 2 ácidos grasos + fosfato + alcohol"],
+      ["Polaridad", "apolar (toda la molécula es hidrofóbica)", "<b>anfipático</b>: cabeza polar, colas apolares"],
+      ["En agua", "forma gotas que flotan", "forma <b>micelas, bicapas o liposomas</b>"],
+      ["Función", "reserva de energía, aislante", "estructura de las membranas"]
+    ], "q3t") +
+    "<h5>Qué pasa cuando un lípido anfipático se echa al agua</h5>" +
+    "<p>Las colas no pueden hacer puentes de hidrógeno y el agua se ordena a su alrededor, lo que es energéticamente costoso. Para minimizarlo, las colas se esconden juntas y las cabezas se quedan en contacto con el agua. Se forma así <b>espontáneamente</b>, sin gastar ATP, una de estas estructuras:</p>" +
+    tabla(["Estructura", "Quién la forma", "Cómo es"], [
+      ["<b>Micela</b>", "lípidos con <b>una</b> cola (jabones, sales biliares)", "esfera con las colas dentro y las cabezas fuera; atrapa grasa en su centro"],
+      ["<b>Bicapa</b>", "lípidos con <b>dos</b> colas (fosfolípidos)", "dos láminas enfrentadas por las colas; es la membrana"],
+      ["<b>Liposoma</b>", "la bicapa cerrada sobre sí misma", "vesícula hueca con agua dentro; sirve para transportar fármacos"]
+    ], "q3t") +
+    bicapa() +
+    "<p style='text-align:center;font-size:14px'>Bicapa en corte: las cabezas (círculos) miran al agua y las colas quedan dentro. Mide unos 5 nm de espesor.</p>" +
+    "<h5>La membrana: una bicapa fluida</h5>" +
+    "<p>Los fosfolípidos de una bicapa no están fijos: se mueven <b>lateralmente</b> con mucha rapidez (un fosfolípido recorre varios µm por segundo), giran sobre sí mismos y casi nunca saltan de una capa a la otra (<b>flip-flop</b>), un salto que necesita enzimas (<b>flipasas</b>) porque la cabeza polar tendría que atravesar la zona apolar. En 1972, <b>Singer y Nicolson</b> propusieron el <b>modelo del mosaico fluido</b>: una bicapa fluida con proteínas que flotan en ella (se estudia en el tema 6). Antes, en 1925, <b>Gorter y Grendel</b> habían sugerido que era una bicapa midiendo cuánta superficie cubrían los lípidos extraídos de los glóbulos rojos: el doble que la superficie de las células.</p>" +
+    "<p>La <b>fluidez</b> depende de:</p>" +
+    "<ul><li><b>La temperatura:</b> con frío la membrana se hace rígida; con calor, más fluida.</li>" +
+    "<li><b>Las colas:</b> más ácidos insaturados (codos) → más fluida. Los organismos del frío (peces polares, plantas de invierno) incorporan más insaturados para no «congelar» su membrana.</li>" +
+    "<li><b>El colesterol</b> (membranas animales): actúa de <b>amortiguador</b>; con calor la hace menos fluida (frena el movimiento) y con frío impide que se empaquete (la mantiene fluida). Por eso se dice que es un <b>regulador de la fluidez</b>.</li></ul>" +
+    ojo("El colesterol no «endurece» siempre la membrana ni «ablanda» siempre: <b>modula</b> la fluidez según la temperatura. Y solo está en las membranas animales (las bacterias no tienen colesterol; las plantas tienen fitoesteroles).") +
+    "<h5>Las ceras: lípidos para impermeabilizar</h5>" +
+    "<p>Una <b>cera</b> es un <b>éster de un ácido graso de cadena larga y un alcohol de cadena larga</b> (un único enlace éster, sin glicerina). Son <b>muy hidrofóbicas</b> y duras. Ejemplos: la <b>cera de abeja</b> (panales), la cutícula de hojas y frutos (evita que pierdan agua), las plumas de las aves acuáticas (el aceite de la glándula uropigial), el <b>cerumen</b> del oído y la <b>lanolina</b> de la lana.</p>"
+  );
+
+  // ---------------------------------------------------------------- 4. Esteroides y terpenos
+  secciones[3] = env(
+    "<h5>Esteroides: cuatro anillos fusionados</h5>" +
+    "<p>Los <b>esteroides</b> derivan del <b>esterano</b> (ciclopentanoperhidrofenantreno): tres anillos de seis carbonos y uno de cinco, fusionados. No tienen ácidos grasos, por eso son <b>insaponificables</b>. Se diferencian por los grupos que cuelgan de ese esqueleto.</p>" +
+    tabla(["Esteroide", "Dónde y qué hace"], [
+      ["<b>Colesterol</b> (C<sub>27</sub>H<sub>46</sub>O)", "membranas animales (regula la fluidez); precursor de todos los demás esteroides; se obtiene de la dieta y se fabrica en el hígado"],
+      ["<b>Hormonas sexuales</b>", "testosterona (testículo), estradiol y progesterona (ovario): caracteres sexuales y ciclo"],
+      ["<b>Corticoides</b>", "cortisol, aldosterona (corteza suprarrenal): estrés, inflamación, sal y agua"],
+      ["<b>Vitamina D</b>", "se forma en la piel a partir de un derivado del colesterol con luz solar; absorción de calcio"],
+      ["<b>Ácidos y sales biliares</b>", "hígado → vesícula; emulsionan las grasas en el intestino para que actúen las lipasas"]
+    ], "q3t") +
+    "<h5>Colesterol y salud: LDL frente a HDL</h5>" +
+    "<p>Como el colesterol es insoluble, viaja por la sangre dentro de <b>lipoproteínas</b> (lípidos envueltos por fosfolípidos y proteínas). Las <b>LDL</b> llevan colesterol del hígado a los tejidos; si hay demasiadas, parte se deposita en las arterias (<b>aterosclerosis</b>): es el «colesterol malo». Las <b>HDL</b> recogen el sobrante y lo devuelven al hígado: el «bueno». El colesterol no es un veneno: sin él no hay membranas ni hormonas esteroideas; el problema es el exceso de LDL.</p>" +
+    "<h5>Terpenos (isoprenoides)</h5>" +
+    "<p>Se forman al unir unidades de <b>isopreno</b> (cinco carbonos). Según cuántas unidades tengan: <b>aceites esenciales</b> de las plantas (mentol, limoneno: aromas), <b>carotenoides</b> (pigmentos naranjas; el β-caroteno se transforma en vitamina A), las <b>vitaminas A, E y K</b>, la <b>cadena lateral de la clorofila</b> y el <b>caucho</b>.</p>" +
+    "<h5>Eicosanoides</h5>" +
+    "<p>Las <b>prostaglandinas</b>, tromboxanos y leucotrienos se forman a partir del <b>ácido araquidónico</b> (C20:4), liberado de los fosfolípidos de la membrana. Actúan <b>cerca de donde se forman</b> (no viajan lejos): dolor, fiebre, inflamación, coagulación y contracción del útero. La <b>aspirina</b> y el ibuprofeno funcionan bloqueando su síntesis.</p>" +
+    "<h5>Vitaminas liposolubles: A, D, E, K</h5>" +
+    "<p>Se disuelven en grasa, no en agua. Como se almacenan en el hígado y el tejido adiposo, un <b>exceso</b> (hipervitaminosis) puede ser tóxico; y con dietas muy bajas en grasa o problemas de absorción de grasas puede haber carencias.</p>" +
+    ojo("Una pregunta típica: «¿es el colesterol un lípido saponificable?». <b>No</b>: no contiene ácidos grasos. (Los <i>ésteres de colesterol</i>, que sí tienen un ácido graso, sí se saponifican; pero el colesterol libre, no.)")
+  );
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "5. Saponificación: del aceite al jabón", html: env(
+    "<p>La <b>saponificación</b> es la <b>hidrólisis alcalina</b> (con una base fuerte, NaOH o KOH) de un lípido con enlaces éster. Con un triacilglicérido:</p>" +
+    "<div class='formula-wrap'><div class='formula'>triacilglicérido + 3 NaOH → glicerina + 3 sales sódicas de ácido graso (<b>jabón</b>)</div></div>" +
+    "<p>Con NaOH se obtienen <b>jabones duros</b> (sólidos); con KOH, <b>jabones blandos</b> (cremas, jabón líquido). Es la reacción que se usa desde hace milenios para fabricar jabón con grasa de oveja, aceite de oliva y ceniza (que aporta potasa).</p>" +
+    "<h5>¿Por qué un jabón limpia?</h5>" +
+    "<p>Una sal de ácido graso es una molécula <b>anfipática</b>: cabeza carboxilato (–COO<sup>−</sup> Na<sup>+</sup>, polar) y cola larga apolar. Cuando lavas un plato:</p>" +
+    "<ol><li>las colas apolares se «clavan» en la gota de grasa;</li><li>las cabezas polares quedan hacia el agua;</li><li>la grasa queda rodeada de jabón formando <b>micelas</b> que se dispersan en el agua: una <b>emulsión</b>;</li><li>al aclarar, el agua arrastra las micelas.</li></ol>" +
+    "<p><b>Emulsión no es lo mismo que disolución:</b> en una disolución las partículas son moléculas sueltas; en una emulsión hay gotitas de un líquido repartidas en otro con la ayuda de un <b>emulgente</b> (jabón, bilis, lecitina de la yema del huevo en la mayonesa).</p>" +
+    "<h5>Otras reacciones de los lípidos</h5>" +
+    tabla(["Reacción", "Qué ocurre", "Dónde la ves"], [
+      ["<b>Esterificación</b>", "ácido graso + alcohol → éster + agua", "síntesis de grasas en el adipocito"],
+      ["<b>Hidrólisis enzimática</b>", "lipasa + agua: grasa → glicerina + 3 ácidos grasos", "digestión en el intestino"],
+      ["<b>Saponificación</b>", "grasa + base: glicerina + jabón", "fabricación de jabón"],
+      ["<b>Hidrogenación</b>", "se añade H<sub>2</sub> a los C=C: insaturado → saturado", "margarinas (¡riesgo de grasas trans!)"],
+      ["<b>Enranciamiento</b>", "el O<sub>2</sub> oxida los dobles enlaces y huele a «rancio»", "aceite viejo, frutos secos; lo frena la vitamina E"]
+    ], "q3t") +
+    "<p>Dos índices de laboratorio que aparecen en las etiquetas técnicas: el <b>índice de saponificación</b> (mg de KOH que gasta 1 g de grasa; cuanto más pequeñas sean las cadenas, más alto) y el <b>índice de yodo</b> (g de I<sub>2</sub> que se adicionan a 100 g de grasa; mide los dobles enlaces: más yodo, más insaturada).</p>" +
+    w("emparejar", "reacciones")) });
+
+  nuevas.push({ h: "6. Cálculos con lípidos", html: env(
+    "<p>Masas atómicas usadas: C 12,011; H 1,008; O 15,999; Na 22,990; K 39,098; I 126,904. Redondeamos los resultados a 3–4 cifras.</p>" +
+    ejemplo("Saponificación de la trioleína", "La <b>trioleína</b> (glicerina + 3 ácido oleico, C<sub>57</sub>H<sub>104</sub>O<sub>6</sub>) se saponifica con NaOH. Para 100 g de trioleína, calcula los gramos de NaOH necesarios, de jabón (oleato sódico, C<sub>18</sub>H<sub>33</sub>O<sub>2</sub>Na) y de glicerina obtenidos.", [
+      "<b>Reacción:</b> C<sub>57</sub>H<sub>104</sub>O<sub>6</sub> + 3 NaOH → C<sub>3</sub>H<sub>8</sub>O<sub>3</sub> + 3 C<sub>18</sub>H<sub>33</sub>O<sub>2</sub>Na.",
+      "<b>Masas molares:</b> trioleína 885,45 g/mol; NaOH 40,00; oleato sódico 304,45; glicerina 92,09.",
+      "<b>Moles de trioleína:</b> 100 / 885,45 = 0,1129 mol.",
+      "<b>NaOH:</b> 3 · 0,1129 = 0,3388 mol → 0,3388 · 40,00 = <b>13,55 g</b>.",
+      "<b>Jabón:</b> 3 · 0,1129 · 304,45 = <b>103,2 g</b>.",
+      "<b>Glicerina:</b> 0,1129 · 92,09 = <b>10,40 g</b>.",
+      "<b>Comprobación (conservación de la masa):</b> 100 + 13,55 = 113,55 g de reactivos; 103,15 + 10,40 = 113,55 g de productos. ✓"
+    ]) +
+    ejemplo("Hidrogenación", "Se hidrogenan por completo 100 g de trioleína (cada molécula tiene 3 dobles enlaces C=C, uno por cada oleico). ¿Cuántos gramos de H<sub>2</sub> se consumen?", [
+      "1 mol de trioleína necesita 3 mol de H<sub>2</sub>: da <b>triestearina</b>.",
+      "Moles: 100 / 885,45 = 0,1129 mol → H<sub>2</sub> = 3 · 0,1129 = 0,3388 mol.",
+      "Masa: 0,3388 · 2,016 = <b>0,683 g de H<sub>2</sub></b>."
+    ]) +
+    ejemplo("Índices de la trioleína", "Calcula su índice de saponificación (mg de KOH por g) y su índice de yodo (g de I<sub>2</sub> por 100 g).", [
+      "<b>Saponificación:</b> 3 mol de KOH por mol de grasa; M(KOH) = 56,106 g/mol → 3 · 56,106 / 885,45 = 0,1901 g/g = <b>190,1 mg KOH/g</b> (el aceite de oliva real da 185–195).",
+      "<b>Yodo:</b> 3 mol de I<sub>2</sub> (253,81 g/mol) por mol → 3 · 253,81 / 885,45 · 100 = <b>86,0 g de I<sub>2</sub> por 100 g</b> (aceite de oliva: 75–94)."
+    ]) +
+    ejemplo("Energía", "¿Cuántos gramos de grasa y de glúcidos se necesitan para almacenar 2000 kcal? Usa 9 y 4 kcal/g.", [
+      "Grasa: 2000 / 9 = <b>222 g</b>. Glúcidos: 2000 / 4 = <b>500 g</b>.",
+      "Diferencia: 500 − 222 = <b>278 g</b> (más del doble, y sin contar el agua que acompaña al glucógeno).",
+      "Cociente de energías: 9/4 = 2,25, es decir «más del doble»."
+    ]) +
+    ojo("En el examen se acepta 9 kcal/g (a veces 9,3) para las grasas y 4 kcal/g (a veces 4,1) para los glúcidos. Lo que se valora es la idea: <b>más del doble</b>.") +
+    "<h5>Contar átomos de un triacilglicérido</h5>" +
+    "<p>Carbonos = 3 (glicerina) + suma de los carbonos de los tres ácidos. Con palmítico (16), oleico (18) y esteárico (18): 3 + 16 + 18 + 18 = <b>55 C</b>. Y siempre se liberan <b>3 H<sub>2</sub>O</b> al formarlo, porque hay tres ésteres.</p>") });
+
+  nuevas.push({ h: "7. Ejemplo PAU resuelto: interpretar un experimento", html: env(
+    ejemplo("Cuatro tubos con aceite", "En el laboratorio se pone una cucharadita de aceite en cada tubo, con 10 mL de: A) agua; B) agua con unas gotas de detergente; C) agua con bilis; D) etanol (alcohol). Se agita y se deja reposar. Resultado: en A el aceite se separa y flota; en B y C queda un líquido lechoso estable; en D no se ve el aceite. (a) Explica cada tubo. (b) ¿Qué diferencia hay entre B y D? (c) Si se añade Sudán III (un colorante rojo liposoluble), ¿dónde se colorea?", [
+      "<b>Tubo A:</b> el aceite es apolar y el agua polar: no se mezclan, y flota porque su densidad es menor que 1 g/cm³.",
+      "<b>Tubos B y C:</b> el detergente y la bilis son <b>emulgentes anfipáticos</b>: sus colas se clavan en el aceite y sus cabezas miran al agua; forman micelas y gotitas diminutas: una <b>emulsión</b> (lechosa porque las gotas dispersan la luz).",
+      "<b>Tubo D:</b> el etanol es un disolvente orgánico (con parte apolar): el aceite se <b>disuelve</b> de verdad y no se ve.",
+      "<b>(b) Diferencia:</b> en B hay una <b>emulsión</b> (gotitas de aceite repartidas y estabilizadas; con el tiempo puede separarse); en D hay una <b>disolución</b> (moléculas dispersas, transparente y estable).",
+      "<b>(c) Sudán III:</b> el colorante es liposoluble: se concentra en el aceite (en A, la capa de arriba; en B y C, las gotitas). Es la prueba de laboratorio para <b>reconocer lípidos</b>.",
+      "<b>Conclusión que puntúa:</b> la bilis hace en el intestino lo que el detergente hace en el plato: emulsiona las grasas y multiplica la superficie para que actúe la lipasa."
+    ]) +
+    ejemplo("Puntos de fusión y dobles enlaces", "Una gráfica muestra el punto de fusión de ácidos de 18 carbonos: 0 dobles enlaces, 70 °C; 1 doble enlace, 13 °C; 2, −5 °C; 3, −11 °C. (a) Describe la tendencia. (b) ¿Cuáles son líquidos a 20 °C y cuáles sólidos? (c) ¿Qué ocurriría con el esteárico y el oleico dentro de un frigorífico a 4 °C?", [
+      "<b>(a)</b> Al aumentar los dobles enlaces, el punto de fusión <b>baja</b> (la caída más grande es del primer doble enlace: de 70 a 13 °C). Causa: los codos cis impiden el empaquetamiento.",
+      "<b>(b)</b> A 20 °C el esteárico (70 °C) es sólido; el oleico (13 °C), el linoleico y el linolénico son líquidos.",
+      "<b>(c)</b> A 4 °C el esteárico sigue sólido y el oleico (13 °C) <b>solidifica</b>; por eso el aceite de oliva se enturbia y se vuelve pastoso en la nevera, mientras que el de girasol (más linoleico, de punto de fusión más bajo) resiste más.",
+      "<b>Detalle de examen:</b> no confundas el ácido puro con el aceite comercial: un aceite es una mezcla de triacilglicéridos con varios ácidos, y por eso funde en un intervalo de temperaturas."
+    ])) });
+
+  nuevas.push({ h: "8. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>Orden de una buena respuesta: <b>definir → explicar con la estructura → ejemplo → función</b>. Preguntas típicas con respuesta modelo:</p>" +
+    ejemplo("Pregunta 1. Estructura y funciones de los triacilglicéridos", "Respuesta modelo:", [
+      "<b>Estructura:</b> glicerina unida a <b>tres ácidos grasos</b> por <b>enlaces éster</b> (esterificación, se liberan 3 H<sub>2</sub>O). Son apolares.",
+      "<b>Tipos:</b> grasas (saturados, sólidas) y aceites (insaturados, líquidos).",
+      "<b>Funciones:</b> reserva de energía (9 kcal/g, sin agua asociada), aislante térmico y protección mecánica."
+    ]) +
+    ejemplo("Pregunta 2. Fosfolípidos: estructura, comportamiento en agua y función", "Respuesta modelo:", [
+      "<b>Estructura:</b> glicerina + 2 ácidos grasos + fosfato + alcohol polar. Cabeza hidrofílica y dos colas hidrofóbicas: <b>anfipático</b>.",
+      "<b>En agua:</b> las colas se esconden y las cabezas miran al agua: forma <b>bicapas</b>, micelas o liposomas, de manera espontánea.",
+      "<b>Función:</b> forman la bicapa de todas las membranas celulares, que es fluida y actúa de barrera selectiva."
+    ]) +
+    ejemplo("Pregunta 3. Saponificación y acción del jabón", "Respuesta modelo:", [
+      "<b>Saponificación:</b> hidrólisis alcalina (NaOH) de un triacilglicérido: glicerina + 3 sales de ácido graso (jabón).",
+      "<b>Por qué limpia:</b> el jabón es anfipático; las colas rodean la grasa y forman micelas que quedan dispersas (emulsión) y se aclaran con agua.",
+      "Solo se saponifican los lípidos con ácidos grasos (grasas, ceras, fosfolípidos); los esteroides y terpenos no."
+    ]) +
+    ejemplo("Pregunta 4. Colesterol", "Respuesta modelo:", [
+      "<b>Es</b> un esteroide (4 anillos fusionados; C<sub>27</sub>H<sub>46</sub>O), lípido <b>insaponificable</b>.",
+      "<b>Funciones:</b> regula la fluidez de las membranas animales; precursor de hormonas esteroideas, vitamina D y sales biliares.",
+      "<b>Salud:</b> viaja en lipoproteínas; el exceso de LDL favorece la aterosclerosis; las HDL lo devuelven al hígado."
+    ]) +
+    "<p>Los ejercicios del final del tema incluyen preguntas abiertas con rúbrica para que veas qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio3a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 3 (parte B): Lípidos
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t3.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Los <b>lípidos</b> son un grupo heterogéneo, <b>insoluble en agua</b> y soluble en disolventes orgánicos; se dividen en <b>saponificables</b> (con ácidos grasos y enlace éster) e <b>insaponificables</b> (esteroides, terpenos).",
+    "Un <b>triacilglicérido</b> = glicerina + 3 ácidos grasos (3 enlaces éster, 3 H₂O). Los saturados (cadena recta) dan grasas sólidas; los insaturados cis (cadena doblada), aceites líquidos. Es la mejor reserva: ≈ 9 kcal/g.",
+    "El <b>fosfolípido</b> es <b>anfipático</b> (cabeza polar, dos colas apolares) y forma <b>bicapas</b>: la base de las membranas, cuya fluidez regulan los ácidos insaturados y el colesterol.",
+    "La <b>saponificación</b> (grasa + NaOH → glicerina + jabón) y la acción del jabón (micelas, emulsión) se explican por la naturaleza anfipática; el <b>colesterol</b> es un esteroide, precursor de hormonas, vitamina D y sales biliares."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Lípidos",
+    autores: [
+      { n: "Qué estudia", f: "las biomoléculas insolubles en agua", l: "grasas · fosfolípidos · esteroides" },
+      { n: "Chevreul", f: "1823", l: "identifica los ácidos grasos y la saponificación" },
+      { n: "Gorter y Grendel", f: "1925", l: "los lípidos de la membrana forman una bicapa" },
+      { n: "Singer y Nicolson", f: "1972", l: "modelo del mosaico fluido" }
+    ],
+    obras: ["Ácido graso", "Triacilglicérido", "Fosfolípido", "Colesterol", "Saponificación"],
+    bloques: [
+      { t: "Qué son", frases: ["Grupo heterogéneo: <b>insolubles en agua</b>, solubles en éter o cloroformo.", "<b>Saponificables</b> tienen ácidos grasos; <b>insaponificables</b> no."],
+        tabla: { cab: ["Saponificables", "Insaponificables"], filas: [["grasas, ceras", "colesterol"], ["fosfolípidos", "carotenos, vitaminas A, E, K"]] } },
+      { t: "Ácidos grasos", frases: ["Cadena con grupo <b>–COOH</b> y número par de carbonos.", "Los dobles enlaces cis doblan la cadena."],
+        tabla: { cab: ["Saturado", "Insaturado"], filas: [["sin C=C", "uno o más C=C"], ["cadena recta", "cadena doblada"], ["sólido (manteca)", "líquido (aceite)"]] } },
+      { t: "Triacilglicéridos", frases: ["Glicerina + <b>3 ácidos grasos</b> con enlaces éster (se liberan 3 H₂O).", "Reserva: ≈ 9 kcal/g, el doble que los glúcidos.", "Aíslan y protegen."] },
+      { t: "Fosfolípidos y membrana", frases: ["<b>Anfipáticos</b>: cabeza polar y dos colas apolares.", "En agua forman bicapa, micela o liposoma.", "El colesterol regula la fluidez."],
+        tabla: { cab: ["Micela", "Bicapa"], filas: [["una cola (jabón)", "dos colas (fosfolípido)"], ["esfera", "membrana"]] } },
+      { t: "Esteroides y otros", frases: ["Esteroides: <b>4 anillos</b>. El colesterol da hormonas, vitamina D y sales biliares.", "Ceras: impermeabilizan. Terpenos: pigmentos y vitaminas."] },
+      { t: "Saponificación y cálculos", frases: ["Grasa + 3 NaOH → glicerina + 3 jabón.", "El jabón forma micelas y emulsiona la grasa.", "Se cuentan moles: 1 mol de grasa gasta 3 de NaOH."] }
+    ],
+    resumen: [
+      "Todo se explica por la <b>polaridad</b>: lo apolar rechaza el agua, lo <b>anfipático</b> forma micelas y bicapas.",
+      "Grasa = <b>reserva y aislante</b>; fosfolípido y colesterol = <b>membrana</b>; esteroides y eicosanoides = <b>señales</b>.",
+      "Insaturado cis → cadena doblada → <b>más fluido y menor punto de fusión</b>."
+    ],
+    conecta: [
+      { con: "Biología T1:", rel: "agua, polaridad e hidrofobia; ósmosis y membranas." },
+      { con: "Biología T2:", rel: "glúcidos como otra fuente de energía (reserva rápida)." },
+      { con: "Biología T6:", rel: "membrana plasmática, transporte y mosaico fluido." },
+      { con: "Biología T8:", rel: "oxidación de ácidos grasos en el catabolismo." },
+      { con: "Química II T9:", rel: "ésteres y grupos funcionales del carbono." },
+      { con: "Química II T1:", rel: "moles y estequiometría de la saponificación." }
+    ],
+    claves: [
+      ["Lípido", "biomolécula insoluble en agua y soluble en disolventes orgánicos"],
+      ["Ácido graso", "cadena larga de carbonos con un grupo carboxilo (–COOH)"],
+      ["Enlace éster", "unión de un ácido y un alcohol con pérdida de una molécula de agua"],
+      ["Triacilglicérido", "glicerina esterificada con tres ácidos grasos; grasa o aceite"],
+      ["Anfipático", "con una parte polar (hidrofílica) y otra apolar (hidrofóbica)"],
+      ["Fosfolípido", "glicerina, dos ácidos grasos, fosfato y alcohol polar; forma membranas"],
+      ["Saponificación", "hidrólisis alcalina de un éster: glicerina y sal de ácido graso (jabón)"],
+      ["Micela", "esfera de moléculas anfipáticas con las colas dentro y las cabezas fuera"],
+      ["Esteroide", "lípido con cuatro anillos fusionados; ej. colesterol"],
+      ["Ácido graso esencial", "el que no sintetizamos y hay que tomar: linoleico (ω-6) y linolénico (ω-3)"]
+    ],
+    cita: { txt: "1 g de grasa da ≈ 9 kcal; 1 g de glúcidos, ≈ 4 kcal. Por eso la grasa es la reserva.", autor: "Dato para recordar", obra: "las aves migratorias cruzan continentes alimentadas con grasa" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    familias: {
+      titulo: "Saponificable o insaponificable",
+      consigna: "Clasifica cada lípido según tenga o no ácidos grasos.",
+      categorias: ["Saponificable", "Insaponificable"],
+      items: [
+        { t: "Triacilglicérido", c: 0 }, { t: "Fosfolípido", c: 0 }, { t: "Cera de abeja", c: 0 }, { t: "Esfingomielina", c: 0 },
+        { t: "Colesterol", c: 1 }, { t: "Testosterona", c: 1 }, { t: "β-caroteno", c: 1 }, { t: "Vitamina D", c: 1 }
+      ]
+    },
+    ordentg: {
+      titulo: "Formación de un triacilglicérido",
+      consigna: "Ordena los pasos de la esterificación.",
+      items: [
+        { t: "La glicerina tiene tres grupos –OH libres" },
+        { t: "Un ácido graso aporta su grupo –COOH" },
+        { t: "Se forma un enlace éster y sale una molécula de agua" },
+        { t: "Se repite con el segundo y el tercer ácido graso" },
+        { t: "Resultado: un triacilglicérido y 3 H₂O" }
+      ]
+    },
+    reacciones: {
+      titulo: "Reacciones de los lípidos",
+      consigna: "Une cada reacción con lo que ocurre.",
+      pares: [
+        ["Esterificación", "ácido graso + alcohol → éster + agua"],
+        ["Saponificación", "grasa + NaOH → glicerina + jabón"],
+        ["Hidrólisis enzimática", "una lipasa rompe la grasa en glicerina y ácidos grasos"],
+        ["Hidrogenación", "se añade H₂ a los dobles enlaces C=C"],
+        ["Enranciamiento", "el oxígeno oxida los dobles enlaces y huele a rancio"]
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 3",
+      preguntas: [
+        { q: "La característica común a todos los lípidos es que…", op: ["son insolubles en agua y solubles en disolventes orgánicos", "tienen siempre ácidos grasos", "son polímeros de glicerina", "se disuelven bien en agua"], ok: 0, porque: "No comparten estructura, solo su carácter hidrofóbico." },
+        { q: "Un triacilglicérido se forma al unir…", op: ["glicerina y tres ácidos grasos por enlaces éster", "glicerina y tres aminoácidos", "tres glicerinas y un ácido graso", "glicerina, dos ácidos grasos y un fosfato"], ok: 0, porque: "Tres esterificaciones liberan tres moléculas de agua." },
+        { q: "Un ácido graso insaturado cis tiene…", op: ["la cadena doblada y un punto de fusión bajo", "la cadena recta y un punto de fusión alto", "grupo fosfato", "cuatro anillos"], ok: 0, porque: "El codo impide el empaquetamiento y baja el punto de fusión." },
+        { q: "¿Qué lípido forma la bicapa de las membranas?", op: ["el fosfolípido", "el triacilglicérido", "la cera", "el caroteno"], ok: 0, porque: "Es anfipático: cabeza polar y dos colas apolares." },
+        { q: "El jabón limpia porque…", op: ["es anfipático y forma micelas que atrapan la grasa", "disuelve la grasa como lo hace el agua", "es apolar", "rompe los enlaces C–C de la grasa"], ok: 0, porque: "Las colas rodean la grasa y las cabezas miran al agua: emulsión." },
+        { q: "El colesterol es…", op: ["un esteroide insaponificable", "un triacilglicérido", "un fosfolípido", "una cera"], ok: 0, porque: "Tiene cuatro anillos fusionados y ningún ácido graso." },
+        { q: "¿Por qué la grasa es mejor reserva que el glucógeno?", op: ["da más del doble de energía por gramo y no retiene agua", "se moviliza más rápido", "es soluble en la sangre", "contiene más oxígeno"], ok: 0, porque: "≈ 9 kcal/g y almacenamiento anhidro." },
+        { q: "La saponificación de una grasa con NaOH produce…", op: ["glicerina y jabón", "glicerina y agua", "ácido graso y etanol", "colesterol"], ok: 0, porque: "Hidrólisis alcalina del éster: sal de ácido graso (jabón) y glicerina." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre los lípidos es FALSA?", op: ["Todos los lípidos contienen ácidos grasos", "Son insolubles en agua", "El colesterol es un lípido", "Hay lípidos saponificables e insaponificables"], ok: 0, porque: "Los esteroides y terpenos no tienen ácidos grasos: son insaponificables." },
+        { q: "¿Cuál de estas afirmaciones sobre los ácidos grasos es FALSA?", op: ["Los insaturados tienen la cadena recta y funden a mayor temperatura", "Los saturados no tienen dobles enlaces", "Tienen un grupo carboxilo", "El linoleico es esencial"], ok: 0, porque: "Los insaturados cis tienen la cadena doblada y funden a menor temperatura." },
+        { q: "¿Cuál de estas afirmaciones sobre los triacilglicéridos es FALSA?", op: ["Se forman por enlaces glucosídicos entre glicerina y ácidos grasos", "Se unen tres ácidos grasos a una glicerina", "Son reserva de energía", "Se liberan tres moléculas de agua al formarlos"], ok: 0, porque: "El enlace es éster, no glucosídico (ese es el de los glúcidos)." },
+        { q: "¿Cuál de estas afirmaciones sobre los fosfolípidos es FALSA?", op: ["Son completamente apolares", "Tienen una cabeza polar", "Forman bicapas en agua", "Tienen dos ácidos grasos"], ok: 0, porque: "Son anfipáticos: cabeza polar y colas apolares." },
+        { q: "¿Cuál de estas afirmaciones sobre el colesterol es FALSA?", op: ["Se saponifica porque contiene ácidos grasos", "Es un esteroide", "Precursor de hormonas sexuales", "Regula la fluidez de la membrana animal"], ok: 0, porque: "El colesterol libre no tiene ácidos grasos: es insaponificable." },
+        { q: "¿Cuál de estas afirmaciones sobre la saponificación es FALSA?", op: ["Es una hidrólisis ácida que produce agua y grasa", "Usa NaOH o KOH", "Produce glicerina y jabón", "Con KOH se obtienen jabones blandos"], ok: 0, porque: "Es una hidrólisis alcalina: se rompe el éster y se obtiene jabón." },
+        { q: "¿Cuál de estas afirmaciones sobre la membrana es FALSA?", op: ["El flip-flop de los fosfolípidos es rapidísimo y espontáneo", "Los fosfolípidos se mueven lateralmente con rapidez", "Más ácidos insaturados aumentan la fluidez", "El colesterol modula la fluidez"], ok: 0, porque: "El flip-flop es raro y necesita flipasas: la cabeza polar tendría que atravesar la zona apolar." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: lípidos",
+      cartas: [
+        { a: "Lípido", b: "Biomolécula heterogénea, insoluble en agua y soluble en disolventes orgánicos." },
+        { a: "Saponificables / insaponificables", b: "Con ácidos grasos (grasas, ceras, fosfolípidos) / sin ellos (esteroides, terpenos)." },
+        { a: "Ácido graso", b: "CH₃–(CH₂)ₙ–COOH; número par de C. Saturado (sin C=C) o insaturado." },
+        { a: "Notación C18:1 Δ9", b: "18 carbonos, un doble enlace que empieza en el C9." },
+        { a: "Ácidos grasos esenciales", b: "Linoleico (ω-6) y α-linolénico (ω-3): hay que tomarlos en la dieta." },
+        { a: "Enlace éster", b: "Ácido + alcohol → éster + H₂O. Une la glicerina y los ácidos grasos." },
+        { a: "Triacilglicérido", b: "Glicerina + 3 ácidos grasos. Grasa (sólida) o aceite (líquido). Reserva ≈ 9 kcal/g." },
+        { a: "Fosfolípido", b: "Glicerina + 2 ácidos grasos + fosfato + alcohol polar. Anfipático; forma la bicapa." },
+        { a: "Anfipático", b: "Con una parte hidrofílica y otra hidrofóbica." },
+        { a: "Micela, bicapa y liposoma", b: "Una cola / dos colas / bicapa cerrada con agua dentro." },
+        { a: "Cera", b: "Éster de ácido graso y alcohol, ambos de cadena larga. Impermeabiliza." },
+        { a: "Colesterol", b: "Esteroide (C₂₇H₄₆O). Membranas animales, hormonas, vitamina D y sales biliares." },
+        { a: "LDL y HDL", b: "Lipoproteínas: llevan colesterol a los tejidos / lo devuelven al hígado." },
+        { a: "Saponificación", b: "Grasa + 3 NaOH → glicerina + 3 jabón. Hidrólisis alcalina." },
+        { a: "Hidrogenación", b: "Añade H₂ a los C=C; puede generar grasas trans." },
+        { a: "Eicosanoides", b: "Prostaglandinas, tromboxanos: derivan del ácido araquidónico (C20:4)." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "¿Qué propiedad comparten todos los lípidos?", ["Son insolubles en agua y solubles en disolventes orgánicos", "Todos tienen ácidos grasos", "Todos están formados por glicerina", "Todos son polares"], 0, ["Su estructura es muy variada; lo común es el carácter hidrofóbico."], "Insolubles en agua, solubles en disolventes orgánicos");
+  O("b2", 1, "¿Cuál de estos lípidos es saponificable?", ["Un triacilglicérido", "El colesterol", "La testosterona", "El β-caroteno"], 0, ["Saponificable = tiene ácidos grasos unidos por enlace éster.", "Los otros tres son esteroides o terpenos."], "Un triacilglicérido");
+  O("b3", 1, "Un ácido graso insaturado se caracteriza por tener…", ["uno o más dobles enlaces C=C", "solo enlaces sencillos", "un grupo fosfato", "cuatro anillos"], 0, ["Insaturado = le «faltan» hidrógenos: hay C=C."], "Uno o más dobles enlaces C=C");
+  V("b4", 1, "Un triacilglicérido tiene una glicerina unida a tres ácidos grasos mediante enlaces éster.", true, ["Es una esterificación triple: glicerina (3 –OH) + 3 –COOH", "Se unen por enlaces glucosídicos", "Se unen por enlaces peptídicos", "Los ácidos grasos se unen entre sí, sin glicerina"], 0, ["Cada –OH de la glicerina forma un éster con un –COOH."]);
+  O("b5", 1, "¿Cuántas moléculas de agua se liberan al formarse un triacilglicérido?", ["3", "1", "2", "4"], 0, ["Hay un enlace éster por ácido graso: tres.", "Cada esterificación libera 1 H₂O."], "3");
+  O("b6", 1, "La función principal de los triacilglicéridos es…", ["reserva de energía", "formar la bicapa de la membrana", "transportar oxígeno", "almacenar información genética"], 0, ["≈ 9 kcal/g, almacenamiento sin agua."], "Reserva de energía");
+  V("b7", 1, "Las grasas de origen animal suelen ser sólidas a temperatura ambiente porque contienen sobre todo ácidos grasos saturados.", true, ["Su cadena recta se empaqueta bien y funde a temperatura alta", "Tienen muchos dobles enlaces", "Son moléculas muy polares", "Contienen colesterol en lugar de ácidos grasos"], 0, ["Saturados → cadenas rectas → mucha atracción entre ellas."]);
+  T("b8", 1, "El enlace entre la glicerina y un ácido graso se llama enlace…", "Enlace", ["éster", "ester"], ["Se forma entre un –OH y un –COOH liberando agua."], "Éster");
+  O("b9", 1, "¿Cuál de estas moléculas es anfipática?", ["El fosfolípido", "El triacilglicérido", "El β-caroteno", "La cera"], 0, ["Anfipática = parte polar y parte apolar.", "El fosfolípido tiene cabeza polar y dos colas apolares."], "El fosfolípido");
+  O("b10", 1, "La estructura básica de las membranas celulares es…", ["una bicapa de fosfolípidos", "una capa de triacilglicéridos", "una malla de ceras", "una monocapa de colesterol"], 0, ["Las colas quedan dentro, protegidas del agua."], "Bicapa de fosfolípidos");
+  O("b11", 1, "El colesterol es un…", ["esteroide", "triacilglicérido", "fosfolípido", "ácido graso"], 0, ["Tiene cuatro anillos fusionados."], "Esteroide");
+  T("b12", 1, "La hidrólisis alcalina de una grasa con NaOH se llama…", "Reacción", ["saponificación", "saponificacion"], ["Produce glicerina y jabón."], "Saponificación");
+  M("b13", 1, "Une cada lípido con su función.",
+    [C("Triacilglicérido", ["Reserva de energía", "Impermeabiliza hojas y plumas", "Regula la fluidez de la membrana"], 0), C("Cera", ["Impermeabiliza hojas y plumas", "Reserva de energía", "Regula la fluidez de la membrana"], 0), C("Colesterol", ["Regula la fluidez de la membrana", "Reserva de energía", "Impermeabiliza hojas y plumas"], 0)],
+    ["Triacilglicérido: energía. Cera: impermeabilización. Colesterol: fluidez y precursor de hormonas."], "Triacilglicérido → energía; cera → impermeabilizar; colesterol → fluidez");
+  O("b14", 1, "¿Cuál de estas vitaminas es liposoluble?", ["Vitamina D", "Vitamina C", "Vitamina B₁₂", "Ácido fólico"], 0, ["Las liposolubles son A, D, E y K."], "Vitamina D");
+  V("b15", 1, "Los fosfolípidos tienen tres ácidos grasos, igual que los triacilglicéridos.", false, ["Tienen solo dos; el tercer –OH lleva un fosfato y un alcohol", "Tienen cuatro ácidos grasos", "No tienen ácidos grasos", "Tienen tres, pero sin glicerina"], 0, ["En el tercer carbono hay fosfato, no ácido graso: de ahí la cabeza polar."]);
+  O("b16", 1, "El aceite de oliva es líquido a temperatura ambiente porque…", ["abunda en ácido oleico, insaturado, de cadena doblada", "tiene solo ácidos saturados", "contiene mucha agua", "es muy polar"], 0, ["El doble enlace cis dobla la cadena y baja el punto de fusión."], "Abunda el ácido oleico (insaturado)");
+
+  // ---- nivel 2
+  X("c1", 2, "La trioleína (glicerina con tres ácidos oleicos) es C₅₇H₁₀₄O₆. Calcula su masa molar (C 12,011; H 1,008; O 15,999).", "Mr (g/mol) =", 885.45, "g/mol", ["57 · 12,011 = 684,627.", "104 · 1,008 = 104,832.", "6 · 15,999 = 95,994.", "Suma = 885,453 g/mol."], "885,45 g/mol");
+  X("c2", 2, "¿Cuántos gramos de NaOH (M = 40,00 g/mol) hacen falta para saponificar 100 g de trioleína (Mr = 885,45)?", "m(NaOH) (g) =", 13.55, "g", ["n(grasa) = 100 / 885,45 = 0,1129 mol.", "Reacción 1 : 3 → n(NaOH) = 0,3388 mol.", "m = 0,3388 · 40,00 = 13,55 g."], "13,55 g", 0.01);
+  X("c3", 2, "En esa saponificación, ¿cuántos gramos de jabón (oleato sódico, M = 304,45 g/mol) se obtienen a partir de 100 g de trioleína?", "m(jabón) (g) =", 103.15, "g", ["n(jabón) = 3 · 0,1129 = 0,3388 mol.", "m = 0,3388 · 304,45 = 103,15 g."], "103,15 g", 0.01);
+  X("c4", 2, "¿Cuántos gramos de glicerina (M = 92,09 g/mol) se obtienen en esa misma saponificación (100 g de trioleína)?", "m(glicerina) (g) =", 10.4, "g", ["Se forma 1 mol de glicerina por mol de grasa: 0,1129 mol.", "m = 0,1129 · 92,09 = 10,40 g."], "10,40 g", 0.01);
+  X("c5", 2, "Una barrita contiene 25 g de grasa. Si cada gramo de grasa aporta 9 kcal, ¿cuántas kcal aportan esos 25 g?", "Energía (kcal) =", 225, "kcal", ["25 g · 9 kcal/g = 225 kcal."], "225 kcal");
+  X("c6", 2, "Un triacilglicérido contiene un ácido palmítico (16 C), uno oleico (18 C) y uno esteárico (18 C). ¿Cuántos átomos de carbono tiene en total?", "Nº de C =", 55, "", ["Glicerina: 3 C.", "Ácidos: 16 + 18 + 18 = 52 C.", "Total: 3 + 52 = 55 C."], "55 átomos de carbono");
+  X("c7", 2, "El ácido α-linolénico tiene 18 carbonos y 3 dobles enlaces. Con la regla «H = 2·C − 2·(dobles enlaces)», ¿cuántos átomos de hidrógeno tiene?", "Nº de H =", 30, "", ["Saturado de 18 C: 36 H.", "Cada doble enlace quita 2 H: 36 − 6 = 30.", "Fórmula C₁₈H₃₀O₂."], "30 hidrógenos (C₁₈H₃₀O₂)");
+  X("c8", 2, "La trilinoleína tiene tres ácidos linoleicos (2 C=C cada uno). ¿Cuántos moles de H₂ se necesitan para hidrogenar por completo 1 mol de ella?", "n(H₂) (mol) =", 6, "mol", ["Dobles enlaces por molécula: 3 · 2 = 6.", "Cada doble enlace consume 1 H₂: 6 mol."], "6 mol de H₂");
+  X("c9", 2, "¿Cuántos gramos de H₂ (2,016 g/mol) consumen 100 g de trioleína (885,45 g/mol; 3 C=C por molécula) al hidrogenarse por completo?", "m(H₂) (g) =", 0.683, "g", ["n(grasa) = 0,1129 mol.", "n(H₂) = 3 · 0,1129 = 0,3388 mol.", "m = 0,3388 · 2,016 = 0,683 g."], "0,683 g", 0.01);
+  O("c10", 2, "La notación C20:4 Δ5,8,11,14 (ácido araquidónico) indica…", ["20 carbonos y 4 dobles enlaces", "20 dobles enlaces y 4 carbonos", "4 carbonos y 20 hidrógenos", "20 carbonos y 4 grupos carboxilo"], 0, ["El primer número es el de carbonos; el segundo, el de dobles enlaces."], "20 carbonos y 4 dobles enlaces");
+  V("c11", 2, "Los aceites vegetales son líquidos a temperatura ambiente porque sus ácidos grasos son sobre todo insaturados cis.", true, ["Los codos cis impiden que las cadenas se empaqueten", "Tienen muchos enlaces peptídicos", "Contienen más agua que las grasas animales", "Sus ácidos grasos son más largos"], 0, ["Menos atracción entre cadenas → punto de fusión bajo."]);
+  O("c12", 2, "¿Por qué el jabón arrastra la grasa de un plato?", ["Sus colas apolares se unen a la grasa y sus cabezas polares al agua, formando micelas", "Disuelve la grasa como si fuera agua", "Rompe los enlaces éster de la grasa", "Convierte la grasa en agua"], 0, ["Es anfipático.", "La grasa queda dentro de micelas dispersas en el agua."], "Forma micelas por su carácter anfipático");
+  M("c13", 2, "Une cada término con su descripción.",
+    [C("Micela", ["Esfera de moléculas anfipáticas de una cola", "Doble lámina de fosfolípidos", "Vesícula de bicapa con agua dentro"], 0), C("Bicapa", ["Doble lámina de fosfolípidos", "Esfera de moléculas anfipáticas de una cola", "Vesícula de bicapa con agua dentro"], 0), C("Liposoma", ["Vesícula de bicapa con agua dentro", "Esfera de moléculas anfipáticas de una cola", "Doble lámina de fosfolípidos"], 0)],
+    ["Micela: una cola, colas dentro.", "Bicapa: dos colas, membrana.", "Liposoma: bicapa cerrada."], "Micela; bicapa; liposoma");
+  O("c14", 2, "Las grasas trans aparecen sobre todo cuando…", ["un aceite se hidrogena parcialmente", "se saponifica una grasa", "se calienta el agua", "se digiere la fibra"], 0, ["En la hidrogenación parcial algunos C=C pasan de cis a trans: cadena recta, comportamiento de saturado.", "Elevan el LDL."], "En la hidrogenación parcial de aceites");
+  O("c15", 2, "Una gota de aceite sobre papel deja una mancha translúcida que no desaparece al secar. ¿Por qué?", ["El aceite no se evapora y es hidrofóbico, a diferencia del agua", "El aceite se evapora igual que el agua", "El aceite reacciona con la celulosa", "El agua se esconde dentro del aceite"], 0, ["El agua se evapora; el aceite, no.", "Es un ensayo rápido para reconocer lípidos."], "El aceite no se evapora");
+  M("c16", 2, "Une cada reacción con su resultado.",
+    [C("Hidrólisis enzimática (lipasa)", ["Glicerina y ácidos grasos", "Glicerina y jabón", "Grasa saturada"], 0), C("Saponificación", ["Glicerina y jabón", "Glicerina y ácidos grasos", "Grasa saturada"], 0), C("Hidrogenación", ["Grasa más saturada", "Glicerina y jabón", "Glicerina y ácidos grasos"], 0)],
+    ["La lipasa hidroliza con agua; la saponificación usa una base; la hidrogenación añade H₂."], "Lipasa → glicerina + ácidos grasos; saponificación → glicerina + jabón; hidrogenación → más saturada");
+
+  // ---- nivel 3
+  X("d1", 3, "Un deportista necesita almacenar 2000 kcal. ¿Cuántos gramos menos de grasa (9 kcal/g) que de glúcidos secos (4 kcal/g) hacen falta?", "Diferencia (g) =", 277.8, "g", ["Glúcidos: 2000 / 4 = 500 g.", "Grasa: 2000 / 9 = 222,2 g.", "Diferencia: 500 − 222,2 = 277,8 g (sin contar el agua que acompaña al glucógeno)."], "≈ 278 g menos", 0.01);
+  X("d2", 3, "Experimento al estilo de Gorter y Grendel: los lípidos extraídos de unos hematíes forman en el agua una monocapa de 9,0 cm². La superficie total de esos hematíes es de 4,5 cm². ¿Cuál es el cociente (superficie de la monocapa / superficie de las células) y qué sugiere?", "Cociente =", 2, "", ["9,0 / 4,5 = 2.", "Los lípidos cubren el doble de la superficie celular: una sola capa no basta.", "Sugiere que la membrana es una bicapa."], "2; sugiere una bicapa lipídica");
+  X("d3", 3, "Calcula el índice de saponificación de la trioleína (Mr = 885,45): mg de KOH (M = 56,106 g/mol) por gramo de grasa.", "Índice (mg KOH/g) =", 190.1, "mg/g", ["1 mol de grasa gasta 3 mol de KOH.", "3 · 56,106 = 168,32 g de KOH por 885,45 g de grasa.", "168,32 / 885,45 = 0,1901 g/g = 190,1 mg/g."], "190,1 mg KOH/g", 0.01);
+  X("d4", 3, "Calcula el índice de yodo de la trioleína (Mr = 885,45): gramos de I₂ (253,81 g/mol) que se adicionan a 100 g de grasa, sabiendo que cada C=C añade 1 I₂.", "Índice de yodo (g/100 g) =", 86, "g", ["3 C=C por molécula → 3 mol de I₂ por mol de grasa.", "3 · 253,81 = 761,43 g de I₂ por 885,45 g de grasa.", "761,43 / 885,45 · 100 = 86,0 g por 100 g."], "86,0 g de I₂ por 100 g", 0.01);
+  O("d5", 3, "Gráfica de punto de fusión frente a número de dobles enlaces (ácidos de 18 C): 0 → 70 °C; 1 → 13 °C; 2 → −5 °C; 3 → −11 °C. ¿Cuál es sólido a 0 °C pero líquido a 20 °C?", ["El de 1 doble enlace (oleico)", "El de 0 dobles enlaces (esteárico)", "El de 2 dobles enlaces (linoleico)", "El de 3 dobles enlaces (linolénico)"], 0, ["Debe fundir entre 0 y 20 °C: solo el oleico (13 °C).", "El esteárico (70 °C) es sólido a 20 °C; linoleico (−5) y linolénico (−11) son líquidos a 0 °C."], "El oleico (1 doble enlace, 13 °C)");
+  O("d6", 3, "Un pez de aguas polares y otro de aguas tropicales tienen membranas con la misma fluidez a sus temperaturas. ¿Qué diferencia esperas en sus fosfolípidos?", ["El polar tiene más ácidos grasos insaturados", "El polar tiene más ácidos grasos saturados", "El polar no tiene colesterol ni fosfolípidos", "No hay ninguna diferencia"], 0, ["El frío tiende a solidificar la bicapa.", "Los ácidos insaturados (cadenas dobladas) la mantienen fluida a baja temperatura."], "El de aguas polares: más ácidos grasos insaturados");
+  O("d7", 3, "Dos aceites tienen índices de yodo de 180 y de 80 g de I₂ por 100 g. ¿Qué se puede afirmar?", ["El de 180 es más insaturado y funde a menor temperatura", "El de 80 es más insaturado", "Los dos tienen igual número de dobles enlaces", "El de 180 es una grasa saturada sólida"], 0, ["El índice de yodo mide los dobles enlaces.", "Más C=C: cadenas más dobladas y punto de fusión más bajo."], "El de 180 es más insaturado y funde antes");
+  R("d8", "Describe la estructura de un triacilglicérido y explica por qué la grasa es una buena reserva de energía. (Pregunta tipo PAU)", [
+    { t: "Estructura: glicerina + tres ácidos grasos", p: 0.4 },
+    { t: "Enlaces éster (esterificación, libera 3 H₂O)", p: 0.4 },
+    { t: "Distingue grasas (saturadas, sólidas) y aceites (insaturados, líquidos)", p: 0.3 },
+    { t: "Reserva: ≈ 9 kcal/g, más del doble que los glúcidos", p: 0.5 },
+    { t: "Se almacena sin agua; además aísla y protege", p: 0.4 }], ["Estructura.", "Enlace éster.", "Grasa y aceite.", "Energía por gramo.", "Sin agua; aislamiento."], "Glicerina + 3 AG por ésteres; 9 kcal/g; anhidro");
+  R("d9", "¿Qué es una molécula anfipática? Explica cómo se comportan los fosfolípidos en agua y qué relación tiene con la membrana. (Pregunta tipo PAU)", [
+    { t: "Definición: parte hidrofílica y parte hidrofóbica", p: 0.4 },
+    { t: "Fosfolípido: cabeza polar y dos colas apolares", p: 0.4 },
+    { t: "En agua: cabezas hacia el agua, colas ocultas; forma micelas, bicapas o liposomas", p: 0.5 },
+    { t: "Formación espontánea de la bicapa de las membranas", p: 0.4 },
+    { t: "Fluidez: ácidos insaturados y colesterol; barrera selectiva", p: 0.3 }], ["Definición.", "Fosfolípido.", "En agua.", "Bicapa.", "Fluidez."], "Anfipático → bicapa espontánea → membrana fluida");
+  R("d10", "Explica qué es la saponificación y por qué el jabón elimina la grasa. (Pregunta tipo PAU)", [
+    { t: "Definición: hidrólisis alcalina de un éster (grasa + NaOH o KOH)", p: 0.5 },
+    { t: "Productos: glicerina y sales de ácido graso (jabón)", p: 0.4 },
+    { t: "El jabón es anfipático: cabeza polar y cola apolar", p: 0.4 },
+    { t: "Forma micelas que atrapan la grasa (emulsión)", p: 0.5 },
+    { t: "Solo se saponifican los lípidos con ácidos grasos", p: 0.2 }], ["Definición.", "Productos.", "Anfipático.", "Micelas.", "Saponificables."], "Grasa + NaOH → glicerina + jabón; micelas");
+  R("d11", "Colesterol: estructura, funciones y relación con la salud. (Pregunta tipo PAU)", [
+    { t: "Esteroide: cuatro anillos fusionados, insaponificable", p: 0.4 },
+    { t: "Forma parte de las membranas animales y regula su fluidez", p: 0.4 },
+    { t: "Precursor de hormonas esteroideas, vitamina D y sales biliares", p: 0.5 },
+    { t: "Transporte en lipoproteínas: LDL (a los tejidos) y HDL (al hígado)", p: 0.4 },
+    { t: "El exceso de LDL favorece la aterosclerosis", p: 0.3 }], ["Estructura.", "Membrana.", "Precursor.", "Lipoproteínas.", "Salud."], "Esteroide; membrana; hormonas; LDL/HDL; aterosclerosis");
+  R("d12", "Diferencias entre ácidos grasos saturados e insaturados y consecuencias en la grasa y en la salud. (Pregunta tipo PAU)", [
+    { t: "Saturados: sin C=C, cadena recta; insaturados: C=C, cadena doblada (cis)", p: 0.5 },
+    { t: "Punto de fusión: saturados altos, insaturados bajos (empaquetamiento)", p: 0.4 },
+    { t: "Ejemplos: grasas animales y aceites vegetales", p: 0.3 },
+    { t: "Hidrogenación parcial y grasas trans (efecto sobre LDL y HDL)", p: 0.5 },
+    { t: "Ácidos grasos esenciales: linoleico y linolénico", p: 0.3 }], ["Estructura.", "Punto de fusión.", "Ejemplos.", "Grasas trans.", "Esenciales."], "Saturados rectos y sólidos; insaturados doblados y líquidos");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Saturado frente a insaturado", ancha: true,
+      tabla: { cab: ["", "Saturado", "Insaturado"], filas: [
+        ["dobles enlaces", "ninguno", "uno o más (cis)"],
+        ["cadena", "recta", "doblada"],
+        ["a 20 °C", "sólido (grasa)", "líquido (aceite)"],
+        ["ejemplo", "palmítico, esteárico", "oleico, linoleico"]
+      ] } },
+    { titulo: "Cómo se forma un triacilglicérido",
+      pasos: ["Glicerina: tres –OH.", "Tres ácidos grasos: tres –COOH.", "Tres ésteres: sale 3 H₂O.", "Resultado: grasa o aceite."],
+      nota: "Reserva ≈ 9 kcal/g." },
+    { titulo: "Triacilglicérido frente a fosfolípido", ancha: true,
+      tabla: { cab: ["", "Triacilglicérido", "Fosfolípido"], filas: [
+        ["ácidos grasos", "3", "2"],
+        ["tercer –OH", "otro ácido graso", "fosfato + alcohol"],
+        ["polaridad", "apolar", "anfipático"],
+        ["función", "reserva y aislante", "membranas"]
+      ] } },
+    { titulo: "Clasificación de los lípidos", ancha: true,
+      tabla: { cab: ["Saponificables", "Insaponificables"], filas: [
+        ["triacilglicéridos", "colesterol y esteroides"],
+        ["ceras", "terpenos (carotenos, A, E, K)"],
+        ["fosfolípidos", "eicosanoides*"]
+      ] }, nota: "*Derivan de un ácido graso de 20 C pero no se saponifican." },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Todos los lípidos tienen ácidos grasos", bien: "Esteroides y terpenos no los tienen", por: "Son insaponificables." },
+        { mal: "Los insaturados funden a más temperatura", bien: "Funden a menos", por: "Cadenas dobladas, peor empaquetadas." },
+        { mal: "El fosfolípido es apolar", bien: "Es anfipático", por: "Cabeza polar y dos colas apolares." },
+        { mal: "El colesterol se saponifica", bien: "No: no tiene ácidos grasos", por: "Es un esteroide." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t3", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio3a.secciones,
+    nuevas: B.parte.bio3a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
