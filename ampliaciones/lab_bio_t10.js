@@ -20,6 +20,7 @@
       ".bio10-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
       ".bio10-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
       ".bio10-etq{margin:8px 0 2px;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio10-gam{margin:8px 0 2px;font-size:13px;color:var(--ink-faint)}" +
       ".bio10-pun{width:100%;table-layout:fixed;border-collapse:collapse;margin:8px 0;font-size:14px;color:var(--ink)}" +
       ".bio10-pun th,.bio10-pun td{border:1.5px solid var(--line);padding:6px 3px;text-align:center;overflow-wrap:anywhere}" +
       ".bio10-pun th{background:var(--sheet-2);font-weight:700}" +
@@ -131,7 +132,7 @@
     U.fichas(cuerpo.querySelector("[data-dom]"), [{ k: "comp", t: "Dominancia completa" }, { k: "inter", t: "Dominancia intermedia" }], "comp", function (k) { o.dom = k; pinta(); });
     U.fichas(gd, DI.map(function (d) { return { k: d.k, t: d.t }; }), "0", function (k) { o.di = k; pinta(); });
     U.fichas(cuerpo.querySelector("[data-fase]"), [{ k: "cis", t: "Cis: AB / ab" }, { k: "trans", t: "Trans: Ab / aB" }], "cis", function (k) { o.fase = k; pinta(); });
-    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Recombinación r", etq: "Frecuencia de recombinación", min: 0, max: 50, step: 1, val: 10, fmt: function (v) { return B.fmt(v, 0) + " %"; }, on: function (v) { o.r = Math.round(v); pinta(); } });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "r", etq: "Frecuencia de recombinación", min: 0, max: 50, step: 1, val: 10, fmt: function (v) { return B.fmt(v, 0) + " %"; }, on: function (v) { o.r = Math.round(v); pinta(); } });
 
     function pinta() {
       gm.style.display = o.modo === "mono" ? "" : "none";
@@ -140,14 +141,14 @@
       if (o.modo === "lig") return pintaLig();
       var dd = DI[+o.di], p1 = o.modo === "mono" ? o.p1 : dd.a, p2 = o.modo === "mono" ? o.p2 : dd.b, dom = o.modo === "mono" ? o.dom : "comp";
       var c = cruce(p1, p2, dom), nom = nombresFeno(p1.length, dom), h, cnt, ncol = c.u2.length;
-      h = '<div class="bio10-etq">Gametos: ' + p1 + " → " + c.u1.map(function (x) { return x.g + (x.c > 1 ? " (×" + x.c + ")" : ""); }).join(", ") +
+      h = '<div class="bio10-gam">Gametos: ' + p1 + " → " + c.u1.map(function (x) { return x.g + (x.c > 1 ? " (×" + x.c + ")" : ""); }).join(", ") +
         " · " + p2 + " → " + c.u2.map(function (x) { return x.g + (x.c > 1 ? " (×" + x.c + ")" : ""); }).join(", ") + "</div>";
       h += '<table class="bio10-pun" data-pun><tr><th>♀ / ♂</th>' + c.u2.map(function (x) { return "<th>" + x.g + "</th>"; }).join("") + "</tr>";
       c.celdas.forEach(function (fila, i) {
         h += "<tr><th>" + c.u1[i].g + "</th>" + fila.map(function (x) { return '<td class="c' + (dom === "inter" ? x.f : x.f) + '">' + x.gen + "</td>"; }).join("") + "</tr>";
       });
       h += "</table>";
-      h += '<table class="bio10-tab" data-prop><tr><th>Fenotipo</th><th>Proporción</th><th>Probabilidad</th></tr>';
+      h += '<table class="bio10-tab" data-prop><tr><th>Fenotipo</th><th>Proporción</th><th>Prob.</th></tr>';
       var ks = Object.keys(c.feno).map(Number).sort(function (a, b) { return a - b; });
       cnt = ks.map(function (k) { return c.feno[k]; });
       ks.forEach(function (k) { h += "<tr><td>" + nom[k] + "</td><td>" + c.feno[k] + " / " + c.D + "</td><td>" + frac(c.feno[k], c.D) + "</td></tr>"; });
@@ -160,7 +161,7 @@
 
     function pintaLig() {
       var cl = ligado(o.r, o.fase), h;
-      h = '<div class="bio10-etq">Gametos del doble heterocigoto ' + (o.fase === "cis" ? "AB/ab" : "Ab/aB") + "</div>";
+      h = '<div class="bio10-gam">Gametos del doble heterocigoto ' + (o.fase === "cis" ? "AB/ab" : "Ab/aB") + "</div>";
       h += '<table class="bio10-tab" data-prop><tr><th>Gameto</th><th>Tipo</th><th>Frecuencia</th><th>Por cada 1000 hijos</th></tr>';
       cl.forEach(function (x) { h += "<tr><td>" + x.g + " · " + FENO_LIG[x.g] + "</td><td>" + x.t + "</td><td>" + B.fmt(x.n / 10, 1) + " %</td><td>" + x.n + "</td></tr>"; });
       h += "</table>";
@@ -213,7 +214,7 @@
         }).join("") + "</tr>";
       });
       h += "</table>";
-      h += '<table class="bio10-tab" data-prop><tr><th>Grupo del hijo</th><th>Probabilidad</th></tr>';
+      h += '<table class="bio10-tab" data-prop><tr><th>Grupo del hijo</th><th>Prob.</th></tr>';
       var pos = [];
       ["A", "B", "AB", "O"].forEach(function (g) { if (c.grupo[g]) { pos.push(g); h += "<tr><td>Grupo " + g + "</td><td>" + frac(c.grupo[g], 4) + "</td></tr>"; } });
       h += "</table>";
