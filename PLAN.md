@@ -2,7 +2,7 @@
 
 ## 0. ESTADO AL PARAR — LEER PRIMERO
 
-**Revisado el 17-nov-2026.** Último cambio en la web: **17-nov-2026, 08:14 UTC** (Biología II completa). Estas fechas son las mismas que lleva la nota del vault (`Documentación-IT/05-Proyectos/Bachi Firu.md`); si cambias una, cambia la otra.
+**Revisado el 17-nov-2026.** Último cambio en la web: **17-nov-2026, 12:20 UTC** (3 simulacros PAU nuevos de Biología II). Estas fechas son las mismas que lleva la nota del vault (`Documentación-IT/05-Proyectos/Bachi Firu.md`); si cambias una, cambia la otra.
 
 **Cronología (todas en UTC):**
 | Fecha | Qué |
@@ -16,6 +16,7 @@
 | 11-nov-2026 | Revisión de la documentación (este archivo, README, CLAUDE.md, PROMPT_RETOMAR y la nota del vault). Sin cambios de contenido. |
 | 16-nov-2026 23:25 | Empieza Biología II (16 temas), encargo `herramientas/ENCARGO_COMUN_BIOLOGIA.txt`, con ficha «de un vistazo». |
 | 17-nov-2026 ~08:14 | **Biología II cerrada** (16 temas). TODO CUADRA (81 grupos, 32.796 comprobaciones de cifras). Artefacto privado versión 13. `main` actualizado. |
+| 17-nov-2026 ~12:20 | Biología II: 3 simulacros nuevos (sim6–sim8) en formato PAU Madrid 2026 (5 preguntas de 2 puntos, 1 obligatoria + pares 2A/2B…5A/5B, 90 min), con solución desarrollada; 511 comprobaciones. TODO CUADRA (82 grupos, 33.307 cifras). Artefacto versión 14. `main` actualizado. |
 
 
 - **6 asignaturas listas** (desde el 17-nov-2026) — Mates I, FyQ I, Química II, Matemáticas II, Historia de la Filosofía (707 ejercicios) y **Biología II** (16 temas con ficha «de un vistazo»; 756 ejercicios, 4.949 comprobaciones, ≈45 interactivos). `comprobar_todo.sh` → TODO CUADRA (81 grupos, 32.796 comprobaciones de cifras, 0 fallos). Publicado en el artefacto (versión 13, 17-nov) y en `main` (Pages). Bill pidió PARAR tras Filosofía. Pendiente menor: cotejar con una edición las citas marcadas «traducción habitual».
@@ -55,7 +56,7 @@
 | Historia de España (15 temas) | **A medias a propósito**: solo el tema 7 (Restauración) con el estándar antiguo (7 ejercicios, línea del tiempo, diagramas, comentario guiado) | Después de Química II, si el usuario lo decide |
 | Matemáticas II (14 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 14 temas ampliados (≈98.000 palabras) · 660 ejercicios · 53 interactivos nuevos, todos probados pulsándolos · 2.896 comprobaciones de cifras sin fallos · sin simulacros nuevos |
 | Historia de la Filosofía (16) | **Cerrada 29-oct**: 16 temas ampliados, cada uno con ficha «de un vistazo» (componente `vistazo`, lab_0vistazo.js); 707 ejercicios, 3.747 comprobaciones sin fallos | ≈2,5 M tokens (≈157k/tema) |
-| Biología II (16) | **Cerrada 17-nov-2026**: 16 temas con ficha «de un vistazo»; 756 ejercicios; 4.949 comprobaciones sin fallos; ≈45 interactivos (ósmosis, Punnett, traductor de ADN, PCR, Hardy-Weinberg…) | ≈3,2 M tokens (≈200k/tema) + ≈0,3 M de intentos cortados |
+| Biología II (16) | **Cerrada 17-nov-2026**: 16 temas con ficha «de un vistazo»; 8 simulacros (3 nuevos en formato PAU Madrid 2026); 756 ejercicios; 4.949 comprobaciones sin fallos; ≈45 interactivos (ósmosis, Punnett, traductor de ADN, PCR, Hardy-Weinberg…) | ≈3,2 M tokens (≈200k/tema) + ≈0,3 M de intentos cortados |
 | Física II (12), Lengua (22) | Sin empezar (solo el contenido original) | — |
 
 «A medias a propósito» = no hay nada roto ni sin terminar en el código: esos dos temas funcionan y están verificados; simplemente se ampliarán más cuando toque su asignatura.
@@ -169,6 +170,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Biología II t14 microbiología (44 ej., 336 comprob.; cortado por límite y reanudado) | ≈218k (+ parte previa) | |
 | Biología II t15 inmunología (47 ej., 390 comprob.; cortado por límite y reanudado) | ≈184k (+ parte previa) | |
 | Biología II t16 evolución (44 ej., 391 comprob.) | ≈182k | |
+| Biología II simulacros sim6–sim8 (27 enunciados, 511 comprob.)  | ≈187k | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -270,3 +272,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 17-nov: Biología t15 fusionado. Falta t16.
 - 17-nov: Biología t16 fusionado: 16/16.
 - 17-nov-2026 08:14 UTC: BIOLOGÍA II CERRADA. TODO CUADRA (81 grupos, 32.796 cifras). Artefacto v13, `main` actualizado, vault actualizado. PARADA.
+- 17-nov 12:20 UTC: Biología II simulacros sim6–sim8 fusionados y publicados (TODO CUADRA 82 grupos / 33.307 cifras; artefacto v14; main = c93b123). PARADA.

@@ -103,4 +103,4 @@ Con Playwright y Chromium (`herramientas/pruebas/`; ver `GUIA_TEMA.md`):
 Se probó un generador de vault de Obsidian (`obsidian/`), pero se descartó el 27-oct-2026 (no encaja con quien estudia con la web). Queda solo como histórico, sin mantenimiento ni la capa de ampliaciones; la web de uso es GitHub Pages (y la versión con corrección, el artefacto de claude.ai; ver `PLAN.md`).
 
 ---
-Estado: 6 asignaturas listas. Último cambio en la web: 17-nov-2026 (Biología II). Cronología completa en `PLAN.md` §0.
+Estado: 6 asignaturas listas. Último cambio en la web: 17-nov-2026 (Biología II y sus simulacros PAU). Cronología completa en `PLAN.md` §0.
