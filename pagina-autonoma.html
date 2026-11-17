@@ -6474,6 +6474,272 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 9 (Anabolismo: la fotosíntesis)
+   bio_esquemaz: el esquema en Z paso a paso (flujo acíclico y cíclico) con el recuento de H⁺, O₂, NADPH y ATP.
+   bio_calvin:   el ciclo de Calvin como contabilidad: nº de CO₂ → ATP, NADPH y glucosas (planta C3 o C4).
+   bio_fotofactores: velocidad de fotosíntesis según luz, CO₂ y temperatura (factor limitante, plantas C3 y C4).
+   bio_c3c4cam:  un día en una planta C3, C4 o CAM (estomas, fijación del CO₂, fotorrespiración).
+   Estilos inyectados desde aquí. Los números del modelo los recalcula herramientas/verificar_bio2_t9.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio9-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio9-estilos";
+    s.textContent =
+      ".bio9-svg{display:block;width:100%;max-width:560px;height:auto;margin:6px auto}" +
+      ".bio9-svg text{font:600 13px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio9-svg .b9-nodo{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio9-svg .b9-nodo.on{fill:var(--pen-soft);stroke:var(--pen)}" +
+      ".bio9-svg .b9-nodo.ahora{fill:var(--red-soft);stroke:var(--red);stroke-width:2.5}" +
+      ".bio9-svg .b9-ar{fill:none;stroke:var(--ink-faint);stroke-width:1.5;stroke-dasharray:4 3}" +
+      ".bio9-svg .b9-ar.on{stroke:var(--pen);stroke-width:2.5;stroke-dasharray:none}" +
+      ".bio9-svg .b9-ar.ahora{stroke:var(--red);stroke-width:3;stroke-dasharray:none}" +
+      ".bio9-svg .b9-pt{fill:var(--ink-faint)} .bio9-svg .b9-pt.on{fill:var(--pen)} .bio9-svg .b9-pt.ahora{fill:var(--red)}" +
+      ".bio9-svg .b9-luz{fill:none;stroke:#e0a21a;stroke-width:3}" +
+      ".bio9-svg .b9-mem{fill:var(--pen-soft);opacity:.55}" +
+      ".bio9-svg .b9-peq{font-size:11px;fill:var(--ink-faint);font-weight:500}" +
+      ".bio9-svg .b9-fondo{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio9-svg .b9-est{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2.5}" +
+      ".bio9-svg .b9-hoja{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2}" +
+      ".bio9-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio9-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio9-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio9-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio9-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio9-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+      ".bio9-barra{margin:6px 0;font-size:13px;color:var(--ink)}" +
+      ".bio9-barra .pista{height:14px;border-radius:7px;background:var(--sheet-2);border:1.5px solid var(--line);overflow:hidden;margin-top:2px}" +
+      ".bio9-barra .pista i{display:block;height:100%;background:var(--pen)}" +
+      ".bio9-barra.lim .pista i{background:var(--red)}" +
+      ".bio9-barra.lim b{color:var(--red)}" +
+      "@media(max-width:520px){.bio9-dato{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  var NS = "http://www.w3.org/2000/svg";
+
+  // ------------------------------------------------------------------ ESQUEMA EN Z
+  // Nodos (x, y = energía: más arriba, más energía). Z: PSII → PQ → b6f → PC → PSI → Fd → NADPH.
+  var NODOS = {
+    h2o: [30, 218, "H₂O"], p680: [66, 176, "P680"], p680e: [66, 62, "P680*"], pq: [122, 90, "PQ"],
+    b6f: [172, 112, "b₆f"], pc: [218, 134, "PC"], p700: [260, 170, "P700"], p700e: [260, 52, "P700*"],
+    fd: [304, 64, "Fd"], nadp: [338, 108, "NADPH"]
+  };
+  // Cada paso: texto, aristas nuevas, nodos activos y recuento acumulado (por cada 2 e⁻ que recorren la cadena).
+  var Z_ACICLICO = [
+    { t: "<b>1. La luz excita el fotosistema II.</b> Los pigmentos antena pasan la energía al centro de reacción P680, que se queda con un electrón de alta energía (P680*).", ar: ["p680-p680e"], h: 0, o2: 0, nadph: 0, atp: 0 },
+    { t: "<b>2. Fotólisis del agua.</b> P680⁺ recupera electrones del agua: 2 H₂O → O₂ + 4 H⁺ + 4 e⁻. Los H⁺ quedan en el lumen y el O₂ sale de la hoja.", ar: ["h2o-p680"], h: 2, o2: 0.5, nadph: 0, atp: 0 },
+    { t: "<b>3. Cadena entre fotosistemas.</b> El electrón de P680* baja por la plastoquinona (PQ): va perdiendo energía.", ar: ["p680e-pq"], h: 2, o2: 0.5, nadph: 0, atp: 0 },
+    { t: "<b>4. Complejo citocromo b₆f.</b> Con la energía que pierde el electrón, bombea H⁺ del estroma al lumen (≈ 4 H⁺ por cada 2 e⁻).", ar: ["pq-b6f"], h: 6, o2: 0.5, nadph: 0, atp: 0 },
+    { t: "<b>5. Plastocianina (PC).</b> Una proteína con cobre lleva el electrón hasta el fotosistema I y rellena el hueco de P700.", ar: ["b6f-pc", "pc-p700"], h: 6, o2: 0.5, nadph: 0, atp: 0 },
+    { t: "<b>6. La luz excita el fotosistema I.</b> P700 absorbe energía y expulsa un electrón de muy alta energía (P700*).", ar: ["p700-p700e"], h: 6, o2: 0.5, nadph: 0, atp: 0 },
+    { t: "<b>7. Ferredoxina (Fd).</b> Recoge el electrón de P700* y lo lleva hacia el estroma.", ar: ["p700e-fd"], h: 6, o2: 0.5, nadph: 0, atp: 0 },
+    { t: "<b>8. NADP⁺ reductasa.</b> NADP⁺ + H⁺ + 2 e⁻ → <b>NADPH</b>. Ya tenemos el poder reductor para el ciclo de Calvin.", ar: ["fd-nadp"], h: 6, o2: 0.5, nadph: 1, atp: 0 },
+    { t: "<b>9. ATP sintasa.</b> Los H⁺ acumulados en el lumen vuelven al estroma por la ATP sintasa y se fabrica <b>ATP</b> (fotofosforilación acíclica).", ar: [], atpsint: true, h: 6, o2: 0.5, nadph: 1, atp: 1.5 }
+  ];
+  var Z_CICLICO = [
+    { t: "<b>1. La luz excita solo el fotosistema I.</b> P700 pasa a P700* y expulsa un electrón de alta energía. No interviene el PSII: no hay fotólisis.", ar: ["p700-p700e"], h: 0, o2: 0, nadph: 0, atp: 0 },
+    { t: "<b>2. La ferredoxina no entrega el electrón al NADP⁺.</b> Lo devuelve a la cadena, hacia el complejo citocromo b₆f.", ar: ["p700e-fd", "fd-b6f"], h: 0, o2: 0, nadph: 0, atp: 0 },
+    { t: "<b>3. Citocromo b₆f.</b> Al pasar por él, el electrón hace que se bombeen H⁺ al lumen (≈ 4 H⁺ por cada 2 e⁻).", ar: [], h: 4, o2: 0, nadph: 0, atp: 0 },
+    { t: "<b>4. Plastocianina.</b> Devuelve el electrón al P700: el ciclo queda cerrado y el mismo electrón puede volver a empezar.", ar: ["b6f-pc", "pc-p700"], h: 4, o2: 0, nadph: 0, atp: 0 },
+    { t: "<b>5. ATP sintasa.</b> Los H⁺ del lumen vuelven al estroma y se fabrica <b>ATP</b> (fotofosforilación cíclica). No hay O₂ ni NADPH.", ar: [], atpsint: true, h: 4, o2: 0, nadph: 0, atp: 1 }
+  ];
+  var Z_ARISTAS = {
+    "p680-p680e": ["p680", "p680e", true], "h2o-p680": ["h2o", "p680"], "p680e-pq": ["p680e", "pq"], "pq-b6f": ["pq", "b6f"],
+    "b6f-pc": ["b6f", "pc"], "pc-p700": ["pc", "p700"], "p700-p700e": ["p700", "p700e", true], "p700e-fd": ["p700e", "fd"],
+    "fd-nadp": ["fd", "nadp"], "fd-b6f": ["fd", "b6f"]
+  };
+
+  B.w.bio_esquemaz = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El esquema en Z paso a paso");
+    cuerpo.innerHTML = '<p class="w-intro">Elige el flujo y avanza paso a paso. Verás por dónde viaja el electrón y qué se va produciendo (cifras por cada 2 electrones).</p>' +
+      '<div data-modo></div><div data-ctl></div><div class="bio9-dibujo"></div><div class="bio9-texto bio9-veredicto"></div><div class="bio9-dato"></div>' +
+      '<p class="w-pie">Convención: 4 H⁺ por cada ATP (otros libros usan ≈ 4,67; el balance exacto cambia un poco). La altura del dibujo es la energía del electrón.</p>';
+    var modo = "aci", paso = 0;
+    var dib = cuerpo.querySelector(".bio9-dibujo"), txt = cuerpo.querySelector(".bio9-texto"), dat = cuerpo.querySelector(".bio9-dato");
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "aci", t: "Flujo acíclico" }, { k: "cic", t: "Flujo cíclico" }], modo, function (k) { modo = k; paso = 0; sl.input.max = lista().length; sl.set(1); pinta(); });
+    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Paso", min: 1, max: 9, step: 1, val: 1, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { paso = Math.round(v) - 1; pinta(); } });
+    function lista() { return modo === "aci" ? Z_ACICLICO : Z_CICLICO; }
+    function pinta() {
+      var L = lista(), n = L.length; if (paso > n - 1) paso = n - 1;
+      var hechas = {}, ahora = {}, i, k;
+      for (i = 0; i <= paso; i++) L[i].ar.forEach(function (a) { (i === paso ? ahora : hechas)[a] = true; });
+      var nodos = {};
+      Object.keys(hechas).concat(Object.keys(ahora)).forEach(function (a) { nodos[Z_ARISTAS[a][0]] = 1; nodos[Z_ARISTAS[a][1]] = 1; });
+      var ahoraN = {}; Object.keys(ahora).forEach(function (a) { ahoraN[Z_ARISTAS[a][0]] = 1; ahoraN[Z_ARISTAS[a][1]] = 1; });
+      var s = '<svg class="bio9-svg" viewBox="0 0 380 250" role="img" aria-label="Esquema en Z de la fase luminosa">' +
+        '<rect class="b9-fondo" x="4" y="4" width="372" height="242" rx="12"/>' +
+        '<rect class="b9-mem" x="4" y="231" width="372" height="15" rx="4"/><text class="b9-peq" x="12" y="242">membrana del tilacoide (abajo, el estroma)</text>' +
+        '<text class="b9-peq" x="12" y="20">energía del electrón ↑</text>';
+      Object.keys(Z_ARISTAS).forEach(function (a) {
+        var d = Z_ARISTAS[a], p = NODOS[d[0]], q = NODOS[d[1]], cl = ahora[a] ? " ahora" : (hechas[a] ? " on" : "");
+        var ocultar = (modo === "aci" && a === "fd-b6f") || (modo === "cic" && (a === "p680-p680e" || a === "h2o-p680" || a === "p680e-pq" || a === "pq-b6f" || a === "fd-nadp"));
+        if (ocultar) return;
+        var dx = q[0] - p[0], dy = q[1] - p[1], L2 = Math.sqrt(dx * dx + dy * dy), ux = dx / L2, uy = dy / L2;
+        var x1 = p[0] + ux * 22, y1 = p[1] + uy * 11, x2 = q[0] - ux * 24, y2 = q[1] - uy * 12;
+        if (d[2]) { x1 = p[0]; y1 = p[1] - 11 * (dy < 0 ? 1 : -1); x2 = q[0]; y2 = q[1] + 12 * (dy < 0 ? 1 : -1); }
+        s += '<line class="b9-ar' + cl + '" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"/>';
+        var px = x2, py = y2, nx = -uy, ny = ux;
+        s += '<polygon class="b9-pt' + cl + '" points="' + px.toFixed(1) + "," + py.toFixed(1) + " " + (px - ux * 8 + nx * 4).toFixed(1) + "," + (py - uy * 8 + ny * 4).toFixed(1) + " " + (px - ux * 8 - nx * 4).toFixed(1) + "," + (py - uy * 8 - ny * 4).toFixed(1) + '"/>';
+      });
+      Object.keys(NODOS).forEach(function (k2) {
+        if (modo === "cic" && (k2 === "h2o" || k2 === "p680" || k2 === "p680e" || k2 === "pq" || k2 === "nadp")) return;
+        var p = NODOS[k2], cl = ahoraN[k2] ? " ahora" : (nodos[k2] ? " on" : "");
+        s += '<rect class="b9-nodo' + cl + '" x="' + (p[0] - 26) + '" y="' + (p[1] - 11) + '" width="52" height="22" rx="7"/><text x="' + p[0] + '" y="' + (p[1] + 4) + '" text-anchor="middle">' + p[2] + '</text>';
+      });
+      // fotones
+      var luz = [];
+      if (modo === "aci") { luz.push(["p680", 0]); luz.push(["p700", 5]); } else luz.push(["p700", 0]);
+      luz.forEach(function (l) { if (paso >= l[1]) { var p = NODOS[l[0]]; s += '<path class="b9-luz" d="M' + (p[0] - 34) + "," + (p[1] + 14) + ' q4,-8 8,0 t8,0 t8,0"/><text class="b9-peq" x="' + (p[0] - 36) + '" y="' + (p[1] + 28) + '">luz</text>'; } });
+      // ATP sintasa
+      var atp = L[paso].atpsint;
+      s += '<rect class="b9-nodo' + (atp ? " ahora" : "") + '" x="150" y="196" width="86" height="24" rx="8"/><text x="193" y="212" text-anchor="middle">ATP sintasa</text>';
+      s += '<text class="b9-peq" x="244" y="212">H⁺ salen ⇒ ATP</text>';
+      s += '</svg>';
+      dib.innerHTML = s;
+      txt.innerHTML = L[paso].t;
+      var c = L[paso];
+      dat.innerHTML = '<div><b>H⁺ bombeados al lumen</b>' + B.fmt(c.h, 0) + '</div><div><b>O₂ liberado</b>' + (c.o2 ? B.fmt(c.o2, 1) + " (por 2 e⁻)" : "0") + '</div><div><b>NADPH formado</b>' + B.fmt(c.nadph, 0) + '</div><div><b>ATP formado</b>' + (c.atp ? "≈ " + B.fmt(c.atp, 1) : "0") + '</div>';
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ CICLO DE CALVIN
+  B.w.bio_calvin = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El ciclo de Calvin: la contabilidad");
+    cuerpo.innerHTML = '<p class="w-intro">Mueve el número de CO₂ que fija la planta y mira cuánto ATP y NADPH gasta y cuánta glucosa sale. Prueba a llegar a 6.</p>' +
+      '<div data-tipo></div><div data-ctl></div><div class="bio9-dato"></div><div class="bio9-veredicto"></div><p class="w-pie">C3: 3 ATP y 2 NADPH por CO₂ (2 ATP para reducir el 3-PGA y 1 para regenerar la RuBP). Planta C4: unos 2 ATP más por CO₂ para el transporte del CO₂ (convención de los libros: 5 ATP y 2 NADPH).</p>';
+    var tipo = "c3", n = 3;
+    var dat = cuerpo.querySelector(".bio9-dato"), ver = cuerpo.querySelector(".bio9-veredicto");
+    U.fichas(cuerpo.querySelector("[data-tipo]"), [{ k: "c3", t: "Planta C3" }, { k: "c4", t: "Planta C4" }], tipo, function (k) { tipo = k; pinta(); });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "CO₂ fijados", min: 1, max: 12, step: 1, val: n, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { n = Math.round(v); pinta(); } });
+    function fr(x) { return Math.abs(x - Math.round(x)) < 1e-9 ? String(Math.round(x)) : B.fmt(x, 2); }
+    function pinta() {
+      var atpPorCO2 = tipo === "c4" ? 5 : 3, atp = atpPorCO2 * n, nadph = 2 * n, g3p = n / 3, glu = n / 6;
+      dat.innerHTML = '<div><b>3-PGA formados</b>' + (2 * n) + ' (' + (6 * n) + ' C)</div>' +
+        '<div><b>G3P que salen del ciclo</b>' + fr(g3p) + '</div>' +
+        '<div><b>ATP gastado</b>' + atp + (tipo === "c3" ? ' (' + (2 * n) + ' reducción + ' + n + ' regeneración)' : '') + '</div>' +
+        '<div><b>NADPH gastado</b>' + nadph + '</div>' +
+        '<div><b>Glucosa formada</b>' + fr(glu) + '</div>' +
+        '<div><b>Balance de carbono</b>' + n + ' C del CO₂ + ' + (5 * n) + ' C de RuBP = ' + (6 * n) + ' C</div>';
+      var cls = "";
+      if (n % 6 === 0) { ver.textContent = "Con " + n + " CO₂ salen " + (n / 6) + " glucosa(s) completa(s): gastan " + atp + " ATP y " + nadph + " NADPH."; cls = " ok"; }
+      else if (n % 3 === 0) ver.textContent = "Con " + n + " CO₂ salen " + (n / 3) + " G3P (triosas, 3 C). Para una glucosa (6 C) hacen falta dos G3P, es decir, 6 CO₂.";
+      else ver.textContent = "Con " + n + " CO₂ aún no sale ninguna triosa entera: el ciclo se completa de 3 en 3 CO₂ (1 G3P) y de 6 en 6 para una glucosa.";
+      ver.className = "bio9-veredicto" + cls;
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ FACTORES QUE AFECTAN
+  // Modelo de factor limitante (Blackman), en unidades arbitrarias 0–100. Se recalcula en el verificador.
+  var PLANTA = {
+    c3: { luzSat: 1000, co2Div: 6, tOpt: 30, tAn: 15, nombre: "C3" },
+    c4: { luzSat: 1500, co2Div: 2, tOpt: 35, tAn: 15, nombre: "C4" }
+  };
+  function rLuz(p, I) { return Math.min(100, 100 * I / p.luzSat); }
+  function rCO2(p, C) { return Math.min(100, C / p.co2Div); }
+  function rTemp(p, T) { var z = (T - p.tOpt) / p.tAn; return 100 * Math.exp(-z * z); }
+  function tasa(p, I, C, T) { return Math.min(rLuz(p, I), rCO2(p, C), rTemp(p, T)); }
+
+  B.w.bio_fotofactores = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Luz, CO₂ y temperatura: ¿qué limita?");
+    cuerpo.innerHTML = '<p class="w-intro">Cambia los tres factores. La velocidad de la fotosíntesis la marca el factor que está más escaso: el <b>factor limitante</b>.</p>' +
+      '<div data-tipo></div><div data-ctl></div><div data-bar></div><div class="bio9-veredicto"></div>' +
+      '<div data-eje></div><div class="w-plot"></div><p class="w-pie">Modelo sencillo (unidades arbitrarias, 100 = máximo de la planta): la velocidad es la menor de las tres. En una planta real las curvas son más suaves, pero la idea es la misma.</p>';
+    var tipo = "c3", I = 500, C = 400, T = 25, eje = "I";
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    U.fichas(cuerpo.querySelector("[data-tipo]"), [{ k: "c3", t: "Planta C3 (trigo)" }, { k: "c4", t: "Planta C4 (maíz)" }], tipo, function (k) { tipo = k; pinta(); });
+    U.slider(ctl, { et: "Luz", min: 0, max: 2000, step: 50, val: I, fmt: function (v) { return B.fmt(v, 0) + " µmol/m²s"; }, on: function (v) { I = v; pinta(); } });
+    U.slider(ctl, { et: "CO₂", min: 0, max: 1000, step: 10, val: C, fmt: function (v) { return B.fmt(v, 0) + " ppm"; }, on: function (v) { C = v; pinta(); } });
+    U.slider(ctl, { et: "Temperatura", min: 0, max: 50, step: 1, val: T, fmt: function (v) { return B.fmt(v, 0) + " °C"; }, on: function (v) { T = v; pinta(); } });
+    U.fichas(cuerpo.querySelector("[data-eje]"), [{ k: "I", t: "Curva frente a la luz" }, { k: "C", t: "Curva frente al CO₂" }, { k: "T", t: "Curva frente a la temperatura" }], eje, function (k) { eje = k; pinta(); });
+    var barras = cuerpo.querySelector("[data-bar]"), ver = cuerpo.querySelector(".bio9-veredicto");
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 2000, ymin: 0, ymax: 105, w: 600, h: 250, etx: "luz (µmol/m²s)", ety: "velocidad (%)", etiqueta: "Velocidad de fotosíntesis" });
+    function pinta() {
+      var p = PLANTA[tipo], a = rLuz(p, I), b = rCO2(p, C), c = rTemp(p, T), v = Math.min(a, b, c);
+      var lim = (a <= b && a <= c) ? "luz" : (b <= c ? "CO₂" : "temperatura");
+      function barra(nom, x, esLim) { return '<div class="bio9-barra' + (esLim ? " lim" : "") + '"><b>' + nom + "</b>: " + B.fmt(x, 0) + ' %<div class="pista"><i style="width:' + x.toFixed(1) + '%"></i></div></div>'; }
+      barras.innerHTML = barra("Lo que permite la luz", a, lim === "luz") + barra("Lo que permite el CO₂", b, lim === "CO₂") + barra("Lo que permite la temperatura", c, lim === "temperatura");
+      ver.className = "bio9-veredicto" + (v < 30 ? " mal" : (v > 85 ? " ok" : ""));
+      ver.innerHTML = "Velocidad de fotosíntesis: <b>" + B.fmt(v, 0) + " %</b>. Factor limitante: <b>" + lim + "</b>." + (v >= 99.5 ? " Todo al máximo: nada limita." : " Mejorar los otros dos factores no sube la velocidad; solo mejorar este.");
+      var f, xmax, et;
+      if (eje === "I") { xmax = 2000; et = "luz (µmol/m²s)"; f = function (x) { return tasa(p, x, C, T); }; }
+      else if (eje === "C") { xmax = 1000; et = "CO₂ (ppm)"; f = function (x) { return tasa(p, I, x, T); }; }
+      else { xmax = 50; et = "temperatura (°C)"; f = function (x) { return tasa(p, I, C, x); }; }
+      g.rango(0, xmax, 0, 105);
+      g.limpiar();
+      g.curva(f, { clase: "c-pen", n: 300 });
+      var x0 = eje === "I" ? I : (eje === "C" ? C : T);
+      g.punto(x0, f(x0), { clase: "c-red" });
+      g.texto(xmax * 0.99, 8, et, { ancla: "end", clase: "c-faint" });
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ C3, C4 y CAM
+  B.w.bio_c3c4cam = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Un día en una planta C3, C4 o CAM");
+    cuerpo.innerHTML = '<p class="w-intro">Elige la planta y el ambiente y mueve la hora del día. Fíjate en cuándo abre los estomas y de dónde saca el CO₂.</p>' +
+      '<div data-pl></div><div data-amb></div><div data-ctl></div><div class="bio9-dibujo"></div><div class="bio9-dato"></div><div class="bio9-veredicto"></div>' +
+      '<p class="w-pie">Esquema cualitativo: día = de 7 h a 19 h; «mediodía caluroso» = de 11 h a 17 h. La fotorrespiración solo ocurre con luz y con RuBisCO.</p>';
+    var pl = "c3", amb = "templado", h = 12;
+    var dib = cuerpo.querySelector(".bio9-dibujo"), dat = cuerpo.querySelector(".bio9-dato"), ver = cuerpo.querySelector(".bio9-veredicto");
+    U.fichas(cuerpo.querySelector("[data-pl]"), [{ k: "c3", t: "C3 (trigo)" }, { k: "c4", t: "C4 (maíz)" }, { k: "cam", t: "CAM (cactus)" }], pl, function (k) { pl = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-amb]"), [{ k: "templado", t: "Clima templado" }, { k: "seco", t: "Calor y sequía" }], amb, function (k) { amb = k; pinta(); });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Hora", min: 0, max: 23, step: 1, val: h, fmt: function (v) { return Math.round(v) + ":00"; }, on: function (v) { h = Math.round(v); pinta(); } });
+    function estado() {
+      var dia = h >= 7 && h < 19, medio = h >= 11 && h < 17, ap, fix, calvin, foto, agua;
+      if (pl === "cam") ap = dia ? 0 : 1;
+      else if (!dia) ap = 0;
+      else if (amb === "seco" && medio) ap = pl === "c3" ? 0.25 : 0.55;
+      else ap = 1;
+      if (pl === "c3") {
+        fix = dia ? "RuBisCO, directamente" : "no fija CO₂ (sin luz)";
+        calvin = dia ? "células del mesófilo" : "—";
+        foto = !dia ? "ninguna (sin luz)" : (amb === "seco" && medio ? "ALTA (entra poco CO₂ y sube el O₂)" : "moderada");
+      } else if (pl === "c4") {
+        fix = dia ? "PEP carboxilasa (4 C: oxalacetato y malato)" : "no fija CO₂ (sin luz)";
+        calvin = dia ? "células de la vaina (CO₂ concentrado)" : "—";
+        foto = !dia ? "ninguna (sin luz)" : "muy baja";
+      } else {
+        fix = dia ? "RuBisCO, con el CO₂ que libera el malato" : "PEP carboxilasa: CO₂ → malato (a la vacuola)";
+        calvin = dia ? "en el mismo tipo de célula, con estomas cerrados" : "no hay Calvin (sin luz)";
+        foto = !dia ? "ninguna (sin luz)" : "muy baja";
+      }
+      if (ap === 0) agua = "mínima (estomas cerrados)";
+      else if (pl === "cam") agua = "baja (de noche hay menos evaporación)";
+      else agua = amb === "seco" && ap === 1 ? "alta" : (ap < 1 ? "reducida" : "media");
+      return { dia: dia, ap: ap, fix: fix, calvin: calvin, foto: foto, agua: agua };
+    }
+    function pinta() {
+      var e = estado();
+      var s = '<svg class="bio9-svg" viewBox="0 0 380 130" role="img" aria-label="Estoma y momento del día" style="max-width:420px">' +
+        '<rect class="b9-fondo" x="4" y="4" width="372" height="122" rx="12" style="fill:' + (e.dia ? "#fbe9a8" : "#1e2a4a") + ';opacity:.55"/>';
+      if (e.dia) s += '<circle cx="320" cy="34" r="16" fill="#e8a317"/>';
+      else s += '<circle cx="320" cy="34" r="14" fill="#cfd8ee"/><circle cx="326" cy="30" r="12" fill="#1e2a4a"/>';
+      var gap = 3 + 18 * e.ap;
+      s += '<path class="b9-est" d="M130,66 C150,' + (66 - 8 - gap / 2) + ' 230,' + (66 - 8 - gap / 2) + ' 250,66 C230,' + (66 - 2) + ' 150,' + (66 - 2) + ' 130,66z"/>';
+      s += '<path class="b9-est" d="M130,66 C150,' + (66 + 2) + ' 230,' + (66 + 2) + ' 250,66 C230,' + (66 + 8 + gap / 2) + ' 150,' + (66 + 8 + gap / 2) + ' 130,66z"/>';
+      s += '<text x="190" y="112" text-anchor="middle">estomas ' + (e.ap === 0 ? "cerrados" : (e.ap < 1 ? "casi cerrados" : "abiertos")) + '</text>';
+      s += '<text class="b9-peq" x="14" y="22">' + h + ':00 · ' + (e.dia ? "día" : "noche") + '</text></svg>';
+      dib.innerHTML = s;
+      dat.innerHTML = '<div><b>Fija el CO₂ con</b>' + e.fix + '</div><div><b>Ciclo de Calvin</b>' + e.calvin + '</div><div><b>Fotorrespiración</b>' + e.foto + '</div><div><b>Pérdida de agua</b>' + e.agua + '</div>';
+      var msg, cls = "";
+      if (pl === "c3") { msg = amb === "seco" ? "Planta C3: con calor y sequía cierra los estomas al mediodía, el CO₂ baja, la RuBisCO fija O₂ y aumenta la fotorrespiración: pierde rendimiento." : "Planta C3 en clima templado: fija el CO₂ con RuBisCO a la luz, con la fotorrespiración en niveles moderados."; if (amb === "seco") cls = " mal"; }
+      else if (pl === "c4") { msg = "Planta C4: la PEP carboxilasa capta el CO₂ aunque haya pocos estomas abiertos y lo concentra en la vaina. Separa las dos fijaciones en el ESPACIO (dos tipos de célula)."; cls = " ok"; }
+      else { msg = "Planta CAM: separa las dos fijaciones en el TIEMPO. De noche abre los estomas y guarda el CO₂ como malato; de día cierra y lo usa. Pierde muy poca agua (desierto)."; cls = " ok"; }
+      ver.className = "bio9-veredicto" + cls;
+      ver.textContent = msg;
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · laboratorio de números complejos (Matemáticas I, tema 6)
    motor B.lab.cx + potenciasi · operaciones · plano · conversor
    raices · lugar · mandelbrot
@@ -33507,6 +33773,650 @@
     vistazo: vistazo,
     secciones: B.parte.bio8a.secciones,
     nuevas: B.parte.bio8a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 9: Anabolismo: la fotosíntesis
+   (parte A: teoría. Parte B, bio2_t09b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t9.js (bio_esquemaz, bio_calvin, bio_fotofactores, bio_c3c4cam).
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Ecuación global y origen del O₂ (del agua, no del CO₂): experimentos de Hill y de Ruben y Kamen → sección 1.
+   2. El cloroplasto: membranas, estroma, tilacoides, grana, lumen; qué ocurre en cada sitio → secciones 1 y 5.
+   3. Pigmentos, espectro de absorción y de acción; antena y centro de reacción (P680, P700) → sección 1.
+   4. Fase luminosa: esquema en Z, fotólisis, flujo acíclico frente a cíclico (qué produce cada uno) → sección 2 + widget bio_esquemaz.
+   5. Fotofosforilación: gradiente de H⁺ en el lumen y ATP sintasa; comparación con la mitocondria → sección 2.
+   6. Ciclo de Calvin: carboxilación (RuBisCO), reducción, regeneración; balance de 18 ATP y 12 NADPH por glucosa → sección 3 + widget bio_calvin.
+   7. Factores limitantes: interpretar gráficas de luz, CO₂ y temperatura; punto de compensación → sección 5 + widget bio_fotofactores.
+   8. Fotorrespiración y plantas C4 y CAM: separación en el espacio y en el tiempo → sección 6 + widget bio_c3c4cam.
+   9. Quimiosíntesis: fuente de energía inorgánica, ejemplos y papel en los ciclos del N y del S → sección 7.
+   10. Fotosíntesis frente a respiración: mitocondria/cloroplasto, NADH/NADPH, ciclo de la materia y flujo de la energía → secciones 4 y 8.
+   Convenciones declaradas: ≈ 4 H⁺ por ATP (algunos libros usan 4,67); fotosistemas y pigmentos con las longitudes de onda
+   redondeadas; C4 con unos 5 ATP por CO₂ en los libros de texto.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t9/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }   // evita que el resaltador de variables tiña las fórmulas
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Visión general
+  secciones[0] = env(
+    "<h5>Anabolismo autótrofo: fabricar materia orgánica a partir de inorgánica</h5>" +
+    "<p>El <b>anabolismo</b> reúne las rutas que construyen moléculas grandes a partir de otras pequeñas, y gastan energía (ATP) y poder reductor (NADPH, NADH) para ello. La fotosíntesis es el anabolismo más importante del planeta: parte de <b>CO<sub>2</sub> y agua</b> (inorgánicos) y obtiene <b>glucosa</b> (orgánica), usando como fuente de energía la <b>luz</b>. Los organismos que lo hacen son <b>autótrofos fotosintéticos</b>: plantas, algas y cianobacterias.</p>" +
+    "<p>La ecuación simplificada es 6 CO<sub>2</sub> + 6 H<sub>2</sub>O + luz → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6 O<sub>2</sub>. Es una <b>reacción redox</b>: el CO<sub>2</sub> se <b>reduce</b> (gana electrones e hidrógenos y se convierte en glucosa) y el agua se <b>oxida</b> (pierde electrones y libera O<sub>2</sub>). Es lo contrario de la respiración, y por eso necesita energía: la luz aporta la energía que la respiración libera.</p>" +
+    "<h5>De dónde sale el oxígeno: una historia de experimentos</h5>" +
+    tabla(["Año", "Quién", "Qué descubrió"], [
+      ["1771", "Priestley", "Una planta «renueva» el aire en el que se ha apagado una vela: libera oxígeno."],
+      ["1779", "Ingenhousz", "Esa renovación solo ocurre con luz y en las partes verdes."],
+      ["1882", "Engelmann", "Bacterias aerobias se acumulan en las zonas del alga que reciben luz violeta-azul y roja: ahí se libera más O<sub>2</sub> (espectro de acción)."],
+      ["1930s", "Van Niel", "Bacterias sulfurosas fotosintéticas usan H<sub>2</sub>S y liberan azufre: el «oxígeno» sale del donador de hidrógeno, que en las plantas es el agua."],
+      ["1937", "Hill", "Cloroplastos aislados, con luz y un aceptor de electrones, desprenden O<sub>2</sub> <b>sin CO<sub>2</sub></b>: la fase luminosa es independiente del CO<sub>2</sub>."],
+      ["1941", "Ruben y Kamen", "Con agua marcada con <sup>18</sup>O, el O<sub>2</sub> liberado lleva <sup>18</sup>O; con CO<sub>2</sub> marcado, no. Prueba definitiva: <b>el O<sub>2</sub> viene del agua</b>."]
+    ], "q3t") +
+    ojo("«El O<sub>2</sub> sale del CO<sub>2</sub>» es el error más típico del tema. El oxígeno del O<sub>2</sub> procede del <b>H<sub>2</sub>O</b> (fotólisis). Los átomos de oxígeno del CO<sub>2</sub> acaban en la glucosa y en el agua que se forma en el ciclo de Calvin.") +
+    "<p>Por eso la ecuación «honesta» lleva agua a los dos lados: <b>6 CO<sub>2</sub> + 12 H<sub>2</sub>O + luz → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6 O<sub>2</sub> + 6 H<sub>2</sub>O</b>. Se consumen 12 H<sub>2</sub>O (fase luminosa) y se forman 6 (ciclo de Calvin); el balance neto es el de la ecuación simplificada. Se ve bien al contar los 6 O<sub>2</sub> = 12 átomos de O, que solo pueden venir de 12 H<sub>2</sub>O.</p>" +
+    "<h5>Fotosíntesis oxigénica y anoxigénica</h5>" +
+    "<p>La <b>oxigénica</b> (plantas, algas, cianobacterias) usa agua como donador de electrones y libera O<sub>2</sub>. La <b>anoxigénica</b> (bacterias purpúreas y verdes del azufre) usa otros donadores, como H<sub>2</sub>S, y no libera O<sub>2</sub>: CO<sub>2</sub> + 2 H<sub>2</sub>S + luz → (CH<sub>2</sub>O) + 2 S + H<sub>2</sub>O. Las cianobacterias, hace unos 2400 millones de años, empezaron a llenar de O<sub>2</sub> la atmósfera (la «Gran Oxidación»).</p>" +
+    "<h5>El cloroplasto: dónde ocurre cada cosa</h5>" +
+    "<p>El cloroplasto es un orgánulo con <b>doble membrana</b> (externa e interna) que rodea el <b>estroma</b>, un líquido denso con enzimas, ADN circular, ribosomas de tipo procariota (70S), gránulos de almidón y la enzima RuBisCO. Dentro del estroma hay una tercera membrana, la de los <b>tilacoides</b>: sacos aplastados que se apilan formando los <b>grana</b> (singular, <i>granum</i>), unidos por tilacoides alargados del estroma (lamelas). El espacio interior de un tilacoide se llama <b>lumen</b>.</p>" +
+    tabla(["Zona", "Qué contiene", "Qué ocurre"], [
+      ["<b>Membrana del tilacoide</b>", "pigmentos, fotosistemas I y II, cadena de transporte, ATP sintasa", "captación de luz, transporte de electrones, fotofosforilación"],
+      ["<b>Lumen</b> (interior del tilacoide)", "agua y H<sup>+</sup> acumulados", "se libera O<sub>2</sub> y se acumulan H<sup>+</sup> (gradiente)"],
+      ["<b>Estroma</b>", "enzimas del ciclo de Calvin, ADN, ribosomas, almidón", "fijación del CO<sub>2</sub> y síntesis de glúcidos"]
+    ], "q3t") +
+    "<p>Que el cloroplasto tenga ADN y ribosomas propios, y se divida por bipartición, es una de las pruebas de la <b>teoría endosimbiótica</b> (Margulis, 1967): proviene de una cianobacteria que fue «engullida» por una célula eucariota.</p>" +
+    "<h5>Los pigmentos: clorofilas y carotenoides</h5>" +
+    "<p>Los pigmentos fotosintéticos absorben ciertas longitudes de onda y reflejan el resto. Las <b>clorofilas</b> tienen un anillo con un átomo de <b>magnesio</b> (que ya viste en el Tema 1) y una larga cola hidrófoba que las ancla en la membrana. La <b>clorofila a</b> es la principal y absorbe sobre todo en el violeta-azul (≈ 430 nm) y en el rojo (≈ 660 nm); la <b>clorofila b</b> es accesoria (≈ 450 y ≈ 640 nm). Los <b>carotenoides</b> (carotenos y xantofilas) absorben en el azul-verdoso (≈ 450–500 nm) y dan los tonos naranjas y amarillos; protegen a la clorofila del exceso de luz. La zona verde (≈ 500–570 nm) se absorbe poco y se refleja: por eso las hojas son verdes. En otoño, al degradarse la clorofila, se ven los carotenoides: hojas amarillas.</p>" +
+    tabla(["Curva", "Qué mide", "Cómo se obtiene"], [
+      ["<b>Espectro de absorción</b>", "cuánta luz absorbe cada pigmento a cada longitud de onda", "espectrofotómetro con el extracto del pigmento"],
+      ["<b>Espectro de acción</b>", "cuánta fotosíntesis se produce con cada longitud de onda", "midiendo O<sub>2</sub> o CO<sub>2</sub> con luz de cada color (Engelmann)"]
+    ], "q3t") +
+    "<p>Ambas curvas se parecen mucho, y esa coincidencia demuestra que los pigmentos que absorben la luz son los que hacen la fotosíntesis. Pero no son idénticas: el espectro de acción es algo más ancho porque los pigmentos accesorios también pasan su energía a la clorofila a.</p>" +
+    "<h5>Fotosistemas: antena y centro de reacción</h5>" +
+    "<p>Los pigmentos no actúan sueltos: se agrupan en los <b>fotosistemas</b>, de dos partes. La <b>antena</b> (cientos de clorofilas y carotenoides) capta fotones y se pasa la energía de una molécula a otra como un «teléfono» hasta el <b>centro de reacción</b>, un par especial de clorofila <i>a</i> que cede un electrón excitado a un aceptor. Hay dos tipos: el <b>fotosistema II</b> (centro de reacción <b>P680</b>) y el <b>fotosistema I</b> (<b>P700</b>). El número es la longitud de onda (en nm) de máxima absorción.</p>" +
+    ojo("El fotosistema I se descubrió antes que el II, por eso lleva el número I, pero en la cadena de electrones <b>el II actúa primero</b>: el orden de funcionamiento es agua → PSII → PSI → NADP<sup>+</sup>.") +
+    "<p>Una curiosidad de energía: un fotón de luz azul de 430 nm tiene más energía que uno rojo de 680 nm (≈ 278 frente a ≈ 176 kJ por mol de fotones). Pero el centro de reacción solo «gasta» la energía mínima de un fotón rojo: el exceso de la luz azul se pierde en forma de calor. Por eso, con la misma intensidad, el rojo es casi igual de eficaz que el azul.</p>");
+
+  // ---------------------------------------------------------------- 2. Fase luminosa
+  secciones[1] = env(
+    "<h5>La fase luminosa es una «pila» de electrones</h5>" +
+    "<p>Lo que ocurre en la membrana del tilacoide se entiende como una cadena de electrones que se pasan de un transportador a otro, igual que en la respiración mitocondrial, pero con una diferencia fundamental: aquí el electrón empieza <b>subiendo</b> de energía gracias a la luz. Sin luz, el electrón no tiene fuerza para recorrer el camino; con luz, un fotón lo impulsa al nivel más alto del esquema. A este esquema se le llama <b>esquema en Z</b>, por su forma cuando se dibuja con la energía en vertical.</p>" +
+    "<h5>Flujo acíclico (el principal)</h5>" +
+    "<ol>" +
+    "<li><b>Fotosistema II.</b> La luz excita al centro de reacción P680. Pierde un electrón y queda con carga positiva (P680<sup>+</sup>), un oxidante tan potente que es capaz de arrancar electrones al agua.</li>" +
+    "<li><b>Fotólisis del agua.</b> Un complejo con manganeso (el «complejo de desprendimiento de oxígeno») rompe el agua: 2 H<sub>2</sub>O → O<sub>2</sub> + 4 H<sup>+</sup> + 4 e<sup>−</sup>. Los electrones rellenan el hueco del P680, los H<sup>+</sup> se quedan en el lumen y el <b>O<sub>2</sub></b> se libera.</li>" +
+    "<li><b>Cadena entre fotosistemas.</b> El electrón excitado pasa a la <b>plastoquinona</b> (PQ), después al <b>complejo citocromo b<sub>6</sub>f</b> y a la <b>plastocianina</b> (PC), una proteína con cobre. En este viaje pierde energía, y el complejo b<sub>6</sub>f la aprovecha para <b>bombear H<sup>+</sup> del estroma al lumen</b>.</li>" +
+    "<li><b>Fotosistema I.</b> La plastocianina entrega el electrón a P700, que ha sido excitado por otro fotón y lo ha lanzado a un nivel altísimo de energía. De allí pasa a la <b>ferredoxina</b> (Fd).</li>" +
+    "<li><b>NADP<sup>+</sup> reductasa.</b> La ferredoxina cede el electrón (dos veces, en total 2 e<sup>−</sup>) y, junto con un H<sup>+</sup> del estroma, reduce el NADP<sup>+</sup> a <b>NADPH</b>.</li>" +
+    "</ol>" +
+    "<p>Resultado del flujo acíclico: <b>O<sub>2</sub> + ATP + NADPH</b>. Los electrones van en línea recta desde el agua hasta el NADPH (por eso se llama «acíclico» o lineal).</p>" +
+    w("bio_esquemaz") +
+    "<h5>Flujo cíclico (el complemento)</h5>" +
+    "<p>En el flujo cíclico solo interviene el fotosistema I. El electrón que sale de P700* no va al NADP<sup>+</sup>: la ferredoxina lo devuelve al complejo citocromo b<sub>6</sub>f, y de allí, por la plastocianina, vuelve a P700. Es un círculo. A cambio de dar vueltas, bombea H<sup>+</sup> y por tanto fabrica <b>ATP</b>, pero <b>ni O<sub>2</sub> ni NADPH</b>: no hay fotólisis (el PSII no actúa) y el electrón no sale del ciclo.</p>" +
+    tabla(["", "Flujo acíclico", "Flujo cíclico"], [
+      ["Fotosistemas", "II y I", "solo I"],
+      ["Fotólisis del agua y O<sub>2</sub>", "sí", "no"],
+      ["NADPH", "sí", "no"],
+      ["ATP", "sí", "sí (sólo ATP)"],
+      ["Destino del electrón", "NADP<sup>+</sup> (no vuelve)", "vuelve al P700"]
+    ], "q3t") +
+    "<p>¿Para qué sirve el cíclico? El ciclo de Calvin gasta ATP y NADPH en proporción <b>3 : 2</b> (1,5 ATP por NADPH). El flujo acíclico, por sí solo, produce un poco menos de ATP del que hace falta (con la convención de 4 H<sup>+</sup> por ATP daría exactamente 1,5, pero con 4,67 H<sup>+</sup> por ATP sale ≈ 1,3). El flujo cíclico <b>corrige el déficit de ATP</b>, y según lo que necesite la célula se reparte entre ambos.</p>" +
+    ojo("Si un examen dice que una planta a la que se le impide el PSII (por ejemplo con el herbicida <b>DCMU</b>, que bloquea el paso de electrones desde el PSII a la plastoquinona) «no hace nada», es falso: sin PSII no hay O<sub>2</sub> ni NADPH, pero <b>el flujo cíclico, que solo usa el PSI, puede seguir fabricando ATP</b>.") +
+    "<h5>Fotofosforilación: la quimiosmosis en el cloroplasto</h5>" +
+    "<p>El ATP no se fabrica por un enlace «químico» directo, sino por <b>quimiosmosis</b>, la hipótesis de Mitchell (1961) que le valió el Nobel en 1978 y que ya viste en la mitocondria. Dos procesos acumulan H<sup>+</sup> en el <b>lumen</b>: la fotólisis del agua y el bombeo del complejo b<sub>6</sub>f; además, al formar NADPH el estroma gasta H<sup>+</sup> y se hace más básico. El resultado es un <b>gradiente</b>: con luz, el pH del lumen baja a ≈ 5 y el del estroma sube a ≈ 8, unas 3 unidades, es decir, [H<sup>+</sup>] unas <b>1000 veces</b> mayor dentro. Esos H<sup>+</sup> vuelven al estroma a través de la <b>ATP sintasa</b> (CF<sub>0</sub> es el canal, CF<sub>1</sub> es la cabeza que mira al estroma y fabrica el ATP: ADP + P<sub>i</sub> → ATP). A este proceso se le llama <b>fotofosforilación</b> porque la energía original es luminosa.</p>" +
+    tabla(["", "Cloroplasto (fotofosforilación)", "Mitocondria (fosforilación oxidativa)"], [
+      ["Dónde se acumulan los H<sup>+</sup>", "<b>lumen</b> del tilacoide", "<b>espacio intermembrana</b>"],
+      ["Hacia dónde vuelven", "al estroma", "a la matriz"],
+      ["Origen de la energía", "luz (fotones)", "oxidación de NADH y FADH<sub>2</sub>"],
+      ["Último aceptor de electrones", "NADP<sup>+</sup>", "O<sub>2</sub>"],
+      ["Fabrica", "ATP y NADPH (con O<sub>2</sub> por fotólisis)", "ATP (y gasta O<sub>2</sub>, y forma H<sub>2</sub>O)"]
+    ], "q3t") +
+    ejemplo("Cuentas por cada 2 electrones (convención de 4 H⁺ por ATP)", "Calcula cuánto ATP, NADPH y O₂ se forma en el flujo acíclico por cada 2 electrones, y compáralo con el cíclico.", [
+      "<b>Acíclico:</b> 1 H<sub>2</sub>O → ½ O<sub>2</sub> + 2 H<sup>+</sup> + 2 e<sup>−</sup> (2 H<sup>+</sup> al lumen); el complejo b<sub>6</sub>f bombea 4 H<sup>+</sup> más: <b>6 H<sup>+</sup></b>.",
+      "6 H<sup>+</sup> / 4 H<sup>+</sup> por ATP = <b>1,5 ATP</b>; los 2 e<sup>−</sup> reducen 1 NADP<sup>+</sup> a <b>1 NADPH</b>; y se libera <b>½ O<sub>2</sub></b>.",
+      "<b>Cíclico:</b> solo bombea el complejo b<sub>6</sub>f: 4 H<sup>+</sup> / 4 = <b>1 ATP</b>, sin NADPH ni O<sub>2</sub>.",
+      "<b>Lectura:</b> si el Calvin necesita 3 ATP por 2 NADPH (1,5 por 1), el acíclico justo lo cubre con esta convención; con 4,67 H<sup>+</sup> por ATP solo da 1,29, y el cíclico completa lo que falta."
+    ]));
+
+  // ---------------------------------------------------------------- 3. Fase oscura
+  secciones[2] = env(
+    "<h5>«Oscura» no significa «de noche»</h5>" +
+    "<p>El nombre de <b>fase oscura</b> es engañoso. Lo único que quiere decir es que sus reacciones <b>no necesitan luz directamente</b>: usan el ATP y el NADPH que hizo la fase luminosa. Pero de noche no funciona, porque sin luz no hay ATP ni NADPH nuevos (y además la luz activa varias de sus enzimas). Por eso muchos libros la llaman <b>fase biosintética</b>. Transcurre en el <b>estroma</b> del cloroplasto.</p>" +
+    "<h5>El ciclo de Calvin–Benson en tres etapas</h5>" +
+    "<p>Lo descubrieron Melvin Calvin y sus colaboradores en los años 1950, usando CO<sub>2</sub> marcado con <sup>14</sup>C y viendo en qué moléculas aparecía primero el marcaje (Nobel de Química de Calvin, 1961). Es un ciclo que se puede contar por etapas:</p>" +
+    tabla(["Etapa", "Qué pasa", "Gasta / produce"], [
+      ["<b>1. Carboxilación (fijación)</b>", "La enzima <b>RuBisCO</b> une el CO<sub>2</sub> a la <b>ribulosa-1,5-bisfosfato (RuBP, 5 C)</b>; el compuesto de 6 C es inestable y se parte en dos moléculas de <b>3-fosfoglicerato (3-PGA, 3 C)</b>.", "no gasta ATP; 1 CO<sub>2</sub> + 1 RuBP → 2 3-PGA"],
+      ["<b>2. Reducción</b>", "Cada 3-PGA se fosforila con ATP y se reduce con NADPH hasta <b>gliceraldehído-3-fosfato (G3P)</b>, una triosa.", "por cada CO<sub>2</sub>: 2 ATP y 2 NADPH"],
+      ["<b>3. Regeneración de la RuBP</b>", "De cada 6 G3P, 1 sale del ciclo (es el producto neto) y los otros 5 (15 C) se reordenan para dar 3 RuBP (15 C).", "por cada CO<sub>2</sub>: 1 ATP"]
+    ], "q3t") +
+    "<p>La RuBisCO (ribulosa-1,5-bisfosfato carboxilasa/oxigenasa) es la enzima más abundante de la biosfera. Es lenta y poco precisa (puede también fijar O<sub>2</sub>, lo que causa la fotorrespiración, sección 6), de modo que la planta compensa con mucha cantidad: puede llegar a ser hasta la mitad de las proteínas solubles de una hoja.</p>" +
+    ojo("El carbono se conserva: 1 C del CO<sub>2</sub> + 5 C de la RuBP = 6 C = 2 moléculas de 3-PGA (3 C cada una). Por eso hay que dar tres vueltas (3 CO<sub>2</sub>) para obtener <b>una triosa entera</b>, y seis vueltas para una glucosa. Es lo que comprobarás en el simulador.") +
+    w("bio_calvin") +
+    "<h5>El balance que hay que saber</h5>" +
+    "<p>Para <b>3 CO<sub>2</sub></b> (3 vueltas): 3 CO<sub>2</sub> + 9 ATP + 6 NADPH → 1 G3P + 9 ADP + 8 P<sub>i</sub> + 6 NADP<sup>+</sup>. Para fabricar una molécula de <b>glucosa</b> hacen falta dos G3P, es decir, <b>6 CO<sub>2</sub>, 18 ATP y 12 NADPH</b>.</p>" +
+    ejemplo("Balance de la fotosíntesis de una glucosa", "(a) ¿Cuántos ATP y NADPH gasta el ciclo de Calvin para fabricar 1 glucosa? (b) ¿Cuántas moléculas de agua hay que romper en la fase luminosa para obtener ese NADPH? (c) ¿Cuántos O₂ se liberan?", [
+      "<b>(a)</b> Por cada CO<sub>2</sub>: 3 ATP (2 + 1) y 2 NADPH. Con 6 CO<sub>2</sub>: 6 · 3 = <b>18 ATP</b> y 6 · 2 = <b>12 NADPH</b>.",
+      "<b>(b)</b> Cada NADPH recibe 2 e<sup>−</sup>; 12 NADPH son 24 e<sup>−</sup>. Cada H<sub>2</sub>O da 2 e<sup>−</sup>: hay que romper <b>12 H<sub>2</sub>O</b>.",
+      "<b>(c)</b> 2 H<sub>2</sub>O → O<sub>2</sub> + 4 H<sup>+</sup> + 4 e<sup>−</sup>; con 24 e<sup>−</sup> salen 24 / 4 = <b>6 O<sub>2</sub></b>. Cuadra con la ecuación de la fotosíntesis."
+    ]) +
+    "<h5>Qué se hace con las triosas</h5>" +
+    "<ul>" +
+    "<li><b>Almidón</b>: reserva dentro del cloroplasto, que se acumula de día y se consume de noche.</li>" +
+    "<li><b>Sacarosa</b>: las triosas salen al citosol y allí se forma sacarosa, que viaja por el floema hasta los órganos que no hacen fotosíntesis.</li>" +
+    "<li><b>Celulosa</b>, lípidos, aminoácidos y otras moléculas, con ayuda de nitrógeno, azufre y fósforo tomados del suelo.</li>" +
+    "</ul>" +
+    "<p>La energía que transportaba la luz acaba almacenada en los enlaces de estas moléculas. Son las mismas moléculas que alimentan la respiración celular del Tema 8.</p>");
+
+  // ---------------------------------------------------------------- 4. Importancia biológica
+  secciones[3] = env(
+    "<h5>La materia da vueltas, la energía va en una dirección</h5>" +
+    "<p>Fotosíntesis y respiración se complementan, pero hay una diferencia esencial: <b>la materia se recicla</b> (el C, el H y el O dan vueltas entre CO<sub>2</sub>, H<sub>2</sub>O, O<sub>2</sub> y glucosa) mientras que <b>la energía circula en un solo sentido</b>: entra como luz, se almacena en la glucosa, se usa en forma de ATP y sale como calor. Por eso la vida necesita el Sol constantemente.</p>" +
+    "<p>La fotosíntesis es también la fuente de casi todo el oxígeno atmosférico (≈ 21 % del aire) y, en el pasado, de los combustibles fósiles: carbón, petróleo y gas natural son luz solar fosilizada. Esto conecta con el efecto invernadero: quemarlos devuelve a la atmósfera un CO<sub>2</sub> que las plantas tardaron millones de años en retirar.</p>" +
+    w("clasificar", "relacion"));
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "5. Factores que afectan a la fotosíntesis", html: env(
+    "<h5>Tres factores y una idea: el factor limitante</h5>" +
+    "<p>La velocidad de la fotosíntesis se mide por el O<sub>2</sub> que se libera, por el CO<sub>2</sub> que se consume o por la materia seca que se gana. Depende de varios factores, pero la regla de <b>Blackman</b> (1905) lo simplifica: cuando varios factores actúan a la vez, <b>la velocidad la limita el que está más escaso</b>, el <b>factor limitante</b>. Aumentar un factor que no limita no sirve de nada.</p>" +
+    tabla(["Factor", "Qué ocurre al aumentarlo", "Por qué"], [
+      ["<b>Luz</b>", "la velocidad sube casi en línea recta y luego se estabiliza (<b>saturación</b>)", "al principio faltan fotones; después los fotosistemas «no dan abasto» y limitan el CO<sub>2</sub> o la temperatura. Con luz excesiva hay fotodaño."],
+      ["<b>CO<sub>2</sub></b>", "sube hasta una meseta", "la RuBisCO se satura. En el aire hay ≈ 0,04 % (≈ 400 ppm), poco para una planta C3: por eso a veces se enriquece el aire de los invernaderos."],
+      ["<b>Temperatura</b>", "curva en campana con un <b>óptimo</b>", "el Calvin depende de enzimas: poca temperatura, reacciones lentas; demasiada, se desnaturalizan. Afecta a la fase oscura, no directamente a la luminosa."],
+      ["<b>Agua</b>", "si falta, se cierran los estomas", "entra menos CO<sub>2</sub> y cae la fotosíntesis."],
+      ["<b>Longitud de onda</b>", "mejor con rojo y azul", "coincide con los espectros de absorción y de acción."]
+    ], "q3t") +
+    w("bio_fotofactores") +
+    "<h5>Cómo se lee una curva de luz</h5>" +
+    "<ul>" +
+    "<li>Medida como O<sub>2</sub> neto, a <b>oscuridad</b> la curva es <b>negativa</b>: la planta solo respira y gasta O<sub>2</sub>.</li>" +
+    "<li>El <b>punto de compensación</b> es la intensidad en la que el O<sub>2</sub> que produce la fotosíntesis iguala al que gasta la respiración: <b>fotosíntesis neta = 0</b>. Por debajo, la planta pierde materia.</li>" +
+    "<li>La <b>fotosíntesis bruta</b> es la neta más la respiración: <b>bruta = neta + respiración</b>.</li>" +
+    "<li>La zona plana de la curva es la <b>saturación luminosa</b>: ahí limita otro factor (CO<sub>2</sub> o temperatura), no la luz.</li>" +
+    "</ul>" +
+    ejemplo("Interpretar una curva de luz", "Una hoja produce (O₂ neto, en µL por cm² y hora): 0 µmol de luz: −2,0; 100: 0; 200: +2,0; 400: +4,5; 800: +6,0; 1200: +6,0. (a) ¿Punto de compensación? (b) ¿Fotosíntesis bruta a 400 µmol? (c) ¿Qué limita a 1200?", [
+      "<b>(a)</b> El O<sub>2</sub> neto vale 0 con <b>100 µmol</b>: ese es el punto de compensación.",
+      "<b>(b)</b> La respiración consume 2,0 (lo que se mide a oscuridad). Bruta = neta + respiración = 4,5 + 2,0 = <b>6,5 µL/cm²·h</b>.",
+      "<b>(c)</b> Entre 800 y 1200 µmol la curva está plana: la luz ya no es el factor limitante (saturación). Limita el <b>CO<sub>2</sub> o la temperatura</b>; si se sube el CO<sub>2</sub> y la meseta sube, el limitante era el CO<sub>2</sub>."
+    ]) +
+    ojo("Una gráfica de fotosíntesis frente a la <b>temperatura</b> no sigue la de la luz: es una campana (óptimo y caída por desnaturalización). Y atención: en las gráficas de «O<sub>2</sub> neto», el valor cero <b>no</b> significa que la planta no haga fotosíntesis, sino que la que hace compensa su respiración.")) });
+
+  nuevas.push({ h: "6. Fotorrespiración, plantas C4 y CAM", html: env(
+    "<h5>Cuando la RuBisCO se equivoca: la fotorrespiración</h5>" +
+    "<p>La RuBisCO tiene dos «trabajos» (por eso se llama carboxilasa/oxigenasa): con <b>CO<sub>2</sub></b> hace fotosíntesis, pero con <b>O<sub>2</sub></b> oxida la RuBP y forma una molécula de 3-PGA y otra de 2 carbonos (fosfoglicolato) que la célula debe «reciclar» por una ruta que pasa por el peroxisoma y la mitocondria, gasta ATP y <b>libera CO<sub>2</sub></b>. Eso es la <b>fotorrespiración</b>: ocurre con luz, consume O<sub>2</sub>, libera CO<sub>2</sub> y <b>no produce ATP útil</b>. Es un derroche que puede quitar hasta una cuarta parte de lo fijado en una planta C3.</p>" +
+    "<p>Se dispara cuando la <b>proporción O<sub>2</sub>/CO<sub>2</sub> dentro de la hoja es alta</b>: calor y sequía, porque la planta cierra los estomas para no perder agua, deja de entrar CO<sub>2</sub> y se acumula el O<sub>2</sub> de la fotólisis. Además, al subir la temperatura, la RuBisCO se vuelve menos selectiva.</p>" +
+    "<h5>Plantas C4: separación en el espacio</h5>" +
+    "<p>Las plantas <b>C4</b> (maíz, caña de azúcar, sorgo) viven en climas cálidos y evitan la fotorrespiración con una «bomba de CO<sub>2</sub>». Hay dos tipos de célula: en las del <b>mesófilo</b>, la <b>PEP carboxilasa</b> (que no confunde el CO<sub>2</sub> con el O<sub>2</sub>) une el CO<sub>2</sub> al fosfoenolpiruvato (3 C) y da <b>oxalacetato</b> (4 C, de ahí «C4»), que pasa a <b>malato</b>. El malato viaja a las células de la <b>vaina</b> que rodea los vasos conductores; allí se descarboxila y libera CO<sub>2</sub> <b>concentrado</b>, que entra al ciclo de Calvin con la RuBisCO. Esta bomba tiene un coste (en los libros, unos 2 ATP extra por CO<sub>2</sub>: 5 ATP y 2 NADPH por CO<sub>2</sub> frente a 3 y 2 de las C3), pero compensa con calor y luz fuertes.</p>" +
+    "<h5>Plantas CAM: separación en el tiempo</h5>" +
+    "<p>Las plantas <b>CAM</b> (cactus, piña, crasuláceas, el nombre viene de «metabolismo ácido de las crasuláceas») viven en desiertos. Para no perder agua, <b>abren los estomas de noche</b>, cuando hace fresco: la PEP carboxilasa fija el CO<sub>2</sub> y lo guarda como <b>malato en la vacuola</b> (por eso las hojas son más ácidas al amanecer). De día, con los estomas <b>cerrados</b>, el malato libera CO<sub>2</sub> que entra al ciclo de Calvin con la energía de la luz.</p>" +
+    tabla(["", "C3 (trigo, arroz)", "C4 (maíz, caña)", "CAM (cactus, piña)"], [
+      ["Primer producto estable", "3-PGA (3 C)", "oxalacetato (4 C)", "malato (4 C), de noche"],
+      ["Enzima que capta el CO<sub>2</sub>", "RuBisCO", "PEP carboxilasa y después RuBisCO", "PEP carboxilasa (noche) y RuBisCO (día)"],
+      ["Separa las fases…", "no", "en el <b>espacio</b> (mesófilo y vaina)", "en el <b>tiempo</b> (noche y día)"],
+      ["Estomas", "abiertos de día", "abiertos de día", "abiertos de <b>noche</b>"],
+      ["Fotorrespiración", "alta con calor y sequía", "muy baja", "muy baja"],
+      ["Uso del agua", "gasta mucha", "eficiente", "muy eficiente"],
+      ["Clima ideal", "templado", "cálido y luminoso", "desierto"]
+    ], "q3t") +
+    w("bio_c3c4cam") +
+    "<p>En los tres casos, el ciclo de Calvin con la RuBisCO es el que acaba construyendo el azúcar. C4 y CAM solo añaden una «bomba» previa de CO<sub>2</sub> que protege a la RuBisCO del O<sub>2</sub>.</p>" +
+    ojo("«C4» y «CAM» no son otra fotosíntesis, sino <b>una forma de entregar el CO<sub>2</sub></b> a la RuBisCO. Tampoco es cierto que las C4 no tengan ciclo de Calvin: lo tienen, en las células de la vaina.")) });
+
+  nuevas.push({ h: "7. Quimiosíntesis", html: env(
+    "<h5>Fabricar materia orgánica sin luz</h5>" +
+    "<p>La <b>quimiosíntesis</b> es la síntesis de materia orgánica a partir de CO<sub>2</sub> usando como energía la que se libera al <b>oxidar sustancias inorgánicas</b>, en vez de la luz. La descubrió Winogradsky (1887) estudiando bacterias del azufre. Es un proceso exclusivo de ciertas <b>bacterias</b> y <b>arqueas</b>: son <b>quimiolitótrofas</b>.</p>" +
+    "<p>Se desarrolla en <b>dos fases</b>, igual que la fotosíntesis, pero con la energía de otro origen:</p>" +
+    "<ol>" +
+    "<li><b>Fase de obtención de energía:</b> se oxida un compuesto inorgánico (con O<sub>2</sub> como aceptor) y la energía liberada se usa para fabricar <b>ATP</b> y poder reductor (NADH).</li>" +
+    "<li><b>Fase de fijación del CO<sub>2</sub>:</b> el CO<sub>2</sub> se reduce a materia orgánica en un <b>ciclo de Calvin</b>, usando ese ATP y ese poder reductor.</li>" +
+    "</ol>" +
+    tabla(["Grupo", "Oxida…", "Reacción", "Dónde viven"], [
+      ["<b>Bacterias nitrificantes</b> (<i>Nitrosomonas</i>)", "amonio", "2 NH<sub>4</sub><sup>+</sup> + 3 O<sub>2</sub> → 2 NO<sub>2</sub><sup>−</sup> + 4 H<sup>+</sup> + 2 H<sub>2</sub>O", "suelo y agua"],
+      ["<b>Bacterias nitrificantes</b> (<i>Nitrobacter</i>)", "nitrito", "2 NO<sub>2</sub><sup>−</sup> + O<sub>2</sub> → 2 NO<sub>3</sub><sup>−</sup>", "suelo y agua"],
+      ["<b>Sulfobacterias</b> (<i>Beggiatoa</i>, <i>Thiobacillus</i>)", "H<sub>2</sub>S o azufre", "2 H<sub>2</sub>S + O<sub>2</sub> → 2 S + 2 H<sub>2</sub>O ; 2 S + 3 O<sub>2</sub> + 2 H<sub>2</sub>O → 2 H<sub>2</sub>SO<sub>4</sub>", "aguas sulfurosas, fuentes hidrotermales"],
+      ["<b>Ferrobacterias</b>", "hierro (II)", "4 Fe<sup>2+</sup> + O<sub>2</sub> + 4 H<sup>+</sup> → 4 Fe<sup>3+</sup> + 2 H<sub>2</sub>O", "aguas ácidas con hierro"],
+      ["<b>Bacterias del hidrógeno</b>", "H<sub>2</sub>", "2 H<sub>2</sub> + O<sub>2</sub> → 2 H<sub>2</sub>O", "suelos, sedimentos"]
+    ], "q3t") +
+    "<h5>Por qué importa</h5>" +
+    "<ul>" +
+    "<li><b>Ciclo del nitrógeno:</b> las nitrificantes convierten el amonio (que viene de la descomposición) en <b>nitrato</b>, la forma que absorben las plantas.</li>" +
+    "<li><b>Ciclo del azufre y del hierro:</b> convierten sulfuros y hierro (II) en sulfatos y óxidos asimilables.</li>" +
+    "<li><b>Ecosistemas sin luz:</b> en las <b>fuentes hidrotermales</b> del fondo del océano (descubiertas en 1977 cerca de las Galápagos) hay comunidades enteras (gusanos tubícolas, almejas) que viven gracias a bacterias quimiosintéticas, a veces simbiontes en sus tejidos.</li>" +
+    "</ul>" +
+    tabla(["Tipo de nutrición", "Fuente de energía", "Fuente de carbono", "Ejemplos"], [
+      ["Fotolitótrofa (fotosíntesis)", "luz", "CO<sub>2</sub>", "plantas, algas, cianobacterias"],
+      ["Quimiolitótrofa (quimiosíntesis)", "oxidación de inorgánicos", "CO<sub>2</sub>", "nitrificantes, sulfobacterias"],
+      ["Quimioorganótrofa", "oxidación de orgánicos", "materia orgánica", "animales, hongos, la mayoría de bacterias"]
+    ], "q3t") +
+    ojo("Plantas y bacterias quimiosintéticas son ambas <b>autótrofas</b> (fabrican su materia orgánica a partir de CO<sub>2</sub>); lo que cambia es la <b>fuente de energía</b>: luz frente a reacciones químicas inorgánicas. La quimiosíntesis <b>no necesita luz</b> pero sí suele necesitar O<sub>2</sub> (u otro aceptor).")) });
+
+  nuevas.push({ h: "8. Fotosíntesis y respiración: dos caras de una moneda", html: env(
+    tabla(["", "Fotosíntesis", "Respiración celular"], [
+      ["<b>Tipo de ruta</b>", "anabólica (construye)", "catabólica (degrada)"],
+      ["<b>Orgánulo</b>", "cloroplasto", "mitocondria (y citosol en la glucólisis)"],
+      ["<b>Sustratos</b>", "CO<sub>2</sub> y H<sub>2</sub>O", "glucosa y O<sub>2</sub>"],
+      ["<b>Productos</b>", "glucosa y O<sub>2</sub>", "CO<sub>2</sub> y H<sub>2</sub>O"],
+      ["<b>Energía</b>", "luz → se almacena en la glucosa", "glucosa → ATP"],
+      ["<b>Coenzima</b>", "NADPH (NADP<sup>+</sup>)", "NADH, FADH<sub>2</sub> (NAD<sup>+</sup>, FAD)"],
+      ["<b>Redox</b>", "el CO<sub>2</sub> se reduce, el agua se oxida", "la glucosa se oxida, el O<sub>2</sub> se reduce"],
+      ["<b>Síntesis de ATP</b>", "fotofosforilación (luz)", "fosforilación oxidativa y a nivel de sustrato"],
+      ["<b>Quién la hace</b>", "plantas, algas, cianobacterias", "casi todos los seres vivos, también los vegetales (de noche y de día)"],
+      ["<b>Cuándo</b>", "con luz", "siempre"]
+    ], "q3t") +
+    ojo("Las plantas <b>no</b> hacen «fotosíntesis de día y respiración de noche»: respiran <b>siempre</b> (de día, el O<sub>2</sub> de su fotosíntesis es mayor que el que gastan al respirar, así que el balance es de liberación de O<sub>2</sub>). Y los animales no hacen fotosíntesis; las algas, sí.") +
+    "<h5>¿Cuánta energía se aprovecha?</h5>" +
+    "<p>La formación de 1 mol de glucosa a partir de CO<sub>2</sub> y agua <b>almacena unos 2870 kJ</b> (la misma que libera quemarla). Por cada CO<sub>2</sub> fijado hacen falta como mínimo <b>8 fotones</b> (2 NADPH = 4 e<sup>−</sup>, y cada electrón recibe dos «golpes» de luz, uno en cada fotosistema): 48 fotones por glucosa. A 680 nm, 48 mol de fotones aportan 48 · 175,9 ≈ 8444 kJ.</p>" +
+    ejemplo("Rendimiento máximo teórico de la fotosíntesis", "Con 48 fotones de 680 nm por glucosa y 2870 kJ almacenados por mol, ¿cuál es el rendimiento máximo teórico?", [
+      "Energía de 1 mol de fotones de 680 nm: E = 119 627 / 680 ≈ <b>175,9 kJ</b> (con 119 627 kJ·nm/mol).",
+      "Energía luminosa mínima: 48 · 175,9 ≈ <b>8444 kJ</b>.",
+      "Rendimiento = 2870 / 8444 ≈ <b>0,34 → 34 %</b>.",
+      "<b>Lectura:</b> la fotosíntesis real aprovecha, sobre la luz solar total que llega a la hoja, mucho menos (del orden de 1–6 %), porque se pierde luz que no se absorbe, hay fotorrespiración, respiración y cierres de estomas."
+    ])) });
+
+  nuevas.push({ h: "9. Ejemplo PAU resuelto: interpretar un experimento", html: env(
+    ejemplo("Engelmann y el alga filamentosa (1882)", "Engelmann colocó un alga verde filamentosa en una gota de agua con bacterias aerobias, y la iluminó con la luz descompuesta de un prisma. Observó que las bacterias se acumulaban sobre todo alrededor de las zonas del alga iluminadas con luz violeta-azul y roja, y casi nada en la verde. (a) ¿Por qué se acumulan las bacterias? (b) ¿Qué curva construyó, en realidad? (c) ¿Qué pigmentos lo explican? (d) ¿Qué ocurriría con luz verde?", [
+      "<b>(a)</b> Las bacterias son <b>aerobias</b>: se acercan donde hay más O<sub>2</sub>. Allí donde hay más O<sub>2</sub> es donde hay más fotosíntesis (fotólisis del agua).",
+      "<b>(b)</b> Una aproximación al <b>espectro de acción</b>: fotosíntesis frente a la longitud de onda.",
+      "<b>(c)</b> Las <b>clorofilas</b> (a y b), que absorben en violeta-azul y rojo, y los carotenoides, que absorben en azul. El espectro de acción coincide con el de absorción.",
+      "<b>(d)</b> Con luz verde habría pocas bacterias: los pigmentos casi no la absorben (la reflejan), por eso las hojas se ven verdes."
+    ]) +
+    ejemplo("Herbicida y fase luminosa", "Se añade a cloroplastos aislados DCMU, que impide el paso de electrones desde el fotosistema II a la plastoquinona. Se miden luz, O₂ y ATP. (a) ¿Se libera O₂? (b) ¿Se forma NADPH? (c) ¿Puede haber algo de ATP? (d) ¿Funcionará el ciclo de Calvin?", [
+      "<b>(a)</b> <b>No</b>: sin tránsito de electrones desde el PSII, el P680 no puede recuperar electrones del agua y se detiene la fotólisis.",
+      "<b>(b)</b> <b>No</b>, o casi: no llegan electrones al PSI desde el PSII, y el NADP<sup>+</sup> no se reduce.",
+      "<b>(c)</b> <b>Sí, algo</b>: el flujo cíclico solo usa el PSI (P700, ferredoxina y b<sub>6</sub>f) y fabrica ATP.",
+      "<b>(d)</b> <b>No</b>: aunque haya ATP, falta NADPH, y la etapa de reducción del Calvin lo necesita."
+    ]) +
+    "<p>En los ejercicios del final hay otro experimento con discos de hoja y con marcaje isotópico.</p>") });
+
+  nuevas.push({ h: "10. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>En la PAU de Madrid la fotosíntesis aparece como pregunta de <b>definición o esquema</b> (cloroplasto, fases, balance) y como pregunta de <b>interpretación</b> (una gráfica de luz o un experimento). Estas son las más probables, con una respuesta modelo de nota máxima.</p>" +
+    ejemplo("Pregunta 1. Fase luminosa y fase oscura: lugar, procesos y productos", "Respuesta modelo:", [
+      "<b>Fase luminosa</b> (membrana de los tilacoides): fotosistemas I y II, fotólisis del agua, transporte de electrones y fotofosforilación. Necesita luz. <b>Productos: ATP, NADPH y O<sub>2</sub></b>.",
+      "<b>Fase oscura o ciclo de Calvin</b> (estroma): fija el CO<sub>2</sub> con la RuBisCO, lo reduce con NADPH y ATP y regenera la RuBP. Usa el ATP y el NADPH. <b>Producto: glúcidos</b> (G3P).",
+      "<b>Relación:</b> la luminosa suministra ATP y NADPH a la oscura, que devuelve ADP y NADP<sup>+</sup> a la luminosa."
+    ]) +
+    ejemplo("Pregunta 2. Describe el ciclo de Calvin y su balance", "Respuesta modelo:", [
+      "<b>Carboxilación:</b> RuBisCO une CO<sub>2</sub> a la RuBP (5 C) y da 2 moléculas de 3-PGA.",
+      "<b>Reducción:</b> el 3-PGA se reduce a G3P con ATP y NADPH.",
+      "<b>Regeneración:</b> 5 de cada 6 G3P regeneran la RuBP, con ATP; 1 sale del ciclo.",
+      "<b>Balance:</b> por glucosa, 6 CO<sub>2</sub>, 18 ATP y 12 NADPH."
+    ]) +
+    ejemplo("Pregunta 3. Flujo cíclico y acíclico: diferencias", "Respuesta modelo:", [
+      "<b>Acíclico:</b> PSII y PSI; fotólisis; el electrón termina en el NADP<sup>+</sup>. Produce ATP, NADPH y O<sub>2</sub>.",
+      "<b>Cíclico:</b> solo el PSI; el electrón vuelve al P700. Produce solo ATP.",
+      "<b>Utilidad:</b> el cíclico completa el ATP que necesita el ciclo de Calvin."
+    ]) +
+    ejemplo("Pregunta 4. Plantas C4 y CAM frente a C3", "Respuesta modelo:", [
+      "<b>Problema:</b> con calor y sequía los estomas se cierran, baja el CO<sub>2</sub>, la RuBisCO fija O<sub>2</sub> y hay fotorrespiración.",
+      "<b>C4:</b> la PEP carboxilasa del mesófilo fija el CO<sub>2</sub> y forma oxalacetato y malato; en la vaina se libera CO<sub>2</sub> concentrado para el Calvin. Separación <b>en el espacio</b>.",
+      "<b>CAM:</b> estomas abiertos de noche, CO<sub>2</sub> guardado como malato; de día, estomas cerrados y Calvin. Separación <b>en el tiempo</b>."
+    ]) +
+    ejemplo("Pregunta 5. ¿Qué es la quimiosíntesis? Un ejemplo", "Respuesta modelo:", [
+      "<b>Definición:</b> síntesis de materia orgánica a partir de CO<sub>2</sub> con la energía de oxidar compuestos inorgánicos (sin luz).",
+      "<b>Ejemplo:</b> <i>Nitrosomonas</i> (2 NH<sub>4</sub><sup>+</sup> + 3 O<sub>2</sub> → 2 NO<sub>2</sub><sup>−</sup> + 4 H<sup>+</sup> + 2 H<sub>2</sub>O) y <i>Nitrobacter</i> (NO<sub>2</sub><sup>−</sup> → NO<sub>3</sub><sup>−</sup>).",
+      "<b>Importancia:</b> ciclo del nitrógeno y ecosistemas de las fuentes hidrotermales."
+    ]) +
+    "<p>Los ejercicios del final incluyen preguntas abiertas con rúbrica para que veas qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio9a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 9 (parte B): Anabolismo: la fotosíntesis
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t9.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "La <b>fotosíntesis</b> convierte la energía de la luz en energía química: 6 CO₂ + 6 H₂O + luz → C₆H₁₂O₆ + 6 O₂. El <b>O₂ procede del agua</b> (fotólisis), no del CO₂.",
+    "La <b>fase luminosa</b> (membrana del tilacoide) usa los fotosistemas II y I y la cadena de electrones; produce <b>ATP, NADPH y O₂</b>. El flujo <b>cíclico</b> (solo PSI) produce solo ATP.",
+    "El <b>ciclo de Calvin</b> (estroma) fija el CO₂ con la <b>RuBisCO</b>, lo reduce con ATP y NADPH y regenera la RuBP: por glucosa gasta <b>18 ATP y 12 NADPH</b>.",
+    "La velocidad la limita el <b>factor limitante</b> (luz, CO₂, temperatura). La <b>fotorrespiración</b> (RuBisCO + O₂) desperdicia carbono; las plantas <b>C4</b> (espacio) y <b>CAM</b> (tiempo) la evitan.",
+    "La <b>quimiosíntesis</b> fija CO₂ con la energía de oxidar compuestos inorgánicos (nitrificantes, sulfobacterias); la materia se recicla entre fotosíntesis y respiración, la energía no."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Anabolismo: la fotosíntesis",
+    autores: [
+      { n: "Qué estudia", f: "cómo se fabrica glucosa a partir de CO₂, agua y luz", l: "cloroplasto · fase luminosa · Calvin" },
+      { n: "Ruben y Kamen", f: "1941", l: "el O₂ viene del agua (¹⁸O)" },
+      { n: "Calvin", f: "1950s · Nobel 1961", l: "ciclo de fijación del CO₂" }
+    ],
+    obras: ["Cloroplasto", "Esquema en Z", "Ciclo de Calvin", "RuBisCO", "C4 y CAM"],
+    bloques: [
+      { t: "Visión general", frases: ["6 CO₂ + 6 H₂O + luz → C₆H₁₂O₆ + 6 O₂.", "El CO₂ se <b>reduce</b>; el agua se <b>oxida</b>.", "El O₂ sale del <b>agua</b> (Hill 1937; Ruben y Kamen 1941)."] },
+      { t: "Cloroplasto y pigmentos", frases: ["Doble membrana, <b>estroma</b>, <b>tilacoides</b> (grana) y <b>lumen</b>.", "Clorofila <i>a</i> (violeta-azul y rojo); carotenoides (azul).", "Fotosistema = antena + centro de reacción (P680, P700)."],
+        tabla: { cab: ["Zona", "Proceso"], filas: [["tilacoide", "fase luminosa"], ["lumen", "se acumulan H⁺"], ["estroma", "ciclo de Calvin"]] } },
+      { t: "Fase luminosa", frases: ["PSII → fotólisis → PQ → b₆f → PC → PSI → Fd → NADPH.", "El b₆f bombea H⁺ al lumen; la ATP sintasa fabrica ATP.", "El flujo cíclico solo usa el PSI."],
+        tabla: { cab: ["Flujo", "Produce"], filas: [["acíclico", "ATP + NADPH + O₂"], ["cíclico", "solo ATP"]] } },
+      { t: "Ciclo de Calvin", frases: ["<b>Carboxilación</b> (RuBisCO), <b>reducción</b> y <b>regeneración</b> de la RuBP.", "Por CO₂: 3 ATP y 2 NADPH.", "Por glucosa: 6 CO₂, <b>18 ATP y 12 NADPH</b>."] },
+      { t: "Factores y C4/CAM", frases: ["Luz, CO₂ y temperatura: manda el <b>factor limitante</b>.", "Fotorrespiración: RuBisCO fija O₂ y se pierde CO₂.", "C4: espacio (mesófilo y vaina). CAM: tiempo (noche y día)."],
+        tabla: { cab: ["Planta", "Ejemplo"], filas: [["C3", "trigo, arroz"], ["C4", "maíz, caña de azúcar"], ["CAM", "cactus, piña"]] } },
+      { t: "Quimiosíntesis y respiración", frases: ["Quimiosíntesis: energía de oxidar inorgánicos (NH₄⁺, H₂S, Fe²⁺).", "Fotosíntesis y respiración: la <b>materia se recicla</b>, la energía no.", "Cloroplasto: H⁺ en el lumen; mitocondria: en el espacio intermembrana."] }
+    ],
+    resumen: [
+      "La luz impulsa electrones del <b>agua</b> al <b>NADPH</b> y produce <b>ATP</b> y <b>O₂</b>.",
+      "ATP y NADPH alimentan el <b>ciclo de Calvin</b>, que fija el CO₂ y fabrica glúcidos.",
+      "Velocidad: manda el <b>factor limitante</b>; C4 y CAM evitan la fotorrespiración."
+    ],
+    conecta: [
+      { con: "Biología T8:", rel: "el catabolismo (respiración): es el proceso inverso y complementario." },
+      { con: "Biología T6:", rel: "el cloroplasto es un orgánulo con ADN propio (endosimbiosis)." },
+      { con: "Biología T4:", rel: "las enzimas (RuBisCO) y los factores que las afectan." },
+      { con: "Química II T7:", rel: "pH y gradientes de H⁺; reacciones redox (T8)." }
+    ],
+    claves: [
+      ["Fotólisis", "ruptura del agua por la luz: 2 H₂O → O₂ + 4 H⁺ + 4 e⁻"],
+      ["Fotosistema", "antena de pigmentos + centro de reacción (PSII: P680; PSI: P700)"],
+      ["Fotofosforilación", "síntesis de ATP por la ATP sintasa con el gradiente de H⁺ creado por la luz"],
+      ["Flujo cíclico", "solo el PSI; el electrón vuelve al P700; solo se produce ATP"],
+      ["RuBisCO", "enzima que fija el CO₂ sobre la ribulosa-1,5-bisfosfato"],
+      ["Ciclo de Calvin", "carboxilación, reducción y regeneración de la RuBP, en el estroma"],
+      ["Factor limitante", "el factor más escaso, que marca la velocidad del proceso"],
+      ["Fotorrespiración", "la RuBisCO fija O₂ en vez de CO₂ y se libera CO₂"],
+      ["Planta C4 y CAM", "separan la fijación del CO₂ y el Calvin en el espacio y en el tiempo"],
+      ["Quimiosíntesis", "fijar CO₂ con la energía de oxidar sustancias inorgánicas"]
+    ],
+    cita: { txt: "El oxígeno que respiras sale del agua que rompen las hojas: cada molécula de O₂ gasta dos de H₂O.", autor: "Dato para recordar", obra: "6 CO₂ + 12 H₂O → glucosa + 6 O₂ + 6 H₂O; 12 NADPH = 24 e⁻ = 12 H₂O" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    relacion: {
+      titulo: "Fotosíntesis, respiración o las dos",
+      consigna: "Clasifica cada característica.",
+      categorias: ["Fotosíntesis", "Respiración celular", "Las dos"],
+      items: [
+        { t: "Cloroplasto", c: 0 }, { t: "NADPH", c: 0 }, { t: "Libera O₂", c: 0 }, { t: "Produce glucosa", c: 0 },
+        { t: "Mitocondria", c: 1 }, { t: "NADH y FADH₂", c: 1 }, { t: "Consume O₂", c: 1 }, { t: "Degrada glucosa", c: 1 },
+        { t: "Quimiosmosis (ATP sintasa)", c: 2 }, { t: "Cadena de transporte de electrones", c: 2 }, { t: "Gradiente de H⁺", c: 2 }
+      ]
+    },
+    fases: {
+      titulo: "¿Fase luminosa o ciclo de Calvin?",
+      consigna: "Coloca cada proceso en su fase.",
+      categorias: ["Fase luminosa (tilacoides)", "Ciclo de Calvin (estroma)"],
+      items: [
+        { t: "Fotólisis del agua", c: 0 }, { t: "Fotosistemas I y II", c: 0 }, { t: "Formación de NADPH", c: 0 }, { t: "Liberación de O₂", c: 0 }, { t: "ATP sintasa (CF₁)", c: 0 },
+        { t: "Carboxilación con RuBisCO", c: 1 }, { t: "Regeneración de la RuBP", c: 1 }, { t: "Reducción del 3-PGA a G3P", c: 1 }, { t: "Fijación del CO₂", c: 1 }, { t: "Síntesis de almidón", c: 1 }
+      ]
+    },
+    pigmentos: {
+      titulo: "Pigmentos y estructuras",
+      consigna: "Une cada término con su descripción.",
+      pares: [
+        ["Clorofila a", "Pigmento principal: absorbe violeta-azul y rojo"],
+        ["Carotenoides", "Absorben azul-verdoso y protegen de exceso de luz"],
+        ["Antena", "Pigmentos que captan fotones y pasan la energía al centro de reacción"],
+        ["P680", "Centro de reacción del fotosistema II"],
+        ["Lumen", "Interior del tilacoide, donde se acumulan H⁺"],
+        ["Grana", "Pilas de tilacoides"]
+      ]
+    },
+    c3c4cam: {
+      titulo: "C3, C4 o CAM",
+      consigna: "Clasifica cada dato o planta.",
+      categorias: ["C3", "C4", "CAM"],
+      items: [
+        { t: "Trigo", c: 0 }, { t: "Primer producto: 3-PGA", c: 0 }, { t: "Fotorrespiración alta con calor", c: 0 },
+        { t: "Maíz", c: 1 }, { t: "Células de la vaina", c: 1 }, { t: "Separación en el espacio", c: 1 },
+        { t: "Cactus", c: 2 }, { t: "Estomas abiertos de noche", c: 2 }, { t: "Separación en el tiempo", c: 2 }
+      ]
+    },
+    quimio: {
+      titulo: "Bacterias quimiosintéticas",
+      consigna: "Une cada grupo con la transformación que realiza.",
+      pares: [
+        ["Nitrosomonas", "NH₄⁺ → NO₂⁻"],
+        ["Nitrobacter", "NO₂⁻ → NO₃⁻"],
+        ["Sulfobacterias", "H₂S → S → SO₄²⁻"],
+        ["Ferrobacterias", "Fe²⁺ → Fe³⁺"],
+        ["Bacterias del hidrógeno", "H₂ + O₂ → H₂O"]
+      ]
+    },
+    ordenz: {
+      titulo: "El camino del electrón (flujo acíclico)",
+      consigna: "Ordena el recorrido desde el principio.",
+      items: [
+        { t: "La luz excita el fotosistema II (P680)" },
+        { t: "Fotólisis del agua: P680⁺ recupera electrones y sale O₂" },
+        { t: "El electrón baja por plastoquinona y citocromo b₆f (se bombean H⁺)" },
+        { t: "La plastocianina lo lleva al fotosistema I" },
+        { t: "La luz excita el fotosistema I (P700) y pasa a la ferredoxina" },
+        { t: "La NADP⁺ reductasa forma NADPH" }
+      ]
+    },
+    ordencalvin: {
+      titulo: "El ciclo de Calvin",
+      consigna: "Ordena las etapas del ciclo.",
+      items: [
+        { t: "La RuBisCO une el CO₂ a la RuBP (5 C)" },
+        { t: "Se forman dos moléculas de 3-PGA (3 C)" },
+        { t: "El 3-PGA se fosforila con ATP y se reduce con NADPH" },
+        { t: "Se obtiene G3P (triosa); 1 de cada 6 sale del ciclo" },
+        { t: "Los otros 5 G3P regeneran la RuBP, con ATP" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 9",
+      preguntas: [
+        { q: "El oxígeno que libera la fotosíntesis procede…", op: ["del agua", "del CO₂", "de la glucosa", "del NADPH"], ok: 0, porque: "Fotólisis del agua (Ruben y Kamen, con ¹⁸O)." },
+        { q: "La fase luminosa ocurre en…", op: ["la membrana de los tilacoides", "el estroma", "la membrana externa del cloroplasto", "la matriz mitocondrial"], ok: 0, porque: "Allí están los fotosistemas y la ATP sintasa." },
+        { q: "La enzima que fija el CO₂ en el ciclo de Calvin es…", op: ["la RuBisCO", "la ATP sintasa", "la PEP carboxilasa", "la NADP⁺ reductasa"], ok: 0, porque: "RuBisCO: ribulosa-1,5-bisfosfato carboxilasa/oxigenasa." },
+        { q: "El flujo cíclico de electrones produce…", op: ["solo ATP", "ATP y NADPH", "NADPH y O₂", "solo O₂"], ok: 0, porque: "Solo actúa el PSI: no hay fotólisis ni se reduce el NADP⁺." },
+        { q: "Para fabricar una glucosa, el ciclo de Calvin gasta…", op: ["18 ATP y 12 NADPH", "12 ATP y 18 NADPH", "6 ATP y 6 NADPH", "36 ATP y 24 NADPH"], ok: 0, porque: "3 ATP y 2 NADPH por CO₂, por 6 CO₂." },
+        { q: "Una planta CAM abre los estomas…", op: ["de noche", "de día", "solo al mediodía", "nunca"], ok: 0, porque: "Fija el CO₂ de noche y lo guarda como malato." },
+        { q: "El factor limitante es…", op: ["el factor más escaso, que marca la velocidad", "el factor más abundante", "siempre la luz", "siempre el CO₂"], ok: 0, porque: "Regla de Blackman." },
+        { q: "Las bacterias nitrificantes obtienen energía…", op: ["oxidando amonio o nitrito", "con la luz", "oxidando glucosa", "reduciendo CO₂ con O₂"], ok: 0, porque: "Son quimiosintéticas: energía de oxidar inorgánicos." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre la fotosíntesis es FALSA?", op: ["El O₂ liberado procede del CO₂", "El CO₂ se reduce", "El agua se oxida", "El ciclo de Calvin ocurre en el estroma"], ok: 0, porque: "El O₂ procede del agua (fotólisis)." },
+        { q: "¿Cuál de estas afirmaciones sobre la fase oscura es FALSA?", op: ["Ocurre solo de noche", "Ocurre en el estroma", "Usa ATP y NADPH", "Fija el CO₂"], ok: 0, porque: "«Oscura» solo significa que no necesita luz directamente; funciona con luz." },
+        { q: "¿Cuál de estas afirmaciones sobre el flujo cíclico es FALSA?", op: ["Produce NADPH y O₂", "Solo usa el fotosistema I", "Fabrica ATP", "El electrón vuelve al P700"], ok: 0, porque: "No hay fotólisis ni NADPH: solo ATP." },
+        { q: "¿Cuál de estas afirmaciones sobre la fotofosforilación es FALSA?", op: ["Los H⁺ se acumulan en el estroma", "Los H⁺ se acumulan en el lumen", "Interviene la ATP sintasa", "El gradiente lo crean la luz y la cadena de electrones"], ok: 0, porque: "Los H⁺ se acumulan en el lumen y vuelven al estroma." },
+        { q: "¿Cuál de estas afirmaciones sobre las plantas C4 y CAM es FALSA?", op: ["Las plantas CAM abren los estomas de día", "Las C4 separan las fases en el espacio", "Las CAM las separan en el tiempo", "Las C4 usan PEP carboxilasa en el mesófilo"], ok: 0, porque: "Las CAM abren los estomas de noche." },
+        { q: "¿Cuál de estas afirmaciones sobre los pigmentos es FALSA?", op: ["Las hojas son verdes porque absorben la luz verde", "La clorofila a absorbe en violeta-azul y rojo", "Los carotenoides son pigmentos accesorios", "El espectro de acción se parece al de absorción"], ok: 0, porque: "Son verdes porque reflejan el verde." },
+        { q: "¿Cuál de estas afirmaciones sobre plantas y respiración es FALSA?", op: ["Las plantas solo respiran de noche", "Las plantas respiran siempre", "De día el balance suele liberar O₂", "El cloroplasto no hace la respiración"], ok: 0, porque: "Las plantas respiran de día y de noche." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: fotosíntesis",
+      cartas: [
+        { a: "Ecuación de la fotosíntesis", b: "6 CO₂ + 6 H₂O + luz → C₆H₁₂O₆ + 6 O₂. El O₂ viene del agua." },
+        { a: "Fotólisis del agua", b: "2 H₂O → O₂ + 4 H⁺ + 4 e⁻, en el fotosistema II (lumen)." },
+        { a: "Fotosistema", b: "Antena de pigmentos + centro de reacción. PSII: P680; PSI: P700." },
+        { a: "Esquema en Z", b: "H₂O → PSII → PQ → b₆f → PC → PSI → Fd → NADPH." },
+        { a: "Flujo acíclico", b: "PSII y PSI, produce ATP, NADPH y O₂." },
+        { a: "Flujo cíclico", b: "Solo PSI; el electrón vuelve al P700; produce solo ATP." },
+        { a: "Fotofosforilación", b: "ATP sintasa con el gradiente de H⁺ del lumen al estroma." },
+        { a: "Fase oscura", b: "Ciclo de Calvin, en el estroma. No necesita luz directamente, pero sí ATP y NADPH." },
+        { a: "RuBisCO", b: "Fija el CO₂ sobre la RuBP (5 C) y da 2 3-PGA (3 C). También puede fijar O₂." },
+        { a: "Etapas del ciclo de Calvin", b: "Carboxilación, reducción (ATP y NADPH) y regeneración de la RuBP (ATP)." },
+        { a: "Balance por glucosa", b: "6 CO₂, 18 ATP y 12 NADPH (3 ATP y 2 NADPH por CO₂)." },
+        { a: "Factor limitante", b: "El factor más escaso, que marca la velocidad (Blackman)." },
+        { a: "Punto de compensación", b: "Intensidad de luz con fotosíntesis neta = 0. Bruta = neta + respiración." },
+        { a: "Fotorrespiración", b: "RuBisCO fija O₂: se libera CO₂ y se gasta ATP. Sube con calor y sequía." },
+        { a: "Plantas C4 y CAM", b: "C4: separan en el espacio (mesófilo y vaina). CAM: en el tiempo (estomas abiertos de noche)." },
+        { a: "Quimiosíntesis", b: "Fija CO₂ con la energía de oxidar inorgánicos: NH₄⁺, NO₂⁻, H₂S, Fe²⁺. Importante en el ciclo del N." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "¿En qué parte del cloroplasto ocurre la fase luminosa?", ["En la membrana de los tilacoides", "En el estroma", "En la membrana externa", "En el citosol"], 0, ["Allí están los fotosistemas, la cadena de electrones y la ATP sintasa."], "Membrana de los tilacoides");
+  O("b2", 1, "¿Dónde ocurre el ciclo de Calvin?", ["En el estroma", "En el lumen", "En la matriz mitocondrial", "En el núcleo"], 0, ["El estroma contiene la RuBisCO y las enzimas del ciclo."], "Estroma");
+  O("b3", 1, "El oxígeno que libera la fotosíntesis procede…", ["de la ruptura del agua", "del CO₂", "de la glucosa", "del ATP"], 0, ["Fotólisis del agua: 2 H₂O → O₂ + 4 H⁺ + 4 e⁻.", "Lo demostraron Ruben y Kamen con agua marcada con ¹⁸O."], "Del agua");
+  O("b4", 1, "El pigmento fotosintético principal es…", ["la clorofila a", "el caroteno", "la hemoglobina", "la melanina"], 0, ["La clorofila a forma el centro de reacción de los fotosistemas."], "Clorofila a");
+  O("b5", 1, "¿Qué dos productos de la fase luminosa necesita el ciclo de Calvin?", ["ATP y NADPH", "O₂ y glucosa", "CO₂ y H₂O", "ADP y NADP⁺"], 0, ["El Calvin gasta ATP y NADPH y devuelve ADP y NADP⁺."], "ATP y NADPH");
+  V("b6", 1, "La fase oscura solo ocurre de noche.", false, ["Solo significa que no necesita luz directamente, y funciona de día con ATP y NADPH", "Necesita oscuridad total", "Ocurre en los tilacoides", "No existe"], 0, ["Sin luz no se renuevan el ATP ni el NADPH: de noche se detiene."]);
+  V("b7", 1, "El O₂ que se libera en la fotosíntesis procede del CO₂.", false, ["Procede del agua: los átomos de O del CO₂ van a la glucosa y al agua formada", "Procede de la clorofila", "Procede del NADPH", "Procede del almidón"], 0, ["Con H₂¹⁸O el O₂ sale marcado; con C¹⁸O₂, no."]);
+  T("b8", 1, "Completa: la enzima que fija el CO₂ en el ciclo de Calvin se llama…", "Enzima", ["RuBisCO", "rubisco"], ["Es la ribulosa-1,5-bisfosfato carboxilasa/oxigenasa."], "RuBisCO");
+  T("b9", 1, "El aceptor de CO₂ de 5 carbonos del ciclo de Calvin se abrevia…", "Aceptor", ["RuBP", "rubp"], ["Ribulosa-1,5-bisfosfato (5 C): se regenera en cada vuelta."], "RuBP");
+  M("b10", 1, "Une cada proceso con su lugar.",
+    [C("Fotólisis del agua", ["Lumen / membrana del tilacoide", "Estroma", "Mitocondria"], 0), C("Fijación del CO₂", ["Estroma", "Lumen / membrana del tilacoide", "Mitocondria"], 0), C("Gradiente de H⁺", ["Lumen del tilacoide", "Estroma", "Citosol"], 0)],
+    ["La fotólisis ocurre en el PSII, hacia el lumen.", "El Calvin ocurre en el estroma.", "Los H⁺ se acumulan en el lumen."], "Fotólisis → tilacoide; Calvin → estroma; H⁺ → lumen");
+  O("b11", 1, "¿Qué gas se desprende en la fotólisis del agua?", ["O₂", "CO₂", "H₂", "N₂"], 0, ["2 H₂O → O₂ + 4 H⁺ + 4 e⁻."], "O₂");
+  O("b12", 1, "En la quimiosíntesis, la energía procede de…", ["la oxidación de compuestos inorgánicos", "la luz", "la oxidación de glucosa", "la fotólisis"], 0, ["Es la diferencia con la fotosíntesis: la fuente de energía."], "Oxidar sustancias inorgánicas");
+  O("b13", 1, "¿Cuál de estas plantas es de tipo C4?", ["Maíz", "Trigo", "Arroz", "Cactus"], 0, ["Maíz, caña de azúcar y sorgo son C4; el cactus es CAM; trigo y arroz son C3."], "Maíz");
+  V("b14", 1, "Las plantas solo respiran de noche.", false, ["Respiran siempre; de día, la fotosíntesis supera a la respiración", "Respiran solo de día", "No respiran", "La respiración ocurre en los cloroplastos"], 0, ["Las mitocondrias funcionan día y noche."]);
+  X("b15", 1, "En el ciclo de Calvin, ¿cuántos ATP se gastan por cada CO₂ fijado (planta C3)?", "ATP =", 3, "", ["2 ATP en la reducción del 3-PGA.", "1 ATP en la regeneración de la RuBP.", "Total: 3."], "3 ATP");
+  X("b16", 1, "¿Cuántos NADPH se gastan en el ciclo de Calvin por cada CO₂ fijado?", "NADPH =", 2, "", ["Se forman 2 3-PGA por CO₂.", "Cada 3-PGA se reduce con 1 NADPH."], "2 NADPH");
+  O("b17", 1, "Las hojas se ven verdes porque la clorofila…", ["refleja la luz verde", "absorbe la luz verde", "emite luz verde", "transforma la luz verde en roja"], 0, ["Absorbe sobre todo violeta-azul y rojo; el verde (≈ 500–570 nm) se refleja."], "Refleja el verde");
+
+  // ---- nivel 2
+  X("c1", 2, "¿Cuántos ATP se gastan para fijar 12 CO₂ en una planta C3?", "ATP =", 36, "", ["3 ATP por CO₂.", "12 · 3 = 36."], "36 ATP");
+  X("c2", 2, "¿Cuántos NADPH se gastan para fijar 12 CO₂?", "NADPH =", 24, "", ["2 NADPH por CO₂.", "12 · 2 = 24."], "24 NADPH");
+  X("c3", 2, "¿Cuántas moléculas de glucosa se fabrican con 18 CO₂?", "Glucosas =", 3, "", ["Una glucosa necesita 6 CO₂.", "18 / 6 = 3."], "3 glucosas");
+  X("c4", 2, "¿Cuántas vueltas del ciclo de Calvin hacen falta para fabricar 2 glucosas?", "Vueltas =", 12, "", ["Cada vuelta fija 1 CO₂.", "2 glucosas = 12 C = 12 CO₂."], "12 vueltas");
+  X("c5", 2, "¿Cuántas moléculas de agua hay que romper en la fase luminosa para obtener los NADPH de una glucosa?", "H₂O =", 12, "", ["Una glucosa gasta 12 NADPH = 24 e⁻.", "Cada H₂O aporta 2 e⁻: 12 H₂O."], "12 H₂O");
+  X("c6", 2, "¿Cuántas moléculas de O₂ se liberan al fabricar 3 glucosas?", "O₂ =", 18, "", ["Una glucosa: 6 O₂ (24 e⁻ / 4 e⁻ por O₂).", "3 · 6 = 18."], "18 O₂");
+  X("c7", 2, "Con luz, el pH del lumen es ≈ 5 y el del estroma ≈ 8. ¿Cuántas veces mayor es la [H⁺] del lumen?", "Factor =", 1000, "veces", ["Diferencia de 3 unidades de pH.", "Cada unidad es ×10: 10³ = 1000."], "1000 veces");
+  X("c8", 2, "Con E = 119 627 / λ (E en kJ por mol de fotones y λ en nm), ¿cuánta energía tiene un mol de fotones de 680 nm?", "E (kJ/mol) =", 175.9, "kJ/mol", ["E = 119 627 / 680.", "E = 175,9 kJ/mol."], "≈ 175,9 kJ/mol", 0.005);
+  X("c9", 2, "En oscuridad, una hoja consume 3 µL de O₂/h. Con luz, libera 5 µL de O₂/h (neto). ¿Cuál es la fotosíntesis bruta?", "Bruta (µL/h) =", 8, "µL/h", ["Respiración = 3 µL/h.", "Bruta = neta + respiración = 5 + 3 = 8."], "8 µL/h");
+  X("c10", 2, "O₂ neto de una hoja: −1,5 µL/h a 40 µmol de luz y +0,5 µL/h a 80 µmol (entre los dos puntos la curva es una recta). ¿Cuál es el punto de compensación (µmol)?", "Luz (µmol) =", 70, "µmol", ["Pasa de −1,5 a +0,5: 2 unidades en 40 µmol.", "Para llegar a 0 hacen falta 1,5 / 2 · 40 = 30 µmol más.", "40 + 30 = 70 µmol."], "70 µmol");
+  V("c11", 2, "En el flujo cíclico de electrones se forma NADPH.", false, ["No: el electrón vuelve al P700 y el NADP⁺ no se reduce", "Sí: la ferredoxina reduce el NADP⁺", "Sí, y también O₂", "Sí, porque actúa el PSII"], 0, ["Solo actúa el PSI y el electrón da vueltas: se forma ATP."]);
+  M("c12", 2, "Une cada producto con el flujo de electrones que lo forma.",
+    [C("O₂", ["Solo flujo acíclico", "Solo flujo cíclico", "Ambos"], 0), C("NADPH", ["Solo flujo acíclico", "Solo flujo cíclico", "Ambos"], 0), C("ATP", ["Ambos", "Solo flujo acíclico", "Solo flujo cíclico"], 0)],
+    ["El O₂ sale de la fotólisis, que solo ocurre en el acíclico.", "El NADPH se forma al final del acíclico.", "Los dos bombean H⁺ y fabrican ATP."], "O₂ y NADPH → acíclico; ATP → ambos");
+  O("c13", 2, "En una curva de luz, la meseta (zona plana) indica que…", ["la luz ya no limita: lo hace otro factor", "la planta ha muerto", "no hay fotosíntesis", "la respiración es nula"], 0, ["Es la saturación luminosa: limita el CO₂ o la temperatura."], "La luz ya no limita");
+  O("c14", 2, "Una planta CAM abre los estomas…", ["de noche", "de día", "al mediodía", "solo cuando llueve"], 0, ["Así pierde menos agua; guarda el CO₂ como malato."], "De noche");
+  M("c15", 2, "Ordena las etapas del ciclo de Calvin.",
+    [C("Primero", ["Carboxilación", "Reducción", "Regeneración"], 0), C("Después", ["Reducción", "Carboxilación", "Regeneración"], 0), C("Por último", ["Regeneración", "Carboxilación", "Reducción"], 0)],
+    ["El CO₂ se une a la RuBP.", "El 3-PGA se reduce a G3P con ATP y NADPH.", "5 de cada 6 G3P regeneran la RuBP."], "Carboxilación → reducción → regeneración");
+  X("c16", 2, "¿Qué cociente ATP/NADPH necesita el ciclo de Calvin (18 ATP y 12 NADPH por glucosa)?", "ATP/NADPH =", 1.5, "", ["18 / 12 = 1,5.", "El flujo acíclico por sí solo da ≈ 1,3–1,5, según el número de H⁺ por ATP: el cíclico corrige el déficit."], "1,5");
+  V("c17", 2, "Las plantas C4 separan el uso de la PEP carboxilasa y de la RuBisCO en el espacio.", true, ["La PEP carboxilasa actúa en el mesófilo y la RuBisCO, en la vaina", "La PEP carboxilasa actúa de noche y la RuBisCO de día", "Solo usan la PEP carboxilasa", "Las dos enzimas actúan en la misma célula"], 0, ["Mesófilo: oxalacetato y malato. Vaina: se libera CO₂ y entra al ciclo de Calvin."]);
+  O("c18", 2, "En el cloroplasto, los H⁺ se acumulan…", ["en el lumen del tilacoide", "en el estroma", "en el espacio intermembrana mitocondrial", "en el citosol"], 0, ["Y vuelven al estroma por la ATP sintasa."], "En el lumen");
+  X("c19", 2, "En una planta C4 se gastan unos 5 ATP por CO₂. ¿Cuántos ATP se gastan para fabricar 1 glucosa?", "ATP =", 30, "", ["6 CO₂ · 5 ATP = 30 ATP.", "Son 12 más que en una C3 (18 ATP)."], "30 ATP (frente a 18 en C3)");
+  X("c20", 2, "¿Cuántos G3P salen netos del ciclo de Calvin al fijar 9 CO₂?", "G3P =", 3, "", ["Cada 3 CO₂ producen 1 G3P neto.", "9 / 3 = 3."], "3 G3P");
+
+  // ---- nivel 3
+  X("d1", 3, "Una glucosa almacena 2870 kJ/mol y hacen falta como mínimo 48 mol de fotones de 680 nm (175,9 kJ/mol cada uno). ¿Cuál es el rendimiento máximo teórico en %?", "Rendimiento (%) =", 34, "%", ["Energía luminosa: 48 · 175,9 = 8443 kJ.", "2870 / 8443 = 0,34.", "≈ 34 %."], "≈ 34 %", 0.01);
+  X("d2", 3, "Cada electrón que va del agua al NADPH recibe dos fotones (uno en cada fotosistema). ¿Cuántos fotones se necesitan, como mínimo, para fabricar 1 glucosa (12 NADPH)?", "Fotones =", 48, "", ["12 NADPH = 24 e⁻.", "24 · 2 = 48 fotones."], "48 fotones");
+  X("d3", 3, "En 3 vueltas del ciclo de Calvin se gastan 9 ATP y se obtiene 1 G3P (que contiene un fosfato). ¿Cuántos P<sub>i</sub> libres se forman?", "Pi libres =", 8, "", ["9 ATP → 9 ADP + 9 P<sub>i</sub>.", "Un fosfato queda en el G3P: 9 − 1 = 8."], "8 P<sub>i</sub>");
+  X("d4", 3, "Se alimenta una planta con 6 moléculas de CO₂ con todos sus oxígenos marcados con ¹⁸O (12 átomos). Si la glucosa conserva 6 átomos de O, ¿cuántos átomos de ¹⁸O acaban en el agua que se forma en el Calvin?", "Átomos de ¹⁸O =", 6, "", ["12 átomos de O entran con el CO₂.", "6 quedan en la glucosa.", "Los otros 6 salen en 6 H₂O."], "6 átomos (y ninguno en el O₂)");
+  X("d5", 3, "Una hoja a 1200 µmol libera 6,0 µL de O₂/h (neto) y gasta 2,0 µL/h respirando. ¿Qué porcentaje de la fotosíntesis bruta consume la respiración?", "Porcentaje (%) =", 25, "%", ["Bruta = 6,0 + 2,0 = 8,0.", "2,0 / 8,0 = 0,25."], "25 %");
+  X("d6", 3, "Modelo del simulador: planta C3, con luz = 500 µmol/m²s, CO₂ = 400 ppm y 25 °C. Luz: min(100, 100·I/1000); CO₂: min(100, C/6); temperatura: 100·exp(−((T−30)/15)²). La velocidad es la menor de las tres. ¿Cuánto vale (%)?", "Velocidad (%) =", 50, "%", ["Luz: 50 %.", "CO₂: 400 / 6 = 66,7 %.", "Temperatura: 100·exp(−(5/15)²) = 89,5 %.", "La menor es 50 %: limita la luz."], "50 % (limita la luz)", 0.01);
+  X("d7", 3, "Con el mismo modelo, planta C3 a 1500 µmol, 400 ppm y 30 °C. ¿Cuánto vale la velocidad (%)?", "Velocidad (%) =", 66.7, "%", ["Luz: 100 %.", "CO₂: 400 / 6 = 66,7 %.", "Temperatura: 100 % (30 °C es el óptimo).", "Limita el CO₂: 66,7 %."], "66,7 % (limita el CO₂)", 0.005);
+  X("d8", 3, "Con el mismo modelo, planta C3 a 1500 µmol, 800 ppm y 10 °C. ¿Cuánto vale la velocidad (%)?", "Velocidad (%) =", 16.9, "%", ["Luz: 100 %.", "CO₂: min(100, 800/6) = 100 %.", "Temperatura: 100·exp(−(20/15)²) = 16,9 %.", "Limita la temperatura."], "16,9 % (limita la temperatura)", 0.01);
+  X("d9", 3, "Planta C4 (luz: min(100, 100·I/1500); CO₂: min(100, C/2); temperatura: 100·exp(−((T−35)/15)²)), con 750 µmol, 400 ppm y 35 °C. ¿Cuánto vale la velocidad (%)?", "Velocidad (%) =", 50, "%", ["Luz: 100·750/1500 = 50 %.", "CO₂: min(100, 200) = 100 %.", "Temperatura: 100 % (35 °C es su óptimo).", "Limita la luz: 50 %."], "50 % (limita la luz)", 0.01);
+  O("d10", 3, "Una planta con calor y sequía fotosintetiza menos y su fotorrespiración sube. ¿Cuál es la explicación correcta?", ["Cierra los estomas: baja el CO₂ y sube el O₂ en la hoja, y la RuBisCO fija más O₂", "La RuBisCO deja de existir con calor", "Entra demasiado CO₂", "Se cierran los estomas y la fase luminosa no ocurre"], 0, ["Los estomas cerrados dejan entrar poco CO₂ y se acumula el O₂ de la fotólisis.", "La RuBisCO (carboxilasa/oxigenasa) compite entre CO₂ y O₂."], "Estomas cerrados → baja CO₂/O₂ alto → fotorrespiración");
+  R("d11", "Describe la fase luminosa de la fotosíntesis: lugar, fotosistemas, flujo acíclico y cíclico y productos. (Pregunta tipo PAU)", [
+    { t: "Lugar: membrana de los tilacoides; necesita luz", p: 0.3 },
+    { t: "Fotosistemas II y I (antena y centro de reacción) y fotólisis del agua con liberación de O₂", p: 0.5 },
+    { t: "Cadena de transporte hasta el NADP⁺ y bombeo de H⁺ al lumen (b₆f)", p: 0.4 },
+    { t: "Fotofosforilación: ATP sintasa con el gradiente de H⁺", p: 0.4 },
+    { t: "Flujo cíclico (solo PSI, solo ATP) frente al acíclico (ATP, NADPH y O₂)", p: 0.4 }], ["Lugar.", "Fotosistemas y fotólisis.", "Cadena y H⁺.", "ATP sintasa.", "Cíclico frente a acíclico."], "Luminosa: tilacoide, ATP + NADPH + O₂");
+  R("d12", "Explica el ciclo de Calvin: etapas, enzima clave y balance por molécula de glucosa. (Pregunta tipo PAU)", [
+    { t: "Lugar: estroma; no necesita luz directa pero sí ATP y NADPH", p: 0.3 },
+    { t: "Carboxilación: RuBisCO, RuBP (5 C) + CO₂ → 2 3-PGA", p: 0.5 },
+    { t: "Reducción del 3-PGA a G3P con ATP y NADPH", p: 0.4 },
+    { t: "Regeneración de la RuBP (con ATP); 1 de cada 6 G3P sale", p: 0.4 },
+    { t: "Balance: 6 CO₂, 18 ATP y 12 NADPH por glucosa", p: 0.4 }], ["Lugar.", "Carboxilación.", "Reducción.", "Regeneración.", "Balance."], "Calvin: fija CO₂, gasta 18 ATP + 12 NADPH por glucosa");
+  R("d13", "¿Qué es la fotorrespiración? Explica cómo la evitan las plantas C4 y CAM. (Pregunta tipo PAU)", [
+    { t: "Definición: la RuBisCO fija O₂ y se libera CO₂ con gasto de ATP", p: 0.5 },
+    { t: "Cuándo ocurre: calor y sequía, estomas cerrados, O₂/CO₂ alto", p: 0.4 },
+    { t: "C4: PEP carboxilasa en el mesófilo, malato y CO₂ concentrado en la vaina (espacio)", p: 0.5 },
+    { t: "CAM: estomas abiertos de noche, malato en la vacuola; Calvin de día (tiempo)", p: 0.5 },
+    { t: "Ejemplos de plantas", p: 0.1 }], ["Definición.", "Cuándo.", "C4.", "CAM."], "C4: espacio; CAM: tiempo");
+  R("d14", "En un experimento se miden el O₂ neto y la luz en un alga: a oscuridad −2 µL/h, punto de compensación a 100 µmol y meseta de +6 µL/h desde 800 µmol. Interpreta la curva y propón cómo averiguar qué factor limita en la meseta. (Pregunta tipo PAU)", [
+    { t: "Oscuridad: solo respira, O₂ neto negativo (−2)", p: 0.4 },
+    { t: "Punto de compensación: fotosíntesis = respiración, neta 0", p: 0.5 },
+    { t: "Fotosíntesis bruta = neta + respiración (en la meseta: 6 + 2 = 8)", p: 0.4 },
+    { t: "Meseta: la luz ya no limita (saturación luminosa)", p: 0.4 },
+    { t: "Experimento: subir CO₂ o temperatura por separado; si sube, ese factor limitaba", p: 0.3 }], ["Oscuridad.", "Compensación.", "Bruta.", "Meseta.", "Experimento."], "Neta + respiración = bruta; meseta = limita otro factor");
+  R("d15", "Define quimiosíntesis, pon dos ejemplos con las transformaciones que realizan y explica su importancia ecológica. (Pregunta tipo PAU)", [
+    { t: "Definición: fijar CO₂ con la energía de oxidar compuestos inorgánicos, sin luz", p: 0.5 },
+    { t: "Dos fases: obtención de energía (ATP, poder reductor) y fijación del CO₂ (Calvin)", p: 0.4 },
+    { t: "Ejemplo nitrificantes: NH₄⁺ → NO₂⁻ (Nitrosomonas) y NO₂⁻ → NO₃⁻ (Nitrobacter)", p: 0.4 },
+    { t: "Otro ejemplo: sulfobacterias (H₂S → S) o ferrobacterias (Fe²⁺ → Fe³⁺)", p: 0.3 },
+    { t: "Importancia: ciclo del N y ecosistemas de fuentes hidrotermales", p: 0.4 }], ["Definición.", "Fases.", "Nitrificantes.", "Otros.", "Importancia."], "Quimiosíntesis: energía inorgánica, CO₂ → materia orgánica");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Fase luminosa y fase oscura", ancha: true,
+      tabla: { cab: ["", "Luminosa", "Oscura (Calvin)"], filas: [
+        ["lugar", "tilacoides", "estroma"],
+        ["necesita", "luz y agua", "ATP, NADPH y CO₂"],
+        ["productos", "ATP, NADPH, O₂", "glúcidos (G3P)"]
+      ] } },
+    { titulo: "Flujo acíclico y cíclico", ancha: true,
+      tabla: { cab: ["", "Acíclico", "Cíclico"], filas: [
+        ["fotosistemas", "II y I", "solo I"],
+        ["O₂ y NADPH", "sí", "no"],
+        ["ATP", "sí", "sí"]
+      ] } },
+    { titulo: "El ciclo de Calvin",
+      pasos: ["Carboxilación: CO₂ + RuBP → 2 3-PGA (RuBisCO).", "Reducción: 3-PGA → G3P (ATP y NADPH).", "Regeneración de la RuBP (ATP)."],
+      nota: "Por glucosa: 6 CO₂, 18 ATP y 12 NADPH." },
+    { titulo: "C3, C4 y CAM", ancha: true,
+      tabla: { cab: ["", "C3", "C4", "CAM"], filas: [
+        ["ejemplo", "trigo", "maíz", "cactus"],
+        ["estomas", "de día", "de día", "de noche"],
+        ["separación", "no", "espacio", "tiempo"]
+      ] } },
+    { titulo: "Fotosíntesis y respiración", ancha: true,
+      tabla: { cab: ["", "Fotosíntesis", "Respiración"], filas: [
+        ["orgánulo", "cloroplasto", "mitocondria"],
+        ["coenzima", "NADPH", "NADH"],
+        ["O₂", "se libera", "se consume"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "El O₂ sale del CO₂", bien: "Sale del agua (fotólisis)", por: "Ruben y Kamen, con ¹⁸O." },
+        { mal: "La fase oscura es de noche", bien: "No necesita luz directa, pero sí ATP y NADPH", por: "Funciona con luz." },
+        { mal: "El flujo cíclico fabrica NADPH", bien: "Solo fabrica ATP", por: "Solo actúa el PSI." },
+        { mal: "Las CAM abren los estomas de día", bien: "De noche", por: "Para perder menos agua." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t9", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio9a.secciones,
+    nuevas: B.parte.bio9a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
