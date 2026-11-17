@@ -156,6 +156,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Biología II t3 lípidos (44 ej., 321 comprob.) | ≈157k | |
 | Biología II t4 proteínas y enzimas (56 ej., 424 comprob.) | ≈248k | |
 | Biología II t5 ácidos nucleicos (44 ej., 309 comprob.) | ≈185k | |
+| Biología II t7 núcleo y ciclo (46 ej., 269 comprob.; un primer intento se perdió por corte) | ver notificación | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
@@ -245,3 +246,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 17-nov: Biología t3 fusionado. Lanzado t5.
 - 17-nov: Biología t4 fusionado. Lanzado t6.
 - 17-nov: Biología t5 fusionado. Lanzado t7.
+- 17-nov: Biología t7 fusionado (t6 y t7 se relanzaron tras corte de uso y reinicio). Lanzado t8.
