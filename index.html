@@ -6476,6 +6476,204 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 15 (Inmunología)
+   bio_respuesta: gráfica de anticuerpos en el tiempo: respuesta primaria y secundaria (mismo antígeno o antígeno distinto).
+   bio_anticuerpo: esquema de un anticuerpo (IgG) en el que se pulsa cada parte.
+   bio_transfusion: transfusión entre un donante y un receptor (ABO y Rh) con el porqué de la reacción.
+   Estilos inyectados desde aquí. Los números los recalcula herramientas/verificar_bio2_t15.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio15-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio15-estilos";
+    s.textContent =
+      ".bio15-svg{display:block;width:100%;max-width:560px;height:auto;margin:6px auto}" +
+      ".bio15-svg text{font:600 12px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio15-svg .ej{stroke:var(--ink-faint);stroke-width:1.5;fill:none}" +
+      ".bio15-svg .cur1{fill:none;stroke:var(--pen);stroke-width:3}" +
+      ".bio15-svg .cur2{fill:none;stroke:var(--red);stroke-width:3}" +
+      ".bio15-svg .marca{stroke:var(--ink-faint);stroke-width:1.5;stroke-dasharray:5 4}" +
+      ".bio15-svg .ab-h{fill:none;stroke:var(--pen);stroke-width:16;stroke-linecap:round;stroke-linejoin:round}" +
+      ".bio15-svg .ab-l{fill:none;stroke:var(--ok);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}" +
+      ".bio15-svg .ab-v{fill:none;stroke:var(--red);stroke-width:6;stroke-linecap:round;opacity:.9}" +
+      ".bio15-svg .ab-ss{stroke:var(--ink);stroke-width:3}" +
+      ".bio15-svg .ab-zona{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 4}" +
+      ".bio15-svg .ab-sel{stroke:var(--ink)!important;stroke-width:3.5;opacity:1}" +
+      ".bio15-svg .hit{cursor:pointer}" +
+      ".bio15-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio15-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio15-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio15-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio15-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio15-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+      ".bio15-leyenda{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--ink);margin:2px 0}" +
+      ".bio15-leyenda i{display:inline-block;width:18px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}" +
+      ".bio15-fila{margin:8px 0 2px;font-size:13px;color:var(--ink-faint);font-weight:700;text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio15-par{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}" +
+      ".bio15-par .b15-cuadro{border:1.5px solid var(--line);border-radius:10px;padding:8px;background:var(--sheet);text-align:center;color:var(--ink);font-size:14px}" +
+      ".bio15-par svg{width:100%;max-width:150px;height:auto}" +
+      ".bio15-par svg text{font:700 13px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio15-par .he{fill:var(--red-soft);stroke:var(--red);stroke-width:2.5}" +
+      ".bio15-par .b15-ag{fill:var(--pen);stroke:none}" +
+      ".bio15-par .b15-ac{fill:none;stroke:var(--ok);stroke-width:3}" +
+      ".bio15-par.mal .b15-cuadro:first-child{border-color:var(--red)}" +
+      "@media(max-width:520px){.bio15-dato{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  function f1(x) { return (Math.round(x * 100) / 100).toFixed(2).replace(".", ","); }
+
+  // ------------------------------------------------------------------ RESPUESTA PRIMARIA Y SECUNDARIA
+  // Modelo cualitativo (unidades arbitrarias): subida con sen², pico y caída exponencial.
+  //   respuesta primaria:   latencia 5 d, pico a los 14 d tras el contacto (altura 1), caída con tau = 15 d
+  //   respuesta secundaria: latencia 2 d, pico a los 7 d tras el contacto (altura 10), caída con tau = 60 d
+  var P1 = { lag: 5, pico: 14, A: 1, tau: 15 }, P2 = { lag: 2, pico: 7, A: 10, tau: 60 };
+  function resp(t, t0, p) {
+    var s = t - t0;
+    if (s <= p.lag) return 0;
+    if (s <= p.pico) return p.A * Math.pow(Math.sin(Math.PI / 2 * (s - p.lag) / (p.pico - p.lag)), 2);
+    return p.A * Math.exp(-(s - p.pico) / p.tau);
+  }
+
+  B.w.bio_respuesta = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Primer y segundo contacto con un antígeno");
+    cuerpo.innerHTML = '<p class="w-intro">El primer contacto con el antígeno A ocurre el día 0. En el segundo contacto llega el mismo antígeno u otro distinto: elige cuál y cuándo.</p>' +
+      '<div data-tipo></div><div data-ctl></div><svg class="bio15-svg" viewBox="0 0 560 250" role="img" aria-label="Anticuerpos en sangre según los días"></svg>' +
+      '<div class="bio15-leyenda"></div><div class="bio15-dato"></div><div class="bio15-veredicto"></div>' +
+      '<p class="w-pie">Modelo cualitativo en unidades arbitrarias: lo importante es la forma (latencia, altura, duración), no las cifras.</p>';
+    var tipo = "mismo", d2 = 40;
+    U.fichas(cuerpo.querySelector("[data-tipo]"), [{ k: "mismo", t: "Mismo antígeno (A)" }, { k: "otro", t: "Otro antígeno (B)" }], tipo, function (k) { tipo = k; pinta(); });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "2.º contacto", min: 20, max: 100, step: 5, val: d2, fmt: function (v) { return "día " + v; }, on: function (v) { d2 = v; pinta(); } });
+    var svg = cuerpo.querySelector("svg"), ley = cuerpo.querySelector(".bio15-leyenda"), dat = cuerpo.querySelector(".bio15-dato"), ver = cuerpo.querySelector(".bio15-veredicto");
+    var X0 = 50, X1 = 540, Y0 = 215, Y1 = 20, TMAX = 140, VMAX = 12;
+    function px(t) { return X0 + (X1 - X0) * t / TMAX; }
+    function py(v) { return Y0 - (Y0 - Y1) * v / VMAX; }
+    function curva(f) {
+      var pts = [], t;
+      for (t = 0; t <= TMAX; t += 1) pts.push(px(t).toFixed(1) + "," + py(Math.min(f(t), VMAX)).toFixed(1));
+      return pts.join(" ");
+    }
+    function pinta() {
+      var fA, fB = null, ej = "", t;
+      if (tipo === "mismo") fA = function (x) { return resp(x, 0, P1) + resp(x, d2, P2); };
+      else { fA = function (x) { return resp(x, 0, P1); }; fB = function (x) { return resp(x, d2, P1); }; }
+      ej += '<line class="ej" x1="' + X0 + '" y1="' + Y0 + '" x2="' + X1 + '" y2="' + Y0 + '"/><line class="ej" x1="' + X0 + '" y1="' + Y0 + '" x2="' + X0 + '" y2="' + Y1 + '"/>';
+      for (t = 0; t <= TMAX; t += 20) ej += '<text x="' + px(t) + '" y="' + (Y0 + 16) + '" text-anchor="middle">' + t + "</text>";
+      ej += '<text x="' + ((X0 + X1) / 2) + '" y="246" text-anchor="middle">días desde el primer contacto</text>';
+      ej += '<text x="14" y="' + ((Y0 + Y1) / 2) + '" text-anchor="middle" transform="rotate(-90 14 ' + ((Y0 + Y1) / 2) + ')">anticuerpos (u. arb.)</text>';
+      ej += '<line class="marca" x1="' + px(0) + '" y1="' + Y0 + '" x2="' + px(0) + '" y2="' + Y1 + '"/><text x="' + (px(0) + 4) + '" y="' + (Y1 + 2) + '">1.º contacto</text>';
+      ej += '<line class="marca" x1="' + px(d2) + '" y1="' + Y0 + '" x2="' + px(d2) + '" y2="' + Y1 + '"/><text x="' + (px(d2) + 4) + '" y="' + (Y1 + 14) + '">2.º contacto</text>';
+      svg.innerHTML = ej + '<polyline class="cur1" points="' + curva(fA) + '"/>' + (fB ? '<polyline class="cur2" points="' + curva(fB) + '"/>' : "");
+      ley.innerHTML = tipo === "mismo" ? '<span><i style="background:var(--pen)"></i>anticuerpos anti-A</span>' : '<span><i style="background:var(--pen)"></i>anti-A</span><span><i style="background:var(--red)"></i>anti-B</span>';
+      var previo = resp(d2, 0, P1);
+      var pico2 = tipo === "mismo" ? P2.A + resp(d2 + P2.pico, 0, P1) : P1.A;
+      dat.innerHTML = "<div><b>Latencia del 1.º contacto</b>" + P1.lag + " días</div>" +
+        "<div><b>Latencia del 2.º contacto</b>" + (tipo === "mismo" ? P2.lag : P1.lag) + " días</div>" +
+        "<div><b>Pico tras el 1.º contacto</b>" + f1(P1.A) + " u.</div>" +
+        "<div><b>Pico tras el 2.º contacto</b>" + f1(pico2) + " u.</div>" +
+        "<div><b>Anticuerpos justo antes del 2.º</b>" + f1(previo) + " u.</div>";
+      if (tipo === "mismo") { ver.className = "bio15-veredicto ok"; ver.textContent = "Respuesta secundaria: más rápida (2 días de latencia frente a 5), unas 10 veces más alta y más duradera, porque ya había células de memoria contra A."; }
+      else { ver.className = "bio15-veredicto mal"; ver.textContent = "Antígeno distinto: la memoria contra A no sirve. Frente a B el organismo hace una respuesta primaria: latencia de 5 días y pico bajo (1 u.)."; }
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ ANTICUERPO
+  var PARTES = {
+    pesada: ["Cadena pesada (H)", "Cada anticuerpo tiene dos, idénticas, de unos 50 kDa (≈ 440 aminoácidos). Forman el tronco y la mitad de cada brazo de la «Y». Se unen entre sí y a las ligeras por puentes disulfuro."],
+    ligera: ["Cadena ligera (L)", "Dos, idénticas, de unos 25 kDa (≈ 220 aminoácidos). Cada una acompaña a una cadena pesada en un brazo. Peso total del IgG: 2 · 50 + 2 · 25 = 150 kDa."],
+    variable: ["Región variable", "Extremo de cada brazo, formado por la parte inicial de una cadena pesada y de una ligera. Su secuencia cambia de un anticuerpo a otro: es la que reconoce el antígeno."],
+    sitio: ["Sitio de unión al antígeno", "El hueco formado por las regiones variables. Encaja con el epítopo del antígeno como una llave en su cerradura. Un IgG tiene 2 sitios, iguales entre sí."],
+    bisagra: ["Región bisagra", "Zona flexible entre los brazos y el tronco: permite abrir y cerrar la «Y» para unirse a antígenos separados entre sí."],
+    ss: ["Puentes disulfuro", "Enlaces covalentes S–S entre cisteínas que mantienen unidas las cuatro cadenas (dos H–H y dos H–L)."],
+    fab: ["Fragmento Fab", "«Fragmento de unión al antígeno»: cada brazo (una cadena ligera completa y la mitad de una pesada). Hay dos por anticuerpo."],
+    fc: ["Fragmento Fc (región constante)", "El tronco. Su secuencia es la misma en todos los anticuerpos de una clase y determina la clase (IgG, IgM, IgA, IgE, IgD). Se une a los fagocitos y activa el complemento."]
+  };
+  B.w.bio_anticuerpo = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Anatomía de un anticuerpo (IgG)");
+    cuerpo.innerHTML = '<p class="w-intro">Pulsa una parte del dibujo o de la lista para ver qué es y para qué sirve.</p>' +
+      '<svg class="bio15-svg" viewBox="0 0 300 300" role="img" aria-label="Esquema de un anticuerpo en forma de Y" style="max-width:340px">' +
+      '<rect class="ab-zona" x="10" y="12" width="280" height="136" rx="12" data-p="fab" style="cursor:pointer"/>' +
+      '<rect class="ab-zona" x="104" y="160" width="92" height="132" rx="12" data-p="fc" style="cursor:pointer"/>' +
+      '<polyline class="ab-h hit" data-p="pesada" points="62,52 112,128 142,166 142,262"/><polyline class="ab-h hit" data-p="pesada" points="238,52 188,128 158,166 158,262"/>' +
+      '<polyline class="ab-l hit" data-p="ligera" points="34,66 84,142"/><polyline class="ab-l hit" data-p="ligera" points="266,66 216,142"/>' +
+      '<polyline class="ab-v hit" data-p="variable" points="62,52 50,36 34,66 46,82"/><polyline class="ab-v hit" data-p="variable" points="238,52 250,36 266,66 254,82"/>' +
+      '<circle class="ab-v hit" data-p="sitio" cx="48" cy="48" r="9" style="fill:var(--sheet)"/><circle class="ab-v hit" data-p="sitio" cx="252" cy="48" r="9" style="fill:var(--sheet)"/>' +
+      '<line class="ab-ss hit" data-p="ss" x1="100" y1="110" x2="120" y2="124"/><line class="ab-ss hit" data-p="ss" x1="200" y1="110" x2="180" y2="124"/><line class="ab-ss hit" data-p="ss" x1="143" y1="202" x2="157" y2="202"/>' +
+      '<circle class="ab-ss hit" data-p="bisagra" cx="150" cy="158" r="9" style="fill:var(--sheet)"/>' +
+      '<text x="20" y="140">Fab</text><text x="160" y="284">Fc</text></svg>' +
+      '<div data-lista></div><div class="bio15-veredicto"></div>';
+    var ver = cuerpo.querySelector(".bio15-veredicto"), svg = cuerpo.querySelector("svg"), lista = cuerpo.querySelector("[data-lista]");
+    var orden = ["pesada", "ligera", "variable", "sitio", "bisagra", "ss", "fab", "fc"];
+    function elegir(k) {
+      Array.prototype.forEach.call(svg.querySelectorAll("[data-p]"), function (e) { e.classList.toggle("ab-sel", e.getAttribute("data-p") === k && e.tagName !== "rect"); });
+      Array.prototype.forEach.call(lista.children, function (c) { var on = c.getAttribute("data-k") === k; c.classList.toggle("on", on); c.setAttribute("aria-pressed", on); });
+      ver.innerHTML = "<b>" + PARTES[k][0] + ".</b> " + PARTES[k][1];
+    }
+    U.fichas(lista, orden.map(function (k) { return { k: k, t: PARTES[k][0].replace(/ \(.*\)/, "") }; }), "variable", elegir);
+    svg.addEventListener("click", function (e) { var t = e.target.closest("[data-p]"); if (t) elegir(t.getAttribute("data-p")); });
+    elegir("variable");
+  };
+
+  // ------------------------------------------------------------------ TRANSFUSIONES ABO + Rh
+  var GRUPOS = { A: ["A"], B: ["B"], AB: ["A", "B"], O: [] };
+  function antis(ag) { return ["A", "B", "D"].filter(function (a) { return ag.indexOf(a) < 0; }); }   // anticuerpos que puede tener (anti-D solo si Rh− y sensibilizado)
+  function antigenos(g, rh) { return GRUPOS[g].concat(rh === "+" ? ["D"] : []); }
+  function hematie(ag) {
+    var pos = [[28, 36], [92, 36], [60, 78], [26, 76], [94, 76]], s = '<svg viewBox="0 0 120 112" aria-hidden="true"><ellipse class="he" cx="60" cy="56" rx="52" ry="46"/>';
+    ag.forEach(function (a, i) { var p = pos[i]; s += '<circle class="b15-ag" cx="' + p[0] + '" cy="' + p[1] + '" r="9"/><text x="' + p[0] + '" y="' + (p[1] + 4.5) + '" text-anchor="middle" style="fill:var(--sheet)">' + (a === "D" ? "D" : a) + "</text>"; });
+    if (!ag.length) s += '<text x="60" y="61" text-anchor="middle">sin antígenos</text>';
+    return s + "</svg>";
+  }
+  function plasma(g, rh) {
+    var ac = antis(GRUPOS[g]).filter(function (a) { return a !== "D"; }), s = '<svg viewBox="0 0 120 112" aria-hidden="true">';
+    ac.forEach(function (a, i) {
+      var x = 30 + i * 60;
+      s += '<polyline class="b15-ac" points="' + (x - 14) + ",22 " + x + ",50 " + (x + 14) + ',22"/><line class="b15-ac" x1="' + x + '" y1="50" x2="' + x + '" y2="84"/><text x="' + x + '" y="104" text-anchor="middle">anti-' + a + "</text>";
+    });
+    if (!ac.length) s += '<text x="60" y="58" text-anchor="middle">sin anti-A ni anti-B</text>';
+    return s + "</svg>";
+  }
+  B.w.bio_transfusion = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "¿Se puede transfundir?");
+    cuerpo.innerHTML = '<p class="w-intro">Elige el grupo del donante y del receptor. Se transfunden hematíes: ¿hay en el receptor anticuerpos contra los antígenos de esos hematíes?</p>' +
+      '<div class="bio15-fila">Donante: grupo</div><div data-dg></div><div data-dr></div>' +
+      '<div class="bio15-fila">Receptor: grupo</div><div data-rg></div><div data-rr></div>' +
+      '<div class="bio15-par"></div><div class="bio15-dato"></div><div class="bio15-veredicto"></div>' +
+      '<p class="w-pie">Los anticuerpos anti-A y anti-B son «naturales» (están sin contacto previo); el anti-D solo aparece tras sensibilizarse un receptor Rh− con sangre Rh+.</p>';
+    var d = { g: "O", rh: "−" }, r = { g: "AB", rh: "+" };
+    var gs = [{ k: "A", t: "A" }, { k: "B", t: "B" }, { k: "AB", t: "AB" }, { k: "O", t: "O" }], rs = [{ k: "+", t: "Rh +" }, { k: "−", t: "Rh −" }];
+    U.fichas(cuerpo.querySelector("[data-dg]"), gs, d.g, function (k) { d.g = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-dr]"), rs, d.rh, function (k) { d.rh = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-rg]"), gs, r.g, function (k) { r.g = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-rr]"), rs, r.rh, function (k) { r.rh = k; pinta(); });
+    var par = cuerpo.querySelector(".bio15-par"), dat = cuerpo.querySelector(".bio15-dato"), ver = cuerpo.querySelector(".bio15-veredicto");
+    function pinta() {
+      var ad = antigenos(d.g, d.rh), ar = antigenos(r.g, r.rh);
+      var ataca = ad.filter(function (a) { return ar.indexOf(a) < 0; });
+      var ok = ataca.length === 0;
+      var nom = function (g, rh) { return g + (rh === "+" ? "+" : "−"); };
+      par.className = "bio15-par" + (ok ? "" : " mal");
+      par.innerHTML = '<div class="b15-cuadro">' + hematie(ad) + "<br>Hematíes del donante " + nom(d.g, d.rh) + "</div><div class=\"b15-cuadro\">" + plasma(r.g, r.rh) + "<br>Plasma del receptor " + nom(r.g, r.rh) + "</div>";
+      var n = 0; ["A", "B", "AB", "O"].forEach(function (g1) { ["+", "−"].forEach(function (a1) { ["A", "B", "AB", "O"].forEach(function (g2) { ["+", "−"].forEach(function (a2) {
+        var x = antigenos(g1, a1), y = antigenos(g2, a2); if (x.every(function (a) { return y.indexOf(a) >= 0; })) n++; }); }); }); });
+      dat.innerHTML = "<div><b>Antígenos del donante</b>" + (ad.join(", ") || "ninguno") + "</div><div><b>Antígenos del receptor</b>" + (ar.join(", ") || "ninguno") + "</div>" +
+        "<div><b>Atacados por el receptor</b>" + (ataca.join(", ") || "ninguno") + "</div><div><b>Combinaciones compatibles</b>" + n + " de 64</div>";
+      if (ok) { ver.className = "bio15-veredicto ok"; ver.textContent = "Compatible: los hematíes del donante no tienen ningún antígeno que el receptor no tenga. No hay aglutinación."; }
+      else {
+        ver.className = "bio15-veredicto mal";
+        var tx = ataca.map(function (a) { return a === "D" ? "anti-D" : "anti-" + a; }).join(" y ");
+        ver.textContent = "Incompatible: los hematíes del donante llevan el antígeno " + ataca.join(" y ") + " y el receptor lo reconoce como extraño (" + tx + (ataca.indexOf("D") >= 0 && ataca.length === 1 ? ", que el receptor Rh− forma tras sensibilizarse" : "") + "): aglutinación y hemólisis.";
+      }
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · Biología (2.º Bach.), tema 2: Glúcidos
    bio2_azucar: un monosacárido en cadena abierta (proyección de Fischer) y en anillo (Haworth), con anómeros α y β.
    bio2_disac: se eligen dos monosacáridos, se unen con enlace O-glucosídico (−H₂O) y sale el disacárido.
@@ -39303,6 +39501,699 @@
     vistazo: vistazo,
     secciones: B.parte.bio14a.secciones,
     nuevas: B.parte.bio14a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 15: Inmunología
+   (parte A: teoría. Parte B, bio2_t15b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t15.js (bio_respuesta, bio_anticuerpo, bio_transfusion).
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Inmunidad innata frente a adaptativa (tabla de contrastes, ejemplos) → secciones 1–3 + clasificar.
+   2. Inflamación, fagocitosis, complemento e interferón: pasos y papel de cada uno → sección 2 + ordenar.
+   3. Estructura del anticuerpo (4 cadenas, regiones variable y constante, sitios) y clases de Ig → sección 4 + widget bio_anticuerpo.
+   4. Reacción antígeno-anticuerpo: qué hace (neutraliza, aglutina, precipita, opsoniza, activa complemento) y que NO destruye por sí sola → sección 4.
+   5. Respuesta humoral (B, Th, plasmáticas) frente a celular (Tc, MHC) y selección clonal → sección 3 + ordenar.
+   6. Respuesta primaria y secundaria: interpretar la gráfica (latencia, pico, memoria) → sección 5 + widget bio_respuesta + ejemplo PAU.
+   7. Natural/artificial y activa/pasiva; vacuna frente a suero → sección 7 + clasificar.
+   8. Alergia, autoinmunidad e inmunodeficiencia: cuál es cuál y por qué → sección 8 + clasificar.
+   9. SIDA: qué células ataca el VIH, por qué no hay vacuna, transmisión y ventana → sección 9.
+   10. Trasplantes (auto/iso/alo/xeno), rechazo y grupos sanguíneos ABO y Rh (compatibilidad y herencia) → sección 10 + widget bio_transfusion.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t15/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Líneas de defensa
+  secciones[0] = env(
+    "<h5>Lo propio y lo extraño</h5>" +
+    "<p>Para defenderse, el organismo tiene que distinguir <b>lo propio</b> (sus células y moléculas) de <b>lo extraño</b> (microorganismos, toxinas, células de otra persona). Lo que el sistema inmunitario reconoce como extraño y le hace reaccionar es un <b>antígeno</b>: casi siempre una proteína o un polisacárido de la superficie de un patógeno, de un polen, de un veneno o de una célula trasplantada. Cuando falla esta distinción, aparecen las enfermedades del apartado 8.</p>" +
+    "<h5>Tres líneas de defensa</h5>" +
+    tabla(["Línea", "Qué es", "Rapidez", "Ejemplos"], [
+      ["<b>1.ª</b> Barreras externas", "Impiden la entrada", "permanentes", "piel, mucosas, lágrimas, jugo gástrico"],
+      ["<b>2.ª</b> Inmunidad innata", "Respuesta inespecífica de células y proteínas", "minutos u horas", "inflamación, fagocitos, complemento, interferón, células NK, fiebre"],
+      ["<b>3.ª</b> Inmunidad adaptativa", "Respuesta específica y con memoria", "días la primera vez", "linfocitos B (anticuerpos) y linfocitos T"]
+    ], "q3t") +
+    "<h5>Innata frente a adaptativa</h5>" +
+    tabla(["Característica", "Innata (inespecífica)", "Adaptativa (específica)"], [
+      ["Reconocimiento", "Patrones comunes a muchos patógenos", "Un antígeno concreto (epítopo)"],
+      ["Rapidez", "Inmediata (minutos u horas)", "Lenta la 1.ª vez (días); rápida la 2.ª"],
+      ["Memoria", "No", "Sí: células de memoria"],
+      ["Células", "Fagocitos, NK, mastocitos", "Linfocitos B y T"],
+      ["Moléculas", "Complemento, interferón, lisozima", "Anticuerpos, receptores de los linfocitos"]
+    ], "q3t") +
+    "<p>Las dos ramas <b>colaboran</b>: los macrófagos (innata) enseñan trozos del patógeno a los linfocitos T (adaptativa), y los anticuerpos (adaptativa) marcan a los patógenos para que los fagocitos (innata) los destruyan.</p>" +
+    "<h5>Historia en tres hitos</h5>" +
+    "<p><b>Elie Metchnikoff</b> describió la fagocitosis en 1882–1884 (Nobel en 1908, junto con Paul Ehrlich); <b>Emil von Behring y Shibasaburo Kitasato</b> demostraron en 1890 que el suero de un animal inmunizado protege a otro (los anticuerpos); <b>Macfarlane Burnet</b> formuló en 1957–1959 la teoría de la selección clonal.</p>" +
+    w("clasificar", "defensas") +
+    ojo("No confundas <b>antígeno</b> con <b>patógeno</b>. El patógeno es el microorganismo entero; el antígeno es una molécula suya (o de otra cosa) que dispara la respuesta. Un mismo virus tiene muchos antígenos distintos."));
+
+  // ---------------------------------------------------------------- 2. Innata
+  secciones[1] = env(
+    "<h5>Barreras: la primera línea</h5>" +
+    tabla(["Barrera", "Cómo protege"], [
+      ["<b>Piel</b>", "Capa de queratina impermeable; pH ácido (≈ 5,5) y sudor con sales y lisozima"],
+      ["<b>Mucosas</b> (respiratoria, digestiva)", "Moco que atrapa partículas y cilios que lo barren hacia fuera (tráquea)"],
+      ["<b>Lágrimas, saliva</b>", "Lisozima: enzima que rompe la pared bacteriana"],
+      ["<b>Jugo gástrico</b>", "pH ≈ 2: mata muchos microorganismos ingeridos"],
+      ["<b>Flora normal</b>", "Bacterias propias que compiten con los patógenos por el espacio y los nutrientes"]
+    ], "q3t") +
+    "<h5>La inflamación, paso a paso</h5>" +
+    "<p>Si un patógeno atraviesa la piel (una astilla, un corte), se pone en marcha una respuesta local:</p>" +
+    "<ol><li>Los <b>mastocitos</b> y las células dañadas liberan señales químicas, entre ellas <b>histamina</b>.</li>" +
+    "<li>Los capilares de la zona se <b>dilatan</b> (llega más sangre: <b>rojez y calor</b>) y se vuelven más <b>permeables</b> (sale plasma: <b>hinchazón</b>; el dolor viene de la presión y de las señales químicas).</li>" +
+    "<li>Los fagocitos (primero <b>neutrófilos</b>, luego <b>monocitos</b>) atraviesan la pared del capilar (<b>diapédesis</b>) y se dirigen al foco atraídos por las señales (<b>quimiotaxis</b>).</li>" +
+    "<li>Los fagocitos <b>engullen</b> a los microorganismos. Los neutrófilos muertos y el tejido destruido forman el <b>pus</b>.</li>" +
+    "<li>Se repara el tejido. Si la infección se extiende, aparece <b>fiebre</b>, que ayuda a las defensas y frena a muchos patógenos.</li></ol>" +
+    "<p>Los cuatro signos clásicos de la inflamación (descritos por Celso) son <b>rubor, calor, tumor (hinchazón) y dolor</b>. La inflamación es útil, salvo que se vuelva crónica o desproporcionada.</p>" +
+    w("orden", "ordeninflamacion") +
+    "<h5>Fagocitosis</h5>" +
+    "<p>Es la ingestión de partículas grandes por una célula, con la membrana (Tema 6). Los fagocitos son los <b>neutrófilos</b> (los más abundantes de los glóbulos blancos, de vida corta), los <b>monocitos</b> y los <b>macrófagos</b> en los tejidos (derivan de los monocitos y viven mucho). Pasos:</p>" +
+    "<ol><li><b>Reconocimiento y adhesión</b> al microorganismo (a veces marcado por anticuerpos o complemento: <b>opsonización</b>).</li>" +
+    "<li><b>Englobamiento</b> con pseudópodos y formación de una vesícula, el <b>fagosoma</b>.</li>" +
+    "<li><b>Digestión</b>: el fagosoma se fusiona con un <b>lisosoma</b> (Tema 6) y forma un <b>fagolisosoma</b>, donde las enzimas y los radicales de oxígeno destruyen al microorganismo.</li>" +
+    "<li><b>Eliminación</b> de los restos por exocitosis. El macrófago puede conservar trozos del patógeno (antígenos) y mostrarlos a los linfocitos T.</li></ol>" +
+    "<h5>Complemento e interferón: dos proteínas con misiones distintas</h5>" +
+    tabla(["", "Complemento", "Interferón"], [
+      ["Qué es", "≈ 30 proteínas del plasma que se activan en cascada", "Proteínas (citocinas) que liberan las células infectadas por virus"],
+      ["Qué hace", "<b>Opsoniza</b> (marca), atrae fagocitos y <b>lisa</b> la célula con poros (complejo de ataque a membrana)", "Avisa a las células vecinas: estas bloquean la síntesis de proteínas víricas (estado antivírico)"],
+      ["Frente a qué", "Bacterias sobre todo", "Virus"],
+      ["Detalle clave", "Se activa también por complejos antígeno-anticuerpo", "No mata virus por sí mismo; no es específico de un virus (sí de especie)"]
+    ], "q3t") +
+    "<p>Las <b>células NK</b> (<i>natural killer</i>, linfocitos de la inmunidad innata) destruyen células tumorales y células infectadas que no muestran bien las moléculas MHC de clase I (apartado 3). Lo hacen con perforinas, sin necesitar un aprendizaje previo.</p>" +
+    ojo("El interferón <b>no</b> protege a la célula que lo fabrica (ya está infectada) sino a las <b>vecinas</b>. Y el complemento no es una célula: es un conjunto de proteínas."));
+
+  // ---------------------------------------------------------------- 3. Adaptativa
+  secciones[2] = env(
+    "<h5>Cuatro rasgos que la distinguen</h5>" +
+    "<ul><li><b>Especificidad</b>: cada linfocito reconoce un epítopo concreto, mediante un receptor propio.</li>" +
+    "<li><b>Diversidad</b>: el organismo tiene millones de linfocitos distintos, cada uno con un receptor diferente, fabricados <i>antes</i> de conocer ningún antígeno (por reordenamiento de genes: Tonegawa, Nobel 1987).</li>" +
+    "<li><b>Memoria</b>: tras el primer contacto quedan células de memoria.</li>" +
+    "<li><b>Tolerancia a lo propio</b>: los linfocitos que reconocen moléculas propias se eliminan o se frenan.</li></ul>" +
+    "<h5>Antígenos: epítopos y haptenos</h5>" +
+    "<p>Un antígeno suele ser grande y tiene varias zonas de reconocimiento, los <b>epítopos</b> o determinantes antigénicos; cada anticuerpo se une a un epítopo. Las moléculas pequeñas, como la penicilina, no provocan respuesta por sí solas: son <b>haptenos</b>, y solo actúan al unirse a una proteína del organismo (por eso la penicilina puede causar alergia).</p>" +
+    "<h5>MHC (HLA): el «carné de identidad» de las células</h5>" +
+    "<p>Las células llevan en la superficie proteínas del <b>complejo mayor de histocompatibilidad (MHC)</b>, llamadas <b>HLA</b> en la especie humana. Son distintas en cada persona (salvo gemelos idénticos), y sirven para <b>presentar</b> fragmentos de proteínas a los linfocitos T:</p>" +
+    tabla(["", "MHC de clase I", "MHC de clase II"], [
+      ["En qué células", "casi todas las células con núcleo", "células presentadoras de antígeno: macrófagos, células dendríticas, linfocitos B"],
+      ["Qué presenta", "fragmentos de proteínas fabricadas dentro (virus, tumor)", "fragmentos de lo que han fagocitado o captado"],
+      ["Linfocito T que lo reconoce", "T citotóxico (CD8)", "T colaborador (CD4)"]
+    ], "q3t") +
+    "<h5>Selección clonal (Burnet)</h5>" +
+    "<p>Cada linfocito nace con un receptor único. Cuando entra un antígeno, <b>«selecciona»</b> a los pocos linfocitos cuyo receptor encaja con él: estos se activan y se dividen muchas veces (<b>expansión clonal</b>), y dan células efectoras (que actúan ya) y células de memoria (que esperan). Los demás linfocitos no se tocan.</p>" +
+    "<h5>Respuesta humoral: anticuerpos en los líquidos del cuerpo</h5>" +
+    "<ol><li>Un linfocito B reconoce al antígeno con su receptor (un anticuerpo en su superficie) y lo capta.</li>" +
+    "<li>Muestra un fragmento sobre el MHC-II a un <b>linfocito T colaborador</b> que lo reconoce y libera <b>interleucinas</b>.</li>" +
+    "<li>Con esa «ayuda», el linfocito B se divide (expansión clonal).</li>" +
+    "<li>Se forman <b>células plasmáticas</b> (fábricas de anticuerpos: miles por segundo, de unos días de vida) y <b>linfocitos B de memoria</b>.</li></ol>" +
+    w("orden", "ordenhumoral") +
+    "<h5>Respuesta celular: destruir las células infectadas</h5>" +
+    "<p>Un linfocito T citotóxico reconoce un antígeno unido al MHC-I de una célula infectada o tumoral, y (con la ayuda de los T colaboradores) se activa y se multiplica. Los clones se unen a las células diana y liberan <b>perforina</b> (abre poros) y <b>granzimas</b> (enzimas que entran y provocan la muerte por apoptosis). Esta respuesta es la clave frente a virus, células tumorales y trasplantes.</p>" +
+    tabla(["Tipo de linfocito", "Función"], [
+      ["<b>B</b>", "Reconoce antígenos libres; se transforma en célula plasmática (anticuerpos) o de memoria"],
+      ["<b>T colaborador (Th, CD4)</b>", "Dirige la respuesta: activa B, Tc y macrófagos con interleucinas. Es la diana del VIH"],
+      ["<b>T citotóxico (Tc, CD8)</b>", "Mata células infectadas o tumorales con perforina y granzimas"],
+      ["<b>T reguladores (Treg)</b>", "Frenan la respuesta para evitar daños y autoinmunidad"],
+      ["<b>NK</b>", "(Innata) mata células sin MHC-I normal, sin necesitar memoria"]
+    ], "q3t") +
+    ojo("En el examen se mezclan con frecuencia: <b>humoral = linfocitos B + anticuerpos (contra antígenos libres: bacterias, toxinas, virus fuera de la célula)</b>; <b>celular = linfocitos T citotóxicos (contra células infectadas, tumorales o trasplantadas)</b>. Los T colaboradores participan en las dos."));
+
+  // ---------------------------------------------------------------- 4. Anticuerpos
+  secciones[3] = env(
+    "<h5>Estructura: cuatro cadenas en forma de Y</h5>" +
+    "<p>Los anticuerpos o <b>inmunoglobulinas (Ig)</b> son proteínas globulares con estructura cuaternaria (Tema 4): <b>cuatro cadenas polipeptídicas</b> unidas por <b>puentes disulfuro</b>: <b>dos pesadas</b> (H, ≈ 50 kDa) y <b>dos ligeras</b> (L, ≈ 25 kDa). Un IgG pesa, por tanto, unos 2·50 + 2·25 = 150 kDa.</p>" +
+    tabla(["Zona", "Qué es", "Función"], [
+      ["<b>Región variable</b>", "Extremo de cada brazo (parte de una cadena H y una L); su secuencia cambia entre anticuerpos", "Forma el <b>sitio de unión</b> al antígeno: 2 por IgG"],
+      ["<b>Región constante</b>", "Resto de las cadenas; igual en los anticuerpos de la misma clase", "Determina la <b>clase</b>; el fragmento <b>Fc</b> se une a fagocitos y activa el complemento"],
+      ["<b>Región bisagra</b>", "Zona flexible entre brazos y tronco", "Permite abrir y cerrar la «Y»"]
+    ], "q3t") +
+    "<p>Se habla de <b>fragmentos Fab</b> (los dos brazos, «unión al antígeno») y <b>Fc</b> (el tronco, «cristalizable»).</p>" +
+    w("bio_anticuerpo") +
+    "<h5>Cinco clases de inmunoglobulinas</h5>" +
+    tabla(["Clase", "Estructura", "Dónde y cuándo", "Papel principal"], [
+      ["<b>IgG</b>", "monómero (2 sitios)", "sangre; ≈ 75–80 % del total; domina en la respuesta secundaria", "Neutraliza, opsoniza; <b>atraviesa la placenta</b> (protege al feto)"],
+      ["<b>IgM</b>", "pentámero (10 sitios)", "sangre; es la <b>primera</b> en aparecer", "Aglutina y activa el complemento; los anticuerpos anti-A y anti-B son IgM"],
+      ["<b>IgA</b>", "dímero (4 sitios)", "secreciones: saliva, lágrimas, leche, mucosas", "Defensa de las mucosas; pasa al lactante con la leche"],
+      ["<b>IgE</b>", "monómero", "unida a mastocitos; muy poca en sangre", "Defensa frente a parásitos; <b>causa de las alergias</b>"],
+      ["<b>IgD</b>", "monómero", "superficie de los linfocitos B", "Receptor del linfocito B"]
+    ], "q3t") +
+    "<h5>Reacción antígeno-anticuerpo</h5>" +
+    "<p>La unión es <b>específica</b> (cada anticuerpo, un epítopo), <b>reversible</b> y <b>no covalente</b> (puentes de hidrógeno y otras fuerzas débiles que actúan gracias a la complementariedad de forma, Tema 4). El complejo antígeno-anticuerpo <b>no destruye</b> por sí solo al patógeno (salvo que lo neutralice): lo <b>marca o lo inmoviliza</b> para que otros lo eliminen. Efectos:</p>" +
+    tabla(["Efecto", "Qué ocurre", "Ejemplo"], [
+      ["<b>Neutralización</b>", "El anticuerpo tapa la zona del antígeno que usa el patógeno o la toxina", "Un virus no puede unirse a su célula; antitoxina tetánica"],
+      ["<b>Aglutinación</b>", "Unión de antígenos de varias partículas en grumos", "Hematíes en una transfusión incompatible; pruebas de grupo sanguíneo"],
+      ["<b>Precipitación</b>", "Antígenos solubles forman un precipitado", "Toxinas y proteínas disueltas"],
+      ["<b>Opsonización</b>", "El anticuerpo (por el Fc) facilita la fagocitosis", "Bacterias recubiertas de IgG"],
+      ["<b>Activación del complemento</b>", "El complejo Ag-Ac inicia la cascada del complemento", "Lisis de bacterias"]
+    ], "q3t") +
+    "<h5>Anticuerpos monoclonales</h5>" +
+    "<p>Un <b>clon</b> de células plasmáticas fabrica anticuerpos idénticos, todos contra el mismo epítopo: son los <b>monoclonales</b>. Se obtienen fusionando un linfocito B con una célula tumoral inmortal (un <b>hibridoma</b>): <b>Köhler y Milstein, 1975</b> (Nobel 1984). Se usan en diagnóstico (test de embarazo, pruebas de covid) y en terapia (algunos cánceres, enfermedades autoinmunes).</p>" +
+    w("emparejar", "ig") +
+    ojo("Un anticuerpo <b>no es una célula</b> ni un enzima: es una proteína. Lo fabrican las <b>células plasmáticas</b> (procedentes de linfocitos B), no los linfocitos T. Y no «mata» al antígeno: lo neutraliza o lo marca."));
+
+  // ---------------------------------------------------------------- 5. Memoria y vacunas
+  secciones[4] = env(
+    "<h5>Cómo se lee la gráfica de la respuesta inmunitaria</h5>" +
+    "<p>La gráfica clásica representa la <b>concentración de anticuerpos</b> en sangre (eje Y) frente a los <b>días</b> (eje X) tras dos contactos con un antígeno. Hay que fijarse en cuatro cosas: la <b>latencia</b> (tiempo hasta que aparecen anticuerpos), la <b>altura del pico</b>, la <b>pendiente</b> y la <b>duración</b>.</p>" +
+    tabla(["", "Respuesta primaria", "Respuesta secundaria"], [
+      ["Contacto", "primero con ese antígeno", "segundo o posterior, con el <b>mismo</b> antígeno"],
+      ["Latencia", "larga: 5–10 días", "corta: 1–3 días"],
+      ["Cantidad de anticuerpos", "baja", "mucho mayor (≈ 10 veces o más)"],
+      ["Clase predominante", "IgM primero, luego IgG", "sobre todo IgG (y de más afinidad)"],
+      ["Duración", "corta", "larga (los niveles tardan en caer)"],
+      ["Células", "se forman linfocitos de memoria", "actúan los linfocitos de <b>memoria</b>"]
+    ], "q3t") +
+    w("bio_respuesta") +
+    "<p>Fíjate en el caso del <b>antígeno distinto</b>: la memoria es específica. Haber pasado el sarampión no ayuda frente a la gripe. Es otra respuesta primaria.</p>" +
+    "<h5>Por qué funcionan las vacunas</h5>" +
+    "<p>Una <b>vacuna</b> contiene el antígeno (el patógeno atenuado o muerto, partes de él, una toxina inactivada o el ARN para fabricarlo) sin causar la enfermedad. Provoca una respuesta primaria controlada y deja células de memoria. Cuando llega el patógeno de verdad, la respuesta es secundaria: rápida e intensa. Muchas vacunas necesitan <b>dosis de recuerdo</b>: la segunda dosis hace de «segundo contacto» y sube la memoria.</p>" +
+    "<p>Una persona vacunada protege además a quien no puede vacunarse: es la <b>inmunidad de grupo</b>. Si el patógeno contagia, de media, a R<sub>0</sub> personas, hay que inmunizar a una fracción 1 − 1/R<sub>0</sub> de la población para frenarlo. Para el sarampión (R<sub>0</sub> ≈ 12–18), del orden del 92–94 %.</p>" +
+    ojo("La memoria no está en los anticuerpos sino en las <b>células de memoria</b>: los anticuerpos se degradan en semanas o meses; los linfocitos de memoria duran años. Por eso un análisis puede no mostrar anticuerpos y haber inmunidad."));
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Órganos y células del sistema inmunitario", html: env(
+    "<p>Todas las células del sistema inmunitario proceden de <b>células madre hematopoyéticas de la médula ósea roja</b>. Se agrupan en dos linajes:</p>" +
+    tabla(["Linaje", "Células", "Función resumida"], [
+      ["<b>Mieloide</b>", "neutrófilos, eosinófilos, basófilos, monocitos → macrófagos, células dendríticas, mastocitos", "fagocitar, inflamación, alergia, presentar antígenos"],
+      ["<b>Linfoide</b>", "linfocitos B, linfocitos T, células NK", "respuesta específica (B, T) y destrucción de células anómalas (NK)"]
+    ], "q3t") +
+    "<h5>Órganos linfoides</h5>" +
+    tabla(["Tipo", "Órganos", "Qué ocurre ahí"], [
+      ["<b>Primarios</b> (se forman y maduran las células)", "<b>médula ósea</b>; <b>timo</b>", "En la médula se fabrican todas las células y maduran los <b>B</b>; los precursores de los <b>T</b> viajan al timo y maduran allí (aprenden a no atacar lo propio)"],
+      ["<b>Secundarios</b> (se encuentran los linfocitos con el antígeno)", "<b>ganglios linfáticos</b>, <b>bazo</b>, amígdalas, placas de Peyer, apéndice", "Los ganglios filtran la <b>linfa</b>; el bazo filtra la <b>sangre</b> y retira hematíes viejos; el tejido linfoide de las mucosas vigila las entradas"]
+    ], "q3t") +
+    "<p>Los ganglios se hinchan en una infección (las «anginas» o «paperas» del cuello) porque allí se multiplican los linfocitos activados. La B de «linfocito B» viene de la <i>bolsa de Fabricio</i> de las aves, donde se descubrió; en mamíferos madura en la médula ósea (<i>bone marrow</i>).</p>" +
+    tabla(["Célula", "Qué hace"], [
+      ["<b>Neutrófilo</b>", "Fagocito muy abundante; primero en llegar a una infección"],
+      ["<b>Macrófago</b>", "Fagocito de los tejidos, vive mucho; presenta antígenos"],
+      ["<b>Célula dendrítica</b>", "La mejor presentadora de antígenos: lleva el antígeno al ganglio"],
+      ["<b>Mastocito</b> / <b>basófilo</b>", "Liberan histamina (inflamación y alergia)"],
+      ["<b>Eosinófilo</b>", "Ataca parásitos grandes; participa en la alergia"],
+      ["<b>Célula plasmática</b>", "Linfocito B diferenciado que fabrica anticuerpos"],
+      ["<b>Célula de memoria</b>", "B o T de larga vida que permite la respuesta secundaria"]
+    ], "q3t") +
+    w("emparejar", "celulas") +
+    ojo("Los linfocitos B y T se <b>ven igual</b> al microscopio; se distinguen por las proteínas de su superficie (CD4, CD8, receptores). Y el <b>timo</b> es solo de linfocitos <b>T</b> («T» de timo); es grande en el niño y se reduce con la edad.")) });
+
+  nuevas.push({ h: "7. Tipos de inmunidad: natural y artificial, activa y pasiva", html: env(
+    "<p>Se clasifica según <b>cómo se adquiere</b> (natural o artificial) y <b>quién fabrica los anticuerpos</b> (activa: el propio organismo; pasiva: se reciben ya hechos).</p>" +
+    tabla(["", "Activa (fabrica el organismo)", "Pasiva (anticuerpos ya hechos)"], [
+      ["<b>Natural</b>", "Pasar la enfermedad (infección)", "Anticuerpos de la madre al feto (IgG por la placenta) y al lactante (IgA en la leche)"],
+      ["<b>Artificial</b>", "<b>Vacuna</b>", "<b>Suero</b> (inmunoglobulinas de otro individuo o animal)"]
+    ], "q3t") +
+    tabla(["", "Vacuna", "Suero"], [
+      ["Contiene", "antígeno (o su instrucción)", "anticuerpos ya formados"],
+      ["Inicio de la protección", "lento (días o semanas)", "inmediato"],
+      ["Duración", "larga: hay memoria", "corta (semanas): no hay memoria"],
+      ["Uso", "<b>preventivo</b> (antes de la exposición)", "<b>curativo</b> o de urgencia (veneno, tétanos, rabia, botulismo)"],
+      ["Ejemplos", "sarampión, hepatitis B, tétanos, gripe, covid-19", "suero antiofídico, antitetánico, inmunoglobulina anti-D"]
+    ], "q3t") +
+    "<h5>Tipos de vacuna</h5>" +
+    tabla(["Tipo", "Ejemplos", "Nota"], [
+      ["<b>Atenuadas</b> (vivas, debilitadas)", "triple vírica (sarampión, rubeola, parotiditis), varicela, BCG", "respuesta fuerte; no para inmunodeprimidos"],
+      ["<b>Inactivadas</b> (muertas)", "gripe, polio inyectable, hepatitis A", "más seguras; suelen pedir recuerdos"],
+      ["<b>Toxoides</b> (toxina inactivada)", "tétanos, difteria", "protegen frente a la toxina, no a la bacteria"],
+      ["<b>Subunidades / recombinantes</b>", "hepatitis B, VPH", "solo una proteína del patógeno"],
+      ["<b>De ARNm</b>", "covid-19", "dan la instrucción para fabricar el antígeno"]
+    ], "q3t") +
+    "<p>Hitos: <b>Edward Jenner</b> inoculó en 1796 el virus de la viruela vacuna (de ahí «vacuna») y protegió de la viruela humana, enfermedad que la OMS declaró erradicada en 1980. <b>Louis Pasteur</b> desarrolló en 1885 la vacuna contra la rabia. <b>Behring y Kitasato</b> introdujeron los sueros en 1890.</p>" +
+    w("clasificar", "inmunidad") +
+    ojo("«Suero» en Medicina (anticuerpos, inmunidad pasiva) no es el «suero fisiológico» del Tema 1 (NaCl al 0,9 %). Y los antibióticos <b>no</b> actúan sobre virus ni son vacunas.")) });
+
+  nuevas.push({ h: "8. Alteraciones del sistema inmunitario", html: env(
+    "<p>El sistema inmunitario puede equivocarse de tres maneras: reaccionando <b>de más</b> frente a algo inofensivo (<b>alergia</b>), contra lo <b>propio</b> (<b>autoinmunidad</b>) o <b>de menos</b> (<b>inmunodeficiencia</b>).</p>" +
+    tabla(["", "Alergia", "Autoinmunidad", "Inmunodeficiencia"], [
+      ["Qué ocurre", "Respuesta exagerada a una sustancia inocua (alérgeno)", "Se ataca a moléculas o células propias", "Defensas insuficientes"],
+      ["Causa", "IgE y mastocitos", "Pérdida de la tolerancia (T y B autorreactivos)", "Falta o fallo de linfocitos, anticuerpos o complemento"],
+      ["Ejemplos", "rinitis por polen, asma alérgica, alergia a la penicilina o al cacahuete", "diabetes tipo 1, esclerosis múltiple, artritis reumatoide, lupus, celiaquía", "SIDA (adquirida); inmunodeficiencia combinada grave («niño burbuja», congénita)"]
+    ], "q3t") +
+    "<h5>Alergia: dos contactos</h5>" +
+    "<ol><li><b>Sensibilización</b> (1.er contacto): el alérgeno estimula a los linfocitos B a fabricar <b>IgE</b>, que se une a los <b>mastocitos</b>. No hay síntomas.</li>" +
+    "<li><b>Reacción</b> (2.º contacto): el alérgeno une dos IgE de un mastocito, que libera <b>histamina</b>: picor, estornudos, urticaria, broncoconstricción.</li></ol>" +
+    "<p>El caso extremo es el <b>shock anafiláctico</b>: descenso grave de la presión y dificultad para respirar; se trata con <b>adrenalina</b>. Los <b>antihistamínicos</b> alivian los síntomas leves.</p>" +
+    "<h5>Autoinmunidad: cuando falla la tolerancia</h5>" +
+    "<p>Ejemplos: en la <b>diabetes de tipo 1</b>, los linfocitos T destruyen las células β del páncreas; en la <b>esclerosis múltiple</b>, atacan la mielina de las neuronas; en la <b>artritis reumatoide</b>, las articulaciones. Se tratan frenando el sistema inmunitario.</p>" +
+    "<h5>Inmunodeficiencias</h5>" +
+    "<p>Las <b>congénitas o primarias</b> se deben a defectos genéticos (por ejemplo, ausencia de linfocitos T o de anticuerpos). Las <b>adquiridas o secundarias</b> aparecen después, por infecciones (VIH), desnutrición, quimioterapia o fármacos inmunosupresores. Sus signos son infecciones repetidas, graves o por microorganismos que normalmente no enferman (<b>oportunistas</b>).</p>" +
+    w("clasificar", "alteraciones") +
+    ojo("Una alergia <b>no</b> es una infección ni una inmunodeficiencia: es un exceso de respuesta. Y una enfermedad autoinmune <b>no</b> se cura con vacunas ni con antibióticos.")) });
+
+  nuevas.push({ h: "9. El SIDA y el VIH", html: env(
+    "<p>El <b>SIDA</b> (síndrome de inmunodeficiencia adquirida) es la fase avanzada de la infección por el <b>VIH</b> (virus de la inmunodeficiencia humana), un <b>retrovirus</b> (Tema 14): su genoma es ARN monocatenario y la enzima <b>transcriptasa inversa</b> lo copia a ADN, que se integra en el ADN de la célula (provirus). El virus se aisló en 1983 (<b>Montagnier y Barré-Sinoussi</b>, Nobel 2008).</p>" +
+    "<h5>Qué ataca y qué consecuencias tiene</h5>" +
+    "<p>El VIH infecta sobre todo a los <b>linfocitos T colaboradores (CD4)</b> (también a macrófagos y células dendríticas), a los que destruye. Como los T colaboradores dirigen tanto la respuesta humoral como la celular, su pérdida paraliza al sistema: el recuento normal de CD4 es de ≈ 500–1500 por µL de sangre; con menos de 200 por µL, o ante ciertas infecciones oportunistas, se diagnostica SIDA. El paciente no muere del virus directamente, sino de infecciones oportunistas (neumonía por <i>Pneumocystis</i>, tuberculosis) y de ciertos tumores.</p>" +
+    tabla(["Aspecto", "Datos"], [
+      ["<b>Transmisión</b>", "Sangre (jeringuillas compartidas, transfusiones sin control), relaciones sexuales sin protección y de madre a hijo (embarazo, parto, lactancia)"],
+      ["<b>No se transmite</b>", "Por besos, abrazos, saliva, piscinas, picaduras de mosquito o compartir vasos"],
+      ["<b>Diagnóstico</b>", "Detección de anticuerpos anti-VIH (ELISA, confirmación) o del ARN vírico (PCR). Periodo ventana: semanas tras el contagio en las que la prueba de anticuerpos aún da negativo"],
+      ["<b>Tratamiento</b>", "Terapia antirretroviral combinada: inhibidores de la transcriptasa inversa, de la proteasa y de la integrasa. Controla la infección pero no la cura"],
+      ["<b>Prevención</b>", "Preservativo, no compartir agujas, control de la sangre, tratamiento a la madre gestante; profilaxis preexposición"]
+    ], "q3t") +
+    "<h5>¿Por qué no hay una vacuna eficaz?</h5>" +
+    "<p>La transcriptasa inversa <b>comete muchos errores</b> y no los corrige, así que el virus <b>muta</b> muy rápido y cambia sus antígenos; además se esconde como provirus en las células y ataca al propio sistema que debería protegernos.</p>" +
+    ojo("El SIDA <b>no</b> es el virus: es la <b>enfermedad</b> (el estado de inmunodeficiencia). Se puede ser seropositivo (VIH+) durante años sin tener SIDA, sobre todo si se trata.")) });
+
+  nuevas.push({ h: "10. Trasplantes y grupos sanguíneos", html: env(
+    "<h5>Tipos de trasplante</h5>" +
+    tabla(["Tipo", "Donante y receptor", "Rechazo"], [
+      ["<b>Autotrasplante</b>", "el mismo individuo (piel de una zona a otra, vena para un bypass)", "no hay"],
+      ["<b>Isotrasplante</b>", "gemelos idénticos (mismo MHC)", "casi nunca"],
+      ["<b>Alotrasplante</b>", "individuos distintos de la misma especie (riñón, corazón, hígado)", "sí, si no se previene"],
+      ["<b>Xenotrasplante</b>", "especies distintas (válvulas cardiacas de cerdo)", "muy fuerte"]
+    ], "q3t") +
+    "<p>El <b>rechazo</b> ocurre porque los linfocitos T del receptor reconocen como extrañas las moléculas MHC (HLA) del órgano y lo atacan (respuesta celular). Para evitarlo se busca la mayor <b>compatibilidad HLA y de grupo sanguíneo</b>, y se toman de por vida <b>inmunosupresores</b> (ciclosporina, corticoides), con el riesgo de infecciones. En el trasplante de médula ósea puede ocurrir lo contrario: las células del donante atacan al receptor (enfermedad injerto contra huésped). El primer trasplante de riñón con éxito fue en 1954 (J. Murray, gemelos) y el primero de corazón en 1967 (C. Barnard).</p>" +
+    "<h5>Grupos sanguíneos ABO</h5>" +
+    "<p><b>Karl Landsteiner</b> los descubrió en 1901 (Nobel 1930). El grupo depende de los <b>antígenos</b> de la membrana de los hematíes; en el plasma hay <b>anticuerpos</b> (IgM) contra los antígenos que <b>no</b> se tienen.</p>" +
+    tabla(["Grupo", "Antígenos en el hematíe", "Anticuerpos en el plasma", "Genotipos"], [
+      ["<b>A</b>", "A", "anti-B", "I<sup>A</sup>I<sup>A</sup>, I<sup>A</sup>i"],
+      ["<b>B</b>", "B", "anti-A", "I<sup>B</sup>I<sup>B</sup>, I<sup>B</sup>i"],
+      ["<b>AB</b>", "A y B", "ninguno", "I<sup>A</sup>I<sup>B</sup>"],
+      ["<b>O</b>", "ninguno", "anti-A y anti-B", "ii"]
+    ], "q3t") +
+    "<p>Es un caso de <b>alelos múltiples y codominancia</b> (Tema 10): I<sup>A</sup> e I<sup>B</sup> son codominantes y los dos dominan sobre <i>i</i>. El factor <b>Rh</b> (Landsteiner y Wiener, 1940) depende del antígeno D: Rh+ (DD o Dd) y Rh− (dd); el anti-D <b>no es natural</b>: solo lo forma una persona Rh− tras estar en contacto con sangre Rh+.</p>" +
+    "<h5>Quién puede donar a quién</h5>" +
+    "<p>Al transfundir hematíes, el problema son los anticuerpos del <b>receptor</b> contra los antígenos del <b>donante</b>. Regla práctica: el donante no puede tener ningún antígeno (A, B, D) que le falte al receptor. Así, <b>O−</b> es donante universal de hematíes (no tiene antígenos) y <b>AB+</b> receptor universal (no tiene anticuerpos). De las 8 × 8 = 64 combinaciones donante-receptor (ABO y Rh), 27 son compatibles.</p>" +
+    w("bio_transfusion") +
+    w("emparejar", "hitos") +
+    "<h5>Genética de los grupos sanguíneos</h5>" +
+    ejemplo("Hijos de A (heterocigoto) × B (heterocigoto)", "Un hombre de grupo A cuyo padre era del grupo O y una mujer de grupo B cuya madre era del grupo O tienen hijos. ¿Qué grupos y con qué probabilidad?", [
+      "Si su padre era ii, el hombre es heterocigoto: <b>I<sup>A</sup>i</b>. Igualmente, la mujer: <b>I<sup>B</sup>i</b>.",
+      "Gametos del padre: ½ I<sup>A</sup> y ½ i. De la madre: ½ I<sup>B</sup> y ½ i.",
+      "Cuadro: I<sup>A</sup>I<sup>B</sup> (AB), I<sup>A</sup>i (A), I<sup>B</sup>i (B) e ii (O), cada uno con probabilidad <b>¼</b>.",
+      "Es el único cruce que puede dar los cuatro grupos."
+    ]) +
+    ejemplo("Rh combinado con ABO", "Madre A Rh+ (I<sup>A</sup>i, Dd) y padre B Rh+ (I<sup>B</sup>i, Dd). ¿Probabilidad de un hijo O Rh−?", [
+      "Los dos genes son independientes (cromosomas distintos).",
+      "P(O) = P(ii) = ¼. P(Rh−) = P(dd) = ¼.",
+      "P(O y Rh−) = ¼ · ¼ = <b>1/16</b> = 6,25 %."
+    ]) +
+    "<h5>Incompatibilidad materno-fetal Rh</h5>" +
+    "<p>Si una madre <b>Rh−</b> espera un hijo <b>Rh+</b> (heredó el D del padre), durante el <b>parto</b> pueden pasar hematíes fetales a la sangre materna, que se <b>sensibiliza</b> y forma <b>anti-D (IgG)</b>. El primer hijo no sufre; en un <b>segundo</b> embarazo con feto Rh+, el anti-D atraviesa la placenta y destruye sus hematíes: <b>enfermedad hemolítica del recién nacido</b> (eritroblastosis fetal). Se previene inyectando a la madre <b>inmunoglobulina anti-D</b> tras el parto (inmunidad pasiva, que elimina los hematíes fetales antes de que se sensibilice).</p>" +
+    ojo("En una transfusión importa lo que lleva el <b>donante</b> en los hematíes y lo que tiene el <b>plasma del receptor</b>. Un receptor AB+ puede recibir hematíes de cualquier grupo; un donante O− puede dar a cualquiera. Pero el <b>plasma</b> (si se transfunde) se rige al revés.")) });
+
+  nuevas.push({ h: "11. Ejemplo PAU resuelto: interpretar una gráfica y un experimento", html: env(
+    ejemplo("La gráfica de dos inoculaciones", "Un ratón recibe el día 0 el antígeno A. El día 30 recibe de nuevo A y, además, el antígeno B. Se mide el nivel de anticuerpos anti-A y anti-B. Resultados: anti-A: aparecen el día 6, pico de 1 unidad el día 14; tras la 2.ª inyección, aparecen el día 32 y alcanzan 10 unidades. Anti-B: aparecen el día 36 y alcanzan 1 unidad el día 44. a) ¿Qué tipo de respuesta es cada una? b) Explícalo. c) ¿Qué células intervienen en la anti-A del día 30?", [
+      "<b>a)</b> Anti-A tras la 1.ª inyección: respuesta <b>primaria</b> (latencia de 6 días, pico bajo). Anti-A tras la 2.ª: <b>secundaria</b> (latencia de 2 días, 10 veces más alta). Anti-B: <b>primaria</b> (latencia de 6 días, pico de 1).",
+      "<b>b)</b> A ya se conocía: hay linfocitos B y T de <b>memoria</b> específicos de A, que responden rápido y mucho. B es nuevo: no hay memoria, por lo que se repite una respuesta primaria. La memoria es <b>específica de antígeno</b>.",
+      "<b>c)</b> Linfocitos B de memoria (que se dividen y dan células plasmáticas que secretan IgG) y linfocitos T colaboradores de memoria que los ayudan.",
+      "<b>Comprobación numérica:</b> la latencia pasa de 6 a 2 días (3 veces menos) y el pico de 1 a 10 (10 veces más)."
+    ]) +
+    ejemplo("Un experimento con ratones timectomizados", "Se extirpa el timo a ratones recién nacidos. De mayores, tardan mucho en rechazar injertos de piel de otra cepa y tienen pocas respuestas contra virus, pero fabrican anticuerpos contra algunos antígenos simples. Interpreta.", [
+      "Sin timo no maduran los linfocitos <b>T</b>: sin T citotóxicos no hay <b>rechazo</b> (respuesta celular) ni defensa frente a virus.",
+      "Sin T colaboradores, la respuesta humoral a casi todos los antígenos es pobre, porque los B necesitan su ayuda; pero algunos antígenos sencillos activan a los B directamente (por eso conservan algo de anticuerpos).",
+      "Conclusión: el <b>timo</b> es necesario para la <b>inmunidad celular</b> y para la humoral dependiente de T. Es un modelo de inmunodeficiencia."
+    ])) });
+
+  nuevas.push({ h: "12. Cómo se pregunta en la PAU y cómo responder", html: env(
+    ejemplo("Pregunta 1. Diferencias entre inmunidad innata y adaptativa", "Respuesta modelo:", [
+      "<b>Innata:</b> inespecífica, inmediata, sin memoria. Barreras, fagocitos, complemento, interferón, NK, inflamación.",
+      "<b>Adaptativa:</b> específica (reconoce un antígeno concreto), lenta la primera vez y con <b>memoria</b>. Linfocitos B (humoral, anticuerpos) y T (celular).",
+      "Colaboran: los fagocitos presentan antígenos a los T; los anticuerpos opsonizan."
+    ]) +
+    ejemplo("Pregunta 2. Estructura y función de los anticuerpos", "Respuesta modelo:", [
+      "Proteínas (inmunoglobulinas) con <b>4 cadenas</b>: 2 pesadas y 2 ligeras, unidas por puentes disulfuro, en forma de Y.",
+      "Región <b>variable</b> (extremos de los brazos): sitio de unión específico al antígeno. Región <b>constante</b>: determina la clase y las funciones (Fc).",
+      "Los fabrican las células plasmáticas. Neutralizan, aglutinan, precipitan, opsonizan y activan el complemento."
+    ]) +
+    ejemplo("Pregunta 3. Vacuna y suero", "Respuesta modelo:", [
+      "<b>Vacuna:</b> antígeno atenuado o inactivado; inmunidad <b>activa artificial</b>, duradera por la memoria, lenta; <b>preventiva</b>.",
+      "<b>Suero:</b> anticuerpos ya formados; inmunidad <b>pasiva artificial</b>, inmediata, temporal y sin memoria; <b>curativa</b> o de urgencia.",
+      "Ejemplo: vacuna del tétanos (prevenir) y suero antitetánico (tras una herida sin vacunar)."
+    ]) +
+    ejemplo("Pregunta 4. ¿Por qué el VIH debilita las defensas?", "Respuesta modelo:", [
+      "Es un retrovirus que infecta a los linfocitos T colaboradores (CD4) y los destruye.",
+      "Sin T colaboradores no se activan bien ni la respuesta humoral ni la celular.",
+      "Aparecen infecciones oportunistas: es el SIDA."
+    ]) +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio15a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 15 (parte B): Inmunología
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t15.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "El sistema inmunitario tiene tres líneas: <b>barreras</b>, <b>inmunidad innata</b> (inespecífica y rápida: inflamación, fagocitosis, complemento, interferón, NK) e <b>inmunidad adaptativa</b> (específica y con memoria: linfocitos B y T).",
+    "<b>Humoral</b> = linfocitos B → células plasmáticas → <b>anticuerpos</b> (proteínas de 4 cadenas con región variable); <b>celular</b> = linfocitos T citotóxicos que destruyen células infectadas. Los T colaboradores dirigen las dos.",
+    "La <b>respuesta secundaria</b> es más rápida (latencia de 1–3 días), más intensa y duradera gracias a las <b>células de memoria</b>; las <b>vacunas</b> (inmunidad activa) la aprovechan y los <b>sueros</b> (pasiva) dan anticuerpos hechos.",
+    "Alteraciones: <b>alergia</b> (IgE), <b>autoinmunidad</b> (se ataca lo propio) e <b>inmunodeficiencia</b> (el SIDA: el VIH destruye los T colaboradores). En los trasplantes, el MHC (HLA) causa el rechazo; los grupos <b>ABO y Rh</b> condicionan las transfusiones."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Inmunología",
+    autores: [
+      { n: "Qué estudia", f: "cómo el organismo se defiende de lo extraño", l: "innata · adaptativa · alteraciones" },
+      { n: "Jenner", f: "1796", l: "primera vacuna (viruela)" },
+      { n: "Metchnikoff", f: "1882", l: "fagocitosis" },
+      { n: "Landsteiner", f: "1901", l: "grupos sanguíneos ABO" },
+      { n: "Köhler y Milstein", f: "1975", l: "anticuerpos monoclonales" }
+    ],
+    obras: ["Antígeno", "Anticuerpo", "Linfocitos B y T", "Memoria", "MHC", "Vacuna", "ABO y Rh"],
+    bloques: [
+      { t: "Dos ramas de defensa", frases: ["Innata: inmediata, <b>inespecífica</b>, sin memoria.", "Adaptativa: <b>específica</b>, lenta la 1.ª vez, con memoria.", "Colaboran entre sí."],
+        tabla: { cab: ["Innata", "Adaptativa"], filas: [["barreras, fagocitos", "linfocitos B y T"], ["complemento, interferón", "anticuerpos"], ["inflamación, NK", "células de memoria"]] } },
+      { t: "Células y órganos", frases: ["Todo nace en la <b>médula ósea</b>; los T maduran en el <b>timo</b>.", "Ganglios y bazo: donde se encuentran linfocito y antígeno.", "Th (CD4) dirigen; Tc (CD8) matan."],
+        tabla: { cab: ["Célula", "Función"], filas: [["linfocito B", "→ célula plasmática (anticuerpos)"], ["linfocito Tc", "mata células infectadas"], ["macrófago", "fagocita y presenta antígenos"]] } },
+      { t: "Anticuerpo", frases: ["<b>4 cadenas</b> (2 H + 2 L) unidas por puentes S–S.", "Región <b>variable</b>: se une al antígeno (2 sitios).", "Región constante (Fc): clase y funciones."],
+        tabla: { cab: ["Clase", "Dato"], filas: [["IgG", "atraviesa la placenta"], ["IgM", "la 1.ª; pentámero"], ["IgA", "leche y mucosas"], ["IgE", "alergias"]] } },
+      { t: "Respuesta inmune", frases: ["Humoral: B + Th → plasmáticas → anticuerpos.", "Celular: Tc + MHC-I → perforina → apoptosis.", "Selección clonal: el antígeno elige al linfocito."],
+        tabla: { cab: ["Primaria", "Secundaria"], filas: [["latencia 5–10 días", "1–3 días"], ["pico bajo", "≈ 10 veces más alto"], ["IgM, luego IgG", "sobre todo IgG"]] } },
+      { t: "Tipos de inmunidad", frases: ["Activa: la fabrica el organismo; pasiva: anticuerpos hechos.", "Vacuna = antígeno: preventiva y duradera.", "Suero = anticuerpos: inmediato y temporal."],
+        tabla: { cab: ["", "Activa / Pasiva"], filas: [["natural", "infección / placenta y leche"], ["artificial", "vacuna / suero"]] } },
+      { t: "Alteraciones, trasplantes y sangre", frases: ["Alergia (IgE), autoinmunidad, inmunodeficiencia (SIDA: VIH ataca CD4).", "Rechazo: los T reconocen MHC (HLA) ajeno.", "ABO: antígenos en el hematíe, anticuerpos en el plasma."],
+        tabla: { cab: ["Grupo", "Antígeno · anticuerpo"], filas: [["A", "A · anti-B"], ["B", "B · anti-A"], ["AB", "A y B · ninguno"], ["O", "ninguno · anti-A y anti-B"]] } }
+    ],
+    resumen: [
+      "Primero actúan las <b>barreras</b> y la <b>innata</b>; si no bastan, la <b>adaptativa</b> aprende y recuerda.",
+      "<b>B → anticuerpos</b> (humoral); <b>T → células infectadas</b> (celular); la <b>memoria</b> explica las vacunas.",
+      "Los errores del sistema son la <b>alergia</b>, la <b>autoinmunidad</b> y la <b>inmunodeficiencia</b>; el <b>MHC</b> explica el rechazo."
+    ],
+    conecta: [
+      { con: "Biología T14:", rel: "microorganismos y virus: los patógenos que combate el sistema inmunitario; VIH como retrovirus." },
+      { con: "Biología T4:", rel: "los anticuerpos son proteínas (estructura cuaternaria, complementariedad)." },
+      { con: "Biología T6:", rel: "membrana, fagocitosis y lisosomas." },
+      { con: "Biología T10:", rel: "alelos múltiples y codominancia en los grupos ABO." },
+      { con: "Química II T11:", rel: "polímeros y macromoléculas: proteínas y enlace peptídico." }
+    ],
+    claves: [
+      ["Antígeno", "molécula que el sistema inmunitario reconoce como extraña y que dispara la respuesta"],
+      ["Anticuerpo", "inmunoglobulina fabricada por células plasmáticas que se une a un antígeno concreto"],
+      ["Epítopo", "zona concreta del antígeno que reconoce un anticuerpo"],
+      ["Selección clonal", "el antígeno activa y multiplica solo a los linfocitos que lo reconocen"],
+      ["Célula plasmática", "linfocito B diferenciado que secreta anticuerpos"],
+      ["Célula de memoria", "linfocito de larga vida que permite la respuesta secundaria"],
+      ["MHC (HLA)", "proteínas de superficie que presentan antígenos a los linfocitos T y causan el rechazo"],
+      ["Vacuna / suero", "antígeno que genera memoria (activa) / anticuerpos ya formados (pasiva)"],
+      ["Opsonización", "marcado de un patógeno por anticuerpos o complemento para que lo fagociten"],
+      ["Rh (anti-D)", "antígeno D del hematíe; el anti-D solo se forma tras contacto con sangre Rh+"]
+    ],
+    cita: { txt: "La memoria inmunológica está en las células, no en los anticuerpos: por eso una vacuna protege años.", autor: "Dato para recordar", obra: "respuesta secundaria: latencia de 1–3 días y ≈ 10 veces más anticuerpos" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    defensas: {
+      titulo: "¿Innata o adaptativa?",
+      consigna: "Clasifica cada mecanismo.",
+      categorias: ["Innata", "Adaptativa"],
+      items: [
+        { t: "Piel y mucosas", c: 0 }, { t: "Fagocitosis por un neutrófilo", c: 0 }, { t: "Fiebre", c: 0 }, { t: "Interferón", c: 0 },
+        { t: "Producción de anticuerpos contra el tétanos", c: 1 }, { t: "Linfocito T citotóxico", c: 1 }, { t: "Células de memoria", c: 1 }, { t: "Complemento", c: 0 }
+      ]
+    },
+    ig: {
+      titulo: "Clase de inmunoglobulina y su rasgo",
+      consigna: "Une cada clase con su rasgo.",
+      pares: [
+        ["IgG", "Atraviesa la placenta; domina en la respuesta secundaria"],
+        ["IgM", "Pentámero; la primera en aparecer"],
+        ["IgA", "Presente en leche, saliva y lágrimas"],
+        ["IgE", "Se une a mastocitos; causa de las alergias"],
+        ["IgD", "Receptor en la superficie del linfocito B"]
+      ]
+    },
+    celulas: {
+      titulo: "Célula y función",
+      consigna: "Une cada célula con su función principal.",
+      pares: [
+        ["Macrófago", "Fagocita y presenta antígenos"],
+        ["Célula plasmática", "Secreta anticuerpos"],
+        ["Linfocito T citotóxico", "Destruye células infectadas con perforina"],
+        ["Linfocito T colaborador", "Activa a B y a Tc con interleucinas"],
+        ["Mastocito", "Libera histamina"],
+        ["Célula NK", "Mata células sin MHC-I normal, sin memoria"]
+      ]
+    },
+    hitos: {
+      titulo: "Científico y descubrimiento",
+      consigna: "Une cada nombre con su aportación.",
+      pares: [
+        ["Jenner (1796)", "Primera vacuna: viruela"],
+        ["Metchnikoff (1882)", "Fagocitosis"],
+        ["Behring y Kitasato (1890)", "Seroterapia: anticuerpos"],
+        ["Landsteiner (1901)", "Grupos sanguíneos ABO"],
+        ["Köhler y Milstein (1975)", "Anticuerpos monoclonales"]
+      ]
+    },
+    inmunidad: {
+      titulo: "Natural o artificial, activa o pasiva",
+      consigna: "Clasifica cada situación.",
+      categorias: ["Natural activa", "Natural pasiva", "Artificial activa", "Artificial pasiva"],
+      items: [
+        { t: "Pasar la varicela", c: 0 }, { t: "Pasar la gripe y quedar inmune", c: 0 },
+        { t: "IgG de la madre al feto por la placenta", c: 1 }, { t: "IgA de la leche materna", c: 1 },
+        { t: "Vacuna del sarampión", c: 2 }, { t: "Vacuna de ARNm", c: 2 },
+        { t: "Suero antiofídico", c: 3 }, { t: "Inmunoglobulina anti-D tras el parto", c: 3 }
+      ]
+    },
+    alteraciones: {
+      titulo: "Alergia, autoinmunidad o inmunodeficiencia",
+      consigna: "Clasifica cada enfermedad o situación.",
+      categorias: ["Alergia", "Autoinmunidad", "Inmunodeficiencia"],
+      items: [
+        { t: "Rinitis por polen", c: 0 }, { t: "Alergia al cacahuete", c: 0 }, { t: "Asma alérgica", c: 0 },
+        { t: "Diabetes tipo 1", c: 1 }, { t: "Esclerosis múltiple", c: 1 }, { t: "Artritis reumatoide", c: 1 }, { t: "Lupus", c: 1 },
+        { t: "SIDA", c: 2 }, { t: "Inmunodeficiencia combinada grave («niño burbuja»)", c: 2 }
+      ]
+    },
+    ordeninflamacion: {
+      titulo: "La inflamación tras una herida",
+      consigna: "Ordena lo que ocurre, desde el principio.",
+      items: [
+        { t: "Entran microorganismos por la herida" },
+        { t: "Los mastocitos liberan histamina" },
+        { t: "Los capilares se dilatan y se hacen más permeables" },
+        { t: "Los neutrófilos y monocitos llegan al foco (quimiotaxis)" },
+        { t: "Los fagocitos engloban y destruyen a los microorganismos" },
+        { t: "Se repara el tejido (el pus son neutrófilos muertos)" }
+      ]
+    },
+    ordenhumoral: {
+      titulo: "La respuesta humoral",
+      consigna: "Ordena las etapas.",
+      items: [
+        { t: "Un linfocito B reconoce el antígeno con su receptor" },
+        { t: "Presenta el antígeno a un linfocito T colaborador (MHC-II)" },
+        { t: "El Th libera interleucinas y activa al B" },
+        { t: "El B se divide: expansión clonal" },
+        { t: "Aparecen células plasmáticas y B de memoria" },
+        { t: "Las células plasmáticas secretan anticuerpos" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test: inmunología",
+      preguntas: [
+        { q: "La respuesta inmunitaria secundaria se caracteriza por…", op: ["latencia corta y gran cantidad de anticuerpos", "latencia larga y pocos anticuerpos", "no tener células de memoria", "producirse solo contra antígenos nuevos"], ok: 0, porque: "Las células de memoria responden más rápido y más fuerte." },
+        { q: "¿Qué células fabrican los anticuerpos?", op: ["Células plasmáticas (derivadas de linfocitos B)", "Linfocitos T citotóxicos", "Macrófagos", "Hematíes"], ok: 0, porque: "El linfocito B activado se diferencia en célula plasmática." },
+        { q: "Un anticuerpo IgG está formado por…", op: ["dos cadenas pesadas y dos ligeras", "una cadena pesada y una ligera", "cuatro cadenas pesadas", "ácidos nucleicos y proteínas"], ok: 0, porque: "2 H + 2 L unidas por puentes disulfuro." },
+        { q: "Un suero antiofídico confiere inmunidad…", op: ["pasiva artificial", "activa artificial", "pasiva natural", "activa natural"], ok: 0, porque: "Son anticuerpos ya formados que se administran." },
+        { q: "El VIH destruye principalmente a los…", op: ["linfocitos T colaboradores (CD4)", "hematíes", "linfocitos B de memoria", "mastocitos"], ok: 0, porque: "Sin T colaboradores no se coordina la respuesta inmunitaria." },
+        { q: "El rechazo de un trasplante se debe a que los linfocitos T reconocen como extrañas las moléculas…", op: ["MHC (HLA) del órgano", "ADN del órgano", "del grupo Rh solo", "de la membrana de los hematíes del receptor"], ok: 0, porque: "Las moléculas HLA son distintas en cada persona." },
+        { q: "Una persona de grupo O…", op: ["tiene anticuerpos anti-A y anti-B", "tiene antígenos A y B", "no tiene ningún anticuerpo", "puede recibir sangre del grupo A"], ok: 0, porque: "No tiene antígenos A ni B, así que tiene los dos anticuerpos." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre la inmunidad innata es FALSA?", op: ["Genera células de memoria específicas", "Es inespecífica", "Actúa de forma inmediata", "Incluye la fagocitosis"], ok: 0, porque: "La memoria específica es propia de la inmunidad adaptativa." },
+        { q: "¿Cuál de estas afirmaciones sobre los anticuerpos es FALSA?", op: ["Los fabrican los linfocitos T citotóxicos", "Son proteínas", "Se unen a un epítopo concreto", "Tienen región variable y constante"], ok: 0, porque: "Los fabrican las células plasmáticas, derivadas de linfocitos B." },
+        { q: "¿Cuál de estas afirmaciones sobre la vacuna es FALSA?", op: ["Da anticuerpos ya formados y protección inmediata", "Genera células de memoria", "Es inmunidad activa artificial", "Es preventiva"], ok: 0, porque: "Eso es el suero; la vacuna estimula al organismo a fabricarlos." },
+        { q: "¿Cuál de estas afirmaciones sobre el interferón es FALSA?", op: ["Es un anticuerpo específico de cada virus", "Lo liberan células infectadas por virus", "Protege a las células vecinas", "Es una proteína"], ok: 0, porque: "No es un anticuerpo: es una citocina inespecífica de virus." },
+        { q: "¿Cuál de estas afirmaciones sobre el SIDA es FALSA?", op: ["Se transmite por besos y picaduras de mosquito", "Lo causa un retrovirus", "El virus infecta linfocitos T colaboradores", "Se transmite de madre a hijo"], ok: 0, porque: "No se transmite por contacto casual ni por mosquitos." },
+        { q: "¿Cuál de estas afirmaciones sobre los grupos sanguíneos es FALSA?", op: ["Una persona AB tiene anticuerpos anti-A y anti-B", "El grupo O no tiene antígenos A ni B", "El grupo A tiene anticuerpos anti-B", "Un receptor AB+ puede recibir hematíes de cualquier grupo"], ok: 0, porque: "Una persona AB tiene ambos antígenos, por lo que no tiene ninguno de estos anticuerpos." },
+        { q: "¿Cuál de estas afirmaciones sobre la alergia es FALSA?", op: ["Es una infección causada por el alérgeno", "Interviene la IgE", "Los mastocitos liberan histamina", "Requiere un contacto previo de sensibilización"], ok: 0, porque: "Es una respuesta exagerada a una sustancia inocua; no hay infección." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: inmunología",
+      cartas: [
+        { a: "Antígeno", b: "Molécula reconocida como extraña que dispara la respuesta inmunitaria." },
+        { a: "Epítopo", b: "Zona del antígeno que reconoce un anticuerpo o un receptor de linfocito." },
+        { a: "Inmunidad innata", b: "Inespecífica, inmediata, sin memoria: barreras, fagocitos, complemento, interferón, NK." },
+        { a: "Inmunidad adaptativa", b: "Específica y con memoria: linfocitos B (humoral) y T (celular)." },
+        { a: "Inflamación", b: "Histamina → vasodilatación y permeabilidad → llegada de fagocitos. Rubor, calor, tumor, dolor." },
+        { a: "Complemento", b: "≈ 30 proteínas del plasma en cascada: opsoniza, atrae fagocitos y lisa células." },
+        { a: "Interferón", b: "Lo liberan células infectadas por virus; alerta a las vecinas (estado antivírico)." },
+        { a: "Anticuerpo (IgG)", b: "2 cadenas pesadas + 2 ligeras (150 kDa); región variable (2 sitios) y constante (Fc)." },
+        { a: "Clases de Ig", b: "IgG (placenta), IgM (pentámero, 1.ª), IgA (leche, mucosas), IgE (alergias), IgD (receptor B)." },
+        { a: "Respuesta humoral", b: "B + Th → células plasmáticas → anticuerpos (contra antígenos libres)." },
+        { a: "Respuesta celular", b: "Tc reconocen antígeno + MHC-I y destruyen células infectadas con perforina y granzimas." },
+        { a: "Selección clonal", b: "El antígeno elige y multiplica a los linfocitos que lo reconocen (Burnet)." },
+        { a: "Primaria frente a secundaria", b: "Latencia 5–10 días y pico bajo / 1–3 días y ≈ 10 veces más, con memoria." },
+        { a: "Vacuna y suero", b: "Vacuna: antígeno, activa, duradera, preventiva. Suero: anticuerpos, pasiva, inmediata, temporal." },
+        { a: "Alergia, autoinmunidad, inmunodeficiencia", b: "Respuesta exagerada (IgE) / contra lo propio / defensas insuficientes (SIDA)." },
+        { a: "VIH", b: "Retrovirus que destruye linfocitos T colaboradores (CD4); transcriptasa inversa; no hay vacuna por su alta mutación." },
+        { a: "Trasplantes", b: "Auto, iso, alo y xeno. El rechazo lo causa el reconocimiento del MHC (HLA) por los T." },
+        { a: "ABO y Rh", b: "Antígenos en el hematíe, anticuerpos en el plasma contra los que faltan. O− dador universal; AB+ receptor universal." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "La fiebre y la inflamación forman parte de…", ["la inmunidad innata", "la inmunidad adaptativa", "la respuesta humoral", "la respuesta secundaria"], 0, ["Son respuestas inespecíficas e inmediatas, sin memoria."], "La inmunidad innata");
+  O("b2", 1, "¿Cuál de estas células es un fagocito?", ["Neutrófilo", "Hematíe", "Plaqueta", "Célula plasmática"], 0, ["Los neutrófilos, monocitos y macrófagos fagocitan."], "Neutrófilo");
+  O("b3", 1, "Una molécula que el sistema inmunitario reconoce como extraña se llama…", ["antígeno", "anticuerpo", "interferón", "hapteno solo"], 0, ["El antígeno es lo reconocido; el anticuerpo es lo que lo reconoce."], "Antígeno");
+  O("b4", 1, "Los linfocitos T maduran en el…", ["timo", "bazo", "hígado", "páncreas"], 0, ["«T» de timo; los B maduran en la médula ósea."], "Timo");
+  O("b5", 1, "La respuesta humoral está protagonizada por…", ["linfocitos B y anticuerpos", "linfocitos T citotóxicos", "macrófagos solo", "células NK"], 0, ["Humoral = anticuerpos en los líquidos del cuerpo."], "Linfocitos B y anticuerpos");
+  O("b6", 1, "¿Qué clase de anticuerpo atraviesa la placenta?", ["IgG", "IgM", "IgE", "IgD"], 0, ["La IgG es la única que pasa de la madre al feto."], "IgG");
+  O("b7", 1, "Tras una vacuna, la protección duradera se debe a…", ["las células de memoria", "los anticuerpos de la vacuna", "los antibióticos", "la fiebre"], 0, ["La vacuna contiene el antígeno, no anticuerpos: genera memoria."], "Células de memoria");
+  O("b8", 1, "Un suero antitetánico produce inmunidad…", ["pasiva artificial", "activa artificial", "activa natural", "pasiva natural"], 0, ["Se administran anticuerpos hechos: protección inmediata y temporal."], "Pasiva artificial");
+  O("b9", 1, "La sustancia que liberan los mastocitos y causa picor y estornudos en una alergia es la…", ["histamina", "insulina", "perforina", "interleucina solo"], 0, ["Los mastocitos con IgE desgranulan histamina."], "Histamina");
+  O("b10", 1, "Un trasplante entre dos individuos de la misma especie se llama…", ["alotrasplante", "autotrasplante", "isotrasplante", "xenotrasplante"], 0, ["Auto: mismo individuo; iso: gemelos; alo: misma especie; xeno: distinta."], "Alotrasplante");
+  V("b11", 1, "Los antibióticos sirven para tratar infecciones por virus como la gripe.", false, ["Los antibióticos actúan sobre bacterias, no sobre virus", "Los virus son bacterias muy pequeñas", "Los antibióticos son vacunas", "Los virus no existen"], 0, ["Los virus carecen de metabolismo propio: los antibióticos no les afectan."]);
+  V("b12", 1, "La respuesta primaria es más lenta que la secundaria.", true, ["La secundaria cuenta con células de memoria ya preparadas", "La primaria tiene más anticuerpos", "La secundaria necesita un antígeno distinto", "La primaria no usa linfocitos"], 0, ["Latencia de 5–10 días frente a 1–3 días."]);
+  T("b13", 1, "Completa: el virus del SIDA es el…", "Siglas", ["VIH", "vih"], ["Virus de la Inmunodeficiencia Humana."], "VIH");
+  T("b14", 1, "Completa: la unión de varios hematíes por anticuerpos en grumos se llama…", "Proceso", ["aglutinacion", "aglutinación"], ["Los anticuerpos (anti-A, anti-B) unen los antígenos de distintos hematíes."], "Aglutinación");
+  M("b15", 1, "Une cada clase de inmunoglobulina con su característica.",
+    [C("IgM", ["Pentámero, la primera en aparecer", "Se encuentra en la leche materna", "Causa las alergias"], 0), C("IgA", ["Se encuentra en la leche materna", "Pentámero, la primera en aparecer", "Causa las alergias"], 0), C("IgE", ["Causa las alergias", "Se encuentra en la leche materna", "Pentámero, la primera en aparecer"], 0)],
+    ["IgM: pentámero e inicial; IgA: secreciones; IgE: alergia y parásitos."], "IgM → pentámero; IgA → leche; IgE → alergias");
+  X("b16", 1, "Un anticuerpo IgG tiene dos cadenas pesadas de 50 kDa y dos ligeras de 25 kDa. ¿Cuál es su masa total?", "Masa (kDa) =", 150, "kDa", ["2 · 50 = 100 kDa (pesadas).", "2 · 25 = 50 kDa (ligeras).", "100 + 50 = 150 kDa."], "150 kDa");
+
+  // ---- nivel 2
+  O("c1", 2, "¿Qué hace el interferón?", ["Alerta a las células vecinas para que bloqueen la multiplicación del virus", "Fabrica anticuerpos contra el virus", "Fagocita virus", "Mata directamente al virus"], 0, ["Lo liberan las células infectadas; no es un anticuerpo ni mata virus por sí mismo."], "Induce un estado antivírico en las células vecinas");
+  O("c2", 2, "¿Cuál es la función de la región variable de un anticuerpo?", ["Unirse específicamente al antígeno", "Determinar la clase del anticuerpo", "Unirse a los fagocitos", "Atravesar la placenta"], 0, ["La variable forma el sitio de unión; la constante determina la clase y las funciones (Fc)."], "Unión específica al antígeno");
+  O("c3", 2, "Un linfocito T citotóxico destruye a una célula infectada reconociendo el antígeno unido a…", ["MHC de clase I", "MHC de clase II", "un anticuerpo IgG", "el complemento"], 0, ["Tc (CD8) → MHC-I; Th (CD4) → MHC-II."], "MHC de clase I");
+  O("c4", 2, "¿Qué ocurre en la opsonización?", ["Los anticuerpos o el complemento marcan al patógeno y facilitan su fagocitosis", "El patógeno se une a los hematíes", "Se liberan histamina y fiebre", "El patógeno se divide"], 0, ["Marcar para que el fagocito reconozca y engulla."], "Marcado para facilitar la fagocitosis");
+  O("c5", 2, "Si tras un 2.º contacto con el mismo antígeno los anticuerpos aparecen a los 2 días y alcanzan el triple del valor de la primera vez, ¿qué demuestra?", ["La existencia de células de memoria", "Que el antígeno ha cambiado", "Que hay una inmunodeficiencia", "Que ha actuado un suero"], 0, ["Rapidez y cantidad: respuesta secundaria con memoria."], "Memoria inmunológica");
+  O("c6", 2, "¿Por qué un recién nacido está protegido unos meses frente a algunas infecciones?", ["Recibe IgG de la madre por la placenta e IgA con la leche", "Su sistema inmunitario ya es maduro", "Nace con células de memoria propias", "Las vacunas del embarazo lo protegen de por vida"], 0, ["Inmunidad natural pasiva: temporal."], "Inmunidad natural pasiva");
+  V("c7", 2, "Los linfocitos B reconocen siempre el antígeno solo cuando está unido al MHC.", false, ["Los B reconocen antígenos libres con su receptor; los T los reconocen unidos al MHC", "Los B son una clase de linfocitos T", "No existen receptores en los B", "Los B son fagocitos"], 0, ["Los B captan el antígeno entero; los T necesitan que se lo presenten con MHC."]);
+  V("c8", 2, "Un anticuerpo destruye por sí solo al microorganismo al unirse a él.", false, ["Neutraliza o marca; la destrucción la realizan fagocitos y complemento", "Contiene perforina", "Es una enzima digestiva", "Disuelve la membrana del microorganismo siempre"], 0, ["Los anticuerpos no son enzimas ni células."]);
+  O("c9", 2, "La alergia a la penicilina se explica porque esta molécula pequeña actúa como…", ["hapteno que se une a proteínas del organismo", "anticuerpo", "interleucina", "complemento"], 0, ["Un hapteno solo es inmunogénico unido a una proteína."], "Hapteno");
+  O("c10", 2, "¿Qué enfermedad es autoinmune?", ["Diabetes tipo 1", "SIDA", "Rinitis alérgica", "Gripe"], 0, ["En la diabetes tipo 1, los T destruyen las células β del páncreas."], "Diabetes tipo 1");
+  O("c11", 2, "¿Por qué es tan difícil fabricar una vacuna contra el VIH?", ["Porque muta con mucha rapidez y ataca a los T colaboradores", "Porque no es un virus", "Porque no tiene antígenos", "Porque solo infecta a bacterias"], 0, ["La transcriptasa inversa comete errores que cambian los antígenos."], "Alta tasa de mutación");
+  O("c12", 2, "Un hombre de grupo O recibe sangre de un donante A. ¿Qué ocurre?", ["Aglutinación: su anti-A ataca a los hematíes del donante", "Nada, el grupo O es receptor universal", "El donante rechaza al receptor", "Se forma anti-D"], 0, ["O tiene anti-A y anti-B; los hematíes A llevan el antígeno A."], "Aglutinación por anti-A del receptor");
+  O("c13", 2, "El suero de un animal inmunizado protege a otro animal porque…", ["contiene anticuerpos", "contiene células de memoria", "contiene el antígeno", "contiene complemento solo"], 0, ["Es el descubrimiento de Behring y Kitasato (1890)."], "Contiene anticuerpos");
+  X("c14", 2, "Un linfocito B activado se divide cada 12 horas durante 4 días. Si todos los descendientes siguen dividiéndose, ¿cuántas células hay al final?", "Células =", 256, "", ["4 días = 96 h; 96 / 12 = 8 divisiones.", "Cada división duplica: 2<sup>8</sup> = 256."], "256 células");
+  X("c15", 2, "En una serie de diluciones dobles de un suero (1/2, 1/4, 1/8…), aún hay anticuerpos detectables en la dilución 1/256. ¿Cuántas diluciones dobles seguidas se hicieron hasta ese tubo?", "Nº de diluciones =", 8, "", ["Cada tubo divide por 2: 2<sup>n</sup> = 256.", "2<sup>8</sup> = 256, luego n = 8."], "8 diluciones (título 256)");
+  X("c16", 2, "Cada molécula de IgM es un pentámero de monómeros con 2 sitios de unión. ¿Cuántos sitios de unión tiene?", "Sitios =", 10, "", ["5 monómeros · 2 sitios = 10 sitios."], "10 sitios");
+
+  // ---- nivel 3
+  X("d1", 3, "Un padre AB y una madre O tienen un hijo. ¿Qué probabilidad hay de que el hijo sea del grupo A?", "P(grupo A) =", 0.5, "", ["Padre: I<sup>A</sup>I<sup>B</sup> → gametos ½ I<sup>A</sup>, ½ I<sup>B</sup>. Madre: ii → gametos i.", "Hijos: ½ I<sup>A</sup>i (A) y ½ I<sup>B</sup>i (B).", "P(A) = 1/2. Nunca hay hijos AB ni O."], "1/2 = 0,5");
+  X("d2", 3, "Una madre A (I<sup>A</sup>i) y un padre A (I<sup>A</sup>i) tienen un hijo. ¿Qué probabilidad hay de que sea del grupo O?", "P(grupo O) =", 0.25, "", ["Gametos de cada uno: ½ I<sup>A</sup>, ½ i.", "ii aparece con ½ · ½ = ¼."], "1/4 = 0,25");
+  X("d3", 3, "Una madre Rh− (dd) y un padre Rh+ heterocigoto (Dd) esperan un hijo. ¿Qué probabilidad hay de que el hijo sea Rh+ y pueda sensibilizar a la madre?", "P(Rh+) =", 0.5, "", ["Madre: gametos d. Padre: ½ D, ½ d.", "Hijos: ½ Dd (Rh+) y ½ dd (Rh−)."], "1/2 = 0,5");
+  X("d4", 3, "Una madre A heterocigota Rh+ heterocigota (I<sup>A</sup>i Dd) y un padre B heterocigoto Rh+ heterocigoto (I<sup>B</sup>i Dd) tienen un hijo. ¿Probabilidad de que sea del grupo AB y Rh+?", "P =", 0.1875, "", ["P(AB) = ¼ (I<sup>A</sup>I<sup>B</sup>).", "P(Rh+) = ¾ (DD o Dd).", "Independientes: ¼ · ¾ = 3/16 = 0,1875."], "3/16 = 0,1875", 0.01);
+  X("d5", 3, "Para frenar un brote de un patógeno con R<sub>0</sub> = 12, ¿qué porcentaje mínimo de la población debe estar inmunizado (inmunidad de grupo, 1 − 1/R<sub>0</sub>)?", "% =", 91.7, "%", ["1 − 1/12 = 11/12.", "11/12 = 0,9167 → 91,7 %."], "≈ 91,7 %", 0.01);
+  X("d6", 3, "Un paciente con VIH tenía 600 linfocitos CD4/µL y ahora tiene 180/µL. ¿Qué porcentaje de CD4 ha perdido?", "Pérdida (%) =", 70, "%", ["Pérdida: 600 − 180 = 420.", "420 / 600 = 0,70 → 70 %.", "180 es menor de 200: criterio de SIDA."], "70 %");
+  X("d7", 3, "¿Cuántos de los 8 grupos (A, B, AB, O, cada uno + o −) pueden donar hematíes a un receptor B+?", "Nº de grupos =", 4, "", ["Antígenos del receptor B+: {B, D}.", "Donante compatible: antígenos dentro de {B, D}: B+, B−, O+, O−.", "Son 4."], "4 grupos (B+, B−, O+, O−)");
+  O("d8", 3, "En el experimento de un ratón al que se inocula el antígeno A (día 0) y otra vez A y B (día 30), ¿cómo será la respuesta anti-B?", ["Primaria: latencia larga y pico bajo", "Secundaria: latencia corta y pico alto", "Inexistente", "Igual que la anti-A del día 30"], 0, ["B es un antígeno nuevo: no hay memoria contra B."], "Respuesta primaria", "Anti-B");
+  M("d9", 3, "Una madre Rh− tiene su primer hijo Rh+ sin ningún tratamiento. Responde.",
+    [C("Hijo 1", ["Sin problemas; la madre se sensibiliza en el parto", "Sufre enfermedad hemolítica grave", "Es Rh− seguro", "Rechaza a la madre"], 0), C("Hijo 2 si es Rh+ y no hay profilaxis", ["Puede sufrir enfermedad hemolítica por el anti-D (IgG) materno", "Sin problemas, igual que el primero", "Es siempre Rh−", "Nace con SIDA"], 0), C("Prevención", ["Inmunoglobulina anti-D a la madre tras el parto", "Vacuna contra la hepatitis", "Antihistamínicos", "Trasplante de médula"], 0)],
+    ["El contacto con hematíes fetales en el parto sensibiliza a la madre: aparece anti-D (IgG).", "En el 2.º embarazo, el anti-D cruza la placenta y destruye los hematíes del feto Rh+.", "La inmunoglobulina anti-D elimina los hematíes fetales antes de la sensibilización."], "Primer hijo bien; segundo con riesgo; prevención con anti-D");
+  O("d10", 3, "Un linfocito T citotóxico reconoce y destruye una célula infectada por un virus. ¿Qué información necesita ver en su superficie?", ["Un fragmento del virus presentado sobre MHC-I", "Un anticuerpo anti-virus libre", "El virus completo fuera de la célula", "Solo la histamina"], 0, ["Las células infectadas muestran trozos de las proteínas víricas sobre MHC-I."], "Antígeno vírico + MHC-I");
+  M("d11", 3, "Clasifica cada afirmación sobre una vacuna o un suero.",
+    [C("Contiene anticuerpos ya formados", ["Suero", "Vacuna"], 0), C("Genera células de memoria", ["Vacuna", "Suero"], 0), C("La protección dura semanas", ["Suero", "Vacuna"], 0), C("Se usa antes de la exposición", ["Vacuna", "Suero"], 0)],
+    ["Vacuna: antígeno → activa, memoria, preventiva y duradera.", "Suero: anticuerpos → pasiva, inmediata y temporal."], "Suero / Vacuna / Suero / Vacuna");
+  R("d12", "Compara la inmunidad innata y la adaptativa y explica cómo colaboran. (Pregunta tipo PAU)", [
+    { t: "Innata: inespecífica, inmediata, sin memoria (barreras, fagocitos, complemento, interferón, NK)", p: 0.6 },
+    { t: "Adaptativa: específica, más lenta la primera vez, con memoria (linfocitos B y T)", p: 0.6 },
+    { t: "Colaboración: los macrófagos presentan antígenos a los T", p: 0.4 },
+    { t: "Colaboración: los anticuerpos opsonizan y activan el complemento", p: 0.4 }], ["Innata.", "Adaptativa.", "Colaboración."], "Innata inespecífica e inmediata; adaptativa específica y con memoria; colaboran");
+  R("d13", "Describe la estructura de un anticuerpo, sus clases y cómo reacciona con un antígeno. (Pregunta tipo PAU)", [
+    { t: "4 cadenas: 2 pesadas y 2 ligeras unidas por puentes disulfuro, en forma de Y", p: 0.5 },
+    { t: "Región variable (sitio de unión al antígeno) y constante (clase y funciones)", p: 0.5 },
+    { t: "Clases: IgG, IgM, IgA, IgE, IgD con una función", p: 0.4 },
+    { t: "Reacción Ag-Ac: específica y reversible (complementariedad)", p: 0.3 },
+    { t: "Efectos: neutralización, aglutinación, opsonización o complemento", p: 0.3 }], ["Estructura.", "Regiones.", "Clases.", "Reacción."], "Proteína de 4 cadenas con región variable y constante");
+  R("d14", "Un niño recibe la vacuna triple vírica y otro un suero tras una mordedura de serpiente. Explica la diferencia. (Pregunta tipo PAU)", [
+    { t: "Vacuna: antígeno atenuado → respuesta primaria y células de memoria (activa artificial)", p: 0.5 },
+    { t: "Suero: anticuerpos formados por otro organismo (pasiva artificial)", p: 0.5 },
+    { t: "Vacuna: preventiva, lenta y duradera; suero: curativo, inmediato y temporal", p: 0.5 },
+    { t: "La vacuna da memoria; el suero no", p: 0.3 }], ["Vacuna.", "Suero.", "Tiempos.", "Memoria."], "Vacuna: activa y duradera; suero: pasiva e inmediata");
+  R("d15", "Explica cómo el VIH provoca el SIDA y por qué no hay vacuna. (Pregunta tipo PAU)", [
+    { t: "Retrovirus; transcriptasa inversa copia el ARN a ADN que se integra", p: 0.5 },
+    { t: "Infecta y destruye linfocitos T colaboradores (CD4)", p: 0.5 },
+    { t: "Sin T colaboradores fallan respuesta humoral y celular → infecciones oportunistas", p: 0.5 },
+    { t: "Sin vacuna por la alta mutación (transcriptasa inversa sin corrección)", p: 0.4 },
+    { t: "Transmisión: sangre, sexual, vertical", p: 0.1 }], ["Virus.", "Diana.", "Consecuencia.", "Vacuna."], "Destruye los T colaboradores");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Innata y adaptativa", ancha: true,
+      tabla: { cab: ["Rasgo", "Innata", "Adaptativa"], filas: [
+        ["reconocimiento", "inespecífico", "específico (epítopo)"],
+        ["rapidez", "minutos u horas", "días; rápida la 2.ª vez"],
+        ["memoria", "no", "sí"],
+        ["protagonistas", "fagocitos, NK, complemento", "linfocitos B y T"]
+      ] } },
+    { titulo: "Respuesta humoral",
+      pasos: ["El linfocito B reconoce al antígeno.", "El T colaborador lo activa (MHC-II).", "El B se divide (clon).", "Células plasmáticas: anticuerpos.", "Células de memoria."],
+      nota: "Humoral = B + anticuerpos; celular = Tc." },
+    { titulo: "Anticuerpo", ancha: true,
+      tabla: { cab: ["Parte", "Función"], filas: [
+        ["2 cadenas pesadas + 2 ligeras", "estructura en Y (puentes S–S)"],
+        ["región variable", "une el antígeno (2 sitios)"],
+        ["región constante (Fc)", "clase; fagocitos y complemento"]
+      ] } },
+    { titulo: "Primaria frente a secundaria", ancha: true,
+      tabla: { cab: ["", "Primaria", "Secundaria"], filas: [
+        ["latencia", "5–10 días", "1–3 días"],
+        ["cantidad", "baja", "≈ 10 veces más"],
+        ["clase", "IgM → IgG", "sobre todo IgG"],
+        ["memoria", "se forma", "actúa"]
+      ] } },
+    { titulo: "Tipos de inmunidad", ancha: true,
+      tabla: { cab: ["", "Activa", "Pasiva"], filas: [
+        ["natural", "infección", "placenta y leche"],
+        ["artificial", "vacuna", "suero"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Los anticuerpos los fabrican los linfocitos T", bien: "Las células plasmáticas (de linfocitos B)", por: "Los T actúan como Tc o Th." },
+        { mal: "La vacuna contiene anticuerpos", bien: "Contiene antígeno y genera memoria", por: "Los anticuerpos ya hechos son el suero." },
+        { mal: "El SIDA y el VIH son lo mismo", bien: "VIH es el virus; el SIDA es la enfermedad", por: "Se puede ser VIH+ sin tener SIDA." },
+        { mal: "Un receptor AB tiene anti-A y anti-B", bien: "No tiene ninguno de los dos", por: "Tiene los antígenos A y B." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t15", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio15a.secciones,
+    nuevas: B.parte.bio15a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
