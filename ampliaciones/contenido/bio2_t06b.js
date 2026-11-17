@@ -30,7 +30,7 @@
       { t: "Teoría celular", frases: ["La célula es la <b>unidad estructural y funcional</b>.", "Toda célula procede de otra célula.", "Contiene el material hereditario."],
         tabla: { cab: ["Procariota", "Eucariota"], filas: [["ADN circular, nucleoide", "ADN lineal, en el núcleo"], ["sin orgánulos con membrana", "con orgánulos"], ["ribosomas 70S", "ribosomas 80S"]] } },
       { t: "Animal y vegetal", frases: ["La vegetal tiene <b>pared, cloroplastos y vacuola central</b>.", "La animal tiene <b>centriolos</b> y lisosomas."],
-        tabla: { cab: ["Animal", "Vegetal"], filas: [["heterótrofa", "autótrofa"], ["reserva: glucógeno", "reserva: almidón"], ["sin pared", "pared de celulosa"]] } },
+        tabla: { cab: ["Animal", "Vegetal"], filas: [["heterótrofa", "autótrofa"], ["reserva: glucógeno", "reserva: almidón"], ["sin pared", "pared de celulosa"], ["con centriolos", "sin ellos (plantas con flor)"]] } },
       { t: "Membrana", frases: ["<b>Mosaico fluido</b>: bicapa de fosfolípidos + proteínas móviles.", "El <b>colesterol</b> regula la fluidez.", "Azúcares solo en la cara externa (glucocálix)."] },
       { t: "Transporte", frases: ["Pasivo: <b>a favor</b> del gradiente, sin ATP.", "Activo: <b>en contra</b>, con ATP (bomba 3 Na⁺ / 2 K⁺).", "En masa: endocitosis y exocitosis."],
         tabla: { cab: ["Tipo", "Ejemplo"], filas: [["difusión simple", "O₂, CO₂"], ["difusión facilitada", "glucosa (permeasa)"], ["activo", "bomba Na⁺/K⁺"]] } },
