@@ -15,7 +15,7 @@
     s.textContent =
       ".bio12-svg{display:block;width:100%;max-width:580px;height:auto;margin:6px auto}" +
       ".bio12-svg text{font:600 12px var(--body,sans-serif);fill:var(--ink)}" +
-      ".bio12-svg .b12-peq{font-size:10.5px;fill:var(--ink-faint);font-weight:500}" +
+      ".bio12-svg .b12-peq{font-size:11.5px;fill:var(--ink-faint);font-weight:500}" +
       ".bio12-svg .b12-adn{fill:none;stroke:var(--ink-faint);stroke-width:4}" +
       ".bio12-svg .b12-exon{fill:var(--pen-soft);stroke:var(--pen);stroke-width:1.5}" +
       ".bio12-svg .b12-exon.sal{fill:var(--sheet-2);stroke:var(--line);stroke-dasharray:4 3}" +
@@ -116,28 +116,23 @@
       var molde = comp(cod);                                      // molde escrita 3'→5' bajo la codificante (complemento base a base)
       var arn = aARN(cod), tr = traducir(arn), n = tr.cod.length;
       sl.input.max = Math.max(0, n - 1); if (k > n - 1) { k = Math.max(0, n - 1); sl.set(k); }
-      var W = 560, x0 = 6, filas = tr.ini >= 0 ? tr.cod : [];
-      var s = '<svg class="bio12-svg" viewBox="0 0 ' + W + ' 170" role="img" aria-label="Ribosoma leyendo el ARNm">';
+      var filas = tr.ini >= 0 ? tr.cod : [];
+      var s = '<svg class="bio12-svg" viewBox="0 0 360 150" role="img" aria-label="Ribosoma leyendo el ARNm">';
       if (tr.ini < 0) {
-        s += '<text x="10" y="40">No hay codón AUG: el ribosoma no encuentra dónde empezar.</text>';
+        s += '<text x="10" y="40">Sin AUG: no hay dónde empezar.</text>';
       } else {
-        var cw = Math.min(70, (W - 20) / Math.max(1, filas.length)), xs = 10;
-        for (var i = 0; i < filas.length; i++) {
-          var a = aaDe(filas[i]), stop = a === "*", x = xs + i * cw;
-          s += '<rect class="b12-cod' + (i === k ? (stop ? " fin" : " act") : "") + '" x="' + (x + 2).toFixed(1) + '" y="86" width="' + (cw - 4).toFixed(1) + '" height="26" rx="5"/>' +
-            '<text x="' + (x + cw / 2).toFixed(1) + '" y="104" text-anchor="middle" style="font-size:' + (cw < 40 ? 9 : 12) + 'px">' + filas[i] + '</text>' +
-            '<text class="b12-peq" x="' + (x + cw / 2).toFixed(1) + '" y="128" text-anchor="middle">' + AA[a][0] + '</text>';
+        var cw = 56, xs = 12, ini = Math.max(0, Math.min(k - 2, filas.length - 6)), fin = Math.min(filas.length, ini + 6);
+        for (var i = ini; i < fin; i++) {
+          var a = aaDe(filas[i]), stop = a === "*", x = xs + (i - ini) * cw;
+          s += '<rect class="b12-cod' + (i === k ? (stop ? " fin" : " act") : "") + '" x="' + (x + 2) + '" y="78" width="' + (cw - 4) + '" height="28" rx="5"/>' +
+            '<text x="' + (x + cw / 2) + '" y="97" text-anchor="middle" style="font-size:13px">' + filas[i] + '</text>' +
+            '<text class="b12-peq" x="' + (x + cw / 2) + '" y="122" text-anchor="middle">' + AA[a][0] + '</text>';
         }
-        var xr = xs + k * cw + cw / 2;
-        s += '<rect class="b12-rib" x="' + (xr - 34).toFixed(1) + '" y="46" width="68" height="34" rx="14"/><text class="b12-peq" x="' + xr.toFixed(1) + '" y="38" text-anchor="middle">ribosoma</text>';
-        var cur = filas[k], ant = anticodon(cur), a2 = aaDe(cur);
-        if (a2 !== "*") {
-          s += '<rect class="b12-trna" x="' + (xr - 22).toFixed(1) + '" y="52" width="44" height="22" rx="6"/><text x="' + xr.toFixed(1) + '" y="67" text-anchor="middle" style="font-size:10px">' + ant + '</text>' +
-            '';
-        } else {
-          s += '<text class="b12-peq" x="' + xr.toFixed(1) + '" y="66" text-anchor="middle">sin ARNt</text>';
-        }
-        s += '<text class="b12-peq" x="10" y="150">ARNm: 5\' → 3\' (a partir del AUG)</text>';
+        var xr = xs + (k - ini) * cw + cw / 2, cur = filas[k], a2 = aaDe(cur);
+        s += '<rect class="b12-rib" x="' + (xr - 28) + '" y="26" width="56" height="42" rx="14"/><text class="b12-peq" x="' + xr + '" y="18" text-anchor="middle">ribosoma</text>';
+        if (a2 !== "*") s += '<rect class="b12-trna" x="' + (xr - 22) + '" y="38" width="44" height="22" rx="6"/><text x="' + xr + '" y="54" text-anchor="middle" style="font-size:12px">' + anticodon(cur) + '</text>';
+        else s += '<text class="b12-peq" x="' + xr + '" y="52" text-anchor="middle">sin ARNt</text>';
+        s += '<text class="b12-peq" x="12" y="142">codones ' + (ini + 1) + '–' + fin + ' de ' + filas.length + ' (desde el AUG, 5\'→3\')</text>';
       }
       s += '</svg>';
       dib.innerHTML = s;
@@ -180,25 +175,22 @@
     U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Paso", min: 0, max: 3, step: 1, val: 0, fmt: function (v) { return NOMP[Math.round(v)]; }, on: function (v) { paso = Math.round(v); pinta(); } });
     U.fichas(cuerpo.querySelector("[data-alt]"), [{ k: "-1", t: "Splicing normal" }, { k: "1", t: "Salta el exón 2" }, { k: "2", t: "Salta el exón 3" }], "-1", function (k) { omit = parseInt(k, 10); pinta(); });
     function pinta() {
-      var L = longitudes(omit), W = 540, s = '<svg class="bio12-svg" viewBox="0 0 560 150" role="img" aria-label="Maduración del ARNm">';
+      var L = longitudes(omit), s = '<svg class="bio12-svg" viewBox="0 0 400 112" role="img" aria-label="Maduración del ARNm">';
       var todos = [];                                      // piezas en orden: exón, intrón, exón…
       for (var i = 0; i < EXON.length; i++) { todos.push({ t: "e", n: i, l: EXON[i] }); if (i < INTR.length) todos.push({ t: "i", n: i, l: INTR[i] }); }
       var piezas = paso >= 3 ? todos.filter(function (p) { return p.t === "e"; }) : todos;
-      var x = paso >= 1 ? 40 : 20, y = 48;
+      var x = paso >= 1 ? 40 : 14, y = 34;
       if (paso >= 1) s += '<circle class="b12-cap" cx="24" cy="' + (y + 14) + '" r="9"/><text class="b12-peq" x="24" y="' + (y - 6) + '" text-anchor="middle">caperuza</text>';
       for (var j = 0; j < piezas.length; j++) {
-        var p = piezas[j], salta = paso >= 3 && p.t === "e" && omit === p.n, w = paso >= 3 ? p.l * 0.75 : Math.max(10, p.l * 400 / 1920);
+        var p = piezas[j], salta = paso >= 3 && p.t === "e" && omit === p.n, w = paso >= 3 ? p.l * 0.65 : Math.max(11, p.l * 300 / 1920);
         if (salta) continue;
         s += '<rect class="' + (p.t === "e" ? "b12-exon" : "b12-intron") + '" x="' + x.toFixed(1) + '" y="' + y + '" width="' + w.toFixed(1) + '" height="28" rx="4"/>' +
-          '<text class="b12-peq" x="' + (x + w / 2).toFixed(1) + '" y="' + (y + 18) + '" text-anchor="middle">' + (p.t === "e" ? "E" + (p.n + 1) : "I" + (p.n + 1)) + '</text>';
+          '<text class="b12-peq" x="' + (x + w / 2).toFixed(1) + '" y="' + (y + 18) + '" text-anchor="middle" style="font-size:' + (w < 14 ? 8 : 10.5) + 'px">' + (p.t === "e" ? "E" + (p.n + 1) : "I" + (p.n + 1)) + '</text>';
         x += w + 1;
       }
-      if (paso >= 2) {
-        var wp = 60;
-        s += '<rect class="b12-polya" x="' + (x + 2).toFixed(1) + '" y="' + (y + 8) + '" width="' + wp + '" height="12" rx="3"/><text class="b12-peq" x="' + (x + 2 + wp / 2).toFixed(1) + '" y="' + (y - 6) + '" text-anchor="middle">cola poli-A</text>';
-      }
-      if (paso >= 3 && omit >= 0) s += '<text class="b12-peq" x="20" y="116">Exón ' + (omit + 1) + ' omitido: se pierde con los intrones</text>';
-      s += '<text class="b12-peq" x="20" y="136">E = exón (codifica) · I = intrón (se elimina) · 5\' a la izquierda</text></svg>';
+      if (paso >= 2) s += '<rect class="b12-polya" x="' + (x + 3).toFixed(1) + '" y="' + (y + 8) + '" width="40" height="12" rx="3"/><text class="b12-peq" x="' + (x + 23).toFixed(1) + '" y="' + (y - 6) + '" text-anchor="middle">poli-A</text>';
+      if (paso >= 3 && omit >= 0) s += '<text class="b12-peq" x="14" y="86">Exón ' + (omit + 1) + ' omitido: se pierde con los intrones</text>';
+      s += '<text class="b12-peq" x="14" y="104">E = exón (se queda) · I = intrón (se elimina)</text></svg>';
       dib.innerHTML = s;
       var txt, cls = "bio12-veredicto";
       if (paso === 0) txt = "El pre-ARNm tiene " + B.fmt(L.pre, 0) + " nt: exones e intrones mezclados. Todavía no sirve para traducir.";
@@ -247,27 +239,27 @@
     U.fichas(cuerpo.querySelector("[data-op]"), [{ k: "lac", t: "Operón lac" }, { k: "trp", t: "Operón trp" }], op, function (k) { op = k; if (k === "trp") lac = false; else { lac = false; glu = true; geno = "wt"; } ctlPorOperon(); pinta(); });
     function genes(x, y, on, nombres) {
       var s = "";
-      for (var i = 0; i < nombres.length; i++) s += '<rect class="b12-gen' + (on ? " on" : "") + '" x="' + (x + i * 62) + '" y="' + y + '" width="58" height="26" rx="5"/><text x="' + (x + i * 62 + 29) + '" y="' + (y + 17) + '" text-anchor="middle" style="font-size:11px">' + nombres[i] + '</text>';
+      var paso = nombres.length === 3 ? 54 : 40, ancho = paso - 4;
+      for (var i = 0; i < nombres.length; i++) s += '<rect class="b12-gen' + (on ? " on" : "") + '" x="' + (x + i * paso) + '" y="' + y + '" width="' + ancho + '" height="24" rx="5"/><text x="' + (x + i * paso + ancho / 2) + '" y="' + (y + 16) + '" text-anchor="middle" style="font-size:11px">' + nombres[i] + '</text>';
       return s;
     }
     function pinta() {
       var st = op === "lac" ? estadoLac(glu, lac, geno) : estadoTrp(lac), s, on = st.nivel > 0;
-      s = '<svg class="bio12-svg" viewBox="0 0 560 175" role="img" aria-label="Operón">';
-      s += '<line class="b12-adn" x1="10" y1="100" x2="550" y2="100"/>';
+      s = '<svg class="bio12-svg" viewBox="0 0 340 164" role="img" aria-label="Operón">';
+      s += '<line class="b12-adn" x1="4" y1="100" x2="336" y2="100"/>';
       if (op === "lac") {
-        s += '<rect class="b12-gen" x="12" y="87" width="46" height="26" rx="5"/><text x="35" y="104" text-anchor="middle" style="font-size:11px">lacI</text>';
-        s += '<rect class="b12-prom" x="150" y="87" width="46" height="26" rx="5"/><text x="173" y="104" text-anchor="middle" style="font-size:10px">promotor</text>';
-        s += '<rect class="b12-op" x="198" y="87" width="40" height="26" rx="5"/><text x="218" y="104" text-anchor="middle" style="font-size:10px">operador</text>';
-        s += genes(244, 87, on, ["lacZ", "lacY", "lacA"]);
-        s += '<text class="b12-peq" x="244" y="140">β-galactosidasa · permeasa · transacetilasa</text>';
-        s += '<rect class="b12-prom" x="100" y="87" width="46" height="26" rx="5"/><text x="123" y="104" text-anchor="middle" style="font-size:10px">sitio CAP</text>';
-        var repSt = geno === "I" ? "ausente" : (st.bloquea ? "unido" : "libre");
-        if (geno === "I") s += '<text class="b12-peq" x="35" y="75" text-anchor="middle">sin represor funcional</text>';
-        else if (st.bloquea) s += '<rect class="b12-rep" x="196" y="56" width="44" height="28" rx="14"/><text x="218" y="74" text-anchor="middle" style="font-size:10px">represor</text>';
-        else s += '<rect class="b12-rep off" x="40" y="46" width="64" height="28" rx="14"/><text x="72" y="64" text-anchor="middle" style="font-size:10px">' + (lac ? "represor + alolactosa" : "represor") + '</text>';
-        if (st.cap) s += '<circle class="b12-pol" cx="123" cy="70" r="12"/><text class="b12-peq" x="123" y="52" text-anchor="middle">CAP-AMPc</text>';
-        if (on) s += '<rect class="b12-pol' + (st.nivel === 1 ? " debil" : "") + '" x="150" y="52" width="46" height="28" rx="10"/><text x="173" y="70" text-anchor="middle" style="font-size:10px">ARN pol</text>' +
-          '<path class="b12-mrna" d="M300 84 C 380 60, 440 60, 540 70"/><text class="b12-peq" x="500" y="56" text-anchor="middle">ARNm</text>';
+        s += '<rect class="b12-gen" x="4" y="88" width="36" height="24" rx="5"/><text x="22" y="104" text-anchor="middle" style="font-size:11px">lacI</text>';
+        s += '<rect class="b12-prom" x="56" y="88" width="36" height="24" rx="5"/><text x="74" y="104" text-anchor="middle" style="font-size:11px">CAP</text>';
+        s += '<rect class="b12-prom" x="94" y="88" width="34" height="24" rx="5"/><text x="111" y="104" text-anchor="middle" style="font-size:11px">P</text>';
+        s += '<rect class="b12-op" x="130" y="88" width="34" height="24" rx="5"/><text x="147" y="104" text-anchor="middle" style="font-size:11px">O</text>';
+        s += genes(168, 88, on, ["lacZ", "lacY", "lacA"]);
+        s += '<text class="b12-peq" x="4" y="127">lacZ β-galactosidasa · lacY permeasa</text><text class="b12-peq" x="4" y="141">lacA transacetilasa · P promotor · O operador</text><text class="b12-peq" x="4" y="155">CAP = sitio de unión de CAP-AMPc</text>';
+        if (geno === "I") s += '<text class="b12-peq" x="4" y="76">sin represor funcional</text>';
+        else if (st.bloquea) s += '<rect class="b12-rep" x="120" y="58" width="54" height="26" rx="13"/><text x="147" y="75" text-anchor="middle" style="font-size:11px">represor</text>';
+        else s += '<rect class="b12-rep off" x="4" y="24" width="54" height="26" rx="13"/><text x="31" y="41" text-anchor="middle" style="font-size:11px">represor</text>' + (lac ? '<text class="b12-peq" x="62" y="41">+ alolactosa</text>' : '');
+        if (st.cap) s += '<circle class="b12-pol" cx="74" cy="72" r="11"/><text class="b12-peq" x="92" y="56" text-anchor="middle">CAP-AMPc</text>';
+        if (on) s += '<rect class="b12-pol' + (st.nivel === 1 ? " debil" : "") + '" x="92" y="58" width="38" height="24" rx="10"/><text x="111" y="74" text-anchor="middle" style="font-size:10px">ARNpol</text>' +
+          '<path class="b12-mrna" d="M170 84 C 220 56, 280 56, 334 66"/><text class="b12-peq" x="296" y="50" text-anchor="middle">ARNm</text>';
         dat.innerHTML = '<div><b>Represor</b>' + (geno === "I" ? 'no funcional' : st.bloquea ? 'unido al operador (bloquea)' : (lac ? 'inactivo: la alolactosa lo ha soltado' : 'libre')) + '</div>' +
           '<div><b>CAP-AMPc</b>' + (st.cap ? 'unido: ayuda a la ARN polimerasa' : 'no actúa (hay glucosa, poco AMPc)') + '</div>' +
           '<div class="ancho"><b>Genes lacZ, lacY, lacA</b>' + NIV[st.nivel] + '</div>';
@@ -278,14 +270,14 @@
         else ver.textContent = "El operador alterado no reconoce al represor (aunque sea normal): el operón está siempre encendido, haya o no lactosa. El mutante afecta solo al ADN que lleva el operador (actúa en cis).";
         ver.className = "bio12-veredicto" + (st.nivel === 2 ? " ok" : st.nivel === 0 ? " mal" : "");
       } else {
-        s += '<rect class="b12-gen" x="12" y="87" width="46" height="26" rx="5"/><text x="35" y="104" text-anchor="middle" style="font-size:11px">trpR</text>';
-        s += '<rect class="b12-prom" x="150" y="87" width="46" height="26" rx="5"/><text x="173" y="104" text-anchor="middle" style="font-size:10px">promotor</text>';
-        s += '<rect class="b12-op" x="198" y="87" width="40" height="26" rx="5"/><text x="218" y="104" text-anchor="middle" style="font-size:10px">operador</text>';
-        s += genes(244, 87, on, ["trpE", "trpD", "trpC", "trpB", "trpA"]);
-        s += '<text class="b12-peq" x="244" y="140">enzimas que fabrican triptófano</text>';
-        if (st.bloquea) s += '<rect class="b12-rep" x="196" y="56" width="44" height="28" rx="14"/><text x="218" y="74" text-anchor="middle" style="font-size:10px">represor + Trp</text>';
-        else s += '<rect class="b12-rep off" x="40" y="46" width="64" height="28" rx="14"/><text x="72" y="64" text-anchor="middle" style="font-size:10px">represor inactivo</text>';
-        if (on) s += '<rect class="b12-pol" x="150" y="52" width="46" height="28" rx="10"/><text x="173" y="70" text-anchor="middle" style="font-size:10px">ARN pol</text><path class="b12-mrna" d="M360 84 C 420 60, 480 60, 545 70"/><text class="b12-peq" x="500" y="56" text-anchor="middle">ARNm</text>';
+        s += '<rect class="b12-gen" x="4" y="88" width="36" height="24" rx="5"/><text x="22" y="104" text-anchor="middle" style="font-size:11px">trpR</text>';
+        s += '<rect class="b12-prom" x="70" y="88" width="34" height="24" rx="5"/><text x="87" y="104" text-anchor="middle" style="font-size:11px">P</text>';
+        s += '<rect class="b12-op" x="106" y="88" width="30" height="24" rx="5"/><text x="121" y="104" text-anchor="middle" style="font-size:11px">O</text>';
+        s += genes(140, 88, on, ["trpE", "trpD", "trpC", "trpB", "trpA"]);
+        s += '<text class="b12-peq" x="4" y="128">trpE a trpA: enzimas que fabrican triptófano</text><text class="b12-peq" x="4" y="144">P = promotor · O = operador</text>';
+        if (st.bloquea) s += '<rect class="b12-rep" x="86" y="56" width="70" height="26" rx="13"/><text x="121" y="73" text-anchor="middle" style="font-size:11px">represor+Trp</text>';
+        else s += '<rect class="b12-rep off" x="4" y="24" width="70" height="26" rx="13"/><text x="39" y="41" text-anchor="middle" style="font-size:11px">represor</text><text class="b12-peq" x="80" y="41">inactivo</text>';
+        if (on) s += '<rect class="b12-pol" x="68" y="58" width="38" height="24" rx="10"/><text x="87" y="74" text-anchor="middle" style="font-size:10px">ARNpol</text><path class="b12-mrna" d="M200 84 C 240 56, 290 56, 334 66"/><text class="b12-peq" x="296" y="50" text-anchor="middle">ARNm</text>';
         dat.innerHTML = '<div><b>Represor</b>' + (st.bloquea ? 'activado por el triptófano: se une al operador' : 'inactivo (sin triptófano no se une)') + '</div>' +
           '<div><b>Genes trpE a trpA</b>' + NIV[st.nivel] + '</div>';
         ver.className = "bio12-veredicto" + (st.nivel === 2 ? " ok" : " mal");
