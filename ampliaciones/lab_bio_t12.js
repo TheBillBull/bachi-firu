@@ -98,7 +98,7 @@
       '<p class="w-pie">Hebra codificante: tiene la misma secuencia que el ARNm (con T en lugar de U). Hebra molde: la que lee la ARN polimerasa (complementaria y antiparalela). El ribosoma empieza en el primer AUG y termina en un codón de parada.</p>';
     var hebra = "cod", seq = PRE.corto.s, k = 0, ultimaPre = "corto";
     var inp = cuerpo.querySelector("input"), dib = cuerpo.querySelector(".bio12-dibujo"), dat = cuerpo.querySelector(".bio12-dato"), ver = cuerpo.querySelector(".bio12-veredicto");
-    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Codón en el ribosoma", min: 0, max: 5, step: 1, val: 0, fmt: function (v) { return "n.º " + (Math.round(v) + 1); }, on: function (v) { k = Math.round(v); pinta(); } });
+    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Codón", min: 0, max: 5, step: 1, val: 0, fmt: function (v) { return "n.º " + (Math.round(v) + 1); }, on: function (v) { k = Math.round(v); pinta(); } });
     U.fichas(cuerpo.querySelector("[data-pre]"), Object.keys(PRE).map(function (x) { return { k: x, t: PRE[x].t }; }), "corto", function (x) {
       ultimaPre = x; hebra = "cod"; seq = PRE[x].s; inp.value = seq; k = 0; sl.set(0);
       cuerpo.querySelectorAll("[data-hebra] .chip-btn").forEach(function (c) { var on = c.getAttribute("data-k") === "cod"; c.classList.toggle("on", on); c.setAttribute("aria-pressed", on); });
@@ -176,7 +176,7 @@
       '<p class="w-pie">Modelo de ejemplo: 4 exones (90, 120, 60 y 150 nt) y 3 intrones (400, 800 y 300 nt). La cola poli-A se cuenta como 200 A. La caperuza no suma longitud en este modelo. Los exones se cuentan de 3 en 3 para saber cuántos aminoácidos codifican.</p>';
     var paso = 0, omit = -1;
     var dib = cuerpo.querySelector(".bio12-dibujo"), dat = cuerpo.querySelector(".bio12-dato"), ver = cuerpo.querySelector(".bio12-veredicto");
-    var NOMP = ["Pre-ARNm recién transcrito", "1. Caperuza en el extremo 5'", "2. Cola poli-A en el extremo 3'", "3. Splicing: se eliminan los intrones"];
+    var NOMP = ["0. Pre-ARNm", "1. Caperuza", "2. Poli-A", "3. Splicing"];
     U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Paso", min: 0, max: 3, step: 1, val: 0, fmt: function (v) { return NOMP[Math.round(v)]; }, on: function (v) { paso = Math.round(v); pinta(); } });
     U.fichas(cuerpo.querySelector("[data-alt]"), [{ k: "-1", t: "Splicing normal" }, { k: "1", t: "Salta el exón 2" }, { k: "2", t: "Salta el exón 3" }], "-1", function (k) { omit = parseInt(k, 10); pinta(); });
     function pinta() {
@@ -187,7 +187,7 @@
       var x = paso >= 1 ? 40 : 20, y = 48;
       if (paso >= 1) s += '<circle class="b12-cap" cx="24" cy="' + (y + 14) + '" r="9"/><text class="b12-peq" x="24" y="' + (y - 6) + '" text-anchor="middle">caperuza</text>';
       for (var j = 0; j < piezas.length; j++) {
-        var p = piezas[j], salta = paso >= 3 && p.t === "e" && omit === p.n, w = paso >= 3 ? p.l * 0.75 : Math.max(10, p.l * 400 / 2120);
+        var p = piezas[j], salta = paso >= 3 && p.t === "e" && omit === p.n, w = paso >= 3 ? p.l * 0.75 : Math.max(10, p.l * 400 / 1920);
         if (salta) continue;
         s += '<rect class="' + (p.t === "e" ? "b12-exon" : "b12-intron") + '" x="' + x.toFixed(1) + '" y="' + y + '" width="' + w.toFixed(1) + '" height="28" rx="4"/>' +
           '<text class="b12-peq" x="' + (x + w / 2).toFixed(1) + '" y="' + (y + 18) + '" text-anchor="middle">' + (p.t === "e" ? "E" + (p.n + 1) : "I" + (p.n + 1)) + '</text>';
