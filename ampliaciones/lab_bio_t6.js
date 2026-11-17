@@ -55,13 +55,17 @@
       ".bio6-pres span{padding:4px 9px;border-radius:999px;border:1.5px solid var(--line);font-size:13px;color:var(--ink);background:var(--sheet)}" +
       ".bio6-pres span.si{border-color:var(--ok);background:var(--ok-soft)}" +
       ".bio6-pres span.no{color:var(--ink-faint);text-decoration:line-through}" +
+      ".bio6-lect{margin:6px 0;font-size:15px;color:var(--ink)}" +
       ".bio6-botones{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}" +
       "@media(max-width:520px){.bio6-dato{grid-template-columns:1fr}}";
     document.head.appendChild(s);
   })();
 
   function f1(x) { return B.fmt(x, 1); }
-  function grp(k, inner) { return '<g class="b6-o" data-k="' + k + '" tabindex="0" role="button" aria-label="' + k + '">' + inner + "</g>"; }
+  function grp(k, inner, h) {
+    var area = h ? '<rect x="' + h[0] + '" y="' + h[1] + '" width="' + h[2] + '" height="' + h[3] + '" fill="transparent" pointer-events="all"/>' : "";
+    return '<g class="b6-o" data-k="' + k + '" tabindex="0" role="button" aria-label="' + k + '">' + area + inner + "</g>";
+  }
   function pts(lista, cl) { return lista.map(function (p) { return '<circle class="' + cl + '" cx="' + p[0] + '" cy="' + p[1] + '" r="2.6"/>'; }).join(""); }
 
   // ------------------------------------------------------------------ 1. ¿QUÉ HAY DENTRO DE LA CÉLULA?
@@ -98,13 +102,13 @@
       o += grp("cito", '<path class="b6-cito" d="M105 70 L52 42 M120 150 L72 190 M160 150 L150 205 M70 105 L18 112 M190 60 L230 22"/>');
       o += grp("nuc", '<circle class="b6-nuc" cx="115" cy="105" r="42"/>');
       o += grp("nucleolo", '<circle class="b6-nu" cx="106" cy="98" r="12"/>');
-      o += grp("rer", '<path class="b6-rer" d="M165 62 q16 8 0 16 t0 16 t0 16 t0 16"/><path class="b6-rer" d="M180 62 q16 8 0 16 t0 16 t0 16 t0 16"/>' + pts([[172, 60], [172, 126], [187, 60], [187, 126]], "b6-pt"));
+      o += grp("rer", '<path class="b6-rer" d="M165 62 q16 8 0 16 t0 16 t0 16 t0 16"/><path class="b6-rer" d="M180 62 q16 8 0 16 t0 16 t0 16 t0 16"/>' + pts([[172, 60], [172, 126], [187, 60], [187, 126]], "b6-pt"), [160, 56, 40, 76]);
       o += grp("ribo", pts([[60, 150], [75, 160], [140, 168], [150, 40], [225, 160], [95, 170], [200, 40]], "b6-pt"));
-      o += grp("rel", '<path class="b6-rel" d="M190 150 q14 -12 28 0 t28 0 t28 0 M200 168 q14 -12 28 0 t28 0"/>');
-      o += grp("golgi", '<path class="b6-gol" d="M215 80 q22 -9 44 0"/><path class="b6-gol" d="M213 91 q24 -9 48 0"/><path class="b6-gol" d="M213 102 q24 -9 48 0"/><path class="b6-gol" d="M215 113 q22 -9 44 0"/>');
+      o += grp("rel", '<path class="b6-rel" d="M190 150 q14 -12 28 0 t28 0 t28 0 M200 168 q14 -12 28 0 t28 0"/>', [186, 138, 86, 40]);
+      o += grp("golgi", '<path class="b6-gol" d="M215 80 q22 -9 44 0"/><path class="b6-gol" d="M213 91 q24 -9 48 0"/><path class="b6-gol" d="M213 102 q24 -9 48 0"/><path class="b6-gol" d="M215 113 q22 -9 44 0"/>', [208, 70, 58, 52]);
       o += grp("liso", '<circle class="b6-liso" cx="272" cy="138" r="10"/><circle class="b6-liso" cx="284" cy="116" r="6"/>');
       o += grp("mito", '<ellipse class="b6-mito" cx="70" cy="170" rx="24" ry="12"/><path class="b6-cr" d="M54 170 l5 -7 l5 7 l5 -7 l5 7 l5 -7 l5 7 l5 -7"/><ellipse class="b6-mito" cx="215" cy="190" rx="22" ry="11"/><path class="b6-cr" d="M200 190 l5 -6 l5 6 l5 -6 l5 6 l5 -6 l5 6"/>');
-      o += grp("cent", '<rect class="b6-cent" x="150" y="182" width="16" height="6" rx="2"/><rect class="b6-cent" x="154" y="168" width="6" height="16" rx="2"/>');
+      o += grp("cent", '<rect class="b6-cent" x="150" y="182" width="16" height="6" rx="2"/><rect class="b6-cent" x="154" y="168" width="6" height="16" rx="2"/>', [146, 164, 24, 28]);
     } else if (tipo === "vegetal") {
       o += grp("pared", '<rect class="b6-pared" x="6" y="6" width="308" height="218" rx="18"/>');
       o += grp("mem", '<rect class="b6-m" x="14" y="14" width="292" height="202" rx="14"/>');
@@ -112,10 +116,10 @@
       o += grp("cito", '<path class="b6-cito" d="M30 30 L52 60 M190 30 L215 38 M300 110 L282 130 M30 200 L55 180"/>');
       o += grp("nuc", '<circle class="b6-nuc" cx="248" cy="62" r="30"/>');
       o += grp("nucleolo", '<circle class="b6-nu" cx="242" cy="58" r="9"/>');
-      o += grp("rer", '<path class="b6-rer" d="M200 108 q8 12 16 0 t16 0 t16 0 t16 0"/><path class="b6-rer" d="M200 122 q8 12 16 0 t16 0 t16 0 t16 0"/>');
+      o += grp("rer", '<path class="b6-rer" d="M200 108 q8 12 16 0 t16 0 t16 0 t16 0"/><path class="b6-rer" d="M200 122 q8 12 16 0 t16 0 t16 0 t16 0"/>', [196, 100, 76, 36]);
       o += grp("ribo", pts([[40, 120], [28, 150], [160, 28], [195, 90], [290, 90], [180, 205], [40, 40]], "b6-pt"));
-      o += grp("rel", '<path class="b6-rel" d="M195 140 q10 -10 20 0 t20 0 t20 0"/>');
-      o += grp("golgi", '<path class="b6-gol" d="M200 168 q18 -8 36 0"/><path class="b6-gol" d="M198 178 q20 -8 40 0"/><path class="b6-gol" d="M198 188 q20 -8 40 0"/><path class="b6-gol" d="M200 198 q18 -8 36 0"/>');
+      o += grp("rel", '<path class="b6-rel" d="M195 140 q10 -10 20 0 t20 0 t20 0"/>', [190, 128, 70, 22]);
+      o += grp("golgi", '<path class="b6-gol" d="M200 168 q18 -8 36 0"/><path class="b6-gol" d="M198 178 q20 -8 40 0"/><path class="b6-gol" d="M198 188 q20 -8 40 0"/><path class="b6-gol" d="M200 198 q18 -8 36 0"/>', [194, 156, 50, 52]);
       o += grp("mito", '<ellipse class="b6-mito" cx="272" cy="148" rx="17" ry="9"/><path class="b6-cr" d="M259 148 l4 -5 l4 5 l4 -5 l4 5 l4 -5 l4 5"/>');
       o += grp("cloro", '<ellipse class="b6-cloro" cx="270" cy="192" rx="24" ry="12"/><rect class="b6-gr" x="258" y="187" width="6" height="9"/><rect class="b6-gr" x="268" y="187" width="6" height="9"/><rect class="b6-gr" x="278" y="187" width="6" height="9"/><ellipse class="b6-cloro" cx="38" cy="95" rx="12" ry="22"/><rect class="b6-gr" x="33" y="84" width="9" height="6"/><rect class="b6-gr" x="33" y="94" width="9" height="6"/>');
     } else {
@@ -196,11 +200,12 @@
       s += '<path class="b6-flecha" d="M160 126 L160 40"/><path class="b6-flecha" d="M152 50 L160 38 L168 50"/><text x="170" y="64">Na⁺ sale</text>';
       s += conATP ? '<text x="196" y="146">ATP → ADP + Pᵢ</text>' : '<text x="196" y="146" style="fill:var(--red)">sin ATP: parada</text>';
     } else {
-      s += '<path class="b6-col" d="M2 100 H96 q22 0 22 -14 q0 -16 -22 -16 q-22 0 -22 16"/>';
-      s += '<circle class="b6-cab" cx="96" cy="86" r="0"/><ellipse class="b6-prot" cx="120" cy="140" rx="22" ry="20"/><text x="120" y="144" text-anchor="middle" style="font-size:10px">vesícula</text>';
-      s += '<path class="b6-flecha" d="M96 48 L106 118"/><path class="b6-flecha" d="M97 108 L106 120 L112 107"/><text x="40" y="30">endocitosis</text>';
-      s += '<ellipse class="b6-prot" cx="236" cy="140" rx="22" ry="20"/><path class="b6-flecha" d="M236 118 L236 60"/><path class="b6-flecha" d="M229 70 L236 58 L243 70"/><text x="246" y="40">exocitosis</text>';
-      s += pts([[40, 150]], "b6-par");
+      s += '<circle class="b6-par" cx="70" cy="48" r="9"/><text x="86" y="52">partícula</text>';
+      s += '<path class="b6-flecha" d="M70 62 L70 126"/><path class="b6-flecha" d="M62 116 L70 128 L78 116"/><text x="14" y="34">endocitosis</text>';
+      s += '<circle class="b6-prot" cx="70" cy="152" r="21"/><circle class="b6-par" cx="70" cy="152" r="8"/><text x="96" y="156">vesícula</text>';
+      s += '<circle class="b6-prot" cx="250" cy="152" r="21"/>' + pts([[243, 148], [256, 156], [250, 142]], "b6-par");
+      s += '<path class="b6-flecha" d="M250 126 L250 56"/><path class="b6-flecha" d="M242 66 L250 54 L258 66"/>';
+      s += '<circle class="b6-par" cx="236" cy="38" r="4"/><circle class="b6-par" cx="264" cy="38" r="4"/><circle class="b6-par" cx="250" cy="26" r="4"/><text x="196" y="72" text-anchor="end">exocitosis</text>';
     }
     return s + "</svg>";
   }
@@ -209,7 +214,7 @@
     var cuerpo = B.caja(host, "Pruébalo", "Cuatro formas de cruzar la membrana");
     cuerpo.innerHTML = '<p class="w-intro">Elige el mecanismo y compara. Con el deslizador subes la concentración fuera y ves cómo responde la velocidad; con «Sin ATP» comprueba qué transportes se paran.</p>' +
       '<div data-tipo></div><div class="bio6-dib"></div><div class="bio6-dato"></div><div class="bio6-veredicto"></div>' +
-      '<div data-atp></div><div data-ctl></div><div class="w-plot"></div><div class="bio6-lect lectura anch"></div>' +
+      '<div data-atp></div><div data-ctl></div><div class="w-plot"></div><div class="bio6-lect"></div>' +
       '<p class="w-pie">Unidades arbitrarias: difusión simple v = 3·[S]; mecanismos con proteína v = 100·[S]/(2 + [S]), con [S] en mM.</p>';
     var tp = "simple", atp = true, S = 2;
     var dib = cuerpo.querySelector(".bio6-dib"), dat = cuerpo.querySelector(".bio6-dato"), ver = cuerpo.querySelector(".bio6-veredicto"), plot = cuerpo.querySelector(".w-plot"), lect = cuerpo.querySelector(".bio6-lect");
@@ -241,7 +246,7 @@
       if (tp === "activo" && !atp) g.segmento(0, 0, 20, 0, { clase: "c-red" });
       g.punto(S, v, { clase: "c-red" });
       if (tp !== "simple") g.horizontal(VMAX, { clase: "c-faint" });
-      g.texto(19.8, VMAX + 2, "Vmax", { ancla: "end", clase: "c-faint" });
+      g.texto(19.8, VMAX - 8, "Vmax", { ancla: "end", clase: "c-faint" });
       lect.innerHTML = "[S] = " + f1(S) + " mM → <b>v = " + f1(v) + " u. a.</b>" + (tp !== "simple" ? " (" + f1(v / VMAX * 100) + " % de V<sub>max</sub>)" : "");
     }
     pinta();
@@ -274,7 +279,7 @@
     s += c("gol", '<path class="b6-gol" d="M165 82 q25 -10 50 0"/><path class="b6-gol" d="M163 94 q27 -10 54 0"/><path class="b6-gol" d="M163 106 q27 -10 54 0"/><path class="b6-gol" d="M165 118 q25 -10 50 0"/><text x="190" y="140" text-anchor="middle">Golgi</text><text x="156" y="76" style="font-size:9px">cis</text><text x="214" y="76" style="font-size:9px">trans</text>');
     s += c("v2", '<circle class="b6-liso" cx="238" cy="95" r="8"/>');
     s += c("v3", '<circle class="b6-liso" cx="200" cy="155" r="9"/><text x="200" y="182" text-anchor="middle" style="font-size:10px">lisosoma</text>');
-    s += c("mem", '<path class="b6-m" d="M285 6 V194" style="stroke-width:7"/><text x="284" y="14" text-anchor="end" style="font-size:10px">membrana</text><text x="294" y="30" style="font-size:10px">exterior</text>');
+    s += c("mem", '<path class="b6-m" d="M285 6 V194" style="stroke-width:7"/><text x="276" y="14" text-anchor="end" style="font-size:10px">membrana</text><text x="316" y="30" text-anchor="end" style="font-size:10px">exterior</text>');
     s += '<circle class="b6-dot" cx="' + x + '" cy="' + y + '" r="5.5"/></svg>';
     return s;
   }
