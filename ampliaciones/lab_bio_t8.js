@@ -22,16 +22,16 @@
       ".bio8-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
       ".bio8-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
       ".bio8-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
-      ".bio8-tab{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px;color:var(--ink)}" +
+      ".bio8-tab{width:100%;table-layout:fixed;overflow-wrap:anywhere;border-collapse:collapse;margin:8px 0;font-size:14px;color:var(--ink)}" +
       ".bio8-tab th,.bio8-tab td{border:1.5px solid var(--line);padding:5px 8px;text-align:center}" +
       ".bio8-tab th{background:var(--sheet-2);font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-faint)}" +
-      ".bio8-tab td:first-child{text-align:left}" +
+      ".bio8-tab td:first-child{text-align:left;width:34%}" +
       ".bio8-tab tr.tot td{font-weight:700;background:var(--pen-soft)}" +
       ".bio8-med{margin:6px 0}" +
       ".bio8-med span{display:block;font-size:13px;color:var(--ink-faint);margin-top:6px}" +
       ".bio8-bar{height:16px;border:1.5px solid var(--line);border-radius:8px;background:var(--sheet);overflow:hidden}" +
       ".bio8-bar i{display:block;height:100%;background:var(--pen)}" +
-      "@media(max-width:520px){.bio8-dato{grid-template-columns:1fr}.bio8-zonas{grid-template-columns:1fr}}";
+      "@media(max-width:520px){.bio8-tab{font-size:12px}.bio8-tab th,.bio8-tab td{padding:4px 3px}.bio8-tab th{font-size:10px;letter-spacing:0}.bio8-dato{grid-template-columns:1fr}.bio8-zonas{grid-template-columns:1fr}}";
     document.head.appendChild(s);
   })();
 
@@ -85,7 +85,7 @@
         nota: o.lanz === "glic" ? "Lanzadera del glicerol-fosfato (músculo, cerebro): los 2 NADH del citoplasma entregan sus electrones a FAD y valen como FADH₂." : "Lanzadera malato-aspartato (hígado, corazón): los 2 NADH del citoplasma entran como NADH y valen igual que los demás.", fer: false };
     }
     var n = o.n, a = n / 2, c = a - 1;
-    r = { filas: [["Activación del ácido graso", 0, 0, -2], ["β-oxidación (" + c + " vueltas)", c, c, 0], ["Krebs (" + a + " acetil-CoA)", 3 * a, a, a]], co2: n, o2: 3 * n / 2 - 1, c: n,
+    r = { filas: [["Activación", 0, 0, -2], ["β-oxid. (" + c + " vueltas)", c, c, 0], ["Krebs (" + a + " acetil)", 3 * a, a, a]], co2: n, o2: 3 * n / 2 - 1, c: n,
       nota: "Cada vuelta de la β-oxidación recorta 2 C (un acetil-CoA) y da 1 NADH y 1 FADH₂. La activación gasta el equivalente a 2 ATP." , fer: false };
     r.total = -2 + a + (c + 3 * a) * vN + (c + a) * vF;
     return r;
