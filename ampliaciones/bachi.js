@@ -3915,6 +3915,191 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 11 (Base molecular de la herencia)
+   bio_meselson:  el tubo de centrifugación de Meselson y Stahl, generación a generación, para los tres modelos.
+   bio_horquilla: la horquilla de replicación: hebra adelantada continua y retrasada en fragmentos de Okazaki (procariota o eucariota).
+   bio_telomeros: acortamiento de los telómeros con cada división (célula somática, madre y cancerosa).
+   Estilos inyectados desde aquí. Los números del modelo los recalcula herramientas/verificar_bio2_t11.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio11-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio11-estilos";
+    s.textContent =
+      ".bio11-svg{display:block;width:100%;max-width:560px;height:auto;margin:6px auto}" +
+      ".bio11-svg text{font:600 12px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio11-svg .b11-peq{font-size:10.5px;fill:var(--ink-faint);font-weight:500}" +
+      ".bio11-svg .b11-tubo{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio11-svg .b11-banda{fill:var(--pen)}" +
+      ".bio11-svg .b11-banda.mid{fill:#b07a1d}" +
+      ".bio11-svg .b11-banda.lig{fill:var(--ok)}" +
+      ".bio11-svg .b11-mol{fill:none;stroke:var(--ink-faint);stroke-width:2}" +
+      ".bio11-svg .b11-ant{stroke:var(--ink-faint);stroke-width:3;fill:none}" +
+      ".bio11-svg .b11-ad{stroke:var(--pen);stroke-width:4;fill:none}" +
+      ".bio11-svg .b11-ok{fill:var(--pen-soft);stroke:var(--pen);stroke-width:1.5}" +
+      ".bio11-svg .b11-now{fill:var(--red-soft);stroke:var(--red);stroke-width:2}" +
+      ".bio11-svg .b11-cebo{fill:var(--red)}" +
+      ".bio11-svg .b11-barra{fill:var(--pen)} .bio11-svg .b11-barra.mal{fill:var(--red)} .bio11-svg .b11-barra.ok{fill:var(--ok)}" +
+      ".bio11-svg .b11-fondo{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio11-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio11-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio11-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio11-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio11-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio11-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+      "@media(max-width:520px){.bio11-dato{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  // ------------------------------------------------------------------ MESELSON Y STAHL
+  var D15 = 1.724, D14 = 1.710, DMID = (D15 + D14) / 2;      // g/mL (valores del experimento original, redondeados)
+  function bandas(modelo, n) {
+    var f = Math.pow(0.5, n);
+    if (n === 0) return [{ d: D15, f: 1, c: "pes" }];
+    if (modelo === "con") return [{ d: D15, f: f, c: "pes" }, { d: D14, f: 1 - f, c: "lig" }];
+    if (modelo === "sem") return n === 1 ? [{ d: DMID, f: 1, c: "mid" }] : [{ d: DMID, f: 2 * f, c: "mid" }, { d: D14, f: 1 - 2 * f, c: "lig" }];
+    return [{ d: D14 + (D15 - D14) * f, f: 1, c: "mid" }];
+  }
+  function igual(a, b) {
+    if (a.length !== b.length) return false;
+    return a.every(function (x, i) { return Math.abs(x.d - b[i].d) < 1e-9 && Math.abs(x.f - b[i].f) < 1e-9; });
+  }
+  var NOM = { con: "conservativo", sem: "semiconservativo", dis: "dispersivo" };
+
+  B.w.bio_meselson = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "El tubo de Meselson y Stahl");
+    cuerpo.innerHTML = '<p class="w-intro">Elige un modelo y avanza las generaciones (cultivo en medio con <sup>14</sup>N, tras partir de ADN pesado). Cada tubo muestra dónde se queda el ADN al centrifugar: arriba el ligero, abajo el pesado. Compara con lo que se vio de verdad.</p>' +
+      '<div data-m></div><div data-ctl></div><div class="bio11-dibujo"></div><div class="bio11-dato"></div><div class="bio11-veredicto"></div>' +
+      '<p class="w-pie">Densidades de referencia: ADN <sup>15</sup>N = 1,724 g/mL y ADN <sup>14</sup>N = 1,710 g/mL; el híbrido queda en el punto medio (1,717). El grosor de cada banda es proporcional a la fracción de moléculas.</p>';
+    var mod = "sem", gen = 1;
+    var dib = cuerpo.querySelector(".bio11-dibujo"), dat = cuerpo.querySelector(".bio11-dato"), ver = cuerpo.querySelector(".bio11-veredicto");
+    U.fichas(cuerpo.querySelector("[data-m]"), [{ k: "con", t: "Conservativo" }, { k: "sem", t: "Semiconservativo" }, { k: "dis", t: "Dispersivo" }], mod, function (k) { mod = k; pinta(); });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Generación", min: 0, max: 4, step: 1, val: gen, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { gen = Math.round(v); pinta(); } });
+    function y(d) { return 34 + (d - 1.708) / (1.726 - 1.708) * 110; }
+    function pct(x) { return B.fmt(100 * x, 1) + " %"; }
+    function pinta() {
+      var s = '<svg class="bio11-svg" viewBox="0 0 400 190" role="img" aria-label="Tubos de centrifugación por generación" style="max-width:440px">' +
+        '<text class="b11-peq" x="4" y="32">ligero ↑</text><text class="b11-peq" x="4" y="165">pesado ↓</text>';
+      for (var g = 0; g <= gen; g++) {
+        var x = 62 + g * 66;
+        s += '<rect class="b11-tubo" x="' + x + '" y="20" width="44" height="150" rx="14"/>';
+        bandas(mod, g).forEach(function (b) {
+          var h = 3 + 14 * b.f, yy = y(b.d);
+          s += '<rect class="b11-banda ' + b.c + '" x="' + (x + 3) + '" y="' + (yy - h / 2).toFixed(1) + '" width="38" height="' + h.toFixed(1) + '" rx="3"/>';
+        });
+        s += '<text x="' + (x + 22) + '" y="184" text-anchor="middle">' + (g === 0 ? "gen. 0" : "gen. " + g) + '</text>';
+      }
+      dib.innerHTML = s + "</svg>";
+      var bs = bandas(mod, gen);
+      var nom = { pes: "pesado (¹⁵N-¹⁵N)", mid: "intermedio (híbrido)", lig: "ligero (¹⁴N-¹⁴N)" };
+      dat.innerHTML = '<div><b>Bandas en el tubo</b>' + bs.length + '</div>' +
+        '<div><b>Qué hay</b>' + bs.map(function (b) { return pct(b.f) + " " + nom[b.c]; }).join("; ") + '</div>';
+      var cls = "", t;
+      if (gen === 0) t = "Generación 0: todo el ADN es pesado (cultivo en ¹⁵N). Es el punto de partida; los tres modelos coinciden.";
+      else if (gen <= 2) {
+        var obs = bandas("sem", gen), coinc = igual(bs, obs);
+        t = "Generación " + gen + ": " + (gen === 1 ? "Meselson y Stahl vieron una sola banda intermedia." : "vieron dos bandas, intermedia y ligera, a partes iguales (50 % y 50 %).") + " El modelo " + NOM[mod] + (coinc ? " lo explica" : " NO lo explica") + ".";
+        cls = coinc ? " ok" : " mal";
+        if (coinc && mod === "dis") t += " (Por sí solo, este resultado no basta para descartarlo: lo descarta la generación 2.)";
+        if (!coinc && mod === "con") t += " Predice una banda pesada y otra ligera, nunca una intermedia.";
+        if (!coinc && mod === "dis") t += " Predice una única banda cada vez más ligera, sin banda totalmente ligera.";
+      } else t = "Generación " + gen + ": predicción del modelo " + NOM[mod] + " (no es la que decidió el experimento: ya en la generación 2 el semiconservativo era el único compatible).";
+      ver.className = "bio11-veredicto" + cls;
+      ver.textContent = t;
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ HORQUILLA DE REPLICACIÓN
+  var TIPOS = {
+    pro: { nom: "Procariota (E. coli)", frag: 1500, max: 6000, ini: 4500, paso: 100, ad: "ADN polimerasa III", fr: "1000-2000 nt" },
+    euc: { nom: "Eucariota", frag: 200, max: 2000, ini: 1000, paso: 50, ad: "ADN polimerasas δ y ε", fr: "100-200 nt" }
+  };
+  function recuento(tipo, L) {
+    var s = TIPOS[tipo].frag, tot = L > 0 ? Math.ceil(L / s) : 0;
+    return { total: tot, completos: Math.floor(L / s), cebadores: L > 0 ? tot + 1 : 0 };
+  }
+
+  B.w.bio_horquilla = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "La horquilla de replicación y los fragmentos de Okazaki");
+    cuerpo.innerHTML = '<p class="w-intro">Avanza la horquilla (nucleótidos ya replicados desde el origen). La hebra adelantada se hace de una vez; la retrasada, a trozos, y cada trozo necesita su cebador de ARN.</p>' +
+      '<div data-t></div><div data-ctl></div><div class="bio11-dibujo"></div><div class="bio11-dato"></div><div class="bio11-veredicto"></div>' +
+      '<p class="w-pie">Tamaños orientativos de los libros de texto: fragmentos de ≈ 1500 nt en procariotas y ≈ 200 nt en eucariotas. Cebadores = 1 (hebra adelantada) + 1 por fragmento de la retrasada.</p>';
+    var tipo = "euc", L = TIPOS.euc.ini;
+    var dib = cuerpo.querySelector(".bio11-dibujo"), dat = cuerpo.querySelector(".bio11-dato"), ver = cuerpo.querySelector(".bio11-veredicto");
+    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Replicado", min: 0, max: TIPOS.euc.max, step: TIPOS.euc.paso, val: L, fmt: function (v) { return B.fmt(v, 0) + " nt"; }, on: function (v) { L = v; pinta(); } });
+    U.fichas(cuerpo.querySelector("[data-t]"), [{ k: "euc", t: "Eucariota" }, { k: "pro", t: "Procariota" }], tipo, function (k) {
+      tipo = k; var t = TIPOS[k];
+      sl.input.max = t.max; sl.input.step = t.paso; L = t.ini; sl.set(L); pinta();
+    });
+    function pinta() {
+      var t = TIPOS[tipo], r = recuento(tipo, L), W = 300, x0 = 24, esc = W / t.max, xf = x0 + L * esc;
+      var s = '<svg class="bio11-svg" viewBox="0 0 400 190" role="img" aria-label="Horquilla de replicación" style="max-width:460px">' +
+        '<text class="b11-peq" x="4" y="14">origen</text><text class="b11-peq" x="396" y="14" text-anchor="end">ADN parental →</text>';
+      s += '<line class="b11-ant" x1="' + xf.toFixed(1) + '" y1="92" x2="392" y2="92"/><line class="b11-ant" x1="' + xf.toFixed(1) + '" y1="98" x2="392" y2="98"/>';
+      s += '<line class="b11-ant" x1="' + x0 + '" y1="50" x2="' + xf.toFixed(1) + '" y2="50"/><line class="b11-ant" x1="' + x0 + '" y1="140" x2="' + xf.toFixed(1) + '" y2="140"/>';
+      s += '<line class="b11-mol" x1="' + xf.toFixed(1) + '" y1="92" x2="' + xf.toFixed(1) + '" y2="50"/><line class="b11-mol" x1="' + xf.toFixed(1) + '" y1="98" x2="' + xf.toFixed(1) + '" y2="140"/>';
+      s += '<text class="b11-peq" x="' + x0 + '" y="43">molde de la hebra adelantada</text><text class="b11-peq" x="' + x0 + '" y="158">molde de la hebra retrasada</text>';
+      if (L > 0) s += '<line class="b11-ad" x1="' + x0 + '" y1="64" x2="' + xf.toFixed(1) + '" y2="64"/><polygon points="' + xf.toFixed(1) + ',64 ' + (xf - 8).toFixed(1) + ',59 ' + (xf - 8).toFixed(1) + ',69" fill="var(--pen)"/>' +
+        '<rect class="b11-cebo" x="' + (x0 - 3) + '" y="60" width="6" height="8"/>';
+      for (var i = 0; i < r.total; i++) {
+        var a = x0 + i * t.frag * esc, b = Math.min(xf, x0 + (i + 1) * t.frag * esc), ahora = i === r.total - 1 && L % t.frag !== 0;
+        s += '<rect class="' + (ahora ? "b11-now" : "b11-ok") + '" x="' + (a + 0.7).toFixed(1) + '" y="124" width="' + Math.max(1, b - a - 1.4).toFixed(1) + '" height="9" rx="2"/>' +
+          '<rect class="b11-cebo" x="' + (b - 4).toFixed(1) + '" y="124" width="4" height="9"/>';
+      }
+      s += '<text class="b11-peq" x="' + (xf + 4).toFixed(1) + '" y="86">helicasa</text>';
+      s += '<text class="b11-peq" x="4" y="170">rojo oscuro = cebador de ARN · azul = fragmento hecho</text><text class="b11-peq" x="4" y="184">rojo claro = fragmento en construcción</text></svg>';
+      dib.innerHTML = s;
+      dat.innerHTML = '<div><b>Hebra adelantada</b>' + B.fmt(L, 0) + ' nt, de una vez (1 cebador)</div>' +
+        '<div><b>Hebra retrasada</b>' + r.total + ' fragmento' + (r.total === 1 ? "" : "s") + ' de Okazaki' + (r.total > r.completos ? " (" + r.completos + " completo" + (r.completos === 1 ? "" : "s") + " y 1 en construcción)" : "") + '</div>' +
+        '<div><b>Cebadores de ARN</b>' + r.cebadores + '</div>' +
+        '<div><b>Enzima principal</b>' + t.ad + '</div>';
+      ver.className = "bio11-veredicto" + (L === 0 ? "" : " ok");
+      ver.textContent = L === 0 ? "La horquilla aún no ha empezado a avanzar." : "En " + t.nom.toLowerCase() + ", con fragmentos de " + t.fr + ": tras replicar " + B.fmt(L, 0) + " nt, la retrasada lleva " + r.total + " fragmento(s) y se han usado " + r.cebadores + " cebadores. Después se cambia cada cebador por ADN y la ligasa une los trozos.";
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ TELÓMEROS
+  var TEL = { ini: 10000, crit: 4000, tipos: {
+    som: { nom: "Célula somática", perd: 100, txt: "sin telomerasa" },
+    mad: { nom: "Célula madre", perd: 20, txt: "telomerasa poco activa" },
+    can: { nom: "Célula cancerosa", perd: 0, txt: "telomerasa muy activa" } } };
+  function longTel(tipo, d) { return TEL.ini - TEL.tipos[tipo].perd * d; }
+
+  B.w.bio_telomeros = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Telómeros: un contador de divisiones");
+    cuerpo.innerHTML = '<p class="w-intro">Cada vez que una célula copia su ADN lineal, pierde un trocito del extremo. Mira cómo cambia el telómero según el tipo de célula.</p>' +
+      '<div data-t></div><div data-ctl></div><div class="bio11-dibujo"></div><div class="bio11-dato"></div><div class="bio11-veredicto"></div>' +
+      '<p class="w-pie">Modelo de ejemplo (unidades de los libros): telómero inicial de 10 000 nt; la célula somática pierde 100 nt por división; por debajo de 4000 nt la célula deja de dividirse (senescencia). Los valores reales varían entre personas y tejidos.</p>';
+    var tipo = "som", d = 20;
+    var dib = cuerpo.querySelector(".bio11-dibujo"), dat = cuerpo.querySelector(".bio11-dato"), ver = cuerpo.querySelector(".bio11-veredicto");
+    U.fichas(cuerpo.querySelector("[data-t]"), [{ k: "som", t: "Somática" }, { k: "mad", t: "Madre" }, { k: "can", t: "Cancerosa" }], tipo, function (k) { tipo = k; pinta(); });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Divisiones", min: 0, max: 80, step: 1, val: d, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { d = Math.round(v); pinta(); } });
+    function pinta() {
+      var L = longTel(tipo, d), sen = L <= TEL.crit, tp = TEL.tipos[tipo];
+      var w = Math.max(0, 340 * L / TEL.ini), wc = 340 * TEL.crit / TEL.ini;
+      dib.innerHTML = '<svg class="bio11-svg" viewBox="0 0 400 90" role="img" aria-label="Longitud del telómero" style="max-width:440px">' +
+        '<rect class="b11-fondo" x="24" y="30" width="340" height="22" rx="6"/>' +
+        '<rect class="b11-barra ' + (sen ? "mal" : (tipo === "can" ? "ok" : "")) + '" x="24" y="30" width="' + w.toFixed(1) + '" height="22" rx="6"/>' +
+        '<line x1="' + (24 + wc).toFixed(1) + '" y1="22" x2="' + (24 + wc).toFixed(1) + '" y2="60" stroke="var(--red)" stroke-width="2" stroke-dasharray="4 3"/>' +
+        '<text class="b11-peq" x="' + (24 + wc).toFixed(1) + '" y="74" text-anchor="middle">límite crítico 4000 nt</text>' +
+        '<text class="b11-peq" x="24" y="22">telómero (TTAGGG repetido)</text></svg>';
+      dat.innerHTML = '<div><b>Tipo</b>' + tp.nom + ' (' + tp.txt + ')</div><div><b>Longitud del telómero</b>' + B.fmt(L, 0) + ' nt tras ' + d + ' divisiones</div>';
+      ver.className = "bio11-veredicto" + (sen ? " mal" : (tipo === "can" ? " ok" : ""));
+      if (sen) ver.textContent = "Senescencia: el telómero ya es demasiado corto y la célula somática deja de dividirse (límite de Hayflick, ≈ 60 divisiones en este modelo).";
+      else if (tipo === "can") ver.textContent = "La telomerasa repone lo que se pierde: el telómero no se acorta y la célula puede dividirse sin límite. Es una de las marcas del cáncer.";
+      else if (tipo === "mad") ver.textContent = "La telomerasa compensa casi todo el acortamiento: las células madre pueden dividirse muchas más veces que las somáticas.";
+      else ver.textContent = "Todavía quedan " + Math.floor((L - TEL.crit) / tp.perd) + " divisiones antes del límite crítico.";
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · Biología (2.º Bach.), tema 2: Glúcidos
    bio2_azucar: un monosacárido en cadena abierta (proyección de Fischer) y en anillo (Haworth), con anómeros α y β.
    bio2_disac: se eligen dos monosacáridos, se unen con enlace O-glucosídico (−H₂O) y sale el disacárido.
@@ -33860,6 +34045,654 @@
     vistazo: vistazo,
     secciones: B.parte.bio10a.secciones,
     nuevas: B.parte.bio10a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 11: Base molecular de la herencia
+   (parte A: teoría. Parte B, bio2_t11b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t11.js (bio_meselson, bio_horquilla, bio_telomeros).
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Experimentos de Griffith, Avery y Hershey-Chase: qué se hizo, qué se observó y qué se concluyó → sección 1.
+   2. Los tres modelos de replicación y el experimento de Meselson y Stahl (bandas del tubo por generación) → secciones 2 y 3 + widget bio_meselson.
+   3. Fracciones de ADN híbrido y ligero tras n generaciones; nº de moléculas y de hebras originales → sección 3.
+   4. Polaridad 5'→3', antiparalelismo, hebra adelantada y retrasada: dibujar e interpretar la horquilla → sección 4 + widget bio_horquilla.
+   5. Enzimas y proteínas (helicasa, topoisomerasa, SSB, primasa, ADN pol III y I, ligasa) y por qué hace falta un cebador → sección 4 y 6.
+   6. Diferencias procariotas/eucariotas (orígenes, velocidad, fragmentos, polimerasas, extremos) → sección 7.
+   7. Corrección de pruebas y reparación (exonucleasa, MMR, BER, NER, UV y xeroderma) → sección 8.
+   8. Problema del extremo, telómeros y telomerasa; envejecimiento y cáncer → sección 9 + widget bio_telomeros.
+   9. Cálculos: tiempo de replicación, nº de orígenes, nº de fragmentos de Okazaki y cebadores, Chargaff → secciones 7 y 9 + ejercicios.
+   10. Empaquetamiento: nucleosoma, histonas, cromatina y cromosoma → sección 5.
+   Convenciones declaradas: fragmentos de Okazaki de 1000-2000 nt (procariotas; se usa 1500) y 100-200 nt (eucariotas; se usa 200);
+   horquilla de unos 1000 nt/s (E. coli) y 50 nt/s (humana); errores 10⁻⁵ → 10⁻⁷ (corrección) → 10⁻⁹ (reparación de
+   apareamientos); telómero de 10 000 nt que pierde 100 nt por división; densidades de CsCl 1,724 (¹⁵N) y 1,710 (¹⁴N) g/mL.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t11/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }   // evita que el resaltador de variables tiña las fórmulas
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. ¿Cómo sabemos que el ADN es el material genético?
+  secciones[0] = env(
+    "<h5>Por qué se creía que eran las proteínas</h5>" +
+    "<p>En 1869 Miescher aisló del núcleo de las células una sustancia rica en fósforo, la «nucleína» (el ADN). Pero hasta mediados del siglo XX casi nadie pensaba que fuese el material hereditario: las <b>proteínas</b> están hechas con <b>20 aminoácidos</b> distintos y pueden tener infinitas formas, mientras que el ADN solo tiene <b>4 bases</b> y parecía demasiado «aburrido» para guardar tanta información. Para demostrar que el ADN es el material genético había que probar dos cosas: que <b>lleva la información</b> y que <b>es lo que se transmite</b> de una célula a otra.</p>" +
+    "<h5>Griffith (1928): el «principio transformante»</h5>" +
+    "<p>Griffith trabajaba con el neumococo (<i>Streptococcus pneumoniae</i>), la bacteria de una de las neumonías. Tiene dos cepas: la <b>S</b> («smooth», colonias lisas, con <b>cápsula</b> de polisacárido, <b>virulenta</b>) y la <b>R</b> («rough», colonias rugosas, sin cápsula, <b>no virulenta</b>, porque el sistema inmunitario la destruye). Inyectó ratones y obtuvo esto:</p>" +
+    tabla(["Inyección al ratón", "Resultado", "Qué indica"], [
+      ["Cepa R viva", "el ratón sobrevive", "la R es inofensiva"],
+      ["Cepa S viva", "el ratón muere", "la S es virulenta"],
+      ["Cepa S muerta por calor", "el ratón sobrevive", "la S muerta ya no hace daño"],
+      ["<b>R viva + S muerta por calor</b>", "<b>el ratón muere</b> y de su sangre se aíslan bacterias <b>S vivas</b>", "algo de la S muerta ha <b>transformado</b> a la R"]
+    ], "q3t") +
+    "<p>La última fila es la clave: las bacterias R habían adquirido, a partir de los restos de las S, la capacidad de fabricar cápsula, y además la <b>heredaban</b> (sus descendientes seguían siendo S). Griffith lo llamó <b>principio transformante</b>, pero no supo qué molécula era.</p>" +
+    "<h5>Avery, MacLeod y McCarty (1944): el principio transformante es ADN</h5>" +
+    "<p>Avery y su equipo hicieron un extracto de bacterias S muertas, lo purificaron y probaron qué pasaba si destruían cada tipo de molécula antes de mezclarlo con bacterias R vivas:</p>" +
+    tabla(["Tratamiento del extracto de S", "¿Siguen apareciendo bacterias S?", "Conclusión"], [
+      ["Proteasa (destruye proteínas)", "sí", "las proteínas no son"],
+      ["ARNasa (destruye ARN)", "sí", "el ARN no es"],
+      ["<b>ADNasa (destruye ADN)</b>", "<b>no</b>", "<b>el ADN es el principio transformante</b>"]
+    ], "q3t") +
+    "<p>Es un experimento de <b>eliminación</b>: se quita una sustancia cada vez y se mira cuál es imprescindible. Aun así, muchos científicos dudaron: «¿y si quedan restos de proteína?».</p>" +
+    "<h5>Hershey y Chase (1952): marcar el ADN y las proteínas por separado</h5>" +
+    "<p>Usaron el bacteriófago <b>T2</b>, un virus formado solo por <b>ADN</b> dentro de una cápside de <b>proteína</b>, que infecta a <i>E. coli</i>. La idea ingeniosa fue usar dos isótopos radiactivos: el <b>fósforo-32 (<sup>32</sup>P)</b>, que está en el ADN (cada nucleótido lleva un fosfato) y casi no está en las proteínas, y el <b>azufre-35 (<sup>35</sup>S)</b>, que está en algunas proteínas (cisteína y metionina) y no está en el ADN.</p>" +
+    "<ol>" +
+    "<li>Prepararon dos lotes de fagos: uno con el ADN marcado (<sup>32</sup>P) y otro con las proteínas marcadas (<sup>35</sup>S).</li>" +
+    "<li>Dejaron que cada lote infectase bacterias.</li>" +
+    "<li>Agitaron la mezcla en una batidora para soltar de la superficie de las bacterias lo que no hubiese entrado (las «cáscaras» de los virus).</li>" +
+    "<li>Centrifugaron: las bacterias, más pesadas, forman el <b>sedimento</b>; las cáscaras de los virus se quedan en el líquido de arriba, el <b>sobrenadante</b>.</li>" +
+    "</ol>" +
+    tabla(["Lote", "Radiactividad en el sobrenadante (fuera)", "Radiactividad en el sedimento (dentro de las bacterias)"], [
+      ["Proteínas con <sup>35</sup>S", "<b>la mayor parte</b>", "poca"],
+      ["ADN con <sup>32</sup>P", "poca", "<b>la mayor parte</b>"]
+    ], "q3t") +
+    "<p>Además, los fagos nuevos que salían de las bacterias del lote de <sup>32</sup>P llevaban parte de ese fósforo marcado, pero casi nada de <sup>35</sup>S. Conclusión: <b>lo que entra en la bacteria y dirige la fabricación de nuevos virus es el ADN</b>; la proteína se queda fuera. Hershey recibió el Nobel en 1969.</p>" +
+    ojo("«Hershey y Chase marcaron el ADN con azufre» es un error clásico. El orden fácil de recordar: <b>P de fósforo = ADN</b> (el ADN tiene fosfatos) y <b>S de azufre = proteínas</b>. Y no confundas los dos experimentos: Griffith y Avery trabajaron con <b>bacterias</b> (transformación); Hershey y Chase, con <b>virus</b>.") +
+    "<h5>Otras pistas que apuntaban al ADN</h5>" +
+    "<p>Chargaff (1950) vio que en el ADN de cualquier especie <b>A = T y G = C</b>, mientras que la proporción A+T frente a G+C cambia de una especie a otra (¡una «firma» de la especie!). Watson y Crick (1953), con las imágenes de difracción de rayos X de Franklin y Wilkins, propusieron la doble hélice: dos hebras complementarias, una buena forma de copiarse. Y una precisión útil: en algunos <b>virus</b> (como el de la gripe o el VIH) el material genético es <b>ARN</b>; lo que demostraron estos experimentos es que en los organismos celulares y en muchos virus es ADN, no que todo material genético lo sea.</p>" +
+    tabla(["Año", "Quién", "Organismo", "Qué demostró"], [
+      ["1928", "Griffith", "neumococo y ratón", "existe un «principio transformante» heredable"],
+      ["1944", "Avery, MacLeod y McCarty", "neumococo", "el principio transformante es ADN (la ADNasa lo destruye)"],
+      ["1950", "Chargaff", "ADN de varias especies", "A = T y G = C"],
+      ["1952", "Hershey y Chase", "fago T2 y <i>E. coli</i>", "dentro de la bacteria entra el ADN (<sup>32</sup>P), no la proteína (<sup>35</sup>S)"],
+      ["1953", "Watson y Crick", "modelo molecular", "doble hélice con bases complementarias"],
+      ["1958", "Meselson y Stahl", "<i>E. coli</i> con <sup>15</sup>N y <sup>14</sup>N", "la replicación es semiconservativa"]
+    ], "q3t") +
+    "<p>Para repasar, empareja cada experimento con su resultado y ordena los pasos de Hershey y Chase:</p>" +
+    w("emparejar", "experimentos") + w("orden", "ordenhc")
+  );
+
+  // ---------------------------------------------------------------- 2. Tres modelos
+  secciones[1] = env(
+    "<h5>Qué predice cada modelo</h5>" +
+    "<p>Una buena hipótesis hace <b>predicciones</b> que se pueden comprobar. Para el ADN de una célula que se replica una sola vez, cada modelo predice algo distinto sobre las hebras de las dos moléculas hijas:</p>" +
+    tabla(["", "Conservativo", "Semiconservativo", "Dispersivo"], [
+      ["Moléculas hijas", "una vieja entera y una nueva entera", "las dos son híbridas", "las dos son mezcla"],
+      ["Hebras de cada hija", "vieja+vieja ; nueva+nueva", "<b>vieja + nueva</b> (las dos)", "trozos viejos y nuevos mezclados en cada hebra"],
+      ["¿Hebras originales intactas?", "sí (juntas)", "sí (separadas, una por molécula)", "no (se trocean)"]
+    ], "q3t") +
+    "<p>Watson y Crick ya habían insinuado en 1953 el modelo semiconservativo: «no se nos escapa que el apareamiento específico que hemos postulado sugiere un posible mecanismo de copia». Pero hacía falta una prueba experimental, y el reto era <b>distinguir ADN viejo de ADN nuevo</b>: ¡los dos son químicamente idénticos! Meselson y Stahl lo resolvieron con un truco de <b>densidad</b>.</p>" +
+    ejemplo("Cuántas moléculas y cuántas hebras originales", "Una molécula de ADN se replica de forma semiconservativa n veces. ¿Cuántas moléculas hay? ¿Cuántas contienen alguna hebra de la molécula original?", [
+      "Cada replicación duplica el número de moléculas: tras n replicaciones hay <b>2<sup>n</sup></b> moléculas (n = 3: 8; n = 4: 16).",
+      "Las dos hebras originales nunca se destruyen: cada una se reparte en una molécula distinta y allí se queda para siempre.",
+      "Por eso <b>solo 2 moléculas</b> conservan una hebra original (y cada una tiene una sola); las demás, 2<sup>n</sup> − 2, son enteramente nuevas. De las 2<sup>n+1</sup> hebras totales, solo 2 son originales."
+    ])
+  );
+
+  // ---------------------------------------------------------------- 3. Meselson y Stahl
+  secciones[2] = env(
+    "<h5>Por qué funciona el truco de la densidad</h5>" +
+    "<p>Los nucleótidos llevan nitrógeno (en las bases). El nitrógeno normal es el isótopo <b><sup>14</sup>N</b> («ligero»); existe otro isótopo estable, el <b><sup>15</sup>N</b>, que pesa un poco más («pesado»). Una bacteria que solo tenga <sup>15</sup>N para fabricar sus bases tendrá un ADN algo más denso, y esa pequeña diferencia se puede detectar con una <b>ultracentrifugación en gradiente de CsCl</b>: al girar a gran velocidad, la solución de cloruro de cesio forma un gradiente de densidad y cada molécula de ADN se queda <b>flotando en la zona donde su densidad coincide con la del líquido</b>, formando una banda. ADN pesado, banda más abajo; ADN ligero, banda más arriba; ADN híbrido, banda en medio.</p>" +
+    "<h5>Predicciones por generación</h5>" +
+    "<p>Se cultiva <i>E. coli</i> durante muchas generaciones en <sup>15</sup>N (todo su ADN es pesado, <b>generación 0</b>) y se pasa a un medio con <sup>14</sup>N. A partir de ahí, todo el ADN nuevo será ligero. Se extrae ADN tras cada generación (cada ~20 minutos, el tiempo que tarda <i>E. coli</i> en dividirse):</p>" +
+    tabla(["Generación en <sup>14</sup>N", "Conservativo", "Semiconservativo", "Dispersivo"], [
+      ["0", "una banda pesada", "una banda pesada", "una banda pesada"],
+      ["1", "dos bandas: 50 % pesada + 50 % ligera", "<b>una banda intermedia (100 %)</b>", "una banda intermedia (100 %)"],
+      ["2", "dos bandas: 25 % pesada + 75 % ligera", "<b>dos bandas: 50 % intermedia + 50 % ligera</b>", "una banda intermedia, más cerca de la ligera"],
+      ["3", "12,5 % pesada + 87,5 % ligera", "25 % intermedia + 75 % ligera", "una banda aún más cerca de la ligera"]
+    ], "q3t") +
+    "<p><b>Lo que se observó:</b> en la generación 1, una única banda intermedia (descarta el conservativo); en la generación 2, dos bandas, intermedia y ligera, a partes iguales (descarta el dispersivo). Solo el semiconservativo cumple ambas observaciones. Esta es la lógica de un experimento ideal: <b>cada resultado elimina un modelo</b>. El experimento se publicó en 1958 y se ha llamado «el experimento más bello de la biología».</p>" +
+    "<h5>La regla general (para los problemas)</h5>" +
+    "<p>Tras <b>n</b> generaciones en <sup>14</sup>N, desde un ADN totalmente pesado, el modelo semiconservativo da 2<sup>n</sup> moléculas de las cuales <b>2 son híbridas</b> (una hebra <sup>15</sup>N original y una <sup>14</sup>N nueva) y 2<sup>n</sup> − 2 son ligeras. En fracciones: <b>2 / 2<sup>n</sup></b> híbridas y <b>1 − 2 / 2<sup>n</sup></b> ligeras. (n = 1: 100 % híbridas; n = 2: 50 % y 50 %; n = 3: 25 % y 75 %; n = 4: 12,5 % y 87,5 %.)</p>" +
+    w("bio_meselson") +
+    ejemplo("Un sentido más fino: ¿y si el cultivo hubiese continuado?", "Tras 4 generaciones en <sup>14</sup>N, ¿qué porcentaje del ADN es híbrido y qué porcentaje es ligero? ¿Cambia la posición de las bandas respecto a la generación 2?", [
+      "n = 4 → 2<sup>4</sup> = 16 moléculas, de las cuales 2 híbridas y 14 ligeras.",
+      "Híbridas: 2/16 = 12,5 %. Ligeras: 14/16 = 87,5 %.",
+      "Las bandas siguen en las mismas dos posiciones (intermedia y ligera); lo que cambia es el <b>grosor</b>: cada vez más gruesa la ligera y más fina la intermedia."
+    ]) +
+    w("orden", "ordenmes") +
+    ojo("Un error frecuente: pensar que «semiconservativo» significa que se conserva la mitad del ADN. Lo que se conserva es <b>una de las dos hebras</b> en cada molécula hija. Y cuidado con las generaciones: la generación 0 es el punto de partida (todo pesado), no la primera replicación.")
+  );
+
+  // ---------------------------------------------------------------- 4. Mecanismo molecular
+  secciones[3] = env(
+    "<h5>Tres reglas que explican casi todo</h5>" +
+    "<p>Antes de los pasos, tres ideas que hay que tener claras (el resto del mecanismo es consecuencia de ellas):</p>" +
+    "<ol>" +
+    "<li><b>Las dos hebras son antiparalelas</b>: una va de 5′ a 3′ y la complementaria, de 3′ a 5′ (Tema 5).</li>" +
+    "<li><b>La ADN polimerasa solo añade nucleótidos al extremo 3′-OH</b> de una cadena ya existente: construye siempre en sentido <b>5′ → 3′</b>. No puede ir al revés.</li>" +
+    "<li><b>La ADN polimerasa no sabe empezar de cero</b>: necesita un <b>cebador</b> (una cadena corta que ya tenga un extremo 3′-OH libre al que añadir). En la célula, el cebador es un trocito de <b>ARN</b> de unos 10 nucleótidos que fabrica la <b>primasa</b>.</li>" +
+    "</ol>" +
+    "<h5>La horquilla de replicación paso a paso</h5>" +
+    "<ol>" +
+    "<li><b>Origen de replicación.</b> La replicación empieza en un punto concreto (ori), rico en A-T (solo dos puentes de hidrógeno: más fácil de abrir). Proteínas iniciadoras se unen allí.</li>" +
+    "<li><b>La helicasa abre la hélice</b> rompiendo los puentes de hidrógeno (gastando ATP). Se forma una <b>burbuja</b> con <b>dos horquillas</b> que avanzan en sentidos opuestos: la replicación es <b>bidireccional</b>.</li>" +
+    "<li><b>Se evita que se vuelva a cerrar y que se enrede.</b> Las proteínas <b>SSB</b> (de unión a ADN monocatenario) cubren las hebras separadas; la <b>topoisomerasa</b> corta y vuelve a unir el ADN delante de la horquilla para aliviar la tensión (como al separar las hebras de una cuerda retorcida, por delante se enrolla más).</li>" +
+    "<li><b>La primasa</b> fabrica un cebador de ARN complementario a cada molde.</li>" +
+    "<li><b>La ADN polimerasa</b> alarga el cebador añadiendo nucleótidos complementarios (A con T, G con C), usando como sustrato los desoxirribonucleótidos trifosfato (dNTP): la energía de los dos fosfatos que se liberan impulsa el enlace.</li>" +
+    "<li><b>Hebra adelantada (conductora o continua).</b> En el molde que se lee en el sentido de avance de la horquilla, la polimerasa puede ir siempre detrás de la helicasa: basta <b>un solo cebador</b> y se sintetiza de forma <b>continua</b>.</li>" +
+    "<li><b>Hebra retrasada (rezagada o discontinua).</b> En el otro molde, el sentido 5′ → 3′ queda <b>alejándose de la horquilla</b>. Cada vez que la horquilla abre un tramo nuevo, hay que poner otro cebador y sintetizar un trozo hacia atrás: son los <b>fragmentos de Okazaki</b> (Reiji Okazaki, 1968).</li>" +
+    "<li><b>Maduración.</b> En procariotas, la <b>ADN polimerasa I</b> quita los cebadores de ARN y rellena el hueco con ADN; la <b>ADN ligasa</b> sella la última unión entre fragmentos con un enlace fosfodiéster. Resultado: dos moléculas de ADN hijas completas, cada una con una hebra vieja y otra nueva.</li>" +
+    "</ol>" +
+    ojo("La hebra retrasada <b>no se sintetiza «al revés»</b>: la polimerasa siempre trabaja de 5′ a 3′. Lo que ocurre es que, en esa hebra, el sentido 5′ → 3′ apunta en dirección contraria a la del avance de la horquilla, y por eso hay que hacerla en trozos. Y recuerda: <b>un cebador por fragmento</b>, así que hay muchos más cebadores en la retrasada que en la adelantada.") +
+    w("bio_horquilla") +
+    w("orden", "ordenhor") +
+    "<h5>Cómo dibujar la horquilla en un examen</h5>" +
+    "<p>Un esquema que siempre vale: dibuja el ADN parental a un lado y las dos hebras separándose en «Y» hacia el otro; marca <b>3′ y 5′</b> en cada extremo de cada hebra; dibuja la hebra nueva <b>continua con la flecha apuntando hacia la horquilla</b> (adelantada) y la otra en <b>trozos con flechas apuntando hacia fuera</b> (retrasada), con un cuadrito para cada cebador. Rotula helicasa (en el vértice), primasa, ADN polimerasa, ligasa y SSB. Una comprobación rápida: <b>todas las flechas de síntesis van de 5′ a 3′ y cada hebra nueva es antiparalela a su molde</b>.</p>" +
+    ejemplo("Hebra complementaria y orientación", "La hebra molde es 3′-TACGGATC-5′. Escribe la hebra nueva e indica cómo se sintetiza.", [
+      "Complementaria base a base: T→A, A→T, C→G, G→C, G→C, A→T, T→A, C→G: <b>ATGCCTAG</b>.",
+      "Es antiparalela: si el molde va 3′ → 5′, la nueva va 5′ → 3′: <b>5′-ATGCCTAG-3′</b>.",
+      "La polimerasa añade los nucleótidos al extremo 3′ de la nueva, así que la va construyendo de izquierda a derecha en este dibujo."
+    ])
+  );
+
+  // ---------------------------------------------------------------- 5. Empaquetamiento
+  secciones[4] = env(
+    "<h5>Los niveles del empaquetamiento</h5>" +
+    "<p>Cada nivel reduce la longitud y hace al ADN manejable:</p>" +
+    tabla(["Nivel", "Qué es", "Dato clave"], [
+      ["Doble hélice", "ADN desnudo", "diámetro ≈ 2 nm"],
+      ["<b>Nucleosoma</b>", "≈ 147 pares de bases enrolladas casi 2 vueltas sobre un <b>octámero de histonas</b> (2 H2A, 2 H2B, 2 H3, 2 H4)", "«collar de cuentas»; ≈ 10 nm"],
+      ["Fibra de cromatina", "nucleosomas plegados sobre sí mismos con ayuda de la histona <b>H1</b>", "≈ 30 nm"],
+      ["Bucles y dominios", "la fibra se pliega en lazos anclados a un andamiaje de proteínas", "—"],
+      ["<b>Cromosoma metafásico</b>", "máxima condensación", "visible al microscopio en división"]
+    ], "q3t") +
+    "<p>Las histonas son proteínas <b>básicas</b> (ricas en lisina y arginina, con carga positiva) y por eso se unen con fuerza al ADN, que es <b>ácido</b> (carga negativa por los fosfatos). Hay un orden de magnitud útil: unos 6,4·10<sup>9</sup> pares de bases en una célula diploide humana medirían ≈ 2,2 m estirados (0,34 nm por par de bases); con ≈ 200 pares de bases por nucleosoma (147 enrollados + un tramo de «ADN de unión»), hacen falta unos 32 millones de nucleosomas. Otra consecuencia: <b>la replicación debe desmontar y volver a montar los nucleosomas</b> a medida que avanza la horquilla, y la célula fabrica histonas nuevas en la fase S.</p>" +
+    ojo("<b>Cromatina y cromosoma son el mismo material</b> (ADN + proteínas) en distinto grado de empaquetamiento: cromatina en interfase, cromosomas en división. No son dos sustancias distintas. Y la eucromatina (laxa, genes activos) frente a la heterocromatina (compacta, silenciada) la verás en el tema 12.")
+  );
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Quién hace qué: enzimas y proteínas de la replicación", html: env(
+    "<p>Es la tabla que más cae. Memoriza la <b>función</b> de cada una con un verbo.</p>" +
+    tabla(["Enzima o proteína", "Qué hace", "Pista para recordarla"], [
+      ["<b>Helicasa</b>", "separa las dos hebras rompiendo puentes de hidrógeno (gasta ATP)", "«abre la cremallera»"],
+      ["<b>Topoisomerasa</b> (girasa en bacterias)", "corta y vuelve a unir el ADN para quitar la tensión por delante de la horquilla", "«evita el nudo»"],
+      ["<b>SSB</b> (proteínas de unión a monocatenario)", "mantienen separadas las hebras abiertas", "«sujetan la cremallera abierta»"],
+      ["<b>Primasa</b>", "sintetiza el cebador de ARN (≈ 10 nt)", "«pone la primera letra»"],
+      ["<b>ADN polimerasa III</b> (procariotas)", "alarga las cadenas nuevas 5′ → 3′ y corrige errores (exonucleasa 3′ → 5′)", "«la que copia»"],
+      ["<b>ADN polimerasa I</b> (procariotas)", "quita el cebador de ARN y rellena con ADN", "«limpia y rellena»"],
+      ["<b>ADN ligasa</b>", "une con un enlace fosfodiéster los extremos contiguos de los fragmentos", "«pega»"]
+    ], "q3t") +
+    "<p>En eucariotas las funciones son equivalentes, con otros nombres: la <b>polimerasa α</b> (que lleva asociada la primasa) fabrica el cebador y un poco de ADN; la <b>polimerasa δ</b> sintetiza la hebra retrasada y la <b>ε</b> la adelantada; una proteína con forma de anillo, la <b>pinza deslizante (PCNA)</b>, mantiene la polimerasa pegada al molde para que no se suelte; y enzimas como la <b>RNasa H y la FEN1</b> eliminan los cebadores. Descubrió la primera ADN polimerasa Arthur Kornberg (1956, Nobel 1959).</p>" +
+    w("emparejar", "enzimas") +
+    ojo("<b>Helicasa ≠ topoisomerasa</b>: la helicasa abre las hebras; la topoisomerasa alivia el superenrollamiento que esa apertura provoca. <b>Primasa ≠ polimerasa</b>: la primasa es una ARN polimerasa especializada que hace el cebador; la ADN polimerasa no puede empezar sola. <b>Polimerasa ≠ ligasa</b>: la polimerasa alarga una cadena, la ligasa solo sella el corte entre dos cadenas ya hechas.") +
+    "<h5>Por qué la ADN polimerasa necesita un cebador (la pregunta de «explica por qué…»)</h5>" +
+    "<p>La polimerasa forma un enlace entre el grupo 3′-OH del último nucleótido de la cadena y el fosfato del nucleótido que llega. Si no hay un 3′-OH al que añadir, no hay nada que alargar. Una ARN polimerasa (como la primasa) sí puede empezar una cadena de cero; por eso el cebador es de ARN. Después se cambia por ADN, y así la célula se asegura de que la parte «peor copiada» (el inicio) acaba corregida y sustituida.</p>"
+  ) });
+
+  nuevas.push({ h: "7. Procariotas y eucariotas: dos formas de replicar", html: env(
+    "<p>Tienes que poder comparar. Los principios son los mismos; cambia la escala:</p>" +
+    tabla(["", "Procariotas (<i>E. coli</i>)", "Eucariotas (humano)"], [
+      ["ADN", "una molécula circular, ≈ 4,6 millones de pares de bases", "varias moléculas lineales (cromosomas), ≈ 3 200 millones por genoma haploide"],
+      ["Dónde y cuándo", "en el citoplasma (nucleoide), durante todo el ciclo si crece", "en el núcleo, en la <b>fase S</b> del ciclo celular"],
+      ["Orígenes de replicación", "<b>uno solo</b> (oriC)", "<b>muchos miles</b> por genoma"],
+      ["Velocidad de la horquilla", "≈ 1000 nt/s", "≈ 50 nt/s"],
+      ["Fragmentos de Okazaki", "1000-2000 nt", "100-200 nt (un nucleosoma)"],
+      ["ADN polimerasas principales", "III (copia) y I (cebadores)", "α (cebador), δ y ε (copia)"],
+      ["Extremos", "no hay: el cromosoma es circular", "<b>telómeros</b> y problema del extremo"],
+      ["Cromatina", "sin nucleosomas", "hay que desmontar y montar nucleosomas"]
+    ], "q3t") +
+    "<h5>Por qué los eucariotas necesitan muchos orígenes</h5>" +
+    "<p>Una cuenta lo demuestra. Una célula humana tiene ≈ 6,4·10<sup>9</sup> pares de bases (genoma diploide). Si hubiese un solo origen, con dos horquillas a 50 nt/s cada una, tardaría 6,4·10<sup>9</sup> / (2 · 50) = 6,4·10<sup>7</sup> s ≈ <b>740 días</b>. Pero la fase S dura unas 8 horas (28 800 s): hacen falta, como mínimo, 6,4·10<sup>9</sup> / (100 · 28 800) ≈ <b>2 223 orígenes</b>; en la realidad hay decenas de miles, que se activan de forma escalonada. En <i>E. coli</i>, en cambio, 4,6·10<sup>6</sup> / (2 · 1000) = 2 300 s ≈ <b>38 minutos</b> con un único origen.</p>" +
+    ejemplo("Cálculo con fragmentos y cebadores", "En un eucariota, una horquilla ha replicado 1 000 nt. Con fragmentos de Okazaki de 200 nt, ¿cuántos fragmentos tiene la hebra retrasada y cuántos cebadores se han usado en total?", [
+      "Fragmentos de la retrasada: 1 000 / 200 = <b>5</b>.",
+      "La hebra adelantada necesita <b>1</b> cebador; cada fragmento de la retrasada, 1 más: 5.",
+      "Total de cebadores: 1 + 5 = <b>6</b>."
+    ]) +
+    "<p>Fíjate en que este cálculo explica por qué la replicación de la hebra retrasada es mucho más «cara» que la de la adelantada: más cebadores, más fragmentos que madurar y más uniones que sellar.</p>" +
+    w("clasificar", "relacion") + w("clasificar", "hebras")
+  ) });
+
+  nuevas.push({ h: "8. Errores, corrección de pruebas y reparación", html: env(
+    "<p>Copiar 6 400 millones de letras sin errores parece imposible. La célula lo consigue en <b>tres filtros</b> sucesivos (con tasas orientativas, para que veas el orden de magnitud):</p>" +
+    tabla(["Filtro", "Qué hace", "Tasa de error tras el filtro"], [
+      ["1. Selección de la base", "la polimerasa elige la base que encaja por complementariedad", "≈ 1 error por 10<sup>5</sup> nucleótidos"],
+      ["2. <b>Corrección de pruebas</b>", "la ADN polimerasa tiene actividad <b>exonucleasa 3′ → 5′</b>: retrocede y corta el nucleótido mal puesto", "≈ 1 por 10<sup>7</sup>"],
+      ["3. <b>Reparación de apareamientos erróneos</b> (MMR)", "proteínas revisan la hebra recién hecha, cortan el tramo con el error y se rellena", "≈ 1 por 10<sup>9</sup>"]
+    ], "q3t") +
+    "<p>Con 10<sup>−9</sup> por nucleótido, una célula diploide humana (6,4·10<sup>9</sup>) comete unos <b>6,4 errores</b> por división: ¡unos pocos! Esos errores no corregidos son <b>mutaciones</b>, la materia prima de la variación (Tema 13).</p>" +
+    "<h5>Cuando el ADN se daña entre divisiones</h5>" +
+    "<p>El ADN también se daña por la luz ultravioleta, la radiación, sustancias químicas o por el propio metabolismo. La célula tiene sistemas de <b>reparación</b>:</p>" +
+    tabla(["Sistema", "Daño que repara", "Cómo"], [
+      ["<b>Fotorreactivación</b>", "dímeros de timina por UV", "una enzima activada por la luz separa los dímeros (en bacterias y plantas, no en placentarios)"],
+      ["<b>Reparación por escisión de bases</b> (BER)", "una base alterada (por ejemplo, por desaminación)", "se quita la base, se corta el esqueleto y se rellena con ADN"],
+      ["<b>Reparación por escisión de nucleótidos</b> (NER)", "lesiones voluminosas, como los dímeros de timina que distorsionan la hélice", "se corta un tramo de ≈ 25-30 nucleótidos con la lesión, se rellena y se liga"],
+      ["<b>Reparación de roturas de doble hebra</b>", "cortes en las dos hebras", "unión de extremos o recombinación con el cromosoma homólogo"]
+    ], "q3t") +
+    ojo("«La corrección de pruebas la hace la ligasa» es falso: la hace la propia <b>ADN polimerasa</b> con su actividad exonucleasa 3′ → 5′. La ligasa solo sella cortes. Y cuidado con el vocabulario: <b>exonucleasa</b> quita nucleótidos desde un extremo; <b>endonucleasa</b> corta en medio de la cadena.") +
+    "<h5>Una enfermedad que lo demuestra: xeroderma pigmentoso</h5>" +
+    "<p>Las personas con <b>xeroderma pigmentoso</b> tienen un fallo en el sistema NER: no reparan los dímeros de timina que causa el sol. Sus células acumulan mutaciones y tienen una probabilidad muy alta de sufrir cáncer de piel; deben evitar por completo la luz solar. Es el ejemplo clásico de «un fallo en la reparación causa enfermedad». (Lindahl, Modrich y Sancar recibieron el Nobel de Química en 2015 por describir los mecanismos de reparación.)</p>"
+  ) });
+
+  nuevas.push({ h: "9. El problema del extremo: telómeros y telomerasa", html: env(
+    "<h5>El problema</h5>" +
+    "<p>La hebra retrasada necesita un cebador por fragmento. En el <b>último fragmento</b>, al final de un cromosoma lineal, el cebador de ARN se coloca y luego se elimina, pero <b>no hay un extremo 3′-OH previo que pueda rellenar el hueco</b>. El resultado: <b>en cada replicación, el extremo 5′ de cada hebra nueva queda un poco más corto</b> (≈ 50-100 nt por división). Si el ADN acabase ahí con genes, se perderían genes en cada división. La solución evolutiva: los extremos de los cromosomas llevan una secuencia repetida sin genes, los <b>telómeros</b> (en humanos, <b>TTAGGG</b> repetido miles de veces), que se acortan en lugar de los genes y protegen al cromosoma de ser confundido con una rotura. Los procariotas, con ADN circular, no tienen este problema.</p>" +
+    "<h5>La telomerasa</h5>" +
+    "<p>La <b>telomerasa</b> es una enzima formada por <b>ARN</b> y proteína (una transcriptasa inversa): lleva incorporada una pequeña cadena de ARN que sirve de molde para <b>alargar el extremo 3′ del telómero</b>, añadiendo repeticiones TTAGGG; luego la célula completa la hebra complementaria. La descubrieron <b>Greider y Blackburn</b> (1985) y recibieron el Nobel de Medicina en 2009 junto con Szostak.</p>" +
+    tabla(["Tipo de célula", "Telomerasa", "Consecuencia"], [
+      ["Mayoría de células somáticas", "casi inactiva", "el telómero se acorta con cada división; al llegar a un tamaño crítico la célula entra en <b>senescencia</b> (<b>límite de Hayflick</b>, ≈ 50-60 divisiones en cultivo, 1961)"],
+      ["Células madre y germinales", "activa", "mantienen el telómero y pueden dividirse muchas veces"],
+      ["<b>Células cancerosas</b> (≈ 85-90 %)", "<b>reactivada</b>", "no se acortan: se dividen sin límite («inmortales»)"]
+    ], "q3t") +
+    w("bio_telomeros") +
+    ejemplo("¿Cuántas divisiones aguanta una célula somática?", "Un telómero mide 10 000 nt y pierde 100 nt por división. Si la célula deja de dividirse al llegar a 4 000 nt, ¿cuántas divisiones puede hacer?", [
+      "Pérdida total permitida: 10 000 − 4 000 = 6 000 nt.",
+      "Divisiones: 6 000 / 100 = <b>60</b>.",
+      "Es del orden de lo que Hayflick observó en células humanas en cultivo (unas 50-60 divisiones)."
+    ]) +
+    ojo("Los telómeros <b>no</b> son «relojes de la muerte»: el envejecimiento tiene muchas causas. Y reactivar la telomerasa para rejuvenecer tiene un riesgo claro, porque la actividad de telomerasa es una de las características de las células cancerosas. En el examen: acortamiento = envejecimiento celular, telomerasa activa = células madre o cáncer.")
+  ) });
+
+  nuevas.push({ h: "10. Ejemplo PAU resuelto: interpretar un experimento tipo Meselson y Stahl", html: env(
+    "<p><b>Enunciado.</b> Un cultivo de <i>E. coli</i> crece durante muchas generaciones en un medio con <sup>15</sup>NH<sub>4</sub>Cl. Después se pasa a un medio con <sup>14</sup>NH<sub>4</sub>Cl y se extrae ADN a distintos tiempos (<i>E. coli</i> se divide cada 20 min). El ADN se ultracentrifuga en un gradiente de CsCl. Resultados:</p>" +
+    tabla(["Tiempo en <sup>14</sup>N", "Bandas observadas en el tubo (de arriba, ligero, a abajo, pesado)"], [
+      ["0 min", "una banda en la posición pesada (densidad 1,724)"],
+      ["20 min", "una banda en la posición intermedia (1,717)"],
+      ["40 min", "dos bandas de igual grosor: una intermedia (1,717) y otra ligera (1,710)"]
+    ], "q3t") +
+    "<p><b>Preguntas:</b> (a) ¿Qué pasa en el medio con <sup>14</sup>N para que aparezca ADN de densidad intermedia? (b) ¿Qué modelo de replicación apoya el resultado y por qué se descartan los otros dos? (c) Predice qué se vería a los 60 minutos. (d) ¿Qué enzimas intervienen en este proceso?</p>" +
+    ejemplo("Resolución", "Paso a paso, con la lógica que valora el corrector:", [
+      "<b>(a)</b> Cada molécula hija conserva una hebra antigua con <sup>15</sup>N (pesada) y recibe una hebra nueva con <sup>14</sup>N (ligera): es un <b>híbrido</b>, de densidad intermedia (el promedio de 1,724 y 1,710 es 1,717).",
+      "<b>(b)</b> Apoya el modelo <b>semiconservativo</b>. A los 20 min no hay banda pesada ni ligera, solo intermedia: <b>se descarta el conservativo</b> (habría una pesada y una ligera). A los 40 min aparece una banda totalmente ligera, que el dispersivo (una sola banda cada vez más ligera, pero nunca tanto como el ADN normal) no puede explicar: <b>se descarta el dispersivo</b>.",
+      "<b>(c)</b> 60 min = 3 generaciones: 2<sup>3</sup> = 8 moléculas, 2 híbridas y 6 ligeras: <b>25 % en la banda intermedia y 75 % en la ligera</b> (la ligera, el triple de gruesa).",
+      "<b>(d)</b> Helicasa (abre las hebras), primasa (cebador de ARN), ADN polimerasa III (copia 5′ → 3′ y corrige), ADN polimerasa I (quita el cebador) y ligasa (une fragmentos); topoisomerasa y SSB como apoyo."
+    ]) +
+    "<p><b>Consejo de examen:</b> cuando te den bandas, razona siempre con el «ladrillo» del ADN: una molécula = dos hebras, y cada hebra es o vieja (¹⁵N) o nueva (¹⁴N). Dibuja las moléculas con trazo grueso (vieja) y fino (nueva) y las bandas salen solas.</p>"
+  ) });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>Las preguntas de este tema siguen cuatro modelos. Aquí tienes cada uno con una respuesta modelo.</p>" +
+    ejemplo("Pregunta 1. Describe el experimento de Hershey y Chase y su conclusión", "Respuesta modelo:", [
+      "<b>Material:</b> bacteriófago T2 (ADN dentro de cápside proteica) y <i>E. coli</i>.",
+      "<b>Método:</b> se marcó el ADN con <sup>32</sup>P en un lote y la proteína con <sup>35</sup>S en otro; tras infectar y agitar en batidora, se centrifugó.",
+      "<b>Resultado:</b> el <sup>35</sup>S quedó en el sobrenadante (fuera de la bacteria) y el <sup>32</sup>P en el sedimento (dentro).",
+      "<b>Conclusión:</b> es el ADN, no la proteína, lo que entra en la bacteria y dirige la producción de nuevos virus: el ADN es el material genético."
+    ]) +
+    ejemplo("Pregunta 2. Explica por qué la replicación es semiconservativa y describe cómo se demostró", "Respuesta modelo:", [
+      "<b>Definición:</b> cada molécula hija conserva una hebra de la original y tiene una hebra nueva.",
+      "<b>Experimento:</b> Meselson y Stahl (1958): <i>E. coli</i> en <sup>15</sup>N y luego en <sup>14</sup>N; ultracentrifugación en CsCl.",
+      "<b>Resultados:</b> generación 1: una banda intermedia (descarta el conservativo); generación 2: banda intermedia y banda ligera (descarta el dispersivo).",
+      "<b>Conclusión:</b> semiconservativo."
+    ]) +
+    ejemplo("Pregunta 3. Hebra adelantada y retrasada: por qué hay dos tipos y qué diferencias tienen", "Respuesta modelo:", [
+      "<b>Causa:</b> las hebras son antiparalelas y la ADN polimerasa solo sintetiza de 5′ a 3′.",
+      "<b>Adelantada:</b> el sentido de síntesis coincide con el avance de la horquilla; se hace de forma continua con un cebador.",
+      "<b>Retrasada:</b> el sentido de síntesis es contrario al avance; se hace en fragmentos de Okazaki, cada uno con su cebador, y luego se unen con la ligasa."
+    ]) +
+    ejemplo("Pregunta 4. Telómeros y telomerasa", "Respuesta modelo:", [
+      "<b>Telómeros:</b> secuencias repetidas (TTAGGG) en los extremos de los cromosomas, sin genes.",
+      "<b>Función:</b> evitar la pérdida de genes por el problema del extremo (el último cebador no se puede rellenar) y proteger los extremos.",
+      "<b>Telomerasa:</b> enzima con molde de ARN que alarga los telómeros; activa en células madre y en cáncer, casi inactiva en las somáticas, que envejecen y dejan de dividirse."
+    ]) +
+    "<p>Los ejercicios del final incluyen preguntas abiertas con rúbrica para que veas qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio11a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 11 (parte B): Base molecular de la herencia
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t11.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "El <b>ADN es el material genético</b>: Griffith (1928) halló un principio transformante, Avery (1944) mostró que era ADN y Hershey y Chase (1952) vieron que en un virus <b>entra el ADN (³²P), no la proteína (³⁵S)</b>.",
+    "La replicación es <b>semiconservativa</b> (Meselson y Stahl, 1958): cada molécula hija tiene una hebra vieja y una nueva. Con ¹⁵N y ¹⁴N: generación 1, banda intermedia; generación 2, intermedia y ligera.",
+    "En la horquilla, la <b>helicasa</b> abre, la <b>primasa</b> hace el cebador de ARN y la <b>ADN polimerasa</b> alarga <b>solo de 5′ a 3′</b>: hebra <b>adelantada</b> continua y <b>retrasada</b> en <b>fragmentos de Okazaki</b>, unidos por la <b>ligasa</b>.",
+    "Procariotas: un origen, horquilla rápida y fragmentos largos. Eucariotas: muchos orígenes, fase S, fragmentos cortos y <b>telómeros</b>.",
+    "La polimerasa corrige errores (exonucleasa 3′→5′) y hay sistemas de <b>reparación</b>; los telómeros y la <b>telomerasa</b> resuelven el problema del extremo (activa en células madre y en cáncer)."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Base molecular de la herencia",
+    autores: [
+      { n: "Qué estudia", f: "cómo se demostró que el ADN es el material genético y cómo se copia", l: "ADN · replicación · reparación" },
+      { n: "Hershey y Chase", f: "1952", l: "entra el ADN (³²P), no la proteína (³⁵S)" },
+      { n: "Meselson y Stahl", f: "1958", l: "la replicación es semiconservativa" }
+    ],
+    obras: ["Griffith", "Meselson y Stahl", "Horquilla", "Okazaki", "Telomerasa"],
+    bloques: [
+      { t: "El ADN es el material genético", frases: ["Griffith 1928: principio transformante (cepas R y S).", "Avery 1944: es <b>ADN</b> (la ADNasa lo destruye).", "Hershey y Chase 1952: ³²P (ADN) dentro, ³⁵S (proteína) fuera."],
+        tabla: { cab: ["Isótopo", "Marca"], filas: [["³²P", "ADN (fosfatos)"], ["³⁵S", "proteínas (S)"]] } },
+      { t: "Tres modelos y Meselson-Stahl", frases: ["Medio con ¹⁵N (pesado) y luego ¹⁴N; CsCl.", "Gen. 1: <b>una banda intermedia</b> (descarta conservativo).", "Gen. 2: intermedia + ligera (descarta dispersivo)."],
+        tabla: { cab: ["Generación", "Semiconservativo"], filas: [["1", "100 % intermedia"], ["2", "50 % + 50 % ligera"], ["3", "25 % + 75 % ligera"]] } },
+      { t: "La horquilla de replicación", frases: ["Helicasa abre; SSB y topoisomerasa ayudan.", "Primasa: cebador de ARN. Polimerasa: <b>5′ → 3′</b>.", "Ligasa une los fragmentos."],
+        tabla: { cab: ["Hebra", "Síntesis"], filas: [["adelantada", "continua"], ["retrasada", "fragmentos de Okazaki"]] } },
+      { t: "Quién hace qué", frases: ["Polimerasa III copia y corrige; polimerasa I quita el cebador.", "Un cebador en la adelantada y uno por fragmento en la retrasada.", "Sin 3′-OH previo la polimerasa no empieza."] },
+      { t: "Procariotas y eucariotas", frases: ["Procariota: ADN circular, 1 origen, ≈ 1000 nt/s.", "Eucariota: muchos orígenes, fase S, ≈ 50 nt/s.", "Okazaki: 1000-2000 nt frente a 100-200 nt."],
+        tabla: { cab: ["Dato", "Procariota / Eucariota"], filas: [["orígenes", "1 / muchos"], ["extremos", "no / telómeros"]] } },
+      { t: "Errores, reparación y telómeros", frases: ["Corrección de pruebas, reparación de apareamientos y BER/NER.", "Problema del extremo: se pierden ≈ 50-100 nt por división.", "Telomerasa (ARN + proteína): activa en células madre y cáncer."] }
+    ],
+    resumen: [
+      "El <b>ADN</b> lleva la información; se copia de forma <b>semiconservativa</b>.",
+      "La <b>polimerasa</b> solo va de 5′ a 3′: por eso hay <b>hebra adelantada</b> y <b>retrasada</b>.",
+      "Los <b>telómeros</b> y la <b>telomerasa</b> resuelven el problema del extremo."
+    ],
+    conecta: [
+      { con: "Biología T5:", rel: "la estructura del ADN (complementariedad, antiparalelismo)." },
+      { con: "Biología T7:", rel: "el ciclo celular: la replicación ocurre en la fase S." },
+      { con: "Biología T12 y T13:", rel: "la expresión del gen y las mutaciones (errores no reparados)." },
+      { con: "Química II T4 y T7:", rel: "enlaces de hidrógeno, enlace fosfodiéster y energía (ATP)." }
+    ],
+    claves: [
+      ["Principio transformante", "sustancia que pasa de bacterias S muertas a R vivas y las hace virulentas (ADN)"],
+      ["Replicación semiconservativa", "cada molécula hija tiene una hebra original y una nueva"],
+      ["Helicasa", "enzima que separa las hebras rompiendo puentes de hidrógeno"],
+      ["Primasa y cebador", "primasa hace un cebador de ARN con 3′-OH para que empiece la polimerasa"],
+      ["ADN polimerasa", "añade nucleótidos solo en sentido 5′ → 3′ y corrige errores"],
+      ["Hebra adelantada", "se sintetiza de forma continua, siguiendo a la horquilla"],
+      ["Fragmentos de Okazaki", "trozos de la hebra retrasada, cada uno con su cebador"],
+      ["ADN ligasa", "une los fragmentos sellando el enlace fosfodiéster"],
+      ["Origen de replicación", "punto donde empieza la replicación; bidireccional"],
+      ["Telómero y telomerasa", "extremo repetido del cromosoma y enzima que lo alarga"]
+    ],
+    cita: { txt: "Una molécula de ADN, copiada tres veces, da 8 moléculas, pero solo 2 conservan una hebra de la original.", autor: "Dato para recordar", obra: "2ⁿ moléculas; 2 híbridas; hebras originales = 2 siempre" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    relacion: {
+      titulo: "Procariotas, eucariotas o las dos",
+      consigna: "Clasifica cada característica de la replicación.",
+      categorias: ["Procariotas", "Eucariotas", "Las dos"],
+      items: [
+        { t: "Un único origen de replicación", c: 0 }, { t: "ADN circular", c: 0 }, { t: "Fragmentos de Okazaki de 1000-2000 nt", c: 0 }, { t: "ADN polimerasa III", c: 0 },
+        { t: "Muchos orígenes de replicación", c: 1 }, { t: "Fase S del ciclo celular", c: 1 }, { t: "Telómeros y telomerasa", c: 1 }, { t: "Fragmentos de Okazaki de 100-200 nt", c: 1 },
+        { t: "Replicación semiconservativa", c: 2 }, { t: "Síntesis solo en sentido 5′ → 3′", c: 2 }, { t: "Cebador de ARN", c: 2 }, { t: "Hebra adelantada y retrasada", c: 2 }
+      ]
+    },
+    hebras: {
+      titulo: "Hebra adelantada, retrasada o las dos",
+      consigna: "Clasifica cada característica.",
+      categorias: ["Hebra adelantada", "Hebra retrasada", "Las dos"],
+      items: [
+        { t: "Síntesis continua", c: 0 }, { t: "Un solo cebador en el origen", c: 0 }, { t: "Va en el mismo sentido que avanza la horquilla", c: 0 },
+        { t: "Fragmentos de Okazaki", c: 1 }, { t: "Un cebador por fragmento", c: 1 }, { t: "Va en sentido contrario al avance de la horquilla", c: 1 },
+        { t: "La polimerasa va de 5′ a 3′", c: 2 }, { t: "Es antiparalela a su molde", c: 2 }, { t: "Es complementaria al molde", c: 2 }
+      ]
+    },
+    experimentos: {
+      titulo: "Experimentos y científicos",
+      consigna: "Une cada experimento con su resultado.",
+      pares: [
+        ["Griffith (1928)", "Bacterias R vivas + S muertas: el ratón muere (transformación)"],
+        ["Avery, MacLeod y McCarty (1944)", "Solo la ADNasa impide la transformación"],
+        ["Hershey y Chase (1952)", "El ³²P entra en la bacteria; el ³⁵S queda fuera"],
+        ["Meselson y Stahl (1958)", "Gen. 1: banda intermedia; gen. 2: intermedia y ligera"],
+        ["Chargaff (1950)", "En el ADN A = T y G = C"],
+        ["Okazaki (1968)", "La hebra retrasada se sintetiza en fragmentos"]
+      ]
+    },
+    enzimas: {
+      titulo: "Enzimas de la replicación",
+      consigna: "Une cada enzima o proteína con su función.",
+      pares: [
+        ["Helicasa", "Separa las dos hebras rompiendo puentes de hidrógeno"],
+        ["Topoisomerasa", "Quita la tensión por delante de la horquilla"],
+        ["SSB", "Mantiene separadas las hebras abiertas"],
+        ["Primasa", "Fabrica el cebador de ARN"],
+        ["ADN polimerasa III", "Alarga la cadena nueva en sentido 5′ → 3′"],
+        ["ADN ligasa", "Une los fragmentos sellando el enlace fosfodiéster"]
+      ]
+    },
+    ordenmes: {
+      titulo: "El experimento de Meselson y Stahl",
+      consigna: "Ordena el procedimiento.",
+      items: [
+        { t: "Cultivar <i>E. coli</i> muchas generaciones en medio con ¹⁵N" },
+        { t: "Pasar las bacterias a un medio con ¹⁴N" },
+        { t: "Extraer el ADN tras cada generación (cada ≈ 20 min)" },
+        { t: "Ultracentrifugar el ADN en un gradiente de CsCl" },
+        { t: "Comparar la posición y el grosor de las bandas con las predicciones" }
+      ]
+    },
+    ordenhor: {
+      titulo: "La horquilla de replicación",
+      consigna: "Ordena los pasos.",
+      items: [
+        { t: "La helicasa abre la doble hélice en el origen" },
+        { t: "Las proteínas SSB y la topoisomerasa estabilizan y relajan el ADN" },
+        { t: "La primasa fabrica un cebador de ARN" },
+        { t: "La ADN polimerasa alarga el cebador en sentido 5′ → 3′" },
+        { t: "En la hebra retrasada se forman fragmentos de Okazaki, cada uno con su cebador" },
+        { t: "Se eliminan los cebadores y se rellena el hueco con ADN" },
+        { t: "La ligasa une los fragmentos" }
+      ]
+    },
+    ordenhc: {
+      titulo: "El experimento de Hershey y Chase",
+      consigna: "Ordena los pasos.",
+      items: [
+        { t: "Marcar el ADN de un lote de fagos con ³²P y las proteínas de otro con ³⁵S" },
+        { t: "Dejar que los fagos infecten bacterias" },
+        { t: "Agitar en batidora para soltar las cáscaras de los virus" },
+        { t: "Centrifugar: sobrenadante (cáscaras) y sedimento (bacterias)" },
+        { t: "Medir la radiactividad de cada fracción" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 11",
+      preguntas: [
+        { q: "El experimento de Hershey y Chase demostró que…", op: ["el ADN entra en la bacteria y dirige la producción de virus", "las proteínas son el material genético", "la replicación es semiconservativa", "el ARN es el material genético"], ok: 0, porque: "El ³²P (ADN) entró en la bacteria; el ³⁵S (proteínas) se quedó fuera." },
+        { q: "En el experimento de Meselson y Stahl, tras una generación en ¹⁴N se observó…", op: ["una sola banda de densidad intermedia", "una banda pesada y otra ligera", "una sola banda pesada", "dos bandas intermedias"], ok: 0, porque: "Todas las moléculas son híbridas: descarta el modelo conservativo." },
+        { q: "La enzima que abre la doble hélice es…", op: ["la helicasa", "la ligasa", "la primasa", "la ADN polimerasa"], ok: 0, porque: "Rompe los puentes de hidrógeno entre bases." },
+        { q: "La ADN polimerasa sintetiza…", op: ["solo en sentido 5′ → 3′", "solo en sentido 3′ → 5′", "en los dos sentidos", "sin necesidad de molde"], ok: 0, porque: "Añade nucleótidos al extremo 3′-OH." },
+        { q: "Los fragmentos de Okazaki se forman en…", op: ["la hebra retrasada", "la hebra adelantada", "las dos por igual", "el ARN"], ok: 0, porque: "Porque su síntesis 5′ → 3′ es contraria al avance de la horquilla." },
+        { q: "El cebador de ARN lo fabrica…", op: ["la primasa", "la ligasa", "la helicasa", "la topoisomerasa"], ok: 0, porque: "Aporta un extremo 3′-OH para que empiece la polimerasa." },
+        { q: "Tras 3 replicaciones semiconservativas de una molécula, ¿cuántas moléculas conservan una hebra original?", op: ["2", "1", "4", "8"], ok: 0, porque: "Las dos hebras originales acaban en dos moléculas distintas." },
+        { q: "La telomerasa…", op: ["alarga los telómeros con un molde de ARN", "une los fragmentos de Okazaki", "quita los cebadores", "abre la doble hélice"], ok: 0, porque: "Es una enzima con ARN y proteína; activa en células madre y cáncer." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre Hershey y Chase es FALSA?", op: ["Marcaron el ADN con azufre-35", "Marcaron las proteínas con azufre-35", "Marcaron el ADN con fósforo-32", "Usaron bacteriófagos"], ok: 0, porque: "El ADN se marcó con ³²P; el ³⁵S marca las proteínas." },
+        { q: "¿Cuál de estas afirmaciones sobre Meselson y Stahl es FALSA?", op: ["En la generación 1 hay una banda pesada y otra ligera", "Usaron isótopos del nitrógeno", "Usaron ultracentrifugación en CsCl", "En la generación 2 hay banda intermedia y ligera"], ok: 0, porque: "En la generación 1 solo hay una banda intermedia." },
+        { q: "¿Cuál de estas afirmaciones sobre la replicación es FALSA?", op: ["La ADN polimerasa puede empezar una cadena sin cebador", "La ADN polimerasa va de 5′ a 3′", "La helicasa separa las hebras", "La primasa fabrica un cebador de ARN"], ok: 0, porque: "Necesita un cebador con extremo 3′-OH." },
+        { q: "¿Cuál de estas afirmaciones sobre las hebras es FALSA?", op: ["En la hebra retrasada la polimerasa trabaja de 3′ a 5′", "La hebra adelantada es continua", "La retrasada se hace en fragmentos de Okazaki", "Las dos hebras nuevas se sintetizan de 5′ a 3′"], ok: 0, porque: "La polimerasa siempre va de 5′ a 3′." },
+        { q: "¿Cuál de estas afirmaciones sobre procariotas y eucariotas es FALSA?", op: ["Los eucariotas tienen un solo origen de replicación", "Los procariotas tienen un solo origen", "Los eucariotas replican en la fase S", "Los eucariotas tienen telómeros"], ok: 0, porque: "Los eucariotas tienen muchos orígenes." },
+        { q: "¿Cuál de estas afirmaciones sobre la corrección de errores es FALSA?", op: ["La ligasa corrige los errores de copia", "La polimerasa tiene actividad exonucleasa 3′ → 5′", "Hay un sistema de reparación de apareamientos erróneos", "El xeroderma pigmentoso es un fallo de la reparación por escisión de nucleótidos"], ok: 0, porque: "La corrección la hace la propia polimerasa; la ligasa solo sella cortes." },
+        { q: "¿Cuál de estas afirmaciones sobre los telómeros es FALSA?", op: ["Contienen genes esenciales", "Se acortan en cada división de las células somáticas", "La telomerasa los alarga", "Están en los extremos de los cromosomas"], ok: 0, porque: "Son secuencias repetidas sin genes." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: base molecular de la herencia",
+      cartas: [
+        { a: "Experimento de Griffith", b: "Cepa R viva + cepa S muerta por calor mata al ratón: hay un principio transformante (1928)." },
+        { a: "Avery, MacLeod y McCarty", b: "El principio transformante es ADN: la ADNasa lo destruye, la proteasa y la ARNasa no (1944)." },
+        { a: "Hershey y Chase", b: "Fago T2 con ³²P (ADN) o ³⁵S (proteína): entra el ADN en la bacteria (1952)." },
+        { a: "Modelos de replicación", b: "Conservativo, semiconservativo y dispersivo." },
+        { a: "Meselson y Stahl", b: "¹⁵N → ¹⁴N y CsCl: gen. 1 banda intermedia; gen. 2 intermedia + ligera → semiconservativo (1958)." },
+        { a: "Moléculas tras n replicaciones", b: "2ⁿ moléculas; 2 contienen una hebra original; 2/2ⁿ híbridas." },
+        { a: "Helicasa", b: "Rompe los puentes de hidrógeno y abre la doble hélice (gasta ATP)." },
+        { a: "Topoisomerasa y SSB", b: "Topoisomerasa: quita la tensión. SSB: mantienen las hebras abiertas." },
+        { a: "Primasa", b: "Fabrica el cebador de ARN (≈ 10 nt) con extremo 3′-OH." },
+        { a: "ADN polimerasa", b: "Añade nucleótidos solo en sentido 5′ → 3′; III copia y corrige, I quita el cebador." },
+        { a: "Hebra adelantada", b: "Se sintetiza de forma continua, con un solo cebador." },
+        { a: "Hebra retrasada", b: "Se sintetiza en fragmentos de Okazaki, cada uno con su cebador." },
+        { a: "ADN ligasa", b: "Une los fragmentos sellando el enlace fosfodiéster." },
+        { a: "Procariotas frente a eucariotas", b: "1 origen y ≈ 1000 nt/s frente a muchos orígenes, fase S y ≈ 50 nt/s." },
+        { a: "Corrección y reparación", b: "Exonucleasa 3′ → 5′ de la polimerasa, MMR, BER y NER (xeroderma pigmentoso)." },
+        { a: "Telómeros y telomerasa", b: "Extremos repetidos (TTAGGG); la telomerasa los alarga; activa en células madre y cáncer." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "En el experimento de Hershey y Chase, ¿qué isótopo radiactivo marcó el ADN del virus?", ["Fósforo-32", "Azufre-35", "Carbono-14", "Nitrógeno-15"], 0, ["Cada nucleótido lleva un fosfato, así que el ADN contiene fósforo.", "El azufre está en las proteínas (cisteína, metionina), no en el ADN."], "Fósforo-32 (³²P)");
+  O("b2", 1, "¿Qué enzima separa las dos hebras de la doble hélice al comienzo de la replicación?", ["Helicasa", "Ligasa", "Primasa", "ADN polimerasa"], 0, ["La helicasa rompe los puentes de hidrógeno entre las bases."], "Helicasa");
+  O("b3", 1, "La ADN polimerasa añade nucleótidos a la cadena nueva en sentido…", ["5′ → 3′", "3′ → 5′", "en los dos sentidos", "al azar"], 0, ["Añade el nucleótido al extremo 3′-OH de la cadena.", "Nunca puede ir de 3′ a 5′."], "5′ → 3′");
+  V("b4", 1, "En la replicación semiconservativa, cada molécula hija tiene una hebra original y una hebra nueva.", true, ["Cada hebra original sirve de molde y se queda en una molécula hija", "Las dos hebras de cada molécula hija son nuevas", "Las moléculas hijas mezclan trozos viejos y nuevos", "Una hija es toda vieja y la otra toda nueva"], 0, ["Eso es lo que significa «semi»: la mitad de cada molécula hija es vieja."]);
+  T("b5", 1, "Completa: la enzima que une los fragmentos de Okazaki se llama ADN…", "Enzima", ["ligasa", "adn ligasa"], ["Sella el enlace fosfodiéster entre fragmentos contiguos."], "ligasa");
+  O("b6", 1, "En el experimento de Griffith, ¿qué ocurrió al inyectar a un ratón bacterias R vivas junto con bacterias S muertas por calor?", ["El ratón murió y se aislaron bacterias S vivas", "El ratón sobrevivió", "El ratón murió y solo había bacterias R", "El ratón sobrevivió pero se volvió inmune"], 0, ["Las R se transformaron en S con algo de los restos de las S.", "Es el «principio transformante»."], "El ratón murió (transformación)");
+  X("b7", 1, "Una molécula de ADN se replica 4 veces de forma semiconservativa. ¿Cuántas moléculas hay al final?", "Moléculas =", 16, "", ["Cada replicación duplica el número.", "2⁴ = 16."], "16 moléculas");
+  X("b8", 1, "En un ADN, el 30 % de las bases son adenina. ¿Qué porcentaje es guanina?", "% de G =", 20, "%", ["A = T = 30 %, así que A + T = 60 %.", "G + C = 40 % y G = C: G = 20 %."], "20 %");
+  T("b9", 1, "Completa: la enzima que fabrica el cebador de ARN se llama…", "Enzima", ["primasa"], ["Es una ARN polimerasa especializada que da el extremo 3′-OH inicial."], "primasa");
+  M("b10", 1, "Une cada científico con su descubrimiento.",
+    [C("Griffith", ["Transformación de bacterias (principio transformante)", "La ADNasa impide la transformación", "Fagos con ³²P y ³⁵S", "Isótopos ¹⁵N y ¹⁴N"], 0),
+     C("Avery y colaboradores", ["La ADNasa impide la transformación", "Transformación de bacterias (principio transformante)", "Fagos con ³²P y ³⁵S", "Isótopos ¹⁵N y ¹⁴N"], 0),
+     C("Hershey y Chase", ["Fagos con ³²P y ³⁵S", "Transformación de bacterias (principio transformante)", "La ADNasa impide la transformación", "Isótopos ¹⁵N y ¹⁴N"], 0),
+     C("Meselson y Stahl", ["Isótopos ¹⁵N y ¹⁴N", "Transformación de bacterias (principio transformante)", "La ADNasa impide la transformación", "Fagos con ³²P y ³⁵S"], 0)],
+    ["Griffith: transformación. Avery: ADNasa. Hershey y Chase: fagos marcados. Meselson y Stahl: nitrógeno pesado y ligero."], "Griffith → transformación; Avery → ADNasa; Hershey-Chase → ³²P/³⁵S; Meselson-Stahl → ¹⁵N/¹⁴N");
+  O("b11", 1, "¿Cómo se llama la hebra nueva que se sintetiza de forma continua?", ["Hebra adelantada (conductora)", "Hebra retrasada", "Fragmento de Okazaki", "Cebador"], 0, ["Sigue a la helicasa en el mismo sentido de avance de la horquilla."], "Hebra adelantada");
+  V("b12", 1, "La ADN polimerasa puede comenzar una cadena nueva sin ningún cebador.", false, ["Necesita un cebador con extremo 3′-OH libre", "Puede, porque tiene actividad primasa", "Puede, si hay suficientes nucleótidos", "No puede, porque falta ATP"], 0, ["Por eso la primasa fabrica antes un cebador de ARN."]);
+  O("b13", 1, "En una célula eucariota, ¿dónde y cuándo se replica el ADN?", ["En el núcleo, durante la fase S", "En el citoplasma, durante la mitosis", "En el núcleo, durante la profase", "En las mitocondrias, durante la fase G1"], 0, ["La fase S (síntesis) del ciclo celular es la de duplicación del ADN."], "En el núcleo, en la fase S");
+  T("b14", 1, "La hebra molde es 3′-TACGGATC-5′. Escribe la hebra nueva, de 5′ a 3′ (solo las bases, sin primas).", "Hebra nueva", ["ATGCCTAG", "5'-ATGCCTAG-3'", "5′-ATGCCTAG-3′"], ["Complementaria: T→A, A→T, C→G, G→C, G→C, A→T, T→A, C→G.", "Antiparalela: se lee de 5′ a 3′."], "5′-ATGCCTAG-3′");
+  O("b15", 1, "Los fragmentos de Okazaki aparecen en…", ["la hebra retrasada", "la hebra adelantada", "las dos hebras", "ninguna: son del ARN"], 0, ["Su síntesis 5′ → 3′ es contraria al avance de la horquilla."], "La hebra retrasada");
+  X("b16", 1, "Tras 5 replicaciones semiconservativas de una molécula, ¿cuántas hebras originales (de la molécula de partida) hay en total?", "Hebras originales =", 2, "", ["Las hebras originales nunca se destruyen ni se copian como tales.", "Siempre quedan las 2 de partida, cada una en una molécula distinta."], "2 hebras originales");
+
+  // ---- nivel 2
+  X("c1", 2, "Meselson y Stahl: tras 3 generaciones en ¹⁴N, ¿qué porcentaje del ADN es híbrido (banda intermedia) según el modelo semiconservativo?", "% intermedio =", 25, "%", ["3 generaciones → 8 moléculas.", "Solo 2 son híbridas: 2/8 = 0,25."], "25 %");
+  X("c2", 2, "Tras 4 generaciones en ¹⁴N, ¿qué porcentaje del ADN es totalmente ligero (semiconservativo)?", "% ligero =", 87.5, "%", ["4 generaciones → 16 moléculas; 2 híbridas.", "Ligeras: 14/16 = 0,875."], "87,5 %", 0.001);
+  O("c3", 2, "Si el modelo fuese conservativo, ¿qué se vería tras una generación en ¹⁴N?", ["Dos bandas: una pesada y otra ligera", "Una sola banda intermedia", "Una sola banda pesada", "Una sola banda ligera"], 0, ["La molécula original queda intacta (pesada) y la nueva es toda ligera.", "Mitad y mitad."], "Una banda pesada y otra ligera");
+  O("c4", 2, "Si el modelo fuese dispersivo, en la generación 2 se vería…", ["una sola banda, más cerca de la ligera que en la generación 1", "dos bandas: intermedia y ligera", "una banda pesada y una ligera", "una banda pesada"], 0, ["Cada molécula mezcla viejo y nuevo: la proporción de ¹⁵N se reduce a la mitad en cada generación.", "Nunca aparece una banda totalmente ligera."], "Una banda intermedia desplazada hacia la ligera");
+  V("c5", 2, "En la hebra retrasada, la ADN polimerasa trabaja de 3′ a 5′.", false, ["La polimerasa siempre trabaja de 5′ a 3′; en la retrasada lo hace alejándose de la horquilla", "Sí, por eso se hace en fragmentos", "Sí, porque es antiparalela", "No hay polimerasa en la retrasada"], 0, ["Esa dirección contraria al avance de la horquilla es la causa de los fragmentos."]);
+  X("c6", 2, "En un eucariota, una hebra retrasada de 12 000 nt se sintetiza en fragmentos de Okazaki de 200 nt. ¿Cuántos fragmentos son?", "Fragmentos =", 60, "", ["12 000 / 200 = 60."], "60 fragmentos");
+  X("c7", 2, "En esa misma horquilla (12 000 nt replicados, fragmentos de 200 nt), ¿cuántos cebadores de ARN se han usado en total (los dos moldes)?", "Cebadores =", 61, "", ["Hebra adelantada: 1 cebador.", "Hebra retrasada: 60 fragmentos → 60 cebadores.", "Total: 61."], "61 cebadores");
+  O("c8", 2, "En procariotas, ¿qué hace la ADN polimerasa I?", ["Elimina los cebadores de ARN y rellena el hueco con ADN", "Abre la doble hélice", "Une los fragmentos con enlaces fosfodiéster", "Fabrica el cebador"], 0, ["La polimerasa III copia; la I limpia los cebadores y rellena.", "La ligasa sella la última unión."], "Quita el cebador y rellena con ADN");
+  M("c9", 2, "Une cada proteína con su función.",
+    [C("Helicasa", ["Abre la doble hélice", "Quita la tensión por delante de la horquilla", "Mantiene las hebras separadas", "Fabrica el cebador", "Une fragmentos"], 0),
+     C("Topoisomerasa", ["Quita la tensión por delante de la horquilla", "Abre la doble hélice", "Mantiene las hebras separadas", "Fabrica el cebador", "Une fragmentos"], 0),
+     C("SSB", ["Mantiene las hebras separadas", "Abre la doble hélice", "Quita la tensión por delante de la horquilla", "Fabrica el cebador", "Une fragmentos"], 0),
+     C("Primasa", ["Fabrica el cebador", "Abre la doble hélice", "Quita la tensión por delante de la horquilla", "Mantiene las hebras separadas", "Une fragmentos"], 0),
+     C("Ligasa", ["Une fragmentos", "Abre la doble hélice", "Quita la tensión por delante de la horquilla", "Mantiene las hebras separadas", "Fabrica el cebador"], 0)],
+    ["Helicasa abre; topoisomerasa relaja; SSB estabiliza; primasa hace el cebador; ligasa pega."], "Helicasa → abre; topoisomerasa → tensión; SSB → hebras abiertas; primasa → cebador; ligasa → une");
+  X("c10", 2, "Un ADN tiene un 22 % de citosina. ¿Qué porcentaje de adenina tiene?", "% de A =", 28, "%", ["C = G = 22 %: G + C = 44 %.", "A + T = 56 %, y A = T: A = 28 %."], "28 %");
+  X("c11", 2, "El ADN de E. coli (4,6·10⁶ pares de bases) se replica desde un único origen con dos horquillas que avanzan a 1000 nt/s cada una. ¿Cuántos minutos tarda?", "Tiempo (min) =", 38.3, "min", ["Velocidad total: 2 · 1000 = 2000 nt/s.", "4,6·10⁶ / 2000 = 2300 s.", "2300 / 60 = 38,3 min."], "≈ 38,3 min", 0.005);
+  O("c12", 2, "Se dice que la replicación es bidireccional porque…", ["de cada origen salen dos horquillas en sentidos opuestos", "se sintetiza en los dos sentidos 5′ → 3′ y 3′ → 5′", "ocurre en las dos hebras de un cromosoma a la vez en el mismo sentido", "las dos polimerasas van en el mismo sentido"], 0, ["Es la burbuja de replicación con una horquilla en cada extremo."], "Dos horquillas por origen en sentidos opuestos");
+  V("c13", 2, "Las células eucariotas replican su ADN desde un único origen de replicación.", false, ["Tienen muchos orígenes; si no, tardarían semanas o meses", "Sí, igual que las bacterias", "Sí, pero con mayor velocidad", "No tienen orígenes"], 0, ["Una sola horquilla a 50 nt/s tardaría años en copiar un genoma humano."]);
+  V("c14", 2, "Hershey y Chase usaron ³⁵S para marcar las proteínas porque las proteínas contienen azufre y el ADN no.", true, ["Cisteína y metionina llevan azufre; el ADN no lo tiene", "El azufre está en los fosfatos del ADN", "El ³⁵S solo se une al ARN", "El azufre se distingue por su densidad"], 0, ["Con ³²P para el ADN y ³⁵S para las proteínas se marcan por separado."]);
+
+  // ---- nivel 3
+  X("d1", 3, "Una bacteria con ADN pesado (¹⁵N) se cultiva 5 generaciones en ¹⁴N (modelo semiconservativo). ¿Cuántas de las moléculas resultantes tienen ADN totalmente ligero?", "Moléculas ligeras =", 30, "", ["2⁵ = 32 moléculas.", "Solo 2 son híbridas.", "Ligeras: 32 − 2 = 30."], "30 moléculas");
+  X("d2", 3, "Un genoma diploide humano tiene 6,4·10⁹ pares de bases. Cada horquilla avanza a 50 nt/s, cada origen tiene 2 horquillas y la fase S dura 8 h (28 800 s). ¿Cuántos orígenes de replicación hacen falta como mínimo?", "Orígenes =", 2223, "", ["Cada origen copia 2 · 50 · 28 800 = 2 880 000 pb.", "6,4·10⁹ / 2,88·10⁶ = 2222,2.", "Hay que redondear al alza: 2 223."], "≈ 2 223 orígenes (como mínimo)", 0.005);
+  X("d3", 3, "Un telómero mide 8 000 nt y pierde 80 nt por división. Si la célula entra en senescencia al llegar a 5 600 nt, ¿cuántas divisiones puede hacer?", "Divisiones =", 30, "", ["Pérdida permitida: 8 000 − 5 600 = 2 400 nt.", "2 400 / 80 = 30."], "30 divisiones");
+  X("d4", 3, "El ADN de ¹⁵N tiene una densidad de 1,724 g/mL y el de ¹⁴N, 1,710 g/mL. ¿Qué densidad tendrá el ADN híbrido de la generación 1?", "Densidad (g/mL) =", 1.717, "g/mL", ["Una hebra pesada y una ligera: promedio.", "(1,724 + 1,710) / 2 = 1,717."], "1,717 g/mL", 0.001);
+  X("d5", 3, "Tras 3 generaciones en ¹⁴N, ¿qué porcentaje de todas las hebras del tubo conserva ¹⁵N?", "% de hebras con ¹⁵N =", 12.5, "%", ["8 moléculas = 16 hebras.", "Solo 2 son las originales (con ¹⁵N): 2/16 = 0,125."], "12,5 %", 0.001);
+  O("d6", 3, "Un cultivo en ¹⁵N pasa a ¹⁴N. A los 30 min hay una banda intermedia; a los 60 min, una intermedia y otra ligera de igual grosor. ¿Cuál es el tiempo de generación?", ["30 min", "60 min", "15 min", "90 min"], 0, ["Una banda solo intermedia = 1 generación (a los 30 min).", "Intermedia + ligera al 50 % = 2 generaciones (a los 60 min).", "60 / 2 = 30 min."], "30 min");
+  O("d7", 3, "Si las proteínas (y no el ADN) fuesen el material genético, ¿qué habrían observado Hershey y Chase en el lote marcado con ³⁵S?", ["Gran parte del ³⁵S en el sedimento, dentro de las bacterias", "Casi todo el ³⁵S en el sobrenadante, como ocurrió", "El ³⁵S desapareció", "El ³²P en el sobrenadante"], 0, ["Si lo que entra es la proteína, la radiactividad de la proteína estaría en las bacterias.", "No ocurrió: el ³⁵S se quedó fuera."], "El ³⁵S dentro de las bacterias");
+  X("d8", 3, "La tasa final de error es 10⁻⁹ por nucleótido copiado. ¿Cuántos errores cabe esperar al replicar 6,4·10⁹ pb?", "Errores =", 6.4, "", ["6,4·10⁹ · 10⁻⁹ = 6,4."], "≈ 6,4 errores por división", 0.001);
+  X("d9", 3, "En E. coli, cada horquilla copia la mitad del genoma (2,3·10⁶ nt). Si los fragmentos de Okazaki miden 1 500 nt, ¿cuántos fragmentos tiene la hebra retrasada de una horquilla? (redondea al alza)", "Fragmentos =", 1534, "", ["2,3·10⁶ / 1 500 = 1 533,3.", "El último fragmento queda incompleto pero cuenta: 1 534."], "1 534 fragmentos", 0.005);
+  X("d10", 3, "Un fragmento de ADN de 4 000 pares de bases tiene un 28 % de guanina. ¿Cuántos puentes de hidrógeno hay en total? (A-T: 2; G-C: 3)", "Puentes de H =", 10240, "", ["G = C = 28 % (1 120 pb G-C cada una), G-C = 56 % → 2 240 pares; A-T = 1 760 pares.", "A-T: 1 760 · 2 = 3 520. G-C: 2 240 · 3 = 6 720.", "Total: 10 240."], "10 240 puentes de hidrógeno");
+  R("d11", "Describe el experimento de Meselson y Stahl: método, resultados en las generaciones 1 y 2 y conclusión. (Pregunta tipo PAU)", [
+    { t: "Método: E. coli en ¹⁵N (ADN pesado) y luego en ¹⁴N; ADN extraído por generaciones y ultracentrifugado en CsCl", p: 0.4 },
+    { t: "Generación 1: una sola banda de densidad intermedia", p: 0.4 },
+    { t: "Generación 2: dos bandas, intermedia y ligera, a partes iguales", p: 0.4 },
+    { t: "Se descartan el conservativo (gen. 1) y el dispersivo (gen. 2)", p: 0.4 },
+    { t: "Conclusión: replicación semiconservativa", p: 0.4 }], ["Método.", "Generación 1.", "Generación 2.", "Descartes.", "Conclusión."], "Semiconservativo: cada hija = hebra vieja + nueva");
+  R("d12", "Explica cómo se replica el ADN: enzimas, hebra adelantada y retrasada, y por qué hace falta un cebador. (Pregunta tipo PAU)", [
+    { t: "Helicasa abre la hélice (origen, horquilla); SSB y topoisomerasa ayudan", p: 0.4 },
+    { t: "La ADN polimerasa añade nucleótidos solo 5′ → 3′ sobre un molde, y necesita un cebador con 3′-OH", p: 0.5 },
+    { t: "Primasa: cebador de ARN", p: 0.3 },
+    { t: "Adelantada continua; retrasada en fragmentos de Okazaki por el antiparalelismo", p: 0.5 },
+    { t: "Pol. I (o equivalente) cambia el cebador por ADN y la ligasa une los fragmentos", p: 0.3 }], ["Apertura.", "Polimerasa y cebador.", "Primasa.", "Hebras.", "Maduración."], "Helicasa → primasa → polimerasa → ligasa");
+  R("d13", "¿Qué son los telómeros y la telomerasa? Relaciónalos con el envejecimiento celular y el cáncer. (Pregunta tipo PAU)", [
+    { t: "Telómeros: secuencias repetidas (TTAGGG) en los extremos de los cromosomas, sin genes", p: 0.4 },
+    { t: "Problema del extremo: al eliminar el último cebador se pierde un poco de ADN en cada replicación", p: 0.5 },
+    { t: "Telomerasa: enzima con molde de ARN que alarga el telómero", p: 0.4 },
+    { t: "Células somáticas: telomerasa casi inactiva, telómero se acorta, senescencia (límite de Hayflick)", p: 0.4 },
+    { t: "Células madre y cancerosas: telomerasa activa; en el cáncer, división sin límite", p: 0.3 }], ["Telómeros.", "Problema del extremo.", "Telomerasa.", "Somáticas.", "Madre y cáncer."], "Telomerasa activa: células madre y cáncer");
+  R("d14", "Compara el ADN de Avery con el de Hershey y Chase: ¿qué demostró cada experimento y qué diferencia metodológica tienen? (Pregunta tipo PAU)", [
+    { t: "Avery: el principio transformante de Griffith es ADN (la ADNasa impide la transformación; proteasa y ARNasa no)", p: 0.5 },
+    { t: "Hershey y Chase: en el virus, entra el ADN en la bacteria y dirige la fabricación de virus", p: 0.5 },
+    { t: "Avery elimina una molécula cada vez; Hershey y Chase marcan ADN (³²P) y proteína (³⁵S) por separado", p: 0.4 },
+    { t: "Organismos: bacterias (neumococo) frente a bacteriófago T2", p: 0.3 },
+    { t: "Los dos concluyen que el material genético es el ADN", p: 0.3 }], ["Avery.", "Hershey y Chase.", "Método.", "Organismos.", "Conclusión común."], "Los dos apuntan al ADN, con métodos distintos");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Experimentos clave", ancha: true,
+      tabla: { cab: ["Experimento", "Resultado"], filas: [
+        ["Griffith 1928", "R viva + S muerta: ratón muere"],
+        ["Avery 1944", "la ADNasa anula la transformación"],
+        ["Hershey y Chase 1952", "³²P dentro; ³⁵S fuera"],
+        ["Meselson y Stahl 1958", "semiconservativo"]
+      ] } },
+    { titulo: "Meselson y Stahl: bandas", ancha: true,
+      tabla: { cab: ["Gen.", "Conservativo", "Semiconservativo", "Dispersivo"], filas: [
+        ["1", "pesada + ligera", "intermedia", "intermedia"],
+        ["2", "pesada + ligera", "intermedia + ligera", "intermedia (más ligera)"]
+      ] } },
+    { titulo: "La horquilla",
+      pasos: ["Helicasa abre; SSB y topoisomerasa ayudan.", "Primasa: cebador de ARN.", "Polimerasa: solo 5′ → 3′ (adelantada continua; retrasada en fragmentos).", "Se quita el cebador y la ligasa une."],
+      nota: "Cebadores = 1 + nº de fragmentos de Okazaki." },
+    { titulo: "Procariotas y eucariotas", ancha: true,
+      tabla: { cab: ["", "Procariotas", "Eucariotas"], filas: [
+        ["orígenes", "1", "muchos"],
+        ["horquilla", "≈ 1000 nt/s", "≈ 50 nt/s"],
+        ["Okazaki", "1000-2000 nt", "100-200 nt"],
+        ["extremos", "circular", "telómeros"]
+      ] } },
+    { titulo: "Hebra adelantada y retrasada", ancha: true,
+      tabla: { cab: ["", "Adelantada", "Retrasada"], filas: [
+        ["síntesis", "continua", "en fragmentos"],
+        ["cebadores", "1", "1 por fragmento"],
+        ["sentido", "con la horquilla", "contra la horquilla"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Hershey y Chase marcaron el ADN con azufre", bien: "Fósforo-32 para el ADN; azufre-35 para las proteínas", por: "Solo el ADN tiene fosfato; solo las proteínas, azufre." },
+        { mal: "En la retrasada la polimerasa va de 3′ a 5′", bien: "Siempre de 5′ a 3′, alejándose de la horquilla", por: "Por eso hay fragmentos." },
+        { mal: "La ligasa corrige los errores", bien: "Los corrige la propia polimerasa (exonucleasa 3′→5′)", por: "La ligasa solo sella cortes." },
+        { mal: "Semiconservativo = se conserva la mitad del ADN", bien: "Se conserva una de las dos hebras en cada molécula hija", por: "Cada hija: 1 vieja + 1 nueva." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t11", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio11a.secciones,
+    nuevas: B.parte.bio11a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
