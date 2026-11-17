@@ -52,6 +52,7 @@ El progreso de las actividades se guarda en `localStorage` (por dispositivo).
 | **Física y Química I** | 1–13 (todos) | ≈ 117.000 | 622 (674) | ≈ 240 | 115 | 4 (11) |
 | **Química II** | 1–11 (todos) | — | 525 | ≈45 interactivos | — | 3 (8) |
 | **Matemáticas II** | 1–14 (todos) | ≈ 98.000 | 660 | 53 interactivos | — | — |
+| **Biología II** | 1–16 (todos), con ficha «de un vistazo» por tema | ≈ 95.000 | 756 | ≈45 interactivos + actividades | ≈ 90 | — |
 | **Historia de la Filosofía** | 1–16 (todos), con ficha «de un vistazo» por tema | ≈ 80.000 | 707 | 8 interactivos + actividades | ≈ 70 | — |
 | Historia de España (piloto) | 7 | — | 7 | línea del tiempo, diagramas, comentario guiado | 1 | — |
 
@@ -102,4 +103,4 @@ Con Playwright y Chromium (`herramientas/pruebas/`; ver `GUIA_TEMA.md`):
 Se probó un generador de vault de Obsidian (`obsidian/`), pero se descartó el 27-oct-2026 (no encaja con quien estudia con la web). Queda solo como histórico, sin mantenimiento ni la capa de ampliaciones; la web de uso es GitHub Pages (y la versión con corrección, el artefacto de claude.ai; ver `PLAN.md`).
 
 ---
-Estado: 5 asignaturas listas. Último cambio en la web: 29-oct-2026; documentación revisada el 11-nov-2026. Cronología completa en `PLAN.md` §0.
+Estado: 6 asignaturas listas. Último cambio en la web: 17-nov-2026 (Biología II). Cronología completa en `PLAN.md` §0.

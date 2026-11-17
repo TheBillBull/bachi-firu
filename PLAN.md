@@ -2,7 +2,7 @@
 
 ## 0. ESTADO AL PARAR — LEER PRIMERO
 
-**Revisado el 11-nov-2026.** Último cambio en la web: **29-oct-2026, 04:17 UTC** (commit `2dfbe8d`, ficha imprimible). Desde entonces no se ha tocado contenido. Estas fechas son las mismas que lleva la nota del vault (`Documentación-IT/05-Proyectos/Bachi Firu.md`); si cambias una, cambia la otra.
+**Revisado el 17-nov-2026.** Último cambio en la web: **17-nov-2026, 08:14 UTC** (Biología II completa). Estas fechas son las mismas que lleva la nota del vault (`Documentación-IT/05-Proyectos/Bachi Firu.md`); si cambias una, cambia la otra.
 
 **Cronología (todas en UTC):**
 | Fecha | Qué |
@@ -14,19 +14,20 @@
 | 29-oct-2026 ~01:20 | Historia de la Filosofía cerrada (16 temas, ficha «de un vistazo»). Artefacto privado versión 12. `main` actualizado. |
 | 29-oct-2026 04:17 | Arreglo: imprimir la ficha ya no saca hojas en blanco (commit `2dfbe8d`, en `main`; no afecta al artefacto, que no muestra el botón). |
 | 11-nov-2026 | Revisión de la documentación (este archivo, README, CLAUDE.md, PROMPT_RETOMAR y la nota del vault). Sin cambios de contenido. |
-| 16-nov-2026 | Empieza Biología II (16 temas), encargo `herramientas/ENCARGO_COMUN_BIOLOGIA.txt`, con ficha «de un vistazo». |
+| 16-nov-2026 23:25 | Empieza Biología II (16 temas), encargo `herramientas/ENCARGO_COMUN_BIOLOGIA.txt`, con ficha «de un vistazo». |
+| 17-nov-2026 ~08:14 | **Biología II cerrada** (16 temas). TODO CUADRA (81 grupos, 32.796 comprobaciones de cifras). Artefacto privado versión 13. `main` actualizado. |
 
 
-- **5 asignaturas listas** (desde el 29-oct-2026) — Mates I, FyQ I, Química II, Matemáticas II e **Historia de la Filosofía** (16 temas, cada uno con ficha «de un vistazo»; 707 ejercicios, 3.747 comprobaciones). `comprobar_todo.sh` → TODO CUADRA (64 grupos, 27.847 comprobaciones de cifras, 0 fallos). Publicado en el artefacto (versión 12, 29-oct) y en `main` (Pages; hoy en el commit `2dfbe8d`). Bill pidió PARAR tras Filosofía. Pendiente menor: cotejar con una edición las citas marcadas «traducción habitual».
-- **Siguiente (cuando Bill diga «continuamos» y qué asignatura)**: quedan Historia de España (14 de 15 temas), Física II (12), Biología II (16) y Lengua (22). Ver §1b para el método exacto y el coste esperado.
+- **6 asignaturas listas** (desde el 17-nov-2026) — Mates I, FyQ I, Química II, Matemáticas II, Historia de la Filosofía (707 ejercicios) y **Biología II** (16 temas con ficha «de un vistazo»; 756 ejercicios, 4.949 comprobaciones, ≈45 interactivos). `comprobar_todo.sh` → TODO CUADRA (81 grupos, 32.796 comprobaciones de cifras, 0 fallos). Publicado en el artefacto (versión 13, 17-nov) y en `main` (Pages). Bill pidió PARAR tras Filosofía. Pendiente menor: cotejar con una edición las citas marcadas «traducción habitual».
+- **Siguiente (cuando Bill diga «continuamos» y qué asignatura)**: quedan Historia de España (14 de 15 temas), Física II (12) y Lengua (22). Ver §1b para el método exacto y el coste esperado.
 
 - **Parado por el usuario** («por ahora paramos»). No empezar nada nuevo hasta que diga «continuamos» y qué asignatura.
-- **Hecho y verificado**: Mates I, FyQ I, **Química II (11 temas + 8 simulacros, 3 nuevos en formato oficial PAU Madrid 2025-26)**, **Matemáticas II (14 temas)** e **Historia de la Filosofía (16 temas)**. Todo commiteado y subido a `claude/admiring-keller-1be6ou` y a `main`.
+- **Hecho y verificado**: Mates I, FyQ I, **Química II (11 temas + 8 simulacros, 3 nuevos en formato oficial PAU Madrid 2025-26)**, **Matemáticas II (14 temas)**, **Historia de la Filosofía (16 temas)** y **Biología II (16 temas)**. Todo commiteado y subido a `claude/admiring-keller-1be6ou` y a `main`.
 - **DOS publicaciones (no confundir)**:
   1. **Web PÚBLICA = GitHub Pages**: https://thebillbull.github.io/bachi-firu/ — se sirve desde la rama `main` (raíz, `index.html`). Para actualizarla: `git push origin claude/admiring-keller-1be6ou:main` (avance rápido; Bill lo autorizó el 28-oct-2026, sin PR). Si el permiso se deniega, PR hacia `main` y que la fusione el usuario. Pages se actualiza en 1–2 min. **No lleva corrección con Claude** (es normal: fuera de claude.ai no existe `window.claude`); la página lo detecta sola (`EN_CLAUDE` en `pagina.html`): guarda el progreso en el navegador y, si se pulsa «corregir con Claude», muestra un aviso (`SIN_IA`). No hay que quitar nada a mano para la versión pública.
-  2. **Artefacto privado de claude.ai** (con corrección de Claude en Comentario de texto e Inglés): https://claude.ai/artifact/PBj2wEg4PKUru2SyFq2T2c (versión 12 = Filosofía completa), capacidades `sample` y `db`.
+  2. **Artefacto privado de claude.ai** (con corrección de Claude en Comentario de texto e Inglés): https://claude.ai/artifact/PBj2wEg4PKUru2SyFq2T2c (versión 13 = Biología II completa), capacidades `sample` y `db`.
 - **Republicar desde una conversación NUEVA** exige que esa conversación lea la página entera (≈6 MB): inviable. Opciones: publicar en una dirección nueva (pasando `capabilities: {sample:{}, db:{}}`) y anotarla aquí, avisando de que el progreso guardado en el navegador no se traslada; o seguir siempre desde la misma conversación.
-- **Pendiente sin empezar**: Historia de España (14 de 15), Física II (12), Biología II (16), Lengua (22); simulacros nuevos de Mates II. Pegas menores: 1 px de desborde en móvil en Química II t10–t11; `q7_reacciones` abre siempre en «Adición»; en Mates «2e-1» se lee como 0,2 (escribir «2*e-1»).
+- **Pendiente sin empezar**: Historia de España (14 de 15), Física II (12), Lengua (22); simulacros nuevos de Mates II. Pegas menores: 1 px de desborde en móvil en Química II t10–t11; `q7_reacciones` abre siempre en «Adición»; en Mates «2e-1» se lee como 0,2 (escribir «2*e-1»).
 - **Cómo se trabajó (funciona bien)**: sesión principal solo orquesta; 2 agentes nuevos a la vez (modelo Sonnet, `isolation: worktree`), un tema cada uno, con el encargo común `herramientas/ENCARGO_COMUN_FILOSOFIA.txt` (letras) o `ENCARGO_COMUN_MATES2.txt` (ciencias) adaptado a la asignatura + 5–8 ideas EvAU del tema; al acabar cada uno: `sh herramientas/validar_tema.sh <id> <asig> <N>` (fusiona, prueba y verifica; el índice debe estar limpio antes), apuntar coste en §7, lanzar el siguiente, publicar cada 2–3 temas. Coste medido: ≈200.000–300.000 tokens por tema en ciencias; ≈157.000 por tema en Filosofía. Ajuste previo necesario en un contenedor nuevo: `~/.claude/settings.json` con `{"worktree":{"baseRef":"head"}}` (si no, los worktrees fallan) y `pip install sympy scipy rdkit py2opsin mendeleev`.
 - **Prompt para retomar**: `herramientas/PROMPT_RETOMAR.md`.
 
@@ -39,11 +40,11 @@
 
 **Línea base al cerrar la versión 1** (27-oct-2026, `sh herramientas/comprobar_todo.sh`, 11 min 30 s): **TODO CUADRA** — build OK · regresión «todo coincide» · 104/104 botones de la ruta de estudio · ejercicios nuevos que aceptan su respuesta: Mates I 611/611, FyQ I 622/622, Química II 10/10, Historia de España 7/7 · 12 scripts de verificación con **16.706 comprobaciones de cifras y 0 fallos**. Tras ampliar, esos números solo deben subir.
 
-## 1b. Cómo seguir con el resto (Historia de España, Física II, Biología II, Lengua)
-1. Copiar el encargo común más parecido: letras → `herramientas/ENCARGO_COMUN_FILOSOFIA.txt` (incluye la ficha «de un vistazo», recomendable también en Historia de España y Biología II); ciencias → `herramientas/ENCARGO_COMUN_MATES2.txt`. Cambiar el id de asignatura (`historia_esp`, `fisica2`, `biologia2`, `lengua`) y las ideas PAU propias.
+## 1b. Cómo seguir con el resto (Historia de España, Física II, Lengua)
+1. Copiar el encargo común más parecido: letras → `herramientas/ENCARGO_COMUN_FILOSOFIA.txt` (incluye la ficha «de un vistazo», recomendable también en Historia de España); Biología II → `ENCARGO_COMUN_BIOLOGIA.txt` (modelo de ciencias con ficha); ciencias → `herramientas/ENCARGO_COMUN_MATES2.txt`. Cambiar el id de asignatura (`historia_esp`, `fisica2`, `biologia2`, `lengua`) y las ideas PAU propias.
 2. Tema 1 con un agente solo (fija el estilo); luego 2 agentes a la vez, un tema cada uno, tomando como modelo el tema 1 ya fusionado.
 3. Tras cada agente: `sh herramientas/validar_tema.sh <id> <asig> <N>`, fila en §7, commit y push. Al final: `comprobar_todo.sh`, artefacto, `git push origin claude/admiring-keller-1be6ou:main`, resumen con cifras.
-4. Coste esperado (según lo medido): Historia de España ≈2,2 M tokens (14 temas), Física II ≈3 M (12, con cifras), Biología II ≈2,5 M (16), Lengua ≈3,5 M (22). Puerta: si un tema pasa de 700.000, parar y avisar.
+4. Coste esperado (según lo medido): Historia de España ≈2,2 M tokens (14 temas), Física II ≈2,6 M (12, con cifras; Biología salió a ≈200k/tema), Lengua ≈3,5 M (22). Puerta: si un tema pasa de 700.000, parar y avisar.
 
 ## 2. Estado por asignatura
 | Asignatura | Estado | Qué tiene |
@@ -54,7 +55,8 @@
 | Historia de España (15 temas) | **A medias a propósito**: solo el tema 7 (Restauración) con el estándar antiguo (7 ejercicios, línea del tiempo, diagramas, comentario guiado) | Después de Química II, si el usuario lo decide |
 | Matemáticas II (14 temas) | **Cerrada (28-oct-2026)**, estándar «con cariño» | 14 temas ampliados (≈98.000 palabras) · 660 ejercicios · 53 interactivos nuevos, todos probados pulsándolos · 2.896 comprobaciones de cifras sin fallos · sin simulacros nuevos |
 | Historia de la Filosofía (16) | **Cerrada 29-oct**: 16 temas ampliados, cada uno con ficha «de un vistazo» (componente `vistazo`, lab_0vistazo.js); 707 ejercicios, 3.747 comprobaciones sin fallos | ≈2,5 M tokens (≈157k/tema) |
-| Física II (12), Biología II (16), Lengua (22) | Sin empezar (solo el contenido original) | — |
+| Biología II (16) | **Cerrada 17-nov-2026**: 16 temas con ficha «de un vistazo»; 756 ejercicios; 4.949 comprobaciones sin fallos; ≈45 interactivos (ósmosis, Punnett, traductor de ADN, PCR, Hardy-Weinberg…) | ≈3,2 M tokens (≈200k/tema) + ≈0,3 M de intentos cortados |
+| Física II (12), Lengua (22) | Sin empezar (solo el contenido original) | — |
 
 «A medias a propósito» = no hay nada roto ni sin terminar en el código: esos dos temas funcionan y están verificados; simplemente se ampliarán más cuando toque su asignatura.
 
@@ -267,3 +269,4 @@ Lo pidió el usuario para ver avances por la mañana. **Quien lea esto tras un r
 - 17-nov: Biología t14 fusionado. Lanzado t16.
 - 17-nov: Biología t15 fusionado. Falta t16.
 - 17-nov: Biología t16 fusionado: 16/16.
+- 17-nov-2026 08:14 UTC: BIOLOGÍA II CERRADA. TODO CUADRA (81 grupos, 32.796 cifras). Artefacto v13, `main` actualizado, vault actualizado. PARADA.
