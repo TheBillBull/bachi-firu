@@ -6328,6 +6328,161 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 8 (Catabolismo: la respiración celular)
+   bio_ruta: las cuatro etapas de la respiración de la glucosa, con el lugar de la célula y lo que se acumula.
+   bio_atp: balance de ATP (glucosa o ácido graso), con el criterio 30/32 o 36/38, la lanzadera y la fermentación.
+   bio_cadena: la cadena respiratoria con inhibidores (rotenona, antimicina, cianuro, oligomicina, DNP).
+   Estilos inyectados desde aquí. Las cifras las recalcula herramientas/verificar_bio2_t8.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio8-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio8-estilos";
+    s.textContent =
+      ".bio8-zonas{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio8-zonas div{padding:8px 6px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:13px;color:var(--ink-faint);text-align:center;line-height:1.3}" +
+      ".bio8-zonas div.on{border-color:var(--pen);background:var(--pen-soft);color:var(--ink);font-weight:600}" +
+      ".bio8-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio8-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio8-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio8-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio8-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio8-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+      ".bio8-tab{width:100%;table-layout:fixed;overflow-wrap:anywhere;border-collapse:collapse;margin:8px 0;font-size:14px;color:var(--ink)}" +
+      ".bio8-tab th,.bio8-tab td{border:1.5px solid var(--line);padding:5px 8px;text-align:center}" +
+      ".bio8-tab th{background:var(--sheet-2);font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-faint)}" +
+      ".bio8-tab td:first-child{text-align:left;width:34%}" +
+      ".bio8-tab tr.tot td{font-weight:700;background:var(--pen-soft)}" +
+      ".bio8-med{margin:6px 0}" +
+      ".bio8-med span{display:block;font-size:13px;color:var(--ink-faint);margin-top:6px}" +
+      ".bio8-bar{height:16px;border:1.5px solid var(--line);border-radius:8px;background:var(--sheet);overflow:hidden}" +
+      ".bio8-bar i{display:block;height:100%;background:var(--pen)}" +
+      "@media(max-width:520px){.bio8-tab{font-size:12px}.bio8-tab th,.bio8-tab td{padding:4px 3px}.bio8-tab th{font-size:10px;letter-spacing:0}.bio8-dato{grid-template-columns:1fr}.bio8-zonas{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  function num(x) { return B.fmt(x, Math.abs(x - Math.round(x)) < 1e-9 ? 0 : 1); }
+
+  // ------------------------------------------------------------------ RUTA: cuatro etapas
+  // Acumulado por molécula de glucosa (aerobia): [NADH, FADH2, ATP directo, CO2]
+  var ETAPAS = [
+    { k: "glu", t: "1 · Glucólisis", zona: 0, lugar: "Citoplasma (hialoplasma)", entra: "1 glucosa (6 C), 2 ATP, 2 NAD⁺, 4 ADP",
+      sale: "2 piruvato (3 C), 4 ATP (2 netos), 2 NADH", acum: [2, 0, 2, 0], o2: "No necesita O₂",
+      nota: "Se gastan 2 ATP al principio y se forman 4 al final: ganancia neta de 2 ATP." },
+    { k: "pdh", t: "2 · Descarboxilación oxidativa", zona: 1, lugar: "Matriz mitocondrial", entra: "2 piruvato, 2 CoA, 2 NAD⁺ (el piruvato entra desde el citoplasma)",
+      sale: "2 acetil-CoA (2 C), 2 CO₂, 2 NADH", acum: [4, 0, 2, 2], o2: "No usa O₂ directamente, pero depende de él",
+      nota: "Cada piruvato pierde un carbono como CO₂: de 3 C a 2 C." },
+    { k: "kre", t: "3 · Ciclo de Krebs", zona: 1, lugar: "Matriz mitocondrial", entra: "2 acetil-CoA, 6 NAD⁺, 2 FAD, 2 ADP (dos vueltas)",
+      sale: "4 CO₂, 6 NADH, 2 FADH₂, 2 ATP (o GTP)", acum: [10, 2, 4, 6], o2: "No usa O₂ directamente, pero depende de él",
+      nota: "Con esta etapa la glucosa ya está oxidada del todo: sus 6 C han salido como 6 CO₂." },
+    { k: "cad", t: "4 · Cadena respiratoria", zona: 2, lugar: "Membrana mitocondrial interna (crestas)", entra: "10 NADH, 2 FADH₂, 6 O₂, ADP + Pi",
+      sale: "6 H₂O, NAD⁺ y FAD regenerados, ATP por fosforilación oxidativa", acum: [10, 2, 4, 6], o2: "Aquí se consume el O₂ (aceptor final)",
+      nota: "Aquí se fabrica la mayor parte del ATP: 28 (criterio 30/32) o 34 (criterio 36/38) de los totales." }
+  ];
+
+  B.w.bio_ruta = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "De la glucosa al ATP, etapa a etapa");
+    cuerpo.innerHTML = '<p class="w-intro">Pulsa cada etapa. Se muestran el lugar de la célula, lo que entra y sale, y lo que llevas acumulado <b>por cada molécula de glucosa</b>.</p>' +
+      '<div data-fich></div><div class="bio8-zonas"><div>Citoplasma</div><div>Matriz mitocondrial</div><div>Membrana interna</div></div>' +
+      '<div class="bio8-dato" data-d></div><div class="bio8-veredicto"></div><p class="w-pie">Cifras por glucosa, respiración aerobia completa. Los coenzimas reducidos (NADH, FADH₂) se «cobran» en la etapa 4.</p>';
+    var zonas = cuerpo.querySelectorAll(".bio8-zonas div"), dat = cuerpo.querySelector("[data-d]"), ver = cuerpo.querySelector(".bio8-veredicto");
+    function pinta(k) {
+      var e = ETAPAS.filter(function (x) { return x.k === k; })[0];
+      Array.prototype.forEach.call(zonas, function (z, i) { z.className = i === e.zona ? "on" : ""; });
+      dat.innerHTML = "<div><b>Lugar</b>" + e.lugar + "</div><div><b>Oxígeno</b>" + e.o2 + "</div><div><b>Entra</b>" + e.entra + "</div><div><b>Sale</b>" + e.sale + "</div>" +
+        "<div><b>Acumulado hasta aquí</b>NADH " + e.acum[0] + " · FADH₂ " + e.acum[1] + "</div><div><b>ATP directos y CO₂</b>ATP " + e.acum[2] + " · CO₂ " + e.acum[3] + "</div>";
+      ver.textContent = e.nota;
+    }
+    U.fichas(cuerpo.querySelector("[data-fich]"), ETAPAS.map(function (e) { return { k: e.k, t: e.t }; }), "glu", pinta);
+    pinta("glu");
+  };
+
+  // ------------------------------------------------------------------ BALANCE DE ATP
+  var DG_GLUCOSA = 2870, DG_ATP = 30.5;      // kJ/mol (valores de referencia)
+  function balance(o) {
+    var vN = o.conv === "clas" ? 3 : 2.5, vF = o.conv === "clas" ? 2 : 1.5, r;
+    if (o.sust === "glu") {
+      if (o.dest === "lac") return { filas: [["Glucólisis", 2, 0, 2]], total: 2, co2: 0, o2: 0, c: 6, nota: "Sin O₂ el piruvato se reduce a lactato y regenera el NAD⁺ (los 2 NADH se gastan aquí): solo cuentan los 2 ATP de la glucólisis.", fer: true };
+      if (o.dest === "alc") return { filas: [["Glucólisis", 2, 0, 2]], total: 2, co2: 2, o2: 0, c: 6, nota: "Sin O₂ el piruvato da etanol + CO₂ y regenera el NAD⁺ (los 2 NADH se gastan aquí): solo cuentan los 2 ATP de la glucólisis.", fer: true };
+      var nc = o.lanz === "glic" ? vF : vN;
+      var tot = 4 + 8 * vN + 2 * nc + 2 * vF;
+      return { filas: [["Glucólisis", 2, 0, 2], ["Descarboxilación oxidativa", 2, 0, 0], ["Ciclo de Krebs", 6, 2, 2]], total: tot, co2: 6, o2: 6, c: 6,
+        nota: o.lanz === "glic" ? "Lanzadera del glicerol-fosfato (músculo, cerebro): los 2 NADH del citoplasma entregan sus electrones a FAD y valen como FADH₂." : "Lanzadera malato-aspartato (hígado, corazón): los 2 NADH del citoplasma entran como NADH y valen igual que los demás.", fer: false };
+    }
+    var n = o.n, a = n / 2, c = a - 1;
+    r = { filas: [["Activación", 0, 0, -2], ["β-oxid. (" + c + " vueltas)", c, c, 0], ["Krebs (" + a + " acetil)", 3 * a, a, a]], co2: n, o2: 3 * n / 2 - 1, c: n,
+      nota: "Cada vuelta de la β-oxidación recorta 2 C (un acetil-CoA) y da 1 NADH y 1 FADH₂. La activación gasta el equivalente a 2 ATP." , fer: false };
+    r.total = -2 + a + (c + 3 * a) * vN + (c + a) * vF;
+    return r;
+  }
+
+  B.w.bio_atp = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Balance de ATP: elige combustible y criterio");
+    cuerpo.innerHTML = '<p class="w-intro">Elige el combustible, el criterio de los libros y, en la glucosa, la lanzadera y si hay oxígeno. Las cifras salen de contar coenzimas.</p>' +
+      '<div data-sust></div><div data-ctl></div><div data-dest></div><div data-conv></div><div data-lanz></div><div data-tabla></div><div class="bio8-dato" data-d></div><div class="bio8-veredicto"></div>' +
+      '<p class="w-pie">Criterio 30/32: 2,5 ATP por NADH y 1,5 por FADH₂ (10 H⁺ y 6 H⁺ bombeados; 4 H⁺ por ATP). Criterio 36/38: 3 y 2. ΔG° de la glucosa ≈ −2870 kJ/mol; ATP ≈ 30,5 kJ/mol.</p>';
+    var o = { sust: "glu", n: 16, conv: "mod", lanz: "mal", dest: "aer" };
+    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Carbonos", min: 8, max: 24, step: 2, val: 16, fmt: function (v) { return B.fmt(v, 0) + " C"; }, on: function (v) { o.n = Math.round(v); pinta(); } });
+    var ctlWrap = cuerpo.querySelector("[data-ctl]"), dest = cuerpo.querySelector("[data-dest]"), conv = cuerpo.querySelector("[data-conv]"), lanz = cuerpo.querySelector("[data-lanz]");
+    U.fichas(cuerpo.querySelector("[data-sust]"), [{ k: "glu", t: "Glucosa" }, { k: "aci", t: "Ácido graso" }], "glu", function (k) { o.sust = k; pinta(); });
+    U.fichas(dest, [{ k: "aer", t: "Con O₂ (respiración)" }, { k: "lac", t: "Fermentación láctica" }, { k: "alc", t: "Fermentación alcohólica" }], "aer", function (k) { o.dest = k; pinta(); });
+    U.fichas(conv, [{ k: "mod", t: "Criterio 30/32" }, { k: "clas", t: "Criterio 36/38" }], "mod", function (k) { o.conv = k; pinta(); });
+    U.fichas(lanz, [{ k: "mal", t: "Lanzadera malato-aspartato" }, { k: "glic", t: "Lanzadera glicerol-fosfato" }], "mal", function (k) { o.lanz = k; pinta(); });
+    var tb = cuerpo.querySelector("[data-tabla]"), dat = cuerpo.querySelector("[data-d]"), ver = cuerpo.querySelector(".bio8-veredicto");
+    function pinta() {
+      var glu = o.sust === "glu", r = balance(o), h = '<table class="bio8-tab"><tr><th>Etapa</th><th>NADH</th><th>FADH₂</th><th>ATP directos</th></tr>';
+      ctlWrap.style.display = glu ? "none" : "";
+      dest.style.display = glu ? "" : "none";
+      lanz.style.display = glu && o.dest === "aer" ? "" : "none";
+      conv.style.display = r.fer ? "none" : "";
+      r.filas.forEach(function (f) { h += "<tr><td>" + f[0] + "</td><td>" + f[1] + "</td><td>" + f[2] + "</td><td>" + f[3] + "</td></tr>"; });
+      h += '<tr class="tot"><td>ATP totales por molécula</td><td colspan="3">' + num(r.total) + " ATP</td></tr></table>";
+      tb.innerHTML = h;
+      var d = "<div><b>ATP totales</b>" + num(r.total) + "</div><div><b>ATP por carbono</b>" + B.fmt(r.total / r.c, 2) + "</div><div><b>CO₂ liberado</b>" + r.co2 + "</div><div><b>O₂ consumido</b>" + num(r.o2) + "</div>";
+      if (glu) d += "<div><b>Rendimiento energético</b>" + B.fmt(r.total * DG_ATP / DG_GLUCOSA * 100, 1) + " %</div>";
+      dat.innerHTML = d;
+      ver.className = "bio8-veredicto" + (r.fer ? " mal" : " ok");
+      ver.textContent = r.nota;
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ CADENA Y INHIBIDORES
+  // [consumo de O2, gradiente de H+, síntesis de ATP], escala 0-100 (60 = normal)
+  var INHIB = {
+    ning: { t: "Sin inhibidor", o: [60, 60, 60], f: [60, 60, 60], msg: "Funcionamiento normal: los electrones llegan al O₂, se bombean H⁺ y la ATP sintasa trabaja." },
+    rot: { t: "Rotenona (complejo I)", o: [3, 3, 3], f: [60, 60, 60], msg: { o: "Con NADH como sustrato todo se para: los electrones no pasan del complejo I.", f: "Con succinato (FADH₂) casi nada cambia: entra por el complejo II y se salta el bloqueo del I." } },
+    ant: { t: "Antimicina A (complejo III)", o: [3, 3, 3], f: [3, 3, 3], msg: "El complejo III bloquea el paso de los electrones venga de donde venga: se detiene todo." },
+    cian: { t: "Cianuro (complejo IV)", o: [3, 3, 3], f: [3, 3, 3], msg: "El complejo IV no cede electrones al O₂: la cadena se atasca y se para el ATP. Por eso el cianuro es un veneno." },
+    oli: { t: "Oligomicina (ATP sintasa)", o: [15, 100, 0], f: [15, 100, 0], msg: "Los H⁺ no pueden volver por la ATP sintasa: el gradiente sube al máximo, frena la cadena y baja el consumo de O₂. No se fabrica ATP." },
+    dnp: { t: "DNP (desacoplante)", o: [100, 5, 3], f: [100, 5, 3], msg: "El desacoplante deja pasar H⁺ por la membrana: se disipa el gradiente, la cadena funciona a tope (más O₂), casi no hay ATP y la energía sale como calor." }
+  };
+
+  B.w.bio_cadena = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Cadena respiratoria: ¿qué pasa si la bloqueas?");
+    cuerpo.innerHTML = '<p class="w-intro">Mitocondrias aisladas con un sustrato. Elige el sustrato y el inhibidor y mira consumo de O₂, gradiente de H⁺ y ATP.</p>' +
+      '<div data-sust></div><div data-inh></div><div class="bio8-med" data-m></div><div class="bio8-veredicto"></div>' +
+      '<p class="w-pie">Escala orientativa (60 = funcionamiento normal). Importa la tendencia, no el número exacto.</p>';
+    var sust = "o", inh = "ning", med = cuerpo.querySelector("[data-m]"), ver = cuerpo.querySelector(".bio8-veredicto");
+    U.fichas(cuerpo.querySelector("[data-sust]"), [{ k: "o", t: "Piruvato + malato (NADH)" }, { k: "f", t: "Succinato (FADH₂)" }], sust, function (k) { sust = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-inh]"), Object.keys(INHIB).map(function (k) { return { k: k, t: INHIB[k].t }; }), inh, function (k) { inh = k; pinta(); });
+    function pinta() {
+      var I = INHIB[inh], v = I[sust], m = typeof I.msg === "string" ? I.msg : I.msg[sust];
+      med.innerHTML = [["Consumo de O₂", v[0]], ["Gradiente de H⁺", v[1]], ["Síntesis de ATP", v[2]]].map(function (x) {
+        return "<span>" + x[0] + ": <b>" + x[1] + "</b></span>" + '<div class="bio8-bar"><i style="width:' + x[1] + '%"></i></div>';
+      }).join("");
+      ver.className = "bio8-veredicto" + (inh === "ning" ? " ok" : (v[2] > 30 ? "" : " mal"));
+      ver.textContent = m;
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · laboratorio de números complejos (Matemáticas I, tema 6)
    motor B.lab.cx + potenciasi · operaciones · plano · conversor
    raices · lugar · mandelbrot
@@ -32760,6 +32915,607 @@
     vistazo: vistazo,
     secciones: B.parte.bio7a.secciones,
     nuevas: B.parte.bio7a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 8: Catabolismo: la respiración celular
+   (parte A: teoría. Parte B, bio2_t08b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t8.js (bio_ruta, bio_atp, bio_cadena).
+   Convención declarada: balance principal 30/32 ATP (2,5 por NADH y 1,5 por FADH₂); se explica también 36/38 (3 y 2).
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Qué es el ATP y cómo se «gasta» (ATP ⇌ ADP + Pi) y para qué sirven NAD⁺ y FAD → sección 1 + emparejar.
+   2. Glucólisis: dónde ocurre, fases, balance (2 ATP netos y 2 NADH), sin oxígeno → sección 2 + orden.
+   3. Descarboxilación oxidativa y ciclo de Krebs: qué entra, qué sale, cuántos CO₂ → sección 3 + widget bio_ruta.
+   4. Cadena respiratoria: complejos, O₂ como aceptor final, bombeo de H⁺ → sección 4 + widget bio_cadena.
+   5. Quimiosmosis (Mitchell): gradiente de H⁺ y ATP sintasa; qué hacen los desacoplantes → sección 4 + bio_cadena.
+   6. Balance energético: 30/32 frente a 36/38 y por qué → sección nueva 6 + widget bio_atp.
+   7. Fermentación láctica y alcohólica: para qué sirven (regenerar NAD⁺), dónde, rendimiento → sección 5 + clasificar.
+   8. Respiración aerobia frente a fermentación (tabla de comparación) → secciones 5 y 6.
+   9. β-oxidación: acetil-CoA, vueltas, balance del palmitato → sección nueva 7.
+   10. Interpretar experimentos (respirómetro, inhibidores, levaduras con CO₂) → sección 8 (ejemplos PAU resueltos).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t8/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }   // evita que el resaltador de variables tiña las fórmulas
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Metabolismo, ATP y coenzimas
+  secciones[0] = env(
+    "<h5>Dos palabras que debes saber definir</h5>" +
+    tabla(["", "Catabolismo", "Anabolismo"], [
+      ["<b>Qué hace</b>", "rompe moléculas complejas en otras simples", "construye moléculas complejas a partir de simples"],
+      ["<b>Energía</b>", "la libera (reacciones exergónicas)", "la consume (reacciones endergónicas)"],
+      ["<b>Tipo de reacciones</b>", "oxidaciones: se pierden electrones e hidrógenos", "reducciones: se ganan electrones e hidrógenos"],
+      ["<b>Ejemplos</b>", "respiración celular, fermentación, digestión de la glucosa", "fotosíntesis, síntesis de proteínas, síntesis de glucógeno"]
+    ], "q3t") +
+    "<p>Las dos rutas no son independientes: lo que una libera, la otra lo aprovecha. El «puente» entre ambas es el <b>ATP</b>.</p>" +
+    "<h5>El ATP: la moneda de energía</h5>" +
+    "<p>El <b>ATP</b> (adenosín trifosfato) es un nucleótido formado por <b>adenina</b>, <b>ribosa</b> y <b>tres grupos fosfato</b> (Tema 5). Los enlaces entre fosfatos son de tipo <b>fosfoanhídrido</b>: hay cargas negativas muy juntas que se repelen, y por eso al romperse se libera energía. Una reacción vale para todo el tema:</p>" +
+    "<p style='text-align:center'><b>ATP + H<sub>2</sub>O ⇌ ADP + P<sub>i</sub> + energía</b> (≈ 30,5 kJ/mol, unos 7,3 kcal/mol en condiciones estándar)</p>" +
+    "<p>Cuando la célula necesita energía (contraer un músculo, bombear iones, sintetizar una proteína), hidroliza ATP; cuando el catabolismo libera energía, la usa para volver a unir ADP y fosfato. Es un ciclo continuo: el cuerpo tiene a la vez solo unos <b>50–100 g de ATP</b>, pero regenera cada día una cantidad del orden de su propio peso. El ATP no se almacena: se gasta y se rehace sin parar.</p>" +
+    "<p>Hay dos maneras de fabricar ATP, y conviene distinguirlas desde ya:</p>" +
+    tabla(["", "Fosforilación a nivel de sustrato", "Fosforilación oxidativa"], [
+      ["<b>Cómo</b>", "una enzima pasa un fosfato de un sustrato al ADP", "la energía de los electrones crea un gradiente de H⁺ que mueve la ATP sintasa"],
+      ["<b>Dónde</b>", "glucólisis (citoplasma) y ciclo de Krebs (matriz)", "membrana mitocondrial interna"],
+      ["<b>Necesita O<sub>2</sub></b>", "no directamente", "sí, como aceptor final de electrones"],
+      ["<b>Cuánto ATP</b>", "poco (4 por glucosa)", "la mayor parte (≈ 26–34 por glucosa)"]
+    ], "q3t") +
+    "<h5>Coenzimas: los «taxis» de electrones</h5>" +
+    "<p>En el catabolismo, la glucosa se <b>oxida</b>: pierde electrones e hidrógenos (deshidrogenaciones). Alguien tiene que recogerlos: los coenzimas <b>NAD<sup>+</sup></b> (nicotinamida adenín dinucleótido, derivado de la vitamina B<sub>3</sub>) y <b>FAD</b> (flavín adenín dinucleótido, de la vitamina B<sub>2</sub>). Son <b>transportadores de electrones e hidrógenos</b>: se cargan en las etapas iniciales y se descargan en la cadena respiratoria.</p>" +
+    tabla(["Forma oxidada", "Recibe", "Forma reducida", "Entrega"], [
+      ["NAD<sup>+</sup>", "2 e⁻ y 1 H⁺ (además del H⁺ del medio)", "NADH + H<sup>+</sup>", "en el complejo I de la cadena"],
+      ["FAD", "2 e⁻ y 2 H⁺", "FADH<sub>2</sub>", "en el complejo II de la cadena"]
+    ], "q3t") +
+    ojo("«Oxidado» y «reducido» se refieren al coenzima, no a la glucosa: cuando la glucosa se <b>oxida</b>, el NAD<sup>+</sup> se <b>reduce</b> a NADH. Truco: el NADH es «el cargado»; el NAD<sup>+</sup>, «el vacío», y la glucólisis necesita tener siempre NAD<sup>+</sup> vacíos disponibles (por eso existe la fermentación).") +
+    w("emparejar", "coenzimas") +
+    "<h5>La reacción global</h5>" +
+    "<p style='text-align:center'><b>C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6 O<sub>2</sub> → 6 CO<sub>2</sub> + 6 H<sub>2</sub>O + energía</b> (≈ 2870 kJ/mol; parte se guarda como ATP y el resto sale como calor)</p>" +
+    "<p>Aunque se escriba en una línea, ocurre en <b>muchos pasos pequeños</b>, cada uno con su enzima. Así la energía se libera poco a poco y se puede aprovechar, en lugar de salir de golpe como en una llama. Cada molécula de glucosa pasa por <b>cuatro etapas</b>: glucólisis, descarboxilación oxidativa, ciclo de Krebs y cadena respiratoria.</p>");
+
+  // ---------------------------------------------------------------- 2. Glucólisis
+  secciones[1] = env(
+    "<h5>Diez reacciones en dos fases</h5>" +
+    "<p>La <b>glucólisis</b> (del griego «romper glucosa») ocurre en el <b>citoplasma</b> de casi todas las células, con o sin oxígeno. Es una vía de <b>10 reacciones</b> (la describieron Embden, Meyerhof y Parnas en la década de 1930) que se puede resumir en dos fases:</p>" +
+    tabla(["Fase", "Qué ocurre", "Balance"], [
+      ["<b>Inversión de energía</b> (reacciones 1–5)", "La glucosa (6 C) recibe dos fosfatos y se rompe en dos moléculas de 3 C: <b>gliceraldehído-3-fosfato</b> (G3P).", "Se <b>gastan 2 ATP</b>"],
+      ["<b>Obtención de energía</b> (reacciones 6–10)", "Cada G3P se oxida (se forma NADH) y se transforma en <b>piruvato</b>, formando ATP en dos pasos.", "Se <b>forman 4 ATP</b> y <b>2 NADH</b>"]
+    ], "q3t") +
+    "<p>Si recorres la ruta, los compuestos son: glucosa → glucosa-6-fosfato → fructosa-6-fosfato → fructosa-1,6-bisfosfato → (dihidroxiacetona-fosfato ⇌ <b>gliceraldehído-3-fosfato</b>) → 1,3-bisfosfoglicerato → 3-fosfoglicerato → 2-fosfoglicerato → fosfoenolpiruvato → <b>piruvato</b>. No hace falta memorizarlos todos, pero sí saber <b>dónde se gasta ATP</b> (glucosa → glucosa-6-fosfato y fructosa-6-fosfato → fructosa-1,6-bisfosfato) y <b>dónde se forman NADH y ATP</b> (la segunda mitad).</p>" +
+    "<h5>El balance, por molécula de glucosa</h5>" +
+    tabla(["", "Gasta", "Produce", "Neto"], [
+      ["<b>ATP</b>", "2", "4 (fosforilación a nivel de sustrato)", "<b>+2 ATP</b>"],
+      ["<b>NADH</b>", "0", "2", "<b>+2 NADH</b>"],
+      ["<b>Carbono</b>", "1 glucosa (6 C)", "2 piruvato (3 C cada uno)", "los 6 C siguen, pero repartidos"]
+    ], "q3t") +
+    "<p style='text-align:center'><b>Glucosa + 2 NAD<sup>+</sup> + 2 ADP + 2 P<sub>i</sub> → 2 piruvato + 2 NADH + 2 ATP + 2 H<sub>2</sub>O</b></p>" +
+    ojo("La glucólisis <b>produce</b> 4 ATP, pero <b>gana 2</b> (porque gasta 2). En un examen, escribe siempre «2 ATP netos». Y no consume oxígeno: es la única etapa de la respiración que puede hacerse sin él, y por eso es la base de la fermentación.") +
+    "<h5>Por qué es una ruta tan antigua</h5>" +
+    "<p>Casi todos los seres vivos hacen glucólisis, desde bacterias a humanos. Es probable que apareciera cuando la atmósfera aún no tenía oxígeno. Sus enzimas están en el citoplasma y no hace falta ningún orgánulo, lo que la hace compatible con las células procariotas. El oxígeno llegó después, gracias a la fotosíntesis (Tema 9), y con él, la respiración aerobia, que saca mucho más rendimiento de la misma glucosa.</p>" +
+    w("orden", "ordenglucolisis"));
+
+  // ---------------------------------------------------------------- 3. Descarboxilación oxidativa y Krebs
+  secciones[2] = env(
+    "<h5>Entrar en la mitocondria: la descarboxilación oxidativa</h5>" +
+    "<p>El piruvato formado en el citoplasma atraviesa las dos membranas de la mitocondria (Tema 6) y llega a la <b>matriz</b>. Allí, un complejo enzimático (la <b>piruvato deshidrogenasa</b>) hace tres cosas a la vez:</p>" +
+    "<ul><li><b>Descarboxila:</b> le quita un carbono en forma de <b>CO<sub>2</sub></b> (el piruvato pasa de 3 C a 2 C).</li>" +
+    "<li><b>Oxida:</b> le quita electrones e hidrógenos que recoge el <b>NAD<sup>+</sup></b>, que pasa a NADH.</li>" +
+    "<li><b>Une el resto de 2 C al coenzima A</b> (CoA) y forma <b>acetil-CoA</b>.</li></ul>" +
+    "<p style='text-align:center'><b>Piruvato + NAD<sup>+</sup> + CoA → acetil-CoA + CO<sub>2</sub> + NADH + H<sup>+</sup></b></p>" +
+    "<p>Como cada glucosa dio <b>dos</b> piruvatos, esta etapa se cuenta dos veces: 2 CO<sub>2</sub>, 2 NADH y 2 acetil-CoA por glucosa. Es una reacción prácticamente irreversible: una vez que el piruvato se convierte en acetil-CoA, los animales no pueden volver a hacer glucosa con él.</p>" +
+    "<h5>El ciclo de Krebs (o del ácido cítrico)</h5>" +
+    "<p>Lo describió <b>Hans Krebs</b> en <b>1937</b> (Premio Nobel en 1953). Se llama «ciclo» porque la última molécula, el <b>oxalacetato</b> (4 C), es la misma que hace falta para empezar: se regenera en cada vuelta. Ocurre en la <b>matriz mitocondrial</b>.</p>" +
+    tabla(["Paso", "Qué pasa", "Se forma"], [
+      ["<b>1. Entrada</b>", "El acetil-CoA (2 C) cede su acetilo al oxalacetato (4 C)", "<b>citrato</b> (6 C)"],
+      ["<b>2. Citrato → α-cetoglutarato</b>", "Pierde un carbono (primera descarboxilación) y se oxida", "<b>CO<sub>2</sub></b> + <b>NADH</b> (queda de 5 C)"],
+      ["<b>3. α-cetoglutarato → succinil-CoA</b>", "Pierde otro carbono (segunda descarboxilación) y se oxida", "<b>CO<sub>2</sub></b> + <b>NADH</b> (queda de 4 C)"],
+      ["<b>4. Succinil-CoA → succinato</b>", "La energía del enlace se usa para formar un enlace de fosfato", "<b>1 ATP</b> (o GTP)"],
+      ["<b>5. Succinato → fumarato</b>", "Oxidación con FAD (la enzima está en la membrana interna: es el complejo II)", "<b>FADH<sub>2</sub></b>"],
+      ["<b>6. Fumarato → malato → oxalacetato</b>", "Se hidrata y se oxida: se regenera el oxalacetato", "<b>NADH</b> (cierra el ciclo)"]
+    ], "q3t") +
+    "<p><b>Por cada vuelta</b> del ciclo (es decir, por cada acetil-CoA): <b>3 NADH, 1 FADH<sub>2</sub>, 1 ATP (o GTP) y 2 CO<sub>2</sub></b>. Y por cada glucosa hay dos vueltas, así que se duplica todo: <b>6 NADH, 2 FADH<sub>2</sub>, 2 ATP y 4 CO<sub>2</sub></b>.</p>" +
+    "<p>Así sale el CO<sub>2</sub> que exhalas: los 6 átomos de carbono de la glucosa acaban como <b>6 CO<sub>2</sub></b> (2 en la descarboxilación oxidativa y 4 en Krebs). Todos los carbonos de la glucosa han salido: la glucosa se ha <b>oxidado por completo</b>.</p>" +
+    "<h5>Lo que llevas hasta ahora, por glucosa</h5>" +
+    tabla(["Etapa", "Lugar", "NADH", "FADH<sub>2</sub>", "ATP directos", "CO<sub>2</sub>"], [
+      ["Glucólisis", "citoplasma", "2", "0", "2", "0"],
+      ["Descarboxilación oxidativa", "matriz", "2", "0", "0", "2"],
+      ["Ciclo de Krebs (2 vueltas)", "matriz", "6", "2", "2", "4"],
+      ["<b>Total</b>", "", "<b>10</b>", "<b>2</b>", "<b>4</b>", "<b>6</b>"]
+    ], "q3t") +
+    "<p>Fíjate: hasta aquí solo se han formado <b>4 ATP</b>, pero se han cargado <b>10 NADH y 2 FADH<sub>2</sub></b>. Ese es el verdadero tesoro, que se «cobrará» en la cadena respiratoria.</p>" +
+    ojo("El ciclo de Krebs <b>no usa oxígeno directamente</b> ni forma agua. El O<sub>2</sub> solo interviene al final de la cadena respiratoria. Pero sin O<sub>2</sub> la cadena se detiene, no se regeneran NAD<sup>+</sup> ni FAD, y el ciclo también se para: por eso toda la ruta se llama aerobia.") +
+    w("bio_ruta"));
+
+  // ---------------------------------------------------------------- 4. Cadena respiratoria
+  secciones[3] = env(
+    "<h5>Un camino de electrones en la membrana interna</h5>" +
+    "<p>La <b>membrana mitocondrial interna</b> (las crestas) contiene cuatro grandes complejos proteicos y dos transportadores móviles. Los electrones del NADH y del FADH<sub>2</sub> bajan por ellos como en una cascada, desde un nivel de mucha energía hasta el oxígeno.</p>" +
+    tabla(["Pieza", "Qué hace"], [
+      ["<b>Complejo I</b> (NADH deshidrogenasa)", "recibe los electrones del <b>NADH</b>; <b>bombea H⁺</b> a la cámara intermembranosa"],
+      ["<b>Complejo II</b> (succinato deshidrogenasa)", "recibe los electrones del <b>FADH<sub>2</sub></b>; <b>no bombea H⁺</b> (es la enzima del ciclo de Krebs)"],
+      ["<b>Ubiquinona</b> (coenzima Q)", "transportador móvil dentro de la membrana: lleva los electrones de I o II al III"],
+      ["<b>Complejo III</b> (citocromo bc<sub>1</sub>)", "pasa los electrones al citocromo c; <b>bombea H⁺</b>"],
+      ["<b>Citocromo c</b>", "transportador móvil en el lado externo: lleva los electrones al IV"],
+      ["<b>Complejo IV</b> (citocromo c oxidasa)", "entrega los electrones al <b>O<sub>2</sub></b> y se forma <b>agua</b>; <b>bombea H⁺</b>"]
+    ], "q3t") +
+    "<p style='text-align:center'><b>O<sub>2</sub> + 4 e⁻ + 4 H<sup>+</sup> → 2 H<sub>2</sub>O</b></p>" +
+    "<p>Ese es el <b>papel del oxígeno</b>: ser el <b>aceptor final de electrones</b>. Sin él, los electrones no tienen adónde ir, la cadena se atasca y el NADH no se vuelve a convertir en NAD<sup>+</sup>.</p>" +
+    "<h5>Quimiosmosis: del gradiente al ATP</h5>" +
+    "<p>La energía que pierden los electrones al bajar se usa para <b>bombear protones (H⁺)</b> desde la matriz hasta el espacio intermembranoso. Como la membrana interna es casi impermeable a los H⁺, se forma un <b>gradiente electroquímico</b>: más H⁺ fuera que dentro. Este gradiente es como el agua acumulada detrás de una presa.</p>" +
+    "<p>Los protones solo pueden volver a la matriz por un canal especial, la <b>ATP sintasa</b> (complejo V). Al pasar, hacen girar una parte de la proteína, y ese giro une ADP y P<sub>i</sub>: se forma <b>ATP</b>. Esta idea, la <b>teoría quimiosmótica</b>, la propuso <b>Peter Mitchell en 1961</b> (Premio Nobel de Química en 1978). Por eso la fosforilación oxidativa no es una reacción química directa, sino un acoplamiento a través de un gradiente.</p>" +
+    "<h5>¿Cuántos ATP por cada coenzima?</h5>" +
+    "<p>Se bombean unos <b>10 H⁺</b> por cada NADH (complejos I, III y IV) y unos <b>6 H⁺</b> por cada FADH<sub>2</sub> (solo III y IV, porque entra por el II). Y para fabricar un ATP hacen falta unos <b>4 H⁺</b> (3 pasan por la ATP sintasa y 1 se usa para meter el fosfato en la matriz). Así:</p>" +
+    "<p style='text-align:center'>NADH → 10 / 4 = <b>2,5 ATP</b> · FADH<sub>2</sub> → 6 / 4 = <b>1,5 ATP</b></p>" +
+    "<p>Los libros más antiguos daban 3 y 2 ATP. En la sección 6 verás cómo cambia el balance total según el criterio.</p>" +
+    "<h5>Para interpretar experimentos: inhibidores y desacoplantes</h5>" +
+    tabla(["Sustancia", "Dónde actúa", "Efecto en la mitocondria"], [
+      ["<b>Rotenona</b>", "complejo I", "bloquea los electrones del NADH; los del FADH<sub>2</sub> (succinato) siguen pasando"],
+      ["<b>Antimicina A</b>", "complejo III", "bloquea toda la cadena, venga de donde venga el electrón"],
+      ["<b>Cianuro, CO</b>", "complejo IV", "impiden entregar electrones al O<sub>2</sub>: la cadena se para; es un veneno mortal"],
+      ["<b>Oligomicina</b>", "ATP sintasa", "los H⁺ no pueden volver: el gradiente sube y la cadena se frena; no hay ATP"],
+      ["<b>Desacoplante (DNP)</b>", "membrana interna", "los H⁺ vuelven sin pasar por la ATP sintasa: más consumo de O<sub>2</sub>, casi nada de ATP, la energía sale como calor"]
+    ], "q3t") +
+    "<p>Hay un desacoplante natural muy útil: en la <b>grasa parda</b> de los recién nacidos y de los animales que hibernan, una proteína (la <b>termogenina</b>) deja pasar los H⁺ y toda la energía se convierte en calor, no en ATP. Así se calientan sin tiritar.</p>" +
+    ojo("«La cadena respiratoria fabrica ATP» es una simplificación: lo que fabrica es el <b>gradiente de H⁺</b>; el ATP lo hace la <b>ATP sintasa</b> aprovechando ese gradiente. Y el oxígeno no «produce energía»: solo recoge los electrones al final.") +
+    w("bio_cadena") +
+    w("orden", "ordencadena"));
+
+  // ---------------------------------------------------------------- 5. Fermentación
+  secciones[4] = env(
+    "<h5>Para qué sirve fermentar</h5>" +
+    "<p>Cuando falta oxígeno (o no hay mitocondrias), la cadena respiratoria se para y el NADH no se vuelve a oxidar. Pero la glucólisis necesita NAD<sup>+</sup> para seguir funcionando. La <b>fermentación</b> resuelve este problema: el piruvato (o un derivado) <b>recibe los electrones del NADH</b>, que se regenera como NAD<sup>+</sup>. El único ATP que se gana es el de la glucólisis: <b>2 ATP por glucosa</b>.</p>" +
+    "<p>Fermentar <b>no genera energía extra</b>: en los pasos de fermentación no se produce ATP. Su único objetivo es <b>regenerar el NAD<sup>+</sup></b> para que la glucólisis siga.</p>" +
+    tabla(["", "Fermentación láctica", "Fermentación alcohólica"], [
+      ["<b>Quién la hace</b>", "bacterias lácticas (<i>Lactobacillus</i>) y células musculares con poco O<sub>2</sub>", "levaduras (<i>Saccharomyces</i>) y algunas bacterias"],
+      ["<b>Producto final</b>", "<b>ácido láctico</b> (lactato), 3 C", "<b>etanol</b> (2 C) y <b>CO<sub>2</sub></b>"],
+      ["<b>Pasos desde el piruvato</b>", "piruvato + NADH → lactato + NAD<sup>+</sup>", "piruvato → acetaldehído + CO<sub>2</sub>; acetaldehído + NADH → etanol + NAD<sup>+</sup>"],
+      ["<b>¿Sale CO<sub>2</sub>?</b>", "no", "sí, 2 por glucosa"],
+      ["<b>Rendimiento</b>", "2 ATP por glucosa", "2 ATP por glucosa"],
+      ["<b>Usos</b>", "yogur, queso, chucrut, encurtidos; el músculo en ejercicio intenso", "vino, cerveza, sidra; la masa del pan sube por el CO<sub>2</sub>"]
+    ], "q3t") +
+    "<p style='text-align:center'><b>Láctica:</b> C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> → 2 CH<sub>3</sub>–CHOH–COOH + 2 ATP<br><b>Alcohólica:</b> C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> → 2 CH<sub>3</sub>CH<sub>2</sub>OH + 2 CO<sub>2</sub> + 2 ATP</p>" +
+    "<h5>Tres ideas que se suelen mezclar</h5>" +
+    "<ul><li><b>Las agujetas</b> no se deben al ácido láctico acumulado: son pequeñas roturas de fibras musculares. El lactato sí se acumula en el esfuerzo intenso (sensación de quemazón), pero el hígado lo recicla en poco tiempo.</li>" +
+    "<li><b>El pan sube por el CO<sub>2</sub></b> de las levaduras; el alcohol se evapora en el horno.</li>" +
+    "<li><b>Pasteur</b> demostró en <b>1857</b> que la fermentación láctica la hacen microorganismos, y observó que las levaduras fermentan menos si hay oxígeno (el «efecto Pasteur»). <b>Buchner</b> (1897) vio que un extracto de levadura sin células también fermenta: lo que actúa son enzimas.</li></ul>" +
+    "<h5>Respiración aerobia frente a fermentación</h5>" +
+    tabla(["", "Respiración aerobia", "Fermentación"], [
+      ["<b>Aceptor final de electrones</b>", "oxígeno", "una molécula orgánica (piruvato o acetaldehído)"],
+      ["<b>Oxidación de la glucosa</b>", "completa (6 CO<sub>2</sub>)", "incompleta (lactato o etanol aún guardan energía)"],
+      ["<b>Lugar</b>", "citoplasma y mitocondria", "solo citoplasma"],
+      ["<b>ATP por glucosa</b>", "30–38", "2"]
+    ], "q3t") +
+    w("clasificar", "fermentaciones"));
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Balance energético: 36/38 frente a 30/32", html: env(
+    "<h5>Contar los coenzimas</h5>" +
+    "<p>Por molécula de glucosa, las etapas anteriores dejan <b>4 ATP</b> directos, <b>10 NADH</b> y <b>2 FADH<sub>2</sub></b>. Falta «cobrar» los coenzimas en la cadena. El total depende de cuántos ATP se atribuyan a cada uno, y por eso los libros no coinciden.</p>" +
+    tabla(["Criterio", "Valor de un NADH", "Valor de un FADH<sub>2</sub>", "Total por glucosa"], [
+      ["<b>Clásico</b> (libros antiguos)", "3 ATP", "2 ATP", "<b>36–38</b> ATP"],
+      ["<b>Actual</b> (relación H⁺/ATP medida)", "2,5 ATP", "1,5 ATP", "<b>30–32</b> ATP"]
+    ], "q3t") +
+    "<p>Para saber qué criterio pide tu profesor, mira tu libro de clase o el enunciado. <b>En la PAU, escribe siempre el criterio que usas</b> (por ejemplo, «30–32 ATP, con 2,5 y 1,5 ATP por NADH y FADH₂»); si el enunciado da los valores, usa esos.</p>" +
+    "<h5>Por qué hay dos cifras en cada criterio: las lanzaderas</h5>" +
+    "<p>Los 2 NADH de la <b>glucólisis</b> se forman en el <b>citoplasma</b>, y el NADH no puede cruzar la membrana mitocondrial interna. Para meter sus electrones hay dos «lanzaderas»:</p>" +
+    tabla(["Lanzadera", "Dónde", "Qué pasa con los electrones", "ATP por glucosa (actual · clásico)"], [
+      ["<b>Malato-aspartato</b>", "hígado, riñón, corazón", "entran como NADH (valen igual)", "<b>32</b> · <b>38</b>"],
+      ["<b>Glicerol-fosfato</b>", "músculo esquelético, cerebro", "entran como FADH<sub>2</sub> (valen menos)", "<b>30</b> · <b>36</b>"]
+    ], "q3t") +
+    "<p>Con la lanzadera del glicerol-fosfato, cada NADH del citoplasma cuenta como un FADH<sub>2</sub>: se pierde 1 ATP por cada uno (2,5 → 1,5 en el criterio actual; 3 → 2 en el clásico), y como son dos NADH, <b>2 ATP menos</b> en total.</p>" +
+    ejemplo("Calcula el rendimiento con ambos criterios", "Una glucosa se oxida por completo en el hígado (lanzadera malato-aspartato).", [
+      "Directos: 2 (glucólisis) + 2 (Krebs) = <b>4 ATP</b>.",
+      "<b>Criterio actual:</b> 10 NADH × 2,5 = 25; 2 FADH<sub>2</sub> × 1,5 = 3; total = 4 + 25 + 3 = <b>32 ATP</b>.",
+      "<b>Criterio clásico:</b> 10 NADH × 3 = 30; 2 FADH<sub>2</sub> × 2 = 4; total = 4 + 30 + 4 = <b>38 ATP</b>.",
+      "Con la lanzadera del glicerol-fosfato (músculo) los 2 NADH del citoplasma cuentan como FADH<sub>2</sub>: <b>30</b> (actual) o <b>36</b> (clásico)."
+    ]) +
+    "<h5>Rendimiento energético</h5>" +
+    "<p>La oxidación completa de 1 mol de glucosa libera ≈ <b>2870 kJ</b>. Si se forman 32 mol de ATP a 30,5 kJ/mol, se guardan 976 kJ: un <b>34 %</b> aproximadamente. El resto (≈ 66 %) sale como calor, que mantiene la temperatura corporal. En la fermentación, 2 ATP son 61 kJ: solo ≈ <b>2 %</b>. Por eso la respiración aerobia rinde unas 16 veces más ATP que la fermentación (32 frente a 2).</p>" +
+    "<h5>Comparador</h5>" +
+    "<p>Prueba el criterio, la lanzadera y la fermentación en el balance interactivo; verás cómo cambia el total y de dónde sale cada ATP:</p>" +
+    w("bio_atp")) });
+
+  nuevas.push({ h: "7. β-oxidación de los ácidos grasos", html: env(
+    "<h5>La grasa también se quema en la mitocondria</h5>" +
+    "<p>Cuando la glucosa escasea (ayuno, ejercicio prolongado), el cuerpo usa los <b>ácidos grasos</b> de los triglicéridos (Tema 3). Su degradación es la <b>β-oxidación</b> (se llama «beta» porque se oxida el carbono β, el tercero desde el grupo ácido). Se hace en la <b>matriz mitocondrial</b>.</p>" +
+    "<ul><li><b>Activación</b> (en el citoplasma): el ácido graso se une al coenzima A y forma <b>acil-CoA</b>, gastando el equivalente a <b>2 ATP</b> (ATP → AMP + PP<sub>i</sub>).</li>" +
+    "<li><b>Transporte:</b> el acil-CoA entra en la mitocondria con ayuda de la carnitina.</li>" +
+    "<li><b>Cada vuelta</b> de la β-oxidación recorta <b>2 carbonos</b> en forma de <b>acetil-CoA</b> y produce <b>1 FADH<sub>2</sub></b> y <b>1 NADH</b>.</li>" +
+    "<li>El acetil-CoA entra en el <b>ciclo de Krebs</b>, igual que el de la glucosa (3 NADH, 1 FADH<sub>2</sub> y 1 ATP cada uno).</li></ul>" +
+    "<p>Un ácido graso de <b>n carbonos</b> (n par, saturado) da <b>n/2 acetil-CoA</b> y necesita <b>n/2 − 1 vueltas</b> (la última vuelta rompe 4 C en 2 acetil-CoA).</p>" +
+    tabla(["", "Fórmula", "Palmítico (n = 16)"], [
+      ["Acetil-CoA", "n / 2", "8"],
+      ["Vueltas", "n / 2 − 1", "7"],
+      ["NADH", "(n / 2 − 1) + 3 · n / 2", "7 + 24 = 31"],
+      ["FADH<sub>2</sub>", "(n / 2 − 1) + n / 2", "7 + 8 = 15"],
+      ["ATP directos (Krebs)", "n / 2", "8"],
+      ["Activación", "−2", "−2"]
+    ], "q3t") +
+    ejemplo("Balance del ácido palmítico (16 C)", "Calcula los ATP que da la oxidación completa de una molécula de ácido palmítico (criterio 30/32).", [
+      "NADH: 31 × 2,5 = 77,5. FADH<sub>2</sub>: 15 × 1,5 = 22,5. ATP directos: 8.",
+      "Suma: 77,5 + 22,5 + 8 = 108. Restamos la activación: 108 − 2 = <b>106 ATP</b>.",
+      "<b>Criterio clásico (3 y 2):</b> 31 × 3 + 15 × 2 + 8 − 2 = 93 + 30 + 8 − 2 = <b>129 ATP</b>.",
+      "<b>Comparación:</b> 106 / 16 = 6,6 ATP por carbono frente a 32 / 6 = 5,3 de la glucosa. La grasa da más porque está <b>más reducida</b> (tiene más H por carbono) y, además, aporta unos 9 kcal/g frente a unos 4 kcal/g de los glúcidos."
+    ]) +
+    "<p>Otras fuentes: las <b>proteínas</b> pierden el grupo amino (desaminación; el nitrógeno se elimina como urea) y los esqueletos carbonados entran en la glucólisis o en el ciclo de Krebs. Por eso el acetil-CoA es el <b>nudo central</b> del catabolismo: glúcidos, grasas y proteínas confluyen en él o en el ciclo.</p>" +
+    ojo("Los animales <b>no pueden convertir los ácidos grasos en glucosa</b> (el acetil-CoA no vuelve a piruvato). Por eso, en un ayuno largo, el hígado transforma el exceso de acetil-CoA en «cuerpos cetónicos», que el cerebro puede usar como combustible alternativo.") +
+    w("clasificar", "fuentes")) });
+
+  nuevas.push({ h: "8. Ejemplos PAU resueltos: interpretar experimentos", html: env(
+    ejemplo("Mitocondrias aisladas y un respirómetro", "Se tienen mitocondrias aisladas en un medio con O<sub>2</sub>, que se mide con un electrodo. Se añaden en orden: (1) piruvato + malato y ADP: el consumo de O<sub>2</sub> sube mucho. (2) Rotenona: el consumo de O<sub>2</sub> cae casi a cero. (3) Succinato: el consumo de O<sub>2</sub> se recupera. (4) Cianuro: el consumo de O<sub>2</sub> cae a cero. (a) Explica cada paso. (b) ¿Por qué se recupera con el succinato? (c) ¿Qué pasaría si en (3) se añade además un desacoplante?", [
+      "<b>(1)</b> Piruvato y malato producen NADH en la matriz; el NADH entrega electrones al complejo I y la cadena funciona; el ADP permite que la ATP sintasa gaste el gradiente y la cadena vaya rápido. Se consume O<sub>2</sub> (aceptor final).",
+      "<b>(2)</b> La rotenona bloquea el complejo I: los electrones del NADH no entran en la cadena y el consumo de O<sub>2</sub> baja.",
+      "<b>(3)</b> El succinato lo oxida el complejo II (FADH<sub>2</sub>), que cede los electrones a la ubiquinona <b>saltándose el complejo I</b>. La cadena sigue desde el III y el consumo de O<sub>2</sub> se recupera.",
+      "<b>(4)</b> El cianuro bloquea el complejo IV, y sin él los electrones no llegan al O<sub>2</sub>: no hay consumo.",
+      "<b>(c)</b> Con el desacoplante el consumo de O<sub>2</sub> sería <b>aún mayor</b> (no hay gradiente que frene la cadena), pero casi no se fabricaría ATP y la energía se liberaría como calor."
+    ]) +
+    ejemplo("Levaduras en un matraz", "Se preparan tres matraces con levaduras en agua, cada uno cerrado con un globo: A) con aire y con glucosa; B) sin aire y sin glucosa; C) sin aire y con glucosa. En C el globo se hincha y se nota olor a alcohol. (a) Explica por qué. (b) ¿Qué proceso ocurre y cuál es su rendimiento? (c) Si 1 mol de glucosa se fermenta del todo, ¿cuántos moles de etanol y de CO<sub>2</sub> salen, y cuántos ATP?", [
+      "<b>(a)</b> En C no hay oxígeno: las levaduras hacen <b>fermentación alcohólica</b>. El globo se infla por el <b>CO<sub>2</sub></b> y el olor es del <b>etanol</b>. En B no hay sustrato y no ocurre nada; en A, con aire, hay respiración aerobia: se consume 1 O<sub>2</sub> por cada CO<sub>2</sub> que sale y el volumen apenas cambia.",
+      "<b>(b)</b> Glucólisis (2 ATP, 2 NADH) y reducción del piruvato a etanol con liberación de CO<sub>2</sub>; el NADH se oxida a NAD<sup>+</sup>. <b>Rinde 2 ATP por glucosa</b>, frente a 30–32 en la respiración.",
+      "<b>(c)</b> C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> → 2 C<sub>2</sub>H<sub>5</sub>OH + 2 CO<sub>2</sub>: <b>2 mol de etanol, 2 mol de CO<sub>2</sub> y 2 mol de ATP</b>. Se comprueba el carbono: 6 = 2·2 + 2."
+    ]) +
+    ejemplo("Cociente respiratorio", "El cociente respiratorio (CR) es CO<sub>2</sub> producido / O<sub>2</sub> consumido. Calcúlalo para la glucosa y para el ácido palmítico.", [
+      "<b>Glucosa:</b> C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6 O<sub>2</sub> → 6 CO<sub>2</sub> + 6 H<sub>2</sub>O. CR = 6 / 6 = <b>1</b>.",
+      "<b>Palmítico:</b> C<sub>16</sub>H<sub>32</sub>O<sub>2</sub> + 23 O<sub>2</sub> → 16 CO<sub>2</sub> + 16 H<sub>2</sub>O (se comprueba el oxígeno: 2 + 46 = 32 + 16). CR = 16 / 23 = <b>0,70</b>.",
+      "Un CR cercano a 1 indica que se queman sobre todo glúcidos; cerca de 0,7, sobre todo grasas."
+    ])) });
+
+  nuevas.push({ h: "9. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>Orden de una buena respuesta: <b>definir → explicar el mecanismo con lugar y balance → dar ejemplo → relacionar</b>. Estas son las preguntas más típicas del tema, con una respuesta modelo.</p>" +
+    ejemplo("Pregunta 1. Glucólisis: localización, fases y balance", "Respuesta modelo:", [
+      "<b>Dónde:</b> en el citoplasma; no necesita O<sub>2</sub>.",
+      "<b>Qué hace:</b> convierte 1 glucosa (6 C) en 2 piruvato (3 C).",
+      "<b>Balance:</b> gasta 2 ATP y forma 4 (neto +2 ATP) y 2 NADH.",
+      "<b>Destino:</b> con O<sub>2</sub>, el piruvato entra en la mitocondria; sin él, fermenta."
+    ]) +
+    ejemplo("Pregunta 2. Ciclo de Krebs", "Respuesta modelo:", [
+      "<b>Dónde:</b> en la matriz mitocondrial.",
+      "<b>Entra:</b> acetil-CoA (2 C), que se une al oxalacetato (4 C) y forma citrato (6 C).",
+      "<b>Por vuelta:</b> 2 CO<sub>2</sub>, 3 NADH, 1 FADH<sub>2</sub> y 1 ATP (GTP); se regenera el oxalacetato.",
+      "<b>Por glucosa</b> (2 vueltas): 4 CO<sub>2</sub>, 6 NADH, 2 FADH<sub>2</sub> y 2 ATP."
+    ]) +
+    ejemplo("Pregunta 3. Cadena respiratoria y fosforilación oxidativa", "Respuesta modelo:", [
+      "<b>Dónde:</b> membrana mitocondrial interna (crestas).",
+      "Los electrones del NADH y del FADH<sub>2</sub> pasan por los complejos; la energía se usa para <b>bombear H⁺</b> y crear un gradiente.",
+      "El <b>O<sub>2</sub></b> es el aceptor final: se forma agua.",
+      "Los H⁺ vuelven por la <b>ATP sintasa</b> y se forma ATP (quimiosmosis, Mitchell, 1961)."
+    ]) +
+    ejemplo("Pregunta 4. Fermentación láctica y alcohólica", "Respuesta modelo:", [
+      "<b>Condición:</b> sin O<sub>2</sub>; solo se hace la glucólisis.",
+      "<b>Para qué:</b> regenerar el NAD<sup>+</sup> que gasta la glucólisis.",
+      "<b>Láctica:</b> piruvato → lactato (bacterias lácticas, músculo); <b>alcohólica:</b> piruvato → etanol + CO<sub>2</sub> (levaduras).",
+      "<b>Rendimiento:</b> 2 ATP por glucosa, frente a 30–38 en la respiración."
+    ]) +
+    "<p>Los ejercicios del final incluyen cinco preguntas abiertas con rúbrica para que veas qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio8a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 8 (parte B): Catabolismo: la respiración celular
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t8.py.
+   Criterio principal: 30/32 ATP (2,5 por NADH, 1,5 por FADH₂); se acepta y se explica 36/38 (3 y 2).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "El <b>catabolismo</b> libera energía rompiendo moléculas; la guarda en <b>ATP</b>, y los electrones los llevan <b>NAD⁺ y FAD</b> (que se reducen a NADH y FADH₂).",
+    "La glucosa pasa por <b>glucólisis</b> (citoplasma, 2 ATP netos y 2 NADH), <b>descarboxilación oxidativa</b> y <b>ciclo de Krebs</b> (matriz) y <b>cadena respiratoria</b> (membrana interna).",
+    "La cadena bombea H⁺ y crea un gradiente; la <b>ATP sintasa</b> lo aprovecha (<b>quimiosmosis</b>). El <b>O₂</b> es el aceptor final de electrones.",
+    "Balance: <b>30–32 ATP</b> por glucosa (criterio actual) o <b>36–38</b> (criterio clásico); la fermentación solo da <b>2 ATP</b>; el palmitato da <b>106</b> (o 129)."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Catabolismo: la respiración celular",
+    autores: [
+      { n: "Qué estudia", f: "cómo la célula obtiene ATP al oxidar la glucosa y otros nutrientes", l: "glucólisis · Krebs · cadena · fermentación" },
+      { n: "Pasteur", f: "1857", l: "la fermentación láctica la hacen microorganismos" },
+      { n: "Krebs", f: "1937", l: "describe el ciclo del ácido cítrico" },
+      { n: "Mitchell", f: "1961", l: "propone la teoría quimiosmótica" }
+    ],
+    obras: ["ATP", "NAD⁺ y FAD", "Glucólisis", "Ciclo de Krebs", "Cadena respiratoria", "Fermentación"],
+    bloques: [
+      { t: "Metabolismo y ATP", frases: ["Catabolismo: rompe y libera energía; anabolismo: construye y consume.", "ATP + H₂O ⇌ ADP + Pᵢ + energía (≈ 30,5 kJ/mol).", "NAD⁺ y FAD transportan electrones e hidrógenos."],
+        tabla: { cab: ["Catabolismo", "Anabolismo"], filas: [["rompe, libera energía", "construye, gasta energía"], ["respiración, fermentación", "fotosíntesis, síntesis de proteínas"]] } },
+      { t: "Glucólisis", frases: ["En el <b>citoplasma</b>, sin O₂.", "1 glucosa (6 C) → 2 piruvato (3 C).", "Gasta 2 ATP, forma 4: <b>+2 ATP netos y 2 NADH</b>."] },
+      { t: "Mitocondria: matriz", frases: ["Descarboxilación oxidativa: piruvato → acetil-CoA + CO₂ + NADH.", "Krebs, por vuelta: 3 NADH, 1 FADH₂, 1 ATP y 2 CO₂.", "Por glucosa: 6 CO₂ en total (2 + 4)."],
+        tabla: { cab: ["Por glucosa", "Cantidad"], filas: [["NADH", "10"], ["FADH₂", "2"], ["ATP directos", "4"], ["CO₂", "6"]] } },
+      { t: "Cadena y quimiosmosis", frases: ["Complejos I–IV en la membrana interna bombean H⁺.", "El <b>O₂</b> acepta los electrones y forma H₂O.", "Los H⁺ vuelven por la <b>ATP sintasa</b> y se forma ATP."] },
+      { t: "Balance energético", frases: ["NADH ≈ 2,5 ATP y FADH₂ ≈ 1,5 (criterio actual).", "Los libros clásicos usan 3 y 2.", "Cadena y ATP sintasa dan la mayor parte del ATP."],
+        tabla: { cab: ["Criterio", "ATP por glucosa"], filas: [["actual (2,5 y 1,5)", "30–32"], ["clásico (3 y 2)", "36–38"], ["fermentación", "2"]] } },
+      { t: "Sin O₂ y con grasas", frases: ["Fermentación: regenera NAD⁺; solo 2 ATP.", "Láctica: lactato; alcohólica: etanol + CO₂.", "β-oxidación: cada vuelta quita 2 C (acetil-CoA), 1 NADH y 1 FADH₂."] }
+    ],
+    resumen: [
+      "La glucosa se <b>oxida por completo</b> a 6 CO₂ y el O₂ recoge los electrones al final.",
+      "El grueso del ATP sale de la <b>fosforilación oxidativa</b> (cadena + ATP sintasa).",
+      "Sin O₂ solo queda la glucólisis y la <b>fermentación</b> para regenerar NAD⁺."
+    ],
+    conecta: [
+      { con: "Biología T6:", rel: "la mitocondria (matriz, crestas) y el transporte activo, que gasta ATP." },
+      { con: "Biología T9:", rel: "la fotosíntesis es la ruta anabólica opuesta: fabrica glucosa y O₂." },
+      { con: "Biología T3 y T4:", rel: "grasas (β-oxidación) y enzimas (cada paso lleva su enzima)." },
+      { con: "Química II T8:", rel: "oxidación-reducción: el NAD⁺ se reduce, la glucosa se oxida." }
+    ],
+    claves: [
+      ["ATP", "nucleótido de adenina, ribosa y 3 fosfatos; moneda de energía de la célula"],
+      ["NAD⁺ / FAD", "coenzimas que transportan electrones e hidrógenos al reducirse"],
+      ["Glucólisis", "glucosa → 2 piruvato en el citoplasma; +2 ATP y 2 NADH"],
+      ["Acetil-CoA", "unidad de 2 C que entra en el ciclo de Krebs"],
+      ["Ciclo de Krebs", "ruta cíclica de la matriz que libera CO₂ y carga NADH y FADH₂"],
+      ["Cadena respiratoria", "complejos de la membrana interna que pasan electrones al O₂"],
+      ["Quimiosmosis", "síntesis de ATP gracias al gradiente de H⁺ (Mitchell, 1961)"],
+      ["ATP sintasa", "complejo por el que vuelven los H⁺ y que une ADP y Pᵢ"],
+      ["Fermentación", "oxidación incompleta sin O₂ que regenera NAD⁺; 2 ATP por glucosa"],
+      ["β-oxidación", "degradación del ácido graso en acetil-CoA, NADH y FADH₂"]
+    ],
+    cita: { txt: "Con oxígeno, la misma glucosa da unas 16 veces más ATP que sin él.", autor: "Dato para recordar", obra: "32 ATP frente a 2 ATP por glucosa (criterio 30/32)" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    coenzimas: {
+      titulo: "Coenzimas y moléculas energéticas",
+      consigna: "Une cada molécula con su papel.",
+      pares: [
+        ["ATP", "Moneda de energía de la célula"],
+        ["NAD⁺", "Recoge electrones e hidrógenos en la glucólisis y en Krebs"],
+        ["FAD", "Se reduce a FADH₂ en un paso de Krebs y en la β-oxidación"],
+        ["Coenzima A", "Transporta el grupo acetilo (acetil-CoA)"],
+        ["Oxígeno", "Aceptor final de electrones"]
+      ]
+    },
+    fermentaciones: {
+      titulo: "¿Láctica, alcohólica o ambas?",
+      consigna: "Clasifica cada afirmación.",
+      categorias: ["Fermentación láctica", "Fermentación alcohólica", "Las dos"],
+      items: [
+        { t: "Produce lactato", c: 0 }, { t: "Se hace en el músculo con poco O₂", c: 0 }, { t: "Se usa para el yogur", c: 0 },
+        { t: "Produce etanol y CO₂", c: 1 }, { t: "La hacen las levaduras", c: 1 }, { t: "Hace subir la masa del pan", c: 1 },
+        { t: "Rinde 2 ATP por glucosa", c: 2 }, { t: "Regenera NAD⁺", c: 2 }, { t: "Ocurre en el citoplasma", c: 2 }
+      ]
+    },
+    fuentes: {
+      titulo: "¿Dónde entra cada combustible?",
+      consigna: "Indica en qué punto de la respiración entra cada sustancia.",
+      categorias: ["Glucólisis", "Acetil-CoA", "Ciclo de Krebs"],
+      items: [
+        { t: "Glucosa", c: 0 }, { t: "Fructosa (tras fosforilarse)", c: 0 },
+        { t: "Ácido graso (tras la β-oxidación)", c: 1 }, { t: "Piruvato (tras descarboxilarse)", c: 1 },
+        { t: "Oxalacetato", c: 2 }, { t: "Aminoácidos desaminados (algunos esqueletos)", c: 2 }
+      ]
+    },
+    ordenglucolisis: {
+      titulo: "La glucólisis, en orden",
+      consigna: "Ordena los pasos principales desde la glucosa hasta el piruvato.",
+      items: [
+        { t: "La glucosa recibe un fosfato (gasta 1 ATP)" },
+        { t: "Se forma fructosa-1,6-bisfosfato (gasta 1 ATP más)" },
+        { t: "Se rompe en dos moléculas de 3 C (G3P)" },
+        { t: "Cada G3P se oxida: se forma NADH" },
+        { t: "Se forman 4 ATP en total" },
+        { t: "Se obtienen 2 piruvato" }
+      ]
+    },
+    ordencadena: {
+      titulo: "El camino de los electrones",
+      consigna: "Ordena el recorrido de los electrones del NADH hasta el oxígeno.",
+      items: [
+        { t: "NADH cede electrones al complejo I" },
+        { t: "Ubiquinona (coenzima Q)" },
+        { t: "Complejo III" },
+        { t: "Citocromo c" },
+        { t: "Complejo IV" },
+        { t: "Oxígeno: se forma agua" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 8",
+      preguntas: [
+        { q: "¿Dónde ocurre la glucólisis?", op: ["En el citoplasma", "En la matriz mitocondrial", "En las crestas mitocondriales", "En el núcleo"], ok: 0, porque: "Es la única etapa que no necesita orgánulos." },
+        { q: "El balance neto de la glucólisis es…", op: ["2 ATP y 2 NADH", "4 ATP y 2 NADH", "2 ATP y 10 NADH", "36 ATP"], ok: 0, porque: "Gasta 2 ATP y forma 4: la ganancia neta es de 2." },
+        { q: "La descarboxilación oxidativa del piruvato produce…", op: ["acetil-CoA, CO₂ y NADH", "lactato y NAD⁺", "citrato y FADH₂", "ATP y agua"], ok: 0, porque: "El piruvato (3 C) pierde un C como CO₂ y queda un acetilo de 2 C." },
+        { q: "En una vuelta del ciclo de Krebs se forman…", op: ["3 NADH, 1 FADH₂, 1 ATP y 2 CO₂", "1 NADH, 3 FADH₂ y 2 ATP", "2 NADH, 2 FADH₂ y 4 CO₂", "6 NADH y 2 FADH₂"], ok: 0, porque: "Por glucosa hay dos vueltas: 6 NADH, 2 FADH₂, 2 ATP y 4 CO₂." },
+        { q: "El oxígeno en la respiración celular…", op: ["es el aceptor final de electrones", "se une a la glucosa en la glucólisis", "forma CO₂ en el ciclo de Krebs", "es el donante de electrones"], ok: 0, porque: "En el complejo IV recoge los electrones y forma agua." },
+        { q: "La ATP sintasa fabrica ATP gracias a…", op: ["el flujo de H⁺ a favor del gradiente", "la hidrólisis del NADH", "el CO₂ del ciclo de Krebs", "la luz"], ok: 0, porque: "Es la quimiosmosis de Mitchell." },
+        { q: "La fermentación sirve sobre todo para…", op: ["regenerar NAD⁺ y que siga la glucólisis", "producir mucho ATP", "consumir oxígeno", "oxidar el piruvato hasta CO₂"], ok: 0, porque: "Solo da los 2 ATP de la glucólisis." },
+        { q: "La β-oxidación de un ácido graso produce en cada vuelta…", op: ["1 acetil-CoA, 1 NADH y 1 FADH₂", "1 glucosa", "2 ATP directos", "1 piruvato"], ok: 0, porque: "Cada vuelta recorta 2 C y da un acetil-CoA." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre la glucólisis es FALSA?", op: ["Necesita oxígeno y ocurre en la mitocondria", "Ocurre en el citoplasma", "Tiene un balance neto de 2 ATP", "Forma 2 piruvato por glucosa"], ok: 0, porque: "No necesita oxígeno y ocurre en el citoplasma." },
+        { q: "¿Cuál de estas afirmaciones sobre el ciclo de Krebs es FALSA?", op: ["Consume directamente el oxígeno y forma agua", "Ocurre en la matriz mitocondrial", "Libera CO₂", "Forma NADH y FADH₂"], ok: 0, porque: "El oxígeno solo interviene al final de la cadena respiratoria." },
+        { q: "¿Cuál de estas afirmaciones sobre la cadena respiratoria es FALSA?", op: ["El complejo II bombea tantos H⁺ como el I", "El oxígeno es el aceptor final", "Está en la membrana mitocondrial interna", "Crea un gradiente de H⁺"], ok: 0, porque: "El complejo II no bombea H⁺." },
+        { q: "¿Cuál de estas afirmaciones sobre la fermentación es FALSA?", op: ["Produce mucho más ATP que la respiración", "Regenera NAD⁺", "Ocurre en el citoplasma", "La alcohólica libera CO₂"], ok: 0, porque: "Solo da 2 ATP por glucosa." },
+        { q: "¿Cuál de estas afirmaciones sobre la fermentación láctica es FALSA?", op: ["Libera CO₂", "Produce lactato", "La hace el músculo con poco O₂", "Se usa para elaborar yogur"], ok: 0, porque: "La láctica no libera CO₂; la alcohólica sí." },
+        { q: "¿Cuál de estas afirmaciones sobre el balance energético es FALSA?", op: ["Cada glucosa produce siempre exactamente 38 ATP", "Hay dos criterios: 30/32 y 36/38", "La lanzadera glicerol-fosfato da 2 ATP menos", "La mayor parte del ATP sale de la fosforilación oxidativa"], ok: 0, porque: "Depende del criterio y de la lanzadera." },
+        { q: "¿Cuál de estas afirmaciones sobre los coenzimas es FALSA?", op: ["El NADH es la forma oxidada", "El NAD⁺ se reduce a NADH", "El FAD se reduce a FADH₂", "Transportan electrones e hidrógenos"], ok: 0, porque: "El NADH es la forma reducida; el NAD⁺, la oxidada." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: respiración celular",
+      cartas: [
+        { a: "Catabolismo y anabolismo", b: "Catabolismo: rompe y libera energía. Anabolismo: construye y consume energía." },
+        { a: "ATP", b: "Adenina + ribosa + 3 fosfatos. ATP + H₂O ⇌ ADP + Pᵢ + energía (≈ 30,5 kJ/mol)." },
+        { a: "NAD⁺ y FAD", b: "Coenzimas que transportan electrones e hidrógenos: NAD⁺ → NADH y FAD → FADH₂." },
+        { a: "Glucólisis", b: "Citoplasma, sin O₂. Glucosa → 2 piruvato. Gasta 2 ATP, forma 4 (neto 2) y 2 NADH." },
+        { a: "Descarboxilación oxidativa", b: "Matriz. Piruvato + NAD⁺ + CoA → acetil-CoA + CO₂ + NADH." },
+        { a: "Ciclo de Krebs (por vuelta)", b: "Matriz. 3 NADH, 1 FADH₂, 1 ATP (GTP) y 2 CO₂. Dos vueltas por glucosa." },
+        { a: "Totales antes de la cadena", b: "Por glucosa: 10 NADH, 2 FADH₂, 4 ATP y 6 CO₂." },
+        { a: "Cadena respiratoria", b: "Membrana mitocondrial interna. Electrones al O₂ (agua) y bombeo de H⁺." },
+        { a: "Quimiosmosis", b: "Mitchell, 1961: el gradiente de H⁺ mueve la ATP sintasa y forma ATP." },
+        { a: "H⁺ y ATP por coenzima", b: "NADH: 10 H⁺ → 2,5 ATP. FADH₂: 6 H⁺ → 1,5 ATP (4 H⁺ por ATP)." },
+        { a: "Balance de ATP por glucosa", b: "30–32 (criterio actual) o 36–38 (clásico); depende de la lanzadera." },
+        { a: "Fermentación láctica", b: "Piruvato + NADH → lactato + NAD⁺. Bacterias lácticas y músculo. 2 ATP." },
+        { a: "Fermentación alcohólica", b: "Piruvato → etanol + CO₂. Levaduras (vino, cerveza, pan). 2 ATP." },
+        { a: "β-oxidación", b: "Matriz. Cada vuelta: −2 C (acetil-CoA), 1 NADH y 1 FADH₂. Activación: −2 ATP." },
+        { a: "Palmitato (16 C)", b: "8 acetil-CoA, 7 vueltas, 31 NADH, 15 FADH₂ y 8 ATP: 106 ATP (129 con 3 y 2)." },
+        { a: "Desacoplante", b: "Disipa el gradiente de H⁺: más O₂, nada de ATP y calor (grasa parda)." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "¿Dónde ocurre la glucólisis?", ["En el citoplasma", "En la matriz mitocondrial", "En la membrana mitocondrial interna", "En el núcleo"], 0, ["Es la etapa que no necesita orgánulos."], "En el citoplasma");
+  O("b2", 1, "¿Qué papel tiene el oxígeno en la respiración aerobia?", ["Aceptor final de electrones", "Donante de electrones", "Sustrato de la glucólisis", "Coenzima de Krebs"], 0, ["En el complejo IV recoge los electrones y forma agua."], "Aceptor final de electrones");
+  O("b3", 1, "¿Cuál de estas moléculas es un coenzima que transporta electrones e hidrógenos?", ["NAD⁺", "Piruvato", "ATP sintasa", "Glucosa"], 0, ["El NAD⁺ se reduce a NADH al recoger electrones e hidrógenos."], "NAD⁺");
+  V("b4", 1, "El catabolismo consume energía y construye moléculas complejas.", false, ["Libera energía al romper moléculas complejas; el que construye es el anabolismo", "Es el proceso de la fotosíntesis", "Solo ocurre en plantas", "No necesita enzimas"], 0, ["Catabolismo: rompe y libera energía."]);
+  O("b5", 1, "El ciclo de Krebs ocurre en…", ["la matriz mitocondrial", "el citoplasma", "el retículo endoplasmático", "los cloroplastos"], 0, ["Es una ruta de la matriz de la mitocondria."], "La matriz mitocondrial");
+  O("b6", 1, "La cadena respiratoria está en…", ["la membrana mitocondrial interna", "la membrana externa", "el citoplasma", "el lisosoma"], 0, ["Las crestas contienen los complejos y la ATP sintasa."], "La membrana mitocondrial interna");
+  T("b7", 1, "Al final de la glucólisis, la glucosa se ha convertido en dos moléculas de…", "Molécula", ["piruvato", "ácido pirúvico"], ["Cada glucosa (6 C) da 2 piruvato (3 C)."], "Piruvato");
+  X("b8", 1, "¿Cuántos ATP netos gana la célula en la glucólisis de una molécula de glucosa?", "ATP netos =", 2, "ATP", ["Se gastan 2 y se forman 4.", "Ganancia neta: 4 − 2 = 2."], "2 ATP");
+  X("b9", 1, "¿Cuántas moléculas de NADH se forman en la glucólisis de una glucosa?", "NADH =", 2, "NADH", ["Una por cada gliceraldehído-3-fosfato, y hay dos."], "2 NADH");
+  O("b10", 1, "¿Qué organismos realizan la fermentación láctica?", ["Bacterias lácticas y células musculares con poco O₂", "Levaduras", "Plantas con luz", "Virus"], 0, ["Producen lactato a partir del piruvato."], "Bacterias lácticas y músculo");
+  T("b11", 1, "Las levaduras, al fermentar, producen CO₂ y…", "Producto", ["etanol", "alcohol", "alcohol etilico", "alcohol etílico"], ["La fermentación alcohólica da etanol y CO₂."], "Etanol");
+  V("b12", 1, "El ciclo de Krebs consume oxígeno directamente.", false, ["El oxígeno solo interviene al final de la cadena respiratoria", "El oxígeno es el sustrato del ciclo", "El ciclo forma agua a partir del oxígeno", "El ciclo ocurre en el citoplasma"], 0, ["Krebs libera CO₂ y carga NADH y FADH₂; el O₂ se usa en el complejo IV."]);
+  X("b13", 1, "Una glucosa se oxida por completo en la respiración aerobia. ¿Cuántas moléculas de CO₂ se liberan?", "CO₂ =", 6, "CO₂", ["2 en la descarboxilación oxidativa (1 por piruvato).", "4 en el ciclo de Krebs (2 por vuelta).", "En total 6, uno por cada carbono."], "6 CO₂");
+  M("b14", 1, "Une cada etapa con su lugar.",
+    [C("Glucólisis", ["Citoplasma", "Matriz mitocondrial", "Membrana mitocondrial interna"], 0), C("Ciclo de Krebs", ["Matriz mitocondrial", "Citoplasma", "Membrana mitocondrial interna"], 0), C("Cadena respiratoria", ["Membrana mitocondrial interna", "Citoplasma", "Matriz mitocondrial"], 0)],
+    ["La glucólisis es citoplasmática.", "Krebs, en la matriz.", "La cadena, en las crestas (membrana interna)."], "Citoplasma; matriz; membrana interna");
+  O("b15", 1, "¿Qué complejo forma ATP al pasar los H⁺ a favor del gradiente?", ["ATP sintasa", "Complejo IV", "Piruvato deshidrogenasa", "Ubiquinona"], 0, ["El giro de la ATP sintasa une ADP y Pᵢ."], "ATP sintasa");
+  X("b16", 1, "¿Cuántos acetil-CoA se obtienen de una molécula de glucosa?", "Acetil-CoA =", 2, "", ["La glucosa da 2 piruvato.", "Cada piruvato da 1 acetil-CoA."], "2 acetil-CoA");
+
+  // ---- nivel 2
+  X("c1", 2, "¿Cuántos ATP se forman por fosforilación a nivel de sustrato en la respiración completa de una glucosa (glucólisis + Krebs)?", "ATP directos =", 4, "ATP", ["Glucólisis: 4 formados − 2 gastados = 2 netos.", "Krebs: 1 por vuelta × 2 = 2.", "Total: 2 + 2 = 4."], "4 ATP");
+  X("c2", 2, "¿Cuántos NADH se forman en total por glucosa hasta el final del ciclo de Krebs?", "NADH =", 10, "NADH", ["Glucólisis: 2.", "Descarboxilación oxidativa: 2.", "Krebs: 3 × 2 = 6.", "Total: 10."], "10 NADH");
+  X("c3", 2, "Calcula los ATP totales de una glucosa con el criterio 30/32 (2,5 por NADH, 1,5 por FADH₂) y lanzadera malato-aspartato.", "ATP totales =", 32, "ATP", ["Directos: 4. NADH: 10 × 2,5 = 25. FADH₂: 2 × 1,5 = 3.", "Total: 4 + 25 + 3 = 32."], "32 ATP");
+  X("c4", 2, "Calcula los ATP totales de una glucosa con el criterio clásico (3 por NADH, 2 por FADH₂) y lanzadera malato-aspartato.", "ATP totales =", 38, "ATP", ["Directos: 4. NADH: 10 × 3 = 30. FADH₂: 2 × 2 = 4.", "Total: 4 + 30 + 4 = 38."], "38 ATP");
+  X("c5", 2, "En el músculo, los 2 NADH de la glucólisis entran por la lanzadera glicerol-fosfato y cuentan como FADH₂. ¿Cuántos ATP da una glucosa con el criterio 2,5 y 1,5?", "ATP totales =", 30, "ATP", ["Directos: 4. NADH mitocondriales: 8 × 2,5 = 20.", "FADH₂: 2 + 2 = 4 × 1,5 = 6.", "Total: 4 + 20 + 6 = 30."], "30 ATP");
+  X("c6", 2, "Si se bombean 10 H⁺ por cada NADH y hacen falta 4 H⁺ por ATP, ¿cuántos ATP da un NADH?", "ATP por NADH =", 2.5, "ATP", ["10 / 4 = 2,5."], "2,5 ATP");
+  X("c7", 2, "Si se bombean 6 H⁺ por cada FADH₂ y hacen falta 4 H⁺ por ATP, ¿cuántos ATP da un FADH₂?", "ATP por FADH₂ =", 1.5, "ATP", ["6 / 4 = 1,5."], "1,5 ATP");
+  X("c8", 2, "La oxidación de 1 mol de glucosa libera 2870 kJ y cada mol de ATP guarda 30,5 kJ. ¿Qué porcentaje de la energía se guarda si se forman 32 ATP?", "Rendimiento (%) =", 34, "%", ["32 · 30,5 = 976 kJ.", "976 / 2870 = 0,340 → 34 %."], "≈ 34 %", 0.01);
+  X("c9", 2, "Una levadura fermenta 3 mol de glucosa en ausencia de O₂. ¿Cuántos mol de ATP forma?", "ATP =", 6, "mol", ["2 ATP por mol de glucosa.", "3 · 2 = 6."], "6 mol de ATP");
+  X("c10", 2, "¿Cuántas veces más ATP da una glucosa en respiración aerobia (32) que en fermentación (2)?", "Factor =", 16, "veces", ["32 / 2 = 16."], "16 veces");
+  X("c11", 2, "En la fermentación alcohólica de 5 mol de glucosa, ¿cuántos mol de CO₂ se liberan?", "CO₂ =", 10, "mol", ["2 CO₂ por cada glucosa.", "5 · 2 = 10."], "10 mol de CO₂");
+  V("c12", 2, "En la fermentación láctica se libera CO₂.", false, ["La láctica no libera CO₂: el piruvato se reduce a lactato (3 C)", "La láctica produce etanol", "La láctica necesita oxígeno", "La láctica ocurre en la mitocondria"], 0, ["El CO₂ aparece en la fermentación alcohólica (descarboxilación del piruvato)."]);
+  M("c13", 2, "Une cada sustancia con su efecto en la mitocondria.",
+    [C("Rotenona", ["Bloquea el complejo I", "Bloquea la ATP sintasa", "Disipa el gradiente de H⁺", "Bloquea el complejo IV"], 0), C("Cianuro", ["Bloquea el complejo IV", "Bloquea el complejo I", "Disipa el gradiente de H⁺", "Bloquea la ATP sintasa"], 0), C("Oligomicina", ["Bloquea la ATP sintasa", "Bloquea el complejo IV", "Bloquea el complejo I", "Disipa el gradiente de H⁺"], 0), C("DNP (desacoplante)", ["Disipa el gradiente de H⁺", "Bloquea la ATP sintasa", "Bloquea el complejo I", "Bloquea el complejo IV"], 0)],
+    ["La rotenona actúa en I; el cianuro, en IV; la oligomicina, en la ATP sintasa; el DNP hace pasar H⁺ sin ATP sintasa."], "Rotenona → I; cianuro → IV; oligomicina → ATP sintasa; DNP → disipa el gradiente");
+  O("c14", 2, "A unas mitocondrias aisladas que respiran con ADP se les añade un desacoplante. ¿Qué se observa?", ["Más consumo de O₂ y casi nada de ATP", "Menos consumo de O₂ y más ATP", "Se para el consumo de O₂", "El gradiente de H⁺ aumenta"], 0, ["El gradiente se disipa y ya no frena la cadena: se consume más O₂.", "Los H⁺ no pasan por la ATP sintasa, así que no se forma ATP; la energía sale como calor."], "Más O₂ y casi nada de ATP");
+  X("c15", 2, "Una célula respira por completo 3 mol de glucosa. ¿Cuántos mol de O₂ consume?", "O₂ =", 18, "mol", ["C₆H₁₂O₆ + 6 O₂ → 6 CO₂ + 6 H₂O.", "3 · 6 = 18 mol."], "18 mol de O₂");
+  M("c16", 2, "Une cada proceso con la etapa en que ocurre.",
+    [C("Se forma agua con el O₂", ["Cadena respiratoria", "Ciclo de Krebs", "Glucólisis"], 0), C("Se forma acetil-CoA y sale CO₂ (sin ciclo)", ["Descarboxilación oxidativa", "Cadena respiratoria", "Glucólisis"], 0), C("Se forma FADH₂ en la matriz", ["Ciclo de Krebs", "Cadena respiratoria", "Glucólisis"], 0)],
+    ["El agua se forma en el complejo IV.", "La piruvato deshidrogenasa descarboxila y forma acetil-CoA.", "El succinato pasa a fumarato con FAD en Krebs."], "Cadena; descarboxilación oxidativa; Krebs");
+
+  // ---- nivel 3
+  X("d1", 3, "Calcula los ATP que da la oxidación completa de una molécula de ácido palmítico (16 C) con el criterio 30/32 (2,5 y 1,5), restando la activación (2 ATP).", "ATP totales =", 106, "ATP", ["Acetil-CoA: 8; vueltas: 7.", "NADH: 7 + 8 · 3 = 31. FADH₂: 7 + 8 = 15. ATP directos: 8.", "31 · 2,5 + 15 · 1,5 + 8 − 2 = 77,5 + 22,5 + 8 − 2 = 106."], "106 ATP");
+  X("d2", 3, "Calcula los ATP del ácido palmítico con el criterio clásico (3 por NADH, 2 por FADH₂), restando 2 de la activación.", "ATP totales =", 129, "ATP", ["31 · 3 + 15 · 2 + 8 − 2 = 93 + 30 + 8 − 2 = 129."], "129 ATP");
+  X("d3", 3, "Calcula los ATP del ácido esteárico (18 C) con el criterio 30/32 (2,5 y 1,5), restando la activación.", "ATP totales =", 120, "ATP", ["Acetil-CoA: 9; vueltas: 8.", "NADH: 8 + 27 = 35. FADH₂: 8 + 9 = 17. ATP directos: 9.", "35 · 2,5 + 17 · 1,5 + 9 − 2 = 87,5 + 25,5 + 9 − 2 = 120."], "120 ATP");
+  X("d4", 3, "¿Cuántas vueltas de β-oxidación necesita un ácido graso saturado de 12 C (ácido láurico)?", "Vueltas =", 5, "", ["Acetil-CoA: 12 / 2 = 6.", "Vueltas: 6 − 1 = 5 (la última rompe 4 C en 2 acetil-CoA)."], "5 vueltas");
+  X("d5", 3, "¿Cuántas moléculas de NADH + FADH₂ se forman solo en las vueltas de β-oxidación de un ácido graso de 14 C (sin contar Krebs)?", "NADH + FADH₂ =", 12, "", ["Vueltas: 14 / 2 − 1 = 6.", "Cada vuelta da 1 NADH y 1 FADH₂: 2 · 6 = 12."], "12 coenzimas reducidos");
+  X("d6", 3, "Calcula el cociente respiratorio (CO₂ producido / O₂ consumido) del ácido palmítico: C₁₆H₃₂O₂ + 23 O₂ → 16 CO₂ + 16 H₂O.", "CR =", 0.70, "", ["16 / 23 = 0,696."], "CR ≈ 0,70", 0.01);
+  O("d7", 3, "Comparando por átomo de carbono: ácido palmítico (106 ATP, 16 C) y glucosa (32 ATP, 6 C) con el criterio 30/32…", ["La grasa rinde más ATP por carbono (≈ 6,6 frente a ≈ 5,3)", "La glucosa rinde más ATP por carbono", "Rinden lo mismo por carbono", "La grasa no da ATP"], 0, ["106 / 16 = 6,6 ATP por C.", "32 / 6 = 5,3 ATP por C.", "La grasa está más reducida (más H por C)."], "La grasa rinde más por carbono");
+  R("d8", "Explica la glucólisis: dónde ocurre, sus fases y su balance. (Pregunta tipo PAU)", [
+    { t: "Localización: citoplasma, sin O₂", p: 0.4 },
+    { t: "Fase de inversión: gasta 2 ATP y rompe la glucosa en 2 moléculas de 3 C", p: 0.5 },
+    { t: "Fase de obtención: se forman 4 ATP y 2 NADH", p: 0.5 },
+    { t: "Balance neto: 2 piruvato, 2 ATP y 2 NADH", p: 0.5 },
+    { t: "Destino del piruvato con y sin O₂", p: 0.1 }], ["Citoplasma.", "Dos fases.", "Balance."], "Citoplasma: 1 glucosa → 2 piruvato, +2 ATP, +2 NADH");
+  R("d9", "Describe la descarboxilación oxidativa y el ciclo de Krebs: lugar, qué entra, qué sale y balance por glucosa. (Pregunta tipo PAU)", [
+    { t: "Matriz mitocondrial", p: 0.3 },
+    { t: "Descarboxilación oxidativa: piruvato → acetil-CoA + CO₂ + NADH", p: 0.5 },
+    { t: "Krebs: acetil-CoA + oxalacetato → citrato; se regenera el oxalacetato", p: 0.5 },
+    { t: "Por vuelta: 3 NADH, 1 FADH₂, 1 ATP y 2 CO₂", p: 0.5 },
+    { t: "Por glucosa (2 vueltas): 6 CO₂ en total con la descarboxilación", p: 0.2 }], ["Matriz.", "Descarboxilación.", "Krebs.", "Balance."], "Matriz: 6 NADH, 2 FADH₂, 2 ATP, 4 CO₂ en Krebs");
+  R("d10", "Explica la cadena respiratoria y la fosforilación oxidativa (quimiosmosis). (Pregunta tipo PAU)", [
+    { t: "Membrana mitocondrial interna; complejos y transportadores", p: 0.4 },
+    { t: "Electrones del NADH y FADH₂ pasan hasta el O₂ (aceptor final, forma agua)", p: 0.5 },
+    { t: "Bombeo de H⁺ y gradiente electroquímico", p: 0.5 },
+    { t: "Los H⁺ vuelven por la ATP sintasa y se forma ATP (Mitchell)", p: 0.5 },
+    { t: "Cuántos ATP por NADH y FADH₂ (2,5 y 1,5 o 3 y 2)", p: 0.1 }], ["Lugar.", "Electrones.", "Gradiente.", "ATP sintasa."], "Cadena → gradiente de H⁺ → ATP sintasa");
+  R("d11", "Compara la respiración aerobia con la fermentación (láctica y alcohólica): aceptor final, productos y rendimiento. (Pregunta tipo PAU)", [
+    { t: "Aceptor final: O₂ frente a una molécula orgánica", p: 0.4 },
+    { t: "Productos: CO₂ y H₂O frente a lactato o etanol + CO₂", p: 0.5 },
+    { t: "Rendimiento: 30–38 ATP frente a 2 ATP", p: 0.5 },
+    { t: "Papel de la fermentación: regenerar NAD⁺ para la glucólisis", p: 0.4 },
+    { t: "Ejemplos: músculo, yogur, vino, pan", p: 0.2 }], ["Aceptor.", "Productos.", "ATP.", "NAD⁺."], "Aerobia: 30–38 ATP; fermentación: 2 ATP");
+  R("d12", "A mitocondrias aisladas con piruvato + malato se les añade rotenona y el consumo de O₂ cae; si luego se añade succinato, vuelve a subir. Interpreta el experimento y di qué haría el cianuro. (Pregunta tipo PAU)", [
+    { t: "Piruvato + malato dan NADH que entra por el complejo I", p: 0.4 },
+    { t: "La rotenona bloquea el complejo I y cae el consumo de O₂", p: 0.5 },
+    { t: "El succinato (FADH₂) entra por el complejo II y se salta el bloqueo", p: 0.5 },
+    { t: "El cianuro bloquea el complejo IV: el consumo de O₂ cae a cero en cualquier caso", p: 0.4 },
+    { t: "Relaciona consumo de O₂ con el paso de electrones al aceptor final", p: 0.2 }], ["Complejo I.", "Rotenona.", "Succinato.", "Cianuro."], "I bloqueado; II lo evita; IV bloqueado lo detiene todo");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Las cuatro etapas de la respiración", ancha: true,
+      tabla: { cab: ["Etapa", "Lugar", "Resultado por glucosa"], filas: [
+        ["Glucólisis", "citoplasma", "2 piruvato, +2 ATP, 2 NADH"],
+        ["Descarboxilación oxidativa", "matriz", "2 acetil-CoA, 2 CO₂, 2 NADH"],
+        ["Ciclo de Krebs", "matriz", "4 CO₂, 6 NADH, 2 FADH₂, 2 ATP"],
+        ["Cadena respiratoria", "membrana interna", "H₂O y la mayor parte del ATP"]
+      ] } },
+    { titulo: "Balance de ATP por glucosa", ancha: true,
+      tabla: { cab: ["Criterio", "Lanzadera malato", "Lanzadera glicerol"], filas: [
+        ["actual (2,5 y 1,5)", "32", "30"],
+        ["clásico (3 y 2)", "38", "36"],
+        ["fermentación", "2", "2"]
+      ] } },
+    { titulo: "Camino de los electrones",
+      pasos: ["NADH cede electrones al complejo I.", "Ubiquinona y complejo III.", "Citocromo c y complejo IV.", "El O₂ forma agua; los H⁺ vuelven por la ATP sintasa."],
+      nota: "Los complejos I, III y IV bombean H⁺." },
+    { titulo: "Fermentación: láctica y alcohólica", ancha: true,
+      tabla: { cab: ["", "Láctica", "Alcohólica"], filas: [
+        ["producto", "lactato", "etanol + CO₂"],
+        ["la hacen", "bacterias lácticas, músculo", "levaduras"],
+        ["ATP por glucosa", "2", "2"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "La glucólisis ocurre en la mitocondria", bien: "Ocurre en el citoplasma", por: "No necesita O₂." },
+        { mal: "Krebs consume O₂ y forma agua", bien: "El O₂ solo actúa al final de la cadena", por: "Krebs forma CO₂, NADH y FADH₂." },
+        { mal: "La glucólisis da 4 ATP netos", bien: "Gana 2 ATP netos (forma 4, gasta 2)", por: "Se invierten 2 ATP al inicio." },
+        { mal: "La fermentación genera mucho ATP", bien: "Solo da los 2 ATP de la glucólisis", por: "Su función es regenerar NAD⁺." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t8", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio8a.secciones,
+    nuevas: B.parte.bio8a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
