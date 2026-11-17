@@ -5581,6 +5581,204 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 4 (Proteínas y enzimas)
+   bio_aminoacidos: construye un péptido uniendo aminoácidos (enlaces peptídicos, agua liberada, masa, combinaciones).
+   bio_enzima: curva de Michaelis–Menten (velocidad frente a sustrato) con [E] y con inhibidor competitivo / no competitivo.
+   bio_factores: actividad enzimática frente a la temperatura y al pH, con enzimas de distinto óptimo.
+   Estilos inyectados desde aquí. Los números de los modelos los recalcula herramientas/verificar_bio2_t4.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio4-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio4-estilos";
+    s.textContent =
+      ".bio4-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio4-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio4-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio4-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio4-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio4-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+      ".bio4-cadena{display:flex;flex-wrap:wrap;align-items:center;gap:2px 0;margin:10px 0;min-height:44px;padding:8px;border:1.5px dashed var(--line);border-radius:10px;font-size:14px;color:var(--ink)}" +
+      ".bio4-cadena .aa{padding:5px 8px;border-radius:8px;border:1.5px solid var(--pen);background:var(--pen-soft);font-weight:700}" +
+      ".bio4-cadena .aa.polar{border-color:var(--ok);background:var(--ok-soft)}" +
+      ".bio4-cadena .aa.ac{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio4-cadena .aa.bas{border-color:var(--ink);background:var(--sheet-2)}" +
+      ".bio4-cadena .en{padding:0 3px;font-size:11px;color:var(--ink-faint);white-space:nowrap}" +
+      ".bio4-cadena .ext{font-size:11px;color:var(--ink-faint);padding:0 4px;font-weight:700}" +
+      ".bio4-botones{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}" +
+      ".bio4-botones button{padding:6px 10px;border-radius:9px;border:1.5px solid var(--line);background:var(--sheet);color:var(--ink);font:600 13px var(--body,sans-serif);cursor:pointer}" +
+      ".bio4-botones button:hover{border-color:var(--pen)}" +
+      ".bio4-botones button.accion{border-style:dashed}" +
+      ".bio4-svg{display:block;width:100%;max-width:560px;height:auto;margin:8px auto}" +
+      ".bio4-svg text{font:600 12px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio4-svg .at{font-size:15px;font-weight:700}" +
+      ".bio4-svg .en{stroke:var(--ink);stroke-width:2;fill:none}" +
+      ".bio4-svg .pep{stroke:var(--red);stroke-width:4;fill:none}" +
+      ".bio4-svg .caja{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio4-svg .h2o{fill:var(--pen-soft);stroke:var(--pen);stroke-width:2}" +
+      ".bio4-svg .pie{font-size:11px;fill:var(--ink-faint);font-weight:500}" +
+      "@media(max-width:520px){.bio4-dato{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  function f1(x) { return B.fmt(x, 1); }
+  function miles(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  // ------------------------------------------------------------------ CONSTRUYE UN PÉPTIDO
+  var AGUA = 18.015;   // g/mol
+  var AA = [
+    { k: "Gly", n: "glicina", m: 75.07, c: "apolar" },
+    { k: "Ala", n: "alanina", m: 89.09, c: "apolar" },
+    { k: "Val", n: "valina", m: 117.15, c: "apolar" },
+    { k: "Phe", n: "fenilalanina", m: 165.19, c: "apolar" },
+    { k: "Ser", n: "serina", m: 105.09, c: "polar" },
+    { k: "Cys", n: "cisteína", m: 121.16, c: "polar" },
+    { k: "Asp", n: "ácido aspártico", m: 133.10, c: "ac" },
+    { k: "Lys", n: "lisina", m: 146.19, c: "bas" }
+  ];
+  var CLASES = { apolar: "radical apolar", polar: "radical polar sin carga", ac: "radical ácido (carga −)", bas: "radical básico (carga +)" };
+  function porK(k) { var r = null; AA.forEach(function (a) { if (a.k === k) r = a; }); return r; }
+  function nombrePep(n) { return n === 1 ? "aminoácido libre" : n === 2 ? "dipéptido" : n === 3 ? "tripéptido" : n === 4 ? "tetrapéptido" : n === 5 ? "pentapéptido" : n <= 10 ? "oligopéptido" : "polipéptido"; }
+  function combos(n) { return n <= 8 ? miles(Math.pow(20, n)) : B.fmt(Math.pow(20, n) / Math.pow(10, Math.floor(Math.log(Math.pow(20, n)) / Math.LN10)), 2) + " · 10^" + Math.floor(Math.log(Math.pow(20, n)) / Math.LN10 + 1e-9); }
+
+  B.w.bio_aminoacidos = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Construye un péptido");
+    cuerpo.innerHTML = '<p class="w-intro">Pulsa los aminoácidos para añadirlos a la cadena (de izquierda a derecha, del extremo N al extremo C). Cada unión es un enlace peptídico y libera una molécula de agua.</p>' +
+      '<div class="bio4-botones" data-aa></div><div class="bio4-botones" data-acc></div><div class="bio4-cadena"></div><div class="bio4-dato"></div><div class="bio4-veredicto"></div>' +
+      '<p class="w-pie">Masas de los aminoácidos libres en g/mol; masa del péptido = suma − 18,015 por cada enlace. Máximo 12 residuos.</p>';
+    var cad = [], MAX = 12;
+    var bA = cuerpo.querySelector("[data-aa]"), bC = cuerpo.querySelector("[data-acc]"), dib = cuerpo.querySelector(".bio4-cadena"), dat = cuerpo.querySelector(".bio4-dato"), ver = cuerpo.querySelector(".bio4-veredicto");
+    bA.innerHTML = AA.map(function (a) { return '<button type="button" data-aa="' + a.k + '" title="' + a.n + '">' + a.k + "</button>"; }).join("");
+    bC.innerHTML = '<button type="button" class="accion" data-q="1">Quitar el último</button><button type="button" class="accion" data-q="0">Vaciar</button>';
+    bA.onclick = function (e) { var b = e.target.closest("[data-aa]"); if (b && cad.length < MAX) { cad.push(b.getAttribute("data-aa")); pinta(); } };
+    bC.onclick = function (e) { var b = e.target.closest("[data-q]"); if (!b) return; if (b.getAttribute("data-q") === "1") cad.pop(); else cad = []; pinta(); };
+    function pinta() {
+      var n = cad.length, suma = 0, ac = 0, bas = 0, cys = 0, html = "";
+      cad.forEach(function (k, i) {
+        var a = porK(k); suma += a.m; if (a.c === "ac") ac++; if (a.c === "bas") bas++; if (k === "Cys") cys++;
+        if (i === 0) html += '<span class="ext">H₂N–</span>';
+        html += '<span class="aa ' + a.c + '" title="' + a.n + ": " + CLASES[a.c] + '">' + k + "</span>";
+        html += i < n - 1 ? '<span class="en">–CO–NH–</span>' : '<span class="ext">–COOH</span>';
+      });
+      dib.innerHTML = n ? html : '<span class="en">Cadena vacía: añade un aminoácido</span>';
+      var masa = n ? suma - AGUA * (n - 1) : 0;
+      dat.innerHTML = "<div><b>Aminoácidos</b>" + n + (n ? " (" + nombrePep(n) + ")" : "") + "</div>" +
+        "<div><b>Enlaces peptídicos</b>" + Math.max(0, n - 1) + "</div>" +
+        "<div><b>Moléculas de agua liberadas</b>" + Math.max(0, n - 1) + "</div>" +
+        "<div><b>Masa del péptido</b>" + (n ? B.fmt(masa, 2) + " g/mol" : "—") + "</div>" +
+        "<div><b>Cadenas distintas de este largo</b>" + (n ? "20^" + n + " = " + combos(n) : "—") + "</div>" +
+        "<div><b>Radicales con carga</b>" + ac + " ácido(s) (−), " + bas + " básico(s) (+)</div>";
+      var msg = "";
+      if (!n) msg = "Empieza pulsando un aminoácido.";
+      else if (n === 1) msg = "Un solo aminoácido: todavía no hay enlace peptídico.";
+      else msg = "Un péptido de " + n + " aminoácidos tiene " + (n - 1) + " enlaces y ha liberado " + (n - 1) + " H₂O: siempre n − 1.";
+      if (cys >= 2) msg += " Con dos cisteínas, sus grupos –SH pueden unirse en un puente disulfuro (estructura terciaria).";
+      ver.className = "bio4-veredicto" + (cys >= 2 ? " ok" : "");
+      ver.textContent = msg;
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ MICHAELIS–MENTEN CON INHIBIDOR
+  var KM = 2, VMAX1 = 100;   // mM y µmol/min con [E] = 1
+  function parametros(E, inh, i) {
+    var vmax = VMAX1 * E, km = KM;
+    if (inh === "comp") km = KM * (1 + i);
+    else if (inh === "nocomp") vmax = vmax / (1 + i);
+    return { vmax: vmax, km: km };
+  }
+  function vel(S, p) { return p.vmax * S / (p.km + S); }
+
+  B.w.bio_enzima = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Velocidad de una enzima y su inhibidor");
+    cuerpo.innerHTML = '<p class="w-intro">Mueve la cantidad de sustrato [S] y mira cómo la velocidad llega a un tope (V<sub>max</sub>). Prueba a duplicar la enzima y a añadir un inhibidor competitivo o no competitivo.</p>' +
+      '<div data-inh></div><div data-ctl></div><div class="w-plot"></div><div class="bio4-dato"></div><div class="bio4-veredicto"></div>' +
+      '<p class="w-pie">Curva gris discontinua: sin inhibidor y con [E] = 1. [I]/K<sub>i</sub>: cuántas veces el inhibidor supera su constante de inhibición.</p>';
+    var st = { S: 2, E: 1, inh: "no", i: 2 };
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 20, ymin: 0, ymax: 215, w: 600, h: 280, etx: "[S] (mM)", ety: "v (µmol/min)", etiqueta: "Velocidad inicial frente a concentración de sustrato" });
+    var dat = cuerpo.querySelector(".bio4-dato"), ver = cuerpo.querySelector(".bio4-veredicto");
+    U.fichas(cuerpo.querySelector("[data-inh]"), [{ k: "no", t: "Sin inhibidor" }, { k: "comp", t: "Competitivo" }, { k: "nocomp", t: "No competitivo" }], st.inh, function (k) { st.inh = k; pinta(); });
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    U.slider(ctl, { et: "[S]", min: 0.1, max: 20, step: 0.1, val: st.S, fmt: function (v) { return f1(v) + " mM"; }, on: function (v) { st.S = v; pinta(); } });
+    U.slider(ctl, { et: "[E]", min: 0.5, max: 2, step: 0.5, val: st.E, fmt: function (v) { return "×" + f1(v); }, on: function (v) { st.E = v; pinta(); } });
+    U.slider(ctl, { et: "[I]/Kᵢ", min: 0, max: 4, step: 0.5, val: st.i, fmt: function (v) { return f1(v); }, on: function (v) { st.i = v; pinta(); } });
+    function pinta() {
+      var p = parametros(st.E, st.inh, st.inh === "no" ? 0 : st.i), p0 = parametros(1, "no", 0), v = vel(st.S, p);
+      g.limpiar();
+      g.curva(function (x) { return vel(x, p0); }, { clase: "c-faint", dash: "6 4" });
+      g.horizontal(p.vmax, { clase: "c-ok" });
+      g.segmento(p.km, 0, p.km, p.vmax / 2, { clase: "c-ok" });
+      g.curva(function (x) { return vel(x, p); }, { clase: "c-pen" });
+      g.punto(st.S, v, { clase: "c-red" });
+      g.texto(19.8, p.vmax + 8, "Vmax", { ancla: "end", clase: "c-ok" });
+      g.texto(p.km + 0.3, 8, "Km", { clase: "c-ok" });
+      dat.innerHTML = "<div><b>Velocidad v</b>" + f1(v) + " µmol/min</div><div><b>v / Vmax</b>" + f1(v / p.vmax * 100) + " %</div>" +
+        "<div><b>Vmax</b>" + f1(p.vmax) + " µmol/min</div><div><b>Km (con inhibidor)</b>" + f1(p.km) + " mM</div>";
+      var msg, cls = "";
+      if (st.inh === "comp") { msg = "Competitivo: el inhibidor compite por el sitio activo. La V<sub>max</sub> se alcanza igual, pero hace falta más sustrato para llegar a la mitad: K<sub>m</sub> aparente sube."; cls = " mal"; }
+      else if (st.inh === "nocomp") { msg = "No competitivo: el inhibidor se une fuera del sitio activo y deja inservible parte de la enzima. Baja la V<sub>max</sub>; la K<sub>m</sub> no cambia y más sustrato no lo arregla."; cls = " mal"; }
+      else if (st.S >= 10 * KM) { msg = "Casi toda la enzima está ocupada: aunque eches más sustrato, la velocidad apenas sube (saturación)."; cls = " ok"; }
+      else msg = "Con poco sustrato la velocidad crece casi en proporción; al acercarse a la saturación, cada vez menos.";
+      ver.className = "bio4-veredicto" + cls;
+      ver.innerHTML = msg;
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ TEMPERATURA Y pH
+  var ENZ_T = [{ k: "hum", t: "Humana (37 °C)", opt: 37 }, { k: "taq", t: "Taq polimerasa (72 °C)", opt: 72 }, { k: "pez", t: "Pez antártico (15 °C)", opt: 15 }];
+  var ENZ_P = [{ k: "pep", t: "Pepsina (pH 2)", opt: 2 }, { k: "ami", t: "Amilasa salival (pH 6,8)", opt: 6.8 }, { k: "tri", t: "Tripsina (pH 8)", opt: 8 }];
+  function relT(T, opt) { return T <= opt ? Math.pow(2, (T - opt) / 10) : Math.pow(2, -Math.pow((T - opt) / 5, 2)); }
+  function relP(pH, opt) { return Math.pow(2, -Math.pow(pH - opt, 2)); }
+
+  B.w.bio_factores = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Temperatura, pH y actividad enzimática");
+    cuerpo.innerHTML = '<p class="w-intro">Elige el factor y la enzima, y mueve el control. Verás la actividad relativa (100 % = en su óptimo) y por qué cae la curva.</p>' +
+      '<div data-modo></div><div data-enz></div><div data-ctl></div><div class="w-plot"></div><div class="bio4-dato"></div><div class="bio4-veredicto"></div>' +
+      '<p class="w-pie">Modelo cualitativo: por debajo del óptimo la actividad se duplica cada 10 °C; por encima, la enzima se desnaturaliza y cae en picado. En el pH, cae a la mitad a una unidad del óptimo.</p>';
+    var st = { modo: "T", enz: { T: "hum", P: "pep" }, T: 37, P: 7 };
+    var g, gModo = "", hostG = cuerpo.querySelector(".w-plot");
+    function plot() {
+      if (gModo === st.modo) return;
+      gModo = st.modo; hostG.innerHTML = "";
+      g = new B.Plot(hostG, st.modo === "T" ? { xmin: 0, xmax: 100, ymin: 0, ymax: 110, w: 600, h: 260, etx: "T (°C)", ety: "actividad (%)", etiqueta: "Actividad enzimática frente a la temperatura" }
+        : { xmin: 0, xmax: 14, ymin: 0, ymax: 110, w: 600, h: 260, etx: "pH", ety: "actividad (%)", etiqueta: "Actividad enzimática frente al pH" });
+    }
+    var dat = cuerpo.querySelector(".bio4-dato"), ver = cuerpo.querySelector(".bio4-veredicto"), cEnz = cuerpo.querySelector("[data-enz]");
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]")), slT, slP, ctlT, ctlP;
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "T", t: "Temperatura" }, { k: "P", t: "pH" }], st.modo, function (k) { st.modo = k; fichasEnz(); pinta(); });
+    slT = U.slider(ctl, { et: "T", min: 0, max: 100, step: 1, val: st.T, fmt: function (v) { return Math.round(v) + " °C"; }, on: function (v) { st.T = v; pinta(); } });
+    slP = U.slider(ctl, { et: "pH", min: 0, max: 14, step: 0.1, val: st.P, fmt: function (v) { return B.fmt(v, 1); }, on: function (v) { st.P = v; pinta(); } });
+    ctlT = slT.el; ctlP = slP.el;
+    function lista() { return st.modo === "T" ? ENZ_T : ENZ_P; }
+    function actual() { var r = lista()[0]; lista().forEach(function (e) { if (e.k === st.enz[st.modo]) r = e; }); return r; }
+    function fichasEnz() {
+      U.fichas(cEnz, lista().map(function (e) { return { k: e.k, t: e.t }; }), st.enz[st.modo], function (k) { st.enz[st.modo] = k; pinta(); });
+    }
+    function pinta() {
+      var e = actual(), esT = st.modo === "T", x = esT ? st.T : st.P, rel = (esT ? relT(x, e.opt) : relP(x, e.opt)), msg, cls = "";
+      ctlT.style.display = esT ? "" : "none"; ctlP.style.display = esT ? "none" : "";
+      plot(); g.limpiar();
+      g.curva(function (t) { return 100 * (esT ? relT(t, e.opt) : relP(t, e.opt)); }, { clase: "c-pen", n: 400 });
+      g.vertical(e.opt, { clase: "c-ok" });
+      g.punto(x, 100 * rel, { clase: "c-red" });
+      dat.innerHTML = "<div><b>" + (esT ? "Temperatura" : "pH") + "</b>" + (esT ? Math.round(x) + " °C" : B.fmt(x, 1)) + "</div><div><b>Actividad relativa</b>" + f1(rel * 100) + " %</div>" +
+        "<div><b>Óptimo de esta enzima</b>" + (esT ? e.opt + " °C" : B.fmt(e.opt, 1)) + "</div><div><b>Estado</b>" + (rel >= 0.9 ? "en su óptimo" : (esT && x > e.opt ? "desnaturalizándose" : esT ? "lenta (frío)" : "lejos del óptimo")) + "</div>";
+      if (rel >= 0.9) { msg = "Cerca del óptimo: la forma del sitio activo es la ideal y la actividad es máxima."; cls = " ok"; }
+      else if (esT && x < e.opt) msg = "Poca energía cinética: menos choques entre enzima y sustrato. La enzima sigue intacta: al calentar, recupera la actividad.";
+      else if (esT) { msg = "Por encima del óptimo se rompen los enlaces débiles, el sitio activo pierde su forma y la enzima se desnaturaliza: la actividad cae de golpe y no se recupera al enfriar."; cls = " mal"; }
+      else { msg = "Un pH alejado del óptimo cambia las cargas de los aminoácidos del sitio activo: el sustrato no encaja bien y, si es extremo, la proteína se desnaturaliza."; cls = rel < 0.2 ? " mal" : ""; }
+      ver.className = "bio4-veredicto" + cls;
+      ver.textContent = msg;
+    }
+    fichasEnz(); pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · laboratorio de números complejos (Matemáticas I, tema 6)
    motor B.lab.cx + potenciasi · operaciones · plano · conversor
    raices · lugar · mandelbrot
@@ -29295,6 +29493,733 @@
     vistazo: vistazo,
     secciones: B.parte.bio3a.secciones,
     nuevas: B.parte.bio3a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 4: Proteínas y enzimas
+   (parte A: teoría. Parte B, bio2_t04b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t4.js (bio_aminoacidos, bio_enzima, bio_factores).
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Fórmula general del aminoácido y formación del enlace peptídico (con pérdida de agua) → sección 1 + esquema + widget bio_aminoacidos.
+   2. Los cuatro niveles de estructura y qué enlaces mantiene cada uno → sección 2 + clasificar.
+   3. Desnaturalización: qué se rompe, qué NO se rompe (el enlace peptídico) y renaturalización → sección 2 (tabla desnaturalizar/hidrolizar).
+   4. Funciones de las proteínas con un ejemplo concreto de cada una → sección 3 + emparejar.
+   5. Enzima, sitio activo, complejo enzima-sustrato y energía de activación; llave-cerradura y ajuste inducido → sección 4 + ordenar.
+   6. Cofactores y coenzimas (vitaminas) y clases de enzimas → sección nueva 5.
+   7. Cinética de Michaelis–Menten: saturación, Vmax y Km (cualitativa) y efecto de [E] → sección nueva 6 + widget bio_enzima.
+   8. Inhibición competitiva, no competitiva e irreversible; regulación alostérica y retroinhibición → sección nueva 7.
+   9. Efecto del pH y de la temperatura: gráficas en campana y por qué la curva cae → sección nueva 8 + widget bio_factores.
+   10. Interpretar un experimento (hígado + agua oxigenada) y una gráfica de inhibición → sección nueva 10 (ejemplos PAU resueltos).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t4/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }   // evita que el resaltador de variables tiña las fórmulas
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // esquema del enlace peptídico (SVG con colores del tema)
+  var SVG_PEPTIDICO =
+    "<svg class='bio4-svg' viewBox='0 0 560 190' role='img' aria-label='Dos aminoácidos se unen por un enlace peptídico y se libera una molécula de agua'>" +
+    "<rect class='caja' x='4' y='4' width='552' height='182' rx='12'/>" +
+    "<text class='at' x='24' y='38'>H₂N–CH(R₁)–CO–<tspan fill='var(--pen)'>OH</tspan></text>" +
+    "<text class='at' x='262' y='38'>+</text>" +
+    "<text class='at' x='292' y='38'><tspan fill='var(--pen)'>H</tspan>–NH–CH(R₂)–COOH</text>" +
+    "<text class='pie' x='24' y='56'>aminoácido 1 (el grupo carboxilo cede el OH)</text>" +
+    "<text class='pie' x='292' y='56'>aminoácido 2 (el grupo amino cede un H)</text>" +
+    "<path class='en' d='M280 70 L280 98 M272 90 L280 100 L288 90'/>" +
+    "<text class='pie' x='292' y='90'>condensación: se pierde H₂O</text>" +
+    "<text class='at' x='24' y='134'>H₂N–CH(R₁)<tspan fill='var(--red)'>–CO–NH–</tspan>CH(R₂)–COOH</text>" +
+    "<text class='pie' x='24' y='160'>dipéptido: en rojo, el enlace peptídico (–CO–NH–)</text>" +
+    "<ellipse class='h2o' cx='480' cy='128' rx='48' ry='20'/>" +
+    "<text class='at' x='480' y='134' text-anchor='middle'>H₂O</text>" +
+    "<text class='at' x='392' y='134'>+</text>" +
+    "</svg>";
+
+  // ---------------------------------------------------------------- 1. Aminoácidos
+  secciones[0] = env(
+    "<h5>La fórmula que tienes que saber dibujar</h5>" +
+    "<p>Todos los aminoácidos tienen la misma «cabeza» y distinto «apellido». Alrededor de un carbono central, el <b>carbono α</b>, se unen cuatro cosas: un <b>grupo amino</b> (–NH<sub>2</sub>), un <b>grupo carboxilo</b> (–COOH), un <b>hidrógeno</b> y un <b>radical R</b>. La fórmula general es <b>H<sub>2</sub>N–CH(R)–COOH</b>. Lo único que cambia de un aminoácido a otro es el radical R, y de él dependen sus propiedades.</p>" +
+    "<ul>" +
+    "<li><b>Glicina</b>: R = H (el más sencillo; el único sin carbono quiral). <b>Alanina</b>: R = CH<sub>3</sub>.</li>" +
+    "<li><b>Cisteína</b>: R termina en –SH. Dos cisteínas pueden unirse por un <b>puente disulfuro</b> (–S–S–), un enlace covalente que fija la forma de la proteína.</li>" +
+    "<li>En las proteínas de todos los seres vivos los aminoácidos son de la forma <b>L</b> (una de las dos imágenes especulares que permite el carbono α).</li>" +
+    "</ul>" +
+    "<h5>Los 20 aminoácidos, ordenados por su radical</h5>" +
+    tabla(["Tipo de radical", "Ejemplos", "Cómo se comporta en agua"], [
+      ["<b>Apolar</b> (9)", "Gly, Ala, Val, Leu, Ile, Pro, Met, Phe, Trp", "Rehúye el agua (hidrófobo): en una proteína globular se esconde en el interior"],
+      ["<b>Polar sin carga</b> (6)", "Ser, Thr, Cys, Tyr, Asn, Gln", "Forma puentes de hidrógeno con el agua: queda en la superficie"],
+      ["<b>Ácido</b> (2)", "Asp, Glu", "Pierde un H⁺ y queda con carga negativa a pH 7"],
+      ["<b>Básico</b> (3)", "Lys, Arg, His", "Gana un H⁺ y queda con carga positiva (o parcial, His) a pH 7"]
+    ], "q3t") +
+    "<p>Son <b>aminoácidos esenciales</b> los que el cuerpo humano no puede fabricar y tiene que tomar con la dieta: <b>9 en el adulto</b> (His, Ile, Leu, Lys, Met, Phe, Thr, Trp y Val). Una dieta variada los aporta; las proteínas animales y la soja contienen todos, y los cereales y las legumbres se complementan (los cereales son pobres en lisina y las legumbres, en metionina).</p>" +
+    "<h5>Anfóteros: ácido y base a la vez</h5>" +
+    "<p>Un aminoácido tiene un grupo ácido (–COOH) y un grupo básico (–NH<sub>2</sub>), así que es <b>anfótero</b>. En agua, a pH próximo a 7, existe como <b>ion dipolar</b> (zwitterión): –COO⁻ y –NH<sub>3</sub><sup>+</sup> a la vez, con carga total cero. Si el medio se acidifica, gana H⁺ y se carga positivamente; si se vuelve básico, pierde H⁺ y se carga negativamente. El pH al que la carga neta es cero es el <b>punto isoeléctrico (pI)</b>, y en él las proteínas son menos solubles. Por eso la leche se corta al acidificarla: la caseína (pI ≈ 4,6) se agrupa y precipita al bajar el pH hasta ese valor, como pasa al hacer yogur o al echarle limón.</p>" +
+    "<h5>El enlace peptídico</h5>" +
+    "<p>El grupo carboxilo de un aminoácido reacciona con el grupo amino del siguiente: se forma un <b>enlace –CO–NH–</b> y se libera <b>una molécula de agua</b> (reacción de condensación; la contraria, con agua, es la hidrólisis). El enlace peptídico es <b>covalente</b>, <b>plano y rígido</b> (tiene algo de doble enlace) y los átomos de cada lado quedan en posición <i>trans</i>; solo giran los enlaces con el carbono α. Eso limita cómo puede plegarse la cadena.</p>" +
+    SVG_PEPTIDICO +
+    "<p>Una cadena tiene un extremo con un grupo amino libre (<b>extremo N</b>) y otro con un grupo carboxilo libre (<b>extremo C</b>), y la secuencia se escribe siempre de N a C. Según la longitud se habla de <b>dipéptido</b> (2 aminoácidos), tripéptido… <b>oligopéptido</b> (hasta unos 10) y <b>polipéptido</b> (más de 10). Una <b>proteína</b> es uno o varios polipéptidos plegados y funcionales (los libros suelen poner el límite en torno a 50–100 aminoácidos).</p>" +
+    "<p><b>Regla de cuentas:</b> una cadena de <i>n</i> aminoácidos tiene <b>n − 1</b> enlaces peptídicos y se han liberado <b>n − 1</b> moléculas de agua. Y como hay 20 aminoácidos distintos, hay <b>20<sup><i>n</i></sup></b> secuencias posibles de longitud <i>n</i>: 20<sup>3</sup> = 8000 tripéptidos y, para una proteína de 100 aminoácidos, ≈ 1,3·10<sup>130</sup>. Una proteína típica tiene entre 100 y 1000 aminoácidos (la titina del músculo, más de 30 000).</p>" +
+    w("bio_aminoacidos") +
+    ojo("El agua se libera <b>al formar</b> el enlace, no al romperlo. Para romperlo hace falta <b>añadir</b> agua (hidrólisis), que es lo que hacen las proteasas al digerir. Y un péptido no es lo mismo que una proteína: la insulina (51 aminoácidos) está en el límite; la hemoglobina (574 aminoácidos en cuatro cadenas) es claramente una proteína.") +
+    w("clasificar", "aminoacidos"));
+
+  // ---------------------------------------------------------------- 2. Niveles de estructura
+  secciones[1] = env(
+    "<h5>Cada nivel, con sus enlaces</h5>" +
+    "<p>La forma de una proteína se describe en cuatro niveles. Cada uno se apoya en el anterior, y lo importante es saber <b>qué enlace</b> mantiene cada nivel.</p>" +
+    tabla(["Nivel", "Qué es", "Enlaces o fuerzas", "Ejemplo"], [
+      ["<b>Primaria</b>", "Secuencia lineal de aminoácidos (el «texto»)", "Enlaces peptídicos (covalentes)", "Hemoglobina: cadenas de 141 (α) y 146 (β) aminoácidos"],
+      ["<b>Secundaria</b>", "Plegamiento local regular: hélice α o lámina β", "Puentes de hidrógeno entre –CO– y –NH– de la cadena principal", "α-queratina (hélice α); fibroína de la seda (lámina β)"],
+      ["<b>Terciaria</b>", "Forma 3D completa de una sola cadena", "Entre radicales R: puentes disulfuro, puentes de H, atracciones iónicas, interacciones hidrofóbicas, fuerzas de Van der Waals", "Mioglobina (≈ 150 aa), una enzima"],
+      ["<b>Cuaternaria</b>", "Unión de varias cadenas (subunidades) ya plegadas", "Los mismos enlaces débiles entre subunidades", "Hemoglobina: 2 cadenas α + 2 β"]
+    ], "q3t") +
+    "<ul>" +
+    "<li><b>Hélice α:</b> la cadena se enrolla como un muelle (3,6 aminoácidos por vuelta); cada –CO– forma un puente de H con el –NH– del aminoácido cuatro puestos más allá.</li>" +
+    "<li><b>Lámina β:</b> tramos de cadena extendidos se colocan uno junto a otro (como una hoja plegada en acordeón) y los puentes de H unen tramos vecinos.</li>" +
+    "<li><b>Terciaria:</b> en las proteínas globulares, que viven en agua, los radicales apolares se agrupan <b>dentro</b> (interacciones hidrofóbicas) y los polares o cargados quedan <b>fuera</b>. Por eso son solubles.</li>" +
+    "<li><b>Cuaternaria:</b> solo existe en proteínas con más de una cadena. La mioglobina (una cadena) llega hasta la terciaria; la hemoglobina (cuatro) tiene cuaternaria y cada cadena guarda un grupo hemo con hierro que une una molécula de O<sub>2</sub>.</li>" +
+    "</ul>" +
+    "<h5>Una letra cambia una proteína: la anemia falciforme</h5>" +
+    "<p>La secuencia primaria lo decide todo, porque de ella sale el plegamiento. En la <b>anemia falciforme</b> basta un solo cambio: en la posición 6 de la cadena β de la hemoglobina, el aminoácido <b>ácido glutámico</b> (ácido, polar) es sustituido por <b>valina</b> (apolar). La hemoglobina anómala (HbS) forma fibras cuando hay poco oxígeno y los glóbulos rojos adoptan forma de hoz, se atascan en los capilares y se destruyen antes. Un cambio en la primaria cambia la terciaria y la cuaternaria, y con ellas la función.</p>" +
+    "<h5>Proteínas fibrosas y globulares; simples y conjugadas</h5>" +
+    tabla(["", "Fibrosas", "Globulares"], [
+      ["<b>Forma</b>", "Alargada, en cables o láminas", "Enrollada en un ovillo compacto"],
+      ["<b>Solubilidad</b>", "Insolubles en agua", "Solubles en agua"],
+      ["<b>Función</b>", "Estructural y de protección", "Transporte, enzimática, hormonal, defensiva"],
+      ["<b>Ejemplos</b>", "Colágeno, queratina, elastina, fibroína", "Hemoglobina, albúmina, anticuerpos, la mayoría de las enzimas"]
+    ], "q3t") +
+    "<p>Según su composición, las <b>holoproteínas</b> contienen solo aminoácidos (albúmina, colágeno) y las <b>heteroproteínas</b> llevan además una parte no proteica, el <b>grupo prostético</b>: la hemoglobina (grupo hemo, es una cromoproteína), las glucoproteínas (glúcido), las lipoproteínas (lípidos, como el LDL y el HDL del colesterol), las nucleoproteínas (ácidos nucleicos, como las histonas con el ADN).</p>" +
+    "<p>Dato típico: el <b>colágeno</b> es la proteína más abundante del cuerpo humano. No tiene hélice α: son tres cadenas enrolladas entre sí en una <b>triple hélice</b> rica en glicina, prolina e hidroxiprolina. Para hidroxilar la prolina hace falta la <b>vitamina C</b>; sin ella el colágeno es defectuoso, y aparece el escorbuto (encías que sangran, heridas que no cierran).</p>" +
+    w("clasificar", "niveles") +
+    "<h5>Desnaturalización y renaturalización</h5>" +
+    "<p>Los enlaces que mantienen la secundaria, la terciaria y la cuaternaria son débiles (puentes de H, atracciones iónicas, interacciones hidrofóbicas) salvo los puentes disulfuro. Si algo los rompe, la proteína <b>se desdobla y pierde su forma 3D</b>: es la <b>desnaturalización</b>. La secuencia primaria queda intacta, pero la proteína <b>pierde su función</b> (una enzima deja de ser enzima) y suele volverse <b>menos soluble</b>: se coagula y precipita. Los <b>agentes desnaturalizantes</b> son el calor, los cambios fuertes de pH, el alcohol y otros disolventes orgánicos, los detergentes, la urea (7–8 M), las sales de metales pesados (Hg²⁺, Pb²⁺, Ag⁺) y la agitación.</p>" +
+    "<ul>" +
+    "<li><b>Huevo:</b> al cocerlo, la clara pasa de transparente a blanca y sólida: las proteínas (ovoalbúmina) se han desnaturalizado y se han agregado. No vuelve atrás.</li>" +
+    "<li><b>Alcohol de 70°:</b> desinfecta porque desnaturaliza las proteínas de las bacterias (de 96° no penetra igual: coagula la superficie).</li>" +
+    "<li><b>Permanente del pelo:</b> se reducen los puentes disulfuro de la queratina, se da la forma deseada y se vuelven a formar en otra posición.</li>" +
+    "</ul>" +
+    "<p><b>¿Siempre es irreversible?</b> No. En 1961, <b>Anfinsen</b> trató la ribonucleasa con urea y un reductor: la enzima se desplegó y perdió su actividad. Al eliminar ambos, la proteína <b>recuperó</b> su forma y su actividad: <b>renaturalización</b>. Conclusión (Nobel de Química 1972): la secuencia primaria contiene la información para plegarse. En la célula, unas proteínas llamadas <b>chaperonas</b> ayudan a que las cadenas recién hechas se plieguen bien y a que no se agreguen; los <b>priones</b> (enfermedad de las «vacas locas») son una proteína normal que se pliega mal y arrastra a las demás.</p>" +
+    tabla(["", "Desnaturalización", "Hidrólisis de la proteína"], [
+      ["<b>Qué rompe</b>", "Enlaces débiles (y a veces S–S)", "Enlaces peptídicos"],
+      ["<b>Primaria</b>", "Se conserva", "Se destruye"],
+      ["<b>Cómo se produce</b>", "Calor, pH, alcohol, urea…", "Proteasas (digestión) o ácido fuerte caliente"],
+      ["<b>Resultado</b>", "Cadena desplegada, sin función", "Aminoácidos o péptidos cortos"]
+    ], "q3t") +
+    ojo("Cocinar la carne <b>desnaturaliza</b> las proteínas, pero no las digiere. De hecho, las desnaturalizadas se digieren mejor, porque las proteasas llegan más fácil a los enlaces peptídicos. Digerir es hidrolizar los enlaces peptídicos; desnaturalizar no rompe ni uno.") +
+    "");
+
+  // ---------------------------------------------------------------- 3. Funciones
+  secciones[2] = env(
+    "<h5>Una función, un ejemplo concreto</h5>" +
+    "<p>En el examen no basta con decir «transporte»: hay que nombrar <b>la proteína y qué hace</b>. Esta es la tabla que conviene saberse:</p>" +
+    tabla(["Función", "Proteína", "Qué hace"], [
+      ["<b>Estructural</b>", "Colágeno, queratina, elastina, tubulina", "Dan resistencia a tendones y piel, forman pelo y uñas, dan elasticidad a los vasos y forman los microtúbulos del citoesqueleto"],
+      ["<b>Enzimática</b>", "Amilasa, catalasa, ADN polimerasa", "Catalizan casi todas las reacciones de la célula"],
+      ["<b>Transporte</b>", "Hemoglobina, albúmina, proteínas de membrana", "Llevan O<sub>2</sub>, ácidos grasos libres e iones y glucosa a través de las membranas"],
+      ["<b>Defensiva</b>", "Anticuerpos (inmunoglobulinas), fibrinógeno y trombina", "Reconocen y neutralizan antígenos; coagulan la sangre y tapan heridas"],
+      ["<b>Hormonal</b>", "Insulina, glucagón, hormona del crecimiento", "Mensajeros químicos que regulan el metabolismo y el crecimiento"],
+      ["<b>Contráctil</b>", "Actina y miosina", "Se deslizan unas sobre otras y contraen el músculo"],
+      ["<b>Reserva</b>", "Ovoalbúmina (huevo), caseína (leche)", "Aportan aminoácidos al embrión o a la cría"],
+      ["<b>Homeostática</b>", "Proteínas del plasma", "Amortiguan el pH y mantienen la presión osmótica de la sangre"],
+      ["<b>Receptor y reconocimiento</b>", "Receptores de membrana, antígenos de superficie", "Reciben las señales del exterior y permiten a la célula reconocer a otras"]
+    ], "q3t") +
+    "<p>Una misma proteína puede variar de función según el tejido, y una proteína solo existe si el gen que la codifica se expresa: de ahí que la función de cada célula dependa de qué proteínas fabrica.</p>" +
+    w("emparejar", "funciones"));
+
+  // ---------------------------------------------------------------- 4. Enzimas
+  secciones[3] = env(
+    "<p>Durante mucho tiempo nadie supo de qué estaban hechas. En 1926, <b>James Sumner</b> cristalizó la ureasa y demostró que una enzima es una <b>proteína</b> (Nobel de Química 1946).</p>" +
+    "<h5>El sitio activo y el complejo enzima-sustrato</h5>" +
+    "<p>Una enzima es mucho mayor que su sustrato, pero solo una pequeña zona, el <b>sitio activo</b>, participa en la reacción. Está formado por unos pocos aminoácidos que, aunque estén lejos en la secuencia primaria, quedan juntos gracias al plegamiento: otra razón por la que <b>la forma 3D lo es todo</b>. En el sitio activo hay un <b>centro de unión</b> (reconoce al sustrato) y un <b>centro catalítico</b> (rompe o forma enlaces). El sustrato se une y forma el <b>complejo enzima-sustrato</b> (ES); se produce la reacción y se liberan el producto y la enzima, intacta y lista para empezar de nuevo:</p>" +
+    "<div class='formula-wrap'><div class='formula'>E + S ⇌ ES → E + P</div></div>" +
+    "<h5>Dos modelos de acoplamiento</h5>" +
+    tabla(["Modelo", "Quién y cuándo", "Idea"], [
+      ["<b>Llave-cerradura</b>", "Emil Fischer, 1894", "El sitio activo tiene una forma rígida complementaria a la del sustrato, como una llave en su cerradura"],
+      ["<b>Ajuste inducido</b>", "Daniel Koshland, 1958", "El sitio activo es flexible: al llegar el sustrato, la enzima cambia de forma y se adapta, como una mano a un guante. Es el modelo que se acepta hoy"]
+    ], "q3t") +
+    "<h5>Cómo baja la energía de activación</h5>" +
+    "<p>Una enzima <b>no cambia</b> la energía de los reactivos ni la de los productos (ΔG), ni el equilibrio: solo hace la reacción <b>más rápida</b>. Disminuye la <b>energía de activación</b> (E<sub>a</sub>), la barrera de energía que hay que superar (es el mismo concepto del Tema 5 de Química II). Lo logra al <b>acercar y orientar</b> a los sustratos, <b>tensar</b> sus enlaces y crear en el sitio activo un ambiente químico favorable. Las enzimas aceleran las reacciones entre millones y más de 10<sup>12</sup> veces: sin ellas, en una célula a 37 °C muchas reacciones tardarían años.</p>" +
+    "<h5>Enzima frente a catalizador inorgánico</h5>" +
+    tabla(["", "Enzima", "Catalizador inorgánico (Pt, Fe…)"], [
+      ["<b>Naturaleza</b>", "Proteína (a veces con cofactor)", "Metal u óxido"],
+      ["<b>Especificidad</b>", "Muy alta: un sustrato y un tipo de reacción", "Baja: sirve para muchas reacciones"],
+      ["<b>Condiciones</b>", "Suaves: 37 °C, pH ≈ 7, en agua", "A menudo temperatura y presión altas"],
+      ["<b>Control</b>", "Se activa, se inhibe y se regula", "No se regula"],
+      ["<b>Efecto del calor</b>", "Se desnaturaliza por encima de su óptimo", "Aguanta temperaturas altas"],
+      ["<b>Lo que tienen en común</b>", "No se consumen, bajan la E<sub>a</sub> y no cambian el equilibrio", "Ídem"]
+    ], "q3t") +
+    "<h5>Ejemplos que ya conoces</h5>" +
+    "<ul>" +
+    "<li><b>Amilasa</b> de la saliva: rompe el almidón en azúcares más sencillos (por eso el pan masticado sabe dulce al cabo de un rato).</li>" +
+    "<li><b>Lactasa</b>: rompe la lactosa. Si falta, hay intolerancia a la lactosa; la leche «sin lactosa» lleva lactasa añadida.</li>" +
+    "<li><b>Catalasa</b>: descompone el agua oxigenada tóxica (2 H<sub>2</sub>O<sub>2</sub> → 2 H<sub>2</sub>O + O<sub>2</sub>). Por eso la herida burbujea; y por eso el hígado y la patata crudos burbujean al echarles agua oxigenada.</li>" +
+    "<li><b>Bromelina</b> de la piña: una proteasa. La gelatina (colágeno) no cuaja con piña fresca, porque la enzima la rompe; sí con piña en lata, porque el calor del enlatado la desnaturalizó.</li>" +
+    "</ul>" +
+    w("orden", "catalisis") + w("emparejar", "enzimas") +
+    ojo("«La enzima se gasta» y «la enzima transforma la reacción» son errores clásicos. La enzima <b>no se consume</b> (se recupera al final) y <b>no cambia el equilibrio</b>: lleva a la misma mezcla final, pero antes.") +
+    "");
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "5. Cofactores, vitaminas y clases de enzimas", html: env(
+    "<p>Algunas enzimas son solo proteína (<b>enzimas simples</b>). Otras, las <b>conjugadas</b>, necesitan un ayudante no proteico, el <b>cofactor</b>, para funcionar. La parte proteica sola es la <b>apoenzima</b> (inactiva) y la enzima completa y activa es la <b>holoenzima</b>:</p>" +
+    "<div class='formula-wrap'><div class='formula'>holoenzima (activa) = apoenzima (proteína) + cofactor</div></div>" +
+    tabla(["Cofactor", "Qué es", "Ejemplos"], [
+      ["<b>Ion metálico</b>", "Catión inorgánico", "Zn²⁺ (anhidrasa carbónica), Mg²⁺ (quinasas), Fe²⁺ (catalasa, en el grupo hemo), Cu²⁺"],
+      ["<b>Coenzima</b>", "Molécula orgánica, casi siempre derivada de una <b>vitamina</b>; transporta electrones o grupos de átomos", "NAD⁺ (vitamina B<sub>3</sub>, niacina), FAD (B<sub>2</sub>, riboflavina), coenzima A (B<sub>5</sub>, ácido pantoténico), TPP (B<sub>1</sub>, tiamina)"],
+      ["<b>Grupo prostético</b>", "Cofactor unido de forma permanente a la enzima", "Grupo hemo de la catalasa"]
+    ], "q3t") +
+    "<p>Esto explica por qué las <b>vitaminas</b> son necesarias en cantidades pequeñas y por qué su falta da enfermedades: sin la vitamina, falta la coenzima y las enzimas que la necesitan no funcionan (falta de B<sub>1</sub>: beriberi; de B<sub>3</sub>: pelagra; de C: escorbuto). Y los iones metálicos son los <b>oligoelementos</b> del Tema 1 (Zn, Fe, Cu…) trabajando en el sitio activo.</p>" +
+    w("emparejar", "coenzimas") +
+    "<h5>Cómo se llaman y cómo se clasifican</h5>" +
+    "<p>Muchas enzimas se nombran con el nombre de su <b>sustrato</b> más <b>-asa</b> (lactosa → <b>lactasa</b>; lípidos → <b>lipasa</b>) o con el <b>tipo de reacción</b> (deshidrogenasa). Algunas conservan nombres antiguos (pepsina, tripsina). Según la reacción que catalizan, se agrupan en <b>6 clases</b>:</p>" +
+    tabla(["Clase", "Qué hace", "Ejemplos"], [
+      ["<b>1. Oxidorreductasas</b>", "Transfieren electrones: oxidan y reducen", "Deshidrogenasa láctica, catalasa"],
+      ["<b>2. Transferasas</b>", "Pasan un grupo químico de una molécula a otra", "Hexoquinasa (pasa un fosfato del ATP a la glucosa)"],
+      ["<b>3. Hidrolasas</b>", "Rompen enlaces añadiendo agua", "Amilasa, lipasa, lactasa, pepsina, tripsina"],
+      ["<b>4. Liasas</b>", "Rompen o forman enlaces sin agua ni oxidación (a menudo con dobles enlaces)", "Fumarasa, descarboxilasas"],
+      ["<b>5. Isomerasas</b>", "Reordenan átomos dentro de la molécula (isómeros)", "Glucosa-fosfato isomerasa"],
+      ["<b>6. Ligasas</b>", "Unen dos moléculas gastando ATP", "ADN ligasa, sintetasas"]
+    ], "q3t") +
+    w("clasificar", "clases")) });
+
+  nuevas.push({ h: "6. Cinética enzimática: Michaelis–Menten", html: env(
+    "<p>La <b>velocidad inicial</b> (v) es la cantidad de producto que aparece por unidad de tiempo en los primeros instantes, cuando aún no se ha acabado el sustrato. Si se mide con distintas concentraciones de sustrato [S] y se dibuja, sale una <b>hipérbola</b> (Michaelis y Menten, 1913):</p>" +
+    "<ul>" +
+    "<li><b>Con poco sustrato</b> hay enzimas libres de sobra: cada molécula de sustrato que se añade encuentra enzima y la velocidad crece casi en línea recta.</li>" +
+    "<li><b>Al aumentar [S]</b> las enzimas se van ocupando y la curva se aplana.</li>" +
+    "<li><b>Con mucho sustrato</b> todas las enzimas están ocupadas (<b>saturación</b>): la velocidad llega a un tope, la <b>velocidad máxima (V<sub>max</sub>)</b>, y por más sustrato que se añada ya no sube. Es como un autobús: una vez llenos todos los asientos, subir a más gente no lo hace más rápido.</li>" +
+    "</ul>" +
+    "<p>La <b>constante de Michaelis (K<sub>m</sub>)</b> es la concentración de sustrato a la que la velocidad vale <b>la mitad de la máxima</b>. Es una concentración (mM), no una velocidad, y mide la <b>afinidad</b> de la enzima por el sustrato: <b>K<sub>m</sub> baja = mucha afinidad</b> (con poco sustrato ya está casi saturada); K<sub>m</sub> alta = poca afinidad. Un ejemplo: la hexoquinasa, que fosforila la glucosa en todas las células, tiene una K<sub>m</sub> ≈ 0,1 mM y trabaja con poca glucosa; la glucoquinasa del hígado, con K<sub>m</sub> ≈ 10 mM, solo trabaja a fondo cuando hay mucha glucosa en sangre, justo después de comer.</p>" +
+    "<p>La ecuación de la curva, que no hace falta saber de memoria pero ayuda a entenderla, es <b>v = V<sub>max</sub> · [S] / (K<sub>m</sub> + [S])</b>. De ella salen tres lecturas útiles:</p>" +
+    tabla(["[S] frente a K<sub>m</sub>", "v / V<sub>max</sub>", "Lectura"], [
+      ["[S] = 0,1 · K<sub>m</sub>", "9 %", "Muy lejos de saturar: v casi proporcional a [S]"],
+      ["[S] = K<sub>m</sub>", "50 %", "Definición de K<sub>m</sub>"],
+      ["[S] = 4 · K<sub>m</sub>", "80 %", "Ya se nota el aplanamiento"],
+      ["[S] = 9 · K<sub>m</sub>", "90 %", "Casi saturada"],
+      ["[S] = 19 · K<sub>m</sub>", "95 %", "Doblar [S] ya apenas sirve de nada"]
+    ], "q3t") +
+    "<p>Y <b>la cantidad de enzima [E]</b>: si se duplica [E], hay el doble de sitios activos y <b>V<sub>max</sub> se duplica</b>; K<sub>m</sub> (que depende de la enzima y del sustrato, no de cuánta enzima haya) <b>no cambia</b>.</p>" +
+    w("bio_enzima") +
+    ojo("«Con más sustrato, la velocidad sube siempre» es falso: se llega a V<sub>max</sub>. Y «K<sub>m</sub> es la velocidad a la mitad» también: K<sub>m</sub> es la <b>concentración de sustrato</b> a la que se alcanza la mitad de la velocidad máxima.") +
+    "<p>Si en un examen aparece una gráfica de v frente a [S]: <b>(1)</b> localiza la meseta (V<sub>max</sub>); <b>(2)</b> baja a la mitad de esa altura y lee en el eje horizontal (K<sub>m</sub>); <b>(3)</b> si hay dos curvas, compara las mesetas y compara dónde están las mitades.</p>") });
+
+  nuevas.push({ h: "7. Inhibición y regulación de las enzimas", html: env(
+    "<p>Un <b>inhibidor</b> es una sustancia que reduce la actividad de una enzima. Es una de las formas de controlar el metabolismo y la base de muchos medicamentos y venenos. Se distinguen por el lugar de unión y por cómo afectan a la curva de Michaelis (la V<sub>max</sub> y la K<sub>m</sub>):</p>" +
+    tabla(["", "Competitiva", "No competitiva", "Irreversible"], [
+      ["<b>Dónde se une</b>", "Al sitio activo, porque se parece al sustrato", "A otro lugar de la enzima (fuera del sitio activo): cambia su forma", "Al sitio activo (o cerca), con enlace covalente"],
+      ["<b>V<sub>max</sub></b>", "No cambia", "Disminuye", "Disminuye (enzima destruida)"],
+      ["<b>K<sub>m</sub></b>", "Aumenta (aparente)", "No cambia", "—"],
+      ["<b>¿Se supera con más sustrato?</b>", "Sí", "No", "No"],
+      ["<b>Ejemplos</b>", "Malonato (frente a succinato), sulfamidas, metotrexato, estatinas, ibuprofeno", "Metales pesados (Hg²⁺, Pb²⁺) sobre los grupos –SH", "Penicilina, aspirina, cianuro, gases nerviosos e insecticidas organofosforados"]
+    ], "q3t") +
+    "<p>La <b>inhibición competitiva</b> se entiende con una imagen: inhibidor y sustrato <b>compiten</b> por el mismo sitio. Si hay mucho sustrato, este gana casi siempre, y se llega igualmente a la misma V<sub>max</sub>; por eso, en la gráfica, la curva con inhibidor termina en el mismo tope pero tarda más en llegar (K<sub>m</sub> aparente mayor). En la <b>no competitiva</b> el inhibidor inutiliza una parte de las enzimas sin que el sustrato pueda hacer nada: la meseta baja.</p>" +
+    "<h5>Medicamentos y venenos que son inhibidores</h5>" +
+    "<ul>" +
+    "<li><b>Penicilina:</b> inhibe de forma irreversible la enzima que une las cadenas de la pared celular bacteriana (transpeptidasa). Sin pared, las bacterias estallan; las células humanas no tienen pared.</li>" +
+    "<li><b>Aspirina:</b> inhibe de forma irreversible la ciclooxigenasa y frena la fabricación de prostaglandinas del dolor y la fiebre.</li>" +
+    "<li><b>Estatinas:</b> inhiben (competitivamente) la HMG-CoA reductasa, enzima clave de la síntesis de colesterol.</li>" +
+    "<li><b>Cianuro:</b> bloquea la citocromo c oxidasa de la respiración celular, y las células no pueden usar el oxígeno.</li>" +
+    "<li><b>Sulfamidas:</b> parecen al ácido p-aminobenzoico (PABA) y compiten por la enzima de las bacterias que lo usa para fabricar ácido fólico.</li>" +
+    "</ul>" +
+    w("clasificar", "inhibicion") +
+    "<h5>Cómo regula la célula sus propias enzimas</h5>" +
+    "<ul>" +
+    "<li><b>Enzimas alostéricas:</b> además del sitio activo tienen otro sitio (el <b>alostérico</b>) donde se une un <b>modulador</b>, positivo (activa) o negativo (inhibe), que cambia la forma del sitio activo. Su curva es <b>sigmoidea</b> (en «S») y no hiperbólica, porque las subunidades cooperan.</li>" +
+    "<li><b>Retroinhibición (<i>feedback</i>):</b> el producto final de una ruta inhibe la primera enzima de esa misma ruta, y así no se fabrica de más. Ejemplo: la isoleucina inhibe la primera enzima de su propia ruta de síntesis (treonina desaminasa).</li>" +
+    "<li><b>Zimógenos (proenzimas):</b> enzimas que se fabrican inactivas y se activan al cortar un fragmento de la cadena, justo donde hacen falta. Así evitan digerir la célula que las fabrica: el <b>tripsinógeno</b> del páncreas se activa en el intestino y el <b>pepsinógeno</b> del estómago se activa con el HCl.</li>" +
+    "<li><b>Modificaciones químicas:</b> por ejemplo, añadir o quitar un grupo fosfato activa o desactiva una enzima.</li>" +
+    "</ul>") });
+
+  nuevas.push({ h: "8. Factores que afectan a la actividad enzimática", html: env(
+    "<p>La actividad de una enzima depende de cuatro cosas: <b>la concentración de sustrato</b> y <b>de enzima</b> (sección anterior), <b>la temperatura</b> y <b>el pH</b>. Las dos últimas dan curvas en campana, pero por motivos distintos:</p>" +
+    tabla(["Factor", "Por debajo del óptimo", "En el óptimo", "Por encima / lejos del óptimo"], [
+      ["<b>Temperatura</b>", "Poca energía cinética: menos choques, reacción lenta. La enzima <b>no se daña</b> (reversible)", "Máxima actividad (≈ 37 °C en humanos)", "Se rompen los enlaces débiles, <b>desnaturalización</b>: la actividad cae de golpe y no vuelve al enfriar"],
+      ["<b>pH</b>", "Cambian las cargas de los aminoácidos del sitio activo y de la superficie", "La forma y las cargas del sitio activo son las ideales", "Igual, y además puede desnaturalizar la proteína"]
+    ], "q3t") +
+    "<h5>Temperatura</h5>" +
+    "<p>Al subir la temperatura aumenta la velocidad (de forma aproximada, se <b>duplica por cada 10 °C</b>, lo que se llama Q<sub>10</sub> ≈ 2); pero, pasado el óptimo, la enzima se desnaturaliza y la velocidad cae casi a cero. Por eso la curva es una <b>campana asimétrica</b>: sube despacio y baja de golpe. Consecuencias: en el frigorífico o el congelador las enzimas de los alimentos (y de las bacterias) se ralentizan, <b>pero no se destruyen</b> (al sacar el alimento vuelven a actuar; por eso se «escaldan» las verduras antes de congelar); en cambio, hervir o pasteurizar sí las desnaturaliza. Las enzimas de organismos de ambientes extremos tienen otro óptimo: la <b>Taq polimerasa</b>, de la bacteria <i>Thermus aquaticus</i> de las fuentes termales, resiste los 95 °C y trabaja a ≈ 72 °C; se usa en la PCR para copiar ADN (Mullis, 1983; Nobel 1993).</p>" +
+    "<h5>pH</h5>" +
+    "<p>Cada enzima tiene su pH óptimo, que corresponde al lugar donde trabaja. La <b>pepsina</b> del estómago (pH ≈ 2) funciona a pH 2 y se inactiva en el intestino; la <b>amilasa salival</b> (pH ≈ 6,8) deja de actuar al llegar al estómago ácido; la <b>tripsina</b> del intestino delgado (pH ≈ 8) trabaja con el bicarbonato que neutraliza el ácido gástrico. Así, la digestión es una cadena en la que cada enzima encuentra su pH.</p>" +
+    w("bio_factores") +
+    "<h5>Enzimas en la vida diaria y en la industria</h5>" +
+    tabla(["Enzima", "Dónde se usa", "Para qué"], [
+      ["Proteasas y lipasas", "Detergentes «biológicos»", "Rompen manchas de sangre, huevo y grasa a 30–40 °C"],
+      ["Lactasa", "Leche sin lactosa", "Rompe la lactosa para quienes no la digieren"],
+      ["Quimosina (renina)", "Fabricación de queso", "Corta la caseína y cuaja la leche"],
+      ["Glucosa oxidasa", "Tiras para medir la glucemia", "Oxida la glucosa y el cambio de color indica la cantidad"],
+      ["Papaína, bromelina", "Ablandar carne, piña y gelatina", "Rompen proteínas (colágeno)"],
+      ["Taq polimerasa", "PCR", "Copia ADN a alta temperatura sin desnaturalizarse"]
+    ], "q3t") +
+    ojo("Las enzimas no son seres vivos y no «mueren»: se <b>desnaturalizan</b>. Y el frío <b>no</b> desnaturaliza una enzima (solo la frena); lo que la destruye es el calor excesivo o un pH extremo.")) });
+
+  nuevas.push({ h: "9. Los cálculos del tema", html: env(
+    "<p>En Biología de Bachillerato no hay muchas cuentas, pero estas cuatro aparecen y se pueden ganar los puntos con facilidad.</p>" +
+    ejemplo("Enlaces, agua y masa de un péptido", "El tripéptido Gly-Ala-Ser, ¿cuántos enlaces peptídicos tiene, cuántas moléculas de agua se liberaron al formarlo y cuál es su masa? (M: Gly 75,07; Ala 89,09; Ser 105,09; agua 18,015 g/mol)", [
+      "n = 3 aminoácidos → n − 1 = <b>2 enlaces peptídicos</b> y <b>2 moléculas de agua</b>.",
+      "Suma de masas: 75,07 + 89,09 + 105,09 = 269,25 g/mol.",
+      "Masa del péptido = 269,25 − 2 · 18,015 = <b>233,22 g/mol</b>."
+    ]) +
+    ejemplo("Cuántas cadenas distintas puede haber", "¿Cuántos tripéptidos distintos se pueden formar con los 20 aminoácidos? ¿Y polipéptidos de 100 aminoácidos?", [
+      "En cada posición se puede poner cualquiera de los 20: 20 · 20 · 20 = 20<sup>3</sup> = <b>8000 tripéptidos</b>.",
+      "Para 100 posiciones: 20<sup>100</sup> ≈ <b>1,3·10<sup>130</sup></b>.",
+      "Un número mayor que el de átomos del universo observable (≈ 10<sup>80</sup>): por eso la evolución solo ha «probado» una mínima parte de las proteínas posibles."
+    ]) +
+    ejemplo("De los aminoácidos a los nucleótidos del gen", "Una proteína tiene 99 aminoácidos. ¿Cuántos nucleótidos tiene como mínimo la región del gen que la codifica?", [
+      "Cada aminoácido lo codifica un <b>triplete</b> (3 nucleótidos; se verá con los ácidos nucleicos).",
+      "99 · 3 = 297 nucleótidos, más un triplete de terminación (3): <b>300 nucleótidos</b>.",
+      "(El triplete de terminación no codifica ningún aminoácido: avisa de dónde acaba la proteína.)"
+    ]) +
+    ejemplo("Leer una tabla de Michaelis–Menten", "Con una enzima se obtienen estos datos de velocidad (µmol/min): [S] = 1 mM → 33,3; 2 mM → 50,0; 4 mM → 66,7; 8 mM → 80,0; 16 mM → 88,9; 32 mM → 94,1. Estima V<sub>max</sub> y K<sub>m</sub>.", [
+      "La velocidad se aplana y se acerca a 100 µmol/min: <b>V<sub>max</sub> ≈ 100 µmol/min</b> (la curva nunca la toca, pero se aproxima).",
+      "La mitad de V<sub>max</sub> es 50 µmol/min.",
+      "Ese valor corresponde a [S] = 2 mM: <b>K<sub>m</sub> = 2 mM</b>."
+    ]) +
+    ejemplo("Cuánto sube la velocidad con la temperatura", "Una reacción enzimática tiene Q<sub>10</sub> = 2. Si a 20 °C va a 1 unidad, ¿a cuánto va a 30 °C y a 40 °C (por debajo del óptimo)?", [
+      "Cada 10 °C la velocidad se multiplica por 2.",
+      "A 30 °C: 1 · 2 = <b>2 unidades</b>. A 40 °C: 1 · 2 · 2 = <b>4 unidades</b>.",
+      "Solo vale por debajo del óptimo: pasado este, la desnaturalización hace que la velocidad caiga."
+    ])) });
+
+  nuevas.push({ h: "10. Ejemplo PAU resuelto: interpretar un experimento y una gráfica", html: env(
+    ejemplo("Hígado y agua oxigenada en cuatro tubos", "En un laboratorio se echan 5 mL de agua oxigenada (H<sub>2</sub>O<sub>2</sub>) en cuatro tubos. Tubo A: un trozo de hígado crudo triturado. Tubo B: un trozo de hígado hervido 5 min. Tubo C: hígado crudo con unas gotas de HCl (pH ≈ 2). Tubo D: solo agua oxigenada. Observaciones tras un minuto: A, mucha espuma; B, nada; C, muy poca espuma; D, casi nada. a) ¿Qué es la espuma y qué la produce? b) Interpreta B y C. c) ¿Para qué sirve D? d) Si un tubo E con hígado crudo se enfría a 4 °C y la espuma es muy lenta, pero al calentarlo a 37 °C vuelve a haberla, ¿qué diferencia hay con B?", [
+      "<b>a)</b> La espuma son burbujas de O<sub>2</sub>. Las produce la <b>catalasa</b> del hígado: 2 H<sub>2</sub>O<sub>2</sub> → 2 H<sub>2</sub>O + O<sub>2</sub>. Es una enzima (proteína) que acelera la descomposición del agua oxigenada.",
+      "<b>b)</b> En B, el calor <b>desnaturalizó</b> la catalasa: perdió su forma 3D y su función, aunque su secuencia sigue intacta. En C, el pH ácido alejado del óptimo cambia las cargas del sitio activo (y puede desnaturalizar la enzima): casi no hay actividad.",
+      "<b>c)</b> D es el <b>control</b>: muestra que sin hígado el agua oxigenada casi no se descompone por sí sola, así que la espuma de A se debe a algo que lleva el hígado.",
+      "<b>d)</b> En E la enzima está <b>intacta</b>: el frío solo reduce la energía cinética y la actividad es reversible. En B, la desnaturalización es <b>irreversible</b> (no se recupera aunque se enfríe)."
+    ]) +
+    ejemplo("Gráfica con y sin inhibidor", "Se mide la velocidad (µmol/min) de una enzima con distintas [S]. Sin inhibidor (curva A): 1 mM → 33,3; 2 → 50,0; 4 → 66,7; 8 → 80,0; 16 → 88,9; 32 → 94,1. Con un inhibidor (curva B): 1 → 14,3; 2 → 25,0; 4 → 40,0; 8 → 57,1; 16 → 72,7; 32 → 84,2. a) ¿Qué tipo de inhibición es? b) Estima K<sub>m</sub> en cada caso. c) ¿Cómo se podría contrarrestar?", [
+      "Las dos curvas tienden a la misma V<sub>max</sub> (≈ 100 µmol/min): B va más despacio pero sigue subiendo hacia el mismo tope. <b>a)</b> Es inhibición <b>competitiva</b> (si fuera no competitiva, B se aplanaría en una V<sub>max</sub> más baja).",
+      "<b>b)</b> K<sub>m</sub> es [S] a V<sub>max</sub>/2 = 50 µmol/min. En A: <b>K<sub>m</sub> = 2 mM</b>. En B, se llega a 50 µmol/min con [S] = 6 mM (por la ecuación: 100 · 6 / (6 + 6) = 50): <b>K<sub>m</sub> aparente = 6 mM</b>, el triple.",
+      "<b>c)</b> Con mucho <b>más sustrato</b>: el sustrato desplaza al inhibidor del sitio activo y se vuelve a acercar a V<sub>max</sub>."
+    ])) });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>En Biología el orden de una buena respuesta es: <b>definir → explicar con el mecanismo → dar ejemplo → relacionar</b>. Estas son las preguntas más típicas del tema, con respuesta modelo.</p>" +
+    ejemplo("Pregunta 1. Define enzima y explica cómo actúa", "Respuesta modelo:", [
+      "<b>Definición:</b> proteína (a veces con cofactor) que actúa como <b>catalizador biológico</b>: acelera una reacción sin consumirse ni cambiar el equilibrio.",
+      "<b>Mecanismo:</b> el sustrato se une al <b>sitio activo</b>, formándose el complejo enzima-sustrato; la enzima <b>baja la energía de activación</b>; se libera el producto y la enzima queda libre.",
+      "<b>Especificidad:</b> viene de la forma 3D del sitio activo (llave-cerradura; hoy, ajuste inducido)."
+    ]) +
+    ejemplo("Pregunta 2. Niveles de estructura de una proteína", "Respuesta modelo:", [
+      "<b>Primaria:</b> secuencia de aminoácidos, con enlaces peptídicos.",
+      "<b>Secundaria:</b> hélice α o lámina β, con puentes de hidrógeno entre –CO– y –NH–.",
+      "<b>Terciaria:</b> plegamiento 3D de una cadena, con enlaces entre radicales (puentes disulfuro, puentes de H, iónicos, hidrofóbicos).",
+      "<b>Cuaternaria:</b> unión de varias cadenas (hemoglobina)."
+    ]) +
+    ejemplo("Pregunta 3. Desnaturalización", "Respuesta modelo:", [
+      "<b>Definición:</b> pérdida de la estructura 3D (secundaria, terciaria y cuaternaria) por rotura de enlaces débiles, sin romper los enlaces peptídicos.",
+      "<b>Causas:</b> temperatura, pH extremo, disolventes, detergentes, metales pesados, urea.",
+      "<b>Consecuencia:</b> pérdida de la función. Puede ser reversible (renaturalización, Anfinsen) o no (huevo cocido)."
+    ]) +
+    ejemplo("Pregunta 4. Factores que influyen en la actividad enzimática", "Respuesta modelo:", [
+      "<b>[S]:</b> la velocidad aumenta hasta la saturación (V<sub>max</sub>). <b>[E]:</b> más enzima, mayor V<sub>max</sub>.",
+      "<b>Temperatura:</b> aumenta hasta un óptimo y luego cae por desnaturalización. <b>pH:</b> curva en campana con un óptimo propio de cada enzima.",
+      "<b>Inhibidores:</b> competitivo (sube K<sub>m</sub>, mismo V<sub>max</sub>), no competitivo (baja V<sub>max</sub>); y la regulación alostérica."
+    ]) +
+    "<p>Los ejercicios del final del tema incluyen preguntas abiertas con rúbrica, para que veas qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio4a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 4 (parte B): Proteínas y enzimas
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t4.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Un <b>aminoácido</b> es H₂N–CH(R)–COOH; hay 20 y solo cambia el radical R. Se unen por <b>enlaces peptídicos</b> (–CO–NH–), que liberan agua: <b>n aminoácidos → n − 1 enlaces</b>.",
+    "La proteína tiene cuatro niveles: <b>primaria</b> (secuencia), <b>secundaria</b> (hélice α o lámina β), <b>terciaria</b> (forma 3D de una cadena) y <b>cuaternaria</b> (varias cadenas). Los enlaces débiles mantienen los tres últimos.",
+    "La <b>desnaturalización</b> rompe los enlaces débiles, no los peptídicos: la proteína pierde la forma y la función, con la secuencia intacta.",
+    "Una <b>enzima</b> es un catalizador proteico específico: el sustrato se une al <b>sitio activo</b>, baja la energía de activación y la enzima se recupera. Su velocidad satura (<b>V<sub>max</sub></b>) y <b>K<sub>m</sub></b> mide la afinidad.",
+    "La actividad depende de [S], [E], <b>temperatura</b> y <b>pH</b> (curvas en campana) y de los <b>inhibidores</b>: el competitivo sube la K<sub>m</sub> y el no competitivo baja la V<sub>max</sub>."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Proteínas y enzimas",
+    autores: [
+      { n: "Qué estudia", f: "las proteínas y las enzimas", l: "estructura · función · cinética" },
+      { n: "Fischer", f: "1894", l: "modelo llave-cerradura" },
+      { n: "Michaelis y Menten", f: "1913", l: "cinética enzimática" },
+      { n: "Sumner", f: "1926", l: "cristaliza la ureasa: una enzima es una proteína" },
+      { n: "Koshland", f: "1958", l: "ajuste inducido" },
+      { n: "Anfinsen", f: "1961", l: "renaturalización de la ribonucleasa" }
+    ],
+    obras: ["Aminoácidos", "Enlace peptídico", "Niveles de estructura", "Desnaturalización", "Enzimas", "Michaelis–Menten", "Inhibición"],
+    bloques: [
+      { t: "Aminoácidos y péptidos", frases: ["20 aminoácidos: <b>H₂N–CH(R)–COOH</b>; solo cambia R.", "Enlace peptídico <b>–CO–NH–</b>: libera H₂O.", "n aminoácidos → <b>n − 1</b> enlaces."],
+        tabla: { cab: ["Tipo de R", "Ejemplos"], filas: [["Apolar", "Gly, Ala, Val"], ["Polar", "Ser, Cys"], ["Ácido", "Asp, Glu"], ["Básico", "Lys, Arg"]] } },
+      { t: "Niveles de estructura", frases: ["Primaria: secuencia de aminoácidos.", "Secundaria: hélice α o lámina β.", "Terciaria: forma 3D; cuaternaria: varias cadenas."],
+        tabla: { cab: ["Nivel", "Enlace"], filas: [["Primaria", "peptídico"], ["Secundaria", "puentes de H"], ["Terciaria", "S–S, iónico, hidrofóbico"], ["Cuaternaria", "los mismos, entre cadenas"]] } },
+      { t: "Desnaturalización", frases: ["Pierde la forma 3D; <b>no</b> rompe enlaces peptídicos.", "Agentes: calor, pH, alcohol, urea, metales pesados.", "Se pierde la función; a veces es reversible."],
+        tabla: { cab: ["Desnaturalizar", "Hidrolizar"], filas: [["rompe enlaces débiles", "rompe enlaces peptídicos"], ["conserva la primaria", "destruye la primaria"]] } },
+      { t: "Funciones de las proteínas", frases: ["Estructural, enzimática, transporte, defensiva.", "Hormonal, contráctil, reserva, homeostática.", "Ejemplos: colágeno, amilasa, hemoglobina, anticuerpos."] },
+      { t: "Enzimas", frases: ["Catalizador proteico: baja la <b>E<sub>a</sub></b> y no se consume.", "Sustrato + sitio activo → complejo ES → producto.", "Apoenzima + cofactor = holoenzima."],
+        tabla: { cab: ["Modelo", "Idea"], filas: [["Llave-cerradura", "sitio activo rígido"], ["Ajuste inducido", "el sitio se adapta"]] } },
+      { t: "Cinética y factores", frases: ["v frente a [S]: hipérbola; <b>V<sub>max</sub></b> = saturación.", "<b>K<sub>m</sub></b> = [S] a V<sub>max</sub>/2; K<sub>m</sub> baja = más afinidad.", "Temperatura y pH: curva en campana."],
+        tabla: { cab: ["Inhibidor", "V<sub>max</sub> / K<sub>m</sub>"], filas: [["Competitivo", "igual / sube"], ["No competitivo", "baja / igual"]] } }
+    ],
+    resumen: [
+      "La <b>forma 3D</b> lo decide todo: si cambia, la proteína pierde su función.",
+      "Una enzima <b>baja la energía de activación</b>; no se consume ni cambia el equilibrio.",
+      "<b>Temperatura</b>, <b>pH</b> e <b>inhibidores</b> actúan sobre la forma del sitio activo o sobre su ocupación."
+    ],
+    conecta: [
+      { con: "Biología T2:", rel: "la condensación que une glúcidos es la misma que une aminoácidos." },
+      { con: "Biología T5:", rel: "la secuencia de aminoácidos está escrita en el ADN." },
+      { con: "Biología T6:", rel: "proteínas de membrana: transporte y receptores." },
+      { con: "Química II T5:", rel: "catalizadores, cinética y energía de activación." },
+      { con: "Química II T11:", rel: "polímeros de condensación." }
+    ],
+    claves: [
+      ["Aminoácido", "molécula con grupo amino, carboxilo, H y radical R sobre el carbono α"],
+      ["Enlace peptídico", "enlace –CO–NH– entre aminoácidos; libera agua"],
+      ["Estructura primaria", "secuencia de aminoácidos de la cadena"],
+      ["Desnaturalización", "pérdida de la forma 3D por rotura de enlaces débiles"],
+      ["Enzima", "proteína que cataliza una reacción de forma específica"],
+      ["Sitio activo", "zona de la enzima donde se une el sustrato"],
+      ["Coenzima", "cofactor orgánico, derivado de una vitamina"],
+      ["Vmax", "velocidad máxima: todas las enzimas saturadas"],
+      ["Km", "concentración de sustrato a la que v = Vmax/2"],
+      ["Inhibidor competitivo", "se parece al sustrato y ocupa el sitio activo"]
+    ],
+    cita: { txt: "Un solo aminoácido cambiado en la hemoglobina (Glu → Val) deforma el glóbulo rojo: anemia falciforme.", autor: "Dato para recordar", obra: "posición 6 de la cadena β" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    aminoacidos: {
+      titulo: "Tipo de radical",
+      consigna: "Clasifica cada aminoácido según su radical R.",
+      categorias: ["Apolar", "Polar sin carga", "Ácido", "Básico"],
+      items: [
+        { t: "Glicina", c: 0 }, { t: "Alanina", c: 0 }, { t: "Valina", c: 0 }, { t: "Fenilalanina", c: 0 },
+        { t: "Serina", c: 1 }, { t: "Cisteína", c: 1 }, { t: "Tirosina", c: 1 }, { t: "Glutamina", c: 1 },
+        { t: "Ácido aspártico", c: 2 }, { t: "Ácido glutámico", c: 2 },
+        { t: "Lisina", c: 3 }, { t: "Arginina", c: 3 }
+      ]
+    },
+    niveles: {
+      titulo: "¿De qué nivel de estructura es?",
+      consigna: "Une cada hecho con el nivel de estructura proteica al que pertenece.",
+      categorias: ["Primaria", "Secundaria", "Terciaria", "Cuaternaria"],
+      items: [
+        { t: "Enlace peptídico entre dos aminoácidos", c: 0 },
+        { t: "Sustituir Glu por Val en la cadena β de la hemoglobina", c: 0 },
+        { t: "Puentes de H en una hélice α", c: 1 },
+        { t: "Lámina β de la fibroína de la seda", c: 1 },
+        { t: "Puente disulfuro entre dos cisteínas de la misma cadena", c: 2 },
+        { t: "Radicales apolares agrupados en el interior de la mioglobina", c: 2 },
+        { t: "Unión de las cuatro cadenas de la hemoglobina", c: 3 },
+        { t: "Dos subunidades que se asocian por enlaces débiles", c: 3 }
+      ]
+    },
+    funciones: {
+      titulo: "Proteína y función",
+      consigna: "Une cada proteína con su función.",
+      pares: [
+        ["Colágeno", "Resistencia de tendones y piel (estructural)"],
+        ["Hemoglobina", "Transporte de oxígeno"],
+        ["Insulina", "Hormona que baja la glucosa de la sangre"],
+        ["Anticuerpo", "Defensa: neutraliza antígenos"],
+        ["Actina y miosina", "Contracción del músculo"],
+        ["Caseína", "Reserva de aminoácidos en la leche"]
+      ]
+    },
+    catalisis: {
+      titulo: "Una enzima en acción",
+      consigna: "Ordena los pasos de una reacción enzimática.",
+      items: [
+        { t: "El sustrato se acerca al sitio activo de la enzima" },
+        { t: "Se forma el complejo enzima-sustrato (ES)" },
+        { t: "La enzima baja la energía de activación y el sustrato se transforma" },
+        { t: "Se libera el producto" },
+        { t: "La enzima queda libre e intacta para otro ciclo" }
+      ]
+    },
+    enzimas: {
+      titulo: "Enzima y sustrato",
+      consigna: "Une cada enzima con la sustancia sobre la que actúa.",
+      pares: [
+        ["Amilasa", "Almidón"],
+        ["Lactasa", "Lactosa"],
+        ["Lipasa", "Grasas (triglicéridos)"],
+        ["Pepsina", "Proteínas del alimento (en el estómago)"],
+        ["Catalasa", "Agua oxigenada (H₂O₂)"],
+        ["Ureasa", "Urea"]
+      ]
+    },
+    coenzimas: {
+      titulo: "Coenzima y vitamina",
+      consigna: "Une cada coenzima con la vitamina de la que deriva.",
+      pares: [
+        ["NAD⁺", "Vitamina B₃ (niacina)"],
+        ["FAD", "Vitamina B₂ (riboflavina)"],
+        ["Coenzima A", "Vitamina B₅ (ácido pantoténico)"],
+        ["TPP", "Vitamina B₁ (tiamina)"]
+      ]
+    },
+    clases: {
+      titulo: "Clase de enzima",
+      consigna: "Clasifica cada enzima en su clase según la reacción que cataliza.",
+      categorias: ["Oxidorreductasa", "Transferasa", "Hidrolasa", "Liasa", "Isomerasa", "Ligasa"],
+      items: [
+        { t: "Deshidrogenasa láctica", c: 0 }, { t: "Catalasa", c: 0 },
+        { t: "Hexoquinasa", c: 1 },
+        { t: "Amilasa", c: 2 }, { t: "Lipasa", c: 2 },
+        { t: "Fumarasa", c: 3 },
+        { t: "Glucosa-fosfato isomerasa", c: 4 },
+        { t: "ADN ligasa", c: 5 }
+      ]
+    },
+    inhibicion: {
+      titulo: "¿Qué tipo de inhibición es?",
+      consigna: "Clasifica cada afirmación o ejemplo.",
+      categorias: ["Competitiva", "No competitiva", "Irreversible"],
+      items: [
+        { t: "Se parece al sustrato y ocupa el sitio activo", c: 0 },
+        { t: "Se supera añadiendo mucho sustrato", c: 0 },
+        { t: "Aumenta la Km y la Vmax no cambia", c: 0 },
+        { t: "Malonato frente al succinato", c: 0 },
+        { t: "Baja la Vmax y la Km no cambia", c: 1 },
+        { t: "Metal pesado unido a grupos –SH", c: 1 },
+        { t: "Se une fuera del sitio activo", c: 1 },
+        { t: "Penicilina sobre la transpeptidasa bacteriana", c: 2 },
+        { t: "Aspirina sobre la ciclooxigenasa", c: 2 },
+        { t: "Se une a la enzima con enlace covalente", c: 2 }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 4",
+      preguntas: [
+        { q: "¿Qué parte de un aminoácido es la que cambia de uno a otro?", op: ["El radical R", "El grupo amino", "El grupo carboxilo", "El carbono α"], ok: 0, porque: "El grupo amino, el carboxilo y el H son comunes; el radical R da la identidad." },
+        { q: "El enlace peptídico une…", op: ["el carboxilo de un aminoácido con el amino del siguiente, liberando agua", "dos radicales R entre sí", "dos aminoácidos mediante un puente de hidrógeno", "el grupo amino con el hidrógeno del mismo aminoácido"], ok: 0, porque: "Es una condensación –CO–NH– con pérdida de H₂O." },
+        { q: "Un péptido de 100 aminoácidos en una sola cadena tiene…", op: ["99 enlaces peptídicos", "100 enlaces peptídicos", "101 enlaces peptídicos", "50 enlaces peptídicos"], ok: 0, porque: "n aminoácidos → n − 1 enlaces." },
+        { q: "Los puentes disulfuro entre cisteínas de la misma cadena mantienen la estructura…", op: ["terciaria", "primaria", "secundaria", "cuaternaria"], ok: 0, porque: "Unen radicales de la misma cadena plegada: terciaria." },
+        { q: "La desnaturalización de una proteína…", op: ["rompe enlaces débiles y la proteína pierde su función", "rompe los enlaces peptídicos", "cambia la secuencia de aminoácidos", "siempre es reversible"], ok: 0, porque: "Se pierde la forma 3D; la primaria queda intacta." },
+        { q: "La Km es…", op: ["la concentración de sustrato a la que v = Vmax/2", "la velocidad máxima de la enzima", "la cantidad de enzima presente", "el pH óptimo"], ok: 0, porque: "Es una concentración (mM) y mide la afinidad." },
+        { q: "Un inhibidor competitivo…", op: ["se une al sitio activo; la Vmax no cambia y la Km aumenta", "se une fuera del sitio activo y baja la Vmax", "destruye la enzima", "aumenta la Vmax"], ok: 0, porque: "Compite con el sustrato; se supera con más sustrato." },
+        { q: "La actividad de una enzima cae tras su temperatura óptima porque…", op: ["la enzima se desnaturaliza", "el sustrato se agota", "la energía de activación sube", "el pH baja"], ok: 0, porque: "El calor rompe los enlaces débiles y el sitio activo pierde su forma." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre los aminoácidos es FALSA?", op: ["Todos los aminoácidos tienen el mismo radical R", "Todos tienen un grupo amino y un grupo carboxilo", "En las proteínas hay 20 distintos", "Son anfóteros"], ok: 0, porque: "Lo que cambia es el R: por eso hay 20 aminoácidos distintos." },
+        { q: "¿Cuál de estas afirmaciones sobre el enlace peptídico es FALSA?", op: ["Se forma con el consumo de una molécula de agua", "Se forma entre un –COOH y un –NH₂", "Es un enlace covalente", "Se rompe por hidrólisis"], ok: 0, porque: "Al formarse se libera agua; para romperlo se añade agua." },
+        { q: "¿Cuál de estas afirmaciones sobre la desnaturalización es FALSA?", op: ["La proteína desnaturalizada pierde su secuencia de aminoácidos", "Se rompen puentes de hidrógeno e interacciones débiles", "El calor puede causarla", "La proteína pierde su función"], ok: 0, porque: "La secuencia primaria, con sus enlaces peptídicos, se conserva." },
+        { q: "¿Cuál de estas afirmaciones sobre la estructura de las proteínas es FALSA?", op: ["Todas las proteínas tienen estructura cuaternaria", "La hélice α es estructura secundaria", "La primaria es la secuencia de aminoácidos", "La hemoglobina tiene estructura cuaternaria"], ok: 0, porque: "Solo la tienen las proteínas formadas por varias cadenas." },
+        { q: "¿Cuál de estas afirmaciones sobre las enzimas es FALSA?", op: ["La enzima se consume al catalizar la reacción", "Baja la energía de activación", "Es muy específica de su sustrato", "Se desnaturaliza con calor excesivo"], ok: 0, porque: "La enzima se recupera intacta al final de cada ciclo." },
+        { q: "¿Cuál de estas afirmaciones sobre la cinética enzimática es FALSA?", op: ["Al aumentar el sustrato, la velocidad aumenta sin límite", "Existe una velocidad máxima por saturación", "Una Km baja indica gran afinidad", "Duplicar la enzima duplica la Vmax"], ok: 0, porque: "Con todas las enzimas ocupadas la velocidad llega a un tope (Vmax)." },
+        { q: "¿Cuál de estas afirmaciones sobre los factores de la actividad enzimática es FALSA?", op: ["El frío desnaturaliza las enzimas de forma irreversible", "El calor excesivo desnaturaliza las enzimas", "Cada enzima tiene su pH óptimo", "El inhibidor competitivo se parece al sustrato"], ok: 0, porque: "El frío solo ralentiza; no destruye la forma de la enzima." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: proteínas y enzimas",
+      cartas: [
+        { a: "Aminoácido", b: "H₂N–CH(R)–COOH: amino, carboxilo, H y radical R sobre el carbono α. Hay 20." },
+        { a: "Enlace peptídico", b: "–CO–NH–, covalente, entre carboxilo y amino; libera H₂O. n aminoácidos → n − 1 enlaces." },
+        { a: "Aminoácidos esenciales", b: "Los que no fabricamos: 9 en el adulto (His, Ile, Leu, Lys, Met, Phe, Thr, Trp, Val)." },
+        { a: "Aminoácido anfótero", b: "Actúa como ácido o base; a pH ≈ 7 es un ion dipolar. Punto isoeléctrico: carga neta cero." },
+        { a: "Estructura primaria", b: "Secuencia de aminoácidos. Enlaces peptídicos." },
+        { a: "Estructura secundaria", b: "Hélice α o lámina β. Puentes de hidrógeno entre –CO– y –NH–." },
+        { a: "Estructura terciaria", b: "Forma 3D de una cadena. Enlaces entre radicales (S–S, H, iónicos, hidrofóbicos)." },
+        { a: "Estructura cuaternaria", b: "Varias cadenas unidas. Solo en proteínas con subunidades (hemoglobina)." },
+        { a: "Desnaturalización", b: "Pérdida de la forma 3D por rotura de enlaces débiles; la primaria se conserva. Calor, pH, alcohol, urea." },
+        { a: "Holoproteína y heteroproteína", b: "Solo aminoácidos / con grupo prostético (hemoglobina, glucoproteínas)." },
+        { a: "Enzima", b: "Catalizador biológico proteico: baja la Ea, es específico y no se consume." },
+        { a: "Sitio activo", b: "Zona de la enzima que une al sustrato: centro de unión y centro catalítico." },
+        { a: "Llave-cerradura y ajuste inducido", b: "Fischer, 1894 (sitio rígido). Koshland, 1958 (la enzima se adapta al sustrato)." },
+        { a: "Apoenzima, cofactor y holoenzima", b: "Proteína sola + cofactor = enzima activa. Coenzima: orgánica, de una vitamina." },
+        { a: "Vmax y Km", b: "Vmax: todas las enzimas saturadas. Km: [S] a Vmax/2; Km baja = alta afinidad." },
+        { a: "Inhibidor competitivo", b: "Ocupa el sitio activo. Km aparente ↑, Vmax igual. Se supera con más sustrato." },
+        { a: "Inhibidor no competitivo", b: "Se une fuera del sitio activo. Vmax ↓, Km igual. No se supera con sustrato." },
+        { a: "Zimógeno y retroinhibición", b: "Enzima inactiva que se activa donde hace falta / el producto final inhibe la primera enzima de su ruta." },
+        { a: "Temperatura y pH óptimos", b: "Curva en campana. Humana ≈ 37 °C; pepsina pH ≈ 2, amilasa ≈ 6,8, tripsina ≈ 8." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "¿Qué cuatro grupos se unen al carbono α de un aminoácido?", ["Grupo amino, grupo carboxilo, hidrógeno y radical R", "Dos grupos amino, un carboxilo y un hidrógeno", "Un grupo fosfato, un azúcar, una base y un hidrógeno", "Un carboxilo, un hidroxilo, un metilo y un fosfato"], 0, ["Todos los aminoácidos comparten amino, carboxilo y H.", "Lo único que cambia es el radical R."], "Amino, carboxilo, H y R");
+  O("b2", 1, "¿Cuántos aminoácidos distintos forman las proteínas de los seres vivos?", ["20", "4", "64", "9"], 0, ["Son 20 aminoácidos proteinogénicos.", "El 4 son las bases del ADN, el 64 los tripletes y el 9 los aminoácidos esenciales del adulto."], "20");
+  O("b3", 1, "¿Qué se libera cuando se forma un enlace peptídico?", ["Una molécula de agua", "Una molécula de oxígeno", "Un ion fosfato", "Nada: los aminoácidos solo se pegan"], 0, ["Es una condensación: –COOH + H₂N– → –CO–NH– + H₂O."], "Una molécula de agua");
+  V("b4", 1, "Todas las proteínas tienen estructura cuaternaria.", false, ["Solo la tienen las formadas por más de una cadena", "La estructura cuaternaria es la secuencia de aminoácidos", "La estructura cuaternaria no existe", "Solo la tienen las enzimas"], 0, ["La mioglobina (una cadena) llega hasta la terciaria.", "La hemoglobina (cuatro cadenas) tiene cuaternaria."]);
+  O("b5", 1, "La hélice α y la lámina β son estructuras…", ["secundarias", "primarias", "terciarias", "cuaternarias"], 0, ["Son plegamientos locales regulares mantenidos por puentes de H.", "Eso es la estructura secundaria."], "Secundarias");
+  T("b6", 1, "¿Qué tipo de enlace débil estabiliza la hélice α y la lámina β?", "Enlace", ["puentes de hidrogeno", "puente de hidrogeno", "enlaces de hidrogeno", "enlace de hidrogeno"], ["Se forman entre el –CO– de un aminoácido y el –NH– de otro de la cadena."], "Puentes de hidrógeno");
+  O("b7", 1, "Al cocer un huevo se desnaturalizan sus proteínas. ¿Qué significa?", ["Pierden su forma 3D, pero conservan su secuencia de aminoácidos", "Se rompen todos los enlaces peptídicos", "Pierden su secuencia primaria", "Se convierten en aminoácidos libres"], 0, ["El calor rompe los enlaces débiles.", "Los enlaces peptídicos resisten: la primaria queda intacta."], "Pierden la forma 3D; la primaria se conserva");
+  O("b8", 1, "¿Qué proteína transporta el oxígeno en la sangre?", ["Hemoglobina", "Colágeno", "Insulina", "Actina"], 0, ["La hemoglobina de los glóbulos rojos une O₂ en su grupo hemo."], "Hemoglobina");
+  M("b9", 1, "Une cada proteína con su función.",
+    [C("Colágeno", ["Estructural", "Transporte de O₂", "Hormonal", "Defensiva"], 0), C("Hemoglobina", ["Transporte de O₂", "Estructural", "Hormonal", "Defensiva"], 0), C("Insulina", ["Hormonal", "Estructural", "Transporte de O₂", "Defensiva"], 0), C("Anticuerpo", ["Defensiva", "Estructural", "Transporte de O₂", "Hormonal"], 0)],
+    ["El colágeno forma tendones y piel.", "La hemoglobina transporta O₂.", "La insulina es una hormona.", "Los anticuerpos defienden frente a antígenos."], "Colágeno: estructural; hemoglobina: transporte; insulina: hormonal; anticuerpo: defensiva");
+  O("b10", 1, "Una enzima es…", ["un catalizador biológico de naturaleza proteica", "un glúcido de reserva", "un lípido de la membrana", "un ácido nucleico"], 0, ["Casi todas las enzimas son proteínas que aceleran reacciones."], "Un catalizador biológico proteico");
+  V("b11", 1, "Una enzima se consume en la reacción que cataliza.", false, ["Se recupera intacta al final y puede actuar de nuevo", "Se transforma en el producto", "Se gasta para dar energía a la reacción", "Se disuelve en el agua"], 0, ["E + S ⇌ ES → E + P: la enzima aparece a ambos lados."]);
+  O("b12", 1, "La zona de la enzima a la que se une el sustrato se llama…", ["sitio activo", "cofactor", "apoenzima", "zimógeno"], 0, ["Es una pequeña región formada por pocos aminoácidos."], "Sitio activo");
+  T("b13", 1, "Muchos nombres de enzimas terminan con el sufijo…", "Sufijo", ["asa", "-asa"], ["Lactosa → lactasa; lipasa; amilasa."], "-asa");
+  O("b14", 1, "Si una enzima humana se calienta a 90 °C…", ["se desnaturaliza y deja de funcionar", "trabaja más deprisa que nunca", "se hace más específica", "se convierte en cofactor"], 0, ["Por encima del óptimo se rompen los enlaces débiles que dan forma al sitio activo."], "Se desnaturaliza");
+  O("b15", 1, "La pepsina trabaja en el estómago. Su pH óptimo es…", ["≈ 2 (muy ácido)", "≈ 7 (neutro)", "≈ 8 (ligeramente básico)", "≈ 12 (muy básico)"], 0, ["El jugo gástrico tiene pH ≈ 1,5–2.", "Cada enzima tiene el óptimo del lugar donde trabaja."], "pH ≈ 2");
+  X("b16", 1, "Un péptido está formado por 12 aminoácidos unidos en una cadena. ¿Cuántos enlaces peptídicos tiene?", "Enlaces =", 11, "", ["n aminoácidos → n − 1 enlaces.", "12 − 1 = 11."], "11 enlaces peptídicos");
+
+  // ---- nivel 2
+  X("c1", 2, "Una proteína de una sola cadena de 150 aminoácidos se forma por condensación. ¿Cuántas moléculas de agua se liberaron?", "Moléculas de agua =", 149, "", ["Cada enlace peptídico libera una molécula de agua.", "150 − 1 = 149 enlaces → 149 H₂O."], "149 moléculas de agua");
+  X("c2", 2, "Calcula la masa molar del dipéptido Gly-Ala. (Gly 75,07; Ala 89,09; agua 18,015 g/mol)", "M (g/mol) =", 146.15, "g/mol", ["Suma: 75,07 + 89,09 = 164,16.", "Se pierde 1 H₂O: 164,16 − 18,015 = 146,15 g/mol."], "146,15 g/mol");
+  X("c3", 2, "¿Cuántos tripéptidos distintos se pueden formar con los 20 aminoácidos (cada uno puede repetirse)?", "Tripéptidos =", 8000, "", ["20 opciones en cada una de las 3 posiciones.", "20³ = 8000."], "8000");
+  X("c4", 2, "¿Cuántos tetrapéptidos distintos hay con los 20 aminoácidos?", "Tetrapéptidos =", 160000, "", ["20⁴ = 20 · 20 · 20 · 20.", "= 160 000."], "160 000");
+  X("c5", 2, "Calcula la masa molar del tetrapéptido Ser-Gly-Ala-Cys. (Ser 105,09; Gly 75,07; Ala 89,09; Cys 121,16; agua 18,015 g/mol)", "M (g/mol) =", 336.37, "g/mol", ["Suma: 105,09 + 75,07 + 89,09 + 121,16 = 390,41.", "4 aminoácidos → 3 enlaces → 3 H₂O: 3 · 18,015 = 54,045.", "390,41 − 54,045 = 336,37 g/mol."], "336,37 g/mol");
+  V("c6", 2, "Si se aumenta la concentración de sustrato sin límite, la velocidad de la reacción aumenta sin límite.", false, ["Se llega a la Vmax, cuando todas las enzimas están saturadas", "Porque el sustrato inhibe a la enzima", "Porque la enzima se consume", "Porque la Km aumenta"], 0, ["Con todas las enzimas ocupadas, más sustrato no acelera nada."]);
+  O("c7", 2, "La enzima A tiene Km = 0,5 mM y la enzima B, Km = 5 mM para el mismo sustrato. ¿Cuál tiene más afinidad?", ["La A: con menos sustrato ya está a media velocidad", "La B: necesita más sustrato", "Las dos por igual", "No se puede saber sin la Vmax"], 0, ["Km baja = alta afinidad.", "A llega a Vmax/2 con 0,5 mM; B necesita 5 mM."], "La enzima A");
+  X("c8", 2, "Con la ecuación v = Vmax · [S] / (Km + [S]), ¿qué fracción de la Vmax se alcanza cuando [S] = Km?", "v / Vmax =", 0.5, "", ["[S] = Km → v = Vmax · Km / (2 Km).", "= Vmax / 2: una fracción de 0,5 (50 %)."], "0,5 (la mitad de Vmax)");
+  X("c9", 2, "¿Qué fracción de la Vmax se alcanza cuando [S] = 9 · Km?", "v / Vmax =", 0.9, "", ["v / Vmax = 9 Km / (Km + 9 Km) = 9 / 10.", "= 0,9 (90 %)."], "0,9 (el 90 %)");
+  M("c10", 2, "Une cada descripción con el tipo de inhibición.",
+    [C("Se parece al sustrato y compite por el sitio activo", ["Competitiva", "No competitiva", "Irreversible"], 0), C("Se une fuera del sitio activo y baja la Vmax", ["No competitiva", "Competitiva", "Irreversible"], 0), C("Se une con enlace covalente (como la penicilina)", ["Irreversible", "Competitiva", "No competitiva"], 0)],
+    ["Competitiva: mismo sitio, Vmax igual.", "No competitiva: otro sitio, Vmax baja.", "Irreversible: enlace covalente, la enzima queda inutilizada."], "Competitiva; no competitiva; irreversible");
+  O("c11", 2, "¿Qué efecto tiene un inhibidor competitivo?", ["La Km aparente aumenta y la Vmax no cambia", "La Vmax disminuye y la Km no cambia", "La Km y la Vmax aumentan", "La Km disminuye y la Vmax aumenta"], 0, ["Compite por el sitio activo: hace falta más sustrato para llegar a Vmax/2.", "Con mucho sustrato se alcanza la misma Vmax."], "Km aparente ↑, Vmax igual");
+  O("c12", 2, "¿Qué efecto tiene un inhibidor no competitivo?", ["La Vmax disminuye y la Km no cambia", "La Km aparente aumenta y la Vmax no cambia", "La Vmax aumenta", "Ni la Vmax ni la Km cambian"], 0, ["Inutiliza una parte de las enzimas: la meseta baja.", "No afecta a la unión del sustrato: la Km es la misma."], "Vmax ↓, Km igual");
+  O("c13", 2, "La actividad de una enzima aumenta de 10 a 40 °C y cae casi a cero a 60 °C. ¿Por qué cae?", ["La enzima se desnaturaliza", "Se agota el sustrato del tubo", "El calor aumenta la energía de activación", "Las enzimas solo funcionan por debajo de 40 °C por definición"], 0, ["Por encima del óptimo se rompen los enlaces débiles del plegamiento.", "El sitio activo pierde su forma y la enzima deja de funcionar."], "Desnaturalización por el calor");
+  X("c14", 2, "A 20 °C una reacción enzimática va a 1,5 µmol/min y tiene Q₁₀ = 2. ¿A qué velocidad irá a 40 °C (por debajo del óptimo)?", "v (µmol/min) =", 6, "µmol/min", ["De 20 a 40 °C hay dos saltos de 10 °C.", "1,5 · 2 · 2 = 6 µmol/min."], "6 µmol/min");
+  V("c15", 2, "En la inhibición competitiva, aumentar la concentración de sustrato puede superar el efecto del inhibidor.", true, ["El sustrato desplaza al inhibidor del sitio activo", "El inhibidor se destruye con el sustrato", "El sustrato cambia la forma del inhibidor", "El sustrato aumenta la Km"], 0, ["Inhibidor y sustrato compiten por el mismo sitio: con mucho sustrato, este gana."]);
+  O("c16", 2, "Se duplica la concentración de enzima manteniendo el sustrato en exceso. Entonces…", ["la Vmax se duplica y la Km no cambia", "la Vmax no cambia y la Km se duplica", "ambas se duplican", "ninguna cambia"], 0, ["El doble de enzima ofrece el doble de sitios activos.", "La Km depende de la enzima y del sustrato, no de cuánta enzima haya."], "Vmax ×2, Km igual");
+  T("c17", 2, "Completa: la parte proteica de una enzima unida a su cofactor, completa y activa, se llama…", "Término", ["holoenzima"], ["Apoenzima (proteína sola, inactiva) + cofactor = holoenzima."], "Holoenzima");
+  M("c18", 2, "Completa lo que le pasa a una enzima humana con la temperatura.",
+    [C("De 0 a 37 °C", ["La actividad aumenta", "La actividad disminuye", "No cambia"], 0), C("Muy por encima de su óptimo", ["La enzima se desnaturaliza", "La enzima se hace más específica", "Aumentan los choques sin límite"], 0), C("Si estaba desnaturalizada y se enfría", ["No recupera la actividad", "Recupera toda la actividad", "Se convierte en coenzima"], 0)],
+    ["Hasta el óptimo: más energía cinética, más choques.", "Pasado el óptimo se rompen los enlaces débiles.", "Cuando el calor ha deformado el sitio activo, enfriar no lo recompone."], "Aumenta; se desnaturaliza; no se recupera");
+  O("c19", 2, "En la desnaturalización de una proteína, ¿cuál de estos enlaces NO se rompe?", ["El enlace peptídico", "Los puentes de hidrógeno", "Las interacciones hidrofóbicas", "Las atracciones iónicas"], 0, ["Los enlaces peptídicos son covalentes y fuertes.", "Los otros tres son los enlaces débiles que mantienen la forma."], "El enlace peptídico");
+  O("c20", 2, "La gelatina no cuaja si se le añade piña fresca, pero sí con piña en lata. ¿Por qué?", ["La piña fresca tiene bromelina, que rompe las proteínas de la gelatina; en la lata se desnaturalizó con el calor", "La piña fresca es muy ácida y desnaturaliza la bromelina", "La piña tiene mucha agua y diluye la gelatina", "La piña fresca contiene lipasa, que digiere el colágeno"], 0, ["La bromelina es una proteasa y la gelatina es colágeno.", "El enlatado calienta la piña: la enzima se desnaturaliza y deja de actuar."], "Bromelina activa (fresca) frente a desnaturalizada (lata)");
+
+  // ---- nivel 3
+  X("d1", 3, "Una enzima tiene Vmax = 100 µmol/min y Km = 2 mM. ¿Cuál es su velocidad con [S] = 6 mM?", "v (µmol/min) =", 75, "µmol/min", ["v = Vmax · [S] / (Km + [S]).", "v = 100 · 6 / (2 + 6) = 75 µmol/min."], "75 µmol/min");
+  X("d2", 3, "Una enzima con Vmax = 80 µmol/min alcanza 40 µmol/min con [S] = 3 mM. ¿Cuál es su Km?", "Km (mM) =", 3, "mM", ["40 es la mitad de Vmax.", "La [S] a la que v = Vmax/2 es la Km: 3 mM."], "Km = 3 mM");
+  X("d3", 3, "Con un inhibidor competitivo la Km aparente de la enzima del ejercicio d1 pasa a 6 mM (la Vmax sigue siendo 100 µmol/min). ¿Qué velocidad se alcanza con [S] = 12 mM?", "v (µmol/min) =", 66.67, "µmol/min", ["v = 100 · 12 / (6 + 12).", "= 1200 / 18 = 66,7 µmol/min (sin inhibidor serían 85,7)."], "≈ 66,7 µmol/min", 0.005);
+  X("d4", 3, "Con un inhibidor no competitivo la enzima del ejercicio d1 baja su Vmax a 50 µmol/min (Km = 2 mM). ¿Qué velocidad se alcanza con [S] = 18 mM?", "v (µmol/min) =", 45, "µmol/min", ["v = 50 · 18 / (2 + 18).", "= 900 / 20 = 45 µmol/min: nunca supera 50, por mucho sustrato que haya."], "45 µmol/min");
+  X("d5", 3, "Una proteína de 300 aminoácidos está codificada por un gen. ¿Cuántos nucleótidos, como mínimo, tiene la región codificante si se cuenta también el triplete de terminación?", "Nucleótidos =", 903, "", ["Cada aminoácido: 3 nucleótidos → 300 · 3 = 900.", "Más el triplete de terminación (3): 903."], "903 nucleótidos");
+  X("d6", 3, "La masa media de un aminoácido dentro de una cadena es ≈ 110 Da. ¿Cuál es la masa aproximada, en kDa, de una proteína de 250 aminoácidos?", "M (kDa) =", 27.5, "kDa", ["250 · 110 = 27 500 Da.", "1 kDa = 1000 Da → 27,5 kDa."], "≈ 27,5 kDa");
+  X("d7", 3, "La hemoglobina adulta tiene 4 cadenas: 2 α de 141 aminoácidos y 2 β de 146. ¿Cuántos enlaces peptídicos hay en total dentro de las cadenas?", "Enlaces =", 570, "", ["Aminoácidos totales: 2 · 141 + 2 · 146 = 574.", "Cada cadena tiene un enlace menos que aminoácidos: 574 − 4 = 570."], "570 enlaces peptídicos");
+  X("d8", 3, "La insulina madura tiene dos cadenas, A (21 aminoácidos) y B (30 aminoácidos), unidas por puentes disulfuro. ¿Cuántos enlaces peptídicos hay?", "Enlaces =", 49, "", ["Aminoácidos: 21 + 30 = 51.", "Dos cadenas → 51 − 2 = 49 enlaces peptídicos (los puentes S–S no son peptídicos)."], "49 enlaces peptídicos");
+  X("d9", 3, "Una proteína hipotética está formada por 3 cadenas de 1000 aminoácidos cada una. Si se hidroliza por completo en aminoácidos libres, ¿cuántas moléculas de agua se consumen?", "Moléculas de agua =", 2997, "", ["Hay 3 · 1000 = 3000 aminoácidos y 3 cadenas.", "Enlaces peptídicos: 3000 − 3 = 2997.", "Romper cada enlace por hidrólisis consume una molécula de agua: 2997."], "2997 moléculas de agua");
+  O("d10", 3, "Se mide el O₂ desprendido por la catalasa de una patata en un minuto: 20 °C: 4 mL; 37 °C: 9 mL; 60 °C: 1 mL; extracto previamente hervido (a 37 °C): 0 mL. ¿Qué conclusión es correcta?", ["La mayor actividad es a 37 °C; a 60 °C el calor desnaturaliza parte de la enzima y el hervido la inactiva del todo", "A más temperatura siempre hay más actividad", "La catalasa no depende de la temperatura", "El extracto hervido es el más activo porque está esterilizado"], 0, ["De 20 a 37 °C la actividad sube.", "A 60 °C baja: desnaturalización parcial.", "El hervido no produce nada: desnaturalización irreversible."], "Óptimo cerca de 37 °C; el calor desnaturaliza");
+  O("d11", 3, "Se mezclan amilasa salival y almidón a distintos pH y se mide cuánto tarda en desaparecer el color azul del lugol: pH 2: no desaparece; pH 4: 20 min; pH 6,8: 2 min; pH 9: 15 min. ¿Qué indica?", ["El pH óptimo está cerca de 6,8; a pH muy ácido casi no actúa", "El pH óptimo es 2", "El pH no influye en la actividad", "A pH 9 la actividad es máxima"], 0, ["Cuanto menos tarda en desaparecer el azul, más activa es la amilasa.", "La mayor rapidez es a pH 6,8."], "Óptimo ≈ 6,8");
+  O("d12", 3, "Una proteína tratada con urea pierde su actividad. Al eliminar la urea por diálisis, la recupera. ¿Qué se concluye?", ["La secuencia primaria contiene la información para replegarse: la desnaturalización fue reversible", "La urea rompió los enlaces peptídicos y estos se rehicieron solos", "La proteína se sintetizó de nuevo", "La urea actuaba como cofactor"], 0, ["Es el experimento de Anfinsen con la ribonucleasa (1961).", "La urea rompe enlaces débiles, no los peptídicos."], "Reversible: la secuencia determina el plegamiento");
+  V("d13", 3, "Un inhibidor no competitivo puede anularse añadiendo mucho sustrato.", false, ["El inhibidor no está en el sitio activo y el sustrato no puede desplazarlo", "Porque el sustrato aumenta la Km", "Porque el inhibidor es covalente", "Porque la Vmax aumenta con el sustrato"], 0, ["En la competitiva sí compite el sustrato; en la no competitiva, no."]);
+  O("d14", 3, "Dos curvas de v frente a [S]: A se aplana en 100 y B, con un inhibidor, se aplana en 60 con la misma Km. ¿Cómo se explica B?", ["Inhibición no competitiva: baja la Vmax", "Inhibición competitiva: sube la Km", "Tiene más enzima que A", "Tiene más afinidad por el sustrato que A"], 0, ["Una Vmax menor con la misma Km es la huella de la inhibición no competitiva.", "Más enzima elevaría la Vmax; mayor afinidad bajaría la Km."], "Inhibición no competitiva");
+  X("d15", 3, "Una enzima tiene Km = 4 mM. ¿Qué concentración de sustrato hace falta para alcanzar el 80 % de su Vmax?", "[S] (mM) =", 16, "mM", ["0,8 = [S] / (4 + [S]) → 0,8 · 4 + 0,8 [S] = [S].", "3,2 = 0,2 [S] → [S] = 16 mM (4 veces la Km)."], "16 mM");
+  R("d16", "Define enzima y explica cómo actúa y por qué es específica. (Pregunta tipo PAU)", [
+    { t: "Definición: catalizador biológico, casi siempre una proteína", p: 0.4 },
+    { t: "Sitio activo y complejo enzima-sustrato (E + S → ES → E + P)", p: 0.5 },
+    { t: "Baja la energía de activación; no se consume ni cambia el equilibrio", p: 0.5 },
+    { t: "Especificidad por la forma 3D del sitio activo (llave-cerradura o ajuste inducido)", p: 0.4 },
+    { t: "Ejemplo correcto (amilasa, catalasa, lactasa…)", p: 0.2 }], ["Definición.", "Sitio activo y complejo ES.", "Energía de activación.", "Especificidad."], "Catalizador proteico; ES; baja la Ea; específico por la forma");
+  R("d17", "Describe los cuatro niveles de estructura de una proteína e indica los enlaces de cada uno. (Pregunta tipo PAU)", [
+    { t: "Primaria: secuencia de aminoácidos con enlaces peptídicos", p: 0.4 },
+    { t: "Secundaria: hélice α o lámina β con puentes de hidrógeno", p: 0.5 },
+    { t: "Terciaria: plegamiento 3D de una cadena (S–S, H, iónicos, hidrofóbicos)", p: 0.5 },
+    { t: "Cuaternaria: varias cadenas (ejemplo: hemoglobina)", p: 0.4 },
+    { t: "Lenguaje científico correcto y orden", p: 0.2 }], ["Primaria.", "Secundaria.", "Terciaria.", "Cuaternaria."], "Primaria → secundaria → terciaria → cuaternaria");
+  R("d18", "¿Qué es la desnaturalización de una proteína? Indica causas, qué se rompe y consecuencias. (Pregunta tipo PAU)", [
+    { t: "Definición: pérdida de la estructura 3D con la secuencia intacta", p: 0.5 },
+    { t: "Causas: calor, pH extremo, disolventes, urea, metales pesados", p: 0.4 },
+    { t: "Se rompen enlaces débiles; no los peptídicos", p: 0.4 },
+    { t: "Consecuencia: pérdida de función (y de solubilidad); ejemplo del huevo", p: 0.4 },
+    { t: "Puede ser reversible (renaturalización) o irreversible", p: 0.3 }], ["Definición.", "Causas.", "Enlaces.", "Consecuencias y reversibilidad."], "Pérdida de forma y función sin romper la primaria");
+  R("d19", "Compara la inhibición competitiva y la no competitiva, y explica cómo cambia la gráfica de Michaelis–Menten en cada caso. (Pregunta tipo PAU)", [
+    { t: "Competitiva: inhibidor parecido al sustrato que ocupa el sitio activo", p: 0.5 },
+    { t: "No competitiva: se une a otro sitio y cambia la forma de la enzima", p: 0.5 },
+    { t: "Efectos: competitiva sube la Km y mantiene la Vmax; no competitiva baja la Vmax y mantiene la Km", p: 0.4 },
+    { t: "La competitiva se supera con más sustrato; la no competitiva no", p: 0.3 },
+    { t: "Ejemplo correcto de alguna", p: 0.3 }], ["Competitiva.", "No competitiva.", "Gráfica.", "Con más sustrato."], "Competitiva: Km ↑; no competitiva: Vmax ↓");
+  R("d20", "Explica cómo influyen la concentración de sustrato, la temperatura, el pH y los inhibidores en la actividad de una enzima. (Pregunta tipo PAU)", [
+    { t: "Sustrato: aumenta la velocidad hasta la saturación (Vmax)", p: 0.4 },
+    { t: "Concentración de enzima: más enzima, mayor Vmax", p: 0.3 },
+    { t: "Temperatura: sube hasta el óptimo y cae por desnaturalización", p: 0.5 },
+    { t: "pH: curva en campana con óptimo propio de cada enzima", p: 0.5 },
+    { t: "Inhibidores y regulación (competitivo, no competitivo, alostérico)", p: 0.3 }], ["Sustrato y enzima.", "Temperatura.", "pH.", "Inhibidores."], "Saturación; óptimo de T y pH; inhibidores");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Niveles de estructura", ancha: true,
+      tabla: { cab: ["Nivel", "Enlace", "Ejemplo"], filas: [
+        ["Primaria", "peptídico", "secuencia"],
+        ["Secundaria", "puentes de H", "hélice α, lámina β"],
+        ["Terciaria", "S–S, iónico, hidrofóbico", "mioglobina"],
+        ["Cuaternaria", "enlaces débiles", "hemoglobina"]
+      ] } },
+    { titulo: "Del aminoácido al péptido",
+      pasos: ["Aminoácido: H₂N–CH(R)–COOH.", "El –COOH de uno reacciona con el –NH₂ del siguiente.", "Se forma –CO–NH– y sale H₂O.", "n aminoácidos → n − 1 enlaces y n − 1 H₂O."],
+      nota: "La secuencia se escribe del extremo N al extremo C." },
+    { titulo: "Michaelis–Menten",
+      tabla: { cab: ["Concepto", "Significado"], filas: [
+        ["Vmax", "todas las enzimas saturadas"],
+        ["Km", "[S] a Vmax/2"],
+        ["Km baja", "alta afinidad"],
+        ["[E] ×2", "Vmax ×2, Km igual"]
+      ] } },
+    { titulo: "Inhibición enzimática", ancha: true,
+      tabla: { cab: ["Tipo", "Dónde se une", "Vmax", "Km"], filas: [
+        ["Competitiva", "sitio activo", "igual", "sube"],
+        ["No competitiva", "otro sitio", "baja", "igual"],
+        ["Irreversible", "covalente", "baja", "—"]
+      ] } },
+    { titulo: "Temperatura y pH",
+      tabla: { cab: ["Factor", "Efecto"], filas: [
+        ["T baja", "lenta, sin daño"],
+        ["T óptima", "máxima actividad"],
+        ["T alta", "desnaturaliza"],
+        ["pH óptimo", "propio de cada enzima"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "La enzima se consume en la reacción", bien: "Se recupera intacta", por: "E + S → ES → E + P." },
+        { mal: "La desnaturalización rompe los enlaces peptídicos", bien: "Rompe enlaces débiles", por: "La primaria se conserva." },
+        { mal: "Más sustrato, más velocidad sin límite", bien: "Se alcanza la Vmax", por: "Saturación." },
+        { mal: "El frío desnaturaliza las enzimas", bien: "El frío solo las ralentiza", por: "El calor excesivo es lo que las destruye." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t4", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio4a.secciones,
+    nuevas: B.parte.bio4a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
