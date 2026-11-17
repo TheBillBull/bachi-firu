@@ -55,18 +55,18 @@
 
   B.w.bio_meselson = function (host) {
     var cuerpo = B.caja(host, "Pruébalo", "El tubo de Meselson y Stahl");
-    cuerpo.innerHTML = '<p class="w-intro">Elige un modelo y avanza las generaciones en medio con <sup>14</sup>N. Cada tubo muestra dónde se queda el ADN al centrifugar: arriba el ligero, abajo el pesado. Compara con lo que se vio de verdad.</p>' +
+    cuerpo.innerHTML = '<p class="w-intro">Elige un modelo y avanza las generaciones (cultivo en medio con <sup>14</sup>N, tras partir de ADN pesado). Cada tubo muestra dónde se queda el ADN al centrifugar: arriba el ligero, abajo el pesado. Compara con lo que se vio de verdad.</p>' +
       '<div data-m></div><div data-ctl></div><div class="bio11-dibujo"></div><div class="bio11-dato"></div><div class="bio11-veredicto"></div>' +
       '<p class="w-pie">Densidades de referencia: ADN <sup>15</sup>N = 1,724 g/mL y ADN <sup>14</sup>N = 1,710 g/mL; el híbrido queda en el punto medio (1,717). El grosor de cada banda es proporcional a la fracción de moléculas.</p>';
     var mod = "sem", gen = 1;
     var dib = cuerpo.querySelector(".bio11-dibujo"), dat = cuerpo.querySelector(".bio11-dato"), ver = cuerpo.querySelector(".bio11-veredicto");
     U.fichas(cuerpo.querySelector("[data-m]"), [{ k: "con", t: "Conservativo" }, { k: "sem", t: "Semiconservativo" }, { k: "dis", t: "Dispersivo" }], mod, function (k) { mod = k; pinta(); });
-    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Generaciones en <sup>14</sup>N", min: 0, max: 4, step: 1, val: gen, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { gen = Math.round(v); pinta(); } });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Generación", min: 0, max: 4, step: 1, val: gen, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { gen = Math.round(v); pinta(); } });
     function y(d) { return 34 + (d - 1.708) / (1.726 - 1.708) * 110; }
     function pct(x) { return B.fmt(100 * x, 1) + " %"; }
     function pinta() {
       var s = '<svg class="bio11-svg" viewBox="0 0 400 190" role="img" aria-label="Tubos de centrifugación por generación" style="max-width:440px">' +
-        '<text class="b11-peq" x="4" y="14">más ligero ↑</text><text class="b11-peq" x="4" y="184">más pesado ↓</text>';
+        '<text class="b11-peq" x="4" y="32">ligero ↑</text><text class="b11-peq" x="4" y="165">pesado ↓</text>';
       for (var g = 0; g <= gen; g++) {
         var x = 62 + g * 66;
         s += '<rect class="b11-tubo" x="' + x + '" y="20" width="44" height="150" rx="14"/>';
@@ -114,7 +114,7 @@
       '<p class="w-pie">Tamaños orientativos de los libros de texto: fragmentos de ≈ 1500 nt en procariotas y ≈ 200 nt en eucariotas. Cebadores = 1 (hebra adelantada) + 1 por fragmento de la retrasada.</p>';
     var tipo = "euc", L = TIPOS.euc.ini;
     var dib = cuerpo.querySelector(".bio11-dibujo"), dat = cuerpo.querySelector(".bio11-dato"), ver = cuerpo.querySelector(".bio11-veredicto");
-    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Longitud replicada", min: 0, max: TIPOS.euc.max, step: TIPOS.euc.paso, val: L, fmt: function (v) { return B.fmt(v, 0) + " nt"; }, on: function (v) { L = v; pinta(); } });
+    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Replicado", min: 0, max: TIPOS.euc.max, step: TIPOS.euc.paso, val: L, fmt: function (v) { return B.fmt(v, 0) + " nt"; }, on: function (v) { L = v; pinta(); } });
     U.fichas(cuerpo.querySelector("[data-t]"), [{ k: "euc", t: "Eucariota" }, { k: "pro", t: "Procariota" }], tipo, function (k) {
       tipo = k; var t = TIPOS[k];
       sl.input.max = t.max; sl.input.step = t.paso; L = t.ini; sl.set(L); pinta();
@@ -135,7 +135,7 @@
           '<rect class="b11-cebo" x="' + (b - 4).toFixed(1) + '" y="124" width="4" height="9"/>';
       }
       s += '<text class="b11-peq" x="' + (xf + 4).toFixed(1) + '" y="86">helicasa</text>';
-      s += '<text class="b11-peq" x="4" y="182">rojo oscuro = cebador de ARN · azul = fragmento hecho · rojo claro = en construcción</text></svg>';
+      s += '<text class="b11-peq" x="4" y="170">rojo oscuro = cebador de ARN · azul = fragmento hecho</text><text class="b11-peq" x="4" y="184">rojo claro = fragmento en construcción</text></svg>';
       dib.innerHTML = s;
       dat.innerHTML = '<div><b>Hebra adelantada</b>' + B.fmt(L, 0) + ' nt, de una vez (1 cebador)</div>' +
         '<div><b>Hebra retrasada</b>' + r.total + ' fragmento' + (r.total === 1 ? "" : "s") + ' de Okazaki' + (r.total > r.completos ? " (" + r.completos + " completo" + (r.completos === 1 ? "" : "s") + " y 1 en construcción)" : "") + '</div>' +
