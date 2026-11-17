@@ -6010,6 +6010,247 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 13 (Mutaciones e ingeniería genética)
+   bio_mutacion:    introduce una mutación génica (sustitución, inserción o deleción) en un trozo del gen de la β-globina
+                    y mira qué pasa con la proteína (silenciosa, cambio de sentido, sin sentido, desplazamiento del marco).
+   bio_restriccion: digiere con enzimas de restricción un ADN de 6000 pb (lineal o circular) y mira los fragmentos y el gel.
+   bio_pcr:         copias de ADN tras n ciclos de PCR (ideal o con eficiencia < 100 %).
+   Estilos inyectados desde aquí. Los números los recalcula herramientas/verificar_bio2_t13.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio13-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio13-estilos";
+    s.textContent =
+      ".bio13-svg{display:block;width:100%;max-width:560px;height:auto;margin:6px auto}" +
+      ".bio13-svg text{font:600 12px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio13-svg .b13-peq{font-size:10.5px;fill:var(--ink-faint);font-weight:500}" +
+      ".bio13-svg .b13-gel{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio13-svg .b13-pozo{fill:var(--bg,var(--sheet));stroke:var(--line);stroke-width:1}" +
+      ".bio13-svg .b13-banda{fill:var(--pen)} .bio13-svg .b13-banda.mk{fill:var(--ink-faint)}" +
+      ".bio13-svg .b13-barra{fill:var(--pen)} .bio13-svg .b13-barra.on{fill:var(--ok)}" +
+      ".bio13-svg .b13-eje{stroke:var(--line);stroke-width:1.5}" +
+      ".bio13-sec{margin:6px 0;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font:600 14px/1.9 var(--mono,ui-monospace,monospace);color:var(--ink);overflow-wrap:anywhere}" +
+      ".bio13-sec .cod{display:inline-block;margin-right:7px}" +
+      ".bio13-sec .mal{color:var(--red);text-decoration:underline}" +
+      ".bio13-sec .ins{color:var(--red);background:var(--red-soft)}" +
+      ".bio13-sec .rot{color:var(--ink-faint);font-weight:500;font-family:var(--body,sans-serif);font-size:12px;margin-right:6px}" +
+      ".bio13-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio13-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio13-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio13-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio13-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio13-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+      "@media(max-width:520px){.bio13-dato{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  // ------------------------------------------------------------------ MUTACIONES GÉNICAS
+  // Código genético estándar: orden U, C, A, G para las tres posiciones (una letra por aminoácido; * = parada).
+  var TABLA = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
+  var BASES = "UCAG";
+  var TRES = { F: "Phe", L: "Leu", S: "Ser", Y: "Tyr", "*": "STOP", C: "Cys", W: "Trp", P: "Pro", H: "His", Q: "Gln", R: "Arg", I: "Ile", M: "Met", T: "Thr", N: "Asn", K: "Lys", V: "Val", A: "Ala", D: "Asp", E: "Glu", G: "Gly" };
+  function aa(cod) { return TABLA.charAt(BASES.indexOf(cod[0]) * 16 + BASES.indexOf(cod[1]) * 4 + BASES.indexOf(cod[2])); }
+  // mRNA de ejemplo: los 8 primeros codones del gen de la β-globina humana (Met-Val-His-Leu-Thr-Pro-Glu-Glu) y un codón de parada
+  var SEQ = "AUGGUGCACCUGACUCCUGAGGAGUAA";
+  function traduce(s) {                          // → { aas: [..], parada: bool, completo: bool }
+    var r = [], i;
+    for (i = 0; i + 3 <= s.length; i += 3) {
+      var a = aa(s.substr(i, 3));
+      if (a === "*") return { aas: r, parada: true, resto: s.length - i - 3 };
+      r.push(a);
+    }
+    return { aas: r, parada: false, resto: s.length - i };
+  }
+  function muta(modo, pos, base) {               // pos: 1..27 (inserción: antes de ese nucleótido)
+    var p = pos - 1;
+    if (modo === "sub") return SEQ.slice(0, p) + base + SEQ.slice(p + 1);
+    if (modo === "ins") return SEQ.slice(0, p) + base + SEQ.slice(p);
+    return SEQ.slice(0, p) + SEQ.slice(p + 1);
+  }
+  function nombres(t) { return t.aas.map(function (a) { return TRES[a]; }).join("–"); }
+
+  B.w.bio_mutacion = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Provoca una mutación génica");
+    cuerpo.innerHTML = '<p class="w-intro">Este es el principio del ARNm de la β-globina (una cadena de la hemoglobina). Elige el tipo de cambio, la posición y la base, y mira qué pasa con la proteína. Los botones de «casos» reproducen ejemplos reales.</p>' +
+      '<div data-c></div><div data-m></div><div data-b></div><div data-ctl></div>' +
+      '<div class="bio13-sec bio13-orig"></div><div class="bio13-sec bio13-mut"></div><div class="bio13-dato"></div><div class="bio13-veredicto"></div>' +
+      '<p class="w-pie">Se lee en tripletes desde el AUG. Las posiciones se cuentan desde el primer nucleótido (1-27). La inserción coloca la base nueva justo antes del nucleótido elegido. Código genético estándar.</p>';
+    var modo = "sub", pos = 20, base = "U";
+    var ori = cuerpo.querySelector(".bio13-orig"), mut = cuerpo.querySelector(".bio13-mut"), dat = cuerpo.querySelector(".bio13-dato"), ver = cuerpo.querySelector(".bio13-veredicto");
+    var fCas, fModo, fBase, sl;
+    var CASOS = { falc: ["sub", 20, "U"], sil: ["sub", 21, "A"], sin: ["sub", 19, "U"], mar: ["ins", 7, "G"], del: ["del", 12, "U"] };
+    fCas = U.fichas(cuerpo.querySelector("[data-c]"), [{ k: "falc", t: "Anemia falciforme" }, { k: "sil", t: "Silenciosa" }, { k: "sin", t: "Sin sentido" }, { k: "mar", t: "Inserción" }, { k: "del", t: "Deleción" }], "", function (k) {
+      var c = CASOS[k]; modo = c[0]; pos = c[1]; base = c[2]; sync(); pinta();
+    });
+    function pintaChips() {
+      fModo = U.fichas(cuerpo.querySelector("[data-m]"), [{ k: "sub", t: "Sustitución" }, { k: "ins", t: "Inserción" }, { k: "del", t: "Deleción" }], modo, function (k) { modo = k; limpia(); pinta(); });
+      fBase = U.fichas(cuerpo.querySelector("[data-b]"), [{ k: "A", t: "A" }, { k: "U", t: "U" }, { k: "G", t: "G" }, { k: "C", t: "C" }], base, function (k) { base = k; limpia(); pinta(); });
+    }
+    var enCaso = false;
+    function limpia() {                          // al tocar algo a mano, el «caso» deja de estar marcado
+      if (enCaso) return;
+      Array.prototype.forEach.call(cuerpo.querySelectorAll("[data-c] .chip-btn"), function (c) { c.classList.remove("on"); c.setAttribute("aria-pressed", "false"); });
+    }
+    function sync() {                            // vuelve a pintar chips y deslizador tras un caso
+      pintaChips();
+      enCaso = true; sl.value = pos; sl.dispatchEvent(new Event("input")); enCaso = false;
+    }
+    pintaChips();
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Posición", min: 1, max: 27, step: 1, val: pos, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { pos = Math.round(v); limpia(); pinta(); } });
+    sl = cuerpo.querySelector("input[type=range]");
+    function fmtSeq(s, marca) {                  // tripletes; marca = {tipo, i} para resaltar
+      var h = "";
+      for (var i = 0; i < s.length; i += 3) {
+        var c = s.substr(i, 3).split("").map(function (ch, k) {
+          var j = i + k;
+          if (marca && marca.tipo === "sub" && j === marca.i) return '<span class="mal">' + ch + "</span>";
+          if (marca && marca.tipo === "ins" && j === marca.i) return '<span class="ins">' + ch + "</span>";
+          return ch;
+        }).join("");
+        h += '<span class="cod">' + c + "</span>";
+      }
+      return h;
+    }
+    function pinta() {
+      var orig = traduce(SEQ), m2 = muta(modo, pos, base), t = traduce(m2);
+      var marca = modo === "del" ? null : { tipo: modo, i: pos - 1 };
+      ori.innerHTML = '<span class="rot">original</span>' + fmtSeq(SEQ, null) + '<br><span class="rot">proteína</span>' + nombres(orig) + " (parada)";
+      var iguales = m2 === SEQ;
+      var sinAUG = m2.substr(0, 3) !== "AUG";
+      var prot = sinAUG ? "no se inicia (falta el AUG)" : (nombres(t) || "—") + (t.parada ? " (parada)" : "…");
+      mut.innerHTML = '<span class="rot">mutante' + (modo === "del" ? " (se quita el nucleótido " + pos + ")" : "") + '</span>' + fmtSeq(m2, marca) + '<br><span class="rot">proteína</span>' + prot;
+      var cls = "", txt = "";
+      var longMut = sinAUG ? 0 : t.aas.length;
+      if (iguales) { txt = "No hay cambio: has puesto la misma base que ya estaba."; }
+      else if (modo !== "sub") {
+        cls = "mal"; txt = "<b>Mutación por desplazamiento del marco de lectura (" + (modo === "ins" ? "inserción" : "deleción") + " de 1 base).</b> Desde el cambio, todos los codones se leen distinto: " +
+          (sinAUG ? "además, el AUG ha desaparecido." : (t.parada ? "la proteína acaba antes o después de lo normal." : "no aparece ningún codón de parada en este fragmento y la proteína seguiría creciendo.")) + " Suele ser más grave que una sustitución.";
+      } else if (sinAUG) {
+        cls = "mal"; txt = "<b>Se destruye el codón de inicio</b>: sin AUG al principio la traducción no empieza donde debe.";
+      } else {
+        var c0 = SEQ.substr(Math.floor((pos - 1) / 3) * 3, 3), c1 = m2.substr(Math.floor((pos - 1) / 3) * 3, 3);
+        var a0 = aa(c0), a1 = aa(c1), nc = Math.floor((pos - 1) / 3) + 1;
+        if (a0 === a1) { cls = "ok"; txt = "<b>Mutación silenciosa</b>: " + c0 + " → " + c1 + " sigue codificando " + TRES[a0] + ". El código genético es degenerado."; }
+        else if (a1 === "*") { cls = "mal"; txt = "<b>Mutación sin sentido</b>: " + c0 + " (" + TRES[a0] + ") → " + c1 + " (parada). La proteína se corta tras " + (nc - 1) + " aminoácidos."; }
+        else if (a0 === "*") { cls = "mal"; txt = "<b>Se pierde la parada</b>: " + c0 + " → " + c1 + " (" + TRES[a1] + "). La proteína sería más larga de lo normal."; }
+        else { cls = "mal"; txt = "<b>Mutación de cambio de sentido</b> en el codón " + nc + ": " + c0 + " (" + TRES[a0] + ") → " + c1 + " (" + TRES[a1] + ")." + (c0 === "GAG" && c1 === "GUG" ? " Es la mutación de la <b>anemia falciforme</b>: Glu → Val en la β-globina." : ""); }
+      }
+      dat.innerHTML = '<div><b>Aminoácidos de la proteína original</b>' + orig.aas.length + '</div><div><b>Aminoácidos de la proteína mutante</b>' + longMut + (t.parada || sinAUG ? "" : " (sin parada)") + '</div>';
+      ver.className = "bio13-veredicto" + (cls ? " " + cls : "");
+      ver.innerHTML = txt;
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ ENZIMAS DE RESTRICCIÓN
+  var LONG = 6000;
+  var ENZ = {
+    eco: { nom: "EcoRI", sitio: "G↓AATTC", pos: [1000, 3000], extremo: "cohesivos" },
+    bam: { nom: "BamHI", sitio: "G↓GATCC", pos: [2200], extremo: "cohesivos" },
+    hin: { nom: "HindIII", sitio: "A↓AGCTT", pos: [4800], extremo: "cohesivos" }
+  };
+  function cortes(keys) {
+    var c = [];
+    keys.forEach(function (k) { c = c.concat(ENZ[k].pos); });
+    return c.sort(function (a, b) { return a - b; });
+  }
+  function fragmentos(c, circular) {
+    var f = [], i;
+    if (!c.length) return [LONG];
+    if (circular) {
+      for (i = 0; i < c.length - 1; i++) f.push(c[i + 1] - c[i]);
+      f.push(LONG - c[c.length - 1] + c[0]);
+    } else {
+      f.push(c[0]);
+      for (i = 0; i < c.length - 1; i++) f.push(c[i + 1] - c[i]);
+      f.push(LONG - c[c.length - 1]);
+    }
+    return f;
+  }
+  function milesp(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  B.w.bio_restriccion = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Digestión con enzimas de restricción");
+    cuerpo.innerHTML = '<p class="w-intro">Un ADN de 6000 pb (pares de bases) tiene sitios de corte de tres enzimas: EcoRI (en 1000 y 3000), BamHI (en 2200) y HindIII (en 4800). Elige la enzima o la mezcla y mira los fragmentos y cómo saldrían en un gel de electroforesis.</p>' +
+      '<div data-f></div><div data-t></div><div class="bio13-dibujo"></div><div class="bio13-dato"></div><div class="bio13-veredicto"></div>' +
+      '<p class="w-pie">Las posiciones son las del corte, en pb desde el extremo izquierdo de la molécula lineal. En el gel, los fragmentos más cortos migran más lejos hacia el polo positivo (+). Dos fragmentos del mismo tamaño forman una sola banda más intensa.</p>';
+    var ens = "eco", forma = "lin";
+    var dib = cuerpo.querySelector(".bio13-dibujo"), dat = cuerpo.querySelector(".bio13-dato"), ver = cuerpo.querySelector(".bio13-veredicto");
+    var COMB = { eco: ["eco"], bam: ["bam"], hin: ["hin"], eb: ["eco", "bam"], eh: ["eco", "hin"], tres: ["eco", "bam", "hin"] };
+    U.fichas(cuerpo.querySelector("[data-f]"), [{ k: "eco", t: "EcoRI" }, { k: "bam", t: "BamHI" }, { k: "hin", t: "HindIII" }, { k: "eb", t: "EcoRI + BamHI" }, { k: "eh", t: "EcoRI + HindIII" }, { k: "tres", t: "Las tres" }], ens, function (k) { ens = k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-t]"), [{ k: "lin", t: "ADN lineal" }, { k: "cir", t: "ADN circular (plásmido)" }], forma, function (k) { forma = k; pinta(); });
+    function yb(n) { var a = Math.log(6200), b = Math.log(400); return 30 + (a - Math.log(n)) / (a - b) * 130; }
+    function banda(x, n, cls) { return '<rect class="b13-banda ' + (cls || "") + '" x="' + x + '" y="' + yb(n).toFixed(1) + '" width="46" height="5" rx="2"/>'; }
+    function pinta() {
+      var keys = COMB[ens], c = cortes(keys), circ = forma === "cir", fr = fragmentos(c, circ);
+      var ord = fr.slice().sort(function (a, b) { return b - a; });
+      var dif = []; ord.forEach(function (x) { if (dif.indexOf(x) < 0) dif.push(x); });
+      var s = '<svg class="bio13-svg" viewBox="0 0 400 190" role="img" aria-label="Gel de electroforesis" style="max-width:440px"><rect class="b13-gel" x="20" y="14" width="360" height="164" rx="8"/>';
+      var carriles = [{ t: "marcador", m: [6000, 4000, 3000, 2000, 1000, 500], mk: true }, { t: "sin cortar", m: [LONG] }, { t: "digestión", m: dif }];
+      carriles.forEach(function (ca, i) {
+        var x = 46 + i * 112;
+        s += '<rect class="b13-pozo" x="' + x + '" y="20" width="46" height="6" rx="2"/>';
+        ca.m.forEach(function (n) { s += banda(x, n, ca.mk ? "mk" : ""); if (ca.mk) s += '<text class="b13-peq" x="' + (x + 50) + '" y="' + (yb(n) + 5).toFixed(1) + '">' + n + '</text>'; });
+        s += '<text class="b13-peq" x="' + (x + 23) + '" y="190" text-anchor="middle">' + ca.t + '</text>';
+      });
+      dib.innerHTML = s + "</svg>";
+      var lista = dif.map(function (x) { var n = fr.filter(function (y) { return y === x; }).length; return milesp(x) + " pb" + (n > 1 ? " (×" + n + ", una sola banda)" : ""); }).join(" · ");
+      dat.innerHTML = '<div><b>Cortes</b>' + c.length + ' (en ' + c.join(", ") + ')</div><div><b>Fragmentos</b>' + fr.length + (circ ? " (circular: tantos como cortes)" : " (lineal: cortes + 1)") + '</div><div><b>Tamaños</b>' + lista + '</div><div><b>Suma</b>' + milesp(fr.reduce(function (a, b) { return a + b; }, 0)) + ' pb (= la molécula entera)</div>';
+      var dobles = ord.length - dif.length;
+      ver.className = "bio13-veredicto" + (dobles ? " mal" : " ok");
+      ver.textContent = (circ ? "Un plásmido circular con n sitios da n fragmentos (con 1 solo corte, se linealiza). " : "Una molécula lineal con n sitios da n + 1 fragmentos. ") +
+        (dobles ? "Ojo: hay " + (dobles + 1 > 2 ? "varios fragmentos" : "dos fragmentos") + " del mismo tamaño: en el gel solo ves " + dif.length + " bandas aunque haya " + fr.length + " fragmentos." : "Todas las bandas distintas: en el gel ves tantas bandas como fragmentos.");
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ PCR
+  function copias(n0, n, e) { return n0 * Math.pow(1 + e, n); }
+  function sci(x) {
+    if (x < 1e12) return milesp(x);
+    var ex = Math.floor(Math.log10(x)), m = x / Math.pow(10, ex);
+    return B.fmt(m, 2) + " · 10<sup>" + ex + "</sup>";
+  }
+
+  B.w.bio_pcr = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "PCR: cuántas copias hay tras n ciclos");
+    cuerpo.innerHTML = '<p class="w-intro">Cada ciclo de PCR tiene tres pasos (95 °C, 55 °C y 72 °C) y, si todo va perfecto, duplica el número de copias. Cambia los ciclos, las moléculas de partida y la eficiencia.</p>' +
+      '<div data-n0></div><div data-e></div><div data-ctl></div><div class="bio13-dibujo"></div><div class="bio13-dato"></div><div class="bio13-veredicto"></div>' +
+      '<p class="w-pie">Modelo: copias = N₀ · (1 + eficiencia)<sup>n</sup>. Moléculas del tamaño exacto (solo caso ideal) = N₀ · (2<sup>n</sup> − 2n): los primeros productos de longitud exacta aparecen en el ciclo 3. Ciclo de ejemplo: 30 s a 95 °C + 30 s a 55 °C + 60 s a 72 °C = 2 min. El gráfico usa escala logarítmica.</p>';
+    var n0 = 1, ef = 1, n = 10;
+    var dib = cuerpo.querySelector(".bio13-dibujo"), dat = cuerpo.querySelector(".bio13-dato"), ver = cuerpo.querySelector(".bio13-veredicto");
+    U.fichas(cuerpo.querySelector("[data-n0]"), [{ k: "1", t: "1 molécula" }, { k: "10", t: "10 moléculas" }, { k: "100", t: "100 moléculas" }], "1", function (k) { n0 = +k; pinta(); });
+    U.fichas(cuerpo.querySelector("[data-e]"), [{ k: "1", t: "Eficiencia 100 %" }, { k: "0.9", t: "90 %" }, { k: "0.8", t: "80 %" }], "1", function (k) { ef = +k; pinta(); });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Ciclos", min: 0, max: 35, step: 1, val: n, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { n = Math.round(v); pinta(); } });
+    function pinta() {
+      var tot = copias(n0, n, ef), maxl = Math.log10(copias(100, 35, 1)), s = '<svg class="bio13-svg" viewBox="0 0 400 140" role="img" aria-label="Copias por ciclo (escala logarítmica)" style="max-width:440px"><line class="b13-eje" x1="20" y1="120" x2="390" y2="120"/>';
+      for (var c = 0; c <= 35; c++) {
+        var h = Math.max(1, 100 * Math.log10(Math.max(1, copias(n0, c, ef))) / maxl);
+        s += '<rect class="b13-barra' + (c <= n ? " on" : "") + '" x="' + (22 + c * 10.2).toFixed(1) + '" y="' + (120 - h).toFixed(1) + '" width="8" height="' + h.toFixed(1) + '" rx="1.5" style="opacity:' + (c <= n ? 1 : 0.25) + '"/>';
+      }
+      s += '<text class="b13-peq" x="22" y="134">0</text><text class="b13-peq" x="384" y="134" text-anchor="end">35 ciclos</text><text class="b13-peq" x="22" y="12">log(copias)</text></svg>';
+      dib.innerHTML = s;
+      var ex = ef === 1 ? n0 * (Math.pow(2, n) - 2 * n) : null;
+      dat.innerHTML = '<div><b>Copias de la región diana</b>' + sci(tot) + '</div><div><b>Duración aproximada</b>' + (n * 2) + ' min (' + n + ' ciclos de 2 min)</div>' +
+        '<div><b>Del tamaño exacto</b>' + (ex === null ? "— (solo se calcula con eficiencia 100 %)" : sci(ex)) + '</div><div><b>Factor de amplificación</b>×' + sci(tot / n0) + '</div>';
+      ver.className = "bio13-veredicto" + (n < 3 ? "" : (n > 30 ? " mal" : " ok"));
+      ver.innerHTML = n === 0 ? "Sin ciclos: solo está el ADN de partida." :
+        n < 3 ? "Todavía no hay moléculas del tamaño exacto: se necesitan al menos 3 ciclos (los dos primeros solo dan productos más largos)." :
+        n > 30 ? "En la práctica, pasados ≈ 30-35 ciclos se agotan cebadores y nucleótidos y la Taq se cansa: se llega a una meseta y deja de duplicarse. Más ciclos no sirven." :
+        "Crecimiento exponencial: con eficiencia 100 %, cada ciclo duplica. Con eficiencia menor, el crecimiento por ciclo es (1 + eficiencia) y la diferencia se acumula muchísimo.";
+    }
+    pinta();
+  };
+
+  // se exponen para depuración y para el verificador
+  B.bio13 = { aa: aa, traduce: traduce, muta: muta, fragmentos: fragmentos, cortes: cortes, copias: copias, TABLA: TABLA, SEQ: SEQ };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · Biología (2.º Bach.), tema 2: Glúcidos
    bio2_azucar: un monosacárido en cadena abierta (proyección de Fischer) y en anillo (Haworth), con anómeros α y β.
    bio2_disac: se eligen dos monosacáridos, se unen con enlace O-glucosídico (−H₂O) y sale el disacárido.
@@ -37221,6 +37462,836 @@
     vistazo: vistazo,
     secciones: B.parte.bio12a.secciones,
     nuevas: B.parte.bio12a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 13: Mutaciones e ingeniería genética
+   (parte A: teoría de mutaciones y de ADN recombinante. Parte B, bio2_t13b.js: PCR, clonación, transgénicos, CRISPR,
+   terapia génica, bioética y PAU. Parte C, bio2_t13c.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t13.js (bio_mutacion, bio_restriccion, bio_pcr).
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Clasificar mutaciones: génica / cromosómica / genómica y, dentro de cada una, el subtipo exacto → secciones 1-4 + ejercicios.
+   2. Efecto de una sustitución sobre la proteína (silenciosa, cambio de sentido, sin sentido) con la tabla del código → sección 2 + widget bio_mutacion.
+   3. Inserción/deleción y desplazamiento del marco: cuándo es grave y cuándo no (múltiplos de 3) → sección 2 + widget bio_mutacion.
+   4. Aneuploidías y poliploidías: cariotipo, no disyunción y cuentas de cromosomas (2n ± 1, 3n) → sección 4.
+   5. Agentes mutágenos físicos, químicos y biológicos y su mecanismo (dímeros de timina, análogos, intercalantes) → sección 6.
+   6. Mutación, evolución y cáncer (oncogenes, genes supresores, acumulación de mutaciones) → sección 7.
+   7. Enzimas de restricción: palíndromos, extremos cohesivos/romos y fragmentos de un gel → sección 8 + widget bio_restriccion.
+   8. ADN recombinante, vectores y selección de recombinantes (resistencia a antibiótico, azul/blanco) → sección 9.
+   9. PCR: etapas, componentes, cálculo de copias (2ⁿ) y usos → sección 10 + widget bio_pcr.
+   10. CRISPR-Cas9, terapia génica, transgénicos y clonación, con ventajas, riesgos y bioética → secciones 11-12.
+   Convenciones declaradas: tasa de mutación tras corrección y reparación ≈ 10⁻⁹ por base y replicación (la de T11);
+   genoma humano diploide ≈ 6,4·10⁹ pb; sitios de restricción al azar cada 4ⁿ pb (n = longitud del sitio, bases equiprobables);
+   PCR ideal duplica en cada ciclo (el producto del tamaño exacto es 2ⁿ − 2n); ciclo de PCR de 2 min (30 s + 30 s + 60 s);
+   ADN de ejemplo de 6000 pb con sitios EcoRI en 1000 y 3000, BamHI en 2200 y HindIII en 4800.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t13/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }   // evita que el resaltador de variables tiña las fórmulas
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Concepto de mutación
+  secciones[0] = env(
+    "<h5>Para qué sirve este tema</h5>" +
+    "<p>Este tema junta dos ideas que parecen opuestas y son la misma: <b>el ADN puede cambiar</b> (mutaciones) y <b>nosotros podemos cambiarlo a propósito</b> (ingeniería genética). Para entender cualquiera de las dos tienes que dominar lo que viste antes: la <b>estructura del ADN</b> (T5), su <b>copia</b> y sus errores (T11) y el <b>código genético</b> con el paso ADN → ARN → proteína (T12).</p>" +
+    "<h5>Mutación frente a error y frente a recombinación</h5>" +
+    "<p>Tres palabras que no son lo mismo y que el examen suele mezclar:</p>" +
+    tabla(["Concepto", "Qué es", "¿Se hereda?"], [
+      ["<b>Error de replicación</b>", "una base mal puesta al copiar el ADN (T11); casi todos los corrige la polimerasa o los sistemas de reparación", "no, si se corrige"],
+      ["<b>Mutación</b>", "cambio en el material genético que <b>no se ha corregido</b> y queda fijado", "sí, a las células hijas (y a la descendencia si es en gametos)"],
+      ["<b>Recombinación</b>", "barajado de genes ya existentes (entrecruzamiento en meiosis, T7): no crea alelos nuevos", "sí"]
+    ], "q3t") +
+    "<p>La diferencia clave: la recombinación <b>mezcla</b> alelos que ya existen; solo la mutación <b>fabrica alelos nuevos</b>. Por eso la mutación es la <b>materia prima de la evolución</b> (T16).</p>" +
+    "<h5>Frecuencia y efectos</h5>" +
+    "<p>Gracias a la corrección de pruebas y a la reparación, la célula comete en la práctica una equivocación por cada unas 10<sup>9</sup> bases copiadas. Parece poco, pero el genoma diploide humano tiene unas 6,4·10<sup>9</sup> pares de bases: salen del orden de 6 errores nuevos por cada replicación completa de una célula (≈ 6,4 con esa tasa). En la práctica, estudios de genomas de padres e hijos cuentan unas <b>60-80 mutaciones nuevas</b> por persona respecto a sus progenitores; casi todas caen en ADN sin función conocida y no se notan.</p>" +
+    "<p>Según el efecto sobre el individuo, una mutación puede ser:</p>" +
+    "<ul><li><b>Perjudicial</b> (la mayoría de las que tienen efecto): rompen un gen que funcionaba. Algunas son letales.</li>" +
+    "<li><b>Neutra</b>: no cambia nada apreciable (por ejemplo, una mutación silenciosa o en una zona sin función).</li>" +
+    "<li><b>Beneficiosa</b>: muy raras, pero son las que la selección natural puede favorecer (por ejemplo, la persistencia de la lactasa en adultos).</li></ul>" +
+    "<p>Esto depende del <b>ambiente</b>: la mutación de la anemia falciforme es perjudicial en un lugar sin malaria y ventajosa (en heterocigosis) donde la malaria es frecuente. Lo veremos en la sección 7.</p>" +
+    "<h5>Mutaciones somáticas y germinales; espontáneas e inducidas</h5>" +
+    tabla(["Criterio", "Tipos", "Qué significa"], [
+      ["<b>Dónde ocurren</b>", "somática / germinal", "las somáticas afectan a una célula del cuerpo y a sus descendientes celulares (pueden causar cáncer) pero <b>no pasan a los hijos</b>; las germinales ocurren en las células que dan gametos y <b>sí se heredan</b>"],
+      ["<b>Cómo ocurren</b>", "espontánea / inducida", "las espontáneas son errores naturales (replicación, cambios químicos de las bases); las inducidas las provoca un <b>agente mutágeno</b> (sección 6)"]
+    ], "q3t") +
+    "<p>Un ejemplo para fijarlo: una mancha de nacimiento que sale por una mutación en una célula de la piel es <b>somática</b> (no se hereda); un hijo con la mutación de la fibrosis quística en <b>todas</b> sus células tiene una mutación <b>germinal</b> que viene de un óvulo o un espermatozoide.</p>" +
+    "<h5>Tres niveles</h5>" +
+    "<p>Las mutaciones se clasifican según el <b>tamaño del cambio</b>: <b>génicas</b> (un gen, hasta unas pocas bases), <b>cromosómicas</b> (la estructura de un cromosoma) y <b>genómicas</b> (el número de cromosomas). Las tres secciones siguientes las desarrollan una a una.</p>" +
+    tabla(["Tipo", "Qué cambia", "Ejemplo"], [
+      ["<b>Génica</b>", "la secuencia de bases de un gen", "anemia falciforme (GAG → GUG)"],
+      ["<b>Cromosómica</b>", "la estructura de un cromosoma", "síndrome del maullido de gato (deleción)"],
+      ["<b>Genómica</b>", "el número de cromosomas", "síndrome de Down (trisomía 21)"]
+    ], "q3t")
+  );
+
+  // ---------------------------------------------------------------- 2. Mutaciones génicas
+  secciones[1] = env(
+    "<h5>Tipos de cambio en el ADN</h5>" +
+    "<p>Una mutación génica es un cambio en la <b>secuencia de nucleótidos</b> de un gen. Hay dos grandes familias:</p>" +
+    "<ul><li><b>Sustitución</b>: una base se cambia por otra. Si una purina (A, G) se cambia por otra purina, o una pirimidina (C, T) por otra pirimidina, se llama <b>transición</b>; si se cambia una purina por una pirimidina o al revés, <b>transversión</b>. Las transiciones son más frecuentes.</li>" +
+    "<li><b>Inserción o deleción</b> (a veces «indel»): se añaden o se pierden bases.</li></ul>" +
+    "<h5>Efecto de una sustitución sobre la proteína</h5>" +
+    "<p>El código genético es <b>degenerado</b> (T12): hay 61 codones con sentido para 20 aminoácidos y 3 de parada. Por eso una sustitución puede tener tres resultados. Verás los tres con el codón <b>GAG</b> (ácido glutámico, Glu), el que está en la posición 6 de la β-globina madura:</p>" +
+    tabla(["Tipo", "Qué ocurre", "Ejemplo con GAG"], [
+      ["<b>Silenciosa</b> (sinónima)", "el codón nuevo codifica el <b>mismo</b> aminoácido", "GAG → GAA (sigue siendo Glu)"],
+      ["<b>Cambio de sentido</b> (<i>missense</i>)", "el codón nuevo codifica <b>otro</b> aminoácido", "GAG → GUG (Val): <b>anemia falciforme</b>"],
+      ["<b>Sin sentido</b> (<i>nonsense</i>)", "el codón nuevo es de <b>parada</b>: la proteína se corta antes de tiempo", "GAG → UAG (parada)"]
+    ], "q3t") +
+    "<p>Fíjate en que hablamos de codones del <b>ARNm</b> (con U). En el ADN el cambio equivalente es A → T en la hebra codificante: GAG → GTG. Para una proteína, lo que cuenta es qué aminoácido sale.</p>" +
+    "<h5>¿Cuáles son más graves?</h5>" +
+    "<p>Si recorres todos los cambios posibles de una sola base en los 61 codones con sentido hay <b>549</b> sustituciones: unas <b>134 (24 %) silenciosas</b>, <b>392 (71 %) de cambio de sentido</b> y <b>23 (4 %) sin sentido</b>. Las silenciosas se concentran en la <b>tercera base</b> del codón (por eso la llamamos «base oscilante»): por ejemplo, los cuatro codones CU<i>N</i> codifican Leu, así que cambiar la tercera base casi nunca altera el aminoácido. Una sustitución sin sentido suele ser <b>más grave</b> que una de cambio de sentido: la proteína queda truncada. Un cambio de sentido depende de <b>qué aminoácido</b> cambia y de <b>dónde</b>: cambiar Glu por Asp (ambos ácidos) casi no se nota; cambiar Glu (polar, con carga) por Val (apolar) en la superficie de la hemoglobina hace que las moléculas se peguen entre sí.</p>" +
+    ejemplo("Un caso real: la anemia falciforme", "En el gen de la β-globina, el codón 6 (contando sin la Met inicial) pasa de GAG a GUG en el ARNm. ¿Qué tipo de mutación es y qué consecuencia tiene?", [
+      "Un solo nucleótido cambia (A → U en el ARNm; A → T en el ADN): es una <b>mutación génica por sustitución</b> (una transversión, de purina a pirimidina).",
+      "GAG codifica Glu y GUG codifica Val: el aminoácido cambia, así que es de <b>cambio de sentido</b>.",
+      "La hemoglobina S (con Val) tiene una zona apolar en la superficie y, sin oxígeno, las moléculas se agrupan en fibras que deforman el glóbulo rojo en <b>forma de hoz</b>: se atascan en los capilares y se destruyen (anemia).",
+      "Es una enfermedad <b>recesiva</b>: la sufren los homocigotos (HbS/HbS). Pauling la llamó «enfermedad molecular» en 1949; Ingram (1956) demostró que la diferencia era <b>un solo aminoácido</b>."
+    ]) +
+    w("bio_mutacion") +
+    "<h5>Inserciones y deleciones: el marco de lectura</h5>" +
+    "<p>El ARNm se lee de tres en tres bases, sin separaciones (T12). Si se inserta o se pierde un número de bases que <b>no es múltiplo de 3</b> (1, 2, 4, 5…), todos los tripletes siguientes cambian: es una mutación por <b>desplazamiento del marco de lectura</b> (<i>frameshift</i>). La proteína resultante suele ser distinta desde ese punto en adelante y a menudo se corta pronto, porque en un marco cambiado aparece enseguida un codón de parada por casualidad (hay 3 de 64).</p>" +
+    "<p>Si se inserta o se pierde un <b>múltiplo de 3</b> (3, 6, 9 bases), el marco se conserva: la proteína gana o pierde aminoácidos enteros pero el resto se lee bien. Por eso la deleción de 3 pb de la fibrosis quística (ΔF508) quita solo una fenilalanina y, aun así, la proteína no funciona bien.</p>" +
+    ejemplo("Del desplazamiento del marco, paso a paso", "En el Tema 12 tradujiste el ARNm 5′-AUG UUU GGC UAA-3′ (Met–Phe–Gly–parada). Si se inserta una G justo tras la tercera base, ¿cómo queda la proteína?", [
+      "La secuencia nueva es AUG<b>G</b>UUUGGCUAA (se ha colado una G entre la G del AUG y la primera U).",
+      "Se vuelve a leer de tres en tres desde el AUG: AUG · GUU · UGG · CUA · A…",
+      "GUU = Val, UGG = Trp, CUA = Leu: la proteína empieza Met–Val–Trp–Leu… y <b>el UAA original ya no se lee como parada</b> (quedó partido entre dos tripletes).",
+      "Resultado: dos aminoácidos cambiados desde el punto de inserción y la proteína, si la secuencia sigue, ya no termina donde debía. Es una mutación por <b>inserción con cambio de marco</b>."
+    ]) +
+    ojo("Una sustitución cambia <b>un</b> codón como mucho; una inserción o deleción de 1 base cambia <b>todos</b> los codones que vienen después. Por eso, aunque las dos sean «cambios de una base», el desplazamiento del marco suele ser mucho más grave.") +
+    "<h5>Otros ejemplos reales (para citar en un examen)</h5>" +
+    tabla(["Enfermedad", "Gen", "Mutación"], [
+      ["<b>Anemia falciforme</b>", "β-globina (<i>HBB</i>)", "sustitución GAG → GUG (Glu → Val)"],
+      ["<b>β-talasemia</b> (un tipo común en el Mediterráneo)", "β-globina (<i>HBB</i>)", "sin sentido en el codón 39 (CAG → UAG): proteína truncada"],
+      ["<b>Fibrosis quística</b> (ΔF508)", "<i>CFTR</i>", "deleción de 3 pb (se pierde una Phe, el marco se conserva)"],
+      ["<b>Fenilcetonuria</b>", "<i>PAH</i>", "sustituciones de cambio de sentido que inactivan la enzima"],
+      ["<b>Distrofia muscular de Duchenne</b>", "<i>DMD</i> (cromosoma X)", "deleciones grandes que desplazan el marco: sin distrofina funcional"]
+    ], "q3t") +
+    "<h5>Mutaciones de pérdida y de ganancia de función</h5>" +
+    "<p>Desde el punto de vista de la proteína, una mutación génica puede <b>apagar</b> el gen (pérdida de función: casi siempre recesiva, porque el alelo normal compensa) o <b>activarlo en exceso o en el sitio equivocado</b> (ganancia de función: suele ser dominante). Esta idea es la clave del cáncer (sección 7). Por último, algunas zonas del ADN son <b>puntos calientes</b>: por ejemplo, la citosina metilada (5-metilcitosina) se desamina espontáneamente y se convierte en timina, una base que la célula no detecta como error, así que esos sitios mutan con más frecuencia.</p>"
+  );
+
+  // ---------------------------------------------------------------- 3. Mutaciones cromosómicas
+  secciones[2] = env(
+    "<h5>Cuatro tipos y cómo se dibujan</h5>" +
+    "<p>Imagina un cromosoma como una tira con tramos señalados con letras: <b>A B C D E F</b>. Las mutaciones cromosómicas reorganizan esos tramos sin cambiar el número de cromosomas:</p>" +
+    tabla(["Tipo", "Qué ocurre", "Antes → después"], [
+      ["<b>Deleción</b>", "se pierde un fragmento", "A B C D E F → A B <b>·</b> D E F (falta C)"],
+      ["<b>Duplicación</b>", "un fragmento se repite", "A B C D E F → A B C <b>C</b> D E F"],
+      ["<b>Inversión</b>", "un fragmento gira 180° y se vuelve a unir", "A B C D E F → A <b>D C B</b> E F"],
+      ["<b>Translocación</b>", "un fragmento pasa a otro cromosoma (no homólogo)", "A B C D E F y M N O P → A B C D <b>O P</b> y M N <b>E F</b> (recíproca)"]
+    ], "q3t") +
+    "<p>Dos precisiones que se preguntan: en la <b>deleción</b> y la <b>duplicación</b> la <b>cantidad</b> de ADN cambia (se pierde o se gana material); en la <b>inversión</b> y la <b>translocación recíproca equilibrada</b> la cantidad total de ADN es la misma, solo cambia su posición. Por eso estas últimas a menudo no dan síntomas en el portador… pero sí pueden dar problemas en sus hijos, porque en la meiosis se reparten mal (gametos con fragmentos de más o de menos).</p>" +
+    "<h5>Consecuencias</h5>" +
+    "<p>Las deleciones grandes suelen ser graves porque se pierden muchos genes a la vez. Las duplicaciones aportan genes de más (a veces perjudiciales por exceso de producto, pero también son una vía de <b>evolución</b>: una copia extra puede cambiar y adquirir una función nueva mientras la otra sigue haciendo su trabajo). Algunas translocaciones <b>activan genes</b> al juntar un gen con una región que lo regula con fuerza (cáncer).</p>" +
+    tabla(["Ejemplo", "Tipo", "Qué pasa"], [
+      ["<b>Síndrome del maullido de gato</b> (<i>cri du chat</i>, Lejeune 1963)", "deleción", "se pierde el brazo corto del cromosoma 5 (5p−): llanto agudo de bebé, discapacidad intelectual"],
+      ["<b>Cromosoma Filadelfia</b> (leucemia mieloide crónica)", "translocación recíproca t(9;22)", "el gen <i>ABL</i> (cromosoma 9) se une a <i>BCR</i> (cromosoma 22): la proteína híbrida BCR-ABL hace que la célula se divida sin control"],
+      ["<b>Síndrome de Down familiar</b>", "translocación (robertsoniana)", "un cromosoma 21 está pegado al 14: el portador es sano, pero puede tener hijos con trisomía 21"]
+    ], "q3t") +
+    ojo("«Translocación» no es «deleción»: en la translocación el fragmento <b>no se pierde</b>, <b>cambia de lugar</b>. En un examen, si pone «un fragmento se ha pasado a otro cromosoma», es translocación.")
+  );
+
+  // ---------------------------------------------------------------- 4. Mutaciones genómicas
+  secciones[3] = env(
+    "<h5>Lo que cuenta es el número</h5>" +
+    "<p>Las mutaciones genómicas cambian el <b>número de cromosomas</b>. Se estudian con el <b>cariotipo</b>: los cromosomas de una célula en metafase, fotografiados y ordenados por tamaño. En la especie humana la célula somática es diploide, <b>2n = 46</b> (22 pares de autosomas y un par sexual, XX o XY); un gameto es haploide, <b>n = 23</b>.</p>" +
+    "<h5>Aneuploidías: faltan o sobran cromosomas sueltos</h5>" +
+    "<p>Se escriben con el nombre «2n + 1» (trisomía: tres copias de un cromosoma en lugar de dos) o «2n − 1» (monosomía: una sola copia). Su causa habitual es la <b>no disyunción</b>: en la meiosis (T7) dos cromosomas homólogos (meiosis I) o dos cromatidas hermanas (meiosis II) no se separan y van al mismo gameto. Ese gameto tiene n + 1 cromosomas y el otro n − 1; al unirse con un gameto normal salen un cigoto 2n + 1 o 2n − 1.</p>" +
+    tabla(["Síndrome", "Cariotipo", "Rasgos principales"], [
+      ["<b>Down</b> (Lejeune, 1959)", "47, XX o XY, +21 (trisomía 21)", "discapacidad intelectual leve-moderada, rasgos faciales característicos, a veces cardiopatía; la probabilidad aumenta con la edad materna"],
+      ["<b>Edwards</b>", "47, +18", "malformaciones graves; la mayoría no sobrevive el primer año"],
+      ["<b>Patau</b>", "47, +13", "malformaciones graves; supervivencia muy corta"],
+      ["<b>Turner</b>", "45, X (monosomía del X)", "mujer de baja estatura, esterilidad por fallo de los ovarios; el único caso de monosomía que se tolera en humanos"],
+      ["<b>Klinefelter</b>", "47, XXY", "varón con testículos pequeños, esterilidad y a veces ginecomastia"]
+    ], "q3t") +
+    "<p>En humanos, casi todas las monosomías y trisomías de autosomas son <b>letales en el desarrollo embrionario</b>; solo sobreviven las de los cromosomas más pequeños (21, 18, 13) y las de los cromosomas sexuales, porque tienen pocos genes y el cromosoma X sobrante se inactiva (T7).</p>" +
+    ejemplo("Dónde falla la meiosis", "Una mujer produce óvulos por meiosis. Si el par 21 no se separa, ¿cuántos óvulos anormales hay entre los 4 productos de una meiosis? ¿Cambia si el fallo es en la meiosis I o en la II?", [
+      "<b>Meiosis I</b> (no se separan los dos cromosomas 21 homólogos): los dos productos de una célula hija tienen 2 cromosomas 21 y los dos de la otra, ninguno. Los <b>4 gametos son anormales</b> (2 con n + 1 y 2 con n − 1).",
+      "<b>Meiosis II</b> (no se separan las cromátidas hermanas de un solo cromosoma 21): solo falla una de las dos células de la segunda división. Salen <b>2 gametos normales</b>, 1 con n + 1 y 1 con n − 1: <b>2 anormales</b>.",
+      "Si un gameto con 2 cromosomas 21 se une a un espermatozoide normal (1 cromosoma 21): trisomía, 47 cromosomas, síndrome de Down. Si el gameto sin cromosoma 21 se une: monosomía 21, que no es viable."
+    ]) +
+    "<h5>Euploidías y poliploidías: juegos completos de más</h5>" +
+    "<p>Si se multiplica el <b>juego completo</b> de cromosomas se habla de <b>poliploidía</b>: 3n (triploide), 4n (tetraploide)… En animales casi nunca se tolera, pero en <b>plantas</b> es frecuente y muy útil: las poliploides suelen ser más grandes y vigorosas. Ocurre por un fallo en la meiosis (gametos con 2n) o por una división celular en la que se duplican los cromosomas pero no se reparte el citoplasma (se provoca en el laboratorio con <b>colchicina</b>, que impide formar el huso mitótico).</p>" +
+    tabla(["Planta", "Dotación", "Dato"], [
+      ["<b>Trigo harinero</b>", "6n = 42 (hexaploide, n = 7 en cada genoma de origen)", "nació por cruzamientos entre especies silvestres y duplicación (alopoliploidía)"],
+      ["<b>Sandía sin semillas</b>", "3n = 33", "se cruza una planta 4n = 44 con otra 2n = 22: el híbrido es 3n, no puede hacer gametos viables y no forma semillas"],
+      ["<b>Plátano comercial (Cavendish)</b>", "3n = 33", "estéril: se reproduce por esquejes, no por semillas"]
+    ], "q3t") +
+    ojo("<b>Aneuploidía</b> (falta o sobra un cromosoma: 47, 45…) y <b>poliploidía</b> (juegos completos de más: 69, 92…) son las dos mutaciones genómicas. No las confundas con las cromosómicas: aquí <b>no cambia la estructura</b> de ningún cromosoma, cambia cuántos hay.")
+  );
+
+  // ---------------------------------------------------------------- 5. Ingeniería genética (introducción)
+  secciones[4] = env(
+    "<h5>Cómo se llegó hasta aquí</h5>" +
+    "<p>La ingeniería genética consiste en <b>aislar, modificar y transferir genes</b> de un organismo a otro. Se hizo posible en los años 70, cuando se descubrieron tres cosas: unas «tijeras» que cortan el ADN por sitios concretos (<b>enzimas de restricción</b>), un «pegamento» que lo une (<b>ADN ligasa</b>, T11) y vehículos que lo llevan al interior de una célula (<b>vectores</b>). En 1973 Cohen y Boyer unieron un trozo de ADN de rana a un plásmido bacteriano y lo introdujeron en <i>E. coli</i>: el primer ADN recombinante funcional. Esa idea, con la <b>PCR</b> (1983) y el <b>CRISPR</b> (2012), es la caja de herramientas actual.</p>" +
+    "<p>El truco que lo hace posible es que <b>el código genético es universal</b> (T12): una bacteria lee un gen humano con el mismo diccionario, así que puede fabricar una proteína humana. El esquema general de casi todos los experimentos es siempre el mismo:</p>" +
+    "<ol><li><b>Obtener</b> el gen de interés (cortándolo con enzimas de restricción, copiándolo por PCR o sintetizándolo).</li>" +
+    "<li><b>Cortar</b> el vector con la misma enzima y <b>unir</b> gen y vector con ligasa (ADN recombinante).</li>" +
+    "<li><b>Introducir</b> el ADN recombinante en una célula hospedadora (transformación).</li>" +
+    "<li><b>Seleccionar</b> las células que lo han recibido y <b>expresarlo</b> (que fabrique la proteína).</li></ol>" +
+    "<p>Las secciones 8 a 12 siguen este orden. Antes, vamos con lo que provoca las mutaciones y con su papel en la evolución y el cáncer.</p>"
+  );
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Agentes mutágenos", html: env(
+    "<p>Un <b>agente mutágeno</b> es cualquier factor que aumenta la frecuencia de mutaciones. Se clasifican en físicos, químicos y biológicos, y es importante saber <b>cómo</b> actúan, no solo nombrarlos.</p>" +
+    tabla(["Tipo", "Ejemplos", "Mecanismo y efecto"], [
+      ["<b>Físicos: radiaciones no ionizantes</b>", "luz ultravioleta (UV-B del sol, camas solares)", "dos timinas contiguas se unen y forman un <b>dímero de timina</b>: la hélice se deforma y la polimerasa se equivoca al copiar; si no se repara (NER, T11) hay mutación y, con el tiempo, cáncer de piel"],
+      ["<b>Físicos: radiaciones ionizantes</b>", "rayos X, rayos γ, partículas α y β, radiactividad (uranio, radón)", "tienen energía para <b>romper</b> enlaces: roturas de una o de las dos hebras, bases dañadas; provocan deleciones y translocaciones (mutaciones cromosómicas)"],
+      ["<b>Químicos: análogos de bases</b>", "5-bromouracilo (parecido a la timina)", "se incorpora al ADN en lugar de la base normal y se aparea mal: provoca sustituciones al replicar"],
+      ["<b>Químicos: modifican las bases</b>", "ácido nitroso, agentes alquilantes (gas mostaza, EMS)", "el ácido nitroso <b>desamina</b> la citosina en uracilo; los alquilantes añaden grupos metilo o etilo y la base se aparea mal: sustituciones"],
+      ["<b>Químicos: intercalantes</b>", "bromuro de etidio, acridinas", "se meten entre los pares de bases y al replicar provocan <b>inserciones o deleciones</b>: cambio del marco de lectura"],
+      ["<b>Químicos: de la vida diaria</b>", "benzopireno del humo del tabaco, aflatoxinas (hongos del cacahuete mal almacenado), nitrosaminas", "se transforman en el hígado en moléculas que se pegan a las bases del ADN: son <b>cancerígenos</b>"],
+      ["<b>Biológicos</b>", "virus oncogénicos (VPH, hepatitis B), transposones («genes saltarines»)", "los virus pueden insertar su ADN en el del hospedador (alterando un gen) o producir proteínas que inactivan frenos del ciclo celular; los transposones, al saltar, pueden interrumpir genes"]
+    ], "q3t") +
+    "<p><b>Un dato histórico para recordar:</b> Hermann Muller demostró en 1927, con moscas <i>Drosophila</i>, que los <b>rayos X</b> aumentan mucho la tasa de mutación (premio Nobel de 1946). Y el <b>test de Ames</b> (años 70) usa bacterias <i>Salmonella</i> incapaces de fabricar el aminoácido histidina: se mira cuántas «reviven» (mutan de vuelta) al ponerlas con una sustancia; como casi todo cancerígeno es también mutágeno, sirve para detectar con rapidez posibles cancerígenos sin experimentar con animales.</p>" +
+    "<h5>Mutación espontánea y reparación</h5>" +
+    "<p>Aunque no haya agentes externos, el ADN cambia por sí solo: errores de replicación que escapan a la corrección, <b>tautomería</b> de las bases (una base cambia momentáneamente de forma y se aparea mal), <b>desaminación</b> de la citosina y <b>pérdida de bases</b> (depurinación). La célula dispone de los sistemas de <b>reparación</b> que estudiaste en el T11 (reparación de apareamientos, BER, NER…): cuando fallan, se acumulan mutaciones. Un ejemplo claro es el <b>xeroderma pigmentoso</b>, una enfermedad hereditaria en la que falla la reparación por escisión de nucleótidos: las personas afectadas tienen un riesgo enorme de cáncer de piel con muy poca luz solar.</p>" +
+    ojo("La radiación <b>UV</b> (poca energía) forma dímeros de timina; la radiación <b>ionizante</b> (mucha energía) rompe el ADN. No es lo mismo ni produce las mismas mutaciones.")
+  ) });
+
+  nuevas.push({ h: "7. Mutación, evolución y cáncer", html: env(
+    "<h5>Las mutaciones y la evolución</h5>" +
+    "<p>La selección natural necesita variabilidad sobre la que actuar y la <b>mutación es su fuente última</b>: crea alelos nuevos (la recombinación solo los baraja). Casi todas las mutaciones son perjudiciales o neutras, pero de vez en cuando una resulta <b>ventajosa en un ambiente concreto</b> y se extiende en la población porque quienes la tienen dejan más descendientes. Tres ejemplos:</p>" +
+    "<ul><li><b>Resistencia de las bacterias a los antibióticos</b>: una mutación al azar hace a una bacteria resistente; si hay antibiótico en el ambiente, solo sobreviven las resistentes y su descendencia lo hereda. El antibiótico <b>no provoca</b> la mutación: <b>selecciona</b> la que ya existía.</li>" +
+    "<li><b>Anemia falciforme y malaria</b>: el heterocigoto (HbA/HbS) casi no tiene síntomas y es <b>más resistente a la malaria</b>. En zonas con mucha malaria el alelo HbS se mantiene en frecuencias altas a pesar de que el homocigoto HbS/HbS enferma gravemente (ventaja del heterocigoto).</li>" +
+    "<li><b>Persistencia de la lactasa</b>: en la mayoría de los mamíferos la lactasa (que digiere la lactosa) se apaga tras el destete; en poblaciones humanas con tradición ganadera, mutaciones cerca del gen mantienen la lactasa activa en adultos.</li></ul>" +
+    "<p>También las <b>duplicaciones</b> de genes y las <b>poliploidías</b> son motores evolutivos: una copia extra queda libre para cambiar sin dañar a la original. El tema 16 desarrolla la evolución; aquí quédate con la idea: <b>mutación → variabilidad → selección natural</b>.</p>" +
+    "<h5>Las mutaciones y el cáncer</h5>" +
+    "<p>El cáncer es una enfermedad de las <b>células somáticas</b> en la que una célula se divide sin control y acaba invadiendo otros tejidos (metástasis). Casi siempre es consecuencia de la <b>acumulación de varias mutaciones</b> (en muchos tumores, de 4 a 7 en genes clave) que desajustan el ciclo celular (T7). Dos clases de genes son los protagonistas:</p>" +
+    tabla(["", "Protooncogenes → oncogenes", "Genes supresores de tumores"], [
+      ["<b>Función normal</b>", "estimulan la división celular (el «acelerador»)", "frenan la división, reparan el ADN o provocan la muerte celular (el «freno»)"],
+      ["<b>Mutación</b>", "<b>ganancia de función</b>: queda siempre activado (por ejemplo <i>RAS</i>, o BCR-ABL en el cromosoma Filadelfia)", "<b>pérdida de función</b>: el freno se rompe (por ejemplo <i>p53</i>, <i>BRCA1</i>, <i>BRCA2</i>, <i>RB</i>)"],
+      ["<b>Alelos que hacen falta</b>", "basta <b>uno</b> mutado (efecto dominante)", "suelen hacer falta <b>los dos</b> mutados (efecto recesivo; hipótesis de los «dos golpes» de Knudson, 1971)"]
+    ], "q3t") +
+    "<p>La proteína <b>p53</b>, la «guardiana del genoma», detiene el ciclo si detecta ADN dañado y, si el daño no se puede reparar, provoca la muerte celular programada. Está mutada en más de la mitad de los tumores humanos. Heredar un alelo defectuoso de un gen supresor (como <i>BRCA1</i>) no es tener cáncer, pero deja a la persona «con un golpe ya dado» y le basta una mutación somática más para perder el segundo alelo: por eso hay formas <b>hereditarias</b> de cáncer. Con todo, la mayoría de los cánceres se deben a mutaciones <b>somáticas</b> que se acumulan con la edad y con la exposición a mutágenos (tabaco, UV, radiación): son <b>no hereditarios</b>.</p>" +
+    ojo("Una mutación en una célula somática <b>no se hereda</b>, aunque cause un cáncer. Solo las mutaciones <b>germinales</b> pasan a la descendencia. Por eso la mayoría de los cánceres no son hereditarios.")
+  ) });
+
+  nuevas.push({ h: "8. Enzimas de restricción y ADN recombinante", html: env(
+    "<h5>Las tijeras moleculares</h5>" +
+    "<p>Las <b>enzimas de restricción</b> (o endonucleasas de restricción) cortan el ADN por <b>secuencias cortas y concretas</b> (sitios de restricción) de 4 a 8 pares de bases. Las bacterias las usan como <b>defensa</b>: cortan el ADN de los virus que las infectan (bacteriófagos), y protegen su propio ADN metilándolo en esos sitios. Werner Arber, Daniel Nathans y Hamilton Smith recibieron el Nobel en 1978 por descubrirlas y usarlas. Se nombran con la primera letra del género y dos de la especie: <b>EcoRI</b> viene de <i>Escherichia coli</i> RY13 (I = la primera enzima de esa cepa).</p>" +
+    "<h5>Palíndromos y extremos</h5>" +
+    "<p>Casi todos los sitios son <b>palíndromos</b> de ADN: la secuencia leída de 5′ a 3′ en una hebra es <b>idéntica</b> a la de la otra hebra leída también de 5′ a 3′. Por ejemplo, EcoRI reconoce:</p>" +
+    "<div class='formula-wrap'><div class='formula'>5′-G↓A A T T C-3′<br>3′-C T T A A↑G-5′</div></div>" +
+    "<p>Corta cada hebra entre G y A (↓). Como los cortes de las dos hebras están <b>desplazados</b>, quedan en los extremos unas «colas» de una hebra, de 4 nucleótidos (AATT), que pueden volver a aparearse con cualquier otro extremo cortado con la misma enzima: son <b>extremos cohesivos</b> («pegajosos»). Otras enzimas, como SmaI (CCC↓GGG), cortan las dos hebras en el mismo punto y dejan <b>extremos romos</b> (sin colas), que se unen peor.</p>" +
+    tabla(["Enzima", "Sitio de corte", "Extremos", "Origen"], [
+      ["<b>EcoRI</b>", "G↓AATTC", "cohesivos (5′, AATT)", "<i>Escherichia coli</i>"],
+      ["<b>BamHI</b>", "G↓GATCC", "cohesivos (5′, GATC)", "<i>Bacillus amyloliquefaciens</i>"],
+      ["<b>HindIII</b>", "A↓AGCTT", "cohesivos (5′, AGCT)", "<i>Haemophilus influenzae</i>"],
+      ["<b>SmaI</b>", "CCC↓GGG", "romos", "<i>Serratia marcescens</i>"],
+      ["<b>EcoRV</b>", "GAT↓ATC", "romos", "<i>Escherichia coli</i>"]
+    ], "q3t") +
+    "<p><b>¿Cada cuánto aparece un sitio?</b> Si las cuatro bases fueran igual de frecuentes y estuvieran repartidas al azar, un sitio de <i>n</i> pares de bases aparecería una vez cada 4<sup><i>n</i></sup> pares de bases: cada <b>256 pb</b> para una enzima de 4 pb, cada <b>4096 pb</b> para una de 6 pb (EcoRI) y cada <b>65 536 pb</b> para una de 8 pb. En un plásmido de 5000 pb esperarás, por tanto, pocos sitios de una enzima de 6 pb: justo lo que interesa para clonar.</p>" +
+    "<h5>ADN recombinante</h5>" +
+    "<p>Si cortas dos moléculas de ADN diferentes con <b>la misma enzima</b>, quedan extremos cohesivos complementarios: se aparean por puentes de hidrógeno y la <b>ADN ligasa</b> sella el enlace fosfodiéster. El resultado es una molécula nueva que mezcla ADN de dos orígenes: <b>ADN recombinante</b>.</p>" +
+    "<ol><li>Cortar el ADN que contiene el gen y el vector con la misma enzima (por ejemplo, EcoRI).</li>" +
+    "<li>Mezclar los dos: los extremos cohesivos se aparean.</li>" +
+    "<li>Añadir ADN ligasa para sellar.</li></ol>" +
+    ojo("Si cortas con <b>dos enzimas distintas</b> cuyos extremos no coinciden, los fragmentos no se pueden unir por los extremos cohesivos. Y la <b>ligasa no corta</b>: solo une. Las tijeras son las enzimas de restricción.") +
+    "<h5>Electroforesis en gel: leer las bandas</h5>" +
+    "<p>Para ver los fragmentos se usa la <b>electroforesis en gel de agarosa</b>: se ponen las muestras de ADN en unos pocillos de un gel, se aplica un campo eléctrico y, como el ADN tiene <b>carga negativa</b> (por los fosfatos), migra hacia el polo <b>positivo</b>. El gel actúa como una malla: los fragmentos <b>pequeños avanzan más</b> y los grandes se quedan cerca del pocillo. Se ve el ADN con un colorante fluorescente (bromuro de etidio o similares) y se compara con un <b>marcador de tamaños</b> (mezcla de fragmentos conocidos). Con ello se obtiene el tamaño de cada fragmento.</p>" +
+    "<p>Las reglas para interpretar el gel, que se preguntan una y otra vez:</p>" +
+    "<ul><li>Una molécula <b>lineal</b> con <i>n</i> sitios de corte da <b><i>n</i> + 1</b> fragmentos.</li>" +
+    "<li>Una molécula <b>circular</b> (un plásmido) con <i>n</i> sitios da <b><i>n</i></b> fragmentos (con 1 solo corte se linealiza).</li>" +
+    "<li>La <b>suma</b> de los tamaños de los fragmentos es igual al tamaño de la molécula entera.</li>" +
+    "<li>Dos fragmentos del mismo tamaño forman <b>una sola banda</b>, más intensa.</li>" +
+    "<li>Para localizar un sitio, se digiere con cada enzima por separado y con las dos a la vez, y se compara.</li></ul>" +
+    w("bio_restriccion") +
+    ejemplo("Cuántos fragmentos y de qué tamaño", "Un ADN lineal de 6000 pb tiene dos sitios EcoRI (cortes en las posiciones 1000 y 3000) y un sitio BamHI (corte en 2200). ¿Qué fragmentos salen con cada enzima por separado y con las dos?", [
+      "<b>EcoRI</b> (cortes 1000 y 3000): 3 fragmentos: 1000 − 0 = <b>1000</b>; 3000 − 1000 = <b>2000</b>; 6000 − 3000 = <b>3000</b>. (Suma 6000.)",
+      "<b>BamHI</b> (corte 2200): 2 fragmentos: <b>2200</b> y 6000 − 2200 = <b>3800</b>.",
+      "<b>Las dos a la vez</b> (cortes 1000, 2200 y 3000): 4 fragmentos: <b>1000</b>, 2200 − 1000 = <b>1200</b>, 3000 − 2200 = <b>800</b> y <b>3000</b>. Suma 6000. El BamHI ha partido en 1200 + 800 el fragmento de 2000 de EcoRI.",
+      "Si fuera <b>circular</b> y EcoRI cortara igual: 2 fragmentos, de 2000 (entre los dos cortes) y de 4000 (el resto, que pasa por el punto de unión)."
+    ])
+  ) });
+
+  nuevas.push({ h: "9. Vectores, transformación y selección de recombinantes", html: env(
+    "<h5>Vectores: los vehículos del ADN</h5>" +
+    "<p>Un <b>vector de clonación</b> es una molécula de ADN capaz de <b>entrar</b> en una célula hospedadora y <b>replicarse</b> allí, a la que se puede pegar un gen. Un buen vector necesita:</p>" +
+    "<ul><li>Un <b>origen de replicación</b> (<i>ori</i>) para copiarse dentro de la célula.</li>" +
+    "<li>Un <b>sitio de clonaje múltiple</b> (polilinker): una zona con muchos sitios de restricción juntos, donde se inserta el gen.</li>" +
+    "<li>Un <b>marcador de selección</b> (por ejemplo, un gen de resistencia a un antibiótico) para saber qué células lo han recibido.</li></ul>" +
+    tabla(["Vector", "Qué es", "Para qué se usa"], [
+      ["<b>Plásmido</b>", "ADN circular pequeño y extracromosómico de bacterias, con su propio <i>ori</i> y a menudo genes de resistencia", "el más usado; admite fragmentos de hasta ~10 kb (10 000 pb)"],
+      ["<b>Bacteriófago λ</b>", "virus de bacterias modificado", "fragmentos de unas 15-20 kb; infecta con mucha eficacia"],
+      ["<b>Cromosomas artificiales</b> (BAC, YAC)", "cromosomas bacterianos o de levadura modificados", "fragmentos enormes (100 kb a 1 Mb): proyecto Genoma Humano"],
+      ["<b>Virus modificados</b> (retrovirus, adenovirus, AAV)", "virus «desarmados» sin los genes que enferman, con el gen terapéutico dentro", "<b>terapia génica</b> en células humanas"],
+      ["<b>Plásmido Ti</b> de <i>Agrobacterium tumefaciens</i>", "una bacteria que de forma natural pasa parte de su ADN a las células vegetales", "obtener <b>plantas transgénicas</b>"]
+    ], "q3t") +
+    "<h5>Transformación: meter el ADN dentro</h5>" +
+    "<p>Para que una bacteria acepte un plásmido hay que volverla «competente»: se tratan con calcio y se da un <b>choque térmico</b> (de 0 °C a 42 °C unos segundos), o se aplica un pulso eléctrico (<b>electroporación</b>). Solo una pequeña fracción de las bacterias capta un plásmido, y de esas, solo algunas llevan un plásmido <b>recombinante</b> (con el gen) y otras uno <b>recircularizado vacío</b>. Hay que <b>seleccionar</b> en dos pasos.</p>" +
+    "<h5>Seleccionar: ampicilina y azul/blanco</h5>" +
+    "<ol><li><b>Paso 1: ¿ha entrado un plásmido?</b> Se siembran las bacterias en una placa con <b>ampicilina</b>. El plásmido lleva un gen de resistencia a ampicilina (<i>amp<sup>R</sup></i>): solo crecen (y forman colonias) las bacterias que tienen un plásmido, recombinante o no.</li>" +
+    "<li><b>Paso 2: ¿lleva el gen?</b> Muchos plásmidos (como pUC19) tienen el polilinker <b>dentro del gen <i>lacZ</i></b>, que fabrica β-galactosidasa. En una placa con el sustrato <b>X-gal</b>, la enzima lo rompe y produce un color <b>azul</b>. Si el gen se inserta en el polilinker, <b>interrumpe <i>lacZ</i></b>: no hay enzima y la colonia queda <b>blanca</b>. Así: <b>colonia azul = plásmido sin insertar; colonia blanca = recombinante</b>.</li></ol>" +
+    "<p>Una vez hecho esto, las colonias blancas se cultivan en grandes cantidades: cada bacteria es un «clon» que lleva el gen y lo multiplica con cada división. Esa es la <b>clonación molecular</b> de un gen (otra cosa distinta de clonar un organismo entero, que verás en la sección 11).</p>" +
+    ojo("Ampicilina: <b>selecciona las bacterias que tienen plásmido</b>. X-gal: distingue <b>dentro de esas</b> las que tienen el gen insertado (blancas) de las que no (azules). Es un error típico decir que las colonias azules son las recombinantes.") +
+    "<h5>Genes de eucariotas en bacterias: ADNc</h5>" +
+    "<p>Hay un problema: un gen de un eucariota tiene <b>intrones</b> (T12) y la bacteria <b>no sabe cortarlos</b>. Para que una bacteria fabrique una proteína humana, se parte del <b>ARNm maduro</b> (sin intrones) y se copia a ADN con la enzima <b>retrotranscriptasa</b> (transcriptasa inversa, que usan algunos virus como el VIH): se obtiene el <b>ADN complementario o ADNc</b>, que sí lleva solo los exones. Se puede clonar ese ADNc, o bien sintetizar el gen en el laboratorio.</p>" +
+    "<h5>El ejemplo estrella: la insulina</h5>" +
+    "<p>La insulina era antes extraída del páncreas de cerdos y vacas, con riesgos de alergia y poca cantidad. En 1978 se logró en <i>E. coli</i> el primer ADN recombinante comercializable: se insertan en un plásmido los genes de las cadenas A y B de la insulina humana, la bacteria las produce, se purifican y se unen. Hoy toda la insulina que se usa es recombinante, igual que la hormona de crecimiento, el factor VIII de la coagulación (hemofilia) o la vacuna de la hepatitis B (producida en levaduras).</p>"
+  ) });
+
+  B.parte.bio13a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 13 (parte B): PCR, clonación, transgénicos, CRISPR, terapia génica, bioética y PAU.
+   Las secciones 10 a 15 (continúan las de bio2_t13a.js).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t13/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }
+  B.parte = B.parte || {};
+  var nuevas = [];
+
+  nuevas.push({ h: "10. La PCR: fotocopiar un trozo de ADN", html: env(
+    "<h5>Qué es y qué necesita</h5>" +
+    "<p>La <b>PCR</b> (reacción en cadena de la polimerasa) es la replicación del T11 hecha en un tubo de ensayo: copia muchas veces <b>un fragmento concreto</b> de ADN, entre dos puntos que tú eliges. La inventó Kary Mullis en 1983 (premio Nobel de Química en 1993). Con unas pocas moléculas de partida se obtienen millones de copias en un par de horas, lo que permite analizar una gota de sangre, un pelo o un resto antiguo.</p>" +
+    "<p>Lleva cinco ingredientes (los verás en cualquier pregunta):</p>" +
+    tabla(["Componente", "Para qué sirve"], [
+      ["<b>ADN molde</b>", "contiene la región que se quiere copiar (puede ser mínimo)"],
+      ["<b>Dos cebadores</b> (oligonucleótidos de ≈ 18-25 nt)", "son complementarios a los extremos de la región; uno para cada hebra: <b>delimitan</b> la zona a copiar y dan el 3′-OH que la polimerasa necesita (T11)"],
+      ["<b>ADN polimerasa termoestable (Taq)</b>", "sintetiza las hebras nuevas; viene de <i>Thermus aquaticus</i>, una bacteria de aguas termales, y <b>aguanta los 95 °C</b> sin destruirse"],
+      ["<b>Nucleótidos</b> (dATP, dGTP, dCTP, dTTP)", "los ladrillos para las cadenas nuevas"],
+      ["<b>Tampón con Mg²⁺</b>", "mantiene las condiciones químicas y el Mg²⁺ es cofactor de la polimerasa"]
+    ], "q3t") +
+    "<h5>Los tres pasos de cada ciclo</h5>" +
+    "<p>Un <b>termociclador</b> cambia la temperatura del tubo siguiendo un programa. Cada ciclo repite tres pasos, y se hacen unos 25-35 ciclos:</p>" +
+    tabla(["Paso", "Temperatura", "Qué ocurre"], [
+      ["<b>1. Desnaturalización</b>", "94-96 °C", "el calor rompe los puentes de hidrógeno: la doble hélice se separa en dos hebras sencillas"],
+      ["<b>2. Anillamiento (hibridación)</b>", "50-65 °C", "al enfriar, cada <b>cebador</b> se une a su secuencia complementaria en el molde"],
+      ["<b>3. Extensión (elongación)</b>", "72 °C", "la <b>Taq polimerasa</b> alarga cada cebador en sentido 5′ → 3′, copiando el molde"]
+    ], "q3t") +
+    "<p>Al acabar un ciclo, <b>cada molécula de la región se ha convertido en dos</b>. Los productos del ciclo anterior sirven de molde del siguiente: por eso es una <b>reacción en cadena</b> y el crecimiento es <b>exponencial</b>.</p>" +
+    "<h5>Cuántas copias: 2<sup>n</sup></h5>" +
+    "<p>Si en cada ciclo todas las moléculas se duplican, partiendo de <i>N</i><sub>0</sub> moléculas, tras <i>n</i> ciclos hay <b><i>N</i><sub>0</sub> · 2<sup><i>n</i></sup></b> moléculas. Con 1 molécula: 10 ciclos → 1024; 20 ciclos → 1 048 576; 30 ciclos → más de mil millones (1,07·10<sup>9</sup>). Con una eficiencia menor (<i>e</i> en tanto por uno), <i>N</i> = <i>N</i><sub>0</sub> (1 + <i>e</i>)<sup><i>n</i></sup>: con <i>e</i> = 0,9 y 10 ciclos salen 613 copias en lugar de 1024, y la diferencia se dispara con los ciclos.</p>" +
+    "<p>Un detalle fino que se pregunta poco pero entiende quien lo ha dibujado: en los dos primeros ciclos salen moléculas <b>más largas</b> que la región buscada (el cebador solo marca un extremo). Las moléculas del <b>tamaño exacto</b> aparecen a partir del ciclo 3, y su número tras <i>n</i> ciclos es 2<sup><i>n</i></sup> − 2<i>n</i> (partiendo de una molécula): 2 tras 3 ciclos, 8 tras 4, 22 tras 5, y enseguida casi todas.</p>" +
+    w("bio_pcr") +
+    ojo("La PCR <b>no necesita</b> helicasa ni ligasa (el calor abre la hélice y no hay fragmentos de Okazaki). Tampoco se usa una polimerasa normal: se destruiría a 95 °C. Y el <b>número de ciclos no es infinito</b>: pasados unos 30-35 se agotan reactivos y el crecimiento llega a una meseta.") +
+    "<h5>Variantes y usos</h5>" +
+    "<ul><li><b>RT-PCR</b> (con retrotranscriptasa): primero se pasa el <b>ARN</b> a ADNc y después se amplifica. Es la base de las pruebas de <b>COVID-19</b>, porque el SARS-CoV-2 es un virus de ARN.</li>" +
+    "<li><b>PCR en tiempo real</b> (qPCR): mide la fluorescencia ciclo a ciclo y permite <b>cuantificar</b> cuánto ADN o ARN había al empezar (carga viral).</li>" +
+    "<li><b>Diagnóstico</b>: detectar virus o bacterias, o mutaciones concretas (por ejemplo, la de la fibrosis quística).</li>" +
+    "<li><b>Ciencia forense y paternidad</b>: se amplifican regiones con repeticiones cortas muy variables (STR). La combinación de varias es casi única de cada persona: la <b>huella genética</b> (Jeffreys, 1984-85).</li>" +
+    "<li><b>Arqueología y evolución</b>: amplificar ADN antiguo (el de neandertales, por Svante Pääbo, Nobel 2022).</li>" +
+    "<li><b>Clonar genes</b> para ligarlos a un vector.</li></ul>" +
+    "<p>Limitaciones: hay que conocer la secuencia de los extremos para diseñar los cebadores; la <b>contaminación</b> con una sola molécula de ADN ajeno arruina el resultado; y la polimerasa comete algún error (muy pocos con las polimerasas de alta fidelidad).</p>"
+  ) });
+
+  nuevas.push({ h: "11. Clonación, transgénicos, CRISPR y terapia génica", html: env(
+    "<h5>Clonación de organismos</h5>" +
+    "<p>Hay que distinguir bien dos cosas: la <b>clonación molecular</b> (copiar un gen, secciones 8-9) y la <b>clonación de un organismo</b>: obtener un individuo genéticamente igual a otro. Un <b>clon</b> es un conjunto de individuos o células con el mismo ADN. La clonación natural existe (gemelos idénticos, esquejes de plantas, bacterias que se dividen).</p>" +
+    "<p>La clonación artificial de mamíferos se hace por <b>transferencia nuclear de células somáticas</b>, el método de la oveja <b>Dolly</b> (Wilmut y Campbell, Instituto Roslin, nació en 1996 y se anunció en 1997):</p>" +
+    "<ol><li>Se toma una <b>célula somática</b> de la oveja que se quiere copiar (en Dolly, de la glándula mamaria de una oveja adulta) y se aísla su <b>núcleo</b>.</li>" +
+    "<li>Se toma un <b>óvulo</b> de otra oveja y se le <b>quita el núcleo</b> (óvulo enucleado).</li>" +
+    "<li>Se introduce el núcleo de la célula somática en el óvulo (o se funden con una descarga eléctrica).</li>" +
+    "<li>El óvulo, estimulado, se divide y forma un <b>embrión</b>.</li>" +
+    "<li>El embrión se implanta en el útero de una <b>tercera oveja</b> («madre de alquiler»).</li>" +
+    "<li>Nace un cordero con el ADN nuclear idéntico al de la oveja donante: Dolly era un <b>clon</b> de la oveja de la que se tomó la célula mamaria.</li></ol>" +
+    "<p>Fue la prueba de que el núcleo de una célula adulta ya diferenciada puede <b>reprogramarse</b> (John Gurdon lo había logrado antes en ranas, en 1962). La eficiencia es muy baja (Dolly fue 1 de 277 intentos) y los clones pueden envejecer antes o tener problemas de salud (Dolly murió en 2003).</p>" +
+    "<p>Se distinguen dos objetivos: <b>clonación reproductiva</b> (obtener un individuo entero; prohibida en humanos) y <b>clonación terapéutica</b> (obtener <b>células madre</b> de un embrión clónico para generar tejidos compatibles con el paciente, sin rechazo). Hoy se prefiere otra vía, las <b>células iPS</b> (Yamanaka, 2006; Nobel 2012 junto a Gurdon): se «reprograman» células adultas del paciente con cuatro genes, sin usar embriones.</p>" +
+    "<h5>Organismos transgénicos</h5>" +
+    "<p>Un <b>organismo transgénico</b> (OMG, organismo modificado genéticamente) lleva en su genoma un gen de <b>otra especie</b>, el <b>transgén</b>. Se obtiene con los pasos de las secciones 8 y 9 (vector, introducción, selección) aplicados a una célula que luego da el organismo completo. Ejemplos:</p>" +
+    tabla(["Organismo", "Transgén", "Para qué"], [
+      ["<b>Bacterias y levaduras</b>", "genes humanos (insulina, hormona del crecimiento)", "fábricas de proteínas terapéuticas"],
+      ["<b>Maíz Bt</b>", "gen de la toxina de <i>Bacillus thuringiensis</i>", "resistente al taladro (una oruga plaga), con menos insecticida"],
+      ["<b>Arroz dorado</b>", "genes para fabricar β-caroteno (precursor de la vitamina A)", "prevenir la ceguera por falta de vitamina A en poblaciones que comen arroz"],
+      ["<b>Soja resistente a glifosato</b>", "gen de una bacteria", "poder echar herbicida sin matar el cultivo"],
+      ["<b>Ratones «knock-out»</b>", "un gen concreto se inactiva", "estudiar para qué sirve ese gen y modelar enfermedades (Nobel 2007: Capecchi, Evans, Smithies)"],
+      ["<b>Animales «biorreactor»</b>", "genes humanos en la leche (cabras, ovejas)", "obtener proteínas médicas de la leche"]
+    ], "q3t") +
+    "<h5>CRISPR-Cas9: editar el ADN con un «buscar y reemplazar»</h5>" +
+    "<p>Las bacterias tienen un <b>sistema inmune adaptativo</b> contra los virus: guardan trozos de ADN del virus entre repeticiones (CRISPR) y los usan para reconocerlo y cortarlo con una nucleasa, la <b>Cas9</b>, si vuelve a infectarlas. En 2012, <b>Jennifer Doudna y Emmanuelle Charpentier</b> demostraron que se podía reprogramar como una herramienta de edición genética (Nobel de Química 2020). El sistema tiene dos piezas:</p>" +
+    "<ol><li><b>El ARN guía</b>: una molécula de unos 20 nt que se diseña para ser <b>complementaria</b> a la secuencia del gen que se quiere cambiar. Es la «dirección».</li>" +
+    "<li><b>La enzima Cas9</b>: la «tijera» que, guiada por el ARN, <b>corta las dos hebras</b> del ADN justo en esa secuencia (junto a una pequeña señal llamada PAM).</li></ol>" +
+    "<p>Después actúa la propia <b>reparación del ADN</b> de la célula (T11), y de ahí salen dos usos:</p>" +
+    tabla(["Cómo repara la célula", "Resultado", "Uso"], [
+      ["<b>Unión de extremos</b> (NHEJ): pega los extremos a lo bruto", "pequeñas inserciones o deleciones que <b>desplazan el marco</b> y rompen el gen", "<b>inactivar</b> (knock-out) un gen"],
+      ["<b>Reparación con molde</b> (HDR): copia una plantilla que se le añade", "el gen queda <b>corregido</b> o con un fragmento nuevo", "<b>corregir</b> una mutación o <b>insertar</b> una secuencia"]
+    ], "q3t") +
+    "<p>Frente a las técnicas anteriores, CRISPR es más <b>barato, rápido y fácil de redirigir</b> (basta cambiar los 20 nt del ARN guía). Sus limitaciones: puede cortar en sitios parecidos que no eran los previstos (<b>efectos fuera de diana</b>) y la reparación no siempre sale como se quiere. En 2018, el científico chino He Jiankui anunció haber editado embriones humanos con CRISPR que dieron lugar a dos niñas; fue condenado y la comunidad científica lo rechazó, porque la edición germinal en humanos no estaba justificada ni era segura.</p>" +
+    "<h5>Terapia génica: curar introduciendo un gen sano</h5>" +
+    "<p>Consiste en introducir en las células del paciente una <b>copia funcional de un gen</b> (o corregirlo) para tratar una enfermedad genética. Un vector (casi siempre un virus modificado) lleva el gen a las células.</p>" +
+    tabla(["", "Terapia somática", "Terapia germinal"], [
+      ["<b>Células que se modifican</b>", "células del cuerpo (médula ósea, retina, músculo)", "gametos, cigoto o embrión"],
+      ["<b>¿Pasa a los hijos?</b>", "<b>no</b>", "<b>sí</b>: afecta a toda la descendencia"],
+      ["<b>Situación</b>", "se usa y está aprobada en varias enfermedades", "<b>prohibida</b> en la mayoría de los países (en España, la ley no la permite y el Convenio de Oviedo de 1997 la prohíbe)"]
+    ], "q3t") +
+    "<p>Según dónde se hace, la terapia puede ser <b>ex vivo</b> (se sacan las células del paciente, se modifican en el laboratorio y se devuelven: por ejemplo, células de la médula) o <b>in vivo</b> (se inyecta el vector directamente en el tejido). Hitos y casos:</p>" +
+    "<ul><li><b>1990</b>: primera terapia génica, una niña con inmunodeficiencia combinada grave (déficit de ADA, mutación en un gen de una enzima de los linfocitos): se le dieron linfocitos con el gen sano.</li>" +
+    "<li><b>Problemas</b>: en 1999 un joven murió por una reacción inmune al vector; en el 2002 varios niños con otra inmunodeficiencia desarrollaron leucemia porque el retrovirus se insertó junto a un oncogén. Hoy los vectores son más seguros.</li>" +
+    "<li><b>Éxitos recientes</b>: Luxturna (2017, ceguera hereditaria por mutaciones en <i>RPE65</i>, se inyecta en la retina), Zolgensma (2019, atrofia muscular espinal) y <b>Casgevy</b> (2023), la primera terapia con CRISPR aprobada: se editan las células de la médula del paciente para tratar la anemia falciforme y la β-talasemia.</li></ul>"
+  ) });
+
+  nuevas.push({ h: "12. Aplicaciones y bioética", html: env(
+    "<h5>Para qué se usa la biotecnología</h5>" +
+    tabla(["Campo", "Aplicaciones"], [
+      ["<b>Salud</b>", "insulina, hormona del crecimiento, vacunas y anticuerpos recombinantes; diagnóstico genético (PCR, secuenciación); terapia génica y edición con CRISPR; cultivo de tejidos a partir de células madre"],
+      ["<b>Agricultura y ganadería</b>", "plantas resistentes a plagas, herbicidas, sequía o con mejor valor nutritivo (arroz dorado); animales de más rendimiento"],
+      ["<b>Medio ambiente</b>", "bacterias que degradan vertidos (biorremediación), biocombustibles, bioplásticos"],
+      ["<b>Industria</b>", "enzimas para detergentes y alimentos, producción de fármacos, quesos y cerveza con microorganismos mejorados"],
+      ["<b>Justicia y antropología</b>", "huella genética para identificar sospechosos y víctimas, pruebas de paternidad, estudios de poblaciones y de ADN antiguo"]
+    ], "q3t") +
+    "<h5>El debate: ventajas y riesgos</h5>" +
+    tabla(["A favor", "Preocupaciones"], [
+      ["curar o prevenir enfermedades hereditarias; medicamentos más seguros y baratos", "<b>seguridad</b>: efectos imprevistos (fuera de diana, reacciones al vector) a largo plazo"],
+      ["alimentar a más gente con menos pesticidas y menos tierra", "<b>ambiente</b>: paso del transgén a especies silvestres (resistencias en malas hierbas), pérdida de biodiversidad"],
+      ["más conocimiento científico (modelos animales de enfermedades)", "<b>sociedad</b>: patentes y acceso desigual; dependencia de pocas empresas; etiquetado y derecho a elegir"],
+      ["pruebas diagnósticas rápidas y precisas", "<b>intimidad</b>: quién puede acceder a mis datos genéticos (seguros, empleo); riesgo de discriminación"],
+      ["", "<b>límites éticos</b>: mejora de rasgos (¿terapia o «bebés a la carta»?), eugenesia, edición germinal, clonación humana"]
+    ], "q3t") +
+    "<p>En 1975, la conferencia de <b>Asilomar</b> (California) ya reunió a los propios científicos del ADN recombinante para pedir normas de seguridad. En Europa, los OMG están regulados y los alimentos que los contienen deben <b>etiquetarse</b>. La <b>bioética</b> usa cuatro principios para discutir estos casos: <b>autonomía</b> (decide la persona informada), <b>beneficencia</b> (hacer el bien), <b>no maleficencia</b> (no dañar) y <b>justicia</b> (reparto equitativo de beneficios y riesgos).</p>" +
+    ojo("En un comentario de bioética en la PAU no se pide «tu opinión» sin más: se valoran <b>argumentos a favor y en contra</b> claros y ordenados, la distinción entre terapia somática y germinal, y la referencia a principios como la seguridad, la justicia y el respeto a la persona.")
+  ) });
+
+  nuevas.push({ h: "13. Ejemplo PAU resuelto: interpretar una digestión de restricción", html: env(
+    "<p>Es de los más repetidos en las PAU de Madrid: te dan una tabla o un dibujo de un gel y te piden deducir cuántos sitios de corte hay, qué tipo de molécula es y cómo sería el recombinante.</p>" +
+    "<p><b>Enunciado.</b> Un plásmido de 6000 pb se digiere con distintas enzimas de restricción y se separan los fragmentos por electroforesis. Se obtienen estos resultados:</p>" +
+    tabla(["Muestra", "Fragmentos obtenidos (pb)"], [
+      ["Plásmido sin digerir", "6000 (una banda)"],
+      ["Digerido con EcoRI", "2000 y 4000"],
+      ["Digerido con BamHI", "6000 (una banda)"],
+      ["Digerido con EcoRI y BamHI a la vez", "800, 1200 y 4000"]
+    ], "q3t") +
+    "<p>(a) ¿Cuántos sitios de corte tiene cada enzima? (b) ¿Por qué BamHI da una sola banda de 6000 pb? (c) Explica la última fila. (d) Se quiere clonar un gen cortado con BamHI: ¿dónde se insertaría y para qué sirve poner en el plásmido un gen de resistencia a un antibiótico?</p>" +
+    ejemplo("Resolución", "Paso a paso, como lo valora el corrector:", [
+      "<b>Punto de partida:</b> un plásmido es una molécula <b>circular</b>. En una molécula circular, <b>n cortes dan n fragmentos</b> (en una lineal, n + 1). Además, la suma de los fragmentos debe dar 6000.",
+      "<b>(a) EcoRI: 2 sitios</b>: da 2 fragmentos (2000 + 4000 = 6000) y en un círculo 2 fragmentos son 2 cortes. Con las dos enzimas a la vez salen 3 fragmentos (800 + 1200 + 4000 = 6000), es decir, 3 cortes en total: los 2 de EcoRI y <b>1 de BamHI</b>. <b>BamHI: 1 sitio</b>.",
+      "<b>(b)</b> Un solo corte en un círculo lo <b>abre sin partirlo</b>: sale una única molécula lineal de 6000 pb, del mismo tamaño que el plásmido entero (1 corte = 1 fragmento). Por eso es una sola banda de 6000 pb.",
+      "<b>(c)</b> El fragmento de 4000 pb de EcoRI no ha cambiado: no tiene sitio BamHI. El de 2000 pb ha desaparecido y han salido 800 y 1200 (800 + 1200 = 2000): el sitio BamHI está <b>dentro del fragmento de 2000 pb</b>, a 800 pb de un extremo y 1200 del otro.",
+      "<b>(d)</b> Como BamHI tiene <b>un solo sitio</b>, abre el plásmido por un único punto, y el gen cortado con la misma enzima tiene extremos cohesivos compatibles: se inserta <b>en ese sitio</b> y la <b>ligasa</b> lo sella. Un solo sitio es justo lo que interesa en un vector (con dos sitios, el vector se rompería en dos trozos). El <b>gen de resistencia</b> sirve para <b>seleccionar</b>: solo crecen en la placa con el antibiótico las bacterias que han captado un plásmido."
+    ]) +
+    "<p>Otro modelo típico: <b>«interpreta una mutación»</b>. Te dan la secuencia del gen normal y la del mutante y debes decir (1) qué tipo de mutación es, (2) cómo queda la proteína con la tabla del código y (3) por qué esta mutación es más o menos grave. Los pasos: escribe el ARNm de cada una, divide en codones, traduce y compara. El widget de la sección 2 sirve para practicar esto.</p>"
+  ) });
+
+  nuevas.push({ h: "14. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>Las preguntas de este tema siguen estos modelos. Aquí tienes cada uno con una respuesta modelo, con lo mínimo que se valora.</p>" +
+    ejemplo("Pregunta 1. Define mutación y explica los tipos de mutaciones génicas según su efecto sobre la proteína", "Respuesta modelo:", [
+      "<b>Definición:</b> una mutación es un cambio <b>heredable</b> en el material genético que no se debe a la recombinación. Si es germinal, pasa a la descendencia.",
+      "<b>Por sustitución:</b> <b>silenciosa</b> (el codón nuevo codifica el mismo aminoácido, por la degeneración del código); de <b>cambio de sentido</b> (otro aminoácido; ejemplo: anemia falciforme, GAG → GUG, Glu → Val); <b>sin sentido</b> (aparece un codón de parada y la proteína se trunca).",
+      "<b>Por inserción o deleción:</b> si no es un múltiplo de 3 desplaza el marco de lectura (<b>frameshift</b>) y cambia todos los aminoácidos siguientes; si es múltiplo de 3, solo añade o quita aminoácidos."
+    ]) +
+    ejemplo("Pregunta 2. Diferencias entre mutaciones génicas, cromosómicas y genómicas, con un ejemplo de cada una", "Respuesta modelo:", [
+      "<b>Génica:</b> cambia la secuencia de bases de un gen (anemia falciforme).",
+      "<b>Cromosómica:</b> cambia la estructura de un cromosoma, sin cambiar su número: deleción, duplicación, inversión, translocación (cromosoma Filadelfia).",
+      "<b>Genómica:</b> cambia el número de cromosomas: aneuploidías (trisomía 21, síndrome de Down) y poliploidías (trigo 6n)."
+    ]) +
+    ejemplo("Pregunta 3. Describe las etapas de una PCR y para qué sirve", "Respuesta modelo:", [
+      "<b>Para qué:</b> amplificar (copiar muchas veces) un fragmento concreto de ADN.",
+      "<b>Componentes:</b> ADN molde, dos cebadores, Taq polimerasa (termoestable), nucleótidos y tampón.",
+      "<b>Cada ciclo:</b> (1) <b>desnaturalización</b> a ≈ 95 °C: se separan las hebras; (2) <b>anillamiento</b> a ≈ 55 °C: los cebadores se unen; (3) <b>extensión</b> a 72 °C: la Taq sintetiza las hebras nuevas.",
+      "<b>Resultado:</b> el número de copias se duplica en cada ciclo: 2<sup>n</sup>. <b>Usos:</b> diagnóstico (COVID-19), huella genética, paternidad, ADN antiguo."
+    ]) +
+    ejemplo("Pregunta 4. Explica cómo se obtiene insulina humana en bacterias", "Respuesta modelo:", [
+      "<b>Gen:</b> se obtiene el gen de la insulina (como ADNc a partir de ARNm maduro, sin intrones, porque la bacteria no corta intrones).",
+      "<b>Recombinante:</b> se corta el plásmido y el gen con la misma <b>enzima de restricción</b> (extremos cohesivos) y se unen con <b>ADN ligasa</b>.",
+      "<b>Transformación:</b> se introduce el plásmido en <i>E. coli</i>; con ampicilina (y azul/blanco) se seleccionan las bacterias con el plásmido y el gen.",
+      "<b>Producción:</b> se cultivan en grandes cantidades; cada bacteria expresa el gen (el código genético es universal) y se purifica la insulina."
+    ]) +
+    ejemplo("Pregunta 5. CRISPR-Cas9 y debate ético", "Respuesta modelo:", [
+      "<b>Funcionamiento:</b> un <b>ARN guía</b> complementario a la secuencia diana lleva a la <b>nucleasa Cas9</b> hasta ese punto, donde corta las dos hebras; la célula repara y se inactiva el gen (unión de extremos) o se corrige (reparación con plantilla).",
+      "<b>Ventajas:</b> barata, rápida y precisa; permite corregir enfermedades hereditarias (Casgevy). <b>Riesgos:</b> efectos fuera de diana y consecuencias a largo plazo desconocidas.",
+      "<b>Ética:</b> terapia somática (aceptada) frente a edición germinal (afecta a las generaciones futuras; prohibida en la mayoría de países); riesgo de «bebés a la carta» y de desigualdad en el acceso."
+    ]) +
+    "<p>Los ejercicios del final incluyen preguntas abiertas con rúbrica para que veas qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio13b = { nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 13 (parte C): Mutaciones e ingeniería genética
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t13.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h;
+  function w(n, ref) { return H.w(n, ref && "bio2/t13/" + ref); }
+  var A = B.parte.bio13a, Bb = B.parte.bio13b;
+
+  // actividades repartidas por la teoría (se añaden al final de la sección correspondiente)
+  A.secciones[1] += w("clasificar", "efecto");
+  A.secciones[3] += w("clasificar", "tipos");
+  A.nuevas[0].html += w("emparejar", "mutagenos");
+  A.nuevas[2].html += w("emparejar", "tecnicas");
+  A.nuevas[3].html += w("orden", "ordrec");
+  Bb.nuevas[0].html += w("orden", "ordpcr");
+  Bb.nuevas[1].html += w("orden", "orddolly");
+
+  var resumen = [
+    "Una <b>mutación</b> es un cambio heredable del material genético (no recombinación). Son <b>génicas</b> (secuencia de un gen), <b>cromosómicas</b> (estructura) y <b>genómicas</b> (número de cromosomas). Solo las <b>germinales</b> se heredan.",
+    "En las génicas por sustitución: <b>silenciosa</b> (mismo aminoácido), de <b>cambio de sentido</b> (otro aminoácido, como GAG → GUG en la anemia falciforme) y <b>sin sentido</b> (codón de parada). Una inserción o deleción que no es múltiplo de 3 <b>desplaza el marco de lectura</b>.",
+    "Cromosómicas: deleción, duplicación, inversión, translocación (cromosoma Filadelfia). Genómicas: aneuploidías (trisomía 21, Turner 45,X, Klinefelter 47,XXY) y poliploidías (3n, 4n, comunes en plantas).",
+    "Mutágenos: <b>físicos</b> (UV: dímeros de timina; rayos X y γ: roturas), <b>químicos</b> (análogos de bases, ácido nitroso, intercalantes) y <b>biológicos</b> (virus, transposones). La mutación es la fuente de variabilidad de la evolución y, acumulada en oncogenes y genes supresores, origina el cáncer.",
+    "Ingeniería genética: <b>enzimas de restricción</b> (cortan palíndromos, dejan extremos cohesivos) + <b>ligasa</b> + <b>vector</b> (plásmido) = ADN recombinante; se selecciona con antibiótico y azul/blanco. <b>PCR</b>: 95, 55 y 72 °C, Taq, 2<sup>n</sup> copias. Además: clonación (Dolly), transgénicos, <b>CRISPR-Cas9</b> (ARN guía + Cas9), terapia génica y bioética."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Mutaciones e ingeniería genética",
+    autores: [
+      { n: "Qué estudia", f: "cómo cambia el ADN y cómo lo manipulamos a propósito", l: "mutaciones · ADN recombinante · PCR · CRISPR" },
+      { n: "Cohen y Boyer", f: "1973", l: "primer ADN recombinante" },
+      { n: "Mullis", f: "1983", l: "inventa la PCR (Nobel 1993)" },
+      { n: "Doudna y Charpentier", f: "2012", l: "CRISPR-Cas9 (Nobel 2020)" }
+    ],
+    obras: ["Mutación", "EcoRI", "Plásmido", "Taq", "CRISPR-Cas9"],
+    bloques: [
+      { t: "Qué es una mutación", frases: ["Cambio <b>heredable</b> en el ADN, no recombinación.", "Germinal se hereda; <b>somática</b> no.", "Fuente de variabilidad: base de la evolución."],
+        tabla: { cab: ["Tipo", "Qué cambia"], filas: [["génica", "secuencia de un gen"], ["cromosómica", "estructura del cromosoma"], ["genómica", "número de cromosomas"]] } },
+      { t: "Mutaciones génicas", frases: ["Sustitución: silenciosa, de sentido, sin sentido.", "Inserción o deleción: <b>frameshift</b> si no es múltiplo de 3.", "Ejemplo: GAG → GUG, anemia falciforme (Glu → Val)."],
+        tabla: { cab: ["Sustitución", "Efecto"], filas: [["silenciosa", "mismo aminoácido"], ["cambio de sentido", "otro aminoácido"], ["sin sentido", "codón de parada"]] } },
+      { t: "Cromosómicas y genómicas", frases: ["Deleción, duplicación, inversión, translocación.", "Aneuploidía: 2n ± 1 (Down +21, Turner 45,X).", "Poliploidía: 3n, 4n; frecuente en plantas."],
+        tabla: { cab: ["Síndrome", "Cariotipo"], filas: [["Down", "47, +21"], ["Turner", "45, X"], ["Klinefelter", "47, XXY"]] } },
+      { t: "Agentes mutágenos", frases: ["Físicos: UV (dímeros de T), rayos X y γ (roturas).", "Químicos: análogos de bases, intercalantes, nitroso.", "Biológicos: virus oncogénicos y transposones."] },
+      { t: "ADN recombinante", frases: ["Enzima de restricción: corta un <b>palíndromo</b> (EcoRI, G↓AATTC).", "Extremos cohesivos + <b>ligasa</b> unen gen y vector.", "Selección: ampicilina y colonias <b>blancas</b> (azul/blanco)."],
+        tabla: { cab: ["ADN cortado", "Fragmentos"], filas: [["lineal, n cortes", "n + 1"], ["circular, n cortes", "n"]] } },
+      { t: "PCR, CRISPR y bioética", frases: ["PCR: <b>95 °C</b>, <b>55 °C</b>, <b>72 °C</b>; Taq; 2<sup>n</sup> copias.", "CRISPR: ARN guía lleva a Cas9, que corta el gen.", "Terapia génica somática sí; germinal, prohibida."],
+        tabla: { cab: ["Técnica", "Idea"], filas: [["PCR", "copia un fragmento"], ["CRISPR", "edita un gen"], ["clonación", "copia un organismo"], ["transgénico", "gen de otra especie"]] } }
+    ],
+    resumen: [
+      "Mutación = cambio <b>heredable</b>: génica, cromosómica o genómica.",
+      "<b>Restricción + ligasa + vector</b> = ADN recombinante; se selecciona con antibiótico y azul/blanco.",
+      "<b>PCR</b> copia (2<sup>n</sup>) y <b>CRISPR</b> edita: la ética importa en las dos."
+    ],
+    conecta: [
+      { con: "Biología T5 y T11:", rel: "estructura del ADN, replicación y reparación (origen de las mutaciones)." },
+      { con: "Biología T7:", rel: "meiosis y no disyunción (aneuploidías); ciclo celular y cáncer." },
+      { con: "Biología T12:", rel: "código genético y traducción para interpretar el efecto de una mutación." },
+      { con: "Biología T16 y Química II:", rel: "evolución (la mutación crea variabilidad); enlaces y energía en el ADN." }
+    ],
+    claves: [
+      ["Mutación", "cambio heredable del material genético que no es recombinación"],
+      ["Frameshift", "inserción o deleción que no es múltiplo de 3 y desplaza el marco de lectura"],
+      ["Aneuploidía", "falta o sobra algún cromosoma (2n ± 1, trisomía 21)"],
+      ["Mutágeno", "agente físico, químico o biológico que aumenta la tasa de mutación"],
+      ["Enzima de restricción", "endonucleasa que corta el ADN por una secuencia palindrómica concreta"],
+      ["Vector", "ADN (plásmido, virus) que lleva un gen al interior de una célula y se replica"],
+      ["ADN recombinante", "molécula con ADN de dos orígenes unidos por ligasa"],
+      ["PCR", "reacción en cadena de la polimerasa: copia un fragmento de ADN en ciclos"],
+      ["CRISPR-Cas9", "ARN guía + nucleasa Cas9 que corta un gen concreto para editarlo"],
+      ["Transgénico", "organismo con un gen (transgén) de otra especie"]
+    ],
+    cita: { txt: "Un plásmido circular con n sitios de corte da n fragmentos; un ADN lineal da n + 1. Tras n ciclos de PCR hay 2ⁿ copias.", autor: "Dato para recordar", obra: "circular: n; lineal: n + 1; PCR: 2ⁿ" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    tipos: {
+      titulo: "¿Génica, cromosómica o genómica?",
+      consigna: "Clasifica cada cambio genético.",
+      categorias: ["Génica", "Cromosómica", "Genómica"],
+      items: [
+        { t: "GAG → GUG en la β-globina (anemia falciforme)", c: 0 }, { t: "Deleción de 3 pb en el gen CFTR", c: 0 }, { t: "Inserción de 1 base que cambia el marco", c: 0 },
+        { t: "Cromosoma Filadelfia t(9;22)", c: 1 }, { t: "Síndrome del maullido de gato (falta el brazo corto del 5)", c: 1 }, { t: "Inversión de un fragmento de un cromosoma", c: 1 },
+        { t: "Trisomía 21 (síndrome de Down)", c: 2 }, { t: "Síndrome de Turner (45, X)", c: 2 }, { t: "Sandía triploide (3n)", c: 2 }, { t: "Trigo hexaploide (6n)", c: 2 }
+      ]
+    },
+    efecto: {
+      titulo: "Efecto de la mutación génica",
+      consigna: "Clasifica cada cambio según su efecto en la proteína.",
+      categorias: ["Silenciosa", "Cambio de sentido", "Sin sentido", "Desplazamiento del marco"],
+      items: [
+        { t: "GAG → GAA (Glu → Glu)", c: 0 }, { t: "CUU → CUC (Leu → Leu)", c: 0 },
+        { t: "GAG → GUG (Glu → Val)", c: 1 }, { t: "CCU → CAU (Pro → His)", c: 1 },
+        { t: "GAG → UAG (Glu → parada)", c: 2 }, { t: "CAG → UAG (Gln → parada)", c: 2 },
+        { t: "Inserción de 1 base en medio del gen", c: 3 }, { t: "Deleción de 2 bases en medio del gen", c: 3 }
+      ]
+    },
+    mutagenos: {
+      titulo: "Agentes mutágenos y su efecto",
+      consigna: "Une cada mutágeno con lo que hace.",
+      pares: [
+        ["Luz ultravioleta", "Forma dímeros de timina"],
+        ["Rayos X y rayos γ", "Rompen una o las dos hebras del ADN"],
+        ["Bromuro de etidio (intercalante)", "Provoca inserciones o deleciones"],
+        ["Ácido nitroso", "Desamina la citosina y la convierte en uracilo"],
+        ["5-bromouracilo", "Análogo de base que se aparea mal"]
+      ]
+    },
+    tecnicas: {
+      titulo: "Herramientas de la ingeniería genética",
+      consigna: "Une cada herramienta con su función.",
+      pares: [
+        ["EcoRI", "Corta el ADN por el palíndromo G↓AATTC"],
+        ["ADN ligasa", "Sella el enlace fosfodiéster y une los fragmentos"],
+        ["Taq polimerasa", "Sintetiza ADN en la PCR a 72 °C y resiste 95 °C"],
+        ["Retrotranscriptasa", "Copia ARN a ADNc"],
+        ["Cas9 con ARN guía", "Corta las dos hebras en una secuencia concreta"],
+        ["X-gal", "Hace azules las colonias con lacZ intacto"]
+      ]
+    },
+    ordrec: {
+      titulo: "Construir un ADN recombinante",
+      consigna: "Ordena los pasos para clonar un gen en un plásmido.",
+      items: [
+        { t: "Cortar el plásmido y el gen con la misma enzima de restricción" },
+        { t: "Mezclar y unir con ADN ligasa" },
+        { t: "Introducir el plásmido en bacterias (transformación)" },
+        { t: "Sembrar en una placa con ampicilina y X-gal" },
+        { t: "Escoger las colonias blancas y cultivarlas" }
+      ]
+    },
+    ordpcr: {
+      titulo: "Una PCR",
+      consigna: "Ordena el procedimiento.",
+      items: [
+        { t: "Mezclar molde, cebadores, Taq, nucleótidos y tampón" },
+        { t: "Desnaturalización: ≈ 95 °C, se separan las hebras" },
+        { t: "Anillamiento: ≈ 55 °C, los cebadores se unen al molde" },
+        { t: "Extensión: 72 °C, la Taq alarga los cebadores" },
+        { t: "Repetir 25-35 ciclos y comprobar el producto por electroforesis" }
+      ]
+    },
+    orddolly: {
+      titulo: "Clonar una oveja como Dolly",
+      consigna: "Ordena los pasos.",
+      items: [
+        { t: "Aislar el núcleo de una célula somática de la oveja que se copia" },
+        { t: "Quitar el núcleo a un óvulo de otra oveja" },
+        { t: "Introducir el núcleo somático en el óvulo y estimularlo" },
+        { t: "El óvulo se divide y forma un embrión" },
+        { t: "Implantar el embrión en el útero de una tercera oveja" }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 13",
+      preguntas: [
+        { q: "Una mutación que cambia el codón GAG por GUG en el ARNm es…", op: ["de cambio de sentido", "silenciosa", "sin sentido", "un desplazamiento del marco"], ok: 0, porque: "GAG es Glu y GUG es Val: cambia el aminoácido." },
+        { q: "¿Cuál de estas mutaciones se hereda a los hijos?", op: ["La que ocurre en una célula que formará gametos", "La de una célula de la piel", "La que causa un tumor de pulmón", "Ninguna, nunca"], ok: 0, porque: "Solo las mutaciones germinales pasan a la descendencia." },
+        { q: "Un individuo con 47 cromosomas y tres copias del 21 tiene una mutación…", op: ["genómica (aneuploidía)", "génica", "cromosómica estructural", "silenciosa"], ok: 0, porque: "Cambia el número de cromosomas: trisomía 21." },
+        { q: "La luz ultravioleta provoca principalmente…", op: ["dímeros de timina", "roturas de doble hebra", "desaminación de la citosina", "inserciones de bases"], ok: 0, porque: "Dos timinas contiguas se unen; los sistemas de reparación (NER) los arreglan." },
+        { q: "Un plásmido circular se corta con una enzima que tiene 3 sitios. ¿Cuántos fragmentos salen?", op: ["3", "4", "2", "1"], ok: 0, porque: "En una molécula circular, n cortes dan n fragmentos." },
+        { q: "¿Qué enzima se usa en la PCR y por qué?", op: ["Taq polimerasa, porque resiste altas temperaturas", "ADN ligasa, porque une fragmentos", "Helicasa, porque abre la hélice", "ARN polimerasa, porque copia el gen"], ok: 0, porque: "El calor (95 °C) abre la hélice; la Taq no se desnaturaliza." },
+        { q: "Una colonia blanca en una placa con ampicilina y X-gal indica…", op: ["bacteria con plásmido recombinante", "bacteria sin plásmido", "bacteria con plásmido vacío", "bacteria muerta"], ok: 0, porque: "Sin ampicilina no crecería; blanca = lacZ interrumpido por el gen insertado." },
+        { q: "En CRISPR-Cas9, el ARN guía sirve para…", op: ["dirigir Cas9 a la secuencia diana", "cortar el ADN", "unir los fragmentos", "copiar el gen"], ok: 0, porque: "El ARN guía es complementario a la diana; la que corta es Cas9." },
+        { q: "La oveja Dolly se obtuvo por…", op: ["transferencia del núcleo de una célula somática a un óvulo sin núcleo", "fecundación in vitro", "inyección de un plásmido", "mutación de un embrión"], ok: 0, porque: "Es clonación por transferencia nuclear." },
+        { q: "La terapia génica germinal es distinta de la somática porque…", op: ["modifica gametos o embriones y se hereda", "usa siempre virus", "no usa vectores", "solo se hace con CRISPR"], ok: 0, porque: "Es la que afecta a las generaciones futuras: por eso está prohibida en casi todos los países." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas frases contiene un ERROR?", op: ["La ligasa corta el ADN por secuencias palindrómicas", "EcoRI deja extremos cohesivos", "El ADN lineal con 2 cortes da 3 fragmentos", "El plásmido es un vector"], ok: 0, porque: "Las que cortan son las enzimas de restricción; la ligasa une." },
+        { q: "¿Cuál de estas frases contiene un ERROR?", op: ["Una mutación silenciosa cambia el aminoácido", "La inserción de 1 base desplaza el marco", "La mutación sin sentido crea una parada", "Las mutaciones son la fuente de variabilidad"], ok: 0, porque: "Silenciosa significa que el aminoácido NO cambia." },
+        { q: "¿Cuál de estas frases contiene un ERROR?", op: ["Las colonias azules son las que llevan el gen insertado", "La ampicilina selecciona bacterias con plásmido", "Colonia blanca = lacZ interrumpido", "X-gal da color azul con lacZ intacto"], ok: 0, porque: "Las azules NO tienen gen insertado; las recombinantes son blancas." },
+        { q: "¿Cuál de estas frases contiene un ERROR?", op: ["La PCR necesita ARN polimerasa", "La PCR usa dos cebadores", "Cada ciclo duplica las copias en el caso ideal", "La Taq resiste 95 °C"], ok: 0, porque: "Se usa una ADN polimerasa termoestable (Taq), no una ARN polimerasa." },
+        { q: "¿Cuál de estas frases contiene un ERROR?", op: ["Una mutación en una célula de la piel se transmite a los hijos", "Una translocación mueve un fragmento a otro cromosoma", "El síndrome de Turner es 45, X", "La poliploidía es frecuente en plantas"], ok: 0, porque: "Las mutaciones somáticas no se heredan." },
+        { q: "¿Cuál de estas frases contiene un ERROR?", op: ["La luz ultravioleta es radiación ionizante que rompe el ADN", "Los rayos X son radiación ionizante", "El 5-bromouracilo es un análogo de base", "Los intercalantes provocan indels"], ok: 0, porque: "La UV no es ionizante: forma dímeros de timina; las ionizantes (X, γ) rompen el ADN." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: mutaciones e ingeniería genética",
+      cartas: [
+        { a: "Mutación", b: "Cambio heredable del material genético que no se debe a la recombinación. Solo las germinales se heredan." },
+        { a: "Mutación silenciosa", b: "El codón nuevo codifica el mismo aminoácido (código degenerado)." },
+        { a: "Mutación sin sentido", b: "El codón nuevo es de parada: la proteína queda truncada." },
+        { a: "Frameshift", b: "Inserción o deleción que no es múltiplo de 3: desplaza el marco y cambia todos los aminoácidos siguientes." },
+        { a: "Aneuploidía y poliploidía", b: "Aneuploidía: falta o sobra algún cromosoma (2n ± 1). Poliploidía: juegos completos de más (3n, 4n)." },
+        { a: "Dímero de timina", b: "Lo forma la luz UV al unir dos timinas contiguas; se repara por NER (fallo: xeroderma pigmentoso)." },
+        { a: "Enzima de restricción", b: "Corta el ADN por un palíndromo concreto (EcoRI: G↓AATTC) dejando, a menudo, extremos cohesivos." },
+        { a: "Fragmentos en un gel", b: "Lineal: n cortes → n + 1 fragmentos. Circular: n cortes → n. La suma de tamaños es la del ADN entero." },
+        { a: "Azul/blanco", b: "La ampicilina selecciona bacterias con plásmido; las colonias blancas (lacZ interrumpido) llevan el gen insertado." },
+        { a: "PCR", b: "95 °C separa, 55 °C cebadores, 72 °C Taq alarga. Copias = N₀ · 2ⁿ." },
+        { a: "CRISPR-Cas9", b: "ARN guía complementario + Cas9: corta las dos hebras; la reparación inactiva o corrige el gen (Doudna y Charpentier, 2012)." },
+        { a: "Terapia génica somática y germinal", b: "Somática: células del cuerpo, no se hereda. Germinal: gametos o embrión, se hereda; prohibida en la mayoría de países." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("a1", 1, "Una mutación es…", ["un cambio heredable en el material genético que no se debe a la recombinación", "cualquier error de la replicación, aunque se corrija", "el reparto de genes en la meiosis", "una enfermedad hereditaria"], 0, ["Si el error se corrige, no queda como mutación.", "La recombinación solo baraja alelos que ya existían."], "Un cambio heredable del material genético que no se debe a la recombinación");
+  O("a2", 1, "El cambio de una sola base dentro de un gen es una mutación…", ["génica", "cromosómica", "genómica", "somática obligatoriamente"], 0, ["Afecta a la secuencia de un gen: nivel génico."], "Génica");
+  V("a3", 1, "Todas las mutaciones son perjudiciales.", false, ["Muchas son neutras (silenciosas) y algunas son beneficiosas en un ambiente concreto", "Sí, porque cambian el ADN", "Sí, porque siempre cambian la proteína", "No, pero todas son neutras"], 0, ["Una mutación silenciosa no cambia el aminoácido.", "La del alelo HbS protege (en heterocigosis) de la malaria."]);
+  O("a4", 1, "¿Qué tipo de mutación cambia el número de cromosomas?", ["genómica", "génica", "cromosómica estructural", "silenciosa"], 0, ["La cromosómica cambia la estructura; la genómica, el número."], "Genómica");
+  T("a5", 1, "Completa: una mutación en la que un codón con sentido pasa a ser un codón de parada se llama mutación sin…", "Palabra", ["sentido"], ["Sin sentido (<i>nonsense</i>): se corta la proteína."], "sentido");
+  X("a6", 1, "En una PCR ideal que parte de 1 molécula de ADN, ¿cuántas copias hay tras 5 ciclos?", "Copias =", 32, "", ["Cada ciclo duplica.", "2⁵ = 32."], "32 copias");
+  O("a7", 1, "¿Qué enzima une el gen y el vector tras cortarlos con la misma enzima de restricción?", ["ADN ligasa", "Helicasa", "Taq polimerasa", "Primasa"], 0, ["Los extremos cohesivos se aparean, pero hace falta sellar el enlace fosfodiéster."], "ADN ligasa");
+  O("a8", 1, "Las enzimas de restricción cortan el ADN…", ["por secuencias concretas, normalmente palindrómicas", "al azar", "solo por los extremos", "en cualquier sitio con A y T"], 0, ["Cada enzima reconoce su secuencia de 4-8 pb."], "Por secuencias concretas, normalmente palindrómicas");
+  M("a9", 1, "Une cada mutación cromosómica con su descripción.",
+    [C("Deleción", ["Se pierde un fragmento", "Un fragmento se repite", "Un fragmento gira 180°", "Un fragmento pasa a otro cromosoma"], 0),
+     C("Duplicación", ["Un fragmento se repite", "Se pierde un fragmento", "Un fragmento gira 180°", "Un fragmento pasa a otro cromosoma"], 0),
+     C("Inversión", ["Un fragmento gira 180°", "Se pierde un fragmento", "Un fragmento se repite", "Un fragmento pasa a otro cromosoma"], 0),
+     C("Translocación", ["Un fragmento pasa a otro cromosoma", "Se pierde un fragmento", "Un fragmento se repite", "Un fragmento gira 180°"], 0)],
+    ["Deleción: se pierde. Duplicación: se repite. Inversión: cambia de sentido. Translocación: cambia de cromosoma."], "Deleción → pérdida; duplicación → repetición; inversión → giro; translocación → otro cromosoma");
+  X("a10", 1, "Una persona con síndrome de Down (trisomía 21) tiene en sus células somáticas…", "Cromosomas =", 47, "", ["Lo normal es 46 (2n).", "Un cromosoma 21 de más: 46 + 1 = 47."], "47 cromosomas");
+  T("a11", 1, "Completa: la ADN polimerasa que se usa en la PCR, porque resiste las temperaturas altas, es la polimerasa…", "Nombre", ["taq", "taq polimerasa", "polimerasa taq", "adn polimerasa taq"], ["Procede de <i>Thermus aquaticus</i>, una bacteria de aguas termales."], "Taq");
+  O("a12", 1, "En el sistema CRISPR-Cas9, la molécula que lleva a Cas9 hasta el gen que se quiere cortar es…", ["un ARN guía", "un plásmido", "la ligasa", "la helicasa"], 0, ["Es complementario a la secuencia diana."], "Un ARN guía");
+  V("a13", 1, "Un plásmido es una molécula de ADN circular, pequeña y extracromosómica, que puede usarse como vector.", true, ["Tiene origen de replicación propio y admite insertos", "Es un cromosoma bacteriano completo", "Está formado por proteínas", "Solo existe en eucariotas"], 0, ["Las bacterias los tienen además de su cromosoma."]);
+  O("a14", 1, "¿Qué lesión provoca en el ADN la luz ultravioleta?", ["Dímeros de timina", "Roturas de doble hebra", "Pérdida de un cromosoma", "Duplicación de genes"], 0, ["Dos timinas contiguas se unen en una hebra.", "Las roturas las provocan las radiaciones ionizantes (rayos X y γ)."], "Dímeros de timina");
+  O("a15", 1, "El cariotipo del síndrome de Turner es…", ["45, X", "47, XXY", "47, +21", "46, XX"], 0, ["Falta un cromosoma sexual: monosomía del X."], "45, X");
+  T("a16", 1, "Completa: el gen de otra especie que se introduce en un organismo transgénico se llama…", "Nombre", ["transgen", "transgén"], ["Trans- (de otra especie) + gen."], "transgén");
+  V("a17", 1, "La enzima EcoRI deja siempre extremos romos.", false, ["Deja extremos cohesivos de 4 nucleótidos (AATT)", "Sí, como todas las enzimas de restricción", "Sí, porque corta las dos hebras en el mismo punto", "No corta, solo une"], 0, ["Corta G↓AATTC en cada hebra, con los cortes desplazados.", "SmaI es de las que dejan extremos romos."]);
+
+  // ---- nivel 2
+  X("b1", 2, "Tras 20 ciclos de una PCR ideal que parte de 1 molécula, ¿cuántas copias hay?", "Copias =", 1048576, "", ["Cada ciclo duplica: 2²⁰.", "2²⁰ = 1 048 576."], "1 048 576 copias");
+  X("b2", 2, "Una PCR ideal parte de 50 moléculas de ADN. ¿Cuántas moléculas hay tras 10 ciclos?", "Moléculas =", 51200, "", ["N = N₀ · 2ⁿ.", "50 · 2¹⁰ = 50 · 1024 = 51 200."], "51 200 moléculas");
+  X("b3", 2, "¿Cuántos ciclos de una PCR ideal que parte de 1 molécula hacen falta, como mínimo, para superar el millón (10⁶) de copias?", "Ciclos =", 20, "", ["2¹⁹ = 524 288 (no llega).", "2²⁰ = 1 048 576 > 10⁶."], "20 ciclos");
+  X("b4", 2, "Cada ciclo de una PCR dura 2 minutos (30 s a 95 °C, 30 s a 55 °C y 60 s a 72 °C). ¿Cuántos minutos duran 30 ciclos?", "Minutos =", 60, "min", ["30 · 2 min = 60 min."], "60 minutos (1 hora)");
+  O("b5", 2, "En una PCR ideal que parte de una sola molécula, ¿a partir de qué ciclo aparecen las primeras moléculas del tamaño exacto de la región?", ["Del ciclo 3", "Del ciclo 1", "Del ciclo 2", "Del ciclo 10"], 0, ["Ciclo 1 y 2: productos más largos que la región.", "Ciclo 3: 2³ − 2·3 = 2 moléculas exactas."], "Del ciclo 3");
+  O("b6", 2, "El ARNm 5′-AUG CAU GGU UUU UAA-3′ da Met–His–Gly–Phe. Si se pierde la 5.ª base (la A de CAU), ¿qué proteína empieza a salir? (CUG = Leu, GUU = Val, UUU = Phe)", ["Met–Leu–Val–Phe… y se pierde la parada", "Met–His–Gly–Phe, igual que antes", "Met solo, porque aparece una parada", "Met–His–Val–Phe"], 0, ["Se forma AUG CUG GUU UUU AA.", "Se lee Met–Leu–Val–Phe y el UAA original queda partido: no se lee como parada."], "Met–Leu–Val–Phe…, sin la parada original");
+  X("b7", 2, "De las 9 sustituciones posibles de una sola base en el codón GAG (Glu), ¿cuántas dan un codón de parada?", "Nº =", 1, "", ["Cambios en 1.ª base: AAG, CAG, UAG → solo UAG es parada.", "2.ª base: GCG, GGG, GUG → ninguna parada. 3.ª base: GAA, GAC, GAU → ninguna.", "Solo 1."], "1 (GAG → UAG)");
+  X("b8", 2, "De las 9 sustituciones posibles de una sola base en el codón CUU (Leu), ¿cuántas son silenciosas?", "Nº =", 3, "", ["Las de la 3.ª base: CUA, CUC y CUG siguen siendo Leu.", "Las de la 1.ª y 2.ª base cambian el aminoácido (AUU Ile, GUU Val, UUU Phe, CCU Pro, CAU His, CGU Arg)."], "3 silenciosas");
+  O("b9", 2, "La deleción de 3 pares de bases consecutivos que corresponden exactamente a un codón (como en la fibrosis quística, ΔF508) produce…", ["una proteína con un aminoácido menos, sin desplazar el marco", "un desplazamiento del marco de lectura", "un codón de parada inmediato", "ningún efecto, es silenciosa"], 0, ["3 es múltiplo de 3: el resto se lee igual.", "Pero perder un aminoácido clave puede inutilizar la proteína."], "Una proteína con un aminoácido menos");
+  X("b10", 2, "Un ADN lineal de 6000 pb se corta con EcoRI en las posiciones 1000 y 3000. ¿Cuántos pb tiene el fragmento más largo?", "Tamaño =", 3000, "pb", ["Fragmentos: 1000, 3000 − 1000 = 2000 y 6000 − 3000 = 3000.", "El mayor: 3000."], "3000 pb");
+  X("b11", 2, "Un plásmido circular de 5000 pb se corta con EcoRI en las posiciones 800 y 2800. ¿Cuántos pb tiene el fragmento más corto?", "Tamaño =", 2000, "pb", ["Un fragmento va de 800 a 2800: 2000 pb.", "El otro es el resto del círculo: 5000 − 2000 = 3000 pb."], "2000 pb");
+  X("b12", 2, "El guisante tiene 2n = 14. ¿Cuántos cromosomas tiene un guisante triploide (3n)?", "Cromosomas =", 21, "", ["n = 7.", "3n = 21."], "21 cromosomas");
+  O("b13", 2, "Si el par 21 no se separa en la <b>meiosis II</b> de una mujer, ¿cuántos de los 4 óvulos potenciales son anormales?", ["2", "4", "1", "0"], 0, ["Solo falla una de las dos células de la segunda división.", "Esa célula da un gameto n + 1 y otro n − 1; la otra da 2 normales."], "2 de los 4");
+  V("b14", 2, "Una mutación que aparece en una célula de la piel de un adulto puede pasar a sus hijos.", false, ["Es somática: no llega a los gametos", "Sí, porque todas las células tienen el mismo ADN", "Sí, si causa un tumor", "Sí, si el hijo nace por cesárea"], 0, ["Solo las mutaciones de la línea germinal se heredan."]);
+  O("b15", 2, "El cromosoma Filadelfia (leucemia mieloide crónica) es un ejemplo de…", ["translocación", "deleción", "trisomía", "mutación silenciosa"], 0, ["Es t(9;22): ABL pasa al cromosoma 22 y se une a BCR."], "Translocación");
+  O("b16", 2, "Las pruebas PCR del COVID-19 incluyen un paso de retrotranscripción porque el SARS-CoV-2…", ["es un virus de ARN y hay que pasarlo a ADNc", "es una bacteria", "tiene ADN circular", "no tiene material genético"], 0, ["La Taq solo copia ADN: primero la retrotranscriptasa hace ADNc a partir del ARN viral."], "Es un virus de ARN: se pasa a ADNc con retrotranscriptasa");
+  T("b17", 2, "Completa: los sitios que reconocen la mayoría de las enzimas de restricción son secuencias…", "Palabra", ["palindromica", "palindromicas", "palindromo", "palindromos"], ["Se leen igual de 5′ a 3′ en las dos hebras (G AATT C)."], "palindrómicas");
+  O("b18", 2, "¿Por qué en una PCR hacen falta DOS cebadores distintos?", ["Uno para cada hebra: delimitan la región que se copia", "Uno sirve de molde y el otro de enzima", "Porque la Taq necesita dos extremos 5′", "Uno inicia y el otro termina la transcripción"], 0, ["Un cebador se une al extremo 3′ de cada hebra.", "La región amplificada queda entre los dos."], "Uno para cada hebra; delimitan la región");
+  M("b19", 2, "Une cada etapa del ciclo de la PCR con lo que ocurre.",
+    [C("Desnaturalización (≈ 95 °C)", ["Se separan las hebras", "Los cebadores se unen al molde", "La Taq alarga los cebadores"], 0),
+     C("Anillamiento (≈ 55 °C)", ["Los cebadores se unen al molde", "Se separan las hebras", "La Taq alarga los cebadores"], 0),
+     C("Extensión (72 °C)", ["La Taq alarga los cebadores", "Se separan las hebras", "Los cebadores se unen al molde"], 0)],
+    ["Alta temperatura: separa. Temperatura intermedia: los cebadores se unen. 72 °C: es la óptima de la Taq."], "95 °C separa; 55 °C cebadores; 72 °C Taq alarga");
+  O("b20", 2, "Tras sembrar bacterias transformadas en una placa con ampicilina y X-gal, ¿qué colonias llevan el gen insertado en el polilinker de lacZ?", ["Las blancas", "Las azules", "Las que no crecen", "Todas las que crecen"], 0, ["Crecer implica tener plásmido (resistencia).", "Blanca = lacZ interrumpido por el gen."], "Las colonias blancas");
+  X("b21", 2, "En una placa aparecen 240 colonias y el 15 % son blancas. ¿Cuántas colonias son recombinantes?", "Colonias =", 36, "", ["Blanca = recombinante (con ampicilina ya se descartaron las sin plásmido).", "240 · 0,15 = 36."], "36 colonias");
+
+  // ---- nivel 3
+  M("c1", 3, "El ADN lineal de 6000 pb tiene dos sitios EcoRI (cortes en 1000 y 3000) y un sitio BamHI (corte en 2200). Se digiere con las dos enzimas a la vez. ¿Cuántos fragmentos salen y cuántos pb tiene el más pequeño?",
+    [{ tipo: "num", etiqueta: "Fragmentos", valor: 4 }, { tipo: "num", etiqueta: "El más pequeño (pb)", valor: 800, unidad: "pb" }],
+    ["Cortes: 1000, 2200 y 3000. Lineal: 3 cortes → 4 fragmentos.", "Fragmentos: 1000, 1200, 800 y 3000 (suma 6000)."], "4 fragmentos; el más pequeño, 800 pb");
+  M("c2", 3, "Una PCR ideal parte de 1 molécula y hace 5 ciclos. Calcula cuántas moléculas hay en total y cuántas tienen exactamente el tamaño de la región (2ⁿ − 2n).",
+    [{ tipo: "num", etiqueta: "Total", valor: 32 }, { tipo: "num", etiqueta: "Del tamaño exacto", valor: 22 }],
+    ["Total: 2⁵ = 32.", "Exactas: 2⁵ − 2·5 = 32 − 10 = 22.", "Las otras 10 son productos más largos que la región."], "32 en total; 22 del tamaño exacto");
+  X("c3", 3, "Una PCR parte de 1 molécula y tiene una eficiencia del 90 % por ciclo (N = N₀ · 1,9ⁿ). ¿Cuántas copias hay tras 10 ciclos?", "Copias =", 613.1, "", ["N = 1,9¹⁰.", "1,9¹⁰ ≈ 613,1.", "Con eficiencia 100 % serían 1024: se pierde casi el 40 %."], "≈ 613 copias", 0.005);
+  O("c4", 3, "El ARNm 5′-AUG UUC AAA GGG UGA-3′ da Met–Phe–Lys–Gly. Se inserta una G entre la 6.ª y la 7.ª base. ¿Cómo empieza la proteína nueva? (GAA = Glu, AGG = Arg, GUG = Val)", ["Met–Phe–Glu–Arg–Val…", "Met–Phe–Lys–Gly–Gly", "Met–Phe–parada", "Met–Phe–Lys–Gly, igual que antes"], 0, ["Queda AUG UUC GAA AGG GUG A.", "Desde el punto de inserción todos los codones cambian, y la parada original (UGA) ya no se lee en su marco."], "Met–Phe–Glu–Arg–Val…");
+  X("c5", 3, "La proteína CFTR normal tiene 1480 aminoácidos. La mutación ΔF508 elimina un codón completo (3 pb). ¿Cuántos aminoácidos tiene la proteína mutante?", "Aminoácidos =", 1479, "", ["Se pierde un aminoácido (Phe 508) y el marco no se desplaza.", "1480 − 1 = 1479."], "1479 aminoácidos");
+  O("c6", 3, "El ADN lineal de 6000 pb da, con EcoRI, tres fragmentos que de izquierda a derecha miden 1000, 2000 y 3000 pb. Con BamHI se obtienen 2200 y 3800 pb. ¿En qué fragmento de EcoRI está el sitio BamHI?", ["En el de 2000 pb", "En el de 1000 pb", "En el de 3000 pb", "En ninguno"], 0, ["Los sitios EcoRI están en 1000 y 3000.", "BamHI corta en 2200, que está entre 1000 y 3000.", "Por tanto, parte el fragmento central de 2000 en 1200 + 800."], "En el de 2000 pb");
+  X("c7", 3, "El ARN guía de CRISPR-Cas9 tiene 20 nt. ¿Cuántas secuencias distintas de 20 nucleótidos existen (4 bases)?", "Secuencias =", 1099511627776, "", ["Cada posición tiene 4 posibilidades.", "4²⁰ = 1 099 511 627 776 ≈ 1,1·10¹²."], "4²⁰ ≈ 1,1·10¹²", 0.005);
+  X("c8", 3, "Si las bases fueran equiprobables y estuvieran al azar, ¿cuántos sitios de EcoRI (6 pb) se esperan en un genoma de 4,6·10⁶ pb? (Redondea a la unidad.)", "Sitios ≈", 1123, "", ["Un sitio de 6 pb aparece una vez cada 4⁶ = 4096 pb.", "4,6·10⁶ / 4096 ≈ 1123."], "≈ 1123 sitios", 0.005);
+  X("c9", 3, "Con una tasa de 10⁻⁹ errores por base y replicación (tras corrección y reparación) y un genoma diploide de 6,4·10⁹ pb, ¿cuántas mutaciones nuevas aparecen, de media, al replicar todo el ADN de una célula?", "Mutaciones =", 6.4, "", ["6,4·10⁹ · 10⁻⁹ = 6,4."], "≈ 6,4 mutaciones", 0.005);
+  O("c10", 3, "Para que <i>E. coli</i> fabrique una proteína humana se parte del ADNc y no del gen humano porque…", ["la bacteria no sabe eliminar los intrones", "la bacteria no tiene ribosomas", "el ADNc es más largo", "el código genético humano es distinto"], 0, ["El ADNc se obtiene del ARNm maduro con retrotranscriptasa: solo tiene exones.", "El código genético es universal (T12)."], "La bacteria no sabe eliminar los intrones");
+  V("c11", 3, "Un plásmido circular con 3 sitios de corte para una enzima da 3 fragmentos.", true, ["En una molécula circular, n cortes dan n fragmentos", "Siempre da n + 1 fragmentos", "Da 2 fragmentos, sea cual sea n", "Depende del tamaño de los fragmentos"], 0, ["Cada corte separa un trozo del círculo; el último corte «cierra» el anillo."]);
+  X("c12", 3, "Un ADNc de 1200 pb contiene la región codificante completa, incluido el codón de parada. ¿Cuántos aminoácidos tiene la proteína?", "Aminoácidos =", 399, "", ["1200 / 3 = 400 codones.", "Uno es el de parada y no codifica aminoácido: 399."], "399 aminoácidos");
+
+  // ---- preguntas abiertas con rúbrica
+  R("d1", "Explica los tipos de mutaciones génicas (sustitución e inserción o deleción) y sus efectos sobre la proteína, con un ejemplo real.",
+    [{ t: "Sustitución: silenciosa, de cambio de sentido y sin sentido, con su efecto", p: 0.6 },
+     { t: "Silenciosa por la degeneración del código", p: 0.3 },
+     { t: "Inserción o deleción: desplazamiento del marco si no es múltiplo de 3", p: 0.5 },
+     { t: "Efecto del frameshift: cambia todos los aminoácidos siguientes y suele truncar", p: 0.3 },
+     { t: "Un ejemplo real (anemia falciforme GAG → GUG, fibrosis quística ΔF508…)", p: 0.3 }],
+    ["Sustitución: silenciosa, sentido, sin sentido.", "Indels: marco.", "Efecto.", "Ejemplo."], "Sustituciones (3 tipos) e indels (frameshift si no múltiplo de 3) con ejemplo");
+  R("d2", "Describe las etapas de una PCR, qué componentes necesita y para qué sirve.",
+    [{ t: "Para qué: amplificar un fragmento concreto de ADN", p: 0.3 },
+     { t: "Componentes: molde, dos cebadores, Taq, nucleótidos, tampón", p: 0.5 },
+     { t: "Desnaturalización ≈ 95 °C", p: 0.3 },
+     { t: "Anillamiento ≈ 55 °C de los cebadores", p: 0.3 },
+     { t: "Extensión a 72 °C por la Taq y repetición de ciclos (2ⁿ copias)", p: 0.4 },
+     { t: "Un uso (diagnóstico, huella genética, paternidad)", p: 0.2 }],
+    ["Qué es.", "Componentes.", "Tres etapas con temperaturas.", "Ciclos y usos."], "Etapas y componentes de la PCR");
+  R("d3", "Explica cómo se puede producir insulina humana en bacterias.",
+    [{ t: "Obtener el gen (ADNc, sin intrones)", p: 0.4 },
+     { t: "Cortar plásmido y gen con la misma enzima de restricción", p: 0.5 },
+     { t: "Unir con ADN ligasa (ADN recombinante)", p: 0.4 },
+     { t: "Introducir en la bacteria (transformación) y seleccionar (antibiótico, azul/blanco)", p: 0.4 },
+     { t: "Cultivar y purificar; el código genético es universal", p: 0.3 }],
+    ["Gen.", "Restricción y ligasa.", "Transformación.", "Selección.", "Producción."], "Gen → plásmido → bacteria → selección → cultivo");
+  R("d4", "Explica cómo funciona CRISPR-Cas9 y comenta una ventaja, un riesgo y una cuestión ética de su uso.",
+    [{ t: "ARN guía complementario a la secuencia diana", p: 0.4 },
+     { t: "Cas9 corta las dos hebras en ese punto", p: 0.4 },
+     { t: "La reparación celular inactiva o corrige el gen", p: 0.4 },
+     { t: "Una ventaja (precisión, rapidez, bajo coste, tratar enfermedades)", p: 0.3 },
+     { t: "Un riesgo (efectos fuera de diana)", p: 0.3 },
+     { t: "Una cuestión ética (edición germinal, desigualdad, «bebés a la carta»)", p: 0.3 }],
+    ["Mecanismo.", "Reparación.", "Ventaja.", "Riesgo.", "Ética."], "Mecanismo, ventaja, riesgo y debate ético");
+  R("d5", "Explica la relación entre mutaciones y cáncer. Distingue protooncogenes y genes supresores y di si el cáncer es siempre hereditario.",
+    [{ t: "El cáncer suele deberse a la acumulación de varias mutaciones en células somáticas", p: 0.4 },
+     { t: "Protooncogén → oncogén: ganancia de función, basta un alelo", p: 0.5 },
+     { t: "Gen supresor (p53, BRCA…): pérdida de función, hacen falta los dos alelos", p: 0.5 },
+     { t: "La mayoría de los cánceres son somáticos y no se heredan; solo las mutaciones germinales", p: 0.4 },
+     { t: "Mutágenos que aumentan el riesgo (tabaco, UV, radiación)", p: 0.2 }],
+    ["Acumulación.", "Oncogenes.", "Supresores.", "Herencia.", "Mutágenos."], "Acumulación de mutaciones; oncogenes y supresores; casi siempre somático");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Tipos de mutaciones", ancha: true,
+      tabla: { cab: ["Tipo", "Qué cambia", "Ejemplo"], filas: [
+        ["génica", "secuencia de un gen", "GAG → GUG"],
+        ["cromosómica", "estructura del cromosoma", "translocación 9;22"],
+        ["genómica", "número de cromosomas", "trisomía 21"]
+      ] } },
+    { titulo: "Sustituciones génicas", ancha: true,
+      tabla: { cab: ["Tipo", "Ejemplo con GAG (Glu)"], filas: [
+        ["silenciosa", "GAA (Glu)"],
+        ["cambio de sentido", "GUG (Val): falciforme"],
+        ["sin sentido", "UAG (parada)"],
+        ["frameshift", "indel no múltiplo de 3"]
+      ] } },
+    { titulo: "Construir un recombinante",
+      pasos: ["Cortar plásmido y gen con la misma enzima.", "Unir con ligasa.", "Transformar bacterias.", "Ampicilina: tienen plásmido.", "Blancas: llevan el gen."],
+      nota: "Lineal: n + 1 fragmentos. Circular: n." },
+    { titulo: "Los tres pasos de la PCR", ancha: true,
+      tabla: { cab: ["Paso", "Temperatura", "Qué ocurre"], filas: [
+        ["desnaturalización", "≈ 95 °C", "se separan las hebras"],
+        ["anillamiento", "≈ 55 °C", "se unen los cebadores"],
+        ["extensión", "72 °C", "la Taq alarga"]
+      ] }, nota: "Copias = N₀ · 2ⁿ." },
+    { titulo: "Somática o germinal", ancha: true,
+      tabla: { cab: ["", "Somática", "Germinal"], filas: [
+        ["células", "del cuerpo", "gametos o embrión"],
+        ["¿se hereda?", "no", "sí"],
+        ["terapia génica", "aprobada", "prohibida"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Las colonias azules son las recombinantes", bien: "Las recombinantes son las blancas (lacZ interrumpido)", por: "La ampicilina selecciona las que tienen plásmido; X-gal distingue las que llevan el gen." },
+        { mal: "La ligasa corta el ADN por palíndromos", bien: "Corta la enzima de restricción; la ligasa une", por: "Tijeras frente a pegamento." },
+        { mal: "Una mutación silenciosa cambia el aminoácido", bien: "El aminoácido no cambia", por: "El código genético es degenerado." },
+        { mal: "Una mutación en una célula de la piel se hereda", bien: "No: es somática", por: "Solo se heredan las germinales." },
+        { mal: "En un plásmido circular, n cortes dan n + 1 fragmentos", bien: "Dan n fragmentos", por: "El n + 1 es para ADN lineal." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t13", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: A.secciones,
+    nuevas: A.nuevas.concat(Bb.nuevas),
     datos: datos,
     ejercicios: N,
     lamina: lamina
