@@ -159,7 +159,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Biología II t7 núcleo y ciclo (46 ej., 269 comprob.; un primer intento se perdió por corte) | ≈174k (+ intento perdido) | |
 | Biología II t6 la célula (46 ej., 265 comprob.; un primer intento se perdió por corte) | ≈225k (+ intento perdido) | |
 | Biología II t8 respiración celular (44 ej., 272 comprob.) | ≈208k | |
-| Biología II t9 fotosíntesis (52 ej., 315 comprob.; cortado por reinicio y reanudado) | ver notificación | |
+| Biología II t9 fotosíntesis (52 ej., 315 comprob.; cortado por reinicio y reanudado) | ≈209k (+ parte previa) | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
