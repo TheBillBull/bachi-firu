@@ -44,6 +44,7 @@
     "<p>Las dos ramas <b>colaboran</b>: los macrófagos (innata) enseñan trozos del patógeno a los linfocitos T (adaptativa), y los anticuerpos (adaptativa) marcan a los patógenos para que los fagocitos (innata) los destruyan.</p>" +
     "<h5>Historia en tres hitos</h5>" +
     "<p><b>Elie Metchnikoff</b> describió la fagocitosis en 1882–1884 (Nobel en 1908, junto con Paul Ehrlich); <b>Emil von Behring y Shibasaburo Kitasato</b> demostraron en 1890 que el suero de un animal inmunizado protege a otro (los anticuerpos); <b>Macfarlane Burnet</b> formuló en 1957–1959 la teoría de la selección clonal.</p>" +
+    w("clasificar", "defensas") +
     ojo("No confundas <b>antígeno</b> con <b>patógeno</b>. El patógeno es el microorganismo entero; el antígeno es una molécula suya (o de otra cosa) que dispara la respuesta. Un mismo virus tiene muchos antígenos distintos."));
 
   // ---------------------------------------------------------------- 2. Innata
@@ -146,6 +147,7 @@
     ], "q3t") +
     "<h5>Anticuerpos monoclonales</h5>" +
     "<p>Un <b>clon</b> de células plasmáticas fabrica anticuerpos idénticos, todos contra el mismo epítopo: son los <b>monoclonales</b>. Se obtienen fusionando un linfocito B con una célula tumoral inmortal (un <b>hibridoma</b>): <b>Köhler y Milstein, 1975</b> (Nobel 1984). Se usan en diagnóstico (test de embarazo, pruebas de covid) y en terapia (algunos cánceres, enfermedades autoinmunes).</p>" +
+    w("emparejar", "ig") +
     ojo("Un anticuerpo <b>no es una célula</b> ni un enzima: es una proteína. Lo fabrican las <b>células plasmáticas</b> (procedentes de linfocitos B), no los linfocitos T. Y no «mata» al antígeno: lo neutraliza o lo marca."));
 
   // ---------------------------------------------------------------- 5. Memoria y vacunas
@@ -191,6 +193,7 @@
       ["<b>Célula plasmática</b>", "Linfocito B diferenciado que fabrica anticuerpos"],
       ["<b>Célula de memoria</b>", "B o T de larga vida que permite la respuesta secundaria"]
     ], "q3t") +
+    w("emparejar", "celulas") +
     ojo("Los linfocitos B y T se <b>ven igual</b> al microscopio; se distinguen por las proteínas de su superficie (CD4, CD8, receptores). Y el <b>timo</b> es solo de linfocitos <b>T</b> («T» de timo); es grande en el niño y se reduce con la edad.")) });
 
   nuevas.push({ h: "7. Tipos de inmunidad: natural y artificial, activa y pasiva", html: env(
@@ -272,6 +275,7 @@
     "<h5>Quién puede donar a quién</h5>" +
     "<p>Al transfundir hematíes, el problema son los anticuerpos del <b>receptor</b> contra los antígenos del <b>donante</b>. Regla práctica: el donante no puede tener ningún antígeno (A, B, D) que le falte al receptor. Así, <b>O−</b> es donante universal de hematíes (no tiene antígenos) y <b>AB+</b> receptor universal (no tiene anticuerpos). De las 8 × 8 = 64 combinaciones donante-receptor (ABO y Rh), 27 son compatibles.</p>" +
     w("bio_transfusion") +
+    w("emparejar", "hitos") +
     "<h5>Genética de los grupos sanguíneos</h5>" +
     ejemplo("Hijos de A (heterocigoto) × B (heterocigoto)", "Un hombre de grupo A cuyo padre era del grupo O y una mujer de grupo B cuya madre era del grupo O tienen hijos. ¿Qué grupos y con qué probabilidad?", [
       "Si su padre era ii, el hombre es heterocigoto: <b>I<sup>A</sup>i</b>. Igualmente, la mujer: <b>I<sup>B</sup>i</b>.",
