@@ -15,7 +15,7 @@
     var s = document.createElement("style"); s.id = "bio9-estilos";
     s.textContent =
       ".bio9-svg{display:block;width:100%;max-width:560px;height:auto;margin:6px auto}" +
-      ".bio9-svg text{font:600 11px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio9-svg text{font:600 13px var(--body,sans-serif);fill:var(--ink)}" +
       ".bio9-svg .b9-nodo{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
       ".bio9-svg .b9-nodo.on{fill:var(--pen-soft);stroke:var(--pen)}" +
       ".bio9-svg .b9-nodo.ahora{fill:var(--red-soft);stroke:var(--red);stroke-width:2.5}" +
@@ -25,7 +25,7 @@
       ".bio9-svg .b9-pt{fill:var(--ink-faint)} .bio9-svg .b9-pt.on{fill:var(--pen)} .bio9-svg .b9-pt.ahora{fill:var(--red)}" +
       ".bio9-svg .b9-luz{fill:none;stroke:#e0a21a;stroke-width:3}" +
       ".bio9-svg .b9-mem{fill:var(--pen-soft);opacity:.55}" +
-      ".bio9-svg .b9-peq{font-size:10px;fill:var(--ink-faint);font-weight:500}" +
+      ".bio9-svg .b9-peq{font-size:11px;fill:var(--ink-faint);font-weight:500}" +
       ".bio9-svg .b9-fondo{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
       ".bio9-svg .b9-est{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2.5}" +
       ".bio9-svg .b9-hoja{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2}" +
@@ -97,7 +97,7 @@
       var ahoraN = {}; Object.keys(ahora).forEach(function (a) { ahoraN[Z_ARISTAS[a][0]] = 1; ahoraN[Z_ARISTAS[a][1]] = 1; });
       var s = '<svg class="bio9-svg" viewBox="0 0 380 250" role="img" aria-label="Esquema en Z de la fase luminosa">' +
         '<rect class="b9-fondo" x="4" y="4" width="372" height="242" rx="12"/>' +
-        '<rect class="b9-mem" x="4" y="231" width="372" height="15" rx="4"/><text class="b9-peq" x="12" y="242">membrana del tilacoide · abajo, el estroma</text>' +
+        '<rect class="b9-mem" x="4" y="231" width="372" height="15" rx="4"/><text class="b9-peq" x="12" y="242">membrana del tilacoide (abajo, el estroma)</text>' +
         '<text class="b9-peq" x="12" y="20">energía del electrón ↑</text>';
       Object.keys(Z_ARISTAS).forEach(function (a) {
         var d = Z_ARISTAS[a], p = NODOS[d[0]], q = NODOS[d[1]], cl = ahora[a] ? " ahora" : (hechas[a] ? " on" : "");
@@ -122,7 +122,7 @@
       // ATP sintasa
       var atp = L[paso].atpsint;
       s += '<rect class="b9-nodo' + (atp ? " ahora" : "") + '" x="150" y="196" width="86" height="24" rx="8"/><text x="193" y="212" text-anchor="middle">ATP sintasa</text>';
-      s += '<text class="b9-peq" x="250" y="212">lumen → estroma: H⁺ ⇒ ATP</text>';
+      s += '<text class="b9-peq" x="244" y="212">H⁺ salen ⇒ ATP</text>';
       s += '</svg>';
       dib.innerHTML = s;
       txt.innerHTML = L[paso].t;
