@@ -63,7 +63,8 @@
     "<h5>Niveles de organización</h5>" +
     "<p>Un ser vivo puede ser <b>unicelular</b> (bacterias, levaduras, <i>Paramecium</i>), formar una <b>colonia</b> de células parecidas (<i>Volvox</i>) o ser <b>pluricelular</b>, con células especializadas que forman tejidos, órganos y aparatos. En un organismo pluricelular todas las células proceden de un cigoto, tienen los mismos genes y se diferencian porque <b>expresan genes distintos</b>.</p>" +
     "<h5>Dos tipos de organización celular</h5>" +
-    "<p>Hay dos modelos de célula, que se distinguen sobre todo por el <b>ADN</b>: en la <b>procariota</b> (bacterias y arqueas) está libre en el citoplasma, en el nucleoide; en la <b>eucariota</b> (protistas, hongos, plantas y animales) está dentro de un núcleo con envoltura. La comparación completa está en la sección 6, junto con un esquema interactivo.</p>");
+    "<p>Hay dos modelos de célula, que se distinguen sobre todo por el <b>ADN</b>: en la <b>procariota</b> (bacterias y arqueas) está libre en el citoplasma, en el nucleoide; en la <b>eucariota</b> (protistas, hongos, plantas y animales) está dentro de un núcleo con envoltura. La comparación completa está en la sección 6, junto con un esquema interactivo.</p>" +
+    w("emparejar", "cientificos") + w("orden", "ordenteoria"));
 
   // ---------------------------------------------------------------- 2. La membrana plasmática
   secciones[1] = env(
@@ -116,6 +117,7 @@
     "<h5>Ósmosis y células (recordatorio del Tema 1)</h5>" +
     "<p>El agua cruza la membrana por ósmosis hacia el medio con más soluto. Un hematíe en medio <b>hipotónico</b> estalla (hemólisis) y en <b>hipertónico</b> se arruga (crenación); una célula vegetal en hipotónico se pone <b>turgente</b> (la pared la protege) y en hipertónico sufre <b>plasmólisis</b>. Pruébalo de nuevo aquí:</p>" +
     w("bio_osmosis") +
+    w("clasificar", "transportes") +
     ojo("Pasivo ≠ «sin proteínas»: la difusión facilitada es pasiva y usa proteínas. Y activo ≠ «con proteínas»: lo que lo define es ir <b>en contra del gradiente gastando energía</b>."));
 
   // ---------------------------------------------------------------- 4. Endomembranas
@@ -160,7 +162,8 @@
     ], "q3t") +
     "<p><b>Centriolos y centrosoma.</b> Los dos centriolos del centrosoma (perpendiculares) están formados por <b>9 tripletes</b> de microtúbulos (9 × 3 = 27 microtúbulos cada uno). Organizan el huso de la división. <b>Cilios y flagelos</b> son prolongaciones móviles con un esqueleto de <b>9 dobletes periféricos + 2 microtúbulos centrales</b> («9 + 2»: 20 microtúbulos en total), que se deslizan gracias a la dineína; nacen de un <b>corpúsculo basal</b> con estructura de centriolo (9 × 3). Los cilios son cortos y numerosos (epitelio de la tráquea); el flagelo, largo y único (espermatozoide). Ojo: el flagelo de una bacteria es otra cosa, un filamento de flagelina sin microtúbulos.</p>" +
     "<h5>Pared celular y matriz extracelular</h5>" +
-    "<p>La <b>pared vegetal</b> es una cubierta externa rígida de <b>celulosa</b> (microfibrillas en una matriz de hemicelulosa, pectinas y proteínas). Da forma, evita que la célula estalle en medios hipotónicos y está atravesada por conexiones citoplásmicas, los <b>plasmodesmos</b>. Las <b>bacterias</b> tienen pared de <b>peptidoglucano</b> (mureína), y los <b>hongos</b>, de <b>quitina</b>. Las células animales carecen de pared, pero se rodean de una <b>matriz extracelular</b> (colágeno, proteoglucanos) y se unen entre sí con <b>uniones</b> estrechas, desmosomas y comunicantes (en hendidura).</p>");
+    "<p>La <b>pared vegetal</b> es una cubierta externa rígida de <b>celulosa</b> (microfibrillas en una matriz de hemicelulosa, pectinas y proteínas). Da forma, evita que la célula estalle en medios hipotónicos y está atravesada por conexiones citoplásmicas, los <b>plasmodesmos</b>. Las <b>bacterias</b> tienen pared de <b>peptidoglucano</b> (mureína), y los <b>hongos</b>, de <b>quitina</b>. Las células animales carecen de pared, pero se rodean de una <b>matriz extracelular</b> (colágeno, proteoglucanos) y se unen entre sí con <b>uniones</b> estrechas, desmosomas y comunicantes (en hendidura).</p>" +
+    w("emparejar", "orgfun"));
 
   // ---------------------------------------------------------------- nuevas
   var nuevas = [];
@@ -190,12 +193,12 @@
       ["Citocinesis", "estrangulamiento", "tabique (fragmoplasto)"]
     ], "q3t") +
     "<p>Con el siguiente esquema practica lo que se pide en el examen: reconocer cada orgánulo en el dibujo y decir <b>cómo es, qué hace y en qué células aparece</b>.</p>" +
-    w("bio_celula") +
+    w("bio_celula") + w("clasificar", "celulas") +
     ojo("Las bacterias <b>sí</b> tienen pared (peptidoglucano), ribosomas (70S) y membrana plasmática; lo que no tienen es núcleo ni orgánulos con membrana. Y el «mesosoma» que aparece en libros antiguos resultó ser un artefacto de la preparación de las muestras.")) });
 
   nuevas.push({ h: "7. La ruta de una proteína por la célula", html: env(
     "<p>Una proteína de secreción recorre el sistema de endomembranas siempre en el mismo orden. Se entiende mejor si sigues a una (por ejemplo, la insulina) desde el gen hasta el exterior:</p>" +
-    w("bio_secrecion") +
+    w("bio_secrecion") + w("orden", "ordensec") +
     "<h5>Cómo se descubrió: el experimento de Palade</h5>" +
     "<p>George Palade (premio Nobel de Medicina en 1974, junto con Albert Claude y Christian de Duve) usó células del páncreas, que fabrican enzimas digestivas. En el experimento de <b>pulso y caza</b>: (1) durante pocos minutos (el <b>pulso</b>) las células recibieron un aminoácido <b>radiactivo</b>, de modo que solo las proteínas fabricadas en ese momento quedaron marcadas; (2) después se les dio el mismo aminoácido sin marcar (la <b>caza</b>) y se tomaron muestras cada cierto tiempo. Con autorradiografía y microscopía electrónica se vio dónde estaba la radiactividad en cada momento.</p>" +
     tabla(["Tiempo", "¿Dónde está la proteína marcada?"], [
