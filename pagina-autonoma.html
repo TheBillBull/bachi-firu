@@ -6251,6 +6251,222 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 14 (Microbiología)
+   bio_crecimiento: crecimiento bacteriano. (1) calculadora de generaciones N = N0·2^n y (2) curva por fases
+                    (latencia, exponencial, estacionaria, declive) en escala logarítmica o lineal.
+   bio_ciclo_viral: ciclo lítico, ciclo lisogénico y retrovirus (VIH) paso a paso, con dibujo.
+   Estilos inyectados desde aquí. Los números del modelo los recalcula herramientas/verificar_bio2_t14.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio14-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio14-estilos";
+    s.textContent =
+      ".bio14-svg{display:block;width:100%;max-width:460px;height:auto;margin:6px auto}" +
+      ".bio14-svg text{font:600 11px var(--body,sans-serif);fill:var(--ink)}" +
+      ".bio14-svg .b14-cel{fill:var(--pen-soft);stroke:var(--pen);stroke-width:3}" +
+      ".bio14-svg .b14-lis{fill:none;stroke:var(--red);stroke-width:2.5;stroke-dasharray:6 5}" +
+      ".bio14-svg .b14-adn{fill:none;stroke:var(--pen);stroke-width:3}" +
+      ".bio14-svg .b14-adn.mal{stroke:var(--ink-faint);stroke-dasharray:3 3}" +
+      ".bio14-svg .b14-vir{fill:none;stroke:var(--red);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}" +
+      ".bio14-svg .b14-cap{fill:var(--red-soft);stroke:var(--red);stroke-width:2.5;stroke-linejoin:round}" +
+      ".bio14-svg .b14-cap.vacia{fill:var(--sheet-2);stroke:var(--ink-faint);stroke-dasharray:3 3}" +
+      ".bio14-svg .b14-dna2{fill:none;stroke:var(--ok);stroke-width:3;stroke-linecap:round}" +
+      ".bio14-svg .b14-prot{fill:var(--pen);stroke:none}" +
+      ".bio14-svg .b14-bg{fill:var(--sheet-2);stroke:var(--line);stroke-width:1.5}" +
+      ".bio14-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio14-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio14-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio14-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio14-veredicto.mal{border-color:var(--red);background:var(--red-soft)}" +
+      ".bio14-veredicto.ok{border-color:var(--ok);background:var(--ok-soft)}" +
+      ".bio14-pasos{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}" +
+      "@media(max-width:520px){.bio14-dato{grid-template-columns:1fr}}";
+    document.head.appendChild(s);
+  })();
+
+  function f1(x) { return B.fmt(x, 1); }
+  // número grande con notación científica a partir de 10^6 (coma decimal)
+  function grande(x) {
+    if (x < 1e6) return String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    var e = Math.floor(Math.log(x) / Math.LN10 + 1e-12), m = x / Math.pow(10, e);
+    var sup = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+    return B.fmt(m, 2) + " · 10" + String(e).split("").map(function (c) { return sup[c]; }).join("");
+  }
+
+  // ------------------------------------------------------------------ CRECIMIENTO
+  // Curva por fases (modelo de referencia): N0 = 1000 células/mL; latencia hasta 2 h; exponencial de 2 h a 8 h con g = 30 min
+  // (12 generaciones: ×4096); estacionaria de 8 h a 16 h; declive de 16 h a 24 h a −0,2 unidades de log10 por hora.
+  var N0F = 1000, T_LAT = 2, T_EXP = 8, T_EST = 16, T_FIN = 24, G_H = 0.5, PEND_DECL = 0.2;
+  function log10N(t) {
+    var l0 = Math.log(N0F) / Math.LN10, lmax = l0 + (T_EXP - T_LAT) / G_H * Math.log(2) / Math.LN10;
+    if (t <= T_LAT) return l0;
+    if (t <= T_EXP) return l0 + (t - T_LAT) / G_H * Math.log(2) / Math.LN10;
+    if (t <= T_EST) return lmax;
+    return lmax - PEND_DECL * (t - T_EST);
+  }
+  function fase(t) {
+    if (t <= T_LAT) return { n: "Latencia", c: "", d: "Las bacterias se adaptan al medio nuevo: fabrican enzimas y crecen de tamaño, pero casi no se dividen." };
+    if (t <= T_EXP) return { n: "Exponencial", c: "ok", d: "Cada bacteria se divide a un ritmo constante: el número se duplica cada generación (recta en escala logarítmica)." };
+    if (t <= T_EST) return { n: "Estacionaria", c: "", d: "Los nutrientes escasean y se acumulan residuos tóxicos: nacen tantas como mueren y el total se mantiene." };
+    return { n: "Declive (muerte)", c: "mal", d: "Mueren más bacterias de las que nacen: el número total baja." };
+  }
+
+  B.w.bio_crecimiento = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Crecimiento de un cultivo bacteriano");
+    cuerpo.innerHTML = '<p class="w-intro">Dos modos: calcula cuántas bacterias hay tras cierto tiempo (N = N<sub>0</sub> · 2<sup>n</sup>) o recorre las cuatro fases de la curva de crecimiento.</p>' +
+      '<div data-modo></div><div data-escala></div><div data-ctl></div><div class="w-plot"></div><div class="bio14-dato"></div><div class="bio14-veredicto"></div>' +
+      '<p class="w-pie">Modelo ideal: cada bacteria se divide por bipartición cada g minutos sin parar. Curva por fases: N<sub>0</sub> = 1000 células/mL, latencia de 2 h, g = 30 min en la fase exponencial.</p>';
+    var st = { modo: "calc", esc: "log", k: 0, g: 20, t: 120, h: 5 };
+    var dat = cuerpo.querySelector(".bio14-dato"), ver = cuerpo.querySelector(".bio14-veredicto"), ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    var g = new B.Plot(cuerpo.querySelector(".w-plot"), { xmin: 0, xmax: 240, ymin: 0, ymax: 10, w: 600, h: 260, etx: "tiempo (min)", ety: "log₁₀ N", etiqueta: "Crecimiento bacteriano" });
+    var escHost = cuerpo.querySelector("[data-escala]");
+    U.fichas(cuerpo.querySelector("[data-modo]"), [{ k: "calc", t: "Calcular generaciones" }, { k: "fases", t: "Curva por fases" }], st.modo, function (k) { st.modo = k; montar(); });
+    var sN, sG, sT, sH;
+    function montar() {
+      ctl.innerHTML = "";
+      if (st.modo === "calc") {
+        escHost.innerHTML = "";
+        sN = U.slider(ctl, { et: "N₀", min: 0, max: 4, step: 1, val: st.k, fmt: function (v) { return "10" + ["⁰", "¹", "²", "³", "⁴"][Math.round(v)] + " bact."; }, on: function (v) { st.k = Math.round(v); pinta(); } });
+        sG = U.slider(ctl, { et: "g", min: 5, max: 120, step: 5, val: st.g, fmt: function (v) { return Math.round(v) + " min"; }, on: function (v) { st.g = Math.round(v); pinta(); } });
+        sT = U.slider(ctl, { et: "Tiempo", min: 0, max: 240, step: 5, val: st.t, fmt: function (v) { return Math.round(v) + " min"; }, on: function (v) { st.t = Math.round(v); pinta(); } });
+      } else {
+        U.fichas(escHost, [{ k: "log", t: "Escala logarítmica" }, { k: "lin", t: "Escala lineal" }], st.esc, function (k) { st.esc = k; pinta(); });
+        sH = U.slider(ctl, { et: "Tiempo", min: 0, max: T_FIN, step: 0.5, val: st.h, fmt: function (v) { return f1(v) + " h"; }, on: function (v) { st.h = v; pinta(); } });
+      }
+      pinta();
+    }
+    function pinta() {
+      g.limpiar();
+      if (st.modo === "calc") {
+        var n0 = Math.pow(10, st.k), n = Math.floor(st.t / st.g + 1e-9), N = n0 * Math.pow(2, n), l0 = st.k, lg = Math.log(2) / Math.LN10;
+        var ymax = Math.max(4, Math.ceil(l0 + 240 / st.g * lg) + 1);
+        g.rango(0, 240, 0, ymax);
+        g.polilinea([[0, l0], [240, l0 + 240 / st.g * lg]], { clase: "c-faint", dash: "6 4" });
+        var pts = [], i;
+        for (i = 0; i <= n; i++) { pts.push([i * st.g, l0 + i * lg]); if (i < n) pts.push([(i + 1) * st.g, l0 + i * lg]); }
+        pts.push([st.t, l0 + n * lg]);
+        g.polilinea(pts, { clase: "c-pen" });
+        g.punto(st.t, l0 + n * lg, { clase: "c-red" });
+        g.texto(236, ymax - 0.7, "recta: log N = log N₀ + n · log 2", { ancla: "end", clase: "c-faint" });
+        dat.innerHTML = "<div><b>Generaciones completas (n = t / g)</b>" + n + "</div><div><b>Bacterias (N = N₀ · 2ⁿ)</b>" + grande(N) + "</div><div><b>Factor de aumento</b>×" + grande(Math.pow(2, n)) + "</div><div><b>Tiempo de generación</b>" + st.g + " min</div>";
+        ver.className = "bio14-veredicto" + (N > 1e12 ? " mal" : "");
+        ver.textContent = N > 1e12 ? "Esa cifra es teórica: ningún cultivo real tiene alimento para tantas bacterias; antes entraría en fase estacionaria."
+          : n === 0 ? "Todavía no ha pasado ni una generación: N = N₀." : "Cada generación duplica el número: tras " + n + " generaciones, 2^" + n + " = " + grande(Math.pow(2, n)) + " veces más.";
+      } else {
+        var y = function (t) { var l = log10N(t); return st.esc === "log" ? l : Math.pow(10, l) / 1e6; };
+        var ymaxF = st.esc === "log" ? 8 : 5;
+        g.rango(0, T_FIN, st.esc === "log" ? 2 : 0, ymaxF);
+        var P = [], t;
+        for (t = 0; t <= T_FIN + 1e-9; t += 0.25) P.push([t, y(t)]);
+        g.polilinea(P, { clase: "c-faint" });
+        var Q = [];
+        for (t = 0; t <= st.h + 1e-9; t += 0.25) Q.push([t, y(t)]);
+        if (Q.length > 1) g.polilinea(Q, { clase: "c-pen" });
+        g.punto(st.h, y(st.h), { clase: "c-red" });
+        [T_LAT, T_EXP, T_EST].forEach(function (x) { g.segmento(x, st.esc === "log" ? 2 : 0, x, ymaxF, { clase: "c-faint", dash: "2 4" }); });
+        var fs = fase(st.h), N2 = Math.pow(10, log10N(st.h));
+        dat.innerHTML = "<div><b>Fase</b>" + fs.n + "</div><div><b>Bacterias por mL</b>" + grande(N2) + "</div>";
+        ver.className = "bio14-veredicto" + (fs.c ? " " + fs.c : "");
+        ver.textContent = fs.d;
+        cuerpo.querySelector(".w-plot").setAttribute("data-esc", st.esc);
+      }
+    }
+    montar();
+  };
+
+  // ------------------------------------------------------------------ CICLOS VIRALES
+  // piezas del dibujo
+  function celula(cx, cy, rx, ry, cls) { return '<ellipse class="' + (cls || "b14-cel") + '" cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '"/>'; }
+  function adn(cx, cy, r, mal) { return '<circle class="b14-adn' + (mal ? " mal" : "") + '" cx="' + cx + '" cy="' + cy + '" r="' + r + '"/>'; }
+  function profago(cx, cy, r) {   // arco rojo sobre el cromosoma circular
+    var a0 = -Math.PI / 3, a1 = -Math.PI / 12;
+    return '<path class="b14-vir" d="M' + (cx + r * Math.cos(a0)).toFixed(1) + " " + (cy + r * Math.sin(a0)).toFixed(1) + " A" + r + " " + r + " 0 0 1 " + (cx + r * Math.cos(a1)).toFixed(1) + " " + (cy + r * Math.sin(a1)).toFixed(1) + '"/>';
+  }
+  function genoma(x, y, s) {   // ADN/ARN vírico: línea ondulada roja
+    s = s || 1;
+    return '<path class="b14-vir" d="M' + x + " " + y + " q" + 4 * s + " " + -7 * s + " " + 8 * s + " 0 t" + 8 * s + " 0 t" + 8 * s + ' 0"/>';
+  }
+  function hexa(x, y, r) { var p = [], i; for (i = 0; i < 6; i++) p.push((x + r * Math.cos(i * Math.PI / 3 + Math.PI / 6)).toFixed(1) + "," + (y + r * Math.sin(i * Math.PI / 3 + Math.PI / 6)).toFixed(1)); return p.join(" "); }
+  function fago(x, y, vacia, giro) {   // cabeza icosaédrica + cola; (x, y) = punta de la cola
+    var r = giro ? -1 : 1;
+    return '<line class="b14-vir" x1="' + x + '" y1="' + y + '" x2="' + (x - 18 * r) + '" y2="' + y + '"/><polygon class="b14-cap' + (vacia ? " vacia" : "") + '" points="' + hexa(x - 30 * r, y, 12) + '"/>';
+  }
+  function viriones(lista) { return lista.map(function (p) { return '<polygon class="b14-cap" points="' + hexa(p[0], p[1], 7) + '"/>'; }).join(""); }
+  function puntos(lista) { return lista.map(function (p) { return '<circle class="b14-prot" cx="' + p[0] + '" cy="' + p[1] + '" r="2.6"/>'; }).join(""); }
+  function env(x, y) {   // virión con envoltura y espículas
+    var s = "", i;
+    for (i = 0; i < 8; i++) { var a = i * Math.PI / 4; s += '<line class="b14-vir" x1="' + (x + 9 * Math.cos(a)).toFixed(1) + '" y1="' + (y + 9 * Math.sin(a)).toFixed(1) + '" x2="' + (x + 14 * Math.cos(a)).toFixed(1) + '" y2="' + (y + 14 * Math.sin(a)).toFixed(1) + '"/>'; }
+    return s + '<circle class="b14-cap" cx="' + x + '" cy="' + y + '" r="9"/>';
+  }
+  function txt(x, y, t, ancla) { return '<text x="' + x + '" y="' + y + '"' + (ancla ? ' text-anchor="' + ancla + '"' : "") + ">" + t + "</text>"; }
+
+  var CICLOS = {
+    litico: { t: "Ciclo lítico (fago)", pasos: [
+      { n: "1. Adsorción", d: "El fago reconoce y se pega a un receptor de la superficie de la bacteria con las fibras de su cola.", v: "El fago es muy específico: solo infecta a las bacterias con su receptor.", c: "",
+        dib: function () { return celula(190, 95, 110, 70) + adn(190, 95, 24) + fago(80, 95, false) + txt(190, 48, "bacteria", "middle") + txt(20, 60, "fago"); } },
+      { n: "2. Penetración", d: "La cola se contrae e inyecta el ADN del fago; la cápsida vacía queda fuera.", v: "Entra solo el ácido nucleico: las proteínas no pasan al interior.", c: "",
+        dib: function () { return celula(190, 95, 110, 70) + adn(190, 95, 24) + fago(80, 95, true) + genoma(105, 95) + txt(30, 60, "cápsida vacía"); } },
+      { n: "3. Síntesis", d: "El ADN vírico toma el control: degrada el ADN de la bacteria y usa su maquinaria para copiar el genoma y fabricar proteínas víricas.", v: "La bacteria trabaja para el virus: copias de ADN y proteínas de la cápsida.", c: "ok",
+        dib: function () { return celula(190, 95, 110, 70) + adn(190, 95, 24, true) + txt(190, 100, "ADN roto", "middle") + genoma(120, 70) + genoma(150, 125) + genoma(225, 62) + genoma(235, 125) + puntos([[145, 60], [215, 95], [165, 140], [260, 95], [120, 105], [250, 60]]); } },
+      { n: "4. Ensamblaje", d: "Los genomas se empaquetan en cápsidas y se arman los fagos nuevos (maduración).", v: "Se forman decenas de fagos completos dentro de la célula.", c: "ok",
+        dib: function () { return celula(190, 95, 110, 70) + viriones([[135, 75], [165, 110], [200, 70], [225, 105], [250, 80], [190, 120]]); } },
+      { n: "5. Lisis y liberación", d: "Una enzima del fago (endolisina) rompe la pared: la bacteria revienta y libera los fagos, que infectarán a otras.", v: "La bacteria muere (lisis): por eso se llama ciclo lítico.", c: "mal",
+        dib: function () { return celula(190, 95, 110, 70, "b14-lis") + viriones([[60, 40], [120, 150], [190, 30], [260, 150], [300, 60], [190, 165], [95, 95], [285, 105]]) + txt(190, 100, "célula lisada", "middle"); } }
+    ] },
+    lisogenico: { t: "Ciclo lisogénico (fago)", pasos: [
+      { n: "1. Adsorción y penetración", d: "Igual que en el ciclo lítico: el fago se une e inyecta su ADN.", v: "Hasta aquí los dos ciclos son idénticos.", c: "",
+        dib: function () { return celula(190, 95, 110, 70) + adn(190, 95, 24) + fago(80, 95, true) + genoma(110, 95) + txt(30, 60, "cápsida vacía"); } },
+      { n: "2. Integración", d: "El ADN del fago se inserta en el cromosoma bacteriano y se convierte en profago. No se fabrican virus.", v: "El profago es una parte más del ADN bacteriano: la bacteria sigue viva.", c: "ok",
+        dib: function () { return celula(190, 95, 110, 70) + adn(190, 95, 24) + profago(190, 95, 24) + txt(190, 150, "profago integrado", "middle"); } },
+      { n: "3. Replicación pasiva", d: "Cada vez que la bacteria se divide, copia el profago junto con su ADN: todas las hijas lo llevan.", v: "El virus se multiplica «de gratis» sin matar a nadie.", c: "ok",
+        dib: function () { return celula(105, 95, 80, 56) + celula(275, 95, 80, 56) + adn(105, 95, 20) + profago(105, 95, 20) + adn(275, 95, 20) + profago(275, 95, 20) + txt(190, 100, "×2", "middle") + txt(190, 170, "bacteria lisogénica", "middle"); } },
+      { n: "4. Inducción", d: "Un estrés (rayos UV, sustancias tóxicas) activa el profago: se separa del cromosoma (escisión).", v: "Un cambio ambiental hace que el virus «despierte».", c: "mal",
+        dib: function () { return celula(190, 95, 110, 70) + adn(190, 95, 24) + genoma(235, 55) + txt(255, 40, "UV ⚡") + txt(190, 150, "el profago se escinde", "middle"); } },
+      { n: "5. Pasa al ciclo lítico", d: "Ya libre, el genoma vírico se replica y fabrica fagos nuevos; al final la bacteria se lisa.", v: "Del ciclo lisogénico se puede pasar al lítico; al revés no.", c: "mal",
+        dib: function () { return celula(190, 95, 110, 70, "b14-lis") + adn(190, 95, 24, true) + viriones([[135, 75], [165, 120], [225, 75], [245, 110]]) + txt(190, 160, "lisis", "middle"); } }
+    ] },
+    retro: { t: "Retrovirus (VIH)", pasos: [
+      { n: "1. Adsorción y fusión", d: "Las glucoproteínas de la envoltura (gp120) se unen a la proteína CD4 de un linfocito T auxiliar y la envoltura se fusiona con la membrana.", v: "Solo ataca a células con el receptor CD4: linfocitos T auxiliares, macrófagos.", c: "",
+        dib: function () { return celula(200, 95, 105, 70) + adn(210, 95, 24) + env(78, 95) + txt(78, 70, "VIH", "middle") + txt(250, 180, "linfocito T", "middle"); } },
+      { n: "2. Entrada y decapsidación", d: "La cápsida entra y se abre: libera dos copias de ARN y las enzimas (transcriptasa inversa, integrasa).", v: "El genoma del VIH es ARN monocatenario, dos copias por virión.", c: "",
+        dib: function () { return celula(200, 95, 105, 70) + adn(210, 95, 24) + genoma(105, 75) + genoma(105, 92) + puntos([[125, 130], [140, 118]]) + txt(250, 180, "ARN ×2 + enzimas", "middle"); } },
+      { n: "3. Transcripción inversa", d: "La transcriptasa inversa copia el ARN en ADN bicatenario: ARN → ADN, al revés que en la célula.", v: "Es la gran novedad de los retrovirus: la información va de ARN a ADN.", c: "ok",
+        dib: function () { return celula(200, 95, 105, 70) + adn(210, 95, 24) + genoma(105, 70) + '<path class="b14-dna2" d="M105 100 q4 -7 8 0 t8 0 t8 0"/><path class="b14-dna2" d="M105 108 q4 -7 8 0 t8 0 t8 0"/>' + txt(105, 140, "ADN vírico (nuevo)") + txt(105, 62, "ARN"); } },
+      { n: "4. Integración", d: "La integrasa inserta el ADN vírico en el cromosoma de la célula: ahora es un provirus.", v: "El provirus queda para siempre en el ADN de la célula (y de sus descendientes).", c: "ok",
+        dib: function () { return celula(200, 95, 105, 70) + adn(210, 95, 24) + profago(210, 95, 24) + txt(210, 150, "provirus integrado", "middle"); } },
+      { n: "5. Transcripción y traducción", d: "La célula transcribe el provirus: unos ARN son genomas nuevos y otros ARNm que los ribosomas traducen a proteínas víricas.", v: "Se usa la maquinaria de la célula; las proteínas se fabrican como poliproteínas que corta la proteasa.", c: "ok",
+        dib: function () { return celula(200, 95, 105, 70) + adn(210, 95, 24) + profago(210, 95, 24) + genoma(120, 70) + genoma(140, 130) + genoma(265, 68) + puntos([[110, 100], [160, 80], [255, 110], [285, 125], [170, 145]]); } },
+      { n: "6. Ensamblaje y gemación", d: "Los virus nuevos se arman y salen por gemación, llevándose un trozo de membrana como envoltura.", v: "La célula puede seguir viva un tiempo; a la larga el VIH destruye los linfocitos T y se produce el SIDA.", c: "mal",
+        dib: function () { return celula(200, 95, 105, 70) + adn(210, 95, 24) + profago(210, 95, 24) + env(296, 70) + env(300, 115) + env(95, 40) + env(98, 150) + viriones([[130, 95], [160, 125]]); } }
+    ] }
+  };
+
+  B.w.bio_ciclo_viral = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Cómo se reproduce un virus");
+    cuerpo.innerHTML = '<p class="w-intro">Elige el tipo de ciclo y avanza paso a paso. Fíjate en qué le pasa a la célula y dónde está el material genético del virus (rojo).</p>' +
+      '<div data-tipo></div><div class="bio14-pasos" data-pasos></div><div class="bio14-dibujo"></div><div class="bio14-veredicto"></div><div class="bio14-dato"></div>' +
+      '<p class="w-pie">Esquemas simplificados y sin escala. Rojo: material genético y cápsida del virus; azul: célula y su ADN; verde: ADN formado por transcripción inversa.</p>';
+    var tipo = "litico", k = 0;
+    var pas = cuerpo.querySelector("[data-pasos]"), dib = cuerpo.querySelector(".bio14-dibujo"), ver = cuerpo.querySelector(".bio14-veredicto"), dat = cuerpo.querySelector(".bio14-dato");
+    U.fichas(cuerpo.querySelector("[data-tipo]"), [{ k: "litico", t: "Ciclo lítico" }, { k: "lisogenico", t: "Ciclo lisogénico" }, { k: "retro", t: "Retrovirus (VIH)" }], tipo, function (x) { tipo = x; k = 0; pinta(); });
+    U.boton(pas, "◀ Anterior", function () { if (k > 0) { k--; pinta(); } });
+    U.boton(pas, "Siguiente ▶", function () { if (k < CICLOS[tipo].pasos.length - 1) { k++; pinta(); } });
+    function pinta() {
+      var c = CICLOS[tipo], p = c.pasos[k];
+      dib.innerHTML = '<svg class="bio14-svg" viewBox="0 0 320 190" role="img" aria-label="' + c.t + ", paso " + (k + 1) + '"><rect class="b14-bg" x="3" y="3" width="314" height="184" rx="14"/>' + p.dib() + "</svg>";
+      ver.className = "bio14-veredicto" + (p.c ? " " + p.c : "");
+      ver.textContent = p.v;
+      dat.innerHTML = "<div><b>Paso " + (k + 1) + " de " + c.pasos.length + "</b>" + p.n.replace(/^\d+\.\s*/, "") + "</div><div><b>Qué ocurre</b>" + p.d + "</div>";
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · Biología (2.º Bach.), tema 2: Glúcidos
    bio2_azucar: un monosacárido en cadena abierta (proyección de Fischer) y en anillo (Haworth), con anómeros α y β.
    bio2_disac: se eligen dos monosacáridos, se unen con enlace O-glucosídico (−H₂O) y sale el disacárido.
@@ -38292,6 +38508,792 @@
     vistazo: vistazo,
     secciones: A.secciones,
     nuevas: A.nuevas.concat(Bb.nuevas),
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 14: Microbiología
+   (parte A: teoría. Parte B, bio2_t14b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t14.js (bio_crecimiento, bio_ciclo_viral).
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Qué es (y qué no es) un microorganismo; acelulares, procariotas y eucariotas; los virus no son células → secciones 1 y 2 + clasificar.
+   2. Estructura de un virus (ácido nucleico, cápsida, envoltura) y de un bacteriófago → sección 2.
+   3. Ciclo lítico frente a ciclo lisogénico, con el esquema de cada etapa → sección 2 + widget bio_ciclo_viral + ordenar.
+   4. Retrovirus: transcriptasa inversa, provirus, ciclo del VIH; viroides y priones frente a virus → sección 9.
+   5. Estructura de la bacteria dibujada y rotulada; pared (peptidoglucano) y tinción de Gram → sección 3.
+   6. Tipos de nutrición bacteriana (fuente de energía y de carbono) con ejemplos → sección 6.
+   7. Reproducción y variabilidad: bipartición, conjugación, transformación y transducción → sección 7.
+   8. Curva de crecimiento (cuatro fases) y problemas de generaciones N = N0·2^n y recuento de colonias → sección 8 + widget bio_crecimiento.
+   9. Enfermedades, esterilización/desinfección/pasteurización, antibióticos y antibiograma, vacunas frente a sueros → sección 10.
+   10. Ciclo del nitrógeno y microorganismos en la industria y el medio ambiente (yogur, vino, insulina, depuración) → secciones 5 y 11.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t14/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }   // evita que el resaltador de variables tiña las fórmulas
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Qué es un microorganismo
+  secciones[0] = env(
+    "<h5>Un grupo definido por el tamaño, no por la familia</h5>" +
+    "<p>«Microorganismo» no es un grupo natural como «mamíferos»: es una etiqueta práctica para todo lo que necesita un <b>microscopio</b> para verse. Dentro caben cosas tan distintas como un virus (que ni siquiera tiene células), una bacteria (célula sin núcleo) y una levadura (célula con núcleo, como la tuya). Lo que tienen en común es el tamaño y que la mayoría vive en cualquier rincón del planeta: suelo, agua, aire, piel e intestino.</p>" +
+    "<p>La microbiología nació cuando se pudo mirar: en <b>1676</b> Antoni van Leeuwenhoek describió con sus lentes los «animálculos» (bacterias y protozoos) del agua y del sarro dental. Dos siglos después, <b>Pasteur</b> (matraces de cuello de cisne, hacia 1860) demostró que los microbios no aparecen por generación espontánea, sino que vienen de otros microbios; y <b>Koch</b> (1876–1884) demostró que cada enfermedad infecciosa la causa un microbio concreto.</p>" +
+    "<h5>Tres bloques y los tamaños que debes tener en la cabeza</h5>" +
+    tabla(["Bloque", "Qué son", "Ejemplos", "Tamaño típico"], [
+      ["<b>Acelulares</b>", "sin célula: ácido nucleico + proteína (+ a veces lípidos)", "virus, viroides, priones", "virus: 20–300 nm; viroides y priones, menores"],
+      ["<b>Procariotas</b>", "células sin núcleo ni orgánulos con membrana", "bacterias y arqueas", "0,5–5 µm (E. coli: ≈ 2 µm de largo)"],
+      ["<b>Eucariotas microscópicos</b>", "células con núcleo y orgánulos", "protozoos, algas microscópicas, hongos unicelulares y mohos", "5–100 µm (levadura ≈ 5–10 µm)"]
+    ], "q3t") +
+    "<p>Una referencia útil: <b>1 µm = 1000 nm</b>. Un virus de 100 nm es unas <b>20 veces más pequeño</b> que una bacteria de 2 µm, que a su vez cabe unas 5 veces en una levadura. Por eso el virus solo se ve con <b>microscopio electrónico</b>, mientras que bacterias, levaduras y protozoos se ven con el óptico (hasta 1000–1500 aumentos).</p>" +
+    "<h5>Los tres dominios de la vida</h5>" +
+    "<p>Según la comparación del ARN ribosómico (Carl Woese, 1977–1990), los seres celulares se reparten en tres <b>dominios</b>: <b>Bacteria</b>, <b>Archaea</b> (arqueas) y <b>Eukarya</b> (eucariotas). Las arqueas parecen bacterias al microscopio, pero su pared carece de peptidoglucano, sus lípidos de membrana son distintos y muchas viven en condiciones extremas (aguas hirvientes, salinas, medios muy ácidos): son los <b>extremófilos</b>. Los virus no están en ningún dominio: no son células.</p>" +
+    ojo("«Microorganismo» no significa «bacteria» ni «germen que produce enfermedad». Los virus no son bacterias muy pequeñas (no tienen células), y la inmensa mayoría de los microorganismos <b>no causa enfermedad</b>. Fíjate también en que las <b>algas microscópicas</b> y los <b>hongos</b> son eucariotas, aunque a veces se los agrupe con «bichos» en el lenguaje cotidiano.") +
+    w("clasificar", "clasif"));
+
+  // ---------------------------------------------------------------- 2. Virus
+  secciones[1] = env(
+    "<h5>Cómo es un virus por dentro</h5>" +
+    "<p>Un virus (la partícula completa se llama <b>virión</b>) tiene solo dos o tres componentes: <b>ácido nucleico</b> (el genoma), <b>cápsida</b> y, en algunos, <b>envoltura</b>. No tiene citoplasma, ribosomas ni metabolismo propio. Esa es la razón de que sea un <b>parásito intracelular obligado</b>: fuera de una célula huésped es una partícula inerte, que puede cristalizar y guardarse en un cajón, y solo «cobra vida» cuando entra en una célula.</p>" +
+    tabla(["Componente", "Qué es", "Función"], [
+      ["<b>Ácido nucleico</b>", "ADN o ARN (nunca los dos en el mismo virus), monocatenario o bicatenario, lineal o circular", "contiene la información para fabricar nuevos virus"],
+      ["<b>Cápsida</b>", "cubierta de proteína formada por muchas subunidades iguales, los <b>capsómeros</b>", "protege el genoma y ayuda a reconocer la célula"],
+      ["<b>Envoltura</b> (solo algunos)", "bicapa lipídica robada de la membrana del huésped, con glucoproteínas víricas (espículas)", "facilita la entrada; los virus con envoltura son frágiles (el jabón los destruye)"]
+    ], "q3t") +
+    "<p>La cápsida adopta formas regulares: <b>helicoidal</b> (un tubo en espiral, como el virus del mosaico del tabaco), <b>icosaédrica</b> (20 caras triangulares, como el adenovirus o el de la polio) o <b>compleja</b>, como la del <b>bacteriófago T4</b>, que tiene una cabeza icosaédrica con el ADN, una cola helicoidal con vaina contráctil, una placa basal y fibras que reconocen a la bacteria. Los virus <b>con envoltura</b> más conocidos son los de la gripe, el VIH, el herpes y el coronavirus SARS-CoV-2.</p>" +
+    "<h5>¿Es un virus un ser vivo?</h5>" +
+    "<p>Es una pregunta abierta y de examen. A favor de que sí: tiene material genético, se reproduce y evoluciona (muta y se selecciona). En contra: no tiene células, no tiene metabolismo propio y no se reproduce por sí mismo, sino que la célula fabrica sus copias. Por eso se dice que son «<b>entidades biológicas acelulares</b>» y se estudian en microbiología aunque sean un caso límite. En el examen, da la respuesta y justifícala con estos argumentos.</p>" +
+    "<p>Se descubrieron en el tabaco: Ivanovsky (1892) comprobó que el jugo de hojas enfermas seguía infectando aunque se pasara por filtros que retenían las bacterias; Beijerinck (1898) lo llamó «virus filtrable», y Stanley (1935) cristalizó el virus del mosaico del tabaco, una prueba de que era una partícula química y no una célula.</p>" +
+    "<h5>Los dos ciclos de los bacteriófagos, etapa a etapa</h5>" +
+    "<p>Los virus que infectan bacterias son los <b>bacteriófagos</b> («fagos»). Son el modelo para estudiar los ciclos, y los experimentos de <b>Hershey y Chase (1952)</b> con fagos demostraron que lo que entra en la bacteria es el <b>ADN</b>, no la proteína.</p>" +
+    "<p><b>Ciclo lítico</b> (el virus mata la célula enseguida). Cinco etapas que debes saber ordenar y explicar:</p>" +
+    "<ol>" +
+    "<li><b>Adsorción:</b> las fibras de la cola se unen a receptores específicos de la pared bacteriana (por eso cada fago infecta solo a ciertas bacterias).</li>" +
+    "<li><b>Penetración:</b> la cola perfora la pared y la vaina se contrae e <b>inyecta el ADN</b>; la cápsida vacía queda fuera.</li>" +
+    "<li><b>Síntesis</b> (también llamada eclipse): el ADN del fago bloquea el funcionamiento de la bacteria, destruye su ADN y la obliga a replicar el genoma vírico y a fabricar proteínas víricas.</li>" +
+    "<li><b>Ensamblaje o maduración:</b> los genomas se meten en cápsidas y se arman los fagos completos.</li>" +
+    "<li><b>Lisis y liberación:</b> una enzima del fago rompe la pared (lisozima o endolisina), la bacteria estalla y salen decenas o cientos de fagos nuevos (el T4 produce unos cien en media hora).</li>" +
+    "</ol>" +
+    "<p><b>Ciclo lisogénico</b> (el virus se esconde). Las dos primeras etapas son iguales; después el ADN del fago se <b>integra en el cromosoma</b> de la bacteria y pasa a llamarse <b>profago</b>. La bacteria, ahora <b>lisogénica</b>, sigue viva y, cada vez que se divide, copia el profago junto con su propio ADN, de modo que todas sus descendientes lo llevan sin que se fabriquen virus. Pero el profago puede <b>inducirse</b>: un estrés (radiación ultravioleta, productos tóxicos) lo separa del cromosoma (<b>escisión</b>) y entra en un ciclo lítico.</p>" +
+    tabla(["", "Ciclo lítico", "Ciclo lisogénico"], [
+      ["¿Qué hace el ADN del virus?", "se replica de inmediato y dirige la síntesis de virus", "se integra en el ADN bacteriano (profago)"],
+      ["¿Se fabrican virus enseguida?", "sí", "no (hasta la inducción)"],
+      ["¿Qué pasa con la célula?", "muere por lisis", "sigue viva y se divide"],
+      ["¿Se transmite a las células hijas?", "no: no hay descendencia de la célula", "sí, con el ADN de la bacteria"],
+      ["Tipo de virus", "virulento", "atemperado o templado"]
+    ], "q3t") +
+    "<p>El ciclo lisogénico no es inofensivo. Algunos profagos llevan <b>genes de toxinas</b> que la bacteria no tendría si no estuviera infectada: la toxina de la <b>difteria</b> y la del <b>cólera</b> las producen bacterias lisogénicas (<b>conversión lisogénica</b>). Y los fagos pueden mover genes de una bacteria a otra (transducción, sección 7).</p>" +
+    ojo("En el ciclo lisogénico <b>no hay replicación del virus como tal</b> mientras está integrado: se replica el ADN de la bacteria y, con él, el profago. Tampoco es el ciclo de «los virus buenos»: es solo una estrategia distinta. Y no mezcles: la <b>lisis</b> es del ciclo lítico (o de la inducción del lisogénico).") +
+    w("bio_ciclo_viral") + w("orden", "ordenlitico"));
+
+  // ---------------------------------------------------------------- 3. Célula bacteriana
+  secciones[2] = env(
+    "<h5>Estructura de una bacteria (el esquema que hay que saber rotular)</h5>" +
+    "<p>La célula procariota es más sencilla que la eucariota (Tema 6), pero no «primitiva» ni simple: es capaz de hacer casi todo con una sola célula. Se rotula de fuera hacia dentro:</p>" +
+    tabla(["Estructura", "Qué es", "Función"], [
+      ["<b>Cápsula</b> (no siempre)", "capa de polisacáridos pegajosa", "protege de la desecación y de los fagocitos; permite adherirse"],
+      ["<b>Pared celular</b>", "red de <b>peptidoglucano</b> (mureína): cadenas de azúcares unidas por péptidos", "da forma y resiste la presión osmótica (impide la lisis)"],
+      ["<b>Membrana plasmática</b>", "bicapa lipídica con proteínas", "transporte, y en ella están las enzimas de la respiración (no hay mitocondrias)"],
+      ["<b>Citoplasma</b>", "con <b>ribosomas 70S</b>, inclusiones de reserva", "síntesis de proteínas y metabolismo"],
+      ["<b>Nucleoide</b>", "un cromosoma circular de ADN bicatenario sin envoltura, unido a proteínas", "información genética (≈ 4,6 millones de pares de bases en E. coli)"],
+      ["<b>Plásmidos</b> (no siempre)", "pequeños ADN circulares extra que se replican solos", "genes accesorios: resistencia a antibióticos, toxinas, conjugación"],
+      ["<b>Flagelos</b> (algunos)", "filamento helicoidal de flagelina que gira como una hélice", "movimiento"],
+      ["<b>Fimbrias y pili</b>", "filamentos cortos de proteína", "adhesión; el <b>pilus sexual</b> es el de la conjugación"]
+    ], "q3t") +
+    "<p>Fíjate en lo que <b>no</b> tiene: ni núcleo, ni mitocondrias, ni cloroplastos, ni retículo, ni aparato de Golgi. Sus ribosomas (70S) son más pequeños que los eucariotas (80S), lo que permite que muchos antibióticos actúen sobre los ribosomas bacterianos sin dañar los nuestros. Algunas bacterias (<i>Bacillus</i>, <i>Clostridium</i>) forman <b>endosporas</b>: estructuras de resistencia extrema al calor, la sequía y los desinfectantes. No son una forma de reproducción (de una bacteria sale una espora, no varias): son una forma de <b>sobrevivir</b>.</p>" +
+    "<h5>Formas y agrupaciones</h5>" +
+    tabla(["Forma", "Nombre", "Ejemplo"], [
+      ["esférica", "<b>coco</b> (diplococos, estreptococos en cadena, estafilococos en racimo)", "<i>Staphylococcus aureus</i>, <i>Streptococcus pyogenes</i>"],
+      ["alargada (cilindro)", "<b>bacilo</b>", "<i>Escherichia coli</i>, <i>Bacillus anthracis</i>"],
+      ["curvada en coma", "<b>vibrio</b>", "<i>Vibrio cholerae</i> (cólera)"],
+      ["en hélice", "<b>espirilo</b> / espiroqueta", "<i>Treponema pallidum</i> (sífilis)"]
+    ], "q3t") +
+    "<h5>La tinción de Gram: qué ocurre y por qué importa</h5>" +
+    "<p>Hans Christian Gram (1884) ideó una tinción que sigue usándose cada día en los hospitales para clasificar bacterias. Se tiñe con <b>cristal violeta</b>, se fija con <b>lugol</b> (yodo), se lava con <b>alcohol-acetona</b> y se contrasta con <b>safranina</b> (rosa). El resultado depende de la pared:</p>" +
+    tabla(["", "Gram positiva (violeta)", "Gram negativa (rosa)"], [
+      ["Pared", "<b>capa gruesa</b> de peptidoglucano (con ácidos teicoicos)", "capa <b>fina</b> de peptidoglucano + <b>membrana externa</b> con lipopolisacárido (LPS)"],
+      ["Con el alcohol", "la pared se deshidrata y atrapa el colorante: <b>se queda violeta</b>", "el alcohol disuelve la membrana externa y el colorante sale: se tiñe luego de <b>rosa</b>"],
+      ["Ejemplos", "<i>Staphylococcus</i>, <i>Streptococcus</i>, <i>Bacillus</i>, <i>Clostridium</i>", "<i>E. coli</i>, <i>Salmonella</i>, <i>Vibrio</i>, <i>Pseudomonas</i>"],
+      ["Antibióticos", "más sensibles a la <b>penicilina</b> (que impide formar el peptidoglucano)", "más resistentes (la membrana externa frena la entrada); el LPS es una <b>endotoxina</b> que causa fiebre"]
+    ], "q3t") +
+    "<p>La <b>penicilina</b> (Fleming, 1928) no deja que se formen los enlaces del peptidoglucano: la bacteria que se divide queda con la pared incompleta y revienta por ósmosis (lo que viste en el Tema 1 con la hemólisis). Por eso solo actúa sobre bacterias en crecimiento y no daña células humanas, que <b>no tienen pared</b>. La <b>lisozima</b>, una enzima que hay en las lágrimas, la saliva y la clara de huevo, rompe el peptidoglucano: es una defensa natural.</p>" +
+    ojo("La pared bacteriana <b>no es de celulosa</b> (es de peptidoglucano), y las arqueas ni siquiera tienen peptidoglucano. Y «Gram negativa» no significa «sin pared»: tiene una pared <b>más fina</b> pero protegida por una membrana externa extra.") +
+    w("emparejar", "estructuras"));
+
+  // ---------------------------------------------------------------- 4. Hongos, algas y protozoos
+  secciones[3] = env(
+    "<h5>Hongos microscópicos: levaduras y mohos</h5>" +
+    "<p>Los hongos son <b>eucariotas heterótrofos por absorción</b>: segregan enzimas digestivas al exterior (digestión extracelular) y absorben los nutrientes ya digeridos. Su pared es de <b>quitina</b> (el mismo polisacárido que el exoesqueleto de los insectos) y almacenan <b>glucógeno</b>, igual que los animales. Los microscópicos son de dos tipos:</p>" +
+    tabla(["", "Levaduras", "Mohos"], [
+      ["Organización", "<b>unicelulares</b> ovaladas", "<b>pluricelulares</b> filamentosos: hifas que forman un micelio"],
+      ["Reproducción", "<b>gemación</b> (una yema crece y se separa) y esporas", "esporas (asexuales y sexuales) que se dispersan por el aire"],
+      ["Ejemplos", "<i>Saccharomyces cerevisiae</i> (pan, vino, cerveza); <i>Candida albicans</i> (candidiasis)", "<i>Penicillium</i> (penicilina, queso azul), <i>Aspergillus</i>, <i>Rhizopus</i> (moho del pan)"],
+      ["Importancia", "fermentación alcohólica; algunas, patógenas", "antibióticos, quesos, descomposición; algunos producen <b>toxinas</b> (aflatoxinas en cereales)"]
+    ], "q3t") +
+    "<p>Las infecciones por hongos se llaman <b>micosis</b>: pie de atleta (<i>Trichophyton</i>), candidiasis (<i>Candida</i>)… Cuestan de tratar porque, al ser eucariotas, sus células se parecen a las nuestras y hay pocos fármacos que los ataquen sin dañarnos. Los <b>líquenes</b> son una simbiosis entre un hongo y un alga o una cianobacteria: el hongo protege y absorbe agua; el alga fabrica alimento por fotosíntesis.</p>" +
+    "<h5>Algas microscópicas</h5>" +
+    "<p>Forman gran parte del <b>fitoplancton</b>. Son autótrofas fotosintéticas (Tema 9) y producen, aproximadamente, la mitad del oxígeno que respiramos y la base de casi todas las cadenas tróficas marinas. Ejemplos: <b>diatomeas</b> (caparazón de sílice, el «frústulo»), <b>dinoflagelados</b> (algunos producen las «mareas rojas» con toxinas) y <b>euglenas</b>, que son a la vez fotosintéticas y capaces de comer.</p>" +
+    "<h5>Protozoos: los «animales» unicelulares</h5>" +
+    "<p>Son eucariotas <b>unicelulares heterótrofos</b>, normalmente por ingestión (fagocitosis) y con orgánulos propios, como la <b>vacuola pulsátil</b> que expulsa el exceso de agua (el Tema 1 ya te dio la razón: viven en medios hipotónicos). Se clasifican por cómo se mueven:</p>" +
+    tabla(["Grupo", "Cómo se mueve", "Ejemplos y enfermedades"], [
+      ["<b>Rizópodos</b>", "pseudópodos", "<i>Amoeba</i>; <i>Entamoeba histolytica</i> (disentería amebiana)"],
+      ["<b>Flagelados</b>", "uno o más flagelos", "<i>Trypanosoma</i> (enfermedad del sueño y de Chagas), <i>Giardia</i>, <i>Leishmania</i>"],
+      ["<b>Ciliados</b>", "cilios", "<i>Paramecium</i> (con dos núcleos); casi ninguno es patógeno"],
+      ["<b>Esporozoos</b>", "no se mueven en la fase adulta; forman esporas", "<i>Plasmodium</i> (paludismo o malaria, transmitido por el mosquito <i>Anopheles</i>), <i>Toxoplasma</i>"]
+    ], "q3t") +
+    "<p>El paludismo (malaria) es la gran enfermedad por protozoos: lo transmite la hembra del mosquito <i>Anopheles</i> y causa más de medio millón de muertes al año. Es una enfermedad <b>de vector</b>: el parásito necesita dos huéspedes, el humano y el mosquito.</p>" +
+    ojo("Los protozoos <b>no son bacterias</b> ni «animales pequeños»: son células eucariotas. Y las <b>algas microscópicas no se confunden con las plantas</b>: no tienen raíces, tallos ni hojas. Para el examen, la clave es cómo se alimenta cada grupo: hongos = absorción, algas = fotosíntesis, protozoos = ingestión.") +
+    w("clasificar", "euca"));
+
+  // ---------------------------------------------------------------- 5. Importancia ecológica
+  secciones[4] = env(
+    "<h5>Papel ecológico: sin microbios no hay ecosistemas</h5>" +
+    "<p>Los microorganismos son los motores silenciosos de la biosfera. Hacen tres cosas que ningún otro grupo puede hacer a su escala: <b>reciclar</b> la materia muerta, <b>transformar</b> los elementos (sobre todo el nitrógeno) y <b>vivir juntos</b> con otros seres en simbiosis.</p>" +
+    "<p><b>Descomponedores.</b> Bacterias y hongos degradan cadáveres, hojarasca y excrementos y devuelven C, N, P y otros elementos al suelo y al aire en forma inorgánica. Sin ellos, la materia se acumularía y los productores se quedarían sin nutrientes.</p>" +
+    "<p><b>El ciclo del nitrógeno.</b> Las plantas necesitan nitrógeno como <b>nitrato</b> (NO<sub>3</sub><sup>−</sup>) o amonio (NH<sub>4</sub><sup>+</sup>), pero el 78 % del aire es N<sub>2</sub>, un gas inerte que ellas no pueden usar. Cuatro grupos de bacterias lo hacen circular:</p>" +
+    tabla(["Proceso", "Qué ocurre", "Bacterias (ejemplos)"], [
+      ["<b>Fijación</b>", "N<sub>2</sub> → NH<sub>3</sub>/NH<sub>4</sub><sup>+</sup>", "<i>Rhizobium</i> (en nódulos de leguminosas: lentejas, alfalfa, soja), <i>Azotobacter</i> y cianobacterias"],
+      ["<b>Amonificación</b>", "materia orgánica → NH<sub>4</sub><sup>+</sup>", "bacterias y hongos descomponedores"],
+      ["<b>Nitrificación</b>", "NH<sub>4</sub><sup>+</sup> → NO<sub>2</sub><sup>−</sup> → NO<sub>3</sub><sup>−</sup>", "<i>Nitrosomonas</i> (a nitrito) y <i>Nitrobacter</i> (a nitrato): quimioautótrofas"],
+      ["<b>Desnitrificación</b>", "NO<sub>3</sub><sup>−</sup> → N<sub>2</sub> (vuelve al aire)", "<i>Pseudomonas denitrificans</i>, en suelos sin oxígeno"]
+    ], "q3t") +
+    "<p>Por eso los agricultores han rotado cultivos con leguminosas desde la antigüedad: el <i>Rhizobium</i> de sus raíces deja nitrógeno en el suelo.</p>" +
+    "<p><b>Simbiosis.</b> En tu intestino viven unos 40 billones de bacterias (microbiota): ayudan a digerir, fabrican vitamina K y compiten con los patógenos. Los rumiantes digieren la celulosa gracias a los microorganismos de su rumen. Las <b>micorrizas</b> son simbiosis de hongos y raíces de plantas: el hongo capta agua y fosfato y la planta le da azúcares. Y los <b>líquenes</b> (hongo + alga) colonizan rocas desnudas.</p>" +
+    "<p><b>Productores y pioneros.</b> Las cianobacterias inventaron la fotosíntesis oxigénica hace más de 2400 millones de años y cambiaron la atmósfera; hoy el fitoplancton sigue siendo esencial. Los <b>extremófilos</b> viven donde nada más puede: de una bacteria de fuentes termales (<i>Thermus aquaticus</i>) procede la <b>Taq polimerasa</b> de la PCR, una enzima que resiste las altas temperaturas de cada ciclo (Tema 13).</p>" +
+    ojo("«Fijar nitrógeno» no es «absorberlo»: es <b>convertir el N<sub>2</sub> del aire en amonio</b>, y solo lo hacen algunos procariotas. Las plantas no fijan nitrógeno: lo absorben del suelo ya fijado. Y la <b>desnitrificación</b> pierde nitrógeno del suelo hacia la atmósfera, no lo añade.") +
+    w("orden", "ordennitro"));
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  // ---- 6. Nutrición
+  nuevas.push({ h: "6. Nutrición y condiciones de vida de las bacterias", html: env(
+    "<h5>Cuatro preguntas para clasificar cualquier nutrición</h5>" +
+    "<p>Las bacterias son los organismos metabólicamente más variados de la Tierra. Para no perderte, pregúntate dos cosas: <b>¿de dónde saca la energía?</b> (luz: <i>foto-</i>; reacciones químicas: <i>quimio-</i>) y <b>¿de dónde saca el carbono?</b> (del CO<sub>2</sub>: <i>autótrofa</i>; de moléculas orgánicas ya hechas: <i>heterótrofa</i>). Combinándolas salen cuatro tipos:</p>" +
+    tabla(["Tipo", "Energía", "Carbono", "Ejemplos"], [
+      ["<b>Fotoautótrofas</b>", "luz", "CO<sub>2</sub>", "<b>cianobacterias</b> (fotosíntesis con H<sub>2</sub>O que libera O<sub>2</sub>); bacterias purpúreas y verdes del azufre (usan H<sub>2</sub>S y no liberan O<sub>2</sub>)"],
+      ["<b>Fotoheterótrofas</b>", "luz", "moléculas orgánicas", "bacterias purpúreas no sulfúreas"],
+      ["<b>Quimioautótrofas</b> (quimiolitótrofas)", "oxidar sustancias inorgánicas (NH<sub>4</sub><sup>+</sup>, NO<sub>2</sub><sup>−</sup>, H<sub>2</sub>S, Fe<sup>2+</sup>)", "CO<sub>2</sub>", "<i>Nitrosomonas</i> y <i>Nitrobacter</i> (nitrificantes), bacterias del azufre y del hierro"],
+      ["<b>Quimioheterótrofas</b> (quimioorganótrofas)", "oxidar moléculas orgánicas", "moléculas orgánicas", "la <b>mayoría</b>: <i>E. coli</i>, <i>Lactobacillus</i>, <i>Bacillus</i>…"]
+    ], "q3t") +
+    "<p>Las quimioheterótrofas se subdividen según de dónde toman la materia orgánica: <b>saprófitas</b> (de organismos muertos: descomponedoras), <b>parásitas</b> (de un huésped al que perjudican: patógenas) y <b>simbiontes</b> (conviven con beneficio mutuo, como las del intestino). Las <b>quimioautótrofas</b> son las únicas que obtienen energía de lo inorgánico sin luz: de ellas dependen ecosistemas enteros en el fondo del mar, junto a las chimeneas hidrotermales, donde nunca llega la luz.</p>" +
+    "<h5>Con oxígeno, sin oxígeno o las dos cosas</h5>" +
+    tabla(["Grupo", "Relación con el O<sub>2</sub>", "Ejemplos"], [
+      ["<b>Aerobias estrictas</b>", "necesitan O<sub>2</sub> (respiración aerobia)", "<i>Mycobacterium tuberculosis</i>, <i>Pseudomonas</i>"],
+      ["<b>Anaerobias estrictas</b>", "el O<sub>2</sub> les es <b>tóxico</b>; obtienen energía por fermentación o respiración anaerobia", "<i>Clostridium tetani</i> (tétanos), <i>C. botulinum</i> (botulismo), metanógenas"],
+      ["<b>Anaerobias facultativas</b>", "usan O<sub>2</sub> si hay, y si no, fermentan", "<i>E. coli</i>, levaduras, <i>Staphylococcus</i>"],
+      ["<b>Microaerófilas</b>", "necesitan O<sub>2</sub>, pero poco", "<i>Helicobacter pylori</i> (úlcera de estómago)"]
+    ], "q3t") +
+    "<p>Por eso el <b>botulismo</b> aparece en conservas caseras mal esterilizadas: dentro de un bote cerrado no hay oxígeno y las esporas de <i>C. botulinum</i> germinan y producen una toxina muy potente. Y el tétanos se da en heridas profundas y sucias, sin oxígeno.</p>" +
+    "<h5>La temperatura manda</h5>" +
+    tabla(["Grupo", "Temperatura óptima", "Ejemplos"], [
+      ["Psicrófilas", "por debajo de ≈ 20 °C", "bacterias de los glaciares y del frigorífico (<i>Listeria</i> crece incluso a 4 °C)"],
+      ["<b>Mesófilas</b>", "20–45 °C", "<i>E. coli</i> (37 °C) y casi todos los patógenos humanos"],
+      ["Termófilas", "45–80 °C", "<i>Thermus aquaticus</i> (≈ 70 °C)"],
+      ["Hipertermófilas", "más de 80 °C", "arqueas de fuentes hidrotermales"]
+    ], "q3t") +
+    "<p>De ahí la conservación de alimentos: el <b>frío</b> frena el crecimiento (no mata), el <b>calor</b> lo destruye, la <b>sal y el azúcar</b> deshidratan a las bacterias por ósmosis (medio hipertónico, Tema 1) y los <b>ácidos</b> (vinagre) bajan el pH. Los alimentos en conserva son todas variaciones de ese principio.</p>" +
+    ojo("«Anaerobio» no significa «que vive solo de la fermentación»: hay anaerobios que respiran con nitrato o sulfato en vez de O<sub>2</sub>. Y «autótrofa» no significa «fotosintética»: las quimioautótrofas no usan luz.") +
+    w("clasificar", "nutricion")) });
+
+  // ---- 7. Reproducción y variabilidad
+  nuevas.push({ h: "7. Reproducción y variabilidad genética en bacterias", html: env(
+    "<h5>Bipartición: copiar, alargar y dividir</h5>" +
+    "<p>Las bacterias se reproducen por <b>bipartición</b> (fisión binaria), un proceso asexual:</p>" +
+    "<ol><li>El cromosoma circular se <b>replica</b> a partir de un único origen y las dos copias se separan hacia los extremos.</li>" +
+    "<li>La célula se <b>alarga</b>.</li>" +
+    "<li>Se forma un tabique (<b>septo</b>) de membrana y pared en el centro.</li>" +
+    "<li>El septo separa la célula en <b>dos células hijas</b> genéticamente idénticas: un clon.</li></ol>" +
+    "<p>El tiempo que tarda una población en duplicarse se llama <b>tiempo de generación (g)</b>. Varía muchísimo: ≈ 20 minutos en <i>E. coli</i> en condiciones óptimas; ≈ 15–20 horas en <i>Mycobacterium tuberculosis</i> (por eso el tratamiento de la tuberculosis dura meses). Con una división binaria sin límite de alimento, de una bacteria saldrían 2<sup>72</sup> ≈ 4,7 · 10<sup>21</sup> en un día (72 generaciones de 20 min): es una cifra teórica, porque el alimento se acaba mucho antes.</p>" +
+    "<h5>Si se clonan, ¿de dónde sale la variabilidad?</h5>" +
+    "<p>De dos fuentes: las <b>mutaciones</b> (errores al copiar el ADN: raras en una célula, pero con millones de células surgen constantemente) y la <b>parasexualidad</b>: formas de <b>intercambiar ADN</b> entre bacterias <b>sin que aumente el número de células</b>. Por eso no son reproducción: no crea individuos nuevos, solo recombina genes. Son tres:</p>" +
+    tabla(["Mecanismo", "Cómo ocurre", "Qué se transfiere", "Experimento histórico"], [
+      ["<b>Conjugación</b>", "contacto directo entre dos bacterias por un <b>pilus sexual</b>", "una copia de un <b>plásmido</b> (el F, o los de resistencia); si el F está integrado en el cromosoma (Hfr), también parte del cromosoma", "Lederberg y Tatum, 1946 (<i>E. coli</i>)"],
+      ["<b>Transformación</b>", "la bacteria <b>capta ADN desnudo</b> del medio (de bacterias muertas)", "fragmentos de ADN libre", "Griffith, 1928 (neumococos); Avery, 1944 (era ADN)"],
+      ["<b>Transducción</b>", "un <b>bacteriófago</b> pasa ADN bacteriano de una a otra", "un trozo del cromosoma de la bacteria anterior, empaquetado por error en una cápsida", "Zinder y Lederberg, 1952 (<i>Salmonella</i>)"]
+    ], "q3t") +
+    "<p><b>Griffith, 1928</b> (el experimento clásico): los neumococos de cepa <b>S</b> (con cápsula) matan a los ratones; los de cepa <b>R</b> (sin cápsula) no. Las S muertas por calor tampoco. Pero <b>S muertas + R vivas</b> sí mataban al ratón, y de su sangre se aislaban bacterias S vivas: las R habían incorporado algo de las S muertas y se habían transformado. Años después, Avery demostró que ese «principio transformante» era <b>ADN</b>.</p>" +
+    "<p>Importancia práctica: los <b>plásmidos R</b> llevan genes de <b>resistencia a antibióticos</b> y pasan por conjugación entre bacterias incluso de especies distintas. Así se extienden las resistencias: es una transferencia <b>horizontal</b> (entre individuos de la misma generación), no vertical (de padres a hijos).</p>" +
+    ojo("Conjugación, transformación y transducción <b>no son reproducción</b>: antes y después hay las mismas bacterias, solo que con genes distintos. En la <b>conjugación</b> no se transfiere un cromosoma entero ni se fusionan las células; pasa un plásmido (o parte del cromosoma) por el pilus.") +
+    w("emparejar", "parasex")) });
+
+  // ---- 8. Crecimiento y cálculos
+  nuevas.push({ h: "8. Curva de crecimiento y problemas de generaciones", html: env(
+    "<h5>Las cuatro fases de un cultivo cerrado</h5>" +
+    "<p>Si siembras unas pocas bacterias en un medio líquido con nutrientes y no añades nada más (un <b>cultivo cerrado</b>), la población sigue una curva con cuatro fases. Se dibuja casi siempre con el <b>logaritmo</b> del número de células en el eje vertical, porque así la fase exponencial se ve como una recta.</p>" +
+    tabla(["Fase", "Qué ocurre", "Por qué", "En la gráfica (log N)"], [
+      ["<b>1. Latencia</b>", "no aumenta el número de células, pero sí su tamaño y su actividad", "la bacteria se <b>adapta</b> al medio nuevo: sintetiza enzimas y ribosomas", "horizontal"],
+      ["<b>2. Exponencial</b>", "la población se duplica cada generación (g constante)", "hay <b>nutrientes en abundancia</b> y pocos residuos", "<b>recta ascendente</b>, la de mayor pendiente"],
+      ["<b>3. Estacionaria</b>", "el número de células vivas es constante", "se agotan los nutrientes y se acumulan residuos tóxicos: <b>nacen tantas como mueren</b>", "horizontal (máximo)"],
+      ["<b>4. Declive (muerte)</b>", "el número de células vivas baja", "mueren más de las que nacen (sin alimento, tóxicos)", "descendente"]
+    ], "q3t") +
+    "<p>Dos detalles que suelen caer: (1) en la fase estacionaria las bacterias fabrican <b>metabolitos secundarios</b>, como los <b>antibióticos</b>, y forman <b>esporas</b>; (2) en un <b>cultivo continuo</b> (quimiostato) se añade medio fresco y se retira el viejo, de modo que se puede mantener la fase exponencial mucho tiempo.</p>" +
+    w("bio_crecimiento") +
+    "<h5>Las fórmulas del tema (en la fase exponencial)</h5>" +
+    "<div class='formula-wrap'><div class='formula'>n = t / g &nbsp;&nbsp;·&nbsp;&nbsp; N = N<sub>0</sub> · 2<sup>n</sup> &nbsp;&nbsp;·&nbsp;&nbsp; n = (log N − log N<sub>0</sub>) / log 2 ≈ 3,32 · (log N − log N<sub>0</sub>)</div></div>" +
+    "<p><b>n</b> es el número de generaciones (divisiones), <b>t</b> el tiempo de crecimiento <b>exponencial</b> (sin contar la latencia), <b>g</b> el tiempo de generación, <b>N<sub>0</sub></b> el número inicial y <b>N</b> el final. Cada generación multiplica por 2; n generaciones, por 2<sup>n</sup>.</p>" +
+    ejemplo("Cuántas bacterias hay después de un rato", "Una bacteria <i>E. coli</i> con g = 20 min crece sin límite durante 3 horas. ¿Cuántas habrá?", [
+      "t = 3 h = 180 min; n = t / g = 180 / 20 = <b>9 generaciones</b>.",
+      "N = N<sub>0</sub> · 2<sup>n</sup> = 1 · 2<sup>9</sup> = <b>512 bacterias</b>.",
+      "Comprueba por duplicaciones: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 (nueve duplicaciones)."
+    ]) +
+    ejemplo("Cuánto tiempo tarda en alcanzar una cifra", "Un cultivo en fase exponencial tiene 10<sup>3</sup> bacterias/mL y g = 30 min. ¿Cuánto tarda en llegar a 10<sup>9</sup> bacterias/mL?", [
+      "n = (log 10<sup>9</sup> − log 10<sup>3</sup>) / log 2 = (9 − 3) / 0,301 = <b>19,9 generaciones</b> (≈ 20).",
+      "t = n · g = 19,9 · 30 min ≈ 598 min ≈ <b>10 horas</b>.",
+      "Si el enunciado dice «tras la fase de latencia», no sumes ni restes nada; si da la latencia, suma esas horas."
+    ]) +
+    ejemplo("Calcular el tiempo de generación", "Un cultivo pasa de 5 · 10<sup>3</sup> a 3,2 · 10<sup>5</sup> bacterias/mL en 3 horas de crecimiento exponencial. Calcula g.", [
+      "Cociente N / N<sub>0</sub> = 3,2 · 10<sup>5</sup> / 5 · 10<sup>3</sup> = 64 = 2<sup>6</sup> → <b>n = 6</b>.",
+      "g = t / n = 180 min / 6 = <b>30 min</b>."
+    ]) +
+    "<h5>Cómo se cuentan las bacterias</h5>" +
+    "<p>Un <b>recuento total</b> (cámara de Neubauer al microscopio) cuenta vivas y muertas. Un <b>recuento de viables</b> cuenta solo las que se dividen: se hacen <b>diluciones seriadas</b> (1 mL en 9 mL de agua estéril: cada paso divide por 10), se siembra una cantidad en una placa y cada célula viva forma una <b>colonia</b>. Se miden en <b>UFC</b> (unidades formadoras de colonia) por mL. Solo valen las placas con <b>30–300 colonias</b>: menos es poco fiable y más, imposibles de contar. También se mide la <b>turbidez</b> (absorbancia): cuanto más turbio, más bacterias (pero cuenta vivas y muertas).</p>" +
+    ejemplo("Recuento por colonias", "Se siembran 0,1 mL de una dilución 10<sup>−5</sup> y salen 45 colonias. ¿Cuántas UFC/mL tenía el cultivo original?", [
+      "45 colonias en 0,1 mL → 450 UFC/mL en la dilución.",
+      "Se deshace la dilución: 450 · 10<sup>5</sup> = <b>4,5 · 10<sup>7</sup> UFC/mL</b>.",
+      "Se cuentan colonias porque cada una procede de <b>una sola bacteria viva</b>."
+    ]) +
+    ojo("La fórmula N = N<sub>0</sub> · 2<sup>n</sup> solo vale en la <b>fase exponencial</b>. Y la <b>latencia</b> no cuenta como tiempo de crecimiento. No confundas «número de generaciones» (n, adimensional) con «tiempo de generación» (g, minutos).") +
+    w("emparejar", "fases")) });
+
+  // ---- 9. Retrovirus, viroides y priones
+  nuevas.push({ h: "9. Retrovirus, viroides y priones", html: env(
+    "<h5>Retrovirus: el ARN que se copia en ADN</h5>" +
+    "<p>Los <b>retrovirus</b> (el más importante, el <b>VIH</b>) rompen la regla de que la información va de ADN a ARN (Tema 12): su genoma es <b>ARN monocatenario</b> (dos copias) y llevan una enzima, la <b>transcriptasa inversa</b>, que fabrica ADN a partir de ARN (Temin y Baltimore, 1970). El ciclo del VIH se resume en seis pasos:</p>" +
+    "<ol><li><b>Adsorción y fusión:</b> las glucoproteínas de la envoltura (<b>gp120</b>) se unen a la proteína <b>CD4</b> de los <b>linfocitos T auxiliares</b>; la envoltura se funde con la membrana.</li>" +
+    "<li><b>Entrada y decapsidación:</b> la cápsida libera el ARN y las enzimas.</li>" +
+    "<li><b>Transcripción inversa:</b> ARN → ADN bicatenario.</li>" +
+    "<li><b>Integración:</b> la <b>integrasa</b> mete el ADN vírico en el cromosoma de la célula: es el <b>provirus</b>, que ya nunca se va.</li>" +
+    "<li><b>Transcripción y traducción:</b> la célula copia el provirus a ARN (genomas nuevos y ARNm) y fabrica las proteínas víricas.</li>" +
+    "<li><b>Ensamblaje y gemación:</b> los virus se arman y salen brotando, con un trozo de membrana por envoltura.</li></ol>" +
+    "<p>El VIH destruye los linfocitos T auxiliares, que coordinan la defensa del organismo, y deja a la persona sin defensas frente a infecciones oportunistas: es el <b>SIDA</b> (síndrome de inmunodeficiencia adquirida). Se transmite por sangre, por vía sexual y de madre a hijo; <b>no</b> por abrazos, besos o picaduras de mosquito. Los fármacos antirretrovirales actúan sobre sus enzimas propias (inhibidores de la transcriptasa inversa, de la integrasa y de la proteasa) y por eso afectan poco a las células humanas: se combinan en «terapia triple». No hay vacuna eficaz porque el virus <b>muta muchísimo</b> (la transcriptasa inversa comete muchos errores) y porque queda escondido como provirus.</p>" +
+    ojo("Un retrovirus no es «un virus de ADN»: su genoma es ARN, y el paso a ADN lo hace la <b>transcriptasa inversa</b>. El provirus se parece al profago (ADN vírico integrado), pero el provirus está en una célula humana y el profago, en una bacteria.") +
+    "<h5>Viroides y priones: más simples que un virus</h5>" +
+    "<p><b>Viroides</b> (Diener, 1971; descubiertos en la patata): una molécula de <b>ARN circular monocatenario muy pequeña</b> (unos 250–400 nucleótidos), <b>sin cápsida</b> y que <b>no codifica ninguna proteína</b>. Solo infectan <b>plantas</b> (patata, tomate, cocotero: «cadang-cadang») y alteran su regulación génica usando las enzimas de la célula.</p>" +
+    "<p><b>Priones</b> (Prusiner, 1982; Nobel 1997): agente infeccioso formado <b>solo por proteína</b>, sin ácido nucleico. Es una forma mal plegada de una proteína normal de las neuronas: la <b>PrP<sup>C</sup></b> (celular, con hélices α) se convierte en <b>PrP<sup>Sc</sup></b> (de <i>scrapie</i>, rica en láminas β), que agrega y a su vez <b>obliga a las normales a plegarse mal</b> (efecto dominó). Las neuronas mueren y el cerebro queda como una esponja: son las <b>encefalopatías espongiformes</b>: la tembladera o <i>scrapie</i> (ovejas), la <b>«enfermedad de las vacas locas»</b> (EEB, Reino Unido, 1986), la <b>enfermedad de Creutzfeldt-Jakob</b> y el <b>kuru</b> de Papúa Nueva Guinea (por canibalismo ritual). Resisten el calor, la radiación y los desinfectantes habituales, y no existe tratamiento.</p>" +
+    tabla(["", "Virus", "Viroide", "Prión"], [
+      ["Material genético", "ADN o ARN", "ARN circular desnudo", "<b>ninguno</b>"],
+      ["Proteína", "cápsida (y enzimas)", "<b>ninguna</b>", "es la propia proteína mal plegada"],
+      ["Huésped", "bacterias, animales, plantas…", "solo plantas", "mamíferos"],
+      ["Ejemplo", "gripe, VIH, fagos", "viroide de la patata", "vacas locas, Creutzfeldt-Jakob"]
+    ], "q3t") +
+    w("clasificar", "acelulares")) });
+
+  // ---- 10. Enfermedades y control
+  nuevas.push({ h: "10. Enfermedades infecciosas y su control", html: env(
+    "<h5>Infección, enfermedad y virulencia</h5>" +
+    "<p>Un <b>patógeno</b> es un microorganismo capaz de producir enfermedad. <b>Infección</b> es la entrada y multiplicación del patógeno; <b>enfermedad</b> es el daño que causa (puede haber infección sin enfermedad: los <b>portadores asintomáticos</b>). La <b>virulencia</b> es la capacidad de causar daño. Los patógenos dañan por invasión de tejidos o por <b>toxinas</b>:</p>" +
+    tabla(["", "Exotoxinas", "Endotoxinas"], [
+      ["Qué son", "<b>proteínas</b> que la bacteria secreta", "<b>lipopolisacárido</b> (LPS) de la membrana externa de las Gram negativas"],
+      ["Cuándo se liberan", "mientras la bacteria vive", "al romperse la bacteria"],
+      ["Potencia", "muy potentes y específicas", "menos específicas (fiebre, shock)"],
+      ["Ejemplos", "tétanos, botulismo, difteria, cólera", "<i>Salmonella</i>, <i>E. coli</i>"]
+    ], "q3t") +
+    "<h5>Quién produce qué: ejemplos que deben sonarte</h5>" +
+    tabla(["Agente", "Enfermedad (microorganismo)", "Cómo se transmite"], [
+      ["<b>Bacterias</b>", "tuberculosis (<i>M. tuberculosis</i>); cólera (<i>V. cholerae</i>); tétanos (<i>C. tetani</i>); salmonelosis (<i>Salmonella</i>); sífilis (<i>T. pallidum</i>); caries; neumonía", "aire, agua y alimentos, heridas, contacto sexual"],
+      ["<b>Virus</b>", "gripe; sarampión; varicela; hepatitis; rabia; sida (VIH); covid-19 (SARS-CoV-2); VPH", "aire, sangre, contacto, vectores"],
+      ["<b>Hongos</b>", "pie de atleta; candidiasis; tiña; aspergilosis", "contacto, esporas del aire"],
+      ["<b>Protozoos</b>", "paludismo (<i>Plasmodium</i>); enfermedad del sueño; disentería amebiana", "<b>vectores</b> (mosquito, mosca tse-tsé), agua"],
+      ["<b>Priones</b>", "Creutzfeldt-Jakob, vacas locas", "alimentos o trasplantes contaminados"]
+    ], "q3t") +
+    "<p>Cuando una enfermedad aparece en una zona de forma estable se dice <b>endémica</b>; un aumento brusco de casos en una región es una <b>epidemia</b>; y si cruza continentes, <b>pandemia</b>. Un <b>vector</b> (el mosquito en el paludismo) transmite el patógeno entre huéspedes; un <b>reservorio</b> es donde el patógeno vive entre brotes.</p>" +
+    "<h5>Los postulados de Koch</h5>" +
+    "<p>Robert Koch (1884) estableció cuatro condiciones para demostrar que un microbio causa una enfermedad: (1) el microorganismo está presente en <b>todos</b> los enfermos y no en los sanos; (2) se <b>aísla</b> y se cultiva en cultivo puro; (3) el cultivo puro <b>provoca la enfermedad</b> al inocularlo en un animal sano; (4) del animal enfermo se <b>vuelve a aislar</b> el mismo microorganismo. Tienen límites: los virus no crecen en medios inertes y los portadores asintomáticos incumplen el primero.</p>" +
+    "<h5>Cómo se combate a los microbios</h5>" +
+    tabla(["Técnica", "Qué consigue", "Sobre qué se usa", "Ejemplos"], [
+      ["<b>Esterilización</b>", "elimina <b>toda</b> forma de vida, incluidas las esporas", "material de laboratorio y quirúrgico", "autoclave (121 °C, 15–20 min, vapor a presión), calor seco (160–180 °C), filtración, radiación"],
+      ["<b>Desinfección</b>", "elimina o inactiva patógenos de <b>objetos y superficies</b>, pero no siempre las esporas", "suelos, mesas, utensilios", "lejía, alcohol"],
+      ["<b>Antisepsia</b>", "desinfección de <b>tejidos vivos</b>", "piel, heridas", "povidona yodada, agua oxigenada, alcohol"],
+      ["<b>Pasteurización</b>", "reduce los microorganismos y destruye patógenos <b>sin esterilizar</b>", "leche y zumos", "63 °C durante 30 min, o 72 °C durante 15 s; UHT: 135–150 °C unos segundos"]
+    ], "q3t") +
+    "<p>Los <b>antibióticos</b> son sustancias (naturales, producidas por hongos y bacterias, o sintéticas) que matan bacterias (<b>bactericidas</b>) o frenan su crecimiento (<b>bacteriostáticos</b>). Actúan sobre dianas que las células humanas <b>no tienen o tienen distintas</b> (toxicidad selectiva):</p>" +
+    tabla(["Diana", "Antibiótico", "Efecto"], [
+      ["pared de peptidoglucano", "<b>penicilina</b>, cefalosporinas", "bacteria reventada por ósmosis"],
+      ["ribosomas 70S", "tetraciclina, estreptomicina, eritromicina", "no se fabrican proteínas"],
+      ["replicación del ADN", "quinolonas", "no se copia el ADN"],
+      ["membrana", "polimixinas", "se pierde el contenido"]
+    ], "q3t") +
+    "<p><b>Los antibióticos no sirven contra los virus</b>: no tienen pared, ni ribosomas propios, ni metabolismo; para ellos hay vacunas y antivirales. La <b>resistencia</b> aparece porque, en una población enorme, alguna bacteria tiene por azar una mutación (o un plásmido R) que la hace resistente; el antibiótico elimina a las sensibles, la resistente se multiplica y pasa a dominar: <b>selección natural</b> en directo. Cuanto más (y peor) se usan los antibióticos, más se seleccionan las resistentes. Por eso hay que tomar solo los recetados y <b>acabar el tratamiento</b>.</p>" +
+    "<p>Para saber qué antibiótico usar se hace un <b>antibiograma</b>: se extiende la bacteria sobre una placa, se colocan discos con distintos antibióticos y se mide el <b>halo de inhibición</b> (la zona sin crecimiento alrededor del disco). <b>Halo grande = bacteria sensible</b>; sin halo = resistente.</p>" +
+    "<h5>Vacunas y sueros</h5>" +
+    "<p>Edward Jenner (1796) vacunó contra la viruela con virus de la viruela vacuna y Pasteur (1885) vacunó contra la rabia. Una <b>vacuna</b> contiene el antígeno (microbios muertos o atenuados, o fragmentos suyos) y hace que el cuerpo fabrique <b>anticuerpos y células de memoria</b>: inmunidad <b>activa</b>, lenta pero <b>duradera</b>. Un <b>suero</b> contiene <b>anticuerpos ya fabricados</b> (por ejemplo, el del tétanos o el antiofídico): inmunidad <b>pasiva</b>, inmediata pero <b>temporal</b>. Los detalles de la respuesta inmune están en el tema siguiente.</p>" +
+    ojo("Esterilizar, desinfectar y pasteurizar <b>no son sinónimos</b>: solo la esterilización mata todo, esporas incluidas. La pasteurización de la leche <b>no la esteriliza</b> (por eso hay que refrigerarla). Y la vacuna no cura: <b>previene</b>; el suero sí actúa ya, pero dura poco.") +
+    w("clasificar", "control")) });
+
+  // ---- 11. Biotecnología e industria
+  nuevas.push({ h: "11. Microorganismos en la biotecnología y en la industria", html: env(
+    "<h5>Fermentaciones: la biotecnología más antigua</h5>" +
+    "<p>La <b>biotecnología</b> usa organismos o partes de ellos para fabricar productos o resolver problemas. Lo hacemos desde hace miles de años con las <b>fermentaciones</b> (Tema 8), que son rutas anaerobias de obtener ATP:</p>" +
+    tabla(["Fermentación", "Microorganismo", "Reacción resumida", "Productos"], [
+      ["<b>Alcohólica</b>", "levaduras (<i>Saccharomyces</i>)", "glucosa → 2 etanol + 2 CO<sub>2</sub>", "vino, cerveza, sidra; el CO<sub>2</sub> hace subir la masa del pan"],
+      ["<b>Láctica</b>", "bacterias lácticas (<i>Lactobacillus</i>, <i>Streptococcus thermophilus</i>)", "glucosa → 2 ácido láctico", "yogur, queso, chucrut, encurtidos"],
+      ["<b>Acética</b>", "<i>Acetobacter</i> (aerobia)", "etanol + O<sub>2</sub> → ácido acético + H<sub>2</sub>O", "vinagre"]
+    ], "q3t") +
+    "<p>En el yogur, la leche pasteurizada se siembra con <i>Lactobacillus bulgaricus</i> y <i>Streptococcus thermophilus</i>: fermentan la lactosa a ácido láctico, el pH baja, las proteínas de la leche (caseínas) coagulan y las bacterias patógenas no pueden crecer. Los quesos azules llevan el moho <i>Penicillium roqueforti</i>. (La «fermentación» acética necesita oxígeno, así que en sentido estricto es una oxidación.)</p>" +
+    "<h5>Del laboratorio a la industria</h5>" +
+    "<p>En la industria se cultivan microorganismos en <b>biorreactores</b> (fermentadores) de miles de litros, donde se controlan la <b>esterilidad</b>, la temperatura, el pH, el oxígeno y la agitación. Un proceso típico: <b>cepa seleccionada</b> (o mejorada genéticamente) → inóculo → fermentador con el medio → producción → <b>recuperación y purificación</b> del producto. Se distinguen los <b>metabolitos primarios</b> (se producen en la fase exponencial: alcohol, ácido láctico) y los <b>secundarios</b> (en la estacionaria: antibióticos).</p>" +
+    tabla(["Sector", "Aplicación", "Microorganismo"], [
+      ["<b>Alimentación</b>", "pan, vino, cerveza, yogur, queso, vinagre, embutidos curados", "levaduras, bacterias lácticas, mohos"],
+      ["<b>Salud</b>", "antibióticos; vacunas; vitaminas (B<sub>12</sub>); <b>insulina humana recombinante</b> (en E. coli, 1982: la primera proteína humana comercial fabricada así); hormona del crecimiento; vacuna de la hepatitis B (levadura)", "<i>Penicillium</i>, <i>Streptomyces</i>, <i>E. coli</i> y levaduras modificadas (Tema 13)"],
+      ["<b>Medio ambiente</b>", "<b>depuración de aguas</b> (lodos activos y digestión anaerobia que produce <b>biogás</b>, rico en metano), <b>biorremediación</b> de vertidos de petróleo y metales, compostaje", "bacterias heterótrofas, arqueas metanógenas, <i>Pseudomonas</i>"],
+      ["<b>Industria y minería</b>", "ácido cítrico, enzimas para detergentes, <b>bioplásticos</b>, <b>biolixiviación</b> del cobre", "<i>Aspergillus niger</i>, <i>Bacillus</i>, <i>Acidithiobacillus ferrooxidans</i>"],
+      ["<b>Energía y agricultura</b>", "bioetanol y biodiésel, biofertilizantes (<i>Rhizobium</i>), biopesticidas (<i>Bacillus thuringiensis</i>, la proteína Bt)", "levaduras, bacterias, cianobacterias"]
+    ], "q3t") +
+    "<p>También hay riesgos y dilemas: resistencia a antibióticos, bioseguridad de laboratorios, escape de microorganismos modificados y uso militar (armas biológicas). La biotecnología moderna obliga a pensar en su <b>bioética</b>.</p>" +
+    ojo("La fermentación <b>láctica</b> y la <b>alcohólica</b> las hacen microorganismos distintos y dan productos distintos; en las dos <b>se obtiene poca energía</b> (2 ATP por glucosa) y no hace falta oxígeno. La <b>levadura del pan</b> hace fermentación alcohólica: el pan no «sabe a alcohol» porque el etanol se evapora al hornear.") +
+    w("emparejar", "industria")) });
+
+  // ---- 12. Ejemplos PAU resueltos
+  nuevas.push({ h: "12. Ejemplos PAU resueltos: interpretar gráficas y experimentos", html: env(
+    ejemplo("Curva de crecimiento de un cultivo", "Un cultivo de bacterias se ha seguido durante 12 horas: t (h) / N (bacterias por mL): 0 h / 1000; 2 h / 1000; 4 h / 4000; 6 h / 16 000; 8 h / 16 000; 10 h / 16 000; 12 h / 4000. a) Identifica las fases. b) Calcula el tiempo de generación en la fase exponencial. c) Si el crecimiento exponencial hubiera continuado hasta las 12 h, ¿cuántas bacterias habría? ¿Por qué no ocurre?", [
+      "<b>a)</b> 0–2 h: latencia (no aumenta N). 2–6 h: exponencial (N se multiplica por 4 en cada 2 h). 6–10 h: estacionaria (N constante). 10–12 h: declive (N baja).",
+      "<b>b)</b> De 2 a 6 h: de 1000 a 16 000: cociente 16 = 2<sup>4</sup> → n = 4 generaciones en 4 h → g = 4 h / 4 = <b>1 h</b> (60 min). Comprobación: a las 4 h hay 2 generaciones: 1000 · 2<sup>2</sup> = 4000 ✓.",
+      "<b>c)</b> De 2 h a 12 h son 10 h → n = 10 → N = 1000 · 2<sup>10</sup> = 1 024 000 ≈ <b>1 · 10<sup>6</sup></b>. No ocurre porque a partir de las 6 h se agotan los nutrientes y se acumulan residuos tóxicos: pasa a fase estacionaria y luego a declive."
+    ]) +
+    ejemplo("Hershey y Chase: ¿es el ADN o la proteína el material genético?", "Se cultivan fagos T2 en dos medios: unos con <sup>35</sup>S (que marca solo las proteínas, porque el ADN no tiene azufre) y otros con <sup>32</sup>P (que marca solo el ADN, porque las proteínas casi no tienen fósforo). Con cada tipo se infecta un cultivo de <i>E. coli</i>, se agita en una batidora para soltar lo que haya quedado fuera de las bacterias y se centrifuga (las bacterias quedan en el precipitado y los restos de los fagos en el sobrenadante). Resultado: con <sup>35</sup>S, la radiactividad está en el <b>sobrenadante</b>; con <sup>32</sup>P, en el <b>precipitado</b> (dentro de las bacterias). Interpreta.", [
+      "El azufre marca la <b>proteína</b>; el fósforo marca el <b>ADN</b>.",
+      "La radiactividad del <sup>35</sup>S queda fuera: la <b>proteína de la cápsida no entra</b> en la bacteria (son las cápsidas vacías).",
+      "La del <sup>32</sup>P está dentro: lo que entra en la bacteria es el <b>ADN</b>, y con él se fabrican nuevos fagos con su proteína.",
+      "Conclusión: el <b>ADN es el material genético</b> del fago (1952). Relaciona con la fase de <b>penetración</b> del ciclo lítico."
+    ]) +
+    ejemplo("Antibiograma", "Sobre una placa sembrada con una bacteria se colocan cuatro discos con antibióticos A, B, C y D. Tras 24 h, los halos de inhibición miden: A, 25 mm; B, 0 mm; C, 12 mm; D, 20 mm. a) ¿Qué antibiótico es más eficaz? b) ¿A cuál es resistente? c) ¿Por qué debe extenderse la bacteria de forma uniforme y por qué los discos deben tener la misma dosis?", [
+      "<b>a)</b> El de <b>mayor halo</b>: A (25 mm), seguido de D (20 mm) y C (12 mm).",
+      "<b>b)</b> Resistente a B: no hay halo, la bacteria crece pegada al disco.",
+      "<b>c)</b> Para que los halos sean <b>comparables</b>: el único factor que cambia debe ser el antibiótico. Con distinta dosis o un césped irregular, un halo mayor podría deberse a otra causa."
+    ])) });
+
+  // ---- 13. Cómo se pregunta en la PAU
+  nuevas.push({ h: "13. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>Estas son las preguntas más habituales de este tema, con el tipo de respuesta que suma puntos: <b>definición exacta, esquema o lista ordenada, y un ejemplo</b>.</p>" +
+    ejemplo("Pregunta 1. Explica el ciclo lítico de un bacteriófago", "Respuesta modelo:", [
+      "Un <b>bacteriófago</b> es un virus que infecta bacterias. El <b>ciclo lítico</b> tiene cinco etapas.",
+      "<b>Adsorción</b> (se une a receptores de la pared); <b>penetración</b> (inyecta su ADN y la cápsida vacía queda fuera); <b>síntesis</b> (el ADN vírico se replica y se fabrican proteínas con la maquinaria de la bacteria); <b>ensamblaje</b> de nuevos fagos; <b>lisis</b>: la bacteria estalla y libera los fagos.",
+      "Resultado: la bacteria <b>muere</b> y salen decenas o cientos de virus nuevos."
+    ]) +
+    ejemplo("Pregunta 2. Diferencias entre ciclo lítico y lisogénico", "Respuesta modelo:", [
+      "En el <b>lítico</b>, el ADN del virus se replica de inmediato, se forman virus y la célula muere por lisis.",
+      "En el <b>lisogénico</b>, el ADN del virus se <b>integra</b> en el cromosoma (profago), la bacteria sigue viva y lo transmite a sus descendientes; no se fabrican virus hasta la <b>inducción</b> (UV, estrés), que lo pasa al ciclo lítico."
+    ]) +
+    ejemplo("Pregunta 3. Estructura de una bacteria y tinción de Gram", "Respuesta modelo:", [
+      "Dibujo rotulado: <b>cápsula, pared celular (peptidoglucano), membrana plasmática, citoplasma con ribosomas 70S, nucleoide (cromosoma circular), plásmidos, flagelo y fimbrias</b>.",
+      "Gram: las <b>positivas</b> tienen una pared gruesa de peptidoglucano que retiene el cristal violeta (se ven violeta); las <b>negativas</b> tienen pared fina y membrana externa, pierden el violeta con el alcohol y se ven rosadas con la safranina."
+    ]) +
+    ejemplo("Pregunta 4. ¿Qué es la parasexualidad en bacterias?", "Respuesta modelo:", [
+      "Son procesos en los que una bacteria <b>recibe ADN de otra</b> sin que aumente el número de células: <b>conjugación</b> (por pilus, pasa un plásmido), <b>transformación</b> (capta ADN libre del medio) y <b>transducción</b> (lo transporta un fago).",
+      "Aumentan la variabilidad y explican, por ejemplo, la propagación de la <b>resistencia a antibióticos</b>."
+    ]) +
+    ejemplo("Pregunta 5. Compara virus, viroides y priones", "Respuesta modelo:", [
+      "<b>Virus:</b> ácido nucleico (ADN o ARN) dentro de una cápsida de proteína; parásito intracelular obligado.",
+      "<b>Viroide:</b> solo un pequeño ARN circular, sin cápsida ni proteínas; infecta plantas.",
+      "<b>Prión:</b> solo una proteína mal plegada, sin ácido nucleico; causa encefalopatías espongiformes (vacas locas)."
+    ]) +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz14") + w("quiz", "errores") + w("tarjetas", "tarjetas14")) });
+
+  B.parte.bio14a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 14 (parte B): Microbiología
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t14.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "Los <b>microorganismos</b> se agrupan por tamaño: <b>acelulares</b> (virus, viroides, priones), <b>procariotas</b> (bacterias, arqueas) y <b>eucariotas</b> (protozoos, algas, hongos).",
+    "Un <b>virus</b> es ácido nucleico + cápsida (± envoltura), parásito intracelular obligado: en el ciclo <b>lítico</b> mata la célula y en el <b>lisogénico</b> se integra como profago; los retrovirus copian su ARN en ADN.",
+    "La <b>bacteria</b> tiene pared de peptidoglucano, nucleoide y ribosomas 70S; la <b>tinción de Gram</b> distingue pared gruesa (violeta) y fina (rosa); crece en cuatro fases y N = N<sub>0</sub> · 2<sup>n</sup> en la exponencial.",
+    "Los microbios <b>reciclan materia</b> (ciclo del nitrógeno), causan <b>enfermedades</b> que se combaten con esterilización, antibióticos y vacunas, y se usan en <b>fermentaciones, medicina y medio ambiente</b>."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Microbiología",
+    autores: [
+      { n: "Qué estudia", f: "los seres y entidades microscópicas", l: "virus · bacterias · hongos · protozoos" },
+      { n: "Leeuwenhoek", f: "1676", l: "primeras bacterias al microscopio" },
+      { n: "Koch", f: "1884", l: "postulados: un microbio, una enfermedad" },
+      { n: "Fleming", f: "1928", l: "descubre la penicilina" },
+      { n: "Hershey y Chase", f: "1952", l: "el ADN del fago entra en la bacteria" }
+    ],
+    obras: ["Virus", "Bacterias", "Tinción de Gram", "Curva de crecimiento", "Priones y viroides"],
+    bloques: [
+      { t: "Clasificación", frases: ["«Microorganismo» se define por el tamaño, no por el parentesco.", "Los virus no son células."],
+        tabla: { cab: ["Bloque", "Ejemplos"], filas: [["Acelulares", "virus, viroides, priones"], ["Procariotas", "bacterias, arqueas"], ["Eucariotas", "protozoos, algas, hongos"]] } },
+      { t: "Virus", frases: ["Ácido nucleico + <b>cápsida</b> (± envoltura); parásito intracelular obligado.", "<b>Lítico:</b> mata la célula. <b>Lisogénico:</b> profago integrado."],
+        tabla: { cab: ["Ciclo lítico", "Ciclo lisogénico"], filas: [["adsorción, penetración, síntesis, ensamblaje, lisis", "integración y replicación pasiva"], ["la célula muere", "la célula sigue viva"]] } },
+      { t: "Bacterias", frases: ["Pared de <b>peptidoglucano</b>, nucleoide, plásmidos, ribosomas 70S.", "Se reproducen por <b>bipartición</b>; la parasexualidad solo intercambia ADN."],
+        tabla: { cab: ["Gram +", "Gram −"], filas: [["pared gruesa", "pared fina + membrana externa"], ["violeta", "rosa"]] } },
+      { t: "Crecimiento", frases: ["Cuatro fases: latencia, exponencial, estacionaria y declive.", "<b>N = N₀ · 2ⁿ</b>, con n = t / g, solo en la exponencial."],
+        tabla: { cab: ["Fase", "Qué pasa"], filas: [["exponencial", "la población se duplica cada g"], ["estacionaria", "nacen tantas como mueren"]] } },
+      { t: "Retrovirus, viroides y priones", frases: ["<b>Retrovirus</b> (VIH): ARN → ADN con transcriptasa inversa.", "Viroide: ARN desnudo. Prión: solo proteína mal plegada."],
+        tabla: { cab: ["Agente", "Qué tiene"], filas: [["viroide", "ARN circular sin proteínas"], ["prión", "proteína sin ácido nucleico"]] } },
+      { t: "Control y usos", frases: ["Esterilizar mata todo; los antibióticos no sirven contra virus.", "Fermentación láctica (yogur), alcohólica (vino), insulina recombinante."] }
+    ],
+    resumen: [
+      "Los <b>virus</b> usan la célula; <b>bacterias</b> y <b>protozoos</b> son células; <b>priones</b> y <b>viroides</b> son más simples que un virus.",
+      "En el cultivo, solo la fase <b>exponencial</b> sigue N = N₀ · 2ⁿ.",
+      "Casi todos los microbios son <b>útiles o inocuos</b>: reciclan nutrientes y se usan en la industria."
+    ],
+    conecta: [
+      { con: "Biología T1 y T6:", rel: "ósmosis y pared: por qué revienta una bacteria con penicilina." },
+      { con: "Biología T8:", rel: "fermentaciones alcohólica y láctica." },
+      { con: "Biología T12 y T13:", rel: "traducción, transcripción inversa y plásmidos en ingeniería genética." },
+      { con: "Biología T15:", rel: "vacunas, anticuerpos y respuesta inmune." },
+      { con: "Química II T7:", rel: "pH y acidez en la fermentación láctica." }
+    ],
+    claves: [
+      ["Virión", "partícula vírica completa: ácido nucleico + cápsida (± envoltura)"],
+      ["Bacteriófago", "virus que infecta bacterias"],
+      ["Profago", "ADN de un fago integrado en el cromosoma bacteriano"],
+      ["Peptidoglucano", "polímero de la pared bacteriana; diana de la penicilina"],
+      ["Plásmido", "ADN circular extra que puede llevar genes de resistencia"],
+      ["Bipartición", "reproducción asexual de bacterias en dos células hijas idénticas"],
+      ["Tiempo de generación", "tiempo en que se duplica la población (g)"],
+      ["Transcriptasa inversa", "enzima de los retrovirus que copia ARN en ADN"],
+      ["Prión", "proteína infecciosa mal plegada, sin ácido nucleico"],
+      ["Esterilización", "eliminación de todo microorganismo, incluidas las esporas"]
+    ],
+    cita: { txt: "Una sola bacteria con g = 20 min daría 2⁷² ≈ 4,7 · 10²¹ en un día si no faltara el alimento.", autor: "Dato para recordar", obra: "72 generaciones en 24 h; por eso el cultivo real entra en fase estacionaria" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    clasif: {
+      titulo: "¿Acelular, procariota o eucariota?",
+      consigna: "Clasifica cada microorganismo en su bloque.",
+      categorias: ["Acelular", "Procariota", "Eucariota"],
+      items: [
+        { t: "Virus de la gripe", c: 0 }, { t: "Bacteriófago T4", c: 0 }, { t: "Prión", c: 0 },
+        { t: "Escherichia coli", c: 1 }, { t: "Cianobacteria", c: 1 }, { t: "Arquea metanógena", c: 1 },
+        { t: "Levadura", c: 2 }, { t: "Paramecium", c: 2 }, { t: "Diatomea", c: 2 }, { t: "Penicillium", c: 2 }
+      ]
+    },
+    euca: {
+      titulo: "Hongo, alga o protozoo",
+      consigna: "Según cómo se alimenta y qué es, clasifica cada eucariota microscópico.",
+      categorias: ["Hongo (absorción)", "Alga (fotosíntesis)", "Protozoo (ingestión)"],
+      items: [
+        { t: "Saccharomyces", c: 0 }, { t: "Penicillium", c: 0 }, { t: "Candida albicans", c: 0 },
+        { t: "Diatomea", c: 1 }, { t: "Dinoflagelado", c: 1 }, { t: "Chlorella", c: 1 },
+        { t: "Amoeba", c: 2 }, { t: "Paramecium", c: 2 }, { t: "Plasmodium", c: 2 }, { t: "Trypanosoma", c: 2 }
+      ]
+    },
+    ordenlitico: {
+      titulo: "Ciclo lítico de un fago",
+      consigna: "Ordena las etapas, desde el principio.",
+      items: [
+        { t: "Adsorción: el fago se une a un receptor de la bacteria" },
+        { t: "Penetración: inyecta su ADN" },
+        { t: "Síntesis: replica el ADN y fabrica proteínas víricas" },
+        { t: "Ensamblaje: se arman los fagos nuevos" },
+        { t: "Lisis: la bacteria estalla y libera los fagos" }
+      ]
+    },
+    estructuras: {
+      titulo: "Estructuras de una bacteria",
+      consigna: "Une cada estructura con su función.",
+      pares: [
+        ["Cápsula", "Protege y permite adherirse"],
+        ["Pared de peptidoglucano", "Da forma y resiste la presión osmótica"],
+        ["Nucleoide", "Contiene el cromosoma circular"],
+        ["Plásmido", "ADN extra con genes como la resistencia a antibióticos"],
+        ["Flagelo", "Movimiento"],
+        ["Pilus sexual", "Contacto en la conjugación"],
+        ["Ribosomas 70S", "Síntesis de proteínas"]
+      ]
+    },
+    ordennitro: {
+      titulo: "Ciclo del nitrógeno",
+      consigna: "Ordena el recorrido del nitrógeno, desde el aire.",
+      items: [
+        { t: "Fijación: N₂ → NH₄⁺ (Rhizobium)" },
+        { t: "Nitrificación: NH₄⁺ → NO₂⁻ (Nitrosomonas)" },
+        { t: "Nitrificación: NO₂⁻ → NO₃⁻ (Nitrobacter)" },
+        { t: "Las plantas absorben el NO₃⁻" },
+        { t: "Desnitrificación: NO₃⁻ → N₂ (vuelve al aire)" }
+      ]
+    },
+    nutricion: {
+      titulo: "Nutrición bacteriana",
+      consigna: "Clasifica cada bacteria según su nutrición.",
+      categorias: ["Fotoautótrofa", "Quimioautótrofa", "Quimioheterótrofa"],
+      items: [
+        { t: "Cianobacteria", c: 0 }, { t: "Bacteria purpúrea del azufre", c: 0 },
+        { t: "Nitrosomonas", c: 1 }, { t: "Nitrobacter", c: 1 }, { t: "Bacteria oxidante del hierro", c: 1 },
+        { t: "Escherichia coli", c: 2 }, { t: "Lactobacillus", c: 2 }, { t: "Clostridium tetani", c: 2 }, { t: "Rhizobium", c: 2 }
+      ]
+    },
+    parasex: {
+      titulo: "Intercambio de genes en bacterias",
+      consigna: "Une cada proceso con su descripción.",
+      pares: [
+        ["Conjugación", "Contacto por un pilus sexual; pasa un plásmido"],
+        ["Transformación", "La bacteria capta ADN libre del medio"],
+        ["Transducción", "Un bacteriófago transporta ADN de una bacteria a otra"],
+        ["Bipartición", "Una célula da dos hijas idénticas"],
+        ["Experimento de Griffith", "Neumococos R vivos + S muertos: transformación"]
+      ]
+    },
+    fases: {
+      titulo: "Fases del crecimiento bacteriano",
+      consigna: "Une cada fase con lo que ocurre.",
+      pares: [
+        ["Latencia", "Se adaptan al medio y no aumenta el número"],
+        ["Exponencial", "La población se duplica cada tiempo de generación"],
+        ["Estacionaria", "Nacen tantas como mueren"],
+        ["Declive", "Mueren más de las que nacen"]
+      ]
+    },
+    acelulares: {
+      titulo: "Virus, viroide o prión",
+      consigna: "Clasifica cada rasgo según el agente al que describe.",
+      categorias: ["Virus", "Viroide", "Prión"],
+      items: [
+        { t: "Cápsida de proteína con ADN o ARN", c: 0 }, { t: "Retrovirus como el VIH", c: 0 }, { t: "Envoltura con espículas (gripe)", c: 0 },
+        { t: "ARN circular desnudo sin proteínas", c: 1 }, { t: "Cadang-cadang del cocotero", c: 1 }, { t: "No codifica ninguna proteína", c: 1 },
+        { t: "Proteína PrPSc mal plegada", c: 2 }, { t: "Enfermedad de las vacas locas", c: 2 }, { t: "No tiene ácido nucleico", c: 2 }, { t: "Kuru", c: 2 }
+      ]
+    },
+    control: {
+      titulo: "¿Qué técnica es?",
+      consigna: "Clasifica cada caso según la técnica de control microbiano.",
+      categorias: ["Esterilización", "Desinfección", "Antisepsia", "Pasteurización"],
+      items: [
+        { t: "Autoclave a 121 °C", c: 0 }, { t: "Calor seco a 180 °C del material de vidrio", c: 0 },
+        { t: "Lejía en el suelo del laboratorio", c: 1 }, { t: "Alcohol sobre una mesa", c: 1 },
+        { t: "Povidona yodada en una herida", c: 2 }, { t: "Agua oxigenada sobre la piel", c: 2 },
+        { t: "Leche a 72 °C durante 15 s", c: 3 }, { t: "Leche a 63 °C durante 30 min", c: 3 }
+      ]
+    },
+    industria: {
+      titulo: "Microorganismos útiles",
+      consigna: "Une cada microorganismo con su aplicación.",
+      pares: [
+        ["Saccharomyces cerevisiae", "Pan, vino y cerveza"],
+        ["Lactobacillus", "Yogur y queso"],
+        ["Acetobacter", "Vinagre"],
+        ["Penicillium", "Penicilina y queso azul"],
+        ["E. coli modificada genéticamente", "Insulina humana recombinante"],
+        ["Acidithiobacillus ferrooxidans", "Biolixiviación del cobre"],
+        ["Arqueas metanógenas", "Biogás en la depuración de aguas"]
+      ]
+    },
+    quiz14: {
+      titulo: "Test del tema 14",
+      preguntas: [
+        { q: "¿Qué tienen en común todos los virus?", op: ["Son parásitos intracelulares obligados", "Tienen ribosomas propios", "Tienen metabolismo propio", "Tienen siempre ADN"], ok: 0, porque: "No tienen metabolismo ni ribosomas y necesitan una célula; su genoma puede ser ADN o ARN." },
+        { q: "En el ciclo lisogénico, el ADN del fago…", op: ["se integra en el cromosoma bacteriano", "destruye de inmediato el ADN bacteriano", "forma cápsidas sin replicarse", "sale de la bacteria intacto"], ok: 0, porque: "Se integra como profago y se replica con el ADN de la bacteria." },
+        { q: "Las bacterias Gram positivas retienen el cristal violeta porque tienen…", op: ["una capa gruesa de peptidoglucano", "membrana externa con LPS", "una pared de celulosa", "una cápsula de quitina"], ok: 0, porque: "La pared gruesa se deshidrata con el alcohol y atrapa el colorante." },
+        { q: "La penicilina actúa sobre…", op: ["la síntesis del peptidoglucano de la pared", "los ribosomas 80S", "el ADN del virus", "las mitocondrias"], ok: 0, porque: "Impide formar la pared: la bacteria revienta por ósmosis." },
+        { q: "Si una población se duplica cada 30 min, tras 3 h de fase exponencial habrá multiplicado su número por…", op: ["64", "6", "32", "128"], ok: 0, porque: "n = 180 / 30 = 6 → 2⁶ = 64." },
+        { q: "En la fase estacionaria…", op: ["nacen tantas bacterias como mueren", "la población se duplica cada g", "hay muerte masiva", "las bacterias se adaptan al medio"], ok: 0, porque: "Se agotan los nutrientes: el número de células vivas se mantiene." },
+        { q: "El experimento de Griffith demostró…", op: ["la transformación bacteriana", "la conjugación", "la transducción", "la estructura del ADN"], ok: 0, porque: "Las bacterias R vivas se transformaron con el ADN de las S muertas." },
+        { q: "El VIH es un retrovirus porque…", op: ["su genoma de ARN se copia en ADN con la transcriptasa inversa", "su genoma es de ADN bicatenario", "no necesita una célula huésped", "infecta bacterias"], ok: 0, porque: "El ADN formado se integra como provirus." },
+        { q: "Un prión es…", op: ["una proteína infecciosa sin ácido nucleico", "un ARN circular desnudo", "un virus con envoltura", "una bacteria sin pared"], ok: 0, porque: "PrPSc mal plegada que convierte a la PrPC normal." },
+        { q: "La esterilización se diferencia de la desinfección en que…", op: ["elimina todas las formas de vida, incluidas las esporas", "se usa solo en la piel", "solo reduce el número de microbios", "solo se hace con alcohol"], ok: 0, porque: "El autoclave (121 °C) destruye las esporas." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones sobre los virus es FALSA?", op: ["Los antibióticos sirven para curar las infecciones víricas", "Son parásitos intracelulares obligados", "Los fagos infectan bacterias", "Algunos tienen envoltura lipídica"], ok: 0, porque: "Los antibióticos actúan sobre dianas bacterianas, no sobre los virus." },
+        { q: "¿Cuál de estas afirmaciones sobre las bacterias es FALSA?", op: ["Su pared es de celulosa", "Su pared es de peptidoglucano", "Su ADN suele ser circular", "Tienen ribosomas 70S"], ok: 0, porque: "La pared bacteriana es de peptidoglucano; la celulosa es de las plantas." },
+        { q: "¿Cuál de estas afirmaciones sobre la tinción de Gram es FALSA?", op: ["Las Gram negativas se ven violeta", "Las Gram positivas se ven violeta", "Las Gram negativas tienen membrana externa", "Se usa safranina como colorante de contraste"], ok: 0, porque: "Las Gram negativas pierden el violeta y se ven rosadas." },
+        { q: "¿Cuál de estas afirmaciones sobre el ciclo lisogénico es FALSA?", op: ["Se fabrican virus nuevos inmediatamente tras la infección", "El ADN vírico se integra como profago", "La bacteria sigue viva", "Puede inducirse y pasar al ciclo lítico"], ok: 0, porque: "En el lisogénico no se fabrican virus hasta la inducción." },
+        { q: "¿Cuál de estas afirmaciones sobre la conjugación bacteriana es FALSA?", op: ["Es una forma de reproducción porque forma células nuevas", "Se transfiere ADN por un pilus sexual", "Suele pasar un plásmido", "Puede propagar resistencias a antibióticos"], ok: 0, porque: "No aumenta el número de células: solo intercambia ADN." },
+        { q: "¿Cuál de estas afirmaciones sobre la curva de crecimiento es FALSA?", op: ["En la fase de latencia la población se duplica cada g", "En la exponencial el número se duplica cada g", "En la estacionaria nacen tantas como mueren", "En el declive mueren más de las que nacen"], ok: 0, porque: "En la latencia las bacterias se adaptan y casi no se dividen." },
+        { q: "¿Cuál de estas afirmaciones sobre priones y viroides es FALSA?", op: ["Los priones contienen ARN", "Los viroides carecen de cápsida", "Los priones son proteínas mal plegadas", "Los viroides infectan plantas"], ok: 0, porque: "Los priones no tienen ácido nucleico." },
+        { q: "¿Cuál de estas afirmaciones sobre el control de microbios es FALSA?", op: ["La pasteurización esteriliza la leche", "El autoclave esteriliza", "La antisepsia se aplica a tejidos vivos", "Los antibióticos pueden ser bactericidas o bacteriostáticos"], ok: 0, porque: "La pasteurización reduce los microbios, pero no mata las esporas." }
+      ]
+    },
+    tarjetas14: {
+      titulo: "Tarjetas: microbiología",
+      cartas: [
+        { a: "Microorganismo", b: "Ser o entidad que solo se ve al microscopio; es un grupo definido por el tamaño." },
+        { a: "Virión", b: "Partícula vírica: ácido nucleico + cápsida (± envoltura)." },
+        { a: "Ciclo lítico (5 etapas)", b: "Adsorción, penetración, síntesis, ensamblaje y lisis." },
+        { a: "Ciclo lisogénico", b: "El ADN del fago se integra (profago) y se copia con el cromosoma; puede inducirse." },
+        { a: "Retrovirus", b: "Genoma de ARN que se copia a ADN con la transcriptasa inversa y se integra (provirus). Ej.: VIH." },
+        { a: "Viroide", b: "ARN circular desnudo, sin proteínas; infecta plantas." },
+        { a: "Prión", b: "Proteína mal plegada (PrPSc), sin ácido nucleico; encefalopatías espongiformes." },
+        { a: "Pared bacteriana", b: "Peptidoglucano: forma y resistencia osmótica. Diana de la penicilina." },
+        { a: "Gram positiva / negativa", b: "Pared gruesa, violeta / pared fina con membrana externa, rosa." },
+        { a: "Plásmido", b: "ADN circular extra; resistencia a antibióticos, conjugación, vector de clonación." },
+        { a: "Bipartición", b: "Replicación del cromosoma, alargamiento, septo y dos células hijas idénticas." },
+        { a: "Parasexualidad", b: "Conjugación (pilus), transformación (ADN libre) y transducción (fago)." },
+        { a: "N = N₀ · 2ⁿ", b: "n = t / g. Solo en la fase exponencial." },
+        { a: "Fases de crecimiento", b: "Latencia, exponencial, estacionaria y declive." },
+        { a: "Tipos de nutrición", b: "Foto o quimio (energía) y auto o heterótrofa (carbono): cuatro combinaciones." },
+        { a: "Ciclo del nitrógeno", b: "Fijación, amonificación, nitrificación y desnitrificación." },
+        { a: "Esterilización, desinfección, antisepsia", b: "Todo / objetos / tejidos vivos. La pasteurización no esteriliza." },
+        { a: "Resistencia a antibióticos", b: "Selección natural de bacterias con mutación o plásmido R; se extiende por conjugación." },
+        { a: "Vacuna y suero", b: "Vacuna: antígeno, inmunidad activa y duradera. Suero: anticuerpos, pasiva e inmediata." },
+        { a: "Fermentaciones", b: "Alcohólica (levadura): vino, pan. Láctica (Lactobacillus): yogur. Acética: vinagre." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "¿Cuál de estos agentes es acelular?", ["Un virus", "Una bacteria", "Una levadura", "Un protozoo"], 0, ["Los virus no tienen células: son ácido nucleico + cápsida.", "Bacterias, levaduras y protozoos son células."], "Un virus");
+  O("b2", 1, "La pared celular de las bacterias está formada por…", ["peptidoglucano", "celulosa", "quitina", "almidón"], 0, ["La celulosa es de las plantas y la quitina, de los hongos.", "El peptidoglucano es propio de las bacterias."], "Peptidoglucano");
+  O("b3", 1, "Tras la tinción de Gram, una bacteria Gram positiva se ve…", ["violeta", "rosada", "verde", "incolora"], 0, ["La pared gruesa retiene el cristal violeta tras el alcohol.", "Las Gram negativas se ven rosadas por la safranina."], "Violeta");
+  V("b4", 1, "Los virus tienen metabolismo y ribosomas propios.", false, ["No tienen ni metabolismo ni ribosomas: usan los de la célula huésped", "Tienen ribosomas 70S", "Solo tienen metabolismo fuera de la célula", "Tienen mitocondrias"], 0, ["Son parásitos intracelulares obligados: sin célula no se reproducen."]);
+  O("b5", 1, "En el ciclo lítico de un fago, ¿qué etapa sigue inmediatamente a la adsorción?", ["Penetración", "Lisis", "Ensamblaje", "Integración"], 0, ["Orden: adsorción, penetración, síntesis, ensamblaje, lisis.", "La integración es del ciclo lisogénico."], "Penetración");
+  O("b6", 1, "Un profago es…", ["el ADN de un fago integrado en el cromosoma bacteriano", "una cápsida de fago vacía", "un fago que ya ha lisado la bacteria", "un plásmido de resistencia a antibióticos"], 0, ["Se integra en el ciclo lisogénico y se replica con la bacteria."], "ADN del fago integrado en el cromosoma");
+  O("b7", 1, "Las bacterias se reproducen principalmente por…", ["bipartición", "mitosis", "meiosis", "gemación en cadena de esporas"], 0, ["No tienen núcleo ni huso: replican el cromosoma y se dividen por un septo."], "Bipartición");
+  V("b8", 1, "La conjugación es una forma de reproducción de las bacterias.", false, ["No aumenta el número de células: solo se transfiere ADN", "Produce cuatro células hijas", "Forma gametos", "Siempre mata a la bacteria receptora"], 0, ["Es parasexualidad: intercambio de ADN sin formar individuos nuevos."]);
+  T("b9", 1, "Completa: la enzima de los retrovirus que fabrica ADN a partir de ARN se llama transcriptasa…", "Palabra", ["inversa", "reversa"], ["Es la transcriptasa inversa (retrotranscriptasa).", "Va del ARN al ADN, al revés que la transcripción normal."], "Inversa");
+  O("b10", 1, "¿En qué fase de la curva de crecimiento se duplica la población cada generación?", ["Exponencial", "Latencia", "Estacionaria", "Declive"], 0, ["Hay nutrientes de sobra y el tiempo de generación es constante."], "Fase exponencial");
+  O("b11", 1, "Un hongo unicelular que se usa para hacer pan y cerveza es…", ["Saccharomyces cerevisiae", "Penicillium", "Escherichia coli", "Plasmodium"], 0, ["Es una levadura: fermentación alcohólica.", "E. coli es una bacteria y Plasmodium, un protozoo."], "Saccharomyces cerevisiae");
+  O("b12", 1, "El paludismo (malaria) lo produce un…", ["protozoo (Plasmodium)", "virus", "hongo", "prión"], 0, ["Lo transmite el mosquito Anopheles."], "Plasmodium (protozoo)");
+  O("b13", 1, "Los antibióticos son eficaces contra…", ["las bacterias", "los virus", "los priones", "todos los microorganismos"], 0, ["Actúan sobre pared, ribosomas 70S o replicación bacterianos.", "Los virus no tienen esas dianas."], "Las bacterias");
+  M("b14", 1, "Une cada microorganismo con su función.",
+    [C("Rhizobium", ["Fija el nitrógeno en las leguminosas", "Fermentación alcohólica", "Fermentación láctica"], 0), C("Saccharomyces", ["Fermentación alcohólica", "Fija el nitrógeno en las leguminosas", "Fermentación láctica"], 0), C("Lactobacillus", ["Fermentación láctica", "Fija el nitrógeno en las leguminosas", "Fermentación alcohólica"], 0)],
+    ["Rhizobium vive en los nódulos de las raíces.", "La levadura hace etanol y CO₂.", "Las bacterias lácticas hacen ácido láctico (yogur)."], "Rhizobium → nitrógeno; Saccharomyces → alcohólica; Lactobacillus → láctica");
+  O("b15", 1, "¿Qué forma tiene un bacilo?", ["Alargada, como un cilindro", "Esférica", "Curvada en coma", "En hélice"], 0, ["Coco = esférico; bacilo = cilindro; vibrio = coma; espirilo = hélice."], "Alargada (cilindro)");
+  X("b16", 1, "Un virus mide 100 nm y una bacteria, 2 µm. ¿Cuántas veces es mayor la bacteria?", "Veces =", 20, "veces", ["2 µm = 2000 nm.", "2000 / 100 = 20."], "20 veces");
+
+  // ---- nivel 2
+  X("c1", 2, "Un cultivo tiene 500 bacterias y g = 30 min. ¿Cuántas habrá tras 3 h de crecimiento exponencial?", "N =", 32000, "bacterias", ["n = 180 / 30 = 6 generaciones.", "N = 500 · 2⁶ = 500 · 64 = 32 000."], "32 000 bacterias");
+  X("c2", 2, "Una bacteria con g = 20 min crece sin límite durante 2 h 40 min. ¿Cuántas bacterias hay?", "N =", 256, "bacterias", ["t = 160 min; n = 160 / 20 = 8.", "N = 1 · 2⁸ = 256."], "256 bacterias");
+  X("c3", 2, "Un cultivo pasa de 1 · 10⁴ a 2,56 · 10⁶ bacterias/mL en 2 h de crecimiento exponencial. Calcula g.", "g (min) =", 15, "min", ["N / N₀ = 256 = 2⁸ → n = 8.", "g = 120 min / 8 = 15 min."], "15 minutos");
+  X("c4", 2, "¿Cuántas generaciones hacen falta para pasar de 10⁴ a 10⁷ bacterias?", "n =", 9.97, "", ["n = (log 10⁷ − log 10⁴) / log 2 = 3 / 0,301.", "n ≈ 9,97 (casi 10 duplicaciones: 2¹⁰ = 1024 ≈ 1000)."], "n ≈ 9,97", 0.005);
+  X("c5", 2, "Con g = 20 min, ¿cuánto tarda un cultivo en pasar de 10⁴ a 10⁷ bacterias (fase exponencial)?", "t (min) =", 199.3, "min", ["n = 9,97 generaciones.", "t = 9,97 · 20 = 199 min ≈ 3,3 h."], "≈ 199 min", 0.005);
+  X("c6", 2, "Se siembran 0,1 mL de una dilución 10⁻⁶ y salen 62 colonias. ¿Cuántas UFC/mL hay en el cultivo original?", "UFC/mL (·10⁸) =", 6.2, "·10⁸", ["62 colonias / 0,1 mL = 620 UFC/mL en la dilución.", "620 · 10⁶ = 6,2 · 10⁸ UFC/mL."], "6,2 · 10⁸ UFC/mL");
+  X("c7", 2, "Se hacen 5 diluciones seriadas 1:10 (1 mL en 9 mL). ¿Cuál es el factor de dilución final?", "Factor =", 100000, "", ["Cada paso divide por 10.", "10⁵ = 100 000."], "10⁵");
+  X("c8", 2, "Un fago libera 100 fagos nuevos por cada bacteria infectada. Si cada fago nuevo infecta otra bacteria, ¿cuántos fagos se liberan en el tercer ciclo?", "Fagos =", 1000000, "fagos", ["Ciclo 1: 100; ciclo 2: 100 · 100 = 10⁴.", "Ciclo 3: 100 · 10⁴ = 10⁶."], "10⁶ fagos");
+  O("c9", 2, "En el experimento de Hershey y Chase con fagos marcados con ³²P, la radiactividad aparece dentro de las bacterias porque…", ["lo que entra en la bacteria es el ADN, que contiene fósforo", "la proteína contiene mucho fósforo y entra", "el fósforo es radiactivo en las bacterias", "el ADN no entra, solo la cápsida"], 0, ["El ADN tiene fósforo y casi no tiene azufre; la proteína, al revés.", "La marca de ³²P dentro indica que el ADN penetra."], "Lo que entra es el ADN");
+  V("c10", 2, "Un antibiótico que bloquea la síntesis de peptidoglucano sirve para tratar la gripe.", false, ["Los virus no tienen pared ni peptidoglucano: no hay diana", "La gripe la causa una bacteria con pared gruesa", "El peptidoglucano está en la envoltura vírica", "El antibiótico solo actúa en el pulmón"], 0, ["La gripe es vírica; para ella hay vacunas y antivirales."]);
+  O("c11", 2, "Un antibiograma da estos halos de inhibición: A, 18 mm; B, 0 mm; C, 9 mm; D, 24 mm. ¿Qué antibiótico es más eficaz?", ["D", "A", "B", "C"], 0, ["Halo mayor = bacteria más sensible.", "B no da halo: resistente."], "D (halo de 24 mm)");
+  M("c12", 2, "Une cada técnica con su descripción.",
+    [C("Esterilización", ["Elimina toda forma de vida, incluidas las esporas", "Elimina patógenos de objetos y superficies", "Se aplica sobre tejidos vivos"], 0), C("Desinfección", ["Elimina patógenos de objetos y superficies", "Elimina toda forma de vida, incluidas las esporas", "Se aplica sobre tejidos vivos"], 0), C("Antisepsia", ["Se aplica sobre tejidos vivos", "Elimina toda forma de vida, incluidas las esporas", "Elimina patógenos de objetos y superficies"], 0)],
+    ["Esterilizar: todo (autoclave).", "Desinfectar: superficies (lejía).", "Antisepsia: piel y heridas."], "Esterilización → todo; desinfección → objetos; antisepsia → tejidos vivos");
+  M("c13", 2, "Une cada fase de la curva de crecimiento con lo que ocurre.",
+    [C("Latencia", ["Las bacterias se adaptan y no aumenta el número", "El número se duplica cada g", "Nacen tantas como mueren"], 0), C("Exponencial", ["El número se duplica cada g", "Las bacterias se adaptan y no aumenta el número", "Nacen tantas como mueren"], 0), C("Estacionaria", ["Nacen tantas como mueren", "El número se duplica cada g", "Las bacterias se adaptan y no aumenta el número"], 0)],
+    ["En la latencia hay adaptación.", "En la exponencial, n = t / g.", "En la estacionaria, nutrientes limitantes."], "Adaptación; duplicación; equilibrio entre nacimientos y muertes");
+  O("c14", 2, "Un ratón inyectado con neumococos R vivos y neumococos S muertos por calor muere y de su sangre se aíslan bacterias S vivas. ¿Qué explica el resultado?", ["Las R incorporaron ADN de las S muertas (transformación)", "Las S muertas resucitaron con el tiempo", "Las R se convirtieron en S por mutación en el ratón", "El calor no mató a las S"], 0, ["Este es el experimento de Griffith (1928).", "Algo de las S muertas (después se vio que era ADN) transformó a las R."], "Transformación bacteriana");
+  O("c15", 2, "Nitrosomonas obtiene energía oxidando amonio y toma el carbono del CO₂. Es una bacteria…", ["quimioautótrofa", "fotoautótrofa", "quimioheterótrofa", "fotoheterótrofa"], 0, ["Energía de una reacción química → quimio-.", "Carbono del CO₂ → autótrofa."], "Quimioautótrofa");
+  V("c16", 2, "Conservar un alimento con mucha sal impide el crecimiento de bacterias porque en un medio hipertónico pierden agua por ósmosis.", true, ["El medio hipertónico saca agua de la célula bacteriana y la deshidrata", "La sal destruye el ADN bacteriano", "La sal es un antibiótico", "La sal calienta el alimento"], 0, ["Es la misma ósmosis del tema 1: el agua va hacia el medio con más soluto."]);
+
+  // ---- nivel 3
+  X("d1", 3, "Una bacteria con g = 20 min se divide sin ningún límite de alimento durante 24 h. ¿Cuántas habría? (Da el resultado en múltiplos de 10²¹.)", "N (·10²¹) =", 4.72, "·10²¹", ["24 h = 1440 min; n = 1440 / 20 = 72.", "N = 2⁷² = 4,72 · 10²¹ (cifra teórica)."], "≈ 4,7 · 10²¹ bacterias", 0.005);
+  X("d2", 3, "Una bacteria pesa unos 1 pg (10⁻¹² g). ¿Cuántas generaciones harían falta, sin límites, para que la descendencia de una sola pesara 1 g?", "n =", 39.86, "", ["Se necesitan 10¹² bacterias.", "n = log₂ 10¹² = 12 / 0,301 = 39,9."], "≈ 39,9 generaciones", 0.005);
+  X("d3", 3, "Con g = 20 min, ¿cuántas horas tardaría la descendencia de una bacteria en pesar 1 g (n = 39,86)?", "t (h) =", 13.29, "h", ["t = 39,86 · 20 = 797 min.", "797 / 60 ≈ 13,3 h (en la práctica, el alimento se agota mucho antes)."], "≈ 13,3 h", 0.005);
+  X("d4", 3, "Un cultivo tiene 1 · 10⁴ bacterias/mL a las 2 h y 5,12 · 10⁶ a las 5 h, todo en fase exponencial. ¿Cuál es el tiempo de generación?", "g (min) =", 20, "min", ["N / N₀ = 512 = 2⁹ → n = 9.", "g = 180 min / 9 = 20 min."], "20 minutos");
+  X("d5", 3, "Un cultivo con 1000 bacterias/mL tiene 2 h de latencia y luego crece exponencialmente con g = 30 min. ¿Cuántas bacterias/mL habrá a las 8 h? (Da el resultado en múltiplos de 10⁶.)", "N (·10⁶) =", 4.096, "·10⁶", ["Tiempo exponencial: 8 − 2 = 6 h = 360 min.", "n = 360 / 30 = 12; N = 1000 · 2¹² = 1000 · 4096 = 4,096 · 10⁶."], "4,096 · 10⁶ bacterias/mL", 0.005);
+  X("d6", 3, "Un cultivo tiene 3 · 10⁸ UFC/mL. Se siembran 0,1 mL de la dilución 10⁻⁶. ¿Cuántas colonias se esperan?", "Colonias =", 30, "", ["UFC/mL en la dilución: 3 · 10⁸ · 10⁻⁶ = 300.", "En 0,1 mL: 30 colonias (en el límite inferior fiable, 30–300)."], "30 colonias");
+  O("d7", 3, "Una persona mordida por un animal con rabia recibe suero antirrábico (anticuerpos) además de la vacuna. ¿Por qué se le da el suero?", ["Da protección inmediata, aunque temporal, mientras la vacuna genera la inmunidad propia", "Porque el suero produce memoria inmunológica duradera", "Porque la vacuna no funciona sin suero", "Porque el suero mata al virus fuera de las células solo con antibióticos"], 0, ["El suero aporta anticuerpos ya hechos: inmunidad pasiva e inmediata.", "La vacuna tarda días en dar anticuerpos propios (inmunidad activa)."], "Protección inmediata mientras actúa la vacuna");
+  R("d8", "Compara el ciclo lítico y el ciclo lisogénico de un bacteriófago. (Pregunta tipo PAU)", [
+    { t: "Etapas comunes: adsorción y penetración del ADN", p: 0.3 },
+    { t: "Lítico: replicación inmediata, síntesis y ensamblaje de fagos", p: 0.5 },
+    { t: "Lítico: lisis y muerte de la bacteria", p: 0.4 },
+    { t: "Lisogénico: integración como profago y replicación con el ADN bacteriano", p: 0.5 },
+    { t: "Inducción (UV, estrés) que pasa al ciclo lítico", p: 0.3 }], ["Adsorción y penetración.", "Lítico.", "Lisogénico.", "Inducción."], "Lítico: mata ya; lisogénico: integra y espera");
+  R("d9", "Dibuja y rotula una bacteria, y explica la tinción de Gram. (Pregunta tipo PAU)", [
+    { t: "Rotula pared, membrana, nucleoide, ribosomas 70S y plásmido", p: 0.5 },
+    { t: "Rotula cápsula, flagelo o fimbrias", p: 0.2 },
+    { t: "Gram positiva: pared gruesa de peptidoglucano, retiene el violeta", p: 0.5 },
+    { t: "Gram negativa: pared fina y membrana externa, se ve rosa", p: 0.5 },
+    { t: "Importancia: antibióticos distintos (penicilina), LPS", p: 0.3 }], ["Estructuras.", "Gram positiva.", "Gram negativa.", "Importancia."], "Pared gruesa (violeta) / pared fina (rosa)");
+  R("d10", "Describe las fases de la curva de crecimiento de un cultivo bacteriano y explica el motivo de cada una. (Pregunta tipo PAU)", [
+    { t: "Latencia: adaptación, no se dividen apenas", p: 0.4 },
+    { t: "Exponencial: división constante, nutrientes abundantes (recta en log)", p: 0.5 },
+    { t: "Estacionaria: nutrientes agotados y residuos tóxicos, nacimientos = muertes", p: 0.5 },
+    { t: "Declive: mueren más de las que nacen", p: 0.4 },
+    { t: "Usa N = N₀ · 2ⁿ o escala logarítmica correctamente", p: 0.2 }], ["Latencia.", "Exponencial.", "Estacionaria.", "Declive."], "Latencia, exponencial, estacionaria y declive");
+  R("d11", "Explica la estructura del VIH y cómo se reproduce en un linfocito. (Pregunta tipo PAU)", [
+    { t: "Virus con envoltura, cápsida y dos copias de ARN", p: 0.4 },
+    { t: "Adsorción: gp120 con CD4 en linfocitos T auxiliares", p: 0.4 },
+    { t: "Transcriptasa inversa: ARN → ADN", p: 0.5 },
+    { t: "Integración como provirus; transcripción y traducción por la célula", p: 0.4 },
+    { t: "Ensamblaje, gemación y consecuencia (SIDA)", p: 0.3 }], ["Estructura.", "Entrada.", "Transcripción inversa.", "Integración y salida."], "ARN → ADN → provirus → nuevos virus");
+  R("d12", "¿Por qué aparecen bacterias resistentes a los antibióticos y cómo se puede frenar el problema? (Pregunta tipo PAU)", [
+    { t: "Mutaciones al azar o plásmidos R en algunas bacterias", p: 0.5 },
+    { t: "El antibiótico elimina a las sensibles y selecciona a las resistentes", p: 0.5 },
+    { t: "Transmisión horizontal por conjugación", p: 0.4 },
+    { t: "Medidas: uso solo con receta y tratamiento completo", p: 0.4 },
+    { t: "Los antibióticos no sirven contra virus", p: 0.2 }], ["Origen.", "Selección.", "Propagación.", "Medidas."], "Selección natural + conjugación; uso racional");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Ciclo lítico de un fago",
+      pasos: ["Adsorción: se une a la bacteria.", "Penetración: inyecta su ADN.", "Síntesis: replica el ADN y fabrica proteínas.", "Ensamblaje de fagos nuevos.", "Lisis: la bacteria estalla."],
+      nota: "Lisogénico: el ADN se integra (profago) y se copia con la bacteria." },
+    { titulo: "Lítico y lisogénico", ancha: true,
+      tabla: { cab: ["", "Lítico", "Lisogénico"], filas: [
+        ["ADN del virus", "se replica ya", "se integra (profago)"],
+        ["Virus nuevos", "sí, enseguida", "no, hasta la inducción"],
+        ["La célula", "muere (lisis)", "sigue viva y se divide"]
+      ] } },
+    { titulo: "Gram positiva y Gram negativa", ancha: true,
+      tabla: { cab: ["", "Gram +", "Gram −"], filas: [
+        ["pared", "gruesa", "fina + membrana externa"],
+        ["color final", "violeta", "rosa"],
+        ["penicilina", "más sensible", "más resistente"]
+      ] } },
+    { titulo: "Curva de crecimiento", ancha: true,
+      tabla: { cab: ["Fase", "Qué ocurre"], filas: [
+        ["latencia", "adaptación"],
+        ["exponencial", "se duplica cada g"],
+        ["estacionaria", "nacen = mueren"],
+        ["declive", "mueren > nacen"]
+      ] } },
+    { titulo: "Virus, viroide y prión", ancha: true,
+      tabla: { cab: ["Agente", "Qué es"], filas: [
+        ["virus", "ácido nucleico + cápsida"],
+        ["viroide", "ARN circular desnudo"],
+        ["prión", "proteína mal plegada"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "Los antibióticos curan la gripe", bien: "No sirven contra los virus", por: "La gripe es vírica." },
+        { mal: "La pared bacteriana es de celulosa", bien: "Es de peptidoglucano", por: "La celulosa es de las plantas." },
+        { mal: "La conjugación es una reproducción", bien: "Solo intercambia ADN", por: "No aumenta el número de células." },
+        { mal: "La pasteurización esteriliza la leche", bien: "Reduce los microbios, no mata las esporas", por: "Esterilizar es eliminarlo todo." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t14", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio14a.secciones,
+    nuevas: B.parte.bio14a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
