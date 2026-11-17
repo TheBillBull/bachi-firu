@@ -15,7 +15,7 @@
     s.textContent =
       ".bio16-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
       ".bio16-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
-      ".bio16-dato b{display:block;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}" +
+      ".bio16-dato b{display:block;font-size:12px;color:var(--ink-faint);letter-spacing:.03em}" +
       ".bio16-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
       ".bio16-barras{margin:10px 0}" +
       ".bio16-fila{display:grid;grid-template-columns:104px 1fr 64px;gap:8px;align-items:center;margin:5px 0;font-size:14px;color:var(--ink)}" +
@@ -30,7 +30,7 @@
       ".bio16-svg .rej{stroke:var(--line);stroke-width:1;fill:none}" +
       ".bio16-svg .pob{fill:none;stroke-width:2;stroke-linejoin:round}" +
       ".bio16-svg .esp{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-dasharray:6 4}" +
-      ".bio16-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}" +
+      ".bio16-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.bio16-chips .chip-btn,.bio16-gr+.bio16-dato{white-space:normal;max-width:100%}" +
       "@media(max-width:520px){.bio16-dato{grid-template-columns:1fr}.bio16-fila{grid-template-columns:86px 1fr 58px}}";
     document.head.appendChild(s);
   })();
@@ -46,7 +46,7 @@
     var q = 0.5;
     var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "q (alelo a)", min: 0, max: 1, step: 0.001, val: q, fmt: function (v) { return B.fmt(v, 3); }, on: function (v) { q = v; pinta(); } });
     var ch = cuerpo.querySelector("[data-ch]");
-    [["q = 0,5", 0.5], ["Fibrosis quística (1 de cada 2500 enfermos)", 0.02], ["Albinismo (≈ 1 de cada 20 000)", 0.007]].forEach(function (c) {
+    [["q = 0,5", 0.5], ["Fibrosis quística (1/2500)", 0.02], ["Albinismo (≈ 1/20 000)", 0.007]].forEach(function (c) {
       var b = document.createElement("button"); b.type = "button"; b.className = "chip-btn"; b.textContent = c[0];
       b.addEventListener("click", function () { q = c[1]; sl.set(q); pinta(); });
       ch.appendChild(b);
@@ -84,7 +84,7 @@
       '<p class="w-pie">Modelo simplificado: población diploide de tamaño constante N, generaciones separadas, apareamiento al azar, 40 generaciones.</p>';
     var N = 20, s = 0, sem = 1;
     var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
-    U.slider(ctl, { et: "Tamaño N", min: 5, max: 1000, step: 5, val: N, fmt: function (v) { return B.fmt(v, 0) + " individuos"; }, on: function (v) { N = v; pinta(); } });
+    U.slider(ctl, { et: "Individuos N", min: 5, max: 1000, step: 5, val: N, fmt: function (v) { return B.fmt(v, 0); }, on: function (v) { N = v; pinta(); } });
     U.slider(ctl, { et: "Selección s", min: 0, max: 1, step: 0.05, val: s, fmt: function (v) { return B.fmt(v, 2); }, on: function (v) { s = v; pinta(); } });
     U.boton(cuerpo.querySelector("[data-bt]"), "Otra simulación", function () { sem++; pinta(); }, "chip-btn");
     var gr = cuerpo.querySelector(".bio16-gr"), dat = cuerpo.querySelector(".bio16-dato"), ver = cuerpo.querySelector(".bio16-veredicto");
