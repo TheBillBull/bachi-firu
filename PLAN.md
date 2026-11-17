@@ -164,7 +164,7 @@ Química II es la **asignatura prioritaria**: la hija del usuario es quien más 
 | Biología II t11 base molecular de la herencia (44 ej., 248 comprob.) | ≈198k | |
 | Biología II t12 expresión génica (45 ej., 236 comprob.) | ≈226k | |
 | Biología II t13 mutaciones e ingeniería genética (55 ej., 198 comprob.) | ≈222k | |
-| Biología II t14 microbiología (44 ej., 336 comprob.; cortado por límite y reanudado) | ver notificación | |
+| Biología II t14 microbiología (44 ej., 336 comprob.; cortado por límite y reanudado) | ≈218k (+ parte previa) | |
 | *(añadir aquí cada tanda nueva)* | | |
 
 Estimación (mía, **no medida**) para Química II con el estándar ligero: ≈150.000–350.000 tokens por tema, es decir ≈2–3,5 millones en total repartidos en 3 tandas.
