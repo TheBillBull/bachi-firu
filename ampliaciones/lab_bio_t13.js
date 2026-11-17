@@ -76,15 +76,20 @@
       var c = CASOS[k]; modo = c[0]; pos = c[1]; base = c[2]; sync(); pinta();
     });
     function pintaChips() {
-      fModo = U.fichas(cuerpo.querySelector("[data-m]"), [{ k: "sub", t: "Sustitución" }, { k: "ins", t: "Inserción" }, { k: "del", t: "Deleción" }], modo, function (k) { modo = k; pinta(); });
-      fBase = U.fichas(cuerpo.querySelector("[data-b]"), [{ k: "A", t: "A" }, { k: "U", t: "U" }, { k: "G", t: "G" }, { k: "C", t: "C" }], base, function (k) { base = k; pinta(); });
+      fModo = U.fichas(cuerpo.querySelector("[data-m]"), [{ k: "sub", t: "Sustitución" }, { k: "ins", t: "Inserción" }, { k: "del", t: "Deleción" }], modo, function (k) { modo = k; limpia(); pinta(); });
+      fBase = U.fichas(cuerpo.querySelector("[data-b]"), [{ k: "A", t: "A" }, { k: "U", t: "U" }, { k: "G", t: "G" }, { k: "C", t: "C" }], base, function (k) { base = k; limpia(); pinta(); });
+    }
+    var enCaso = false;
+    function limpia() {                          // al tocar algo a mano, el «caso» deja de estar marcado
+      if (enCaso) return;
+      Array.prototype.forEach.call(cuerpo.querySelectorAll("[data-c] .chip-btn"), function (c) { c.classList.remove("on"); c.setAttribute("aria-pressed", "false"); });
     }
     function sync() {                            // vuelve a pintar chips y deslizador tras un caso
       pintaChips();
-      sl.value = pos; sl.dispatchEvent(new Event("input"));
+      enCaso = true; sl.value = pos; sl.dispatchEvent(new Event("input")); enCaso = false;
     }
     pintaChips();
-    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Posición", min: 1, max: 27, step: 1, val: pos, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { pos = Math.round(v); pinta(); } });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Posición", min: 1, max: 27, step: 1, val: pos, fmt: function (v) { return String(Math.round(v)); }, on: function (v) { pos = Math.round(v); limpia(); pinta(); } });
     sl = cuerpo.querySelector("input[type=range]");
     function fmtSeq(s, marca) {                  // tripletes; marca = {tipo, i} para resaltar
       var h = "";
