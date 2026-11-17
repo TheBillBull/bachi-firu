@@ -63,13 +63,13 @@
 
   B.w.bio_respuesta = function (host) {
     var cuerpo = B.caja(host, "Pruébalo", "Primer y segundo contacto con un antígeno");
-    cuerpo.innerHTML = '<p class="w-intro">El primer contacto con el antígeno A ocurre el día 0. Elige qué pasa en el segundo contacto y cuándo.</p>' +
+    cuerpo.innerHTML = '<p class="w-intro">El primer contacto con el antígeno A ocurre el día 0. En el segundo contacto llega el mismo antígeno u otro distinto: elige cuál y cuándo.</p>' +
       '<div data-tipo></div><div data-ctl></div><svg class="bio15-svg" viewBox="0 0 560 250" role="img" aria-label="Anticuerpos en sangre según los días"></svg>' +
       '<div class="bio15-leyenda"></div><div class="bio15-dato"></div><div class="bio15-veredicto"></div>' +
       '<p class="w-pie">Modelo cualitativo en unidades arbitrarias: lo importante es la forma (latencia, altura, duración), no las cifras.</p>';
     var tipo = "mismo", d2 = 40;
-    U.fichas(cuerpo.querySelector("[data-tipo]"), [{ k: "mismo", t: "2.º contacto: el mismo antígeno (A)" }, { k: "otro", t: "2.º contacto: otro antígeno (B)" }], tipo, function (k) { tipo = k; pinta(); });
-    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "Día del 2.º contacto", min: 20, max: 100, step: 5, val: d2, fmt: function (v) { return "día " + v; }, on: function (v) { d2 = v; pinta(); } });
+    U.fichas(cuerpo.querySelector("[data-tipo]"), [{ k: "mismo", t: "Mismo antígeno (A)" }, { k: "otro", t: "Otro antígeno (B)" }], tipo, function (k) { tipo = k; pinta(); });
+    U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "2.º contacto", min: 20, max: 100, step: 5, val: d2, fmt: function (v) { return "día " + v; }, on: function (v) { d2 = v; pinta(); } });
     var svg = cuerpo.querySelector("svg"), ley = cuerpo.querySelector(".bio15-leyenda"), dat = cuerpo.querySelector(".bio15-dato"), ver = cuerpo.querySelector(".bio15-veredicto");
     var X0 = 50, X1 = 540, Y0 = 215, Y1 = 20, TMAX = 140, VMAX = 12;
     function px(t) { return X0 + (X1 - X0) * t / TMAX; }

@@ -166,7 +166,7 @@
     "<p>Fíjate en el caso del <b>antígeno distinto</b>: la memoria es específica. Haber pasado el sarampión no ayuda frente a la gripe. Es otra respuesta primaria.</p>" +
     "<h5>Por qué funcionan las vacunas</h5>" +
     "<p>Una <b>vacuna</b> contiene el antígeno (el patógeno atenuado o muerto, partes de él, una toxina inactivada o el ARN para fabricarlo) sin causar la enfermedad. Provoca una respuesta primaria controlada y deja células de memoria. Cuando llega el patógeno de verdad, la respuesta es secundaria: rápida e intensa. Muchas vacunas necesitan <b>dosis de recuerdo</b>: la segunda dosis hace de «segundo contacto» y sube la memoria.</p>" +
-    "<p>Una persona vacunada protege además a quien no puede vacunarse: es la <b>inmunidad de grupo</b>. Si el patógeno contagia, de media, a R<sub>0</sub> personas, hay que inmunizar a una fracción 1 − 1/R<sub>0</sub> de la población para frenarlo. Para el sarampión (R<sub>0</sub> ≈ 12–18), más del 92–94 %.</p>" +
+    "<p>Una persona vacunada protege además a quien no puede vacunarse: es la <b>inmunidad de grupo</b>. Si el patógeno contagia, de media, a R<sub>0</sub> personas, hay que inmunizar a una fracción 1 − 1/R<sub>0</sub> de la población para frenarlo. Para el sarampión (R<sub>0</sub> ≈ 12–18), del orden del 92–94 %.</p>" +
     ojo("La memoria no está en los anticuerpos sino en las <b>células de memoria</b>: los anticuerpos se degradan en semanas o meses; los linfocitos de memoria duran años. Por eso un análisis puede no mostrar anticuerpos y haber inmunidad."));
 
   // ---------------------------------------------------------------- nuevas

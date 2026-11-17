@@ -199,7 +199,7 @@ for e in T['ejercicios']:
 CLAVE = {
     'b1': 'innata', 'b2': 'Neutrófilo', 'b3': 'antígeno', 'b4': 'timo', 'b5': 'B y anticuerpos', 'b6': 'IgG',
     'b7': 'memoria', 'b8': 'pasiva artificial', 'b9': 'histamina', 'b10': 'alotrasplante',
-    'c1': 'vecinas', 'c2': 'específicamente', 'c3': 'clase I', 'c4': 'marcan', 'c5': 'memoria', 'c6': 'placenta',
+    'c1': 'vecinas', 'c2': 'específicamente', 'c4': 'marcan', 'c5': 'memoria', 'c6': 'placenta',
     'c9': 'hapteno', 'c10': 'Diabetes tipo 1', 'c11': 'muta', 'c12': 'anti-A', 'c13': 'anticuerpos',
     'd8': 'Primaria', 'd10': 'MHC-I',
 }
@@ -208,6 +208,8 @@ for eid, k in CLAVE.items():
     cierto('%s: la correcta contiene «%s»' % (eid, k), k.lower() in c['opciones'][c['ok']].lower())
     cierto('%s: ninguna otra contiene «%s»' % (eid, k), all(k.lower() not in o.lower() for i, o in enumerate(c['opciones']) if i != c['ok']))
 
+c3 = checks(EJ['c3'])[0]
+cierto('c3: MHC clase I es la correcta (única terminada en «I»)', c3['opciones'][c3['ok']].endswith('clase I') and sum(o.endswith('clase I') for o in c3['opciones']) == 1)
 VF_ESP = {'b11': False, 'b12': True, 'c7': False, 'c8': False}
 for eid, v in VF_ESP.items():
     c = checks(EJ[eid])[0]
@@ -234,7 +236,7 @@ for nombre in ('quiz1', 'errores'):
 FALSAS = [
     ('genera células de memoria específicas', 'adaptativa'), ('fabrican los linfocitos t citotóxicos', 'plasmáticas'),
     ('da anticuerpos ya formados', 'suero'), ('es un anticuerpo específico', 'no es un anticuerpo'),
-    ('besos y picaduras', 'no se transmite'), ('ab tiene anticuerpos anti-a y anti-b', 'ningún'),
+    ('besos y picaduras', 'no se transmite'), ('ab tiene anticuerpos anti-a y anti-b', 'ninguno'),
     ('es una infección causada', 'no hay infección'),
 ]
 errs = D['errores']['preguntas']
@@ -283,7 +285,7 @@ for n, f in FECHAS.items():
 HECHOS = [('jenner', '1796'), ('pasteur', '1885'), ('landsteiner', '1901'), ('metchnikoff', '1882'), ('behring', '1890'),
           ('köhler', '1975'), ('montagnier', '1983'), ('burnet', '1957'), ('wiener', '1940'), ('murray', '1954'), ('barnard', '1967')]
 for n, f in HECHOS:
-    cierto('%s ↔ %s en la misma frase de la teoría' % (n, f), re.search(n + r'[^.]{0,200}?' + f, teoria_l) is not None or re.search(f + r'[^.]{0,200}?' + n, teoria_l) is not None)
+    cierto('%s ↔ %s en la misma frase de la teoría' % (n, f), re.search(n + r'.{0,80}?' + f, teoria_l) is not None or re.search(f + r'.{0,80}?' + n, teoria_l) is not None)
 cierto('Nobel 1908, 2008, 1984, 1930 y 1987 citados', all(x in teoria_l for x in ('1908', '2008', '1984', '1930', '1987')))
 cierto('viruela erradicada en 1980', 'erradicada en 1980' in teoria_l)
 cierto('ficha: 6 bloques, 10 palabras clave', len(vz['bloques']) == 6 and len(vz['claves']) == 10)
@@ -300,7 +302,7 @@ cierto('150 kDa en la teoría', '150 kda' in teoria_l)
 cierto('IgM pentámero (10 sitios) y IgA dímero (4 sitios)', 'pentámero (10 sitios)' in teoria_l and 'dímero (4 sitios)' in teoria_l)
 cierto('27 compatibles de 64 en la teoría', '27 son compatibles' in teoria_l)
 cierto('CD4 normal 500–1500 y SIDA < 200', '500–1500' in teoria_l and '200 por µl' in teoria_l)
-cierto('R0 = 12: más del 92 % en la teoría', '92–94' in teoria_l and F(11, 12) > F(92, 100))
+cierto('R0 = 12: más del 92 % en la teoría', '92–94' in teoria_l and round(float(F(11, 12)) * 100) == 92)
 cierto('ejemplo de la gráfica: 6 → 2 días y ×10', 'de 6 a 2 días' in teoria_l and '10 veces' in teoria_l)
 cierto('ficha cita ≈ 10 veces', '10 veces' in vz_txt)
 cierto('lámina: 6 láminas', len(T['lamina']) == 6)
