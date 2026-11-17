@@ -60,8 +60,8 @@
     s += "<polyline class='b7-m' points='34," + y(2) + " 70," + y(2) + " 100," + y(4) + " 168," + y(4) + " 178," + y(2) + " 214," + y(2) + "'/>";
     s += "<polyline class='b7-me' points='254," + y(2) + " 280," + y(2) + " 306," + y(4) + " 354," + y(4) + " 364," + y(2) + " 404," + y(2) + " 414," + y(1) + " 456," + y(1) + "'/>";
     s += "<text x='52' y='186' text-anchor='middle'>G1</text><text x='85' y='186' text-anchor='middle'>S</text><text x='134' y='186' text-anchor='middle'>G2 a anafase</text><text x='196' y='186' text-anchor='middle'>T</text>";
-    s += "<text x='267' y='186' text-anchor='middle'>G1</text><text x='293' y='186' text-anchor='middle'>S</text><text x='338' y='186' text-anchor='middle'>G2 a anafase I</text><text x='384' y='186' text-anchor='middle'>II</text><text x='436' y='186' text-anchor='middle'>gametos</text>";
-    s += "<text x='108' y='215' text-anchor='middle' style='font-weight:400'>el ADN se parte en dos al dividirse la célula</text><text x='352' y='215' text-anchor='middle' style='font-weight:400'>dos caídas: reducción a 2c y luego a 1c</text>";
+    s += "<text x='265' y='186' text-anchor='middle'>G1</text><text x='294' y='186' text-anchor='middle'>S</text><text x='338' y='186' text-anchor='middle'>G2 a anaf. I</text><text x='384' y='186' text-anchor='middle'>II</text><text x='436' y='186' text-anchor='middle'>gametos</text>";
+    s += "<text x='108' y='215' text-anchor='middle' style='font-weight:400'>el ADN se reparte entre 2 células</text><text x='352' y='215' text-anchor='middle' style='font-weight:400'>dos caídas: a 2c y luego a 1c</text>";
     return s + "</svg>";
   }
 
