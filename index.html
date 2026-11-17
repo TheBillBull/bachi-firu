@@ -6674,6 +6674,134 @@
 })(typeof window !== "undefined" ? window : this);
 
 /* ============================================================
+   Bachi para Firu · Biología II, tema 16 (Evolución)
+   bio_hw: equilibrio de Hardy-Weinberg: eliges q (frecuencia del alelo a) y ves p², 2pq y q².
+   bio_deriva: deriva genética y selección: 5 poblaciones simuladas (muestreo al azar de 2N alelos cada generación)
+               frente a la curva sin azar (población infinita).
+   Estilos inyectados desde aquí. Los números del modelo los recalcula herramientas/verificar_bio2_t16.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, U = B.ui;
+
+  (function () {
+    if (!global.document || !document.head || document.getElementById("bio16-estilos")) return;
+    var s = document.createElement("style"); s.id = "bio16-estilos";
+    s.textContent =
+      ".bio16-dato{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}" +
+      ".bio16-dato div{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);font-size:14px;color:var(--ink);line-height:1.35}" +
+      ".bio16-dato b{display:block;font-size:12px;color:var(--ink-faint);letter-spacing:.03em}" +
+      ".bio16-veredicto{margin:6px 0;padding:9px 11px;border-radius:10px;border:1.5px solid var(--pen);background:var(--pen-soft);font-size:15px;color:var(--ink);line-height:1.45}" +
+      ".bio16-barras{margin:10px 0}" +
+      ".bio16-fila{display:grid;grid-template-columns:104px 1fr 64px;gap:8px;align-items:center;margin:5px 0;font-size:14px;color:var(--ink)}" +
+      ".bio16-pista{height:20px;border-radius:6px;background:var(--sheet-2);border:1.5px solid var(--line);overflow:hidden}" +
+      ".bio16-pista i{display:block;height:100%;background:var(--pen)}" +
+      ".bio16-pista i.het{background:var(--ok)}" +
+      ".bio16-pista i.rec{background:var(--red)}" +
+      ".bio16-fila span:last-child{text-align:right;font-variant-numeric:tabular-nums}" +
+      ".bio16-svg{display:block;width:100%;max-width:520px;height:auto;margin:6px auto}" +
+      ".bio16-svg text{font:600 11px var(--body,sans-serif);fill:var(--ink-faint)}" +
+      ".bio16-svg .eje{stroke:var(--ink-faint);stroke-width:1.5;fill:none}" +
+      ".bio16-svg .rej{stroke:var(--line);stroke-width:1;fill:none}" +
+      ".bio16-svg .pob{fill:none;stroke-width:2;stroke-linejoin:round}" +
+      ".bio16-svg .esp{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-dasharray:6 4}" +
+      ".bio16-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.bio16-chips .chip-btn,.bio16-gr+.bio16-dato{white-space:normal;max-width:100%}" +
+      "@media(max-width:520px){.bio16-dato{grid-template-columns:1fr}.bio16-fila{grid-template-columns:86px 1fr 58px}}";
+    document.head.appendChild(s);
+  })();
+
+  function pc(x, d) { return B.fmt(x * 100, d == null ? 2 : d) + " %"; }
+
+  // ------------------------------------------------------------------ HARDY-WEINBERG
+  B.w.bio_hw = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Hardy-Weinberg: de las frecuencias de los alelos a las de los genotipos");
+    cuerpo.innerHTML = '<p class="w-intro">Un gen con dos alelos: <b>A</b> (dominante, frecuencia p) y <b>a</b> (recesivo, frecuencia q), con p + q = 1. Mueve q y mira qué proporción de la población tendrá cada genotipo si se cumple el equilibrio.</p>' +
+      '<div class="bio16-chips" data-ch></div><div data-ctl></div><div class="bio16-barras"></div><div class="bio16-dato"></div><div class="bio16-veredicto"></div>' +
+      '<p class="w-pie">Fórmulas: p² (AA) + 2pq (Aa) + q² (aa) = 1. Los portadores son los heterocigotos Aa, que no muestran la enfermedad recesiva.</p>';
+    var q = 0.5;
+    var sl = U.slider(U.ctl(cuerpo.querySelector("[data-ctl]")), { et: "q (alelo a)", min: 0, max: 1, step: 0.001, val: q, fmt: function (v) { return B.fmt(v, 3); }, on: function (v) { q = v; pinta(); } });
+    var ch = cuerpo.querySelector("[data-ch]");
+    [["q = 0,5", 0.5], ["Fibrosis quística (1/2500)", 0.02], ["Albinismo (≈ 1/20 000)", 0.007]].forEach(function (c) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip-btn"; b.textContent = c[0];
+      b.addEventListener("click", function () { q = c[1]; sl.set(q); pinta(); });
+      ch.appendChild(b);
+    });
+    var bar = cuerpo.querySelector(".bio16-barras"), dat = cuerpo.querySelector(".bio16-dato"), ver = cuerpo.querySelector(".bio16-veredicto");
+    function pinta() {
+      var p = 1 - q, f = [["AA", p * p, ""], ["Aa (portadores)", 2 * p * q, "het"], ["aa (enfermos)", q * q, "rec"]];
+      bar.innerHTML = f.map(function (r) {
+        return '<div class="bio16-fila"><span>' + r[0] + '</span><span class="bio16-pista"><i class="' + r[2] + '" style="width:' + (r[1] * 100).toFixed(2) + '%"></i></span><span>' + pc(r[1]) + "</span></div>";
+      }).join("");
+      var uno = q * q > 0 ? "1 de cada " + B.fmt(Math.round(1 / (q * q)), 0) : "ninguno";
+      dat.innerHTML = "<div><b>p (alelo A)</b>" + B.fmt(p, 3) + "</div><div><b>q (alelo a)</b>" + B.fmt(q, 3) + "</div>" +
+        "<div><b>Heterocigotos 2pq</b>" + pc(2 * p * q) + "</div><div><b>Personas aa</b>" + uno + "</div>";
+      var msg;
+      if (q < 0.001 || q > 0.999) msg = "Un alelo casi ha desaparecido: casi toda la población es del mismo genotipo.";
+      else if (Math.abs(q - 0.5) < 0.0005) msg = "Con q = 0,5 hay el máximo de heterocigotos (50 %): la variabilidad es la mayor posible.";
+      else if (q < 0.1) msg = "Con un alelo recesivo raro, casi todos los que lo llevan son portadores sanos: hay muchos más Aa que aa (2pq frente a q²).";
+      else msg = "Mientras no actúen la selección, la deriva, la migración ni las mutaciones, estas proporciones se mantienen igual generación tras generación.";
+      ver.textContent = msg;
+    }
+    pinta();
+  };
+
+  // ------------------------------------------------------------------ DERIVA Y SELECCIÓN
+  var G = 40, NPOB = 5, Q0 = 0.5;
+  function mulberry(sem) { var a = sem >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  // selección contra el genotipo aa (eficacia 1 - s): q' = q(1 - s q) / (1 - s q²)
+  function paso(q, s) { return q * (1 - s * q) / (1 - s * q * q); }
+  function curva(s) { var r = [Q0], q = Q0, i; for (i = 0; i < G; i++) { q = paso(q, s); r.push(q); } return r; }
+
+  B.w.bio_deriva = function (host) {
+    var cuerpo = B.caja(host, "Pruébalo", "Deriva genética y selección natural");
+    cuerpo.innerHTML = '<p class="w-intro">Cinco poblaciones empiezan con q = 0,5 para el alelo recesivo <b>a</b>. Cada generación se toman al azar 2N alelos de la anterior (deriva). La línea discontinua es lo que pasaría con una población enorme (sin azar). Con s &gt; 0, el genotipo aa tiene eficacia 1 − s (selección contra aa).</p>' +
+      '<div data-ctl></div><div class="bio16-gr"></div><div class="bio16-dato"></div><div class="bio16-veredicto"></div><div data-bt></div>' +
+      '<p class="w-pie">Modelo simplificado: población diploide de tamaño constante N, generaciones separadas, apareamiento al azar, 40 generaciones.</p>';
+    var N = 20, s = 0, sem = 1;
+    var ctl = U.ctl(cuerpo.querySelector("[data-ctl]"));
+    U.slider(ctl, { et: "Individuos N", min: 5, max: 1000, step: 5, val: N, fmt: function (v) { return B.fmt(v, 0); }, on: function (v) { N = v; pinta(); } });
+    U.slider(ctl, { et: "Selección s", min: 0, max: 1, step: 0.05, val: s, fmt: function (v) { return B.fmt(v, 2); }, on: function (v) { s = v; pinta(); } });
+    U.boton(cuerpo.querySelector("[data-bt]"), "Otra simulación", function () { sem++; pinta(); }, "chip-btn");
+    var gr = cuerpo.querySelector(".bio16-gr"), dat = cuerpo.querySelector(".bio16-dato"), ver = cuerpo.querySelector(".bio16-veredicto");
+    var COL = ["var(--pen)", "var(--red)", "var(--ok)", "#b8860b", "#8e44ad"];
+    function pinta() {
+      var rnd = mulberry(sem * 7919 + N * 31 + Math.round(s * 100)), X0 = 34, X1 = 308, Y0 = 160, Y1 = 12, i, g, k;
+      function xs(t) { return (X0 + (X1 - X0) * t / G).toFixed(1); }
+      function ys(v) { return (Y0 - (Y0 - Y1) * v).toFixed(1); }
+      var svg = '<svg class="bio16-svg" viewBox="0 0 320 190" role="img" aria-label="Frecuencia del alelo a a lo largo de 40 generaciones en 5 poblaciones">';
+      [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { svg += '<line class="rej" x1="' + X0 + '" x2="' + X1 + '" y1="' + ys(v) + '" y2="' + ys(v) + '"/><text x="' + (X0 - 5) + '" y="' + (+ys(v) + 4) + '" text-anchor="end">' + B.fmt(v, v === 0 || v === 1 ? 0 : 2) + "</text>"; });
+      [0, 10, 20, 30, 40].forEach(function (t) { svg += '<text x="' + xs(t) + '" y="176" text-anchor="middle">' + t + "</text>"; });
+      svg += '<text x="' + ((X0 + X1) / 2) + '" y="188" text-anchor="middle">generaciones</text><path class="eje" d="M' + X0 + " " + Y1 + "V" + Y0 + "H" + X1 + '"/>';
+      var fij = 0, per = 0, suma = 0;
+      for (k = 0; k < NPOB; k++) {
+        var q = Q0, pts = [xs(0) + "," + ys(q)];
+        for (g = 1; g <= G; g++) {
+          var qs = paso(q, s), c = 0;
+          for (i = 0; i < 2 * N; i++) if (rnd() < qs) c++;
+          q = c / (2 * N); pts.push(xs(g) + "," + ys(q));
+        }
+        if (q >= 1) fij++; else if (q <= 0) per++;
+        suma += q;
+        svg += '<polyline class="pob" style="stroke:' + COL[k] + '" points="' + pts.join(" ") + '"/>';
+      }
+      var det = curva(s), pd = det.map(function (v, t) { return xs(t) + "," + ys(v); }).join(" ");
+      svg += '<polyline class="esp" points="' + pd + '"/></svg>';
+      gr.innerHTML = svg;
+      var qd = det[G];
+      dat.innerHTML = "<div><b>Sin azar (N infinito), q en la generación 40</b>" + B.fmt(qd, 3) + "</div><div><b>q medio de las 5 poblaciones</b>" + B.fmt(suma / NPOB, 3) + "</div>" +
+        "<div><b>Alelo a fijado (q = 1)</b>" + fij + " de " + NPOB + "</div><div><b>Alelo a perdido (q = 0)</b>" + per + " de " + NPOB + "</div>";
+      var msg;
+      if (s === 0 && N >= 500) msg = "Población grande y sin selección: las líneas se quedan cerca de 0,5. La deriva casi no se nota.";
+      else if (s === 0) msg = "Sin selección, las frecuencias cambian solo por azar: cada población va a un sitio distinto y, en las pequeñas, un alelo acaba fijándose y el otro desapareciendo.";
+      else if (N >= 500) msg = "Con selección en contra de aa y población grande, todas las líneas siguen la curva discontinua: q baja de forma previsible.";
+      else msg = "Selección y deriva a la vez: la tendencia general es bajar, pero en poblaciones pequeñas el azar puede dominar y alguna se aparta de la curva.";
+      ver.textContent = msg;
+    }
+    pinta();
+  };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
    Bachi para Firu · Biología (2.º Bach.), tema 2: Glúcidos
    bio2_azucar: un monosacárido en cadena abierta (proyección de Fischer) y en anillo (Haworth), con anómeros α y β.
    bio2_disac: se eligen dos monosacáridos, se unen con enlace O-glucosídico (−H₂O) y sale el disacárido.
@@ -40194,6 +40322,553 @@
     vistazo: vistazo,
     secciones: B.parte.bio15a.secciones,
     nuevas: B.parte.bio15a.nuevas,
+    datos: datos,
+    ejercicios: N,
+    lamina: lamina
+  });
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 16: Evolución
+   (parte A: teoría. Parte B, bio2_t16b.js: ficha, actividades, ejercicios, lámina y registro.)
+   Widgets nuevos en ampliaciones/lab_bio_t16.js (bio_hw, bio_deriva).
+   El original no trae Hardy-Weinberg, especiación ni origen de la vida: se añaden como secciones nuevas.
+
+   IDEAS QUE MÁS CUESTAN / MÁS CAEN EN LA PAU DE MADRID EN ESTE TEMA, Y QUÉ SE HIZO CON CADA UNA
+   1. Lamarck frente a Darwin con el ejemplo de la jirafa (qué se hereda y qué no) → secciones 1 y 2 + tabla comparativa.
+   2. Los cuatro pasos del razonamiento de Darwin (variabilidad, exceso de descendencia, herencia, éxito diferencial) → sección 2 + ordenar.
+   3. La población (no el individuo) es la unidad que evoluciona: evolución = cambio de frecuencias alélicas → sección 4.
+   4. Fuentes de variabilidad: mutación (alelos nuevos, al azar) y recombinación (combinaciones nuevas) → sección 3.
+   5. Homólogos frente a análogos, vestigiales y convergencia → sección 5 + clasificar.
+   6. Hardy-Weinberg: enunciado, condiciones y cálculos (portadores de una enfermedad recesiva) → sección 6 + widget bio_hw.
+   7. Deriva (cuello de botella, efecto fundador), flujo génico y selección (direccional, estabilizadora, disruptiva) → sección 7 + widget bio_deriva.
+   8. Especiación: concepto de especie, barreras reproductivas, alopátrica y simpátrica; gradualismo frente a equilibrio puntuado → sección 8.
+   9. Interpretar datos: recapturas de polillas (melanismo industrial) y cálculo de frecuencias → sección 10 (ejemplo PAU resuelto).
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI, H = B.h, ejemplo = H.ejemplo, ojo = H.ojo, tabla = H.tabla;
+  function w(n, ref) { return H.w(n, ref && "bio2/t16/" + ref); }
+  function env(h) { return "<div class='mv q3f'>" + h + "</div>"; }   // evita que el resaltador de variables tiña las fórmulas
+  B.parte = B.parte || {};
+  var secciones = {};
+
+  // ---------------------------------------------------------------- 1. Fijismo y Lamarck
+  secciones[0] = env(
+    "<h5>Tres ideas sobre el cambio de las especies</h5>" +
+    "<p>Antes del siglo XIX casi todo el mundo pensaba que las especies eran <b>inmutables</b>: tal como aparecieron, así seguían. Es el <b>fijismo</b>. Algunos fijistas, como Cuvier, admitían que había habido extinciones (catastrofismo), pero creían que después se «repoblaba» el mundo con especies nuevas, igual de fijas. Frente a esa idea apareció el <b>evolucionismo</b>: las especies actuales descienden de otras anteriores y cambian con el tiempo.</p>" +
+    tabla(["Fijismo", "Evolucionismo"], [
+      ["Las especies no cambian.", "Las especies cambian y unas dan origen a otras."],
+      ["Cada especie tiene su propio origen.", "Todas las especies tienen antepasados comunes."],
+      ["Los fósiles son restos de especies extinguidas (catastrofismo, Cuvier).", "Los fósiles muestran la historia de esa transformación."]
+    ], "q3t") +
+    "<h5>Lamarck (1809)</h5>" +
+    "<p>Jean-Baptiste Lamarck, en su <i>Filosofía zoológica</i> (1809), fue el primero en proponer una teoría evolutiva completa. Se apoyaba en dos ideas:</p>" +
+    "<ul><li><b>Uso y desuso:</b> los órganos que se usan mucho se desarrollan; los que no se usan se atrofian.</li>" +
+    "<li><b>Herencia de los caracteres adquiridos:</b> los cambios que un individuo adquiere durante su vida pasarían a sus hijos.</li></ul>" +
+    "<p>Su ejemplo famoso es el de la jirafa: al estirar el cuello para llegar a las hojas altas, cada generación habría heredado un cuello algo más largo que el de la anterior.</p>" +
+    "<h5>Por qué la explicación de Lamarck es incorrecta</h5>" +
+    "<p>Lo que se hereda es el <b>ADN de los gametos</b> (Tema 11), y estirar el cuello, hacer pesas o broncearse no modifica el ADN de las células reproductoras. Un culturista no tiene hijos con más músculo por haber entrenado. A finales del siglo XIX, <b>Weismann</b> cortó la cola a ratones durante más de veinte generaciones y las crías siguieron naciendo con cola de tamaño normal. Además, aunque el uso y el desuso son reales, solo cambian al individuo, no a sus descendientes.</p>" +
+    ojo("Lamarck acertó en lo importante (las especies <b>sí</b> cambian y el ambiente influye), y se equivocó en el mecanismo. En el examen, no escribas «Lamarck estaba equivocado» sin más: explica qué defendía y por qué su mecanismo no funciona. Y no confundas «caracteres adquiridos» (un músculo, una cicatriz) con «caracteres heredados» (los que dependen de los genes).") +
+    w("emparejar", "cientificos"));
+
+  // ---------------------------------------------------------------- 2. Darwin
+  secciones[1] = env(
+    "<h5>El viaje del Beagle y la idea de Darwin</h5>" +
+    "<p>Charles Darwin dio la vuelta al mundo en el <i>Beagle</i> (1831-1836). Le impresionaron los fósiles de Sudamérica y, sobre todo, la fauna de las islas Galápagos, donde cada isla tenía pinzones y tortugas algo distintos, pero parecidos a los del continente. Años después leyó a <b>Malthus</b>: las poblaciones tienden a crecer más deprisa que los recursos. En 1858, <b>Alfred Russel Wallace</b>, que había llegado de forma independiente a la misma idea, le escribió desde Asia. Ese año presentaron juntos la teoría en la Sociedad Linneana de Londres, y Darwin publicó en <b>1859</b> <i>El origen de las especies</i>.</p>" +
+    "<h5>La selección natural, paso a paso</h5>" +
+    "<ol><li><b>Variabilidad:</b> los individuos de una población no son idénticos.</li>" +
+    "<li><b>Superproducción de descendientes:</b> nacen muchos más individuos de los que pueden sobrevivir con los recursos disponibles (lucha por la existencia).</li>" +
+    "<li><b>Herencia:</b> parte de esa variación se hereda.</li>" +
+    "<li><b>Éxito reproductivo diferencial:</b> los individuos con variantes más ventajosas en su ambiente sobreviven y se reproducen más, y dejan más descendientes.</li>" +
+    "<li><b>Resultado:</b> con las generaciones, esas variantes son cada vez más frecuentes en la población.</li></ol>" +
+    w("orden", "ordenseleccion") +
+    tabla(["", "Lamarck", "Darwin y Wallace"], [
+      ["<b>Origen de la variación</b>", "El individuo cambia por usar u olvidar un órgano.", "Ya existe antes, en cada individuo, de forma natural."],
+      ["<b>Qué cambia</b>", "Cada individuo se transforma a lo largo de su vida.", "La proporción de variantes en la <b>población</b>."],
+      ["<b>Papel del ambiente</b>", "Provoca el cambio.", "<b>Selecciona</b> entre variantes que ya existían."],
+      ["<b>Cuello de la jirafa</b>", "Se alargó por estirarlo y se heredó.", "Las jirafas con cuello más largo dejaron más descendientes."]
+    ], "q3t") +
+    "<h5>Un ejemplo observable: la polilla del abedul</h5>" +
+    "<p>En Inglaterra, la polilla <i>Biston betularia</i> era casi siempre clara, camuflada sobre los líquenes de los troncos. Con la Revolución Industrial el hollín ennegreció los troncos y las polillas <b>oscuras</b>, antes raras, pasaron a ser mayoría, porque las aves comían más las claras (más visibles). En los años 50, <b>Kettlewell</b> liberó polillas marcadas y comprobó que se recapturaban más oscuras en bosques contaminados y más claras en los limpios. Cuando se limpió el aire, las claras volvieron a aumentar. Nadie «creó» las polillas oscuras por necesidad: ya existían y el ambiente cambió quién tenía ventaja. Otro caso actual es la <b>resistencia de bacterias a antibióticos</b>: el antibiótico no provoca la mutación, solo elimina a las bacterias sensibles y deja a las que ya eran resistentes.</p>" +
+    ojo("<b>No evoluciona un individuo, evoluciona una población.</b> Y la selección natural no «quiere» nada: no hay finalidad ni progreso hacia lo perfecto, solo individuos mejor adaptados <b>a su ambiente en ese momento</b>. «Supervivencia del más apto» significa el que deja más descendencia fértil, no el más fuerte.") );
+
+  // ---------------------------------------------------------------- 3. Variabilidad
+  secciones[2] = env(
+    "<h5>De dónde sale la variación</h5>" +
+    "<p>La selección natural elige entre variantes, así que necesita que existan. Hay dos fuentes principales, y conviene distinguirlas bien:</p>" +
+    tabla(["", "Mutación", "Recombinación (meiosis)"], [
+      ["<b>Qué hace</b>", "Cambia la secuencia del ADN: crea <b>alelos nuevos</b> (Tema 13).", "Mezcla alelos que <b>ya existen</b> en combinaciones nuevas (Tema 7)."],
+      ["<b>Cómo</b>", "Errores de copia, radiación, mutágenos.", "Entrecruzamiento (crossing-over) y segregación independiente de los cromosomas."],
+      ["<b>Velocidad</b>", "Muy lenta y poco frecuente.", "Muy rápida: cada hijo es una combinación distinta."],
+      ["<b>Efecto</b>", "Casi siempre neutra o perjudicial, rara vez ventajosa.", "No cambia las frecuencias de los alelos por sí sola."]
+    ], "q3t") +
+    "<p>Un dato para hacerte una idea: una persona tiene 23 pares de cromosomas, así que por <b>segregación independiente</b> puede producir 2<sup>23</sup> = 8 388 608 gametos distintos <b>sin contar el crossing-over</b>. Por eso los hermanos, salvo gemelos idénticos, son todos distintos. La reproducción sexual multiplica la variabilidad, y por eso la mayoría de especies la practican.</p>" +
+    ojo("Las mutaciones son <b>al azar</b>: no aparecen porque el organismo las necesite. El ambiente no las provoca con un fin; solo decide, después, si la variante resultante es ventajosa, neutra o perjudicial. Esa es la gran diferencia con Lamarck."));
+
+  // ---------------------------------------------------------------- 4. Teoría sintética
+  secciones[3] = env(
+    "<h5>Darwin más genética</h5>" +
+    "<p>Darwin no sabía cómo se heredaban los caracteres. Las leyes de Mendel (1866) pasaron desapercibidas hasta 1900. En las décadas de 1930 y 1940, científicos como <b>Fisher, Haldane y Wright</b> (genética de poblaciones), <b>Dobzhansky</b> (<i>Genética y origen de las especies</i>, 1937), <b>Mayr</b> (1942) y <b>Simpson</b> (paleontología, 1944) unieron todo en la <b>teoría sintética</b> o <b>neodarwinismo</b>. Su idea central:</p>" +
+    "<p><b>La evolución es el cambio de las frecuencias alélicas de una población a lo largo de las generaciones.</b></p>" +
+    "<h5>Los mecanismos que cambian las frecuencias</h5>" +
+    tabla(["Mecanismo", "Qué es", "Efecto"], [
+      ["<b>Mutación</b>", "Cambio en el ADN.", "Aporta alelos nuevos (la materia prima)."],
+      ["<b>Recombinación</b>", "Nuevas combinaciones de alelos.", "Aporta variabilidad, sin cambiar la frecuencia de cada alelo."],
+      ["<b>Selección natural</b>", "Éxito reproductivo diferencial.", "Aumenta los alelos ventajosos: <b>única fuerza que produce adaptación</b>."],
+      ["<b>Deriva genética</b>", "Cambios de frecuencias por azar, notables en poblaciones pequeñas.", "Pierde o fija alelos sin relación con su utilidad."],
+      ["<b>Flujo génico</b>", "Migración: entran o salen individuos y sus alelos.", "Hace parecidas a las poblaciones y añade o quita variación."]
+    ], "q3t") +
+    w("clasificar", "mecanismos") +
+    "<p>La deriva tiene dos casos clásicos. En el <b>cuello de botella</b>, una catástrofe deja muy pocos supervivientes y la población nueva conserva solo una parte, al azar, de la variación (por ejemplo, el elefante marino del norte, casi extinguido por la caza en el siglo XIX, tiene hoy poca variabilidad genética). En el <b>efecto fundador</b>, unos pocos individuos fundan una población nueva en otro sitio y sus alelos, que no tienen por qué ser representativos, se vuelven muy frecuentes (por eso algunas enfermedades raras son comunes en poblaciones aisladas).</p>" +
+    ojo("Tres confusiones típicas: (1) la <b>mutación</b> da alelos nuevos, la <b>recombinación</b> no; (2) la <b>deriva</b> actúa al azar y la <b>selección</b> no: solo la selección explica las adaptaciones; (3) el <b>flujo génico</b> necesita que los migrantes se reproduzcan en la población nueva, no basta con que lleguen."));
+
+  // ---------------------------------------------------------------- 5. Pruebas
+  secciones[4] = env(
+    "<h5>Cinco familias de pruebas que coinciden entre sí</h5>" +
+    tabla(["Tipo de prueba", "Qué muestra", "Ejemplo"], [
+      ["<b>Paleontológicas</b>", "Sucesión de formas en el tiempo y formas intermedias.", "<i>Archaeopteryx</i> (reptil con plumas, hace unos 150 millones de años); <i>Tiktaalik</i> (pez con rasgos de anfibio); la serie fósil del caballo y de los cetáceos."],
+      ["<b>Biogeográficas</b>", "Parecidos y diferencias según el aislamiento de las regiones.", "Los pinzones y las tortugas de las Galápagos; los marsupiales de Australia."],
+      ["<b>Anatomía comparada</b>", "Estructuras homólogas, análogas y vestigiales.", "Miembro anterior de humano, murciélago y ballena; ala de ave y de insecto; apéndice y cóccix humanos."],
+      ["<b>Embriológicas</b>", "Embriones de vertebrados parecidos al principio.", "Hendiduras branquiales y cola en el embrión humano."],
+      ["<b>Moleculares</b>", "Parecido de ADN y proteínas proporcional al parentesco.", "Código genético casi universal; el citocromo c humano y el del chimpancé son idénticos, y el del humano y el de la levadura difieren bastante más."]
+    ], "q3t") +
+    "<h5>Homología, analogía y vestigiales</h5>" +
+    "<ul><li><b>Órganos homólogos:</b> mismo origen evolutivo y misma estructura interna, aunque la función sea distinta (brazo humano, ala de murciélago, aleta de ballena). Prueban <b>antepasado común</b> y dan lugar a <b>evolución divergente</b>.</li>" +
+    "<li><b>Órganos análogos:</b> misma función pero origen y estructura distintos (ala de ave y ala de insecto; aleta de tiburón y de delfín). Resultan de <b>evolución convergente</b>: ambientes parecidos, soluciones parecidas.</li>" +
+    "<li><b>Órganos vestigiales:</b> estructuras reducidas y sin función aparente que sí eran útiles en antepasados (huesos de la cintura pélvica de las ballenas, muelas del juicio, cóccix, apéndice).</li></ul>" +
+    w("clasificar", "homologia") +
+    ojo("Si dos estructuras se parecen en la <b>función</b> pero no en el <b>origen</b>, son análogas y no prueban parentesco. Si se parecen en el <b>origen</b> aunque la función sea distinta, son homólogas y sí lo prueban. Y todas las pruebas apuntan a lo mismo: la pregunta de examen habitual es «cita y explica tres de ellas»."));
+
+  // ---------------------------------------------------------------- nuevas
+  var nuevas = [];
+
+  nuevas.push({ h: "6. Genética de poblaciones y ley de Hardy-Weinberg", html: env(
+    "<h5>Conceptos básicos</h5>" +
+    "<ul><li><b>Población:</b> conjunto de individuos de la misma especie que viven en una zona y se reproducen entre sí.</li>" +
+    "<li><b>Acervo genético (pool génico):</b> conjunto de todos los alelos de todos los individuos de la población.</li>" +
+    "<li><b>Frecuencia alélica:</b> proporción de un alelo entre todos los alelos de ese gen.</li>" +
+    "<li><b>Frecuencia genotípica:</b> proporción de individuos con un genotipo.</li></ul>" +
+    "<p><b>Cómo se calcula la frecuencia de un alelo.</b> Se cuentan alelos, no personas (cada individuo diploide tiene 2 alelos por gen). Ejemplo: en 500 individuos hay 320 AA, 160 Aa y 20 aa. Hay 1000 alelos. Alelos A: 2 · 320 + 160 = 800, por tanto p = 800/1000 = <b>0,8</b>. Alelos a: 2 · 20 + 160 = 200, por tanto q = <b>0,2</b>. Con dos alelos, p + q = 1.</p>" +
+    "<h5>La ley de Hardy-Weinberg (1908)</h5>" +
+    "<p>Hardy y Weinberg demostraron, por separado, que en una población que cumple ciertas condiciones <b>las frecuencias alélicas no cambian de una generación a otra</b>, y que las frecuencias genotípicas se calculan a partir de ellas tras una sola generación de apareamiento al azar:</p>" +
+    "<p style='text-align:center;font-size:1.1em'><b>p² + 2pq + q² = 1</b> &nbsp;(AA, Aa, aa)</p>" +
+    "<p>Condiciones del equilibrio: población <b>muy grande</b> (sin deriva), apareamiento <b>al azar</b>, <b>sin selección</b>, <b>sin mutaciones</b> y <b>sin migración</b> (flujo génico). Casi nunca se cumplen del todo; su utilidad es otra: es el <b>modelo de referencia</b>. Si una población se aparta de él, es que está evolucionando, y se puede investigar cuál de las cinco condiciones falla.</p>" +
+    w("bio_hw") +
+    "<h5>Uso típico: calcular portadores</h5>" +
+    "<p>Como un alelo recesivo solo se ve en los homocigotos aa, a partir de la frecuencia de la enfermedad se calcula q² y de ahí todo lo demás. Ejemplo con la fibrosis quística (la incidencia depende de la población; tomamos 1 de cada 2500 como dato): q² = 1/2500 = 0,0004; <b>q = 0,02</b>; p = 0,98. Los portadores son 2pq = 2 · 0,98 · 0,02 = <b>0,0392 (casi el 4 %, aproximadamente 1 de cada 25 o 26 personas)</b>. Es decir, hay unos 98 portadores sanos por cada enfermo (0,0392 / 0,0004 = 98).</p>" +
+    ojo("(1) Del dato «1 de cada 2500 personas están enfermas» sale <b>q²</b>, no q: hay que hacer la raíz cuadrada. (2) <b>No</b> pueden restarse las frecuencias de los genotipos de los fenotipos dominantes: AA y Aa se ven igual, por eso 2pq no se mide directamente. (3) Si te dan los genotipos contados de una población, primero calcula p y q <b>contando alelos</b> y después compara los genotipos observados con los esperados p², 2pq y q²: si no coinciden, la población no está en equilibrio.")) });
+
+  nuevas.push({ h: "7. La evolución en acción: deriva, flujo génico y selección", html: env(
+    "<h5>Cómo cambian de verdad las frecuencias</h5>" +
+    "<p>Cada condición de Hardy-Weinberg que se rompe corresponde a un mecanismo de la sección 4. El simulador te deja ver dos de ellos a la vez: cuando la población es pequeña, el <b>azar</b> (deriva) hace que cada población evolucione de forma distinta; cuando hay <b>selección</b> en contra de un genotipo, el alelo disminuye de forma previsible.</p>" +
+    w("bio_deriva") +
+    "<p><b>Lo que debes ver:</b> con N pequeño y s = 0, las líneas se separan y algunas llegan a 0 o a 1 (un alelo desaparece y el otro queda «fijado»), sin que ninguno sea mejor. Con N grande y s = 0, las líneas apenas se mueven. Con s &gt; 0, la línea discontinua baja siempre, y cuanto más grande es la población, más se parecen las líneas a ella.</p>" +
+    "<h5>Cálculos con selección y con migración</h5>" +
+    "<ul><li><b>Selección contra el homocigoto recesivo letal</b> (s = 1): q' = q / (1 + q). Con q = 0,2: q' = 0,2 / 1,2 = 0,167. Tras n generaciones, q<sub>n</sub> = q<sub>0</sub> / (1 + n · q<sub>0</sub>). Por eso un alelo recesivo letal <b>desaparece muy despacio</b>: los portadores Aa lo «esconden».</li>" +
+    "<li><b>Flujo génico:</b> si una población con q = 0,2 recibe una fracción m = 0,1 de individuos de otra con q = 0,6, entonces q' = (1 − m) · 0,2 + m · 0,6 = 0,24.</li>" +
+    "<li><b>Probabilidad de fijación por deriva:</b> un alelo nuevo (neutro) presente en una sola copia entre los 2N alelos de la población tiene probabilidad 1/(2N) de acabar fijado. Con N = 50: 1/100 = 1 %.</li></ul>" +
+    "<h5>Tres tipos de selección natural</h5>" +
+    tabla(["Tipo", "Favorece", "Efecto en la distribución", "Ejemplo"], [
+      ["<b>Direccional</b>", "Un extremo.", "El valor medio se desplaza.", "Bacterias resistentes a un antibiótico; polillas oscuras."],
+      ["<b>Estabilizadora</b>", "Los valores intermedios.", "Se reducen los extremos; el valor medio se mantiene.", "Peso al nacer en humanos: los bebés muy pequeños o muy grandes tienen más riesgo."],
+      ["<b>Disruptiva</b>", "Los dos extremos.", "Se forman dos grupos; puede acabar separando especies.", "Pinzones con picos muy grandes o muy pequeños según las semillas disponibles."]
+    ], "q3t") +
+    ojo("«Selección natural» no es lo mismo que «evolución». La selección es solo uno de los mecanismos (el único que explica la adaptación). La deriva puede cambiar frecuencias sin que haya ventaja alguna. Y la selección actúa sobre el <b>fenotipo</b>, pero lo que cambia con las generaciones son las frecuencias de los <b>alelos</b>.")) });
+
+  nuevas.push({ h: "8. Especiación y ritmo de la evolución", html: env(
+    "<h5>¿Qué es una especie?</h5>" +
+    "<p>Según el <b>concepto biológico de especie</b> (Mayr), una especie es un conjunto de poblaciones cuyos individuos pueden cruzarse entre sí en la naturaleza y dejar <b>descendencia fértil</b>, y que están aisladas reproductivamente de las demás. Por eso la mula (cruce de yegua y burro) es un híbrido estéril y no una especie. El concepto tiene límites (no sirve para organismos asexuales ni fósiles), pero es el que se pregunta en el examen.</p>" +
+    "<h5>Barreras reproductivas</h5>" +
+    tabla(["Prezigóticas (impiden la formación del cigoto)", "Postzigóticas (actúan cuando ya hay cigoto)"], [
+      ["Aislamiento de hábitat, de comportamiento (cortejos distintos), de época de reproducción o mecánico.", "Inviabilidad del híbrido (muere pronto)."],
+      ["Incompatibilidad de los gametos.", "Esterilidad del híbrido (la mula)."]
+    ], "q3t") +
+    "<h5>Cómo aparece una especie nueva</h5>" +
+    "<ul><li><b>Alopátrica:</b> una barrera geográfica (un río, una cordillera, el mar) separa una población en dos. Sin flujo génico, cada una acumula mutaciones, deriva y selección distintas, hasta que, aunque se vuelvan a encontrar, ya no pueden cruzarse. Es la más frecuente. Ejemplo: los pinzones de las Galápagos, que se originaron en un antepasado llegado del continente (<b>radiación adaptativa</b>: de un antepasado salen muchas especies que ocupan nichos diferentes).</li>" +
+    "<li><b>Simpátrica:</b> aparece en la misma zona, sin barrera geográfica. La vía clásica en plantas es la <b>poliploidía</b>: un error en la meiosis duplica el número de cromosomas y los descendientes ya no pueden cruzarse con la especie original (así surgió el trigo panadero).</li></ul>" +
+    "<h5>Gradualismo y equilibrio puntuado</h5>" +
+    tabla(["Gradualismo (Darwin)", "Equilibrio puntuado (Eldredge y Gould, 1972)"], [
+      ["Los cambios se acumulan despacio y de forma continua.", "Largos periodos de estabilidad (estasis) interrumpidos por periodos cortos, en escala geológica, de cambios rápidos."],
+      ["Predice muchas formas intermedias en el registro fósil.", "Explica por qué faltan formas intermedias: la especiación rápida deja pocos fósiles."]
+    ], "q3t") +
+    ojo("«Rápido» en el equilibrio puntuado significa miles de años, que en geología es un instante; no es un cambio de un día para otro. Y los dos modelos no se excluyen: ambos aceptan la selección natural, solo difieren en el ritmo.")) });
+
+  nuevas.push({ h: "9. Origen de la vida y evolución humana (breve)", html: env(
+    "<p>El original no trae estos dos asuntos, pero suelen aparecer en el examen en el contexto de la evolución, así que van en resumen.</p>" +
+    "<h5>Origen de la vida</h5>" +
+    "<ul><li><b>Oparin</b> (1924) y <b>Haldane</b> (1929) propusieron que la vida surgió en la Tierra primitiva por evolución química: en una atmósfera sin oxígeno libre, la energía de las descargas y de la radiación formó moléculas orgánicas sencillas que se acumularon en el agua («caldo primitivo»).</li>" +
+    "<li><b>Miller y Urey</b> (1953) lo comprobaron en el laboratorio: con vapor de agua, metano, amoníaco e hidrógeno y descargas eléctricas obtuvieron aminoácidos.</li>" +
+    "<li>Después se formarían polímeros (el <b>mundo de ARN</b>: el ARN almacena información y también cataliza) y protocélulas con membrana, hasta las primeras células, procariotas.</li>" +
+    "<li><b>Teoría endosimbiótica</b> (Margulis, 1967): las mitocondrias y los cloroplastos descienden de bacterias que fueron incorporadas por una célula mayor y acabaron viviendo dentro (Tema 6: tienen ADN circular propio y ribosomas parecidos a los de bacterias).</li></ul>" +
+    "<h5>Evolución humana</h5>" +
+    "<ul><li>Los humanos y los chimpancés compartimos un <b>antepasado común</b> que vivió hace unos 6-7 millones de años; no descendemos de los chimpancés actuales.</li>" +
+    "<li><b>Australopithecus afarensis</b> («Lucy», Etiopía, hace unos 3,2 millones de años): bípedo, cerebro pequeño. Después el género <b>Homo</b> (<i>H. habilis</i>, <i>H. erectus</i>…), con cerebro cada vez mayor y uso de herramientas y del fuego.</li>" +
+    "<li>En <b>Atapuerca</b> (Burgos) se hallaron fósiles de <i>Homo antecessor</i> (unos 850 000 años) y de la Sima de los Huesos (unos 430 000 años). Nuestra especie, <i>Homo sapiens</i>, tiene unos 300 000 años y se originó en África.</li></ul>" +
+    ojo("La evolución humana no es una línea recta de «mono» a «hombre»: es un arbusto ramificado en el que convivieron varias especies de homínidos. Y «hombre desciende del mono» es una simplificación errónea: compartimos antepasado, no descendemos de ninguna especie actual.")) });
+
+  nuevas.push({ h: "10. Ejemplo PAU resuelto: interpretar datos de evolución", html: env(
+    ejemplo("Polillas claras y oscuras (experimento de marcado y recaptura)", "Se liberaron polillas claras y oscuras marcadas en dos bosques y, tras unos días, se recapturaron. <b>Bosque contaminado (troncos oscuros):</b> claras, 64 liberadas y 16 recapturadas; oscuras, 154 liberadas y 82 recapturadas. <b>Bosque limpio (troncos claros):</b> claras, 393 liberadas y 54 recapturadas; oscuras, 406 liberadas y 19 recapturadas. (a) Calcula el porcentaje de recaptura en cada caso. (b) Interpreta los resultados con la teoría de la selección natural. (c) ¿Qué ocurriría con la frecuencia de polillas oscuras si se limpiara el aire? (d) ¿Se trata de selección direccional, estabilizadora o disruptiva?", [
+      "<b>(a)</b> Contaminado: claras 16/64 = <b>25,0 %</b>; oscuras 82/154 = <b>53,2 %</b>. Limpio: claras 54/393 = <b>13,7 %</b>; oscuras 19/406 = <b>4,7 %</b>.",
+      "<b>(b)</b> La recaptura mide la supervivencia: en el bosque contaminado sobreviven más las oscuras (camufladas en el tronco oscuro; las aves ven mejor a las claras) y en el limpio sobreviven más las claras. El mismo color es ventaja en un ambiente y desventaja en el otro: <b>no hay un fenotipo «mejor» en general</b>, sino mejor adaptado a su ambiente.",
+      "Además la variación (polillas claras y oscuras) ya existía antes del hollín: el ambiente no «hizo» las oscuras, solo cambió cuáles dejaban más descendencia.",
+      "<b>(c)</b> Si el aire se limpia, los troncos vuelven a ser claros, las oscuras se ven más y se comen más, las claras tendrían más descendencia y la frecuencia del alelo oscuro <b>bajaría</b> con las generaciones.",
+      "<b>(d)</b> Es <b>selección direccional</b> (favorece un extremo y desplaza la media), y cambia de sentido cuando cambia el ambiente.",
+      "<b>Detalle de examen:</b> la recaptura es una medida indirecta de supervivencia; para fiarse hay que liberar el mismo número de ambos tipos o, como aquí, comparar porcentajes (no números absolutos)."
+    ]) +
+    ejemplo("Hardy-Weinberg con una enfermedad recesiva", "En una población en equilibrio de Hardy-Weinberg, 1 de cada 10 000 personas nace con una enfermedad autosómica recesiva. (a) Calcula q y p. (b) Calcula la frecuencia de portadores. (c) En una ciudad de 500 000 habitantes, ¿cuántos portadores se esperan?", [
+      "<b>(a)</b> q² = 1/10 000 = 0,0001, por tanto <b>q = 0,01</b> y <b>p = 1 − 0,01 = 0,99</b>.",
+      "<b>(b)</b> Portadores = 2pq = 2 · 0,99 · 0,01 = <b>0,0198</b> (casi el 2 %, aproximadamente 1 de cada 50).",
+      "<b>(c)</b> 0,0198 · 500 000 = <b>9900 portadores</b>. Y esperaríamos solo 0,0001 · 500 000 = 50 enfermos: hay unos 200 portadores por cada enfermo.",
+      "<b>Conclusión que puntúa:</b> casi todos los alelos recesivos raros están en <b>heterocigotos</b> sanos, y por eso la selección apenas puede eliminarlos."
+    ]) +
+    ejemplo("Frecuencias a partir de los genotipos contados", "En una población de 100 individuos hay 40 AA, 20 Aa y 40 aa. (a) Calcula p y q. (b) ¿Cuántos Aa esperaríamos si estuviera en equilibrio de Hardy-Weinberg? (c) ¿Está en equilibrio?", [
+      "<b>(a)</b> Alelos: 200. A = 2 · 40 + 20 = 100, por tanto <b>p = 0,5</b>. a = 2 · 40 + 20 = 100, por tanto <b>q = 0,5</b>.",
+      "<b>(b)</b> Esperados: AA = 0,25 · 100 = 25, Aa = 2 · 0,5 · 0,5 · 100 = <b>50</b>, aa = 25.",
+      "<b>(c)</b> Observados 40 / 20 / 40, frente a los esperados 25 / 50 / 25: <b>no está en equilibrio</b>. Faltan heterocigotos. Posibles causas: apareamiento no al azar (entre parecidos) o selección contra Aa.",
+      "<b>Detalle de examen:</b> una población puede tener p = q = 0,5 y aun así no estar en equilibrio; el equilibrio se juzga mirando los genotipos, no solo los alelos."
+    ])) });
+
+  nuevas.push({ h: "11. Cómo se pregunta en la PAU y cómo responder", html: env(
+    "<p>En Biología el orden de una buena respuesta es: <b>definir → explicar con el mecanismo → dar ejemplo → relacionar</b>. Estas son las preguntas más típicas del tema, con una respuesta modelo.</p>" +
+    ejemplo("Pregunta 1. Explica la evolución del cuello de la jirafa según Lamarck y según Darwin", "Respuesta modelo:", [
+      "<b>Lamarck:</b> uso y desuso más herencia de caracteres adquiridos: al estirar el cuello, cada generación lo alarga un poco y se lo transmite a los hijos.",
+      "<b>Darwin:</b> había jirafas con cuello algo más largo y otras más corto (variabilidad); las de cuello largo llegaban a más alimento, sobrevivían y se reproducían más; el rasgo es heredable; con las generaciones se hizo más frecuente.",
+      "<b>Por qué falla Lamarck:</b> lo que se hereda es el ADN de los gametos, no los cambios que adquiere el cuerpo."
+    ]) +
+    ejemplo("Pregunta 2. ¿Qué son órganos homólogos y análogos? Un ejemplo de cada uno", "Respuesta modelo:", [
+      "<b>Homólogos:</b> mismo origen evolutivo y estructura, función distinta (brazo humano y ala de murciélago); indican antepasado común (evolución divergente).",
+      "<b>Análogos:</b> misma función con origen y estructura distintos (ala de ave y de insecto); resultan de evolución convergente.",
+      "Conclusión: solo los homólogos prueban parentesco."
+    ]) +
+    ejemplo("Pregunta 3. Enuncia la ley de Hardy-Weinberg y di para qué sirve", "Respuesta modelo:", [
+      "<b>Enunciado:</b> en una población grande, con apareamiento al azar, sin selección, mutación ni migración, las frecuencias alélicas se mantienen constantes y las genotípicas son p², 2pq y q² (p² + 2pq + q² = 1).",
+      "<b>Utilidad:</b> es el modelo de referencia; permite calcular frecuencias de portadores y detectar si una población está evolucionando.",
+      "<b>Ejemplo:</b> si la enfermedad recesiva afecta a 1 de cada 10 000, q = 0,01 y los portadores son 2pq ≈ 2 %."
+    ]) +
+    ejemplo("Pregunta 4. Explica cómo se forma una especie nueva por especiación alopátrica", "Respuesta modelo:", [
+      "Una barrera geográfica separa una población en dos y corta el flujo génico.",
+      "Cada población acumula mutaciones distintas y es sometida a selección diferente (y a deriva).",
+      "Con el tiempo aparecen barreras reproductivas: aunque se encuentren, no se cruzan o la descendencia es estéril, y ya son especies distintas.",
+      "Ejemplo: pinzones de las Galápagos (radiación adaptativa)."
+    ]) +
+    "<p>Los ejercicios del final de este tema incluyen preguntas abiertas con rúbrica, para que veas qué nota te pondrías.</p>" +
+    "<h5>Comprueba lo aprendido</h5>" +
+    w("quiz", "quiz1") + w("quiz", "errores") + w("tarjetas", "tarjetas1")) });
+
+  B.parte.bio16a = { secciones: secciones, nuevas: nuevas };
+})(typeof window !== "undefined" ? window : this);
+
+/* ============================================================
+   Biología II · ampliaciones · Tema 16 (parte B): Evolución
+   Ficha de un vistazo, datos de actividades, ejercicios, lámina y registro.
+   Cada ejercicio tiene UNA respuesta correcta y las cifras las recalcula herramientas/verificar_bio2_t16.py.
+   ============================================================ */
+(function (global) {
+  "use strict";
+  var B = global.BACHI;
+
+  var resumen = [
+    "El <b>fijismo</b> defendía especies inmutables; <b>Lamarck</b> propuso uso y desuso con herencia de caracteres adquiridos (incorrecto) y <b>Darwin y Wallace</b>, la <b>selección natural</b>.",
+    "La selección natural actúa sobre la <b>variabilidad</b> que aportan la <b>mutación</b> (alelos nuevos, al azar) y la <b>recombinación</b> (combinaciones nuevas).",
+    "La <b>teoría sintética</b> define la evolución como el cambio de frecuencias alélicas de una <b>población</b>, por selección, deriva, flujo génico y mutación.",
+    "Las pruebas (fósiles, anatomía, embriología, moleculares) coinciden: <b>homólogos</b> indican antepasado común y <b>análogos</b>, evolución convergente.",
+    "<b>Hardy-Weinberg</b> (p² + 2pq + q² = 1) es el modelo sin evolución; las <b>especies</b> nuevas surgen con barreras reproductivas, y su ritmo puede ser gradual o puntuado."
+  ];
+
+  // ---------------------------------------------------------------- ficha de un vistazo
+  var vistazo = {
+    titulo: "Evolución",
+    autores: [
+      { n: "Qué estudia", f: "cómo cambian las poblaciones y surgen las especies", l: "selección · deriva · especiación" },
+      { n: "Lamarck", f: "1809", l: "Filosofía zoológica" },
+      { n: "Darwin y Wallace", f: "1858–1859", l: "selección natural; El origen de las especies" },
+      { n: "Hardy y Weinberg", f: "1908", l: "equilibrio genético" },
+      { n: "Dobzhansky", f: "1937", l: "teoría sintética" },
+      { n: "Eldredge y Gould", f: "1972", l: "equilibrio puntuado" }
+    ],
+    obras: ["Filosofía zoológica", "El origen de las especies", "Genética y origen de las especies"],
+    bloques: [
+      { t: "Antes de Darwin", frases: ["<b>Fijismo:</b> las especies no cambian.", "<b>Lamarck:</b> uso y desuso y herencia de lo adquirido.", "Falla: los cambios del cuerpo no modifican el ADN de los gametos."],
+        tabla: { cab: ["Lamarck", "Darwin"], filas: [["el individuo cambia", "la población cambia"], ["variación por uso", "variación ya existente"], ["se hereda lo adquirido", "se selecciona lo ya heredable"]] } },
+      { t: "Selección natural", frases: ["Variabilidad, exceso de descendientes y herencia.", "Más éxito reproductivo para las variantes ventajosas.", "Evolucionan las <b>poblaciones</b>, no los individuos."] },
+      { t: "Teoría sintética", frases: ["Evolución = cambio de frecuencias alélicas.", "Variabilidad: mutación (alelos nuevos) y recombinación."],
+        tabla: { cab: ["Mecanismo", "Efecto"], filas: [["selección natural", "adaptación"], ["deriva genética", "azar; fuerte si N es pequeño"], ["flujo génico", "migración; iguala poblaciones"], ["mutación", "alelos nuevos"]] } },
+      { t: "Pruebas", frases: ["Fósiles, biogeografía, embriología y moléculas.", "El código genético es casi universal."],
+        tabla: { cab: ["Homólogos", "Análogos"], filas: [["mismo origen", "misma función"], ["distinta función", "distinto origen"], ["evolución divergente", "evolución convergente"]] } },
+      { t: "Hardy-Weinberg", frases: ["p + q = 1 y p² + 2pq + q² = 1.", "Sin selección, mutación, migración ni deriva, y con apareamiento al azar.", "Sirve para calcular portadores y detectar evolución."] },
+      { t: "Especiación", frases: ["Barreras reproductivas prezigóticas y postzigóticas.", "<b>Alopátrica:</b> separación geográfica; <b>simpátrica:</b> sin barrera, p. ej. poliploidía."],
+        tabla: { cab: ["Gradualismo", "Equilibrio puntuado"], filas: [["cambio lento y continuo", "estasis y saltos rápidos"], ["muchas formas intermedias", "pocas formas intermedias"]] } }
+    ],
+    resumen: [
+      "Evolucionan las <b>poblaciones</b>: cambian las frecuencias de los alelos por selección, deriva, flujo génico y mutación.",
+      "La <b>selección natural</b> es la única fuerza que explica las adaptaciones; <b>Hardy-Weinberg</b> es el modelo sin evolución."
+    ],
+    conecta: [
+      { con: "Biología T7:", rel: "meiosis y recombinación: fuente de variabilidad." },
+      { con: "Biología T10–T11:", rel: "genética mendeliana y base molecular de la herencia." },
+      { con: "Biología T12–T13:", rel: "código genético universal y mutaciones." },
+      { con: "Biología T14–T15:", rel: "resistencia a antibióticos y evolución de microbios." },
+      { con: "Química II T1:", rel: "proporciones y probabilidades (cálculos con fracciones)." }
+    ],
+    claves: [
+      ["Fijismo", "idea de que las especies no cambian"],
+      ["Selección natural", "éxito reproductivo diferencial de las variantes heredables ventajosas"],
+      ["Teoría sintética", "unión de la selección natural con la genética de poblaciones"],
+      ["Deriva genética", "cambio de frecuencias alélicas por azar, sobre todo en poblaciones pequeñas"],
+      ["Flujo génico", "intercambio de alelos por migración entre poblaciones"],
+      ["Órganos homólogos", "mismo origen evolutivo, aunque la función sea distinta"],
+      ["Hardy-Weinberg", "p² + 2pq + q² = 1: frecuencias estables sin factores evolutivos"],
+      ["Especiación alopátrica", "formación de especies tras una separación geográfica"],
+      ["Equilibrio puntuado", "estasis larga interrumpida por cambios rápidos (Eldredge y Gould)"],
+      ["Cuello de botella", "reducción brusca de la población que pierde variabilidad al azar"]
+    ],
+    cita: { txt: "Evolucionan las poblaciones, no los individuos.", autor: "Dato para recordar", obra: "evolución = cambio de frecuencias alélicas a lo largo de las generaciones" }
+  };
+
+  // ---------------------------------------------------------------- datos de actividades
+  var datos = {
+    cientificos: {
+      titulo: "Científico y aportación",
+      consigna: "Une cada científico con su aportación.",
+      pares: [
+        ["Lamarck", "Uso y desuso y herencia de caracteres adquiridos"],
+        ["Darwin y Wallace", "Selección natural"],
+        ["Weismann", "Cortó la cola a ratones durante generaciones: no se heredan los caracteres adquiridos"],
+        ["Hardy y Weinberg", "Frecuencias constantes en una población sin factores evolutivos"],
+        ["Eldredge y Gould", "Equilibrio puntuado"]
+      ]
+    },
+    ordenseleccion: {
+      titulo: "La selección natural, paso a paso",
+      consigna: "Ordena el razonamiento de Darwin, desde el principio.",
+      items: [
+        { t: "Los individuos de la población varían entre sí" },
+        { t: "Nacen más descendientes de los que pueden sobrevivir" },
+        { t: "Parte de la variación se hereda" },
+        { t: "Los individuos con variantes ventajosas dejan más descendientes" },
+        { t: "Esas variantes se hacen más frecuentes en la población" }
+      ]
+    },
+    mecanismos: {
+      titulo: "¿Qué mecanismo actúa?",
+      consigna: "Clasifica cada situación según el mecanismo evolutivo que explica.",
+      categorias: ["Selección natural", "Deriva genética", "Flujo génico"],
+      items: [
+        { t: "Polillas oscuras que pasan a ser mayoría en troncos con hollín", c: 0 },
+        { t: "Bacterias resistentes que sobreviven a un antibiótico", c: 0 },
+        { t: "Una epidemia deja pocos supervivientes y cambian las frecuencias al azar", c: 1 },
+        { t: "Unos pocos colonos fundan una isla con los alelos que llevaban", c: 1 },
+        { t: "Individuos de una población migran y se reproducen en otra", c: 2 },
+        { t: "Polen de plantas de una zona llega a otra y fecunda", c: 2 }
+      ]
+    },
+    homologia: {
+      titulo: "Homólogo, análogo o vestigial",
+      consigna: "Clasifica cada caso.",
+      categorias: ["Órganos homólogos", "Órganos análogos", "Órgano vestigial"],
+      items: [
+        { t: "Brazo humano y ala de murciélago", c: 0 },
+        { t: "Aleta de ballena y pata de caballo", c: 0 },
+        { t: "Ala de ave y ala de insecto", c: 1 },
+        { t: "Aleta de tiburón y aleta de delfín", c: 1 },
+        { t: "Apéndice del ser humano", c: 2 },
+        { t: "Huesos de la pelvis de una ballena", c: 2 }
+      ]
+    },
+    quiz1: {
+      titulo: "Test del tema 16",
+      preguntas: [
+        { q: "Según Lamarck, ¿por qué las jirafas tienen el cuello largo?", op: ["Por el uso y la herencia de lo adquirido", "Por selección natural sobre variación preexistente", "Por deriva genética", "Porque las especies no cambian"], ok: 0, porque: "Es la explicación lamarckista, hoy descartada." },
+        { q: "En la selección natural de Darwin, la variación…", op: ["ya existe en la población antes de la selección", "aparece porque el individuo la necesita", "se debe al uso de los órganos", "solo la causa el ambiente"], ok: 0, porque: "El ambiente selecciona entre variantes ya presentes." },
+        { q: "La mutación se diferencia de la recombinación en que…", op: ["crea alelos nuevos", "mezcla alelos existentes", "ocurre solo en la meiosis", "siempre es ventajosa"], ok: 0, porque: "La recombinación reordena alelos que ya estaban; la mutación los crea." },
+        { q: "Si la frecuencia del alelo recesivo es q = 0,1, en equilibrio la frecuencia de aa es…", op: ["0,01", "0,1", "0,18", "0,81"], ok: 0, porque: "q² = 0,01 (0,18 es 2pq y 0,81, p²)." },
+        { q: "¿Qué mecanismo es el único que produce adaptaciones?", op: ["La selección natural", "La deriva genética", "El flujo génico", "El azar"], ok: 0, porque: "Solo la selección favorece lo que es ventajoso; la deriva actúa al azar." },
+        { q: "Un alelo se pierde o se fija por azar con más facilidad en…", op: ["una población pequeña", "una población muy grande", "una población con selección fuerte", "una población con mucha migración"], ok: 0, porque: "La deriva es más fuerte cuanto menor es N." },
+        { q: "El ala de un ave y el ala de un insecto son órganos…", op: ["análogos", "homólogos", "vestigiales", "idénticos"], ok: 0, porque: "Misma función con origen distinto." },
+        { q: "En la especiación alopátrica, el primer paso es…", op: ["el aislamiento geográfico", "la poliploidía", "la mutación letal", "el cruce de dos especies"], ok: 0, porque: "La barrera geográfica corta el flujo génico." }
+      ]
+    },
+    errores: {
+      titulo: "Encuentra el error",
+      preguntas: [
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["Darwin explicó el cuello largo de la jirafa por el uso y la herencia de lo adquirido", "Darwin propuso la selección natural", "Lamarck propuso el uso y desuso", "Wallace llegó a la selección natural por su cuenta"], ok: 0, porque: "Esa es la explicación de Lamarck. Darwin habló de variación y éxito reproductivo diferencial." },
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["Las mutaciones aparecen como respuesta a las necesidades del ambiente", "Las mutaciones ocurren al azar", "La recombinación combina alelos que ya existen", "La mutación crea alelos nuevos"], ok: 0, porque: "Son al azar: el ambiente solo selecciona después." },
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["Los órganos análogos prueban un antepasado común reciente", "Los homólogos tienen el mismo origen evolutivo", "Los análogos tienen la misma función", "Los vestigiales perdieron su función"], ok: 0, porque: "Los análogos proceden de evolución convergente; los homólogos son los que prueban parentesco." },
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["En Hardy-Weinberg las frecuencias alélicas cambian cada generación", "La condición exige apareamiento al azar", "Exige que no haya selección natural", "Se cumple mejor en poblaciones grandes"], ok: 0, porque: "Si se cumplen las condiciones, las frecuencias se mantienen." },
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["Tras un cuello de botella la población recupera enseguida toda su variabilidad", "El cuello de botella es un caso de deriva", "Reduce la variabilidad genética", "Ocurre tras una catástrofe"], ok: 0, porque: "Se pierde variabilidad al azar y tarda mucho en recuperarse (solo con mutaciones nuevas y migración)." },
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["La mula es una especie porque es fértil", "La mula es un híbrido de yegua y burro", "La mula es estéril", "Su esterilidad es una barrera postzigótica"], ok: 0, porque: "Es estéril, por eso no forma una especie." },
+        { q: "¿Cuál de estas afirmaciones es FALSA?", op: ["El equilibrio puntuado propone que las especies cambian de un día para otro", "Propone periodos de estasis", "Los cambios rápidos duran miles de años", "Fue propuesto por Eldredge y Gould"], ok: 0, porque: "«Rápido» son miles de años, un instante en tiempo geológico." }
+      ]
+    },
+    tarjetas1: {
+      titulo: "Tarjetas: evolución",
+      cartas: [
+        { a: "Fijismo", b: "Las especies no cambian y cada una tiene su propio origen." },
+        { a: "Lamarck (1809)", b: "Uso y desuso + herencia de los caracteres adquiridos. Incorrecto: el cuerpo no cambia el ADN de los gametos." },
+        { a: "Selección natural", b: "Variabilidad + exceso de descendientes + herencia → éxito reproductivo diferencial." },
+        { a: "Fuentes de variabilidad", b: "Mutación (alelos nuevos, al azar) y recombinación (combinaciones nuevas)." },
+        { a: "Teoría sintética", b: "Selección natural + genética: la evolución es el cambio de frecuencias alélicas de una población." },
+        { a: "Deriva genética", b: "Cambio al azar de frecuencias, más fuerte si N es pequeño: cuello de botella y efecto fundador." },
+        { a: "Flujo génico", b: "Migración de alelos entre poblaciones." },
+        { a: "Órganos homólogos", b: "Mismo origen y estructura, distinta función (brazo humano, ala de murciélago): evolución divergente." },
+        { a: "Órganos análogos", b: "Misma función, distinto origen (ala de ave y de insecto): evolución convergente." },
+        { a: "Órgano vestigial", b: "Reducido y sin función aparente (apéndice, huesos pélvicos de la ballena)." },
+        { a: "Hardy-Weinberg", b: "p + q = 1; p² + 2pq + q² = 1. Equilibrio sin selección, mutación, migración ni deriva y con apareamiento al azar." },
+        { a: "Portadores", b: "Heterocigotos Aa = 2pq. A partir de q² (la frecuencia de la enfermedad) se obtiene q." },
+        { a: "Tipos de selección", b: "Direccional (un extremo), estabilizadora (intermedios), disruptiva (ambos extremos)." },
+        { a: "Especiación alopátrica y simpátrica", b: "Con barrera geográfica / sin barrera (p. ej. poliploidía en plantas)." },
+        { a: "Gradualismo y equilibrio puntuado", b: "Cambio lento y continuo / estasis larga con cambios rápidos (Eldredge y Gould, 1972)." }
+      ]
+    }
+  };
+
+  // ---------------------------------------------------------------- ejercicios
+  var N = [];
+  function O(id, nv, enun, ops, ok, pasos, res, et) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "opcion", etiqueta: et || "Tu respuesta", opciones: ops, ok: ok }, pasos: pasos, resultado: res || ops[ok] });
+  }
+  function M(id, nv, enun, campos, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: campos, pasos: pasos, resultado: res });
+  }
+  function C(et, ops, ok) { return { tipo: "opcion", etiqueta: et, opciones: ops, ok: ok }; }
+  var VF = ["Verdadero", "Falso"];
+  function V(id, nv, enun, ver, justif, ok, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun,
+      check: [C("¿Verdadero o falso?", VF, ver ? 0 : 1), C("Justificación", justif, ok)], pasos: pasos, resultado: res || ((ver ? "Verdadero: " : "Falso: ") + justif[ok]) });
+  }
+  function T(id, nv, enun, et, valores, pasos, res) {
+    N.push({ id: id, nivel: nv, enunciado: enun, check: { tipo: "texto", etiqueta: et, valores: valores }, pasos: pasos, resultado: res });
+  }
+  function X(id, nv, enun, et, valor, unidad, pasos, res, tol) {
+    var c = { tipo: "num", etiqueta: et, valor: valor, unidad: unidad };
+    if (tol) c.tol = tol;
+    N.push({ id: id, nivel: nv, enunciado: enun, check: c, pasos: pasos, resultado: res });
+  }
+  function R(id, enun, items, pasos, res) {
+    N.push({ id: id, nivel: 3, enunciado: enun, check: { tipo: "rubrica", etiqueta: "Tu respuesta", filas: 8, items: items }, pasos: pasos, resultado: res });
+  }
+
+  // ---- nivel 1
+  O("b1", 1, "¿Qué propuso Lamarck para explicar el cambio de las especies?", ["Uso y desuso y herencia de los caracteres adquiridos", "Selección natural sobre la variación existente", "Que las especies nunca cambian", "Que los cambios son solo por azar"], 0, ["Es su teoría de 1809.", "La selección natural es de Darwin y Wallace."], "Uso y desuso con herencia de lo adquirido");
+  O("b2", 1, "¿Quién propuso, junto con Darwin, la selección natural?", ["Wallace", "Lamarck", "Mendel", "Weismann"], 0, ["Alfred Russel Wallace llegó a la misma idea de forma independiente.", "Presentaron juntos la teoría en 1858."], "Wallace");
+  O("b3", 1, "El fijismo defendía que…", ["las especies no cambian con el tiempo", "las especies descienden unas de otras", "el ambiente selecciona a los más aptos", "la variación aparece por uso"], 0, ["Fijismo = especies inmutables.", "Las otras son ideas evolucionistas."], "Las especies son inmutables");
+  V("b4", 1, "Según Darwin, las jirafas alargaron el cuello al estirarlo y ese cuello más largo se heredó.", false, ["Es la explicación de Lamarck; Darwin explicó el cuello por selección de la variación existente", "Es la explicación correcta", "Darwin no explicó el cuello de las jirafas", "El cuello largo no es heredable"], 0, ["Darwin: las jirafas con cuello algo más largo dejaron más descendientes."]);
+  O("b5", 1, "¿Qué unidad evoluciona?", ["La población", "El individuo", "La célula", "El órgano"], 0, ["Un individuo no cambia su genotipo en la evolución.", "Cambian las frecuencias de los alelos de la población."], "La población");
+  O("b6", 1, "¿Qué proceso crea alelos nuevos?", ["La mutación", "La recombinación", "La segregación independiente", "El entrecruzamiento"], 0, ["La mutación cambia el ADN y crea alelos nuevos.", "Recombinación y segregación reordenan alelos que ya existen."], "La mutación");
+  O("b7", 1, "El brazo humano y el ala de un murciélago son órganos…", ["homólogos", "análogos", "vestigiales", "convergentes"], 0, ["Mismo origen y mismo esqueleto, con funciones distintas."], "Homólogos");
+  O("b8", 1, "El ala de un ave y el ala de una mariposa son órganos…", ["análogos", "homólogos", "vestigiales", "con el mismo origen"], 0, ["Misma función (volar) pero origen y estructura distintos."], "Análogos");
+  T("b9", 1, "Completa: el cambio de frecuencias alélicas por azar, más notable en poblaciones pequeñas, se llama…", "Mecanismo", ["deriva genética", "deriva genetica", "deriva"], ["Es el azar el que cambia las frecuencias, no la utilidad del alelo."], "Deriva genética");
+  V("b10", 1, "Las mutaciones aparecen porque el organismo las necesita para adaptarse.", false, ["Aparecen al azar; el ambiente solo selecciona después", "Aparecen siempre como respuesta al ambiente", "Solo aparecen en la meiosis", "Siempre son ventajosas"], 0, ["Si fuera así, volveríamos a Lamarck.", "El antibiótico no provoca la resistencia: elimina a las bacterias sensibles."]);
+  O("b11", 1, "Los huesos de la pelvis de una ballena son un ejemplo de órgano…", ["vestigial", "análogo", "homólogo de un ala", "funcional de nado"], 0, ["Son restos reducidos, sin función aparente, de antepasados con patas."], "Vestigial");
+  X("b12", 1, "En una población de 100 individuos hay 36 AA, 48 Aa y 16 aa. ¿Cuál es la frecuencia del alelo a (q)?", "q =", 0.4, "", ["Hay 200 alelos.", "Alelos a = 2 · 16 + 48 = 80.", "q = 80 / 200 = 0,4."], "q = 0,4");
+  X("b13", 1, "Si la frecuencia del alelo a es q = 0,3 (dos alelos), ¿cuál es la del alelo A (p)?", "p =", 0.7, "", ["p + q = 1.", "p = 1 − 0,3 = 0,7."], "p = 0,7");
+  M("b14", 1, "Une cada científico con su aportación.",
+    [C("Lamarck", ["Uso y desuso", "Selección natural", "Equilibrio puntuado"], 0), C("Darwin", ["Selección natural", "Uso y desuso", "Equilibrio puntuado"], 0), C("Eldredge y Gould", ["Equilibrio puntuado", "Uso y desuso", "Selección natural"], 0)],
+    ["Lamarck: uso y desuso; Darwin (y Wallace): selección natural; Eldredge y Gould: equilibrio puntuado."], "Lamarck → uso y desuso; Darwin → selección natural; Eldredge y Gould → equilibrio puntuado");
+  O("b15", 1, "¿Cuál de estos mecanismos es el único que explica las adaptaciones?", ["La selección natural", "La deriva genética", "El flujo génico", "La recombinación"], 0, ["La selección favorece lo ventajoso.", "La deriva actúa al azar y el flujo génico mueve alelos entre poblaciones."], "La selección natural");
+  O("b16", 1, "Que el código genético sea casi universal se considera una prueba…", ["molecular de un antepasado común", "paleontológica", "de la herencia de los caracteres adquiridos", "de la ley de Hardy-Weinberg"], 0, ["Todos los seres vivos usan casi el mismo código: descienden de un antepasado común."], "Molecular");
+
+  // ---- nivel 2
+  X("c1", 2, "En una población en equilibrio de Hardy-Weinberg, q = 0,2. ¿Qué frecuencia tiene el genotipo aa?", "q² =", 0.04, "", ["f(aa) = q².", "q² = 0,2 · 0,2 = 0,04."], "0,04 (un 4 %)");
+  X("c2", 2, "Con q = 0,2 (y p = 0,8), ¿qué frecuencia tienen los heterocigotos Aa?", "2pq =", 0.32, "", ["2pq = 2 · 0,8 · 0,2.", "= 0,32."], "0,32 (32 %)");
+  X("c3", 2, "Una enfermedad recesiva afecta a 1 de cada 10 000 personas (equilibrio de H-W). ¿Cuánto vale q?", "q =", 0.01, "", ["q² = 1/10 000 = 0,0001.", "q = √0,0001 = 0,01."], "q = 0,01");
+  X("c4", 2, "Con una incidencia de 1 de cada 2500 (fibrosis quística), calcula el porcentaje de portadores (2pq).", "Portadores (%) =", 3.92, "%", ["q² = 1/2500 = 0,0004; q = 0,02; p = 0,98.", "2pq = 2 · 0,98 · 0,02 = 0,0392."], "3,92 % (≈ 1 de cada 25 o 26 personas)", 0.01);
+  X("c5", 2, "En una población de 1000 personas en equilibrio, q = 0,1. ¿Cuántos heterocigotos Aa se esperan?", "Aa esperados =", 180, "personas", ["p = 0,9.", "2pq = 2 · 0,9 · 0,1 = 0,18.", "0,18 · 1000 = 180."], "180");
+  X("c6", 2, "El albinismo afecta a unas 1 de cada 20 000 personas. Calcula q (da el valor multiplicado por 1000).", "q · 1000 =", 7.07, "", ["q² = 1/20 000 = 0,00005.", "q = √0,00005 = 0,00707.", "q · 1000 = 7,07."], "q ≈ 0,00707", 0.01);
+  O("c7", 2, "¿Cuál de estas condiciones NO es necesaria para que se cumpla el equilibrio de Hardy-Weinberg?", ["Que actúe la selección natural", "Que la población sea muy grande", "Que el apareamiento sea al azar", "Que no haya migración"], 0, ["Es al revés: no debe haber selección."], "Que actúe la selección natural");
+  V("c8", 2, "En una población en equilibrio de Hardy-Weinberg las frecuencias de los alelos cambian en cada generación.", false, ["Si se cumplen las condiciones, se mantienen constantes", "Cambian porque hay mutaciones", "Cambian porque hay selección", "Cambian en las poblaciones grandes"], 0, ["El equilibrio significa que no hay cambio."]);
+  X("c9", 2, "En una población de 200 individuos en equilibrio, q = 0,5. ¿Cuántos individuos aa se esperan?", "aa esperados =", 50, "individuos", ["q² = 0,25.", "0,25 · 200 = 50."], "50");
+  O("c10", 2, "Una epidemia deja vivos a 20 individuos de una población de 10 000, y los supervivientes tienen menos variabilidad que la población original. Es un ejemplo de…", ["cuello de botella (deriva)", "selección direccional", "flujo génico", "especiación simpátrica"], 0, ["Reducción brusca de la población y pérdida de variabilidad al azar."], "Cuello de botella");
+  M("c11", 2, "Une cada tipo de selección con su ejemplo.",
+    [C("Direccional", ["Bacterias resistentes a un antibiótico", "Peso al nacer en humanos", "Pinzones de pico muy grande o muy pequeño"], 0), C("Estabilizadora", ["Peso al nacer en humanos", "Bacterias resistentes a un antibiótico", "Pinzones de pico muy grande o muy pequeño"], 0), C("Disruptiva", ["Pinzones de pico muy grande o muy pequeño", "Bacterias resistentes a un antibiótico", "Peso al nacer en humanos"], 0)],
+    ["Direccional: favorece un extremo.", "Estabilizadora: favorece los intermedios.", "Disruptiva: favorece los dos extremos."], "Direccional → resistencia; estabilizadora → peso al nacer; disruptiva → picos extremos");
+  O("c12", 2, "En la especiación alopátrica, lo primero que ocurre es…", ["una barrera geográfica separa dos poblaciones", "una duplicación del número de cromosomas", "un cruce con otra especie", "una selección estabilizadora"], 0, ["La separación geográfica corta el flujo génico.", "La duplicación de cromosomas es la poliploidía (simpátrica)."], "Una barrera geográfica");
+  V("c13", 2, "La mula es una especie porque nace del cruce de una yegua y un burro y es fértil.", false, ["Es un híbrido estéril, por lo que no forma una especie", "Es fértil y forma una especie", "Es una especie por tener 64 cromosomas", "Es una subespecie del burro"], 0, ["Un híbrido estéril no deja descendencia: barrera postzigótica."]);
+  O("c14", 2, "Unos pocos individuos colonizan una isla y sus alelos, que no eran representativos de la población de origen, se hacen muy frecuentes. Es el…", ["efecto fundador", "cuello de botella por catástrofe", "flujo génico", "equilibrio puntuado"], 0, ["Pocos fundadores, en un sitio nuevo: efecto fundador (un tipo de deriva)."], "Efecto fundador");
+  X("c15", 2, "Selección en contra del recesivo letal aa (s = 1): q' = q / (1 + q). Con q = 0,5, ¿cuánto vale q' en la siguiente generación?", "q' =", 0.333, "", ["q' = 0,5 / 1,5.", "q' = 0,333."], "q' = 0,333", 0.005);
+  X("c16", 2, "Un organismo tiene 4 pares de cromosomas homólogos. Sin contar el crossing-over, ¿cuántos gametos distintos puede producir?", "Gametos =", 16, "", ["Cada par aporta 2 opciones.", "2⁴ = 16."], "16");
+
+  // ---- nivel 3
+  X("d1", 3, "En una población en equilibrio, el 9 % de las personas muestra un carácter recesivo. ¿Qué porcentaje es heterocigoto (2pq)?", "2pq (%) =", 42, "%", ["q² = 0,09, por tanto q = 0,3 y p = 0,7.", "2pq = 2 · 0,7 · 0,3 = 0,42."], "42 %");
+  X("d2", 3, "En 100 individuos hay 40 AA, 20 Aa y 40 aa. Calcula p y q y di cuántos Aa se esperarían en equilibrio de Hardy-Weinberg.", "Aa esperados =", 50, "individuos", ["Alelos A: 2 · 40 + 20 = 100; p = 0,5, q = 0,5.", "Aa esperados = 2pq · 100 = 0,5 · 100 = 50.", "Hay 20 observados: la población no está en equilibrio."], "50 (frente a 20 observados)");
+  X("d3", 3, "Con selección total contra aa, q<sub>n</sub> = q<sub>0</sub> / (1 + n · q<sub>0</sub>). Si q<sub>0</sub> = 0,2, ¿cuánto vale q tras 2 generaciones?", "q₂ =", 0.143, "", ["q₂ = 0,2 / (1 + 2 · 0,2).", "= 0,2 / 1,4 = 0,1429."], "q₂ ≈ 0,143");
+  X("d4", 3, "Una población diploide de N = 50 individuos tiene un alelo nuevo neutro en una sola copia. ¿Qué probabilidad tiene de acabar fijado por deriva (en %)?", "Probabilidad (%) =", 1, "%", ["Hay 2N = 100 alelos.", "Probabilidad = 1/100 = 0,01.", "= 1 %."], "1 %");
+  X("d5", 3, "Una población con q = 0,2 recibe una fracción m = 0,1 de individuos de otra con q = 0,6. ¿Cuál es el nuevo valor de q?", "q' =", 0.24, "", ["q' = (1 − m) · 0,2 + m · 0,6.", "= 0,9 · 0,2 + 0,1 · 0,6 = 0,18 + 0,06 = 0,24."], "q' = 0,24");
+  X("d6", 3, "Se liberan 50 polillas claras y 80 oscuras en un bosque de troncos oscuros y se recapturan 10 claras y 48 oscuras. ¿Cuántas veces mayor es la supervivencia de las oscuras que la de las claras (cociente entre los porcentajes de recaptura)?", "Cociente =", 3, "veces", ["Claras: 10/50 = 20 %.", "Oscuras: 48/80 = 60 %.", "60 / 20 = 3."], "3 veces: selección a favor del color oscuro");
+  O("d7", 3, "Las aletas de un tiburón (pez) y de un delfín (mamífero) se parecen mucho. Su parecido se debe a…", ["evolución convergente: son órganos análogos", "evolución divergente: son órganos homólogos", "que ambos descienden de un tiburón", "que el delfín heredó la aleta del tiburón"], 0, ["Misma función (nadar) y origen distinto: análogos.", "Ambientes parecidos dieron soluciones parecidas."], "Evolución convergente");
+  R("d8", "Explica la evolución del cuello de la jirafa según Lamarck y según Darwin. ¿Por qué la explicación de Lamarck no es válida? (Pregunta tipo PAU)", [
+    { t: "Lamarck: uso y desuso con herencia de caracteres adquiridos", p: 0.5 },
+    { t: "Darwin: variabilidad previa, exceso de descendientes y herencia", p: 0.5 },
+    { t: "Darwin: éxito reproductivo diferencial y cambio de frecuencias en la población", p: 0.5 },
+    { t: "Por qué falla Lamarck: el ADN de los gametos no cambia por el uso", p: 0.4 },
+    { t: "Lenguaje científico correcto", p: 0.1 }], ["Lamarck.", "Darwin.", "Éxito diferencial.", "Crítica."], "Lamarck: uso y herencia de lo adquirido; Darwin: selección natural");
+  R("d9", "Explica qué son la deriva genética, el flujo génico y la selección natural, y en qué se diferencian. (Pregunta tipo PAU)", [
+    { t: "Deriva: cambio de frecuencias por azar, más fuerte en poblaciones pequeñas", p: 0.5 },
+    { t: "Ejemplo de deriva: cuello de botella o efecto fundador", p: 0.3 },
+    { t: "Flujo génico: migración de alelos entre poblaciones", p: 0.4 },
+    { t: "Selección natural: éxito reproductivo diferencial; única que produce adaptación", p: 0.5 },
+    { t: "Distinción azar / movimiento / ventaja", p: 0.3 }], ["Deriva.", "Flujo génico.", "Selección.", "Diferencias."], "Deriva = azar; flujo = migración; selección = ventaja");
+  R("d10", "Cita y explica tres pruebas de la evolución. (Pregunta tipo PAU)", [
+    { t: "Primera prueba bien explicada (p. ej. fósiles y formas intermedias)", p: 0.5 },
+    { t: "Segunda prueba bien explicada (p. ej. homología y analogía)", p: 0.5 },
+    { t: "Tercera prueba bien explicada (p. ej. código genético universal o embriología)", p: 0.5 },
+    { t: "Ejemplos concretos (Archaeopteryx, brazo-ala-aleta, citocromo c)", p: 0.4 },
+    { t: "Conclusión: apuntan a un antepasado común", p: 0.1 }], ["Prueba 1.", "Prueba 2.", "Prueba 3.", "Ejemplos."], "Paleontológicas, anatomía comparada, moleculares…");
+  R("d11", "Enuncia la ley de Hardy-Weinberg y explica sus condiciones y su utilidad. Una enfermedad recesiva afecta a 1 de cada 10 000: calcula q y los portadores. (Pregunta tipo PAU)", [
+    { t: "Enunciado: frecuencias alélicas constantes y genotípicas p², 2pq, q²", p: 0.4 },
+    { t: "Condiciones: población grande, apareamiento al azar, sin selección, mutación ni migración", p: 0.5 },
+    { t: "Utilidad: modelo de referencia para calcular portadores o detectar evolución", p: 0.3 },
+    { t: "q = 0,01 (de q² = 0,0001)", p: 0.4 },
+    { t: "Portadores 2pq = 0,0198 (≈ 2 %)", p: 0.4 }], ["Enunciado.", "Condiciones.", "Utilidad.", "q = 0,01.", "2pq = 0,0198."], "q = 0,01; portadores ≈ 2 %");
+  R("d12", "Explica cómo se forma una especie nueva por especiación alopátrica y compara el gradualismo con el equilibrio puntuado. (Pregunta tipo PAU)", [
+    { t: "Barrera geográfica que separa la población y corta el flujo génico", p: 0.4 },
+    { t: "Acumulan mutaciones, deriva y selección distintas", p: 0.4 },
+    { t: "Barreras reproductivas: ya no pueden cruzarse o la descendencia es estéril", p: 0.4 },
+    { t: "Gradualismo: cambio lento y continuo", p: 0.4 },
+    { t: "Equilibrio puntuado: estasis y cambios rápidos (Eldredge y Gould)", p: 0.4 }], ["Barrera.", "Divergencia.", "Aislamiento reproductivo.", "Gradualismo.", "Puntuado."], "Barrera → divergencia → aislamiento reproductivo");
+
+  // ---------------------------------------------------------------- lámina
+  var lamina = [
+    { titulo: "Lamarck frente a Darwin", ancha: true,
+      tabla: { cab: ["", "Lamarck", "Darwin"], filas: [
+        ["variación", "por uso y desuso", "ya existe"],
+        ["herencia", "de lo adquirido", "de lo heredable"],
+        ["qué cambia", "el individuo", "la población"],
+        ["jirafa", "estira el cuello", "gana la de cuello largo"]
+      ] } },
+    { titulo: "Mecanismos de la evolución", ancha: true,
+      tabla: { cab: ["Mecanismo", "Efecto"], filas: [
+        ["mutación", "alelos nuevos"],
+        ["recombinación", "combinaciones nuevas"],
+        ["selección natural", "adaptación"],
+        ["deriva genética", "cambio por azar"],
+        ["flujo génico", "migración de alelos"]
+      ] } },
+    { titulo: "Hardy-Weinberg: cómo calcular",
+      pasos: ["Frecuencia de la enfermedad = q².", "q = raíz de q²; p = 1 − q.", "Portadores = 2pq.", "Número esperado = frecuencia · tamaño de la población."],
+      nota: "1/10 000 → q = 0,01; 2pq = 0,0198." },
+    { titulo: "Homólogos y análogos", ancha: true,
+      tabla: { cab: ["", "Homólogos", "Análogos"], filas: [
+        ["origen", "el mismo", "distinto"],
+        ["función", "puede ser distinta", "la misma"],
+        ["evolución", "divergente", "convergente"],
+        ["ejemplo", "brazo y ala de murciélago", "ala de ave y de insecto"]
+      ] } },
+    { titulo: "Errores típicos", ancha: true,
+      errores: [
+        { mal: "El individuo evoluciona", bien: "Evoluciona la población", por: "Cambian las frecuencias de los alelos." },
+        { mal: "Las mutaciones aparecen porque se necesitan", bien: "Aparecen al azar", por: "El ambiente solo selecciona." },
+        { mal: "q² es la frecuencia de portadores", bien: "Los portadores son 2pq", por: "q² es la de los aa." },
+        { mal: "El equilibrio puntuado es un cambio repentino", bien: "Son miles de años", por: "Rápido en tiempo geológico." }
+      ] }
+  ];
+
+  B.registrar("bio2", "t16", {
+    resumen: resumen,
+    vistazo: vistazo,
+    secciones: B.parte.bio16a.secciones,
+    nuevas: B.parte.bio16a.nuevas,
     datos: datos,
     ejercicios: N,
     lamina: lamina
