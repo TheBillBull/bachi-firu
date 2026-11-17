@@ -134,7 +134,7 @@
       ["<b>Sin sentido</b>", "CAA → UAA (Gln → parada)", "Proteína más corta, casi siempre inservible"],
       ["<b>Cambio de fase</b> (inserción o pérdida de 1–2 bases)", "AUG GAA CCC → AUG AAC CC…", "Se desplaza todo el marco: cambian todos los aminoácidos siguientes"]
     ], "q3t") +
-    ojo("«Degenerado» no significa «defectuoso». Significa que <b>hay más de un codón por aminoácido</b>, no que un codón dé varios aminoácidos (eso sería ambiguo y el código no lo es).") +
+    ojo("«Código degenerado» no significa «defectuoso». Significa que <b>hay más de un codón por aminoácido</b>, no que un codón dé varios aminoácidos (eso sería ambiguo y el código no lo es).") +
     w("emparejar", "codigo"));
 
   // ---------------------------------------------------------------- 5. Traducción
